@@ -1,0 +1,46 @@
+<HTML>
+<HEAD>
+<TITLE>YCSB - Parallel clients</TITLE>
+</HEAD>
+<BODY>
+<H1><img src="images/ycsblogo-small.png"> Yahoo! Cloud Serving Benchmark</H1>
+<H3>Version 0.1</H3>
+<HR>
+<A HREF="index.html">Home</A> - <A href="coreworkloads.html">Core workloads</A> - <a href="tipsfaq.html">Tips and FAQ</A>
+<HR>
+<H2>Running multiple clients in parallel</h2>
+It is straightforward to run the transaction phase of the workload from multiple servers - just start up clients on different servers, each running the same workload. Each client will
+produce performance statistics when it is done, and you'll have to aggregate these individual files into a single set of results.
+<P>
+In some cases it makes sense to load the database using multiple servers. In this case, you will want to partition the records to be loaded among the clients. Normally, YCSB just loads
+all of the records (as defined by the recordcount property). However, if you want to partition the load you need to additionally specify two other properties for each client:
+<UL>
+<LI><b>insertstart</b>: The index of the record to start at.
+<LI><b>insertcount</b>: The number of records to insert.
+</UL>
+These properties can be specified in a property file or on the command line using the -p option.
+<P>
+For example, imagine you want to load 100 million records (so recordcount=100000000). Imagine you want to load with four clients. For the first client:
+<pre>
+insertstart=0
+insertcount=25000000
+</pre>
+For the second client:
+<pre>
+insertstart=25000000
+insertcount=25000000
+</pre>
+For the third client:
+<pre>
+insertstart=50000000
+insertcount=25000000
+</pre>
+And for the fourth client:
+<pre>
+insertstart=75000000
+insertcount=25000000
+</pre>
+<HR>
+YCSB - Yahoo! Research - Contact cooperb@yahoo-inc.com.
+</body>
+</html>

@@ -1,0 +1,98 @@
+<HTML>
+<HEAD>
+<TITLE>YCSB - DB Interface Layer</TITLE>
+</HEAD>
+<BODY>
+<H1><img src="images/ycsblogo-small.png"> Yahoo! Cloud Serving Benchmark</H1>
+<H3>Version 0.1</H3>
+<HR>
+<A HREF="index.html">Home</A> - <A href="coreworkloads.html">Core workloads</A> - <a href="tipsfaq.html">Tips and FAQ</A>
+<HR>
+<H2>Implementing a database interface layer - overview</H2>
+The database interface layer hides the details of the specific database you are benchmarking from the YCSB Client. This
+allows the client to generate operations like "read record" or "update record" without having to understand 
+the specific API of your database. Thus, it is very easy to benchmark new database systems; once you have
+created the database interface layer, the rest of the benchmark framework runs without having to change.
+<P>
+The database interface layer is a simple abstract class that provides read, insert, update, delete and scan operations for your
+database. Implementing a database interface layer for your database means filling out the body of each of those methods. Once you
+have compiled your layer, you can specify the name of your implemented class on the command line (or as a property) to the YCSB Client.
+The YCSB Client will load your implementation dynamically when it starts. Thus, you do not need to recompile the YCSB Client itself
+to add or change a database interface layer.
+<HR>
+<H2>Creating a new layer step-by-step</H2>
+<h3>Step 1 - Extend com.yahoo.ycsb.DB</h3>
+The base class of all database interface layer implementations is com.yahoo.ycsb.DB. This is an abstract class, so you need to create a new 
+class which extends the DB class. Your class must have a public no-argument constructor, because the instances will be constructed inside a factory
+which will use the no-argument constructor.
+<P>
+The YCSB Client framework will create one instance of your DB class per worker thread, but there might be multiple worker threads generating the workload,
+so there might be multiple instances of your DB class created.
+
+<H3>Step 2 - Implement init() if necessary</h3>
+You can perform any initialization of your DB object by implementing the following method
+<pre> 
+public void init() throws DBException
+</pre>
+to perform any initialization actions. The init() method will be called once per DB instance; so if there are multiple threads, each DB instance will have init()
+called separately.
+<P>
+The init() method should be used to set up the connection to the database and do any other initialization. In particular, you can configure your database layer 
+using properties passed to the YCSB Client at runtime. In fact, the YCSB Client will pass to the DB interface layer 
+all of the 
+properties specified in all parameter files specified when the Client starts up. Thus, you can create new properties for configuring your DB interface layer, 
+set them in your parameter files (or on the command line), and
+then retrieve them inside your implementation of the DB interface layer. 
+<P>
+These properties will be passed to the DB instance <i>after</i> the constructor, so it is important to retrieve them only in the init() method and not the
+constructor. You can get the set of properties using the 
+<pre>
+public Properties getProperties()
+</pre>
+method which is already implemented and inherited from the DB base class.
+
+<h3>Step 3 - Implement the database query and update methods</h3>
+
+The methods that you need to implement are:
+
+<pre>
+  //Read a single record
+  public int read(String table, String key, Set<String> fields, HashMap<String,String> result);
+
+  //Perform a range scan
+  public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,String>> result);
+	
+  //Update a single record
+  public int update(String table, String key, HashMap<String,String> values);
+
+  //Insert a single record
+  public int insert(String table, String key, HashMap<String,String> values);
+
+  //Delete a single record
+  public int delete(String table, String key);
+</pre>
+In each case, the method takes a table name and record key. (In the case of scan, the record key is the first key in the range to scan.) For the 
+read methods (read() and scan()) the methods additionally take a set of fields to be read, and provide a structure (HashMap or Vector of HashMaps) to store
+the returned data. For the write methods (insert() and update()) the methods take HashMap which maps field names to values.
+<P>
+The database should have the appropriate tables created before you run the benchmark. So you can assume in your implementation of the above methods
+that the appropriate tables already exist, and just write code to read or write from the tables named in the "table" parameter.
+<h3>Step 4 - Compile your database interface layer</h3>
+Your code can be compiled separately from the compilation of the YCSB Client and framework. In particular, you can make changes to your DB class and 
+recompile without having to recompile the YCSB Client.
+<h3>Step 5 - Use it with the YCSB Client</h3>
+Make sure that the classes for your implementation (or a jar containing those classes) are available on your CLASSPATH, as well as any libraries/jar files used
+by your implementation. Now, when you run the YCSB Client, specify the "-db" argument on the command line and provide the fully qualified classname of your
+DB class. For example, to run workloada with your DB class:
+<pre>
+%  java -cp build/ycsb.jar:yourjarpath com.yahoo.ycsb.Client -t -db com.foo.YourDBClass -P workloads/workloada -P large.dat -s > transactions.dat
+</pre>  
+
+You can also specify the DB interface layer using the DB property in your parameter file:
+<pre>
+db=com.foo.YourDBClass
+</pre>
+<HR>
+YCSB - Yahoo! Research - Contact cooperb@yahoo-inc.com.
+</BODY>
+</HTML>

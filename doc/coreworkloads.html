@@ -1,0 +1,59 @@
+<HTML>
+<HEAD>
+<TITLE>YCSB - Core workloads</TITLE>
+</HEAD>
+<BODY>
+<H1><img src="images/ycsblogo-small.png"> Yahoo! Cloud Serving Benchmark</H1>
+<H3>Version 0.1</H3>
+<HR>
+<A HREF="index.html">Home</A> - <A href="coreworkloads.html">Core workloads</A> - <a href="tipsfaq.html">Tips and FAQ</A>
+<HR>
+<H2>Core workloads</h2>
+YCSB includes a set of core workloads that define a basic benchmark for cloud systems. Of course, you can define your own workloads, as described <a href="workload.html">here</A>. However,
+the core workloads are a useful first step, and obtaining these benchmark numbers for a variety of different systems would allow you to understand the performance
+tradeoffs of different systems.
+<P>
+The core workloads consist of six different workloads:
+<P>
+<B>Workload A: Update heavy workload</B>
+<P>
+This workload has a mix of 50/50 reads and writes. An application example is a session store recording recent actions.
+<P>
+<B>Workload B: Read mostly workload</B>
+<P>
+This workload has a 95/5 reads/write mix. Application example: photo tagging; add a tag is an update, but most operations are to read tags.
+<P>
+<B>Workload C: Read only</B>
+<P>
+This workload is 100% read. Application example: user profile cache, where profiles are constructed elsewhere (e.g., Hadoop).
+<P>
+<B>Workload D: Read latest workload</B>
+<P>
+In this workload, new records are inserted, and the most recently inserted records are the most popular. Application example: user status updates; people want to read the latest.
+<P>
+<B>Workload E: Short ranges</B>
+<P>
+In this workload, short ranges of records are queried, instead of individual records. Application example: threaded conversations, where each scan is for the posts in a given thread (assumed to be clustered by thread id).
+<P>
+<B>Workload F: Read-modify-write</B>
+<P>
+In this workload, the client will read a record, modify it, and write back the changes. Application example: user database, where user records are read and modified by the user or to record user activity.
+
+<HR>
+<H2>Running the workloads</H2>
+All six workloads have a data set which is similar. Workloads D and E insert records during the test run. Thus, to keep the database size consistent, we recommend the following sequence:
+<OL>
+<LI>Load the database, using workload A's parameter file (workloads/workloada) and the "-load" switch to the client.
+<LI>Run workload A (using workloads/workloada and "-t") for a variety of throughputs.
+<LI>Run workload B (using workloads/workloadb and "-t") for a variety of throughputs.
+<LI>Run workload C (using workloads/workloadc and "-t") for a variety of throughputs. 
+<LI>Run workload F (using workloads/workloadf and "-t") for a variety of throughputs.
+<LI>Run workload D (using workloads/workloadd and "-t") for a variety of throughputs. This workload inserts records, increasing the size of the database.
+<LI>Delete the data in the database.
+<LI>Reload the database, using workload E's parameter file (workloads/workloade) and the "-load switch to the client.
+<LI>Run workload E (using workloads/workloadd and "-t") for a variety of throughputs. This workload inserts records, increasing the size of the database.
+</OL>
+<HR>
+YCSB - Yahoo! Research - Contact cooperb@yahoo-inc.com.
+</BODY>
+</HTML>

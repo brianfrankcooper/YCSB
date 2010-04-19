@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+   <project name="ycsb" default="compile" basedir=".">
+   
+    <property name="src.dir"     value="src"/>
+    <property name="doc.dir"     value="doc"/>
+    <property name="dbsrc.dir"     value="${src.dir}/com/yahoo/ycsb/db"/>
+    <property name="dblib.dir"   value="${dbsrc.dir}/lib"/>
+
+    <property name="build.dir"   value="build"/>
+    <property name="classes.dir" value="${build.dir}/classes"/>
+    <property name="jar.dir"     value="${build.dir}/jar"/>
+
+
+    <path id="classpath">
+        <fileset dir="${dblib.dir}" includes="**/*.jar"/>
+    </path>
+
+
+      <target name="compile">
+        <mkdir dir="${classes.dir}"/>
+        <javac srcdir="${src.dir}" destdir="${classes.dir}" excludes="com/yahoo/ycsb/db/**" deprecation="on">
+          <compilerarg value="-Xlint:unchecked"/>
+        </javac>
+        <antcall target="makejar"/>
+    </target>
+
+      <target name="dbcompile">
+        <mkdir dir="${classes.dir}"/>
+        <javac srcdir="${dbsrc.dir}" destdir="${classes.dir}" classpathref="classpath" deprecation="on">
+          <compilerarg value="-Xlint:unchecked"/>
+        </javac>
+        <antcall target="makejar"/>
+    </target>
+    
+   	<target name ="makejar" description="Create a jar for the YCSB project">
+   	      
+   	         <jar jarfile="build/ycsb.jar" includes="**/*.class" basedir="${classes.dir}"/>
+   	         
+   	      </target>
+    <target name="clean">
+       <delete includeemptydirs="true">
+          <fileset dir="build" includes="**/*"/>
+       </delete>
+    </target>
+
+   <target name="doc">
+      <javadoc sourcepath="${src.dir}" destdir="${doc.dir}/javadoc" packagenames="com.yahoo.ycsb,com.yahoo.ycsb.workloads"/> 
+   </target>
+
+</project>
+

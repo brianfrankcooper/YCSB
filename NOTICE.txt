@@ -1,0 +1,9 @@
+=========================================================================
+NOTICE file for use with, and corresponding to Section 4 of,            
+the Apache License, Version 2.0,                                  
+in this case for the YCSB project.                     
+=========================================================================
+
+   This product includes software developed by
+   Yahoo! Inc. (www.yahoo.com)
+   Copyright (c) 2010 Yahoo! Inc.  All rights reserved.

@@ -1,0 +1,129 @@
+<HTML>
+<HEAD>
+<TITLE>YCSB - Implementing new workloads</TITLE>
+</HEAD>
+<BODY>
+<H1><img src="images/ycsblogo-small.png"> Yahoo! Cloud Serving Benchmark</H1>
+<H3>Version 0.1</H3>
+<HR>
+<A HREF="index.html">Home</A> - <A href="coreworkloads.html">Core workloads</A> - <a href="tipsfaq.html">Tips and FAQ</A>
+<HR>
+<H2>Implementing new workloads - overview</h2>
+A workload represents the load that a given application will put on the database system. For benchmarking purposes, we must define
+workloads that are relatively simple compared to real applications, so that we can better reason about the benchmarking results
+we get. However, a workload should be detailed enough so that once we measure the database's performance, we know what kinds of applications
+might experience similar performance.
+<p>
+In the context of YCSB, a workload defines both a <b>data set</b>, which is a set of records to be loaded into the database, and a <b>transaction set</b>,
+which are the set of read and write operations against the database. Creating the transactions requires understanding the structure of the records, which
+is why both the data and the transactions must be defined in the workload.
+<P>
+For a complete benchmark, multiple important (but distinct) workloads might be grouped together into a <i>workload package</I>. The CoreWorkload
+package included with the YCSB client is an example of such a collection of workloads. 
+<P>
+Typically a workload consists of two files:
+<UL>
+<LI>A java class which contains the code to create data records and generate transactions against them
+<LI>A parameter file which tunes the specifics of the workload
+</UL>
+For example, a workload class file might generate some combination of read and update operations against the database. The parameter
+file might specify whether the mix of reads and updates is 50/50, 80/20, etc.
+<P>
+There are two ways to create a new workload or package of workloads.
+<P>
+<h3>Option 1: new parameter files</h3>
+<P>
+The core workloads included with YCSB are defined by a set of parameter files (workloada, workloadb, etc.) You can create your own parameter file with new values
+for the read/write mix, request distribution, etc. For example, the workloada file has the following contents:
+
+<pre>
+workload=com.yahoo.ycsb.workloads.CoreWorkload
+
+readallfields=false
+
+readproportion=0.5
+updateproportion=0.5
+scanproportion=0
+insertproportion=0
+
+requestdistribution=zipfian
+</pre>
+
+Creating a new file that changes any of these values will produce a new workload with different characteristics. The set of properties that can be specified is <a href="coreproperties.html">here</a>.
+<P>
+<h3>Option 2: new java class</h3>
+<P>
+The workload java class will be created by the YCSB Client at runtime, and will use an instance of the <a href="dblayer.html">DB interface layer</A>
+to generate the actual operations against the database. Thus, the java class only needs to decide (based on settings in the parameter file) what records
+to create for the data set, and what reads, updates etc. to generate for the transaction phase. The YCSB Client will take care of creating the workload java class,
+passing it to a worker thread for executing, deciding how many records to create or how many operations to execute, and measuring the resulting 
+performance.
+<P>
+If the CoreWorkload (or some other existing package) does not have the ability to generate the workload you desire, you can create a new workload java class.
+This is done using the following steps:
+<H3>Step 1. Extend <a href="javadoc/com/yahoo/ycsb/Workload.html">com.yahoo.ycsb.Workload</A></H3>
+The base class of all workload classes is com.yahoo.ycsb.Workload. This is an abstract class, so you create a new workload that extends this base class. Your
+class must have a public no-argument constructor, because the workload will be created in a factory using the no-argument constructor. The YCSB Client will
+create one Workload object for each worker thread, so if you run the Client with multiple threads, multiple workload objects will be created.
+<H3>Step 2. Write code to initialize your workload class</H3>
+The parameter fill will be passed to the workload object after the constructor has been called, so if you are using any parameter properties, you must
+use them to initialize your workload using either the init() or initThread() methods. 
+<UL>
+<LI>init() - called once for all workload instances. Used to initialize any objects shared by all threads.
+<LI>initThread() - called once per workload instance in the context of the worker thread. Used to initialize any objects specific to a single Workload instance 
+and single worker thread.
+</UL>
+In either case, you can access the parameter properties using the Properties object passed in to both methods. These properties will include all properties defined
+in any property file passed to the YCSB Client or defined on the client command line.
+<H3>Step 3. Write any cleanup code</H3>
+The cleanup() method is called once for all workload instances, after the workload has completed.
+<H3>Step 4. Define the records to be inserted</H3>
+The YCSB Client will call the doInsert() method once for each record to be inserted into the database. So you should implement this method
+to create and insert a single record. The DB object you can use to perform the insert will be passed to the doInsert() method.
+<H3>Step 5. Define the transactions</H3>
+The YCSB Client will call the doTransaction() method once for every transaction that is to be executed. So you should implement this method to execute
+a single transaction, using the DB object passed in to access the database. Your implementation of this method can choose between different types of 
+transactions, and can make multiple calls to the DB interface layer. However, each invocation of the method should be a logical transaction. In particular, when you run the client,
+you'll specify the number of operations to execute; if you request 1000 operations then doTransaction() will be executed 1000 times.
+<P>
+Note that you do not have to do any throttling of your transactions (or record insertions) to achieve the target throughput. The YCSB Client will do the throttling
+for you.
+<P>
+Note also that it is allowable to insert records inside the doTransaction() method. You might do this if you wish the database to grow during the workload. In this case,
+the initial dataset will be constructed using calls to the doInsert() method, while additional records would be inserted using calls to the doTransaction() method.
+<h3>Step 6 - Measure latency, if necessary</h3>
+The YCSB client will automatically measure the latency and throughput of database operations, even for workloads that you define. However, the client will only measure
+the latency of individual calls to the database, not of more complex transactions. Consider for example a workload that reads a record, modifies it, and writes
+the changes back to the database. The YCSB client will automatically measure the latency of the read operation to the database; and separately will automatically measure the 
+latency of the update operation. However, if you would like to measure the latency of the entire read-modify-write transaction, you will need to add an additional timing step to your
+code.
+<P>
+Measurements are gathered using the Measurements.measure() call. There is a singleton instance of Measurements, which can be obtained using the 
+Measurements.getMeasurements() static method. For each metric you are measuring, you need to assign a string tag; this tag will label the resulting
+average, min, max, histogram etc. measurements output by the tool at the end of the workload. For example, consider the following code:
+
+<pre>
+long st=System.currentTimeMillis();
+db.read(TABLENAME,keyname,fields,new HashMap<String,String>());
+db.update(TABLENAME,keyname,values);
+long en=System.currentTimeMillis();
+Measurements.getMeasurements().measure("READ-MODIFY-WRITE", (int)(en-st));
+</pre>
+
+In this code, the calls to System.currentTimeMillis() are used to time the read and write transaction. Then, the call to measure() reports the latency to the 
+measurement component. 
+<p>
+Using this pattern, your custom measurements will be gathered and aggregated using the same mechanism that is used to gather measurements for individual READ, UPDATE etc. operations.
+
+<h3>Step 7 - Use it with the YCSB Client</h3>
+Make sure that the classes for your implementation (or a jar containing those classes) are available on your CLASSPATH, as well as any libraries/jar files used
+by your implementation. Now, when you run the YCSB Client, specify the "workload" property to provide the fully qualified classname of your
+DB class. For example:
+
+<pre>
+workload=com.foo.YourWorkloadClass
+</pre>
+<HR>
+YCSB - Yahoo! Research - Contact cooperb@yahoo-inc.com.
+</body>
+</html>

@@ -1,0 +1,31 @@
+<HTML>
+<HEAD>
+<TITLE>YCSB - Tips and FAQ</TITLE>
+</HEAD>
+<BODY>
+<H1><img src="images/ycsblogo-small.png"> Yahoo! Cloud Serving Benchmark</H1>
+<H3>Version 0.1</H3>
+<HR>
+<A HREF="index.html">Home</A> - <A href="coreworkloads.html">Core workloads</A> - <a href="tipsfaq.html">Tips and FAQ</A>
+<HR>
+<H2>Tips</h2>
+<B>Tip 1 - Carefully adjust the number of threads</B>
+<P>
+The number of threads determines how much workload you can generate against the database. Imagine that you are trying to run a test with 10,000 operations per second, 
+but you are only achieving 8,000 operations per second. Is this because the database can't keep up with the load? Not necessarily. Imagine that you are running with 100
+client threads (e.g. "-threads 100") and each operation is taking 12 milliseconds on average. Each thread will only be able to generate 83 operations per second, because each
+thread operates sequentially. Over 100 threads, your client will only generate 8300 operations per second, even if the database can support more. Increasing the number of threads
+ensures there are enough parallel clients hitting the database so that the database, not the client, is the bottleneck.
+<P>
+To calculate the number of threads needed, you should have some idea of the expected latency. For example, at 10,000 operations per second, we might expect the database
+to have a latency of 10-30 milliseconds on average. So you to generate 10,000 operations per second, you will need (Ops per sec / (1000 / avg latency in ms) ), or (10000/(1000/30))=300 threads.
+In fact, to be conservative, you might consider having 400 threads. Although this is a lot of threads, each thread will spend most of its time waiting for the database to respond,
+so the context switching overhead will be low. 
+<P>
+Experiment with increasing the number of threads, especially if you find you are not reaching your target throughput. Eventually, of course, you will saturate the database
+and there will be no way to increase the number of threads to get more throughput (in fact, increasing the number of client threads may make things worse) but you need to have 
+enough threads to ensure it is the database, not the client, that is the bottleneck.
+<HR>
+YCSB - Yahoo! Research - Contact cooperb@yahoo-inc.com.
+</BODY>
+</HTML>

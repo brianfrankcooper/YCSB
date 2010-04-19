@@ -1,0 +1,348 @@
+<html>
+<head>
+<title>YCSB - Yahoo! Cloud Serving Benchmark</title>
+</head>
+<body>
+<H1><img src="images/ycsblogo-small.png"> Yahoo! Cloud Serving Benchmark</H1>
+<H3>Version 0.1</H3>
+<hr>
+<A HREF="index.html">Home</A> - <A href="coreworkloads.html">Core workloads</A> - <a href="tipsfaq.html">Tips and FAQ</A>
+<HR>
+<UL>
+<LI><A href="#overview">Overview</A>
+<LI><A href="#download">Download YCSB</A>
+<LI><A href="#building">Building YCSB</A>
+<LI><A href="#running">Running a workload</A>
+<LI><A href="#extending">Extending YCSB</A>
+</UL>
+<HR>
+<A name="overview">
+<H2>Overview</H2>
+There are many new serving databases available, including:
+<ul>
+<LI>BigTable
+<ul>
+<LI><A HREF="http://hadoop.apache.org/hbase/">HBase</A>, <A HREF="http://hypertable.org/">Hypertable
+</ul>
+<LI><A HREF="http://www.microsoft.com/windowsazure/">Azure</A>
+<LI><A HREF="http://incubator.apache.org/cassandra/">Cassandra</A>
+<LI><A HREF="http://couchdb.apache.org/">CouchDB</A>
+<LI><A HREF="http://project-voldemort.com/">Voldemort</A>
+<LI><A HREF=http://wiki.github.com/cliffmoon/dynomite/dynomite-framework">Dynomite</A>
+<li>...and many others
+</ul>
+It is difficult to decide which system is right for your application, partially because the features differ between 
+systems, and partially because there is not an easy way to compare the performance of one system versus another.
+<P>
+The goal of the YCSB project is to develop a framework and common set of workloads for evaluating the performance of
+different "key-value" and "cloud" serving stores. The project comprises two things:
+<ul>
+<LI>The YCSB Client, an extensible workload generator
+<LI>The Core workloads, a set of workload scenarios to be executed by the generator
+</UL>
+Although the core workloads provide a well rounded picture of a system's performance, the Client is extensible so that
+you can define new and different workloads to examine system aspects, or application scenarios, not adequately covered by
+the core workload. Similarly, the Client is extensible to support benchmarking different databases. Although we include
+sample code for benchmarking HBase and Cassandra, it is straightforward to write a new interface layer to benchmark
+your favorite database.
+<P>
+A common use of the tool is to benchmark multiple systems and compare them. For example, you can install multiple systems
+on the same hardward configuration, and run the same workloads against each system. Then you can plot the performance 
+of each system (for example, as latency versus throughput curves) to see when one system does better than another.
+<HR>
+<A name="download">
+<H2>Download YCSB</H2>
+... more information soon ...
+<HR>
+<a name="building">
+<H2>Building YCSB</H2>
+To build YCSB, you need to build:
+<UL>
+<LI>The YCSB Client
+<LI>Your DB interface layer
+</UL>
+The YCSB distribution can be built with <a href="http://ant.apache.org">ant</a>:
+<pre>
+  % cd ycsb
+  % ant
+</pre>
+If your build was successful, you should be able to run the Client to get the usage message:
+<pre>
+  % java -cp build/ycsb.jar com.yahoo.ycsb.Client
+Usage: java com.yahoo.ycsb.Client [options]
+Options:
+  -threads n: execute using n threads (default: 1) - can also be specified as the 
+              "threadcount" property using -p
+  -target n: attempt to do n operations per second (default: unlimited) - can also
+             be specified as the "target" property using -p
+  -load:  run the loading phase of the workload
+  -t:  run the transactions phase of the workload (default)
+  -db dbname: specify the name of the DB to use (default: com.yahoo.ycsb.BasicDB) - 
+              can also be specified as the "db" property using -p
+  -P propertyfile: load properties from the given file. Multiple files can
+                   be specified, and will be processed in the order specified
+  -p name=value:  specify a property to be passed to the DB and workloads;
+                  multiple properties can be specified, and override any
+                  values in the propertyfile
+  -s:  show status during run (default: no status)
+  -l label:  use label for status (e.g. to label one experiment out of a whole batch)
+
+Required properties:
+  recordcount: how many records in the database
+  operationcount: how many transactions to execute
+  workload: the name of the workload class to use (e.g. com.yahoo.ycsb.workloads.CoreWorkload)
+</pre>
+<HR>
+<a name="running">
+<H2>Running a workload</H2>
+There are 6 steps to running a workload:
+<OL>
+<LI>Set up the database system to test
+<LI>Choose the appropriate DB interface layer
+<LI>Choose the appropriate workload
+<LI>Choose the appropriate runtime parameters (number of client threads, target throughput, etc.)
+<LI>Load the data
+<LI>Execute the workload
+</OL>
+The steps described here assume you are running a single client server. This should be sufficient for small to medium clusters (e.g. 10 or so machines). For much larger clusters, you may
+have to run multiple clients on different servers to generate enough load. Similarly, loading a database may be faster in some cases using multiple client machines. For more details on
+running multiple clients in parallel, see <A href="parallelclients.html">here</A>.
+<H3>Step 1. Set up the database system to test</H3>
+The first step is to set up the database system you wish to test. This can be done on a single machine or a cluster, depending on the configuration you wish to benchmark.
+<P>
+You must also create or set up tables/keyspaces/storage buckets to store records. The details vary according to each database system, and depend on the workload you wish
+to run. Before the YCSB Client runs, the tables must be created, since the Client itself will not request to create the tables. This is because for some systems, there
+is a manual (human-operated) step to create tables, and for other systems, the table must be created before the database cluster is started.
+<P>
+The tables that must be created depends on the workload. For CoreWorkload, the YCSB Client will assume that there is a "table" called "usertable" with a 
+flexible schema: columns can be added at runtime as desired. This "usertable" can be mapped into whatever storage container is appropriate. For example, in MySQL you would "CREATE TABLE," in 
+Cassandra you would define a keyspace in the Cassandra configuration, and so on. The database interface layer (described in step 2) will receive requests for
+reading or writing records in "usertable" and translate them into requests for the actual storage you have allocated. This may mean that you have to provide 
+information for the database interface layer to help it understand what the structure of the underlying storage is. For example, in Cassandra, you must define
+"column families" in addition to keyspaces. Thus, it is necessary to create a column family and give the family some name (for example, you might use "values.") Then,
+the database access layer will need to know to refer to the "values" column family, either because the string "values" is passed in as a property, or because it is
+hardcoded in the database interface layer. 
+<H3>Step 2. Choose the appropriate DB interface layer</H3>
+The DB interface layer is a java class that execute read, insert, update, delete and scan calls generated by the YCSB Client into calls against your database's API. This class is a
+subclass of the abstract DB class in the com.yahoo.ycsb package. The DB interface layer is not built as part of building YCSB; you must build it separately. Once you have built the interface layer,
+you will specify the class name of the layer on the command line when you run YCSB Client, and the Client will dynamically load your interface class. Any properties specified on the command line, or
+in parameter files specified on the command line, will be passed to the DB interface instance, and can be used to configure the layer (for example, to tell it the hostname of the database you are benchmarking.)
+<P>
+The YCSB Client is distributed with a simple dummy interface layer, com.yahoo.ycsb.BasicDB. This layer just prints the operations it would have executed to System.out. It can be useful for ensuring
+that the client is operating properly, and for debugging your workloads.
+<P>
+Other sample DB interface layer classes are distributed in src/com/yahoo/ycsb/db. To build those classes, run:
+<pre>
+% ant dbcompile
+</pre>
+Note that these classes will not be built using a normal ant execution, and not included in the resulting ycsb.jar. Thus, to use these classes, you will need
+to 1. have them on your classpath, and 2. have any required libraries also on your classpath. For example, the Cassandra database interface layer is com.yahoo.ycsb.db.CassandraClient, and requires the libthrift.jar
+to be accessible on your classpath.
+<P>
+For more details about implementing a DB interface layer, see <a href="dblayer.html">here</a>.
+<h3>Step 3. Choose the appropriate workload</h3>
+The workload defines the data that will be loaded into the database during the <I>loading</I> phase, and the operations that will be executed against the data set during the <I>transaction</I> phase.
+
+Typically, a workload is a combination of:
+<UL>
+<LI>Workload java class (subclass of com.yahoo.ycsb.Workload)
+<LI>Parameter file (in the Java Properties format)
+</UL>
+Because the properties of the dataset must be known during the <i>loading</i> phase (so that the proper kind of record can be constructed and inserted) and during the <I>transaction</I> phase (so 
+that the correct record ids and fields can be referred to) a single set of properties is shared among both phases. Thus the parameter file is used in both phases. The 
+workload java class uses those properties to either insert records (<i>loading</i> phase) or execute transactions against those records (<i>transaction</i> phase). The choice
+of which phase to run is based on a parameter you specify when you run the YCSB Client tool.
+<p>
+You specify both the java class and the parameter file on the command line when you run the YCSB Client. The Client will dynamically load your workload class, pass
+it the properties from the parameters file (and any additional properties specified on the command line) and then execute the workload. This happens both for the <I>loading</I> and <I>transaction</I> phases,
+as the same properties and workload logic applies to both. For example, if the <I>loading</I> phase creates records with 10 fields, then the <i>transaction</I> phase must know that there are 10 fields
+it can query and modify.
+<P>
+The CoreWorkload is a package of standard workloads that is distributed with the YCSB and can be used directly. In particular, the CoreWorkload defines a simple mix of read/insert/update/scan operations. The relative
+frequency of each operation is defined in the parameter file, as are other properties of the workload. Thus, by changing the parameter file, a variety of different concrete workloads can be executed. For more details
+on the CoreWorkload, see <a href="coreworkloads.html">here</a>.
+<P>
+If the CoreWorkload does not satisfy your needs, you can define your own workload by subclassing the com.yahoo.ycsb.Workload class. Details for doing this are <a href="workload.html">here</A>.
+
+<H3>Step 4. Choose the appropriate runtime parameters</H3>
+Although the workload class and paramters file define a specific workload, there are additional settings that you may want to specify for a particular run of the benchmark. These settings are provided on the command line
+when you run the YCSB client. These settings are:
+<UL>
+<LI><B>Threads</B>: the number of client threads. By default, the YCSB Client uses a single worker thread, but additional threads can be specified. This is often done to increase the amount of load offered against the database.
+<LI><B>Target</B>: the target number of operations per second. By default, the YCSB Client will try to do as many operations as it can. For example, if each operation takes 100 milliseconds on average, the Client will do about 10 operations per second per worker thread. However, you can throttle the 
+target number of operations per second. For example, to generate a latency versus throughput curve, you can try different target throughputs, and measure the resulting latency for each.
+<LI><B>Status</B>: for a long running workload, it may be useful to have the Client report status, just to assure you it has not crashed and to give you some idea of its progress. By specifying "-s" on the command line, the Client will
+report status every 10 seconds to System.err.
+</UL>
+<H3>Step 5. Load the data</H3>
+Workloads have two executable phases: the <I>loading</I> phase (which defines the data to be inserted) and the <I>transactions</I> phase (which defines the 
+operations to be executed against the data set.) To load the data, you run the YCSB Client and tell it to execute the <I>loading</I> section.
+<P>
+For example, consider the benchmark workload A (more details about the standard workloads are XXX here XXX). To load the standard dataset:
+
+<pre>
+%  java -cp build/ycsb.jar com.yahoo.ycsb.Client -load -db com.yahoo.ycsb.BasicDB -P workloads/workloada
+</pre>
+A few notes about this command:
+<UL>
+<LI>The "-load" parameter tells the Client to execute the <I>data</I> section of the workload.
+<LI>The "-db" parameter tells the Client which DB interface layer to use. In this case, we used the dummy BasicDB layer. You can also specify this as a property
+in your parameters file using the "db" property (for example, "db=com.yahoo.ycsb.BasicDB"). 
+<LI>The "-P" parameter is used to load property files. In this case, we used it to load the workloada parameter file.
+</UL>
+If you used BasicDB, you would see the insert statements for the database. If you used a real DB interface layer, the records would be loaded into the database.
+<P>
+The standard workload paramter files create very small databases; for example, workloada creates only 1,000 records. This is useful while debugging your setup. However,
+to run an actual benchmark you'll want to generate a much larger database. For example, imagine you want to load 100 million records. Then, you will need to 
+override the default "recordcount" property in the workloada file. This can be done in one of two ways:
+<OL>
+<LI>Specifying a new property file containing a new value of "recordcount." If this file is specified on the command line after the workloada file, it will override 
+any properties in workloada. For example, create a file called "large.dat" with the single line:
+<PRE>
+recordcount=100000000
+</PRE>
+Then, run the client as follows:
+<pre>
+%  java -cp build/ycsb.jar com.yahoo.ycsb.Client -load -db com.yahoo.ycsb.BasicDB -P workloads/workloada -P large.dat
+</pre>
+The client will load both property files, but will use the value of recordcount from the last file it loaded, e.g. large.dat
+<LI>Specify a new value of the "recordcount" property on the command line. Any properties specified on the command line override properties specified in property files.
+In this case, run the client as follows:
+<pre>
+%  java -cp build/ycsb.jar com.yahoo.ycsb.Client -load -db com.yahoo.ycsb.BasicDB -P workloads/workloada -p recordcount=100000000
+</pre>
+</OL>
+In general, it is good practice to store any important properties in new parameter files, instead of specifying them on the command line. This makes 
+your benchmark results more reproducible; instead of having to reconstruct the exact command line you used, you just reuse the property files. Note, however, that 
+the YCSB Client will print out its command line when it begins executing, so if you store the output of the client in a data file, you can retrieve the command line
+from that file.
+<P>
+Because a large database load will take a long time, you may wish to 1. require the Client to produce status, and 2. direct any output to a datafile. Thus, you might
+execute the following to load your database:
+<pre>
+%  java -cp build/ycsb.jar com.yahoo.ycsb.Client -load -db com.yahoo.ycsb.BasicDB -P workloads/workloada -P large.dat -s > load.dat
+</pre>
+The "-s" parameter will require the Client to produce status report on System.err. Thus, the output of this command might be:
+<PRE>
+% java -cp build/ycsb.jar com.yahoo.ycsb.Client -load -db com.yahoo.ycsb.BasicDB -P workloads/workloada -P large.dat -s > load.dat
+Loading workload... (might take a few minutes in some cases for large data sets)
+Starting test.
+ 0 sec: 0 operations
+ 10 sec: 61731 operations; 6170.6317473010795 operations/sec
+ 20 sec: 129054 operations; 6450.76477056883 operations/sec
+...
+</PRE>
+This status output will help you to see how quickly load operations are executing (so you can estimate the completion time of the load) as well as verify that the 
+load is making progress.
+<P>
+When the load completes, the Client will report statistics about the performance of the load. These statistics are the same as in the transaction phase, so see below for information on
+interpreting those statistics.
+<H3>Step 6: Execute the workload</H3>
+Once the data is loaded, you can execute the workload. This is done by telling the client to run the <i>transaction</I> section of the workload.
+<P>
+To execute the workload, you can use the following command:
+<pre>
+%  java -cp build/ycsb.jar com.yahoo.ycsb.Client -t -db com.yahoo.ycsb.BasicDB -P workloads/workloada -P large.dat -s > transactions.dat
+</pre>
+The main difference in this invocation is that we used the "-t" parameter to tell the Client to use the <I>transaction</I> section instead of the <I>data</I> section.
+If you used BasicDB, and examine the resulting transactions.dat file, you will see a combination of read and update requests, as well as statistics about the execution.
+<P>
+Typically you will want to use the "-threads" and "-target" parameters to control the amount of offered load. For example, we might want 10 threads attempting a total of 100 operations per second (e.g. 10 operations/sec per thread.) As long 
+as the average latency of operations is not above 100 ms, each thread will be able to carry out its intended 10 operations per second. In general, you need enough threads so that no thread is attempting more operations per second than is possible, otherwise
+your achieved throughput will be less than the specified target throughput. For this example, we can execute:
+<pre>
+%  java -cp build/ycsb.jar com.yahoo.ycsb.Client -t -db com.yahoo.ycsb.BasicDB -P workloads/workloada -P large.dat -s -threads 10 -target 100 > transactions.dat
+</pre>
+Note in this example we have used the "-threads 10" command line parameter to specify 10 threads, and "-target 100" command line parameter to specify 100 operations per second as the target.
+Alternatively, both values can be set in your parameters file using the "threads" and "target" properties respectively. For example:
+<pre>
+threads=10
+target=100
+</pre>
+<P>
+
+At the end of the run, the Client will report performance statistics on System.out. In the above example, these statistics will be written to the transactions.dat file.
+The default is to produce average, min, max, 95th and 99th percentile latency for each operation type (read, update, etc.), a count of the return codes for each operation, and a histogram of latencies for each
+operation. The return codes are defined by your database interface layer, and allow you to see if there were any errors during the workload. For the above example, we might get output like:
+<pre>
+[OVERALL],RunTime(ms), 10110
+[OVERALL],Throughput(ops/sec), 98.91196834817013
+[UPDATE], Operations, 491
+[UPDATE], AverageLatency(ms), 0.054989816700611
+[UPDATE], MinLatency(ms), 0
+[UPDATE], MaxLatency(ms), 1
+[UPDATE], 95thPercentileLatency(ms), 1
+[UPDATE], 99thPercentileLatency(ms), 1
+[UPDATE], Return=0, 491
+[UPDATE], 0, 464
+[UPDATE], 1, 27
+[UPDATE], 2, 0
+[UPDATE], 3, 0
+[UPDATE], 4, 0
+...
+</PRE>
+This output indicates:
+<UL>
+<LI>The total execution time was 10.11 seconds
+<LI>The average throughput was 98.9 operations/sec (across all threads)
+<LI>There were 491 update operations, with associated average, min, max, 95th and 99th percentile latencies 
+<LI>All 491 update operations had a return code of zero (success in this case)
+<LI>464 operations completed in less than 1 ms, while 27 completed between 1 and 2 ms.
+</UL>
+Similar statistics are available for the read operations.
+<P>
+While a histogram of latencies is often useful, sometimes a timeseries is more useful. To request a time series, specify the "measurementtype=timeseries" property on the Client command line
+or in a properties file. By default, the Client will report average latency for each interval of 1000 milliseconds. You can specify a different granularity for reporting
+using the "timeseries.granularity" property. For example:
+<pre>
+%  java -cp build/ycsb.jar com.yahoo.ycsb.Client -t -db com.yahoo.ycsb.BasicDB -P workloads/workloada -P large.dat -s -threads 10 -target 100 -p measurementtype=timeseries -p timeseries.granularity=2000 > transactions.dat
+</pre>
+will report a timeseries, with readings averaged every 2,000 milliseconds (e.g. 2 seconds). The result will be:
+<PRE>
+[OVERALL],RunTime(ms), 10077
+[OVERALL],Throughput(ops/sec), 9923.58836955443
+[UPDATE], Operations, 50396
+[UPDATE], AverageLatency(ms), 0.04339630129375347
+[UPDATE], MinLatency(ms), 0
+[UPDATE], MaxLatency(ms), 338
+[UPDATE], Return=0, 50396
+[UPDATE], 0, 0.10264765784114054
+[UPDATE], 2000, 0.026989343690867442
+[UPDATE], 4000, 0.0352882703777336
+[UPDATE], 6000, 0.004238958990536277
+[UPDATE], 8000, 0.052813085033008175
+[UPDATE], 10000, 0.0
+[READ], Operations, 49604
+[READ], AverageLatency(ms), 0.038242883638416256
+[READ], MinLatency(ms), 0
+[READ], MaxLatency(ms), 230
+[READ], Return=0, 49604
+[READ], 0, 0.08997245741099663
+[READ], 2000, 0.02207505518763797
+[READ], 4000, 0.03188493260913297
+[READ], 6000, 0.004869141813755326
+[READ], 8000, 0.04355329949238579
+[READ], 10000, 0.005405405405405406
+</PRE>
+This output shows separate time series for update and read operations, with data reported every 2000 milliseconds. The data reported for a time point is the average over the previous 2000 milliseconds only.
+(In this case we used 100,000 operations and a target of 10,000 operations per second for a more interesting output.)
+A note about latency measurements: the Client measures the end to end latency of executing a particular operation against the database. That is, it starts a timer before calling the appropriate method in the DB interface layer
+class, and stops the timer when the method returns. Thus latencies include: executing inside the interface layer, network latency to the database server, and database execution time. They do not include delays introduced for throttling
+the target throughput. That is, if you specify a target of 10 operations per second (and a single thread) then the Client will only execute an operation every 100 milliseconds. If the operation takes 12 milliseconds, then the client
+will wait for an additional 88 milliseconds before trying the next operation. However, the reported latency will not include this wait time; a latency of 12 milliseconds, not 100, will be reported.
+<HR>
+<A name="extending">
+<H1>Extending YCSB</H1>
+YCSB is designed to be extensible. It is easy to add a new database interface layer to support benchmarking a new database. It is also easy to define new workloads.
+<ul>
+<li><A HREF="dblayer.html">DB Interface Layer</a>
+<li><A HREF="workload.html">Implementing new workloads</a>
+</UL>
+More details about the entire class structure of YCSB is available here:
+<UL>
+<LI><A HREF="javadoc/index.html">YCSB javadoc documentation</A>
+</ul>  
+<HR>
+YCSB - Yahoo! Research - Contact cooperb@yahoo-inc.com.
+</body>
+</html>

@@ -1,0 +1,30 @@
+<HTML>
+<HEAD>
+<TITLE>YCSB - Core workload package properties</TITLE>
+</HEAD>
+<BODY>
+<H1><img src="images/ycsblogo-small.png"> Yahoo! Cloud Serving Benchmark</H1>
+<H3>Version 0.1</H3>
+<HR>
+<A HREF="index.html">Home</A> - <A href="coreworkloads.html">Core workloads</A> - <a href="tipsfaq.html">Tips and FAQ</A>
+<HR>
+<H2>Core workload package properties</h2>
+The property files used with the core workload generator can specify values for the following properties:<p>
+<UL>
+<LI><b>fieldcount</b>: the number of fields in a record (default: 10) 
+<LI><b>fieldlength</b>: the size of each field (default: 100) 
+<LI><b>readallfields</b>: should reads read all fields (true) or just one (false) (default: true) 
+<LI><b>readproportion</b>: what proportion of operations should be reads (default: 0.95) 
+<LI><b>updateproportion</b>: what proportion of operations should be updates (default: 0.05) 
+<LI><b>insertproportion</b>: what proportion of operations should be inserts (default: 0) 
+<LI><b>scanproportion</b>: what proportion of operations should be scans (default: 0) 
+<LI><b>readmodifywriteproportion</b>: what proportion of operations should be read a record, modify it, write it back (default: 0) 
+<LI><b>requestdistribution</b>: what distribution should be used to select the records to operate on - uniform, zipfian or latest (default: uniform) 
+<LI><b>maxscanlength</b>: for scans, what is the maximum number of records to scan (default: 1000) 
+<LI><b>scanlengthdistribution</b>: for scans, what distribution should be used to choose the number of records to scan, for each scan, between 1 and maxscanlength (default: uniform) 
+<LI><b>insertorder</b>: should records be inserted in order by key ("ordered"), or in hashed order ("hashed") (default: hashed) 
+</UL>
+<HR>
+YCSB - Yahoo! Research - Contact cooperb@yahoo-inc.com.
+</BODY>
+</HTML>
