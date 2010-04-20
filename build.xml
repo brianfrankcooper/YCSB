@@ -4,15 +4,21 @@
     <property name="src.dir"     value="src"/>
     <property name="doc.dir"     value="doc"/>
     <property name="dbsrc.dir"     value="${src.dir}/com/yahoo/ycsb/db"/>
-    <property name="dblib.dir"   value="${dbsrc.dir}/lib"/>
+    <property name="cassandralib.dir"   value="${dbsrc.dir}/cassandralib"/>
+    <property name="hbaselib.dir"   value="${dbsrc.dir}/hbaselib"/>
 
     <property name="build.dir"   value="build"/>
     <property name="classes.dir" value="${build.dir}/classes"/>
     <property name="jar.dir"     value="${build.dir}/jar"/>
 
 
-    <path id="classpath">
-        <fileset dir="${dblib.dir}" includes="**/*.jar"/>
+    <path id="cassandraclasspath">
+        <fileset dir="${cassandralib.dir}" includes="**/*.jar"/>
+        <fileset file="build/ycsb.jar"/>
+    </path>
+
+    <path id="hbaseclasspath">
+        <fileset dir="${hbaselib.dir}" includes="**/*.jar"/>
         <fileset file="build/ycsb.jar"/>
     </path>
 
@@ -25,17 +31,18 @@
         <antcall target="makejar"/>
     </target>
 
-      <target name="dbcompile">
+    
+      <target name="dbcompile-cassandra">
         <mkdir dir="${classes.dir}"/>
-        <javac srcdir="${dbsrc.dir}" destdir="${classes.dir}" classpathref="classpath" deprecation="on">
+        <javac includes="CassandraClient.java" srcdir="${dbsrc.dir}" destdir="${classes.dir}" classpathref="cassandraclasspath" deprecation="on">
           <compilerarg value="-Xlint:unchecked"/>
         </javac>
         <antcall target="makejar"/>
     </target>
-    
-      <target name="dbcompile-cassandra">
+
+      <target name="dbcompile-hbase">
         <mkdir dir="${classes.dir}"/>
-        <javac includes="CassandraClient.java" srcdir="${dbsrc.dir}" destdir="${classes.dir}" classpathref="classpath" deprecation="on">
+        <javac includes="HBaseClient.java" srcdir="${dbsrc.dir}" destdir="${classes.dir}" classpathref="hbaseclasspath" deprecation="on">
           <compilerarg value="-Xlint:unchecked"/>
         </javac>
         <antcall target="makejar"/>
