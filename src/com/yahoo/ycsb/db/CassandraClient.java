@@ -149,9 +149,8 @@ public class CassandraClient extends DB
 		      sliceRange.setFinish(new byte[0]);
 		      sliceRange.setCount(1000000);
 
-		      //predicate = new SlicePredicate(null,new SliceRange(new byte[0], new byte[0],false,1000000));
-		      predicate = new SlicePredicate(null,sliceRange);
-		      //predicate.setSlice_range(sliceRange);
+		      predicate = new SlicePredicate();
+		      predicate.setSlice_range(sliceRange);
 		   }
 		   else
 		   {
@@ -160,9 +159,12 @@ public class CassandraClient extends DB
 		      {
 			 fieldlist.add(s.getBytes("UTF-8"));
 		      }
-		      predicate = new SlicePredicate(fieldlist,null);
+
+		      predicate = new SlicePredicate();
+		      predicate.setColumn_names(fieldlist);
 		   }
-		   ColumnParent parent = new ColumnParent("data", null);
+		   
+		   ColumnParent parent = new ColumnParent("data");
 		   List<ColumnOrSuperColumn> results = client.get_slice(table, key, parent, predicate, ConsistencyLevel.ONE);
 		   
 		   if (_debug)
@@ -233,7 +235,8 @@ public class CassandraClient extends DB
 			   sliceRange.setStart(new byte[0]);
 			   sliceRange.setFinish(new byte[0]);
 			   sliceRange.setCount(1000000);
-			   predicate = new SlicePredicate(null,sliceRange);
+			   predicate = new SlicePredicate();
+			   predicate.setSlice_range(sliceRange);
 			}
 			else
 			{
@@ -242,9 +245,10 @@ public class CassandraClient extends DB
 				{
 					fieldlist.add(s.getBytes("UTF-8"));
 				}
-				predicate = new SlicePredicate(fieldlist,null);
+				predicate = new SlicePredicate();
+				predicate.setColumn_names(fieldlist);
 			}
-			ColumnParent parent = new ColumnParent("data", null);
+			ColumnParent parent = new ColumnParent("data");
 			
 			List<KeySlice> results = client.get_range_slice(table,parent,predicate,startkey,"",recordcount,ConsistencyLevel.ONE);
 			
@@ -389,7 +393,7 @@ public class CassandraClient extends DB
 	   {
 		try
 		{
-			client.remove(table,key,new ColumnPath("data", null, null),System.currentTimeMillis(),ConsistencyLevel.ONE);
+			client.remove(table,key,new ColumnPath("data"),System.currentTimeMillis(),ConsistencyLevel.ONE);
 			
 			if (_debug)
 			{
