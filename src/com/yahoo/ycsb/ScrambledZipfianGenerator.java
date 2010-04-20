@@ -47,8 +47,8 @@ public class ScrambledZipfianGenerator extends IntegerGenerator
 
 	/**
 	 * Create a zipfian generator for items between min and max.
-	 * @param min The smallest integer to generate in the sequence.
-	 * @param max The largest integer to generate in the sequence.
+	 * @param _min The smallest integer to generate in the sequence.
+	 * @param _max The largest integer to generate in the sequence.
 	 */
 	public ScrambledZipfianGenerator(long _min, long _max)
 	{

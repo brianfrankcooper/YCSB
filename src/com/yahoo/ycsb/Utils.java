@@ -69,7 +69,7 @@ public class Utils
 	 * 32 bit FNV hash. Produces more "random" hashes than (say) String.hashCode().
 	 * 
 	 * @param val The value to hash.
-	 * @return
+	 * @return The hash value
 	 */
 	public static int FNVhash32(int val)
 	{
@@ -95,7 +95,7 @@ public class Utils
 	 * 64 bit FNV hash. Produces more "random" hashes than (say) String.hashCode().
 	 * 
 	 * @param val The value to hash.
-	 * @return
+	 * @return The hash value
 	 */
 	public static long FNVhash64(long val)
 	{

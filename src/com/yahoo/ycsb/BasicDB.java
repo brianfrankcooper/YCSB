@@ -164,7 +164,7 @@ public class BasicDB extends DB
 	 *
 	 * @param table The name of the table
 	 * @param key The record key of the record to write.
-	 * @param result A HashMap of field/value pairs to update in the record
+	 * @param values A HashMap of field/value pairs to update in the record
 	 * @return Zero on success, a non-zero error code on error
 	 */
 	public int update(String table, String key, HashMap<String,String> values)
@@ -193,7 +193,7 @@ public class BasicDB extends DB
 	 *
 	 * @param table The name of the table
 	 * @param key The record key of the record to insert.
-	 * @param result A HashMap of field/value pairs to insert in the record
+	 * @param values A HashMap of field/value pairs to insert in the record
 	 * @return Zero on success, a non-zero error code on error
 	 */
 	public int insert(String table, String key, HashMap<String,String> values)
