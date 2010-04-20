@@ -7,123 +7,28 @@
 
 	<title>brianfrankcooper/YCSB @ GitHub</title>
 	
-	<style type="text/css">
-		body {
-  		margin-top: 1.0em;
-  		background-color: #892129;
-		  font-family: "Helvetica,Arial,FreeSans";
-  		color: #ffffff;
-    }
-    #container {
-      margin: 0 auto;
-      width: 700px;
-    }
-		h1 { font-size: 3.8em; color: #76ded6; margin-bottom: 3px; }
-		h1 .small { font-size: 0.4em; }
-		h1 a { text-decoration: none }
-		h2 { font-size: 1.5em; color: #76ded6; }
-    h3 { text-align: center; color: #76ded6; }
-    a { color: #76ded6; }
-    .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px; font-style: italic;}
-    .download { float: right; }
-		pre { background: #000; color: #fff; padding: 15px;}
-    hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
-    .footer { text-align:center; padding-top:30px; font-style: italic; }
-	</style>
-	
 </head>
 
 <body>
-  <a href="http://github.com/brianfrankcooper/YCSB"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
 
-  <div id="container">
-
-    <div class="download">
-      <a href="http://github.com/brianfrankcooper/YCSB/zipball/master">
-        <img border="0" width="90" src="http://github.com/images/modules/download/zip.png"></a>
-      <a href="http://github.com/brianfrankcooper/YCSB/tarball/master">
-        <img border="0" width="90" src="http://github.com/images/modules/download/tar.png"></a>
-    </div>
-
-    <h1><a href="http://github.com/brianfrankcooper/YCSB">YCSB</a>
-      <span class="small">by <a href="http://github.com/brianfrankcooper">brianfrankcooper</a></span></h1>
-
-    <div class="description">
+    <h1><a href="http://github.com/brianfrankcooper/YCSB">YCSB</a></h1>
       Yahoo! Cloud Serving Benchmark
-    </div>
 
-    <p><h1><IMG SRC="http://www.brianfrankcooper.net/ycsblogo-small.png">&nbsp;&nbsp;&nbsp;Yahoo! Cloud Serving Benchmark (YCSB)</H1>
+<HR>
+<B>Project pages:</B><P>
 
-h2. Links
+<A HREF="http://research.yahoo.com/Web_Information_Management/YCSB">http://research.yahoo.com/Web_Information_Management/YCSB</A><BR>
+<A HREF="http://wiki.github.com/brianfrankcooper/YCSB/">http://wiki.github.com/brianfrankcooper/YCSB/</A>
 
+<HR>
+<a href="http://github.com/brianfrankcooper/YCSB">Source repository</A><BR>
+      <a href="http://github.com/brianfrankcooper/YCSB/zipball/master">
+        Download ZIP archive</a><BR>
+      <a href="http://github.com/brianfrankcooper/YCSB/tarball/master">
+        Download TAR archive</a><BR>
 <A HREF="mailto:ycsb-users@yahoogroups.com">ycsb-users@yahoogroups.com</A><BR>
 <A HREF="http://groups.yahoo.com/group/ycsb-users">http://groups.yahoo.com/group/ycsb-users</A><P>
-
-<B>Source code:</B><P>
-
-<A HREF="http://github.com/brianfrankcooper/YCSB/">http://github.com/brianfrankcooper/YCSB/</A><P>
-
-<B>Project page:</B><P>
-
-<A HREF="http://research.yahoo.com/Web_Information_Management/YCSB">http://research.yahoo.com/Web_Information_Management/YCSB</A>
-
-<H2>Overview</H2>
-
-There are many new serving databases available, including:
- * <a href="http://www.brianfrankcooper.net/pubs/pnuts.pdf">PNUTS</a>
- * <A HREF="http://labs.google.com/papers/bigtable.html">BigTable</A>
- * <A HREF="http://hadoop.apache.org/hbase/">HBase</A>
- * <A HREF="http://hypertable.org/">Hypertable
- * <A HREF="http://www.microsoft.com/windowsazure/">Azure</A>
- * <A HREF="http://incubator.apache.org/cassandra/">Cassandra</A>
- * <A HREF="http://couchdb.apache.org/">CouchDB</A>
- * <A HREF="http://project-voldemort.com/">Voldemort</A>
- * <A HREF="http://wiki.github.com/cliffmoon/dynomite/dynomite-framework">Dynomite</A>
-...and many others
-
-It is difficult to decide which system is right for your application, partially because the features differ between systems, and partially because there is not an easy way to compare the performance of one system versus another.
-<P>
-The goal of the YCSB project is to develop a framework and common set of workloads for evaluating the performance of different "key-value" and "cloud" serving stores. The project comprises two things:
- * The YCSB Client, an extensible workload generator
- * The Core workloads, a set of workload scenarios to be executed by the generator
-
-Although the core workloads provide a well rounded picture of a system's performance, the Client is extensible so that you can define new and different workloads to examine system aspects, or application scenarios, not adequately covered by the core workload. Similarly, the Client is extensible to support benchmarking different databases. Although we include sample code for benchmarking HBase and Cassandra, it is straightforward to write a new interface layer to benchmark your favorite database.
-<P>
-A common use of the tool is to benchmark multiple systems and compare them. For example, you can install multiple systems on the same hardware configuration, and run the same workloads against each system. Then you can plot the performance of each system (for example, as latency versus throughput curves) to see when one system does better than another.
-
-A paper describing the benchmark and some results is <A HREF="http://research.yahoo.com/node/3202">here</A>.
-
-h2. More information
-
-[[Getting Started]]
-[[License]]
-
-
-</p><h2>License</h2>
-<p>YCSB is available under <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License 2.0</A></p>
-<h2>Authors</h2>
-<p>Brian Frank Cooper (brianfrankcooper@yahoo.com)<br/><br/>      </p>
-<h2>Contact</h2>
-<p>Brian Cooper (brianfrankcooper@yahoo.com)<br/>      </p>
-
-
-    <h2>Download</h2>
-    <p>
-      You can download this project in either
-      <a href="http://github.com/brianfrankcooper/YCSB/zipball/master">zip</a> or
-      <a href="http://github.com/brianfrankcooper/YCSB/tarball/master">tar</a> formats.
-    </p>
-    <p>You can also clone the project with <a href="http://git-scm.com">Git</a>
-      by running:
-      <pre>$ git clone git://github.com/brianfrankcooper/YCSB</pre>
-    </p>
-
-    <div class="footer">
-      get the source code on GitHub : <a href="http://github.com/brianfrankcooper/YCSB">brianfrankcooper/YCSB</a>
-    </div>
-
-  </div>
-
+<HR>
   
 </body>
 </html>
