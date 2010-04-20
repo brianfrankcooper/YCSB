@@ -32,6 +32,14 @@
         <antcall target="makejar"/>
     </target>
     
+      <target name="dbcompile-cassandra">
+        <mkdir dir="${classes.dir}"/>
+        <javac includes="CassandraClient.java" srcdir="${dbsrc.dir}" destdir="${classes.dir}" classpathref="classpath" deprecation="on">
+          <compilerarg value="-Xlint:unchecked"/>
+        </javac>
+        <antcall target="makejar"/>
+    </target>
+
    	<target name ="makejar" description="Create a jar for the YCSB project">
    	      
    	         <jar jarfile="build/ycsb.jar" includes="**/*.class" basedir="${classes.dir}"/>
