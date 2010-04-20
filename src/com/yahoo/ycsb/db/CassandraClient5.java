@@ -15,6 +15,10 @@
  * LICENSE file.                                                                                                                                                                   
  */
 
+/*
+ * Cassandra client specific to version 0.5 of Cassandra.
+ */
+
 package com.yahoo.ycsb.db;
 
 import com.yahoo.ycsb.*;
@@ -35,7 +39,7 @@ import org.apache.cassandra.service.*;
 /**
  * XXXX if we do replication, fix the consistency levels
  */
-public class CassandraClient extends DB
+public class CassandraClient5 extends DB
 {
 	static Random random=new Random();
 	public static final int Ok=0;
@@ -65,7 +69,7 @@ public class CassandraClient extends DB
 		String hosts=getProperties().getProperty("hosts");
 		if (hosts==null)
 		{
-			throw new DBException("Required property \"hosts\" missing for CassandraClient");
+			throw new DBException("Required property \"hosts\" missing for CassandraClient5");
 		}
 		
 		ConnectionRetries=Integer.parseInt(getProperties().getProperty(CONNECTION_RETRY_PROPERTY,CONNECTION_RETRY_PROPERTY_DEFAULT));
@@ -138,54 +142,46 @@ public class CassandraClient extends DB
 	      
 		try
 		{
-		   
-		   SlicePredicate predicate;
-		   if (fields==null)
-		   {
-		    
-		      SliceRange sliceRange = new SliceRange();
-		      sliceRange.setStart(new byte[0]);
-		      sliceRange.setFinish(new byte[0]);
-		      sliceRange.setCount(1000000);
 
-		      //predicate = new SlicePredicate(null,new SliceRange(new byte[0], new byte[0],false,1000000));
-		      predicate = new SlicePredicate(null,sliceRange);
-		      //predicate.setSlice_range(sliceRange);
-		   }
-		   else
-		   {
-		      Vector<byte[]> fieldlist=new Vector<byte[]>();
-		      for (String s : fields)
-		      {
-			 fieldlist.add(s.getBytes("UTF-8"));
-		      }
-		      predicate = new SlicePredicate(fieldlist,null);
-		   }
-		   ColumnParent parent = new ColumnParent("data", null);
-		   List<ColumnOrSuperColumn> results = client.get_slice(table, key, parent, predicate, ConsistencyLevel.ONE);
-		   
-		   if (_debug)
-		   {
-		      System.out.print("READ: ");
-		   }
-		   
-		   for (ColumnOrSuperColumn oneresult : results)
-		   {
-		      Column column=oneresult.column;
-		      result.put(new String(column.name),new String(column.value));
-		      
-		      if (_debug)
-		      {
-			 System.out.print("("+new String(column.name)+"="+new String(column.value)+")");
-		      }
-		   }
-		   
-		   if (_debug)
-		   {
-		      System.out.println("");
-		   }
-		   
-		   return Ok;
+			SlicePredicate predicate;
+			if (fields==null)
+			{
+				predicate = new SlicePredicate(null,new SliceRange(new byte[0], new byte[0],false,1000000));
+			}
+			else
+			{
+				Vector<byte[]> fieldlist=new Vector<byte[]>();
+				for (String s : fields)
+				{
+					fieldlist.add(s.getBytes("UTF-8"));
+				}
+				predicate = new SlicePredicate(fieldlist,null);
+			}
+			ColumnParent parent = new ColumnParent("data", null);
+			List<ColumnOrSuperColumn> results = client.get_slice(table, key, parent, predicate, ConsistencyLevel.ONE);
+			
+			if (_debug)
+			{
+				System.out.print("READ: ");
+			}
+			
+			for (ColumnOrSuperColumn oneresult : results)
+			{
+				Column column=oneresult.column;
+				result.put(new String(column.name),new String(column.value));
+				
+				if (_debug)
+				{
+					System.out.print("("+new String(column.name)+"="+new String(column.value)+")");
+				}
+			}
+			
+			if (_debug)
+			{
+				System.out.println("");
+			}
+			
+			return Ok;
 		}
 		catch (Exception e)
 		{
@@ -228,11 +224,7 @@ public class CassandraClient extends DB
 			SlicePredicate predicate;
 			if (fields==null)
 			{
-			   SliceRange sliceRange = new SliceRange();
-			   sliceRange.setStart(new byte[0]);
-			   sliceRange.setFinish(new byte[0]);
-			   sliceRange.setCount(1000000);
-			   predicate = new SlicePredicate(null,sliceRange);
+				predicate = new SlicePredicate(null,new SliceRange(new byte[0], new byte[0],false,1000000));
 			}
 			else
 			{
@@ -417,7 +409,7 @@ public class CassandraClient extends DB
 
 	public static void main(String[] args)
 	{
-		CassandraClient cli=new CassandraClient();
+		CassandraClient5 cli=new CassandraClient5();
 
 		Properties props=new Properties();
 
