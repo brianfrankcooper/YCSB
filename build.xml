@@ -13,6 +13,7 @@
 
     <path id="classpath">
         <fileset dir="${dblib.dir}" includes="**/*.jar"/>
+        <fileset file="build/ycsb.jar"/>
     </path>
 
 
