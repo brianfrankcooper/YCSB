@@ -17,6 +17,9 @@
 
 package com.yahoo.ycsb;
 
+/**
+ * Generate a popularity distribution of items, skewed to favor recent items significantly more than older items.
+ */
 public class SkewedLatestGenerator extends IntegerGenerator
 {
 	CounterGenerator _basis;

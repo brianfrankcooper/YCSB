@@ -19,6 +19,9 @@ package com.yahoo.ycsb;
 
 import java.io.PrintStream;
 
+/**
+ * A single measured metric (e.g. READ LATENCY)
+ */
 public abstract class OneMeasurement {
 
 	String _name;

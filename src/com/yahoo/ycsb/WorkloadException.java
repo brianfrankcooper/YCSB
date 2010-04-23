@@ -17,6 +17,9 @@
 
 package com.yahoo.ycsb;
 
+/**
+ * The workload tried to do something bad.
+ */
 public class WorkloadException extends Exception
 {
 	/**

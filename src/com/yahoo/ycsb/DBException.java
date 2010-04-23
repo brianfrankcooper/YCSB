@@ -17,6 +17,9 @@
 
 package com.yahoo.ycsb;
 
+/**
+ * Something bad happened while interacting with the database.
+ */
 public class DBException extends Exception
 {
       /**

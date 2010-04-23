@@ -19,6 +19,9 @@ package com.yahoo.ycsb;
 
 import java.util.Properties;
 
+/**
+ * Creates a DB layer by dynamically classloading the specified DB class.
+ */
 public class DBFactory
 {
       @SuppressWarnings("unchecked")

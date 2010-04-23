@@ -311,7 +311,9 @@ class ClientThread extends Thread
 	}
 }
 
-
+/**
+ * Main class for executing YCSB.
+ */
 public class Client
 {
 

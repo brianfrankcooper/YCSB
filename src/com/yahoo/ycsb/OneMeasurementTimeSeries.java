@@ -37,6 +37,9 @@ class SeriesUnit
 	public double average; 
 }
 
+/**
+ * A time series measurement of a metric, such as READ LATENCY.
+ */
 public class OneMeasurementTimeSeries extends OneMeasurement 
 {
 	/**

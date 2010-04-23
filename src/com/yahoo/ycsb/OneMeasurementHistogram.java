@@ -24,7 +24,7 @@ import java.util.Properties;
 
 
 /**
- * Take measurements and maintain a histogram of latencies.
+ * Take measurements and maintain a histogram of a given metric, such as READ LATENCY.
  * 
  * @author cooperb
  *

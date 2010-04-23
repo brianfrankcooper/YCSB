@@ -17,6 +17,9 @@
 
 package com.yahoo.ycsb;
 
+/**
+ * Could not create the specified DB.
+ */
 public class UnknownDBException extends Exception
 {
       /**

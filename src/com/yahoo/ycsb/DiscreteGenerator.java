@@ -20,6 +20,9 @@ package com.yahoo.ycsb;
 import java.util.Vector;
 import java.util.Random;
 
+/**
+ * Generates a distribution by choosing from a discrete set of values.
+ */
 public class DiscreteGenerator extends Generator
 {
 	class Pair

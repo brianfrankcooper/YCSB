@@ -19,98 +19,87 @@ package com.yahoo.ycsb;
 
 import java.util.Random;
 
+/**
+ * Utility functions.
+ */
 public class Utils
 {
 	static Random random=new Random();
 	
-	public static String ASCIIString(int length)
-	{
-		int interval='~'-' '+1;
-
-		StringBuilder str=new StringBuilder();
-		for (int i=0; i<length; i++)
-		{
-			char c=(char)(random.nextInt(interval)+' ');
-			str.append(c);
-		}
-
-		return str.toString();
-	}
+      /**
+       * Generate a random ASCII string of a given length.
+       */
+      public static String ASCIIString(int length)
+      {
+	 int interval='~'-' '+1;
+	 
+	 StringBuilder str=new StringBuilder();
+	 for (int i=0; i<length; i++)
+	 {
+	    char c=(char)(random.nextInt(interval)+' ');
+	    str.append(c);
+	 }
+	 
+	 return str.toString();
+      }
+      
+      /**
+       * Hash an integer value.
+       */
+      public static int hash(int val)
+      {
+	 return FNVhash32(val);
+      }
 	
-	public static int hash(int val)
-	{
-		//return JenkinsHash(val);
-		return FNVhash32(val);
-	}
-
-	public static int JenkinsHash(int val)
-	{
-		//from http://en.wikipedia.org/wiki/Jenkins_hash_function
-		int hash = 0;
-
-		for (int i = 0; i < 4; i++) {
-			int octet=val&0x00ff;
-			val=val>>8;
-		
-			hash += octet;
-			hash += (hash << 10);
-			hash ^= (hash >> 6);
-		}
-		hash += (hash << 3);
-		hash ^= (hash >> 11);
-		hash += (hash << 15);
-		return Math.abs(hash);
-	}
-	
-	public static final int FNV_offset_basis_32=0x811c9dc5;
-	public static final int FNV_prime_32=16777619;
-	
-	/**
-	 * 32 bit FNV hash. Produces more "random" hashes than (say) String.hashCode().
-	 * 
-	 * @param val The value to hash.
-	 * @return The hash value
-	 */
-	public static int FNVhash32(int val)
-	{
-		//from http://en.wikipedia.org/wiki/Fowler_Noll_Vo_hash
-		int hashval = FNV_offset_basis_32;
-
-		for (int i=0; i<4; i++)
-		{
-			int octet=val&0x00ff;
-			val=val>>8;
-
-			hashval = hashval ^ octet;
-			hashval = hashval * FNV_prime_32;
-			//hashval = hashval ^ octet;
-		}
-		return Math.abs(hashval);
-	}
-
-	public static final long FNV_offset_basis_64=0xCBF29CE484222325L;
-	public static final long FNV_prime_64=1099511628211L;
-	
-	/**
-	 * 64 bit FNV hash. Produces more "random" hashes than (say) String.hashCode().
-	 * 
-	 * @param val The value to hash.
-	 * @return The hash value
-	 */
-	public static long FNVhash64(long val)
-	{
-		//from http://en.wikipedia.org/wiki/Fowler_Noll_Vo_hash
-		long hashval = FNV_offset_basis_64;
-
-		for (int i=0; i<8; i++)
-		{
-			long octet=val&0x00ff;
-			val=val>>8;
-
-			hashval = hashval ^ octet;
-			hashval = hashval * FNV_prime_64;
-			//hashval = hashval ^ octet;
-		}
-		return Math.abs(hashval);
-	}
+      public static final int FNV_offset_basis_32=0x811c9dc5;
+      public static final int FNV_prime_32=16777619;
+      
+      /**
+       * 32 bit FNV hash. Produces more "random" hashes than (say) String.hashCode().
+       * 
+       * @param val The value to hash.
+       * @return The hash value
+       */
+      public static int FNVhash32(int val)
+      {
+	 //from http://en.wikipedia.org/wiki/Fowler_Noll_Vo_hash
+	 int hashval = FNV_offset_basis_32;
+	 
+	 for (int i=0; i<4; i++)
+	 {
+	    int octet=val&0x00ff;
+	    val=val>>8;
+	    
+	    hashval = hashval ^ octet;
+	    hashval = hashval * FNV_prime_32;
+	    //hashval = hashval ^ octet;
+	 }
+	 return Math.abs(hashval);
+      }
+      
+      public static final long FNV_offset_basis_64=0xCBF29CE484222325L;
+      public static final long FNV_prime_64=1099511628211L;
+      
+      /**
+       * 64 bit FNV hash. Produces more "random" hashes than (say) String.hashCode().
+       * 
+       * @param val The value to hash.
+       * @return The hash value
+       */
+      public static long FNVhash64(long val)
+      {
+	 //from http://en.wikipedia.org/wiki/Fowler_Noll_Vo_hash
+	 long hashval = FNV_offset_basis_64;
+	 
+	 for (int i=0; i<8; i++)
+	 {
+	    long octet=val&0x00ff;
+	    val=val>>8;
+	    
+	    hashval = hashval ^ octet;
+	    hashval = hashval * FNV_prime_64;
+	    //hashval = hashval ^ octet;
+	 }
+	 return Math.abs(hashval);
+      }
 }

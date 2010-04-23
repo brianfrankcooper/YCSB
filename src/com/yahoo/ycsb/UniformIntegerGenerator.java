@@ -19,6 +19,9 @@ package com.yahoo.ycsb;
 
 import java.util.Random;
 
+/**
+ * Generates integers randomly uniform from an interval.
+ */
 public class UniformIntegerGenerator extends IntegerGenerator 
 {
 	Random _random;
