@@ -42,6 +42,9 @@ public class Measurements
 		measurementproperties=props;
 	}
 
+      /**
+       * Return the singleton Measurements object.
+       */
 	public synchronized static Measurements getMeasurements()
 	{
 		if (singleton==null)
@@ -56,6 +59,9 @@ public class Measurements
 
 	private Properties _props;
 	
+      /**
+       * Create a new object with the specified properties.
+       */
 	public Measurements(Properties props)
 	{
 		data=new HashMap<String,OneMeasurement>();
@@ -84,6 +90,9 @@ public class Measurements
 		}
 	}
 
+      /**
+       * Report a single value of a single metric. E.g. for read latency, operation="READ" and latency is the measured value.
+       */
 	public synchronized void measure(String operation, int latency)
 	{
 		if (!data.containsKey(operation))
@@ -108,6 +117,9 @@ public class Measurements
 		}
 	}
 
+      /**
+       * Report a return code for a single DB operaiton.
+       */
 	public void reportReturnCode(String operation, int code)
 	{
 		if (!data.containsKey(operation))
@@ -123,6 +135,9 @@ public class Measurements
 		data.get(operation).reportReturnCode(code);
 	}
 
+      /**
+       * Print the full report to the listed PrintStream.
+       */
 	public void printReport(PrintStream out)
 	{
 		for (OneMeasurement m : data.values())
@@ -131,6 +146,9 @@ public class Measurements
 		}
 	}
 	
+      /**
+       * Return a one line summary of the measurements.
+       */
 	public String getSummary()
 	{
 		String ret="";

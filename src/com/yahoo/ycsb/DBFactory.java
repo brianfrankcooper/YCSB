@@ -47,22 +47,6 @@ public class DBFactory
 	 ret.setProperties(properties);
 
 	 return new DBWrapper(ret);
-	 
-	 /*
-	 DB ret;
-	 
-	 if (dbname.compareTo("BasicDB")==0)
-	 {
-	    ret=new BasicDB();
-	 }
-	 else
-	 {
-	    throw new UnknownDBException(dbname);
-	 }
-	 
-	 ret.setProperties(properties);
-	 return ret;
-	 */
       }
       
 }
