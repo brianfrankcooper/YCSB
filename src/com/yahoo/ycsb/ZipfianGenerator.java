@@ -34,6 +34,8 @@ import java.util.Random;
  * values (zeta) is a sum sequence from 1 to n, where n is the itemcount. Note that if you increase the number of items in the set, we can compute
  * a new zeta incrementally, so it should be fast unless you have added millions of items. However, if you decrease the number of items, we recompute
  * zeta from scratch, so this can take a long time. 
+ *
+ * The algorithm used here is from "Quickly Generating Billion-Record Synthetic Databases", Jim Gray et al, SIGMOD 1994.
  */
 public class ZipfianGenerator extends IntegerGenerator
 {     
