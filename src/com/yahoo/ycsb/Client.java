@@ -207,16 +207,18 @@ class ClientThread extends Thread
 		//spread the thread operations out so they don't all hit the DB at the same time
 		try
 		{
-			if (_target>0)
-			{
-				sleep(random.nextInt((int)(1.0/_target)));
-			}
+		   //GH issue 4 - throws exception if _target>1 because random.nextInt argument must be >0
+		   //and the sleep() doesn't make sense for granularities < 1 ms anyway
+		   if ( (_target>0) && (_target<=1.0) ) 
+		   {
+		      sleep(random.nextInt((int)(1.0/_target)));
+		   }
 		}
 		catch (InterruptedException e)
 		{
-			//do nothing
+		   //do nothing
 		}
-
+		
 		try
 		{
 			if (_dotransactions)
