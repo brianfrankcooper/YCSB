@@ -32,15 +32,17 @@ public class Utils
       public static String ASCIIString(int length)
       {
 	 int interval='~'-' '+1;
-	 
-	 StringBuilder str=new StringBuilder();
-	 for (int i=0; i<length; i++)
-	 {
-	    char c=(char)(random.nextInt(interval)+' ');
-	    str.append(c);
-	 }
-	 
-	 return str.toString();
+	
+        byte []buf = new byte[length];
+        random.nextBytes(buf);
+        for (int i = 0; i < length; i++) {
+          if (buf[i] < 0) {
+            buf[i] = (byte)((-buf[i] % interval) + ' ');
+          } else {
+            buf[i] = (byte)((buf[i] % interval) + ' ');
+          }
+        }
+        return new String(buf);
       }
       
       /**
