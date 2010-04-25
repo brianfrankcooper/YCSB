@@ -47,6 +47,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     public String _table="";
     public HTable _hTable=null;
     public String _columnFamily="";
+    public byte _columnFamilyBytes[];
 
     public static final int Ok=0;
     public static final int ServerError=-1;
@@ -73,7 +74,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 		    System.err.println("Error, must specify a columnfamily for HBase table");
 		    throw new DBException("No columnfamily specified");
 	    }
-
+      _columnFamilyBytes = Bytes.toBytes(_columnFamily);
 
     }
 
@@ -155,7 +156,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 	//now parse out all desired fields
 	if (fields != null) {
 		for (String field : fields) {
-			byte[] value = r.getValue(Bytes.toBytes(_columnFamily),Bytes.toBytes(field));
+			byte[] value = r.getValue(_columnFamilyBytes, Bytes.toBytes(field));
 			result.put(field,Bytes.toString(value)); 
 			if (_debug) {
 				System.out.println("Result for field: "+field+" is: "+Bytes.toString(value));
@@ -200,13 +201,13 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         //add specified fields or else all fields
         if (fields == null) 
         {
-            s.addFamily(Bytes.toBytes(_columnFamily));
+            s.addFamily(_columnFamilyBytes);
         }
         else 
         {
             for (String field : fields) 
             {
-                s.addColumn(Bytes.toBytes(_columnFamily),Bytes.toBytes(field));
+                s.addColumn(_columnFamilyBytes,Bytes.toBytes(field));
             }
         }
        
@@ -230,7 +231,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
                 if (fields != null) //parse specified field list 
                 {
                     for (String field : fields) {
-                        byte[] value = rr.getValue(Bytes.toBytes(_columnFamily),Bytes.toBytes(field));
+                        byte[] value = rr.getValue(_columnFamilyBytes,Bytes.toBytes(field));
                         rowResult.put(field,Bytes.toString(value)); 
                         if (_debug) 
                         {
@@ -241,7 +242,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
                 else //get all fields
                 {
                     //HBase can return a mapping for all columns in a column family
-                    NavigableMap<byte[], byte[]> scanMap = rr.getFamilyMap(Bytes.toBytes(_columnFamily));    
+                    NavigableMap<byte[], byte[]> scanMap = rr.getFamilyMap(_columnFamilyBytes);    
                     for (byte[] fieldkey : scanMap.keySet())
                     {
                         String value = Bytes.toString(scanMap.get(fieldkey));
@@ -311,13 +312,13 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             System.out.println("Setting up put for key: "+key);
         }
         Put p = new Put(Bytes.toBytes(key));
-        for (String fieldkey : values.keySet())
+        for (Map.Entry<String, String> entry : values.entrySet())
         {
-            String value = values.get(fieldkey);
             if (_debug) {
-                System.out.println("Adding field/value " + fieldkey + "/"+value+" to put request");
+                System.out.println("Adding field/value " + entry.getKey() + "/"+
+                  entry.getValue() + " to put request");
             }	       
-            p.add(Bytes.toBytes(_columnFamily),Bytes.toBytes(fieldkey),Bytes.toBytes(value));
+            p.add(_columnFamilyBytes,Bytes.toBytes(entry.getKey()),Bytes.toBytes(entry.getValue()));
         }
 
         try 
