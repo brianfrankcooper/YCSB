@@ -41,3 +41,14 @@ better than another.
 Detailed information about using the benchmark is available in the
 doc/index.html file.
 
+Revision History
+================
+
+0.1.1 - 4/25/10
+
+- Compiles under 1.5
+- Fixes doc and HBaseClient bugs
+
+0.1.0 - 4/23/10 
+
+- Initial open source release
