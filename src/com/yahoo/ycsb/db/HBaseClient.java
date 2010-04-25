@@ -83,7 +83,13 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 	 */
     public void cleanup() throws DBException
     {
-
+        try {
+            if (_hTable != null) {
+                _hTable.flushCommits();
+            }
+        } catch (IOException e) {
+            throw new DBException(e);
+        }
     }
 
     public void getHTable(String table) throws IOException
