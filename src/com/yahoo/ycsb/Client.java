@@ -478,9 +478,12 @@ public class Client
 					System.exit(0);
 				}
 
-				for (String prop : myfileprops.stringPropertyNames())
+				//Issue #5 - remove call to stringPropertyNames to make compilable under Java 1.5
+				for (Enumeration e=myfileprops.propertyNames(); e.hasMoreElements(); )
 				{
-					fileprops.setProperty(prop,myfileprops.getProperty(prop));
+				   String prop=(String)e.nextElement();
+				   
+				   fileprops.setProperty(prop,myfileprops.getProperty(prop));
 				}
 
 			}
@@ -529,9 +532,12 @@ public class Client
 
 		//overwrite file properties with properties from the command line
 
-		for (String prop : props.stringPropertyNames())
+		//Issue #5 - remove call to stringPropertyNames to make compilable under Java 1.5
+		for (Enumeration e=props.propertyNames(); e.hasMoreElements(); )
 		{
-			fileprops.setProperty(prop,props.getProperty(prop));
+		   String prop=(String)e.nextElement();
+		   
+		   fileprops.setProperty(prop,props.getProperty(prop));
 		}
 
 		props=fileprops;
