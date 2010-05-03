@@ -36,7 +36,7 @@ import org.apache.cassandra.thrift.*;
 /**
  * XXXX if we do replication, fix the consistency levels
  */
-public class CassandraClient extends DB
+public class CassandraClient6 extends DB
 {
 	static Random random=new Random();
 	public static final int Ok=0;
@@ -422,7 +422,7 @@ public class CassandraClient extends DB
 
 	public static void main(String[] args)
 	{
-		CassandraClient cli=new CassandraClient();
+		CassandraClient6 cli=new CassandraClient6();
 
 		Properties props=new Properties();
 
