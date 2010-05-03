@@ -15,7 +15,7 @@
  * LICENSE file.                                                                                                                                                                   
  */
 
-package com.yahoo.ycsb;
+package com.yahoo.ycsb.generator;
 
 /**
  * Generates a sequence of integers 0, 1, ...

@@ -15,10 +15,12 @@
  * LICENSE file.                                                                                                                                                                   
  */
 
-package com.yahoo.ycsb;
+package com.yahoo.ycsb.generator;
 
 import java.util.Vector;
 import java.util.Random;
+
+import com.yahoo.ycsb.WorkloadException;
 
 /**
  * Generates a distribution by choosing from a discrete set of values.

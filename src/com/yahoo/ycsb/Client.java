@@ -22,6 +22,8 @@ import java.io.*;
 import java.text.DecimalFormat;
 import java.util.*;
 
+import com.yahoo.ycsb.measurements.Measurements;
+
 //import org.apache.log4j.BasicConfigurator;
 
 /**

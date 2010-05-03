@@ -22,6 +22,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
+import com.yahoo.ycsb.measurements.Measurements;
+
 /**
  * Wrapper around a "real" DB that measures latencies and counts return codes.
  */
