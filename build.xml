@@ -3,27 +3,27 @@
    
     <property name="src.dir"     value="src"/>
     <property name="doc.dir"     value="doc"/>
-    <property name="dbsrc.dir"     value="${src.dir}/com/yahoo/ycsb/db"/>
-    <property name="cassandralib.dir"   value="${dbsrc.dir}/cassandralib"/>
-    <property name="hbaselib.dir"   value="${dbsrc.dir}/hbaselib"/>
 
     <property name="build.dir"   value="build"/>
     <property name="classes.dir" value="${build.dir}/classes"/>
     <property name="jar.dir"     value="${build.dir}/jar"/>
 
+    <target name="dbcompile-cassandra-0.5" depends="compile">
+    	<property name="db.dir" value="db/cassandra-0.5"/>
+        <antcall target="dbcompile"/>
+    </target>
+    	
+   	<target name="dbcompile-cassandra-0.6" depends="compile">
+		<property name="db.dir" value="db/cassandra-0.6"/>
+		<antcall target="dbcompile"/>
+	</target>
+   	
+   	<target name="dbcompile-hbase" depends="compile">
+		<property name="db.dir" value="db/hbase"/>
+		<antcall target="dbcompile"/>
+	</target>
 
-    <path id="cassandraclasspath">
-        <fileset dir="${cassandralib.dir}" includes="**/*.jar"/>
-        <fileset file="build/ycsb.jar"/>
-    </path>
-
-    <path id="hbaseclasspath">
-        <fileset dir="${hbaselib.dir}" includes="**/*.jar"/>
-        <fileset file="build/ycsb.jar"/>
-    </path>
-
-
-      <target name="compile">
+	<target name="compile">
         <mkdir dir="${classes.dir}"/>
         <javac srcdir="${src.dir}" destdir="${classes.dir}" excludes="com/yahoo/ycsb/db/**" deprecation="on">
           <compilerarg value="-Xlint:unchecked"/>
@@ -31,28 +31,23 @@
         <antcall target="makejar"/>
     </target>
 
-    
-      <target name="dbcompile-cassandra">
-        <mkdir dir="${classes.dir}"/>
-        <javac includes="CassandraClient.java" srcdir="${dbsrc.dir}" destdir="${classes.dir}" classpathref="cassandraclasspath" deprecation="on">
-          <compilerarg value="-Xlint:unchecked"/>
-        </javac>
-        <antcall target="makejar"/>
-    </target>
-
-      <target name="dbcompile-hbase">
-        <mkdir dir="${classes.dir}"/>
-        <javac includes="HBaseClient.java" srcdir="${dbsrc.dir}" destdir="${classes.dir}" classpathref="hbaseclasspath" deprecation="on">
+	<target name="dbcompile">
+	    <path id="dbclasspath">
+	        <fileset dir="${db.dir}/lib" includes="**/*.jar"/>
+	        <fileset file="build/ycsb.jar"/>
+	    </path>
+		
+    	<mkdir dir="${classes.dir}"/>
+        <javac srcdir="${db.dir}/src" destdir="${classes.dir}" classpathref="dbclasspath" deprecation="on">
           <compilerarg value="-Xlint:unchecked"/>
         </javac>
         <antcall target="makejar"/>
     </target>
 
    	<target name ="makejar" description="Create a jar for the YCSB project">
-   	      
-   	         <jar jarfile="build/ycsb.jar" includes="**/*.class" basedir="${classes.dir}"/>
-   	         
-   	      </target>
+		<jar jarfile="build/ycsb.jar" includes="**/*.class" basedir="${classes.dir}"/>
+	</target>
+   	
     <target name="clean">
        <delete includeemptydirs="true">
           <fileset dir="build" includes="**/*"/>
