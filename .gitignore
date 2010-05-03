@@ -2,6 +2,4 @@ build
 .classpath
 .project
 .settings
-db/cassandra-0.5/lib
-db/cassandra-0.6/lib
-db/hbase/lib
+db/*/lib
