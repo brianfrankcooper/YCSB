@@ -15,59 +15,139 @@
  * LICENSE file.                                                                                                                                                                   
  */
 
-package com.yahoo.ycsb;
+package com.yahoo.ycsb.measurements;
 
 import java.io.PrintStream;
 import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Properties;
+import java.util.Vector;
 
+class SeriesUnit
+{
+	/**
+	 * @param time
+	 * @param average
+	 */
+	public SeriesUnit(long time, double average) {
+		this.time = time;
+		this.average = average;
+	}
+	public long time;
+	public double average; 
+}
 
 /**
- * Take measurements and maintain a histogram of a given metric, such as READ LATENCY.
- * 
- * @author cooperb
- *
+ * A time series measurement of a metric, such as READ LATENCY.
  */
-public class OneMeasurementHistogram extends OneMeasurement
+public class OneMeasurementTimeSeries extends OneMeasurement 
 {
-	public static final String BUCKETS="histogram.buckets";
-	public static final String BUCKETS_DEFAULT="1000";
-
-	int _buckets;
-	int[] histogram;
-	int histogramoverflow;
-	int operations;
-	long totallatency;
+	/**
+	 * Granularity for time series; measurements will be averaged in chunks of this granularity. Units are milliseconds.
+	 */
+	public static final String GRANULARITY="timeseries.granularity";
+	
+	public static final String GRANULARITY_DEFAULT="1000";
+	
+	int _granularity;
+	Vector<SeriesUnit> _measurements;
+	
+	long start=-1;
+	long currentunit=-1;
+	int count=0;
+	int sum=0;
+	int operations=0;
+	long totallatency=0;
 	
 	//keep a windowed version of these stats for printing status
-	int windowoperations;
-	long windowtotallatency;
+	int windowoperations=0;
+	long windowtotallatency=0;
 	
-	int min;
-	int max;
-	HashMap<Integer,int[]> returncodes;
+	int min=-1;
+	int max=-1;
 
-	public OneMeasurementHistogram(String name, Properties props)
+	private HashMap<Integer, int[]> returncodes;
+	
+	public OneMeasurementTimeSeries(String name, Properties props)
 	{
 		super(name);
-		_buckets=Integer.parseInt(props.getProperty(BUCKETS, BUCKETS_DEFAULT));
-		histogram=new int[_buckets];
-		histogramoverflow=0;
-		operations=0;
-		totallatency=0;
-		windowoperations=0;
-		windowtotallatency=0;
-		min=-1;
-		max=-1;
+		_granularity=Integer.parseInt(props.getProperty(GRANULARITY,GRANULARITY_DEFAULT));
+		_measurements=new Vector<SeriesUnit>();
 		returncodes=new HashMap<Integer,int[]>();
 	}
-
-	/* (non-Javadoc)
-	 * @see com.yahoo.ycsb.OneMeasurement#reportReturnCode(int)
-	 */
-	public synchronized void reportReturnCode(int code)
+	
+	void checkEndOfUnit(boolean forceend)
 	{
+		long now=System.currentTimeMillis();
+		
+		if (start<0)
+		{
+			currentunit=0;
+			start=now;
+		}
+		
+		long unit=((now-start)/_granularity)*_granularity;
+		
+		if ( (unit>currentunit) || (forceend) )
+		{
+			double avg=((double)sum)/((double)count);
+			_measurements.add(new SeriesUnit(currentunit,avg));
+			
+			currentunit=unit;
+			
+			count=0;
+			sum=0;
+		}
+	}
+	
+	@Override
+	public void measure(int latency) 
+	{
+		checkEndOfUnit(false);
+		
+		count++;
+		sum+=latency;
+		totallatency+=latency;
+		operations++;
+		windowoperations++;
+		windowtotallatency+=latency;
+		
+		if (latency>max)
+		{
+			max=latency;
+		}
+		
+		if ( (latency<min) || (min<0) )
+		{
+			min=latency;
+		}
+	}
+
+	@Override
+	public void printReport(PrintStream out) {
+		checkEndOfUnit(true);
+
+		out.println("["+getName()+"], Operations, "+operations);
+		out.println("["+getName()+"], AverageLatency(ms), "+(((double)totallatency)/((double)operations)));
+		out.println("["+getName()+"], MinLatency(ms), "+min);
+		out.println("["+getName()+"], MaxLatency(ms), "+max);
+
+		//TODO: 95th and 99th percentile latency
+
+		for (Integer I : returncodes.keySet())
+		{
+			int[] val=returncodes.get(I);
+			out.println("["+getName()+"], Return="+I+", "+val[0]);
+		}	    
+
+		for (SeriesUnit unit : _measurements)
+		{
+			out.println("["+getName()+"], "+unit.time+", "+unit.average);
+		}
+	}
+
+	@Override
+	public void reportReturnCode(int code) {
 		Integer Icode=code;
 		if (!returncodes.containsKey(Icode))
 		{
@@ -76,76 +156,7 @@ public class OneMeasurementHistogram extends OneMeasurement
 			returncodes.put(Icode,val);
 		}
 		returncodes.get(Icode)[0]++;
-	}
 
-
-	/* (non-Javadoc)
-	 * @see com.yahoo.ycsb.OneMeasurement#measure(int)
-	 */
-	public synchronized void measure(int latency)
-	{
-		if (latency>=_buckets)
-		{
-			histogramoverflow++;
-		}
-		else
-		{
-			histogram[latency]++;
-		}
-		operations++;
-		totallatency+=latency;
-		windowoperations++;
-		windowtotallatency+=latency;
-
-		if ( (min<0) || (latency<min) )
-		{
-			min=latency;
-		}
-
-		if ( (max<0) || (latency>max) )
-		{
-			max=latency;
-		}
-	}
-
-	/* (non-Javadoc)
-	 * @see com.yahoo.ycsb.OneMeasurement#printReport(java.io.PrintStream)
-	 */
-	public void printReport(PrintStream out)
-	{
-		out.println("["+getName()+"], Operations, "+operations);
-		out.println("["+getName()+"], AverageLatency(ms), "+(((double)totallatency)/((double)operations)));
-		out.println("["+getName()+"], MinLatency(ms), "+min);
-		out.println("["+getName()+"], MaxLatency(ms), "+max);
-
-		int opcounter=0;
-		boolean done95th=false;
-		for (int i=0; i<_buckets; i++)
-		{
-			opcounter+=histogram[i];
-			if ( (!done95th) && (((double)opcounter)/((double)operations)>=0.95) )
-			{
-				out.println("["+getName()+"], 95thPercentileLatency(ms), "+i);
-				done95th=true;
-			}
-			if (((double)opcounter)/((double)operations)>=0.99)
-			{
-				out.println("["+getName()+"], 99thPercentileLatency(ms), "+i);
-				break;
-			}
-		}
-
-		for (Integer I : returncodes.keySet())
-		{
-			int[] val=returncodes.get(I);
-			out.println("["+getName()+"], Return="+I+", "+val[0]);
-		}	    
-
-		for (int i=0; i<_buckets; i++)
-		{
-			out.println("["+getName()+"], "+i+", "+histogram[i]);
-		}
-		out.println("["+getName()+"], >"+_buckets+", "+histogramoverflow);
 	}
 
 	@Override

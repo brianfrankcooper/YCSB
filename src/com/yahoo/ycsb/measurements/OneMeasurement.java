@@ -15,39 +15,33 @@
  * LICENSE file.                                                                                                                                                                   
  */
 
-package com.yahoo.ycsb;
+package com.yahoo.ycsb.measurements;
 
-import java.util.Random;
+import java.io.PrintStream;
 
 /**
- * Generates integers randomly uniform from an interval.
+ * A single measured metric (e.g. READ LATENCY)
  */
-public class UniformIntegerGenerator extends IntegerGenerator 
-{
-	Random _random;
-	int _lb,_ub,_interval;
+public abstract class OneMeasurement {
+
+	String _name;
 	
-	/**
-	 * Creates a generator that will return integers uniformly randomly from the interval [lb,ub] inclusive (that is, lb and ub are possible values)
-	 *
-	 * @param lb the lower bound (inclusive) of generated values
-	 * @param ub the upper bound (inclusive) of generated values
-	 */
-	public UniformIntegerGenerator(int lb, int ub)
-	{
-		_random=new Random();
-		_lb=lb;
-		_ub=ub;
-		_interval=_ub-_lb+1;
-	}
-	
-	@Override
-	public int nextInt() 
-	{
-		int ret=_random.nextInt(_interval)+_lb;
-		setLastInt(ret);
-		
-		return ret;
+	public String getName() {
+		return _name;
 	}
 
+	/**
+	 * @param _name
+	 */
+	public OneMeasurement(String _name) {
+		this._name = _name;
+	}
+
+	public abstract void reportReturnCode(int code);
+
+	public abstract void measure(int latency);
+	
+	public abstract void printReport(PrintStream out);
+
+	public abstract String getSummary();
 }

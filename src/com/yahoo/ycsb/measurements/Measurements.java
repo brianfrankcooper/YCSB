@@ -15,7 +15,7 @@
  * LICENSE file.                                                                                                                                                                   
  */
 
-package com.yahoo.ycsb;
+package com.yahoo.ycsb.measurements;
 
 import java.io.PrintStream;
 import java.util.HashMap;
