@@ -182,6 +182,10 @@ public class CommandLine
 	 
 	 props=fileprops;
 
+	 System.out.println("YCSB Command Line client");
+	 System.out.println("Type \"help\" for command line help");
+	 System.out.println("Start with \"-help\" for usage info");
+
 	 //create a DB
 	 String dbname=props.getProperty("db",DEFAULT_DB);
 
