@@ -326,9 +326,17 @@ public class CommandLine
 		  int ret=db.scan(table,tokens[1],Integer.parseInt(tokens[2]),fields,results);
 		  System.out.println("Return code: "+ret);
 		  int record=0;
+		  if (results.size()==0)
+		  {
+		     System.out.println("0 records");
+		  }
+		  else
+		  {
+		     System.out.println("--------------------------------");
+		  }
 		  for (HashMap<String,String> result : results)
 		  {
-		     System.out.println("Record"+(record++));
+		     System.out.println("Record "+(record++));
 		     for (Map.Entry<String,String> ent : result.entrySet())
 		     {
 			System.out.println(ent.getKey()+"="+ent.getValue());
