@@ -20,7 +20,7 @@ package com.yahoo.ycsb.measurements;
 import java.io.PrintStream;
 
 /**
- * A single measured metric (e.g. READ LATENCY)
+ * A single measured metric (such as READ LATENCY)
  */
 public abstract class OneMeasurement {
 
