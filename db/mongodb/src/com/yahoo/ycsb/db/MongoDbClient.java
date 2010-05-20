@@ -96,6 +96,7 @@ public class MongoDbClient extends DB {
     public int delete(String table, String key) {
         try {
             com.mongodb.DB db = mongo.getDB(database);
+	    db.requestStart(); 
             DBCollection collection = db.getCollection(table);
             DBObject q = new BasicDBObject().append("_id", key);
             if (writeConcern.equals(WriteConcern.STRICT)) {
@@ -105,6 +106,8 @@ public class MongoDbClient extends DB {
 
             // see if record was deleted
             DBObject errors = db.getLastError();
+
+	    db.requestDone();
 
             return (Long) errors.get("n") == 1 ? 0 : 1;
         } catch (Exception e) {
@@ -127,6 +130,7 @@ public class MongoDbClient extends DB {
     public int insert(String table, String key, HashMap<String, String> values) {
         try {
             com.mongodb.DB db = mongo.getDB(database);
+	    db.requestStart(); 
             DBCollection collection = db.getCollection(table);
             DBObject r = new BasicDBObject().append("_id", key);
             r.putAll(values);
@@ -137,6 +141,9 @@ public class MongoDbClient extends DB {
 
             // determine if record was inserted
             DBObject errors = db.getLastError();
+
+	    db.requestDone();
+
             return (Long) errors.get("n") == 1 ? 0 : 1;
         } catch (Exception e) {
             logger.error(e + "", e);
@@ -160,6 +167,7 @@ public class MongoDbClient extends DB {
             HashMap<String, String> result) {
         try {
             com.mongodb.DB db = mongo.getDB(database);
+	    db.requestStart(); 
             DBCollection collection = db.getCollection(table);
             DBObject q = new BasicDBObject().append("_id", key);
             DBObject fieldsToReturn = new BasicDBObject();
@@ -180,6 +188,9 @@ public class MongoDbClient extends DB {
 	       //toMap() returns a Map, but result.putAll() expects a Map<String,String>. Hence, the suppress warnings.
                 result.putAll(queryResult.toMap());
             }
+
+	    db.requestDone();
+
             return queryResult != null ? 0 : 1;
         } catch (Exception e) {
             logger.error(e + "", e);
@@ -204,6 +215,7 @@ public class MongoDbClient extends DB {
             Set<String> fields, Vector<HashMap<String, String>> result) {
         try {
             com.mongodb.DB db = mongo.getDB(database);
+	    db.requestStart(); 
             DBCollection collection = db.getCollection(table);
             // { "_id":{"$gte":startKey, "$lte":{"appId":key+"\uFFFF"}} }
             DBObject scanRange = new BasicDBObject().append("$gte", startkey);
@@ -213,6 +225,9 @@ public class MongoDbClient extends DB {
 	       //toMap() returns a Map, but result.add() expects a Map<String,String>. Hence, the suppress warnings.
                 result.add((HashMap<String, String>) cursor.next().toMap());
             }
+
+	    db.requestDone();
+
             return 0;
         } catch (Exception e) {
             logger.error(e + "", e);
@@ -234,6 +249,7 @@ public class MongoDbClient extends DB {
     public int update(String table, String key, HashMap<String, String> values) {
         try {
             com.mongodb.DB db = mongo.getDB(database);
+	    db.requestStart(); 
             DBCollection collection = db.getCollection(table);
             DBObject q = new BasicDBObject().append("_id", key);
             DBObject u = new BasicDBObject();
@@ -254,6 +270,8 @@ public class MongoDbClient extends DB {
 
             // determine if record was inserted
             DBObject errors = db.getLastError();
+
+	    db.requestDone();
 
             return (Long) errors.get("n") == 1 ? 0 : 1;
         } catch (Exception e) {
