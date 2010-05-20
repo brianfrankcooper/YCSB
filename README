@@ -44,6 +44,14 @@ doc/index.html file.
 Revision History
 ================
 
+0.1.2 - 5/12/10
+
+- MongoDB binding (ypai)
+- Cassandra 0.7 binding (johanoskarsson)
+- Simple command line interface (brianfrankcooper)
+- Faster string generation (tlipcon)
+- Avoid Bytes conversion in HBaseClient (tlipcon)
+
 0.1.1 - 4/25/10
 
 - Compiles under 1.5
