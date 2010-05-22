@@ -31,44 +31,44 @@ import org.codehaus.jackson.impl.DefaultPrettyPrinter;
 public class JSONMeasurementsExporter implements MeasurementsExporter
 {
 
-	private JsonFactory factory = new JsonFactory();
-	private JsonGenerator g;
+  private JsonFactory factory = new JsonFactory();
+  private JsonGenerator g;
 
-	public JSONMeasurementsExporter(OutputStream os) throws IOException
-	{
+  public JSONMeasurementsExporter(OutputStream os) throws IOException
+  {
 
-		BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(os));
-		g = factory.createJsonGenerator(bw);
-		g.setPrettyPrinter(new DefaultPrettyPrinter());
-	}
+    BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(os));
+    g = factory.createJsonGenerator(bw);
+    g.setPrettyPrinter(new DefaultPrettyPrinter());
+  }
 
-	@Override
-	public void write(String metric, String measurement, int i) throws IOException
-	{
-		g.writeStartObject();
-		g.writeStringField("metric", metric);
-		g.writeStringField("measurement", measurement);
-		g.writeNumberField("value", i);
-		g.writeEndObject();
-	}
+  @Override
+  public void write(String metric, String measurement, int i) throws IOException
+  {
+    g.writeStartObject();
+    g.writeStringField("metric", metric);
+    g.writeStringField("measurement", measurement);
+    g.writeNumberField("value", i);
+    g.writeEndObject();
+  }
 
-	@Override
-	public void write(String metric, String measurement, double d) throws IOException
-	{
-		g.writeStartObject();
-		g.writeStringField("metric", metric);
-		g.writeStringField("measurement", measurement);
-		g.writeNumberField("value", d);
-		g.writeEndObject();
-	}
+  @Override
+  public void write(String metric, String measurement, double d) throws IOException
+  {
+    g.writeStartObject();
+    g.writeStringField("metric", metric);
+    g.writeStringField("measurement", measurement);
+    g.writeNumberField("value", d);
+    g.writeEndObject();
+  }
 
-	@Override
-	public void close() throws IOException
-	{
-		if (g != null)
-		{
-			g.close();
-		}
-	}
+  @Override
+  public void close() throws IOException
+  {
+    if (g != null)
+    {
+      g.close();
+    }
+  }
 
 }

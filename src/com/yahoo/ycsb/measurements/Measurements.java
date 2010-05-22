@@ -137,18 +137,19 @@ public class Measurements
 		data.get(operation).reportReturnCode(code);
 	}
 	
-	/**
-	 * Export the current measurements to a suitable format.
-	 * @param exporter Exporter representing the type of format to write to.
-	 * @throws IOException Thrown if the export failed.
-	 */
-	public void exportMeasurements(MeasurementsExporter exporter) throws IOException
-	{
-	  for (OneMeasurement measurement : data.values())
+  /**
+   * Export the current measurements to a suitable format.
+   * 
+   * @param exporter Exporter representing the type of format to write to.
+   * @throws IOException Thrown if the export failed.
+   */
+  public void exportMeasurements(MeasurementsExporter exporter) throws IOException
+  {
+    for (OneMeasurement measurement : data.values())
     {
       measurement.exportMeasurements(exporter);
     }
-	}
+  }
 	
       /**
        * Return a one line summary of the measurements.

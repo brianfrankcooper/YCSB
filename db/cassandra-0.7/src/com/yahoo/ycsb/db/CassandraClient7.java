@@ -144,14 +144,14 @@ public class CassandraClient7 extends DB
   {
     Exception errorexception = null;
     try
-		{
-			client.set_keyspace(table);
-		} catch (Exception e)
-		{
-	    e.printStackTrace();
-	    e.printStackTrace(System.out);
-	    return Error;
-		}
+    {
+      client.set_keyspace(table);
+    } catch (Exception e)
+    {
+      e.printStackTrace();
+      e.printStackTrace(System.out);
+      return Error;
+    }
 
     for (int i = 0; i < OperationRetries; i++)
     {
@@ -249,14 +249,14 @@ public class CassandraClient7 extends DB
     Exception errorexception = null;
 
     try
-		{
-			client.set_keyspace(table);
-		} catch (Exception e)
-		{
-	    e.printStackTrace();
-	    e.printStackTrace(System.out);
-	    return Error;
-		}
+    {
+      client.set_keyspace(table);
+    } catch (Exception e)
+    {
+      e.printStackTrace();
+      e.printStackTrace(System.out);
+      return Error;
+    }
     
     for (int i = 0; i < OperationRetries; i++)
     {
@@ -368,14 +368,14 @@ public class CassandraClient7 extends DB
     Exception errorexception = null;
 
     try
-		{
-			client.set_keyspace(table);
-		} catch (Exception e)
-		{
-	    e.printStackTrace();
-	    e.printStackTrace(System.out);
-	    return Error;
-		}
+    {
+      client.set_keyspace(table);
+    } catch (Exception e)
+    {
+      e.printStackTrace();
+      e.printStackTrace(System.out);
+      return Error;
+    }
     
     for (int i = 0; i < OperationRetries; i++)
     {
@@ -389,8 +389,8 @@ public class CassandraClient7 extends DB
         Map<String, List<Mutation>> cfMutationMap = new HashMap<String, List<Mutation>>();
         cfMutationMap.put("data", v);
         batch_mutation.put(key.getBytes("UTF-8"), cfMutationMap);
-      	
-      	for (String field : values.keySet())
+
+        for (String field : values.keySet())
         {
           String val = values.get(field);
           Column col = new Column(field.getBytes("UTF-8"), val.getBytes("UTF-8"), timestamp);
@@ -442,15 +442,15 @@ public class CassandraClient7 extends DB
     Exception errorexception = null;
 
     try
-		{
-			client.set_keyspace(table);
-		} catch (Exception e)
-		{
-	    e.printStackTrace();
-	    e.printStackTrace(System.out);
-	    return Error;
-		}
-    
+    {
+      client.set_keyspace(table);
+    } catch (Exception e)
+    {
+      e.printStackTrace();
+      e.printStackTrace(System.out);
+      return Error;
+    }
+
     for (int i = 0; i < OperationRetries; i++)
     {
       try
