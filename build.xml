@@ -2,11 +2,18 @@
    <project name="ycsb" default="compile" basedir=".">
    
     <property name="src.dir"     value="src"/>
+    <property name="lib.dir"     value="lib"/>
     <property name="doc.dir"     value="doc"/>
 
     <property name="build.dir"   value="build"/>
     <property name="classes.dir" value="${build.dir}/classes"/>
     <property name="jar.dir"     value="${build.dir}/jar"/>
+
+    <path id="build.classpath">
+        <fileset dir="${lib.dir}">
+          <include name="**/*.jar" />
+        </fileset>
+    </path>
 
     <target name="dbcompile-cassandra-0.5" depends="compile">
     	<property name="db.dir" value="db/cassandra-0.5"/>
@@ -30,7 +37,7 @@
 
 	<target name="compile">
         <mkdir dir="${classes.dir}"/>
-        <javac srcdir="${src.dir}" destdir="${classes.dir}" excludes="com/yahoo/ycsb/db/**" deprecation="on">
+        <javac srcdir="${src.dir}" destdir="${classes.dir}" classpathref="build.classpath" deprecation="on">
           <compilerarg value="-Xlint:unchecked"/>
         </javac>
         <antcall target="makejar"/>

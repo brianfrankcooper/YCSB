@@ -17,10 +17,12 @@
 
 package com.yahoo.ycsb.measurements;
 
-import java.io.PrintStream;
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Properties;
+
+import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 
 
 /**
@@ -108,45 +110,44 @@ public class OneMeasurementHistogram extends OneMeasurement
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see com.yahoo.ycsb.OneMeasurement#printReport(java.io.PrintStream)
-	 */
-	public void printReport(PrintStream out)
-	{
-		out.println("["+getName()+"], Operations, "+operations);
-		out.println("["+getName()+"], AverageLatency(ms), "+(((double)totallatency)/((double)operations)));
-		out.println("["+getName()+"], MinLatency(ms), "+min);
-		out.println("["+getName()+"], MaxLatency(ms), "+max);
 
-		int opcounter=0;
-		boolean done95th=false;
-		for (int i=0; i<_buckets; i++)
-		{
-			opcounter+=histogram[i];
-			if ( (!done95th) && (((double)opcounter)/((double)operations)>=0.95) )
-			{
-				out.println("["+getName()+"], 95thPercentileLatency(ms), "+i);
-				done95th=true;
-			}
-			if (((double)opcounter)/((double)operations)>=0.99)
-			{
-				out.println("["+getName()+"], 99thPercentileLatency(ms), "+i);
-				break;
-			}
-		}
+  @Override
+  public void exportMeasurements(MeasurementsExporter exporter) throws IOException
+  {
+    exporter.write(getName(), "Operations", operations);
+    exporter.write(getName(), "AverageLatency(ms)", (((double)totallatency)/((double)operations)));
+    exporter.write(getName(), "MinLatency(ms)", min);
+    exporter.write(getName(), "MaxLatency(ms)", max);
+    
+    int opcounter=0;
+    boolean done95th=false;
+    for (int i=0; i<_buckets; i++)
+    {
+      opcounter+=histogram[i];
+      if ( (!done95th) && (((double)opcounter)/((double)operations)>=0.95) )
+      {
+        exporter.write(getName(), "95thPercentileLatency(ms)", i);
+        done95th=true;
+      }
+      if (((double)opcounter)/((double)operations)>=0.99)
+      {
+        exporter.write(getName(), "99thPercentileLatency(ms)", i);
+        break;
+      }
+    }
 
-		for (Integer I : returncodes.keySet())
-		{
-			int[] val=returncodes.get(I);
-			out.println("["+getName()+"], Return="+I+", "+val[0]);
-		}	    
+    for (Integer I : returncodes.keySet())
+    {
+      int[] val=returncodes.get(I);
+      exporter.write(getName(), "Return="+I, val[0]);
+    }     
 
-		for (int i=0; i<_buckets; i++)
-		{
-			out.println("["+getName()+"], "+i+", "+histogram[i]);
-		}
-		out.println("["+getName()+"], >"+_buckets+", "+histogramoverflow);
-	}
+    for (int i=0; i<_buckets; i++)
+    {
+      exporter.write(getName(), Integer.toString(i), histogram[i]);
+    }
+    exporter.write(getName(), ">"+_buckets, histogramoverflow);
+  }
 
 	@Override
 	public String getSummary() {

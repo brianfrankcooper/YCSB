@@ -17,9 +17,11 @@
 
 package com.yahoo.ycsb.measurements;
 
-import java.io.PrintStream;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Properties;
+
+import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 
 /**
  * Collects latency measurements, and reports them when requested.
@@ -134,16 +136,18 @@ public class Measurements
 		}
 		data.get(operation).reportReturnCode(code);
 	}
-
-      /**
-       * Print the full report to the listed PrintStream.
-       */
-	public void printReport(PrintStream out)
+	
+	/**
+	 * Export the current measurements to a suitable format.
+	 * @param exporter Exporter representing the type of format to write to.
+	 * @throws IOException Thrown if the export failed.
+	 */
+	public void exportMeasurements(MeasurementsExporter exporter) throws IOException
 	{
-		for (OneMeasurement m : data.values())
-		{
-			m.printReport(out);
-		}
+	  for (OneMeasurement measurement : data.values())
+    {
+      measurement.exportMeasurements(exporter);
+    }
 	}
 	
       /**

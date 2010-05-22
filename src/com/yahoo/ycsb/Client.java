@@ -23,6 +23,8 @@ import java.text.DecimalFormat;
 import java.util.*;
 
 import com.yahoo.ycsb.measurements.Measurements;
+import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
+import com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter;
 
 //import org.apache.log4j.BasicConfigurator;
 
@@ -373,6 +375,56 @@ public class Client
 		return true;
 	}
 
+
+	/**
+	 * Exports the measurements to either sysout or a file using the exporter
+	 * loaded from conf.
+	 * @throws IOException Either failed to write to output stream or failed to close it.
+	 */
+	private static void exportMeasurements(Properties props, int opcount, long runtime)
+			throws IOException
+	{
+		MeasurementsExporter exporter = null;
+		try
+		{
+			// if no destination file is provided the results will be written to stdout
+			OutputStream out;
+			String exportFile = props.getProperty("exportfile");
+			if (exportFile == null)
+			{
+				out = System.out;
+			} else
+			{
+				out = new FileOutputStream(exportFile);
+			}
+
+			// if no exporter is provided the default text one will be used
+			String exporterStr = props.getProperty("exporter");
+			try
+			{
+				exporter = (MeasurementsExporter) Class.forName(exporterStr).getConstructor(OutputStream.class).newInstance(out);
+			} catch (Exception e)
+			{
+				System.err.println("Could not find exporter " + exporterStr
+						+ ", will use default text reporter.");
+				e.printStackTrace();
+				exporter = new TextMeasurementsExporter(out);
+			}
+
+			exporter.write("OVERALL", "RunTime(ms)", runtime);
+			double throughput = 1000.0 * ((double) opcount) / ((double) runtime);
+			exporter.write("OVERALL", "Throughput(ops/sec)", throughput);
+
+			Measurements.getMeasurements().exportMeasurements(exporter);
+		} finally
+		{
+			if (exporter != null)
+			{
+				exporter.close();
+			}
+		}
+	}
+	
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args)
 	{
@@ -382,7 +434,6 @@ public class Client
 		boolean dotransactions=true;
 		int threadcount=1;
 		int target=0;
-		PrintStream out=System.out;
 		boolean status=false;
 		String label="";
 
@@ -717,11 +768,15 @@ public class Client
 			System.exit(0);
 		}
 
-		out.println("[OVERALL],RunTime(ms), "+(en-st));
-		double throughput=1000.0*((double)opcount)/((double)(en-st));
-		out.println("[OVERALL],Throughput(ops/sec), "+throughput);
-
-		Measurements.getMeasurements().printReport(out);
+		try
+		{
+			exportMeasurements(props, opcount, en - st);
+		} catch (IOException e)
+		{
+			System.err.println("Could not export measurements, error: " + e.getMessage());
+			e.printStackTrace();
+			System.exit(-1);
+		}
 
 		System.exit(0);
 	}

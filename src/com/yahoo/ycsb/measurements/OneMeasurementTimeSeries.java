@@ -17,11 +17,13 @@
 
 package com.yahoo.ycsb.measurements;
 
-import java.io.PrintStream;
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.Vector;
+
+import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 
 class SeriesUnit
 {
@@ -123,29 +125,31 @@ public class OneMeasurementTimeSeries extends OneMeasurement
 		}
 	}
 
-	@Override
-	public void printReport(PrintStream out) {
-		checkEndOfUnit(true);
 
-		out.println("["+getName()+"], Operations, "+operations);
-		out.println("["+getName()+"], AverageLatency(ms), "+(((double)totallatency)/((double)operations)));
-		out.println("["+getName()+"], MinLatency(ms), "+min);
-		out.println("["+getName()+"], MaxLatency(ms), "+max);
+  @Override
+  public void exportMeasurements(MeasurementsExporter exporter) throws IOException
+  {
+    checkEndOfUnit(true);
 
-		//TODO: 95th and 99th percentile latency
+    exporter.write(getName(), "Operations", operations);
+    exporter.write(getName(), "AverageLatency(ms)", (((double)totallatency)/((double)operations)));
+    exporter.write(getName(), "MinLatency(ms)", min);
+    exporter.write(getName(), "MaxLatency(ms)", max);
 
-		for (Integer I : returncodes.keySet())
-		{
-			int[] val=returncodes.get(I);
-			out.println("["+getName()+"], Return="+I+", "+val[0]);
-		}	    
+    //TODO: 95th and 99th percentile latency
 
-		for (SeriesUnit unit : _measurements)
-		{
-			out.println("["+getName()+"], "+unit.time+", "+unit.average);
-		}
-	}
+    for (Integer I : returncodes.keySet())
+    {
+      int[] val=returncodes.get(I);
+      exporter.write(getName(), "Return="+I, val[0]);
+    }     
 
+    for (SeriesUnit unit : _measurements)
+    {
+      exporter.write(getName(), Long.toString(unit.time), unit.average);
+    }
+  }
+	
 	@Override
 	public void reportReturnCode(int code) {
 		Integer Icode=code;
