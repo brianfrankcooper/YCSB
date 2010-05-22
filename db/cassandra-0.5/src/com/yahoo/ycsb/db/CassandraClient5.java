@@ -36,8 +36,10 @@ import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.cassandra.service.*;
 
+
+// XXXX if we do replication, fix the consistency levels
 /**
- * XXXX if we do replication, fix the consistency levels
+ * Cassandra 0.5 client for YCSB framework
  */
 public class CassandraClient5 extends DB
 {

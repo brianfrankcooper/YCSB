@@ -451,7 +451,7 @@ public class Client
 			if (args[argindex].compareTo("-threads")==0)
 			{
 				argindex++;
-				if (argindex>args.length)
+				if (argindex>=args.length)
 				{
 					usageMessage();
 					System.exit(0);
@@ -463,7 +463,7 @@ public class Client
 			else if (args[argindex].compareTo("-target")==0)
 			{
 				argindex++;
-				if (argindex>args.length)
+				if (argindex>=args.length)
 				{
 					usageMessage();
 					System.exit(0);
@@ -490,7 +490,7 @@ public class Client
 			else if (args[argindex].compareTo("-db")==0)
 			{
 				argindex++;
-				if (argindex>args.length)
+				if (argindex>=args.length)
 				{
 					usageMessage();
 					System.exit(0);
@@ -501,7 +501,7 @@ public class Client
 			else if (args[argindex].compareTo("-l")==0)
 			{
 				argindex++;
-				if (argindex>args.length)
+				if (argindex>=args.length)
 				{
 					usageMessage();
 					System.exit(0);
@@ -512,7 +512,7 @@ public class Client
 			else if (args[argindex].compareTo("-P")==0)
 			{
 				argindex++;
-				if (argindex>args.length)
+				if (argindex>=args.length)
 				{
 					usageMessage();
 					System.exit(0);
@@ -543,7 +543,7 @@ public class Client
 			else if (args[argindex].compareTo("-p")==0)
 			{
 				argindex++;
-				if (argindex>args.length)
+				if (argindex>=args.length)
 				{
 					usageMessage();
 					System.exit(0);

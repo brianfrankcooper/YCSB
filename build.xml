@@ -35,6 +35,11 @@
 		<antcall target="dbcompile"/>
 	</target>
 
+   	<target name="dbcompile-mongodb" depends="compile">
+		<property name="db.dir" value="db/mongodb"/>
+		<antcall target="dbcompile"/>
+	</target>
+
 	<target name="compile">
         <mkdir dir="${classes.dir}"/>
         <javac srcdir="${src.dir}" destdir="${classes.dir}" classpathref="build.classpath" deprecation="on">
@@ -67,7 +72,12 @@
     </target>
 
    <target name="doc">
-      <javadoc sourcepath="${src.dir}" destdir="${doc.dir}/javadoc" packagenames="com.yahoo.ycsb,com.yahoo.ycsb.workloads"/> 
+      <javadoc destdir="${doc.dir}/javadoc" packagenames="com.yahoo.ycsb,com.yahoo.ycsb.workloads,com.yahoo.ycsb.db,com.yahoo.ycsb.generator,com.yahoo.ycsb.measurements"> 
+         <fileset dir="." defaultexcludes="yes">
+           <include name="src/**"/>
+           <include name="db/**/src/**"/>
+         </fileset>
+      </javadoc>
    </target>
 
 </project>

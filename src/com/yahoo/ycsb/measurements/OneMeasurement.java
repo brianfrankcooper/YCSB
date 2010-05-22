@@ -22,7 +22,7 @@ import java.io.IOException;
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 
 /**
- * A single measured metric (e.g. READ LATENCY)
+ * A single measured metric (such as READ LATENCY)
  */
 public abstract class OneMeasurement {
 

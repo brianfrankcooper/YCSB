@@ -40,6 +40,9 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 
+/**
+ * HBase client for YCSB framework
+ */
 public class HBaseClient extends com.yahoo.ycsb.DB
 {
     public boolean _debug=false;

@@ -28,6 +28,18 @@ import java.util.Vector;
  * This class should be constructed using a no-argument constructor, so we can
  * load it dynamically. Any argument-based initialization should be
  * done by init().
+ * 
+ * Note that YCSB does not make any use of the return codes returned by this class.
+ * Instead, it keeps a count of the return values and presents them to the user.
+ * 
+ * The semantics of methods such as insert, update and delete vary from database
+ * to database.  In particular, operations may or may not be durable once these
+ * methods commit, and some systems may return 'success' regardless of whether
+ * or not a tuple with a matching key existed before the call.  Rather than dictate
+ * the exact semantics of these methods, we recommend you either implement them
+ * to match the database's default semantics, or the semantics of your 
+ * target application.  For the sake of comparison between experiments we also 
+ * recommend you explain the semantics you chose when presenting performance results.
  */
 public abstract class DB
 {
@@ -76,7 +88,7 @@ public abstract class DB
 	 * @param key The record key of the record to read.
 	 * @param fields The list of fields to read, or null for all of them
 	 * @param result A HashMap of field/value pairs for the result
-	 * @return Zero on success, a non-zero error code on error
+	 * @return Zero on success, a non-zero error code on error or "not found".
 	 */
 	public abstract int read(String table, String key, Set<String> fields, HashMap<String,String> result);
 
@@ -88,7 +100,7 @@ public abstract class DB
 	 * @param recordcount The number of records to read
 	 * @param fields The list of fields to read, or null for all of them
 	 * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
-	 * @return Zero on success, a non-zero error code on error
+	 * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
 	 */
 	public abstract int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,String>> result);
 	
@@ -99,7 +111,7 @@ public abstract class DB
 	 * @param table The name of the table
 	 * @param key The record key of the record to write.
 	 * @param values A HashMap of field/value pairs to update in the record
-	 * @return Zero on success, a non-zero error code on error
+	 * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
 	 */
 	public abstract int update(String table, String key, HashMap<String,String> values);
 
@@ -110,7 +122,7 @@ public abstract class DB
 	 * @param table The name of the table
 	 * @param key The record key of the record to insert.
 	 * @param values A HashMap of field/value pairs to insert in the record
-	 * @return Zero on success, a non-zero error code on error
+	 * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
 	 */
 	public abstract int insert(String table, String key, HashMap<String,String> values);
 
@@ -119,7 +131,7 @@ public abstract class DB
 	 *
 	 * @param table The name of the table
 	 * @param key The record key of the record to delete.
-	 * @return Zero on success, a non-zero error code on error
+	 * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
 	 */
 	public abstract int delete(String table, String key);
 }

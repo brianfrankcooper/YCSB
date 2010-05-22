@@ -2,4 +2,5 @@ build
 .classpath
 .project
 .settings
-db/*/lib
+db/*/lib/*
+
