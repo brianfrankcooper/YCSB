@@ -21,6 +21,7 @@ import com.yahoo.ycsb.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -140,6 +141,15 @@ public class CassandraClient7 extends DB
   public int read(String table, String key, Set<String> fields, HashMap<String, String> result)
   {
     Exception errorexception = null;
+    try
+		{
+			client.set_keyspace(table);
+		} catch (Exception e)
+		{
+	    e.printStackTrace();
+	    e.printStackTrace(System.out);
+	    return Error;
+		}
 
     for (int i = 0; i < OperationRetries; i++)
     {
@@ -171,7 +181,7 @@ public class CassandraClient7 extends DB
         }
 
         ColumnParent parent = new ColumnParent("data");
-        List<ColumnOrSuperColumn> results = client.get_slice(table, key.getBytes("UTF-8"), parent, predicate,
+        List<ColumnOrSuperColumn> results = client.get_slice(key.getBytes("UTF-8"), parent, predicate,
             ConsistencyLevel.ONE);
 
         if (_debug)
@@ -236,6 +246,16 @@ public class CassandraClient7 extends DB
   {
     Exception errorexception = null;
 
+    try
+		{
+			client.set_keyspace(table);
+		} catch (Exception e)
+		{
+	    e.printStackTrace();
+	    e.printStackTrace(System.out);
+	    return Error;
+		}
+    
     for (int i = 0; i < OperationRetries; i++)
     {
 
@@ -261,9 +281,9 @@ public class CassandraClient7 extends DB
           predicate.setColumn_names(fieldlist);
         }
         ColumnParent parent = new ColumnParent("data");
+        KeyRange kr = new KeyRange().setStart_key(startkey.getBytes("UTF-8")).setEnd_key(new byte[] {}).setCount(recordcount);
 
-        List<KeySlice> results = client.get_range_slice(table, parent, predicate, startkey.getBytes("UTF-8"), new byte[] {},
-            recordcount, ConsistencyLevel.ONE);
+        List<KeySlice> results = client.get_range_slices(parent, predicate, kr, ConsistencyLevel.ONE);
 
         if (_debug)
         {
@@ -345,18 +365,30 @@ public class CassandraClient7 extends DB
   {
     Exception errorexception = null;
 
+    try
+		{
+			client.set_keyspace(table);
+		} catch (Exception e)
+		{
+	    e.printStackTrace();
+	    e.printStackTrace(System.out);
+	    return Error;
+		}
+    
     for (int i = 0; i < OperationRetries; i++)
     {
       // insert data
       long timestamp = System.currentTimeMillis();
 
-      HashMap<String, List<ColumnOrSuperColumn>> batch_mutation = new HashMap<String, List<ColumnOrSuperColumn>>();
-      ArrayList<ColumnOrSuperColumn> v = new ArrayList<ColumnOrSuperColumn>(values.size());
-      batch_mutation.put("data", v);
-
       try
       {
-        for (String field : values.keySet())
+        Map<byte[], Map<String, List<Mutation>>> batch_mutation = new HashMap<byte[], Map<String, List<Mutation>>>();
+        ArrayList<Mutation> v = new ArrayList<Mutation>(values.size());
+        Map<String, List<Mutation>> cfMutationMap = new HashMap<String, List<Mutation>>();
+        cfMutationMap.put("data", v);
+        batch_mutation.put(key.getBytes("UTF-8"), cfMutationMap);
+      	
+      	for (String field : values.keySet())
         {
           String val = values.get(field);
           Column col = new Column(field.getBytes("UTF-8"), val.getBytes("UTF-8"), timestamp);
@@ -364,10 +396,12 @@ public class CassandraClient7 extends DB
           ColumnOrSuperColumn c = new ColumnOrSuperColumn();
           c.setColumn(col);
           c.unsetSuper_column();
-          v.add(c);
+          Mutation m = new Mutation();
+          m.setColumn_or_supercolumn(c);
+          v.add(m);
         }
 
-        client.batch_insert(table, key.getBytes("UTF-8"), batch_mutation, ConsistencyLevel.ONE);
+        client.batch_mutate(batch_mutation, ConsistencyLevel.ONE);
 
         if (_debug)
         {
@@ -405,11 +439,21 @@ public class CassandraClient7 extends DB
   {
     Exception errorexception = null;
 
+    try
+		{
+			client.set_keyspace(table);
+		} catch (Exception e)
+		{
+	    e.printStackTrace();
+	    e.printStackTrace(System.out);
+	    return Error;
+		}
+    
     for (int i = 0; i < OperationRetries; i++)
     {
       try
       {
-        client.remove(table, key.getBytes("UTF-8"), new ColumnPath("data"), System.currentTimeMillis(),
+        client.remove(key.getBytes("UTF-8"), new ColumnPath("data"), System.currentTimeMillis(),
             ConsistencyLevel.ONE);
 
         if (_debug)
