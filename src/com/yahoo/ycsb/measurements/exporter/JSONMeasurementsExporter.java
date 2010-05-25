@@ -42,7 +42,6 @@ public class JSONMeasurementsExporter implements MeasurementsExporter
     g.setPrettyPrinter(new DefaultPrettyPrinter());
   }
 
-  @Override
   public void write(String metric, String measurement, int i) throws IOException
   {
     g.writeStartObject();
@@ -52,7 +51,6 @@ public class JSONMeasurementsExporter implements MeasurementsExporter
     g.writeEndObject();
   }
 
-  @Override
   public void write(String metric, String measurement, double d) throws IOException
   {
     g.writeStartObject();
@@ -62,7 +60,6 @@ public class JSONMeasurementsExporter implements MeasurementsExporter
     g.writeEndObject();
   }
 
-  @Override
   public void close() throws IOException
   {
     if (g != null)
