@@ -107,17 +107,18 @@ public class MongoDbClient extends DB {
             // see if record was deleted
             DBObject errors = db.getLastError();
 
-	    db.requestDone();
-
             return (Long) errors.get("n") == 1 ? 0 : 1;
         } catch (Exception e) {
             logger.error(e + "", e);
             return 1;
         }
-
+	finally
+	{
+	   db.requestDone();
+	}
     }
 
-    @Override
+@Override
     /**
 * Insert a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
 * record key.
@@ -128,9 +129,12 @@ public class MongoDbClient extends DB {
 * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
 */
     public int insert(String table, String key, HashMap<String, String> values) {
+        com.mongodb.DB db = null;
         try {
-            com.mongodb.DB db = mongo.getDB(database);
-	    db.requestStart(); 
+            db = mongo.getDB(database);
+
+            db.requestStart();
+
             DBCollection collection = db.getCollection(table);
             DBObject r = new BasicDBObject().append("_id", key);
             r.putAll(values);
@@ -139,21 +143,22 @@ public class MongoDbClient extends DB {
 
             collection.insert(r);
 
-            // determine if record was inserted
+            // determine if record was inserted, does not seem to return
+            // n=<records affected> for insert
             DBObject errors = db.getLastError();
 
-	    db.requestDone();
-
-            return (Long) errors.get("n") == 1 ? 0 : 1;
+            return (Boolean) errors.get("ok") && errors.get("err") == null ? 0
+                    : 1;
         } catch (Exception e) {
             logger.error(e + "", e);
             return 1;
+        } finally {
+            db.requestDone();
         }
 
     }
 
     @Override
-    @SuppressWarnings ("unchecked")
     /**
 * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
 *
@@ -165,9 +170,12 @@ public class MongoDbClient extends DB {
 */
     public int read(String table, String key, Set<String> fields,
             HashMap<String, String> result) {
+        com.mongodb.DB db = null;
         try {
-            com.mongodb.DB db = mongo.getDB(database);
-	    db.requestStart(); 
+            db = mongo.getDB(database);
+
+            db.requestStart();
+
             DBCollection collection = db.getCollection(table);
             DBObject q = new BasicDBObject().append("_id", key);
             DBObject fieldsToReturn = new BasicDBObject();
@@ -185,16 +193,63 @@ public class MongoDbClient extends DB {
             }
 
             if (queryResult != null) {
-	       //toMap() returns a Map, but result.putAll() expects a Map<String,String>. Hence, the suppress warnings.
                 result.putAll(queryResult.toMap());
             }
-
-	    db.requestDone();
-
             return queryResult != null ? 0 : 1;
         } catch (Exception e) {
             logger.error(e + "", e);
             return 1;
+        } finally {
+            db.requestDone();
+        }
+
+    }
+
+
+    @Override
+    /**
+* Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
+* record key, overwriting any existing values with the same field name.
+*
+* @param table The name of the table
+* @param key The record key of the record to write.
+* @param values A HashMap of field/value pairs to update in the record
+* @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
+*/
+    public int update(String table, String key, HashMap<String, String> values) {
+        com.mongodb.DB db = null;
+        try {
+            db = mongo.getDB(database);
+
+            db.requestStart();
+
+            DBCollection collection = db.getCollection(table);
+            DBObject q = new BasicDBObject().append("_id", key);
+            DBObject u = new BasicDBObject();
+            DBObject fieldsToSet = new BasicDBObject();
+            Iterator<String> keys = values.keySet().iterator();
+            String tmpKey = null, tmpVal = null;
+            while (keys.hasNext()) {
+                tmpKey = keys.next();
+                tmpVal = values.get(tmpKey);
+                fieldsToSet.put(tmpKey, tmpVal);
+
+            }
+            u.put("$set", fieldsToSet);
+
+            collection.setWriteConcern(writeConcern);
+
+            collection.update(q, u);
+
+            // determine if record was inserted
+            DBObject errors = db.getLastError();
+
+            return (Integer) errors.get("n") == 1 ? 0 : 1;
+        } catch (Exception e) {
+            logger.error(e + "", e);
+            return 1;
+        } finally {
+            db.requestDone();
         }
 
     }
@@ -226,60 +281,18 @@ public class MongoDbClient extends DB {
                 result.add((HashMap<String, String>) cursor.next().toMap());
             }
 
-	    db.requestDone();
-
             return 0;
         } catch (Exception e) {
             logger.error(e + "", e);
             return 1;
         }
-
+	finally
+	{
+	   db.requestDone();
+	}
+	
     }
 
-    @Override
-    /**
-* Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
-* record key, overwriting any existing values with the same field name.
-*
-* @param table The name of the table
-* @param key The record key of the record to write.
-* @param values A HashMap of field/value pairs to update in the record
-* @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
-*/
-    public int update(String table, String key, HashMap<String, String> values) {
-        try {
-            com.mongodb.DB db = mongo.getDB(database);
-	    db.requestStart(); 
-            DBCollection collection = db.getCollection(table);
-            DBObject q = new BasicDBObject().append("_id", key);
-            DBObject u = new BasicDBObject();
-            DBObject fieldsToSet = new BasicDBObject();
-            Iterator<String> keys = values.keySet().iterator();
-            String tmpKey = null, tmpVal = null;
-            while (keys.hasNext()) {
-                tmpKey = keys.next();
-                tmpVal = values.get(tmpKey);
-                fieldsToSet.put(tmpKey, tmpVal);
-
-            }
-            u.put("$set", fieldsToSet);
-
-            collection.setWriteConcern(writeConcern);
-
-            collection.update(q, u);
-
-            // determine if record was inserted
-            DBObject errors = db.getLastError();
-
-	    db.requestDone();
-
-            return (Long) errors.get("n") == 1 ? 0 : 1;
-        } catch (Exception e) {
-            logger.error(e + "", e);
-            return 1;
-        }
-
-    }
 }
 
 
