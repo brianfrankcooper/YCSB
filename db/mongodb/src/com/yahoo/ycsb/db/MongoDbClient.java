@@ -94,8 +94,9 @@ public class MongoDbClient extends DB {
 * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
 */
     public int delete(String table, String key) {
+       com.mongodb.DB db=null;
         try {
-            com.mongodb.DB db = mongo.getDB(database);
+            db = mongo.getDB(database);
 	    db.requestStart(); 
             DBCollection collection = db.getCollection(table);
             DBObject q = new BasicDBObject().append("_id", key);
@@ -114,7 +115,10 @@ public class MongoDbClient extends DB {
         }
 	finally
 	{
-	   db.requestDone();
+	   if (db!=null)
+	   {
+	      db.requestDone();
+	   }
 	}
     }
 
@@ -153,7 +157,10 @@ public class MongoDbClient extends DB {
             logger.error(e + "", e);
             return 1;
         } finally {
-            db.requestDone();
+	   if (db!=null)
+	   {
+	      db.requestDone();
+	   }
         }
 
     }
@@ -200,7 +207,10 @@ public class MongoDbClient extends DB {
             logger.error(e + "", e);
             return 1;
         } finally {
-            db.requestDone();
+	   if (db!=null)
+	   {
+	      db.requestDone();
+	   }
         }
 
     }
@@ -249,7 +259,10 @@ public class MongoDbClient extends DB {
             logger.error(e + "", e);
             return 1;
         } finally {
-            db.requestDone();
+	   if (db!=null)
+	   {
+	      db.requestDone();
+	   }
         }
 
     }
@@ -268,8 +281,9 @@ public class MongoDbClient extends DB {
 */
     public int scan(String table, String startkey, int recordcount,
             Set<String> fields, Vector<HashMap<String, String>> result) {
+       com.mongodb.DB db=null;
         try {
-            com.mongodb.DB db = mongo.getDB(database);
+            db = mongo.getDB(database);
 	    db.requestStart(); 
             DBCollection collection = db.getCollection(table);
             // { "_id":{"$gte":startKey, "$lte":{"appId":key+"\uFFFF"}} }
@@ -288,7 +302,10 @@ public class MongoDbClient extends DB {
         }
 	finally
 	{
-	   db.requestDone();
+	   if (db!=null)
+	   {
+	      db.requestDone();
+	   }
 	}
 	
     }
