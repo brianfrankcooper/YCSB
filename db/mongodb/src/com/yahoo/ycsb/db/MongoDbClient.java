@@ -166,6 +166,7 @@ public class MongoDbClient extends DB {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     /**
 * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
 *
