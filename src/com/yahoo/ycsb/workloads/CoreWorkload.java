@@ -43,6 +43,7 @@ import java.util.Vector;
  * <LI><b>fieldcount</b>: the number of fields in a record (default: 10)
  * <LI><b>fieldlength</b>: the size of each field (default: 100)
  * <LI><b>readallfields</b>: should reads read all fields (true) or just one (false) (default: true)
+ * <LI><b>writeallfields</b>: should updates and read/modify/writes update all fields (true) or just one (false) (default: false)
  * <LI><b>readproportion</b>: what proportion of operations should be reads (default: 0.95)
  * <LI><b>updateproportion</b>: what proportion of operations should be updates (default: 0.05)
  * <LI><b>insertproportion</b>: what proportion of operations should be inserts (default: 0)
@@ -97,6 +98,19 @@ public class CoreWorkload extends Workload
 	public static final String READ_ALL_FIELDS_PROPERTY_DEFAULT="true";
 
 	boolean readallfields;
+
+	/**
+	 * The name of the property for deciding whether to write one field (false) or all fields (true) of a record.
+	 */
+	public static final String WRITE_ALL_FIELDS_PROPERTY="writeallfields";
+	
+	/**
+	 * The default value for the writeallfields property.
+	 */
+	public static final String WRITE_ALL_FIELDS_PROPERTY_DEFAULT="false";
+
+	boolean writeallfields;
+
 
 	/**
 	 * The name of the property for the proportion of transactions that are reads.
@@ -225,6 +239,7 @@ public class CoreWorkload extends Workload
 		int insertstart=Integer.parseInt(p.getProperty(INSERT_START_PROPERTY,INSERT_START_PROPERTY_DEFAULT));
 		
 		readallfields=Boolean.parseBoolean(p.getProperty(READ_ALL_FIELDS_PROPERTY,READ_ALL_FIELDS_PROPERTY_DEFAULT));
+		writeallfields=Boolean.parseBoolean(p.getProperty(WRITE_ALL_FIELDS_PROPERTY,WRITE_ALL_FIELDS_PROPERTY_DEFAULT));
 		
 		if (p.getProperty(INSERT_ORDER_PROPERTY,INSERT_ORDER_PROPERTY_DEFAULT).compareTo("hashed")==0)
 		{
@@ -423,13 +438,25 @@ public class CoreWorkload extends Workload
 			fields.add(fieldname);
 		}
 		
-		//update a random field
-		String fieldname="field"+fieldchooser.nextString();
-
-		String data=Utils.ASCIIString(fieldlength);
-
 		HashMap<String,String> values=new HashMap<String,String>();
-		values.put(fieldname,data);
+
+		if (writeallfields)
+		{
+		   //new data for all the fields
+		   for (int i=0; i<fieldcount; i++)
+		   {
+		      String fieldname="field"+i;
+		      String data=Utils.ASCIIString(fieldlength);		   
+		      values.put(fieldname,data);
+		   }
+		}
+		else
+		{
+		   //update a random field
+		   String fieldname="field"+fieldchooser.nextString();
+		   String data=Utils.ASCIIString(fieldlength);		   
+		   values.put(fieldname,data);
+		}
 
 		//do the transaction
 		
@@ -493,13 +520,25 @@ public class CoreWorkload extends Workload
 		}
 		String keyname="user"+keynum;
 
-		//update a random field
-		String fieldname="field"+fieldchooser.nextString();
-
-		String data=Utils.ASCIIString(fieldlength);
-
 		HashMap<String,String> values=new HashMap<String,String>();
-		values.put(fieldname,data);
+
+		if (writeallfields)
+		{
+		   //new data for all the fields
+		   for (int i=0; i<fieldcount; i++)
+		   {
+		      String fieldname="field"+i;
+		      String data=Utils.ASCIIString(fieldlength);		   
+		      values.put(fieldname,data);
+		   }
+		}
+		else
+		{
+		   //update a random field
+		   String fieldname="field"+fieldchooser.nextString();
+		   String data=Utils.ASCIIString(fieldlength);		   
+		   values.put(fieldname,data);
+		}
 
 		db.update(TABLENAME,keyname,values);
 	}
