@@ -40,7 +40,12 @@
 		<antcall target="dbcompile"/>
 	</target>
 
-	<target name="compile">
+   	<target name="dbcompile-voldemort" depends="compile">
+		<property name="db.dir" value="db/voldemort"/>
+		<antcall target="dbcompile"/>
+	</target>
+	
+ 	<target name="compile">
         <mkdir dir="${classes.dir}"/>
         <javac srcdir="${src.dir}" destdir="${classes.dir}" classpathref="build.classpath" deprecation="on">
           <compilerarg value="-Xlint:unchecked"/>
