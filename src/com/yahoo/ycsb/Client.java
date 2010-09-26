@@ -399,7 +399,7 @@ public class Client
 			}
 
 			// if no exporter is provided the default text one will be used
-			String exporterStr = props.getProperty("exporter");
+			String exporterStr = props.getProperty("exporter", "com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter");
 			try
 			{
 				exporter = (MeasurementsExporter) Class.forName(exporterStr).getConstructor(OutputStream.class).newInstance(out);
