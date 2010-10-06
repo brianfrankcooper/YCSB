@@ -30,6 +30,7 @@ import java.util.Random;
 import java.util.Properties;
 
 import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TBinaryProtocol;
@@ -48,6 +49,7 @@ public class CassandraClient7 extends DB
 
   public int ConnectionRetries;
   public int OperationRetries;
+  public String column_family;
 
   public static final String CONNECTION_RETRY_PROPERTY = "cassandra.connectionretries";
   public static final String CONNECTION_RETRY_PROPERTY_DEFAULT = "300";
@@ -55,8 +57,12 @@ public class CassandraClient7 extends DB
   public static final String OPERATION_RETRY_PROPERTY = "cassandra.operationretries";
   public static final String OPERATION_RETRY_PROPERTY_DEFAULT = "300";
 
-  private static final String COLUMN_FAMILY = "data";
-  
+  public static final String USERNAME_PROPERTY = "cassandra.username";
+  public static final String PASSWORD_PROPERTY = "cassandra.password";
+
+  public static final String COLUMN_FAMILY_PROPERTY = "cassandra.columnfamily";
+  public static final String COLUMN_FAMILY_PROPERTY_DEFAULT = "data";
+
   TTransport tr;
   Cassandra.Client client;
 
@@ -74,23 +80,26 @@ public class CassandraClient7 extends DB
       throw new DBException("Required property \"hosts\" missing for CassandraClient");
     }
 
+    column_family = getProperties().getProperty(COLUMN_FAMILY_PROPERTY, COLUMN_FAMILY_PROPERTY_DEFAULT);
+
     ConnectionRetries = Integer.parseInt(getProperties().getProperty(CONNECTION_RETRY_PROPERTY,
         CONNECTION_RETRY_PROPERTY_DEFAULT));
     OperationRetries = Integer.parseInt(getProperties().getProperty(OPERATION_RETRY_PROPERTY,
         OPERATION_RETRY_PROPERTY_DEFAULT));
 
+    String username = getProperties().getProperty(USERNAME_PROPERTY);
+    String password = getProperties().getProperty(PASSWORD_PROPERTY);
+
     _debug = Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
 
     String[] allhosts = hosts.split(",");
     String myhost = allhosts[random.nextInt(allhosts.length)];
-    // System.out.println("My host: ["+myhost+"]");
-    // System.exit(0);
 
     Exception connectexception = null;
 
     for (int retry = 0; retry < ConnectionRetries; retry++)
     {
-      tr = new TSocket(myhost, 9160);
+      tr = new TFramedTransport(new TSocket(myhost, 9160));
       TProtocol proto = new TBinaryProtocol(tr);
       client = new Cassandra.Client(proto);
       try
@@ -116,6 +125,22 @@ public class CassandraClient7 extends DB
       System.out.println("Unable to connect to " + myhost + " after " + ConnectionRetries
           + " tries");
       throw new DBException(connectexception);
+    }
+
+    if (username != null && password != null) 
+    {
+        Map<String,String> cred = new HashMap<String,String>();
+        cred.put("username", username);
+        cred.put("password", password);
+        AuthenticationRequest req = new AuthenticationRequest(cred);
+        try 
+        {
+            client.login(req);
+        }
+        catch (Exception e)
+        {
+            throw new DBException(e);
+        }
     }
   }
 
@@ -184,7 +209,7 @@ public class CassandraClient7 extends DB
           predicate.setColumn_names(fieldlist);
         }
 
-        ColumnParent parent = new ColumnParent(COLUMN_FAMILY);
+        ColumnParent parent = new ColumnParent(column_family);
         List<ColumnOrSuperColumn> results = client.get_slice(key.getBytes("UTF-8"), parent, predicate,
             ConsistencyLevel.ONE);
 
@@ -284,7 +309,7 @@ public class CassandraClient7 extends DB
           predicate = new SlicePredicate();
           predicate.setColumn_names(fieldlist);
         }
-        ColumnParent parent = new ColumnParent(COLUMN_FAMILY);
+        ColumnParent parent = new ColumnParent(column_family);
         KeyRange kr = new KeyRange().setStart_key(startkey.getBytes("UTF-8")).setEnd_key(new byte[] {}).setCount(recordcount);
 
         List<KeySlice> results = client.get_range_slices(parent, predicate, kr, ConsistencyLevel.ONE);
@@ -389,13 +414,13 @@ public class CassandraClient7 extends DB
         Map<byte[], Map<String, List<Mutation>>> batch_mutation = new HashMap<byte[], Map<String, List<Mutation>>>();
         ArrayList<Mutation> v = new ArrayList<Mutation>(values.size());
         Map<String, List<Mutation>> cfMutationMap = new HashMap<String, List<Mutation>>();
-        cfMutationMap.put(COLUMN_FAMILY, v);
+        cfMutationMap.put(column_family, v);
         batch_mutation.put(key.getBytes("UTF-8"), cfMutationMap);
 
         for (String field : values.keySet())
         {
           String val = values.get(field);
-          Column col = new Column(field.getBytes("UTF-8"), val.getBytes("UTF-8"), new Clock(timestamp));
+          Column col = new Column(field.getBytes("UTF-8"), val.getBytes("UTF-8"), timestamp);
 
           ColumnOrSuperColumn c = new ColumnOrSuperColumn();
           c.setColumn(col);
@@ -457,7 +482,7 @@ public class CassandraClient7 extends DB
     {
       try
       {
-        client.remove(key.getBytes("UTF-8"), new ColumnPath(COLUMN_FAMILY), new Clock(System.currentTimeMillis()),
+        client.remove(key.getBytes("UTF-8"), new ColumnPath(column_family), System.currentTimeMillis(),
             ConsistencyLevel.ONE);
 
         if (_debug)
