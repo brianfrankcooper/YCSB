@@ -55,6 +55,8 @@ public class CassandraClient7 extends DB
   public static final String OPERATION_RETRY_PROPERTY = "cassandra.operationretries";
   public static final String OPERATION_RETRY_PROPERTY_DEFAULT = "300";
 
+  private static final String COLUMN_FAMILY = "data";
+  
   TTransport tr;
   Cassandra.Client client;
 
@@ -182,7 +184,7 @@ public class CassandraClient7 extends DB
           predicate.setColumn_names(fieldlist);
         }
 
-        ColumnParent parent = new ColumnParent("data");
+        ColumnParent parent = new ColumnParent(COLUMN_FAMILY);
         List<ColumnOrSuperColumn> results = client.get_slice(key.getBytes("UTF-8"), parent, predicate,
             ConsistencyLevel.ONE);
 
@@ -282,7 +284,7 @@ public class CassandraClient7 extends DB
           predicate = new SlicePredicate();
           predicate.setColumn_names(fieldlist);
         }
-        ColumnParent parent = new ColumnParent("data");
+        ColumnParent parent = new ColumnParent(COLUMN_FAMILY);
         KeyRange kr = new KeyRange().setStart_key(startkey.getBytes("UTF-8")).setEnd_key(new byte[] {}).setCount(recordcount);
 
         List<KeySlice> results = client.get_range_slices(parent, predicate, kr, ConsistencyLevel.ONE);
@@ -387,13 +389,13 @@ public class CassandraClient7 extends DB
         Map<byte[], Map<String, List<Mutation>>> batch_mutation = new HashMap<byte[], Map<String, List<Mutation>>>();
         ArrayList<Mutation> v = new ArrayList<Mutation>(values.size());
         Map<String, List<Mutation>> cfMutationMap = new HashMap<String, List<Mutation>>();
-        cfMutationMap.put("data", v);
+        cfMutationMap.put(COLUMN_FAMILY, v);
         batch_mutation.put(key.getBytes("UTF-8"), cfMutationMap);
 
         for (String field : values.keySet())
         {
           String val = values.get(field);
-          Column col = new Column(field.getBytes("UTF-8"), val.getBytes("UTF-8"), timestamp);
+          Column col = new Column(field.getBytes("UTF-8"), val.getBytes("UTF-8"), new Clock(timestamp));
 
           ColumnOrSuperColumn c = new ColumnOrSuperColumn();
           c.setColumn(col);
@@ -455,7 +457,7 @@ public class CassandraClient7 extends DB
     {
       try
       {
-        client.remove(key.getBytes("UTF-8"), new ColumnPath("data"), System.currentTimeMillis(),
+        client.remove(key.getBytes("UTF-8"), new ColumnPath(COLUMN_FAMILY), new Clock(System.currentTimeMillis()),
             ConsistencyLevel.ONE);
 
         if (_debug)
