@@ -1,2 +1,6 @@
 Changes since 0.1.2
+	* Voldemort binding (rsumbaly)
+	* HBase client improvements (ryanobjc)
+	* Fixes to Cassandra 0.7 binding (johanoskarsson, nickmbailey)
 	* Added an interface for exporting the measurements and a JSON implementation. It can write to both stdout and to a file (johanoskarsson)
+	* Other minor fixes (brianfrankcooper)
