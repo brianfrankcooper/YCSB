@@ -61,7 +61,15 @@ public class CoreWorkload extends Workload
 	/**
 	 * The name of the database table to run queries against.
 	 */
-	public static final String TABLENAME="usertable";
+	public static final String TABLENAME_PROPERTY="table";
+
+	/**
+	 * The default name of the database table to run queries against.
+	 */
+	public static final String TABLENAME_PROPERTY_DEFAULT="usertable";
+
+	public static String table;
+
 
 	/**
 	 * The name of the property for the number of fields in a record.
@@ -224,6 +232,7 @@ public class CoreWorkload extends Workload
 	 */
 	public void init(Properties p) throws WorkloadException
 	{
+		table = p.getProperty(TABLENAME_PROPERTY,TABLENAME_PROPERTY_DEFAULT);
 		fieldcount=Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY,FIELD_COUNT_PROPERTY_DEFAULT));
 		fieldlength=Integer.parseInt(p.getProperty(FIELD_LENGTH_PROPERTY,FIELD_LENGTH_PROPERTY_DEFAULT));
 		double readproportion=Double.parseDouble(p.getProperty(READ_PROPORTION_PROPERTY,READ_PROPORTION_PROPERTY_DEFAULT));
@@ -342,9 +351,10 @@ public class CoreWorkload extends Workload
 			String data=Utils.ASCIIString(fieldlength);
 			values.put(fieldkey,data);
 		}
-		db.insert(TABLENAME,dbkey,values);
-		
-		return true;
+		if (db.insert(table,dbkey,values) == 0)
+			return true;
+		else
+			return false;
 	}
 
 	/**
@@ -408,7 +418,7 @@ public class CoreWorkload extends Workload
 			fields.add(fieldname);
 		}
 
-		db.read(TABLENAME,keyname,fields,new HashMap<String,String>());
+		db.read(table,keyname,fields,new HashMap<String,String>());
 	}
 	
 	public void doTransactionReadModifyWrite(DB db)
@@ -462,9 +472,9 @@ public class CoreWorkload extends Workload
 		
 		long st=System.currentTimeMillis();
 
-		db.read(TABLENAME,keyname,fields,new HashMap<String,String>());
+		db.read(table,keyname,fields,new HashMap<String,String>());
 		
-		db.update(TABLENAME,keyname,values);
+		db.update(table,keyname,values);
 
 		long en=System.currentTimeMillis();
 		
@@ -501,7 +511,7 @@ public class CoreWorkload extends Workload
 			fields.add(fieldname);
 		}
 
-		db.scan(TABLENAME,startkeyname,len,fields,new Vector<HashMap<String,String>>());
+		db.scan(table,startkeyname,len,fields,new Vector<HashMap<String,String>>());
 	}
 
 	public void doTransactionUpdate(DB db)
@@ -540,7 +550,7 @@ public class CoreWorkload extends Workload
 		   values.put(fieldname,data);
 		}
 
-		db.update(TABLENAME,keyname,values);
+		db.update(table,keyname,values);
 	}
 
 	public void doTransactionInsert(DB db)
@@ -560,6 +570,6 @@ public class CoreWorkload extends Workload
 			String data=Utils.ASCIIString(fieldlength);
 			values.put(fieldkey,data);
 		}
-		db.insert(TABLENAME,dbkey,values);
+		db.insert(table,dbkey,values);
 	}
 }
