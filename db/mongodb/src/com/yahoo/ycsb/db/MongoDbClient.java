@@ -24,7 +24,7 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
-import com.mongodb.DB.WriteConcern;
+import com.mongodb.WriteConcern;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 
@@ -61,7 +61,7 @@ public class MongoDbClient extends DB {
         if ("none".equals(writeConcernType)) {
             writeConcern = WriteConcern.NONE;
         } else if ("strict".equals(writeConcernType)) {
-            writeConcern = WriteConcern.STRICT;
+            writeConcern = WriteConcern.SAFE;
         } else if ("normal".equals(writeConcernType)) {
             writeConcern = WriteConcern.NORMAL;
         }
@@ -100,7 +100,7 @@ public class MongoDbClient extends DB {
 	    db.requestStart(); 
             DBCollection collection = db.getCollection(table);
             DBObject q = new BasicDBObject().append("_id", key);
-            if (writeConcern.equals(WriteConcern.STRICT)) {
+            if (writeConcern.equals(WriteConcern.SAFE)) {
                 q.put("$atomic", true);
             }
             collection.remove(q);
