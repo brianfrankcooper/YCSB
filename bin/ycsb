@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# determine ycsb home
+if [ -h $0 ]; then
+	SCRIPT=$(readlink $0)
+else
+	SCRIPT=$0
+fi
+YCSB_HOME=`dirname $SCRIPT`/..
+
+# determine database or echo usage
+case $1 in
+	'cassandra6')
+		DB_CLIENT=com.yahoo.ycsb.db.CassandraClient6
+		DB_HOME=$YCSB_HOME/db/cassandra-0.6
+		;;
+	'hbase')
+		DB_CLIENT=com.yahoo.ycsb.db.HbaseClient
+		DB_HOME=$YCSB_HOME/db/hbase
+		;;
+	*)
+		echo "${SCRIPT##*/} [ cassandra6 | hbase ] other_options..."
+		exit 0
+		;;
+esac
+# discard first command line argument
+shift
+
+# set up classpath 
+CLASSPATH=$YCSB_HOME/build/ycsb.jar
+for file in `ls $DB_HOME/lib/*.jar`; do
+	CLASSPATH=$CLASSPATH:$file
+done
+
+echo "java -cp $CLASSPATH -db $DB_CLIENT $*"
+java -cp $CLASSPATH com.yahoo.ycsb.Client -db $DB_CLIENT $*
