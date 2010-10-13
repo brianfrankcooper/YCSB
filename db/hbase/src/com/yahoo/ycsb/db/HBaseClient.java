@@ -27,8 +27,7 @@ import java.util.*;
 //import java.util.Set;
 //import java.util.Vector;
 
-//import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
 //import org.apache.hadoop.hbase.client.Scanner;
@@ -48,8 +47,7 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
  */
 public class HBaseClient extends com.yahoo.ycsb.DB
 {
-//  private static final Configuration config = HBaseConfiguration.create();
-    private static final HBaseConfiguration config = new HBaseConfiguration();
+    private static final Configuration config = HBaseConfiguration.create();
 
     public boolean _debug=false;
 
