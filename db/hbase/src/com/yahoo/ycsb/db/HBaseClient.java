@@ -47,7 +47,9 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
  */
 public class HBaseClient extends com.yahoo.ycsb.DB
 {
-    private static final Configuration config = HBaseConfiguration.create();
+    // BFC: Change to fix broken build (with HBase 0.20.6)
+    //private static final Configuration config = HBaseConfiguration.create();
+    private static final HBaseConfiguration config = new HBaseConfiguration();
 
     public boolean _debug=false;
 
