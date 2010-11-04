@@ -25,6 +25,7 @@ public class VoldemortClient extends DB {
     
     public static final int OK = 0;
     public static final int ERROR = -1;
+    public static final int NOT_FOUND = -2;
     
     /**
      * Initialize the DB layer. This accepts all properties allowed by the Voldemort client.
@@ -82,18 +83,17 @@ public class VoldemortClient extends DB {
 		
 		Versioned<HashMap<String, String>> versionedValue = storeClient.get(key);
 		
-		if (versionedValue == null)
-			return OK;
-		
+		if ( versionedValue == null )
+			return NOT_FOUND;
 		
 		if ( fields != null ) {
 			for (String field : fields) {
 				String val = versionedValue.getValue().get(field);
-				if ( val != null)
+				if ( val != null )
 					result.put(field, val);
 			}
 		} else {
-			result.putAll( versionedValue.getValue());
+			result.putAll(versionedValue.getValue());
 		}
 		return OK;
 	}
@@ -114,10 +114,10 @@ public class VoldemortClient extends DB {
 		Versioned<HashMap<String, String>> versionedValue = storeClient.get(key);
 		HashMap<String, String> value = new HashMap<String, String>();
 		VectorClock version;
-		if ( versionedValue != null) {
+		if ( versionedValue != null ) {
 			version = ((VectorClock) versionedValue.getVersion()).incremented(0, 1);
 			value = versionedValue.getValue();
-			for ( Entry<String, String> entry : values.entrySet()) {
+			for (Entry<String, String> entry : values.entrySet()) {
 				value.put(entry.getKey(), entry.getValue());
 			}
 		} else {
@@ -130,7 +130,7 @@ public class VoldemortClient extends DB {
 	}
 	
 	private int checkStore(String table) {
-		if ( table.compareTo(storeName) != 0) {
+		if ( table.compareTo(storeName) != 0 ) {
 			try {
 				storeClient = socketFactory.getStoreClient(table);
 				if ( storeClient == null ) {
