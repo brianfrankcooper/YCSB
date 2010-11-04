@@ -9,6 +9,7 @@
 
 package com.yahoo.ycsb.db;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Properties;
@@ -26,7 +27,9 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
+import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcern;
+
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 
@@ -71,14 +74,17 @@ public class MongoDbClient extends DB {
 
         try {
             // strip out prefix since Java driver doesn't currently support
-            // standard
-            // connection format URL yet
+            // standard connection format URL yet
             // http://www.mongodb.org/display/DOCS/Connections
             if (url.startsWith("mongodb://")) {
                 url = url.substring(10);
             }
 
-            mongo = new Mongo(new DBAddress(url));
+            ArrayList<ServerAddress> addr = new ArrayList<ServerAddress>();
+            for (String s: url.split(",")) {
+                addr.add(new ServerAddress(s));
+            }
+            mongo = new Mongo(addr);
         } catch (Exception e1) {
             logger.error(
                     "Could not initialize MongoDB connection pool for Loader: "
