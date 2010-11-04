@@ -18,6 +18,8 @@ import java.util.Vector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.bson.types.ObjectId;
+
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBAddress;
 import com.mongodb.DBCollection;
@@ -100,7 +102,7 @@ public class MongoDbClient extends DB {
             db = mongo.getDB(database);
             db.requestStart();
             DBCollection collection = db.getCollection(table);
-            DBObject q = new BasicDBObject().append("_id", key);
+            DBObject q = new BasicDBObject().append("_id", new ObjectId(key));
             if (writeConcern.equals(WriteConcern.SAFE)) {
                 q.put("$atomic", true);
             }
@@ -109,7 +111,7 @@ public class MongoDbClient extends DB {
             // see if record was deleted
             DBObject errors = db.getLastError();
 
-            return (Long) errors.get("n") == 1 ? 0 : 1;
+            return ((Integer) errors.get("n")) == 1 ? 0 : 1;
         } catch (Exception e) {
             logger.error(e + "", e);
             return 1;
@@ -141,7 +143,7 @@ public class MongoDbClient extends DB {
             db.requestStart();
 
             DBCollection collection = db.getCollection(table);
-            DBObject r = new BasicDBObject().append("_id", key);
+            DBObject r = new BasicDBObject().append("_id", new ObjectId(key));
             r.putAll(values);
 
             collection.setWriteConcern(writeConcern);
@@ -152,8 +154,7 @@ public class MongoDbClient extends DB {
             // n=<records affected> for insert
             DBObject errors = db.getLastError();
 
-            return (Boolean) errors.get("ok") && errors.get("err") == null ? 0
-                    : 1;
+            return (errors.get("ok") != null && errors.get("err") == null) ? 0 : 1;
         } catch (Exception e) {
             logger.error(e + "", e);
             return 1;
@@ -185,7 +186,7 @@ public class MongoDbClient extends DB {
             db.requestStart();
 
             DBCollection collection = db.getCollection(table);
-            DBObject q = new BasicDBObject().append("_id", key);
+            DBObject q = new BasicDBObject().append("_id", new ObjectId(key));
             DBObject fieldsToReturn = new BasicDBObject();
             boolean returnAllFields = fields == null;
 
@@ -234,7 +235,7 @@ public class MongoDbClient extends DB {
             db.requestStart();
 
             DBCollection collection = db.getCollection(table);
-            DBObject q = new BasicDBObject().append("_id", key);
+            DBObject q = new BasicDBObject().append("_id", new ObjectId(key));
             DBObject u = new BasicDBObject();
             DBObject fieldsToSet = new BasicDBObject();
             Iterator<String> keys = values.keySet().iterator();
