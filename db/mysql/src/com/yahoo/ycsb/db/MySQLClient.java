@@ -32,7 +32,12 @@ public class MySQLClient extends DB {
 		"FROM %s r JOIN %s v ON r.%s = v.%s " +
 		"WHERE r.%s = ? AND r.%s in (%s)";
 
-//	private static final String SCAN_STMT_FMT = "";
+	private static final String SCAN_STMT_FMT =
+		"SELECT r.%s, r.%s, v.%s " +
+		"FROM %s r JOIN %s v ON r.%s = v.%s " +
+		"WHERE r.%s in (%s)" +
+		"ORDER BY r.%s ASC" +
+		"LIMIT ? OFFSET ?";
 
 	private static final String UPDATE_STMT_FMT =
 		"UPDATE %s r JOIN %s v ON r.%s = v.%s " +
@@ -133,9 +138,37 @@ public class MySQLClient extends DB {
 	 */
 	@Override
 	public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, String>> result) {
-		// TODO implement me
-		if(debug) System.out.println("Not yet implemented.");
-		return -1;
+		StringBuilder sb = new StringBuilder();
+		for(String f : fields)
+			sb.append(f).append(",");
+		String scanSql = String.format(SCAN_STMT_FMT, KEY_COL, FIELD_COL, VALUE_COL, RECORD_TABLE, VALUE_TABLE, RECORD_ID, RECORD_ID, FIELD_COL, sb.toString(), KEY_COL);
+
+		try {
+			if(debug) {
+				System.out.println("Executing query: " + scanSql);
+				System.out.println("  with key:     " + startkey);
+				System.out.println("  with records: " + recordcount);
+			}
+
+			PreparedStatement s = con.prepareStatement(scanSql);
+			s.setString(1, startkey);
+			s.setInt(2, recordcount);
+			ResultSet r = s.executeQuery();
+
+			int ptr = -1;
+			String lastKey = "";
+			while (r.next()) {
+				if (!r.getString(1).equalsIgnoreCase(lastKey)) {
+					lastKey = r.getString(1);
+					ptr++;
+				}
+				result.get(ptr).put(r.getString(2), r.getString(3));
+			}
+			if(debug) System.out.println("-- " + result.size() + " results retrieved.");
+		} catch (SQLException e) {
+			return -1;
+		}
+		return 0;
 	}
 
 	/**
