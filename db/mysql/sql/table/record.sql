@@ -8,10 +8,10 @@ CREATE TABLE `record` (
   UNIQUE KEY (`recordkey`, `recordfield`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 PACK_KEYS=1 ROW_FORMAT=FIXED$$
 
-grant insert,select,update,delete on table record to mysql$$
-grant
-  insert(recordid,recordkey,recordfield),
-  select(recordid,recordkey,recordfield),
-  update(recordid,recordkey,recordfield),
-  delete
-on table record to mysql$$
+GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE record TO mysql$$
+GRANT
+  INSERT(recordid,recordkey,recordfield),
+  SELECT(recordid,recordkey,recordfield),
+  UPDATE(recordid,recordkey,recordfield),
+  DELETE
+ON TABLE record TO mysql$$

@@ -6,10 +6,10 @@ CREATE TABLE `fieldvalue` (
   PRIMARY KEY (`recordid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8$$
 
-grant insert,select,update,delete on table fieldvalue to mysql$$
-grant
-  insert(recordid,fvalue),
-  select(recordid,fvalue),
-  update(recordid,fvalue),
-  delete
-on table fieldvalue to mysql$$
+GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE fieldvalue TO mysql$$
+GRANT
+  INSERT(recordid,fvalue),
+  SELECT(recordid,fvalue),
+  UPDATE(recordid,fvalue),
+  DELETE
+ON TABLE fieldvalue TO mysql$$
