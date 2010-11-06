@@ -126,6 +126,8 @@ public class MySQLClient extends DB {
 
 			PreparedStatement s = con.prepareStatement(readSql);
 			s.setString(1, key);
+			if (null == fields)
+				s.setString(2, key);
 			ResultSet r = s.executeQuery();
 
 			while (r.next())
@@ -150,13 +152,8 @@ public class MySQLClient extends DB {
 	@Override
 	public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, String>> result) {
 		StringBuilder sb = new StringBuilder();
-
-		if (null == fields) {
-			sb.append(String.format(READ_SUB_STMT_FMT, FIELD_COL, RECORD_TABLE, KEY_COL));
-		} else {
-			for(String f : fields)
-				sb.append(f).append(",");
-		}
+		for(String f : fields)
+			sb.append(f).append(",");
 
 		String scanSql = String.format(SCAN_STMT_FMT, KEY_COL, FIELD_COL, VALUE_COL, RECORD_TABLE, VALUE_TABLE, RECORD_ID, RECORD_ID, FIELD_COL, sb.toString(), KEY_COL);
 
