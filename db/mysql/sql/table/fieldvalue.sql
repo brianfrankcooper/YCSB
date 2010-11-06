@@ -11,5 +11,5 @@ grant
   insert(recordid,fvalue),
   select(recordid,fvalue),
   update(recordid,fvalue),
-  delete(recordid,fvalue)
+  delete
 on table fieldvalue to mysql$$
