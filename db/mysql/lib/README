@@ -1,0 +1,2 @@
+depends on:
+- mysql-connector-java-5.1.jar
