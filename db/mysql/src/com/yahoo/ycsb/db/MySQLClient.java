@@ -45,10 +45,7 @@ public class MySQLClient extends DB {
 
 	private static final String INSERT_STMT = "CALL kvinsert(?, ?, ?)";
 
-	private static final String DELETE_STMT_FMT =
-		"DELETE r, v FROM %s r, %s v " +
-		"WHERE r.%s = v.%s " +
-		"  AND r.%s = ?";
+	private static final String DELETE_STMT = "CALL kvdelete(?)";
 
 	private Connection con;
 	private boolean debug = false;
@@ -279,15 +276,13 @@ public class MySQLClient extends DB {
 
 		manageConnection();
 
-		String deleteSql = String.format(DELETE_STMT_FMT, RECORD_TABLE, VALUE_TABLE, RECORD_ID, RECORD_ID, KEY_COL);
-
 		try {
 			if(debug) {
-				System.err.println("Executing query: " + deleteSql);
+				System.err.println("Executing query: " + DELETE_STMT);
 				System.err.println("  with key:   " + key);
 			}
 
-			PreparedStatement s = con.prepareStatement(deleteSql);
+			PreparedStatement s = con.prepareCall(DELETE_STMT);
 			s.setString(1, key);
 			s.execute();
 		} catch (SQLException ex) {
