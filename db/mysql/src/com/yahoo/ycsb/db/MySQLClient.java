@@ -41,10 +41,7 @@ public class MySQLClient extends DB {
 		"FROM %s r " + 
 		"WHERE r.%s = ?";
 
-	private static final String UPDATE_STMT_FMT =
-		"UPDATE %s r JOIN %s v ON r.%s = v.%s " +
-		"SET v.%s = ? " +
-		"WHERE r.%s = ? AND r.%s = ?";
+	private static final String UPDATE_STMT = "CALL kvupdate(?, ?, ?)";
 
 	private static final String INSERT_STMT = "CALL kvinsert(?, ?, ?)";
 
@@ -214,21 +211,19 @@ public class MySQLClient extends DB {
 
 		manageConnection();
 
-		String updateSql = String.format(UPDATE_STMT_FMT, RECORD_TABLE, VALUE_TABLE, RECORD_ID, RECORD_ID, VALUE_COL, KEY_COL, FIELD_COL);
-
 		for (Map.Entry<String, String> e : values.entrySet()) {
 			try {
 				if(debug) {
-					System.err.println("Executing query: " + updateSql);
+					System.err.println("Executing query: " + UPDATE_STMT);
 					System.err.println("  with key:   " + key);
 					System.err.println("  with field: " + e.getKey());
 					System.err.println("  with value: " + e.getValue());
 				}
 
-				PreparedStatement s = con.prepareStatement(updateSql);
-				s.setString(1, e.getValue());
-				s.setString(2, key);
-				s.setString(3, e.getKey());
+				PreparedStatement s = con.prepareCall(UPDATE_STMT);
+				s.setString(1, key);
+				s.setString(2, e.getKey());
+				s.setString(3, e.getValue());
 				s.executeUpdate();
 			} catch (SQLException ex) {
 				return -1;
