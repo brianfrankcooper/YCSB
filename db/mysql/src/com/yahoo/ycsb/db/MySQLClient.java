@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
@@ -20,7 +21,7 @@ public class MySQLClient extends DB {
 	public static final String PASSWORD_KEY = "mysql:password";
 
 	public static final String RECORD_TABLE = "record";
-	public static final String VALUE_TABLE = "fieldvalues";
+	public static final String VALUE_TABLE = "fieldvalue";
 
 	public static final String RECORD_ID = "recordid";
 	public static final String KEY_COL = "recordkey";
@@ -112,11 +113,14 @@ public class MySQLClient extends DB {
 		if (null == fields) {
 			sb.append(String.format(READ_SUB_STMT_FMT, FIELD_COL, RECORD_TABLE, KEY_COL));
 		} else {
-			for(String f : fields)
-				sb.append(f).append(",");
+			Iterator<String> it = fields.iterator();
+			while (it.hasNext()) {
+				sb.append("'").append(it.next()).append("'");
+				if (it.hasNext()) sb.append(",");
+			}
 		}
 
-		String readSql = String.format(READ_STMT_FMT, FIELD_COL, VALUE_COL, VALUE_TABLE, RECORD_TABLE, RECORD_ID, RECORD_ID, KEY_COL, FIELD_COL, sb.toString());
+		String readSql = String.format(READ_STMT_FMT, FIELD_COL, VALUE_COL, RECORD_TABLE, VALUE_TABLE, RECORD_ID, RECORD_ID, KEY_COL, FIELD_COL, sb.toString());
 
 		try {
 			if(debug) {
