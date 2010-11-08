@@ -32,6 +32,11 @@ public class MySQLClient extends DB {
 		"FROM %s r JOIN %s v ON r.%s = v.%s " +
 		"WHERE r.%s = ? AND r.%s in (%s)";
 
+	private static final String READ_SUB_STMT_FMT =
+		"SELECT r.%s " +
+		"FROM %s r " + 
+		"WHERE r.%s = ?";
+
 	private static final String SCAN_STMT_FMT =
 		"SELECT r.%s, r.%s, v.%s " +
 		"FROM %s r JOIN %s v ON r.%s = v.%s " +
@@ -103,8 +108,14 @@ public class MySQLClient extends DB {
 	@Override
 	public int read(String table, String key, Set<String> fields, HashMap<String, String> result) {
 		StringBuilder sb = new StringBuilder();
-		for(String f : fields)
-			sb.append(f).append(",");
+
+		if (null == fields) {
+			sb.append(String.format(READ_SUB_STMT_FMT, FIELD_COL, RECORD_TABLE, KEY_COL));
+		} else {
+			for(String f : fields)
+				sb.append(f).append(",");
+		}
+
 		String readSql = String.format(READ_STMT_FMT, FIELD_COL, VALUE_COL, VALUE_TABLE, RECORD_TABLE, RECORD_ID, RECORD_ID, KEY_COL, FIELD_COL, sb.toString());
 
 		try {
@@ -139,8 +150,14 @@ public class MySQLClient extends DB {
 	@Override
 	public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, String>> result) {
 		StringBuilder sb = new StringBuilder();
-		for(String f : fields)
-			sb.append(f).append(",");
+
+		if (null == fields) {
+			sb.append(String.format(READ_SUB_STMT_FMT, FIELD_COL, RECORD_TABLE, KEY_COL));
+		} else {
+			for(String f : fields)
+				sb.append(f).append(",");
+		}
+
 		String scanSql = String.format(SCAN_STMT_FMT, KEY_COL, FIELD_COL, VALUE_COL, RECORD_TABLE, VALUE_TABLE, RECORD_ID, RECORD_ID, FIELD_COL, sb.toString(), KEY_COL);
 
 		try {
