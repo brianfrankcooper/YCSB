@@ -50,7 +50,7 @@ public class MySQLClient extends DB {
 		"SET v.%s = ? " +
 		"WHERE r.%s = ? AND r.%s = ?";
 
-	private static final String INSERT_STMT = "CALL kvupdate(?, ?, ?)";
+	private static final String INSERT_STMT = "CALL kvinsert(?, ?, ?)";
 
 	private static final String DELETE_STMT_FMT =
 		"DELETE %s r JOIN %s v ON r.%s = v.%s " +
