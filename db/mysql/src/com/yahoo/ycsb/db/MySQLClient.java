@@ -53,8 +53,9 @@ public class MySQLClient extends DB {
 	private static final String INSERT_STMT = "CALL kvinsert(?, ?, ?)";
 
 	private static final String DELETE_STMT_FMT =
-		"DELETE %s r JOIN %s v ON r.%s = v.%s " +
-		"WHERE r.%s = ?";
+		"DELETE r, v FROM %s r, %s v " +
+		"WHERE r.%s = v.%s " +
+		"  AND r.%s = ?";
 
 	private Connection con;
 	private boolean debug = false;
@@ -264,8 +265,8 @@ public class MySQLClient extends DB {
 	 */
 	@Override
 	public int delete(String table, String key) {
-		String deleteSql = String.format(DELETE_STMT_FMT, RECORD_TABLE, VALUE_TABLE, RECORD_ID, RECORD_ID, KEY_COL);
 
+		String deleteSql = String.format(DELETE_STMT_FMT, RECORD_TABLE, VALUE_TABLE, RECORD_ID, RECORD_ID, KEY_COL);
 		try {
 			if(debug) {
 				System.out.println("Executing query: " + deleteSql);
