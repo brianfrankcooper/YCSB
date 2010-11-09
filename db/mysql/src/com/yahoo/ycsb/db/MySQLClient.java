@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import com.mysql.jdbc.Driver;
+import com.mysql.jdbc.NotImplemented;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 
@@ -38,13 +40,6 @@ public class MySQLClient extends DB {
 		"FROM %s r " + 
 		"WHERE r.%s = ?";
 
-	private static final String SCAN_STMT_FMT =
-		"SELECT r.%s, r.%s, v.%s " +
-		"FROM %s r JOIN %s v ON r.%s = v.%s " +
-		"WHERE r.%s in (%s)" +
-		"ORDER BY r.%s ASC" +
-		"LIMIT ? OFFSET ?";
-
 	private static final String UPDATE_STMT_FMT =
 		"UPDATE %s r JOIN %s v ON r.%s = v.%s " +
 		"SET v.%s = ? " +
@@ -66,21 +61,29 @@ public class MySQLClient extends DB {
 	 */
 	@Override
 	public void init() throws DBException {
+		try {
+			DriverManager.registerDriver(new Driver());
+		} catch (SQLException e) {
+			e.printStackTrace(System.err);
+			throw new DBException("Failed to load MySQL Driver", e);
+		}
+
 		if (getProperties().getProperty("verbose", "false").equalsIgnoreCase("true")) debug = true;
 		if (getProperties().getProperty("debug", "false").equalsIgnoreCase("true")) debug = true;
 
 		String url = getProperties().getProperty(URL_KEY, "");
-		String usr = getProperties().getProperty(USER_KEY, "");
+		String user = getProperties().getProperty(USER_KEY, "");
 		String password = getProperties().getProperty(PASSWORD_KEY, "");
 
 		if(url.equals("")) throw new DBException("Must specify a MySQL connection url");
-		if(usr.equals("")) throw new DBException("Must specify a MySQL connection username");
+		if(user.equals("")) throw new DBException("Must specify a MySQL connection username");
 
 		try {
-			if(debug) System.out.println("Opening connection...");
-			con = DriverManager.getConnection(url, usr, password);
+			if(debug) System.err.println("Opening connection...");
+			con = DriverManager.getConnection(url, user, password);
 		} catch(SQLException e) {
-			throw new DBException("Failed to establish connection", e);
+			e.printStackTrace(System.err);
+			throw new DBException("Failed to open connection", e);
 		}
 	}
 
@@ -91,10 +94,10 @@ public class MySQLClient extends DB {
 	@Override
 	public void cleanup() throws DBException {
 		try {
-			if(debug) System.out.println("Closing connection...");
+			if(debug) System.err.println("Closing connection...");
 			con.close();
 		} catch (SQLException e) {
-			throw new DBException("cleanup failed", e);
+			e.printStackTrace(System.err);
 		}
 	}
 
@@ -109,6 +112,7 @@ public class MySQLClient extends DB {
 	 */
 	@Override
 	public int read(String table, String key, Set<String> fields, HashMap<String, String> result) {
+
 		StringBuilder sb = new StringBuilder();
 
 		if (null == fields) {
@@ -125,8 +129,8 @@ public class MySQLClient extends DB {
 
 		try {
 			if(debug) {
-				System.out.println("Executing query: " + readSql);
-				System.out.println("  with key: " + key);
+				System.err.println("Executing query: " + readSql);
+				System.err.println("  with key: " + key);
 			}
 
 			PreparedStatement s = con.prepareStatement(readSql);
@@ -137,10 +141,11 @@ public class MySQLClient extends DB {
 
 			while (r.next())
 				result.put(r.getString(1), r.getString(2));
-			if(debug) System.out.println("-- " + result.size() + " results retrieved.");
+			if(debug) System.err.println("-- " + result.size() + " results retrieved.");
 		} catch (SQLException e) {
 			return -1;
 		}
+
 		return 0;
 	}
 
@@ -156,38 +161,8 @@ public class MySQLClient extends DB {
 	 */
 	@Override
 	public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, String>> result) {
-		StringBuilder sb = new StringBuilder();
-		for(String f : fields)
-			sb.append(f).append(",");
 
-		String scanSql = String.format(SCAN_STMT_FMT, KEY_COL, FIELD_COL, VALUE_COL, RECORD_TABLE, VALUE_TABLE, RECORD_ID, RECORD_ID, FIELD_COL, sb.toString(), KEY_COL);
-
-		try {
-			if(debug) {
-				System.out.println("Executing query: " + scanSql);
-				System.out.println("  with key:     " + startkey);
-				System.out.println("  with records: " + recordcount);
-			}
-
-			PreparedStatement s = con.prepareStatement(scanSql);
-			s.setString(1, startkey);
-			s.setInt(2, recordcount);
-			ResultSet r = s.executeQuery();
-
-			int ptr = -1;
-			String lastKey = "";
-			while (r.next()) {
-				if (!r.getString(1).equalsIgnoreCase(lastKey)) {
-					lastKey = r.getString(1);
-					ptr++;
-				}
-				result.get(ptr).put(r.getString(2), r.getString(3));
-			}
-			if(debug) System.out.println("-- " + result.size() + " results retrieved.");
-		} catch (SQLException e) {
-			return -1;
-		}
-		return 0;
+		throw new IllegalArgumentException("MySQL driver does not currently support scans.", new NotImplemented());
 	}
 
 	/**
@@ -201,15 +176,16 @@ public class MySQLClient extends DB {
 	 */
 	@Override
 	public int update(String table, String key, HashMap<String, String> values) {
+
 		String updateSql = String.format(UPDATE_STMT_FMT, RECORD_TABLE, VALUE_TABLE, RECORD_ID, RECORD_ID, VALUE_COL, KEY_COL, FIELD_COL);
 
 		for (Map.Entry<String, String> e : values.entrySet()) {
 			try {
 				if(debug) {
-					System.out.println("Executing query: " + updateSql);
-					System.out.println("  with key:   " + key);
-					System.out.println("  with field: " + e.getKey());
-					System.out.println("  with value: " + e.getValue());
+					System.err.println("Executing query: " + updateSql);
+					System.err.println("  with key:   " + key);
+					System.err.println("  with field: " + e.getKey());
+					System.err.println("  with value: " + e.getValue());
 				}
 
 				PreparedStatement s = con.prepareStatement(updateSql);
@@ -235,13 +211,14 @@ public class MySQLClient extends DB {
 	 */
 	@Override
 	public int insert(String table, String key, HashMap<String, String> values) {
+
 		for (Map.Entry<String, String> e : values.entrySet()) {
 			try {
 				if(debug) {
-					System.out.println("Executing query: " + INSERT_STMT);
-					System.out.println("  with key:   " + key);
-					System.out.println("  with field: " + e.getKey());
-					System.out.println("  with value: " + e.getValue());
+					System.err.println("Executing query: " + INSERT_STMT);
+					System.err.println("  with key:   " + key);
+					System.err.println("  with field: " + e.getKey());
+					System.err.println("  with value: " + e.getValue());
 				}
 
 				PreparedStatement s = con.prepareCall(INSERT_STMT);
@@ -269,8 +246,8 @@ public class MySQLClient extends DB {
 		String deleteSql = String.format(DELETE_STMT_FMT, RECORD_TABLE, VALUE_TABLE, RECORD_ID, RECORD_ID, KEY_COL);
 		try {
 			if(debug) {
-				System.out.println("Executing query: " + deleteSql);
-				System.out.println("  with key:   " + key);
+				System.err.println("Executing query: " + deleteSql);
+				System.err.println("  with key:   " + key);
 			}
 
 			PreparedStatement s = con.prepareStatement(deleteSql);
