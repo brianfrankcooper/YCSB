@@ -21,6 +21,7 @@ public class MySQLClient extends DB {
 	public static final String URL_KEY = "mysql:url";
 	public static final String USER_KEY = "mysql:user";
 	public static final String PASSWORD_KEY = "mysql:password";
+	public static final String CONNECTION_THRESHOLD_KEY = "mysql:connectionlife";
 
 	public static final String RECORD_TABLE = "record";
 	public static final String VALUE_TABLE = "fieldvalue";
@@ -55,7 +56,48 @@ public class MySQLClient extends DB {
 	private Connection con;
 	private boolean debug = false;
 	private int callcount = 0;
-	private static final int CALL_THRESHOLD = 100;
+	private String url = "";
+	private String user = "";
+	private String password = "";
+	private int connectionThreshold = 100;
+
+	/**
+	 * Open a new connection.
+	 */
+	private void openConnection() {
+		try {
+			if(debug) System.err.println("Opening connection...");
+			con = DriverManager.getConnection(url, user, password);
+		} catch(SQLException e) {
+			e.printStackTrace(System.err);
+			throw new RuntimeException("Failed to open connection", e);
+		}
+	}
+
+	/**
+	 * Close the existing connection.
+	 */
+	private void closeConnection() {
+		try {
+			if(debug) System.err.println("Closing connection...");
+			con.close();
+		} catch (SQLException e) {
+			e.printStackTrace(System.err);
+			throw new RuntimeException("Failed to close connection", e);
+		}
+	}
+
+	/**
+	 * Handle cleaning up connections when necessary.
+	 */
+	private void manageConnection() {
+		callcount++;
+		if (callcount >= connectionThreshold) {
+			closeConnection();
+			openConnection();
+			callcount = 0;
+		}
+	}
 
 	/**
 	 * Initialize any state for this DB.
@@ -73,20 +115,15 @@ public class MySQLClient extends DB {
 		if (getProperties().getProperty("verbose", "false").equalsIgnoreCase("true")) debug = true;
 		if (getProperties().getProperty("debug", "false").equalsIgnoreCase("true")) debug = true;
 
-		String url = getProperties().getProperty(URL_KEY, "");
-		String user = getProperties().getProperty(USER_KEY, "");
-		String password = getProperties().getProperty(PASSWORD_KEY, "");
+		url = getProperties().getProperty(URL_KEY, "");
+		user = getProperties().getProperty(USER_KEY, "");
+		password = getProperties().getProperty(PASSWORD_KEY, "");
+		connectionThreshold = Integer.parseInt(getProperties().getProperty(CONNECTION_THRESHOLD_KEY, "100"));
 
 		if(url.equals("")) throw new DBException("Must specify a MySQL connection url");
 		if(user.equals("")) throw new DBException("Must specify a MySQL connection username");
 
-		try {
-			if(debug) System.err.println("Opening connection...");
-			con = DriverManager.getConnection(url, user, password);
-		} catch(SQLException e) {
-			e.printStackTrace(System.err);
-			throw new DBException("Failed to open connection", e);
-		}
+		openConnection();
 	}
 
     /**
@@ -95,12 +132,7 @@ public class MySQLClient extends DB {
 	 */
 	@Override
 	public void cleanup() throws DBException {
-		try {
-			if(debug) System.err.println("Closing connection...");
-			con.close();
-		} catch (SQLException e) {
-			e.printStackTrace(System.err);
-		}
+		closeConnection();
 	}
 
 	/**
@@ -115,17 +147,7 @@ public class MySQLClient extends DB {
 	@Override
 	public int read(String table, String key, Set<String> fields, HashMap<String, String> result) {
 
-		callcount++;
-		if (callcount >= CALL_THRESHOLD) {
-			try {
-				cleanup();
-				init();
-			} catch (DBException e) {
-				e.printStackTrace(System.err);
-				return -1;
-			}
-			callcount = 0;
-		}
+		manageConnection();
 
 		StringBuilder sb = new StringBuilder();
 
@@ -175,7 +197,6 @@ public class MySQLClient extends DB {
 	 */
 	@Override
 	public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, String>> result) {
-
 		throw new IllegalArgumentException("MySQL driver does not currently support scans.", new NotImplemented());
 	}
 
@@ -191,17 +212,7 @@ public class MySQLClient extends DB {
 	@Override
 	public int update(String table, String key, HashMap<String, String> values) {
 
-		callcount++;
-		if (callcount >= CALL_THRESHOLD) {
-			try {
-				cleanup();
-				init();
-			} catch (DBException e) {
-				e.printStackTrace(System.err);
-				return -1;
-			}
-			callcount = 0;
-		}
+		manageConnection();
 
 		String updateSql = String.format(UPDATE_STMT_FMT, RECORD_TABLE, VALUE_TABLE, RECORD_ID, RECORD_ID, VALUE_COL, KEY_COL, FIELD_COL);
 
@@ -238,17 +249,7 @@ public class MySQLClient extends DB {
 	@Override
 	public int insert(String table, String key, HashMap<String, String> values) {
 
-		callcount++;
-		if (callcount >= CALL_THRESHOLD) {
-			try {
-				cleanup();
-				init();
-			} catch (DBException e) {
-				e.printStackTrace(System.err);
-				return -1;
-			}
-			callcount = 0;
-		}
+		manageConnection();
 
 		for (Map.Entry<String, String> e : values.entrySet()) {
 			try {
@@ -281,17 +282,7 @@ public class MySQLClient extends DB {
 	@Override
 	public int delete(String table, String key) {
 
-		callcount++;
-		if (callcount >= CALL_THRESHOLD) {
-			try {
-				cleanup();
-				init();
-			} catch (DBException e) {
-				e.printStackTrace(System.err);
-				return -1;
-			}
-			callcount = 0;
-		}
+		manageConnection();
 
 		String deleteSql = String.format(DELETE_STMT_FMT, RECORD_TABLE, VALUE_TABLE, RECORD_ID, RECORD_ID, KEY_COL);
 
