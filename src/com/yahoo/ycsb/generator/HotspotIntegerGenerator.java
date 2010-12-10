@@ -20,10 +20,11 @@ import java.util.Random;
 
 /**
  * Generate integers resembling a hotspot distribution where x% of operations
- * are access y% of data items. The parameters specify the bounds for the numbers
- * specified, the percentage of the of the interval which comprises the hot set and
+ * access y% of data items. The parameters specify the bounds for the numbers,
+ * the percentage of the of the interval which comprises the hot set and
  * the percentage of operations that access the hot set. Numbers of the hot set are
- * always smaller than any number in the cold set.
+ * always smaller than any number in the cold set. Elements from the hot set and
+ * the cold set are chose using a uniform distribution.
  * 
  * @author sudipto
  *

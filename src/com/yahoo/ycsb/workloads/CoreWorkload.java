@@ -22,6 +22,7 @@ import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.generator.CounterGenerator;
 import com.yahoo.ycsb.generator.DiscreteGenerator;
 import com.yahoo.ycsb.generator.Generator;
+import com.yahoo.ycsb.generator.HotspotIntegerGenerator;
 import com.yahoo.ycsb.generator.IntegerGenerator;
 import com.yahoo.ycsb.generator.ScrambledZipfianGenerator;
 import com.yahoo.ycsb.generator.SkewedLatestGenerator;
@@ -49,7 +50,7 @@ import java.util.Vector;
  * <LI><b>insertproportion</b>: what proportion of operations should be inserts (default: 0)
  * <LI><b>scanproportion</b>: what proportion of operations should be scans (default: 0)
  * <LI><b>readmodifywriteproportion</b>: what proportion of operations should be read a record, modify it, write it back (default: 0)
- * <LI><b>requestdistribution</b>: what distribution should be used to select the records to operate on - uniform, zipfian or latest (default: uniform)
+ * <LI><b>requestdistribution</b>: what distribution should be used to select the records to operate on - uniform, zipfian, hotspot, or latest (default: uniform)
  * <LI><b>maxscanlength</b>: for scans, what is the maximum number of records to scan (default: 1000)
  * <LI><b>scanlengthdistribution</b>: for scans, what distribution should be used to choose the number of records to scan, for each scan, between 1 and maxscanlength (default: uniform)
  * <LI><b>insertorder</b>: should records be inserted in order by key ("ordered"), or in hashed order ("hashed") (default: hashed)
@@ -210,6 +211,26 @@ public class CoreWorkload extends Workload
 	 */
 	public static final String INSERT_ORDER_PROPERTY_DEFAULT="hashed";
 	
+	/**
+   * Percentage data items that constitute the hot set.
+   */
+  public static final String HOTSPOT_DATA_FRACTION = "hotspotdatafraction";
+  
+  /**
+   * Default value of the size of the hot set.
+   */
+  public static final String HOTSPOT_DATA_FRACTION_DEFAULT = "0.2";
+  
+  /**
+   * Percentage operations that access the hot set.
+   */
+  public static final String HOTSPOT_OPN_FRACTION = "hotspotopnfraction";
+  
+  /**
+   * Default value of the percentage operations accessing the hot set.
+   */
+  public static final String HOTSPOT_OPN_FRACTION_DEFAULT = "0.8";
+	
 	IntegerGenerator keysequence;
 
 	DiscreteGenerator operationchooser;
@@ -309,6 +330,15 @@ public class CoreWorkload extends Workload
 		{
 			keychooser=new SkewedLatestGenerator(transactioninsertkeysequence);
 		}
+		else if (requestdistrib.equals("hotspot")) 
+		{
+      double hotsetfraction = Double.parseDouble(p.getProperty(
+          HOTSPOT_DATA_FRACTION, HOTSPOT_DATA_FRACTION_DEFAULT));
+      double hotopnfraction = Double.parseDouble(p.getProperty(
+          HOTSPOT_OPN_FRACTION, HOTSPOT_OPN_FRACTION_DEFAULT));
+      keychooser = new HotspotIntegerGenerator(0, recordcount - 1, 
+          hotsetfraction, hotopnfraction);
+    }
 		else
 		{
 			throw new WorkloadException("Unknown distribution \""+requestdistrib+"\"");
