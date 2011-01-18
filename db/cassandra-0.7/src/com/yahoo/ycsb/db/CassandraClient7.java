@@ -19,7 +19,11 @@ package com.yahoo.ycsb.db;
 
 import com.yahoo.ycsb.*;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,6 +40,7 @@ import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.cassandra.thrift.*;
 
+import org.apache.cassandra.utils.FBUtilities;
 
 //XXXX if we do replication, fix the consistency levels
 /**
@@ -153,6 +158,46 @@ public class CassandraClient7 extends DB
     tr.close();
   }
 
+  private ByteBuffer tob(String str)
+  {
+    try
+    {
+      return ByteBuffer.wrap(str.getBytes("UTF-8"));
+    }
+    catch (UnsupportedEncodingException e)
+    {
+      throw new AssertionError(e);
+    }
+  }
+
+  /** TODO: Next two methods copied from ByteBufferUtil in Cassandra trunk. */
+  public static String tos(ByteBuffer buffer)
+  {
+    int offset = buffer.position();
+    int length = buffer.remaining();
+    Charset charset = Charset.defaultCharset();
+    if (buffer.hasArray())
+      return new String(buffer.array(), buffer.arrayOffset() + offset, length + buffer.arrayOffset(), charset);
+
+    byte[] buff = getArray(buffer, offset, length);
+    return new String(buff, charset);
+  }
+
+  public static byte[] getArray(ByteBuffer b, int start, int length)
+  {
+    if (b.hasArray())
+      return Arrays.copyOfRange(b.array(), start + b.arrayOffset(), start + length + b.arrayOffset());
+
+    byte[] bytes = new byte[length];
+
+    for (int i = 0; i < length; i++)
+    {
+      bytes[i] = b.get(start++);
+    }
+
+    return bytes;
+  }
+
   /**
    * Read a record from the database. Each field/value pair from the result will
    * be stored in a HashMap.
@@ -199,10 +244,10 @@ public class CassandraClient7 extends DB
           predicate.setSlice_range(sliceRange);
         } else
         {
-          ArrayList<byte[]> fieldlist = new ArrayList<byte[]>(fields.size());
+          ArrayList<ByteBuffer> fieldlist = new ArrayList<ByteBuffer>(fields.size());
           for (String s : fields)
           {
-            fieldlist.add(s.getBytes("UTF-8"));
+            fieldlist.add(tob(s));
           }
 
           predicate = new SlicePredicate();
@@ -210,7 +255,7 @@ public class CassandraClient7 extends DB
         }
 
         ColumnParent parent = new ColumnParent(column_family);
-        List<ColumnOrSuperColumn> results = client.get_slice(key.getBytes("UTF-8"), parent, predicate,
+        List<ColumnOrSuperColumn> results = client.get_slice(tob(key), parent, predicate,
             ConsistencyLevel.ONE);
 
         if (_debug)
@@ -221,11 +266,11 @@ public class CassandraClient7 extends DB
         for (ColumnOrSuperColumn oneresult : results)
         {
           Column column = oneresult.column;
-          result.put(new String(column.name), new String(column.value));
+          result.put(tos(column.name), tos(column.value));
 
           if (_debug)
           {
-            System.out.print("(" + new String(column.name) + "=" + new String(column.value) + ")");
+            System.out.print("(" + tos(column.name) + "=" + tos(column.value) + ")");
           }
         }
 
@@ -301,16 +346,16 @@ public class CassandraClient7 extends DB
           predicate.setSlice_range(sliceRange);
         } else
         {
-          ArrayList<byte[]> fieldlist = new ArrayList<byte[]>(fields.size());
+          ArrayList<ByteBuffer> fieldlist = new ArrayList<ByteBuffer>(fields.size());
           for (String s : fields)
           {
-            fieldlist.add(s.getBytes("UTF-8"));
+            fieldlist.add(tob(s));
           }
           predicate = new SlicePredicate();
           predicate.setColumn_names(fieldlist);
         }
         ColumnParent parent = new ColumnParent(column_family);
-        KeyRange kr = new KeyRange().setStart_key(startkey.getBytes("UTF-8")).setEnd_key(new byte[] {}).setCount(recordcount);
+        KeyRange kr = new KeyRange().setStart_key(tob(startkey)).setEnd_key(FBUtilities.EMPTY_BYTE_BUFFER).setCount(recordcount);
 
         List<KeySlice> results = client.get_range_slices(parent, predicate, kr, ConsistencyLevel.ONE);
 
@@ -326,12 +371,12 @@ public class CassandraClient7 extends DB
           for (ColumnOrSuperColumn onecol : oneresult.columns)
           {
             Column column = onecol.column;
-            tuple.put(new String(column.name), new String(column.value));
+            tuple.put(tos(column.name), tos(column.value));
 
             if (_debug)
             {
               System.out
-                  .print("(" + new String(column.name) + "=" + new String(column.value) + ")");
+                  .print("(" + tos(column.name) + "=" + tos(column.value) + ")");
             }
           }
 
@@ -411,16 +456,16 @@ public class CassandraClient7 extends DB
 
       try
       {
-        Map<byte[], Map<String, List<Mutation>>> batch_mutation = new HashMap<byte[], Map<String, List<Mutation>>>();
+        Map<ByteBuffer, Map<String, List<Mutation>>> batch_mutation = new HashMap<ByteBuffer, Map<String, List<Mutation>>>();
         ArrayList<Mutation> v = new ArrayList<Mutation>(values.size());
         Map<String, List<Mutation>> cfMutationMap = new HashMap<String, List<Mutation>>();
         cfMutationMap.put(column_family, v);
-        batch_mutation.put(key.getBytes("UTF-8"), cfMutationMap);
+        batch_mutation.put(tob(key), cfMutationMap);
 
         for (String field : values.keySet())
         {
           String val = values.get(field);
-          Column col = new Column(field.getBytes("UTF-8"), val.getBytes("UTF-8"), timestamp);
+          Column col = new Column(tob(field), tob(val), timestamp);
 
           ColumnOrSuperColumn c = new ColumnOrSuperColumn();
           c.setColumn(col);
@@ -482,7 +527,7 @@ public class CassandraClient7 extends DB
     {
       try
       {
-        client.remove(key.getBytes("UTF-8"), new ColumnPath(column_family), System.currentTimeMillis(),
+        client.remove(tob(key), new ColumnPath(column_family), System.currentTimeMillis(),
             ConsistencyLevel.ONE);
 
         if (_debug)
