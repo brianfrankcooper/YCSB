@@ -44,8 +44,12 @@ public class CassandraClient6 extends DB
 	public static final int Ok=0;
 	public static final int Error=-1;
 
+	public String ColumnFamily;
 	public int ConnectionRetries;
         public int OperationRetries;
+
+	public static final String COLUMN_FAMILY_PROPERTY="cassandra.columnfamily";
+	public static final String COLUMN_FAMILY_PROPERTY_DEFAULT="data";
 
 	public static final String CONNECTION_RETRY_PROPERTY="cassandra.connectionretries";
 	public static final String CONNECTION_RETRY_PROPERTY_DEFAULT="300";
@@ -71,6 +75,7 @@ public class CassandraClient6 extends DB
 			throw new DBException("Required property \"hosts\" missing for CassandraClient");
 		}
 		
+		ColumnFamily=getProperties().getProperty(COLUMN_FAMILY_PROPERTY,COLUMN_FAMILY_PROPERTY_DEFAULT);
 		ConnectionRetries=Integer.parseInt(getProperties().getProperty(CONNECTION_RETRY_PROPERTY,CONNECTION_RETRY_PROPERTY_DEFAULT));
 		OperationRetries=Integer.parseInt(getProperties().getProperty(OPERATION_RETRY_PROPERTY,OPERATION_RETRY_PROPERTY_DEFAULT));
 
@@ -166,7 +171,7 @@ public class CassandraClient6 extends DB
 		      predicate.setColumn_names(fieldlist);
 		   }
 		   
-		   ColumnParent parent = new ColumnParent("data");
+		   ColumnParent parent = new ColumnParent(ColumnFamily);
 		   List<ColumnOrSuperColumn> results = client.get_slice(table, key, parent, predicate, ConsistencyLevel.ONE);
 		   
 		   if (_debug)
@@ -250,7 +255,7 @@ public class CassandraClient6 extends DB
 				predicate = new SlicePredicate();
 				predicate.setColumn_names(fieldlist);
 			}
-			ColumnParent parent = new ColumnParent("data");
+			ColumnParent parent = new ColumnParent(ColumnFamily);
 			
 			List<KeySlice> results = client.get_range_slice(table,parent,predicate,startkey,"",recordcount,ConsistencyLevel.ONE);
 			
@@ -334,7 +339,7 @@ public class CassandraClient6 extends DB
 
 		HashMap<String, List<ColumnOrSuperColumn>> batch_mutation=new HashMap<String, List<ColumnOrSuperColumn>>();
 		Vector<ColumnOrSuperColumn> v=new Vector<ColumnOrSuperColumn>();
-		batch_mutation.put("data",v);
+		batch_mutation.put(ColumnFamily,v);
 
 		try
 		{
@@ -395,7 +400,7 @@ public class CassandraClient6 extends DB
 	   {
 		try
 		{
-			client.remove(table,key,new ColumnPath("data"),System.currentTimeMillis(),ConsistencyLevel.ONE);
+			client.remove(table,key,new ColumnPath(ColumnFamily),System.currentTimeMillis(),ConsistencyLevel.ONE);
 			
 			if (_debug)
 			{
