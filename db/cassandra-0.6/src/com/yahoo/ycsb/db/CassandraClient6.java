@@ -46,7 +46,9 @@ public class CassandraClient6 extends DB
 
 	public String ColumnFamily;
 	public int ConnectionRetries;
-        public int OperationRetries;
+  public int OperationRetries;
+  public ConsistencyLevel consistency_read;
+  public ConsistencyLevel consistency_write;
 
 	public static final String COLUMN_FAMILY_PROPERTY="cassandra.columnfamily";
 	public static final String COLUMN_FAMILY_PROPERTY_DEFAULT="data";
@@ -56,7 +58,11 @@ public class CassandraClient6 extends DB
 
 	public static final String OPERATION_RETRY_PROPERTY="cassandra.operationretries";
 	public static final String OPERATION_RETRY_PROPERTY_DEFAULT="300";
-	      
+
+  public static final String CONSISTENCY_READ_PROPERTY = "cassandra.consistency_read";
+  public static final String CONSISTENCY_READ_PROPERTY_DEFAULT = "1"; // ONE
+  public static final String CONSISTENCY_WRITE_PROPERTY = "cassandra.consistency_write";
+  public static final String CONSISTENCY_WRITE_PROPERTY_DEFAULT = "1"; // ONE
 
 	TTransport tr;
 	Cassandra.Client client;
@@ -78,6 +84,9 @@ public class CassandraClient6 extends DB
 		ColumnFamily=getProperties().getProperty(COLUMN_FAMILY_PROPERTY,COLUMN_FAMILY_PROPERTY_DEFAULT);
 		ConnectionRetries=Integer.parseInt(getProperties().getProperty(CONNECTION_RETRY_PROPERTY,CONNECTION_RETRY_PROPERTY_DEFAULT));
 		OperationRetries=Integer.parseInt(getProperties().getProperty(OPERATION_RETRY_PROPERTY,OPERATION_RETRY_PROPERTY_DEFAULT));
+
+    consistency_read = ConsistencyLevel.findByValue(Integer.parseInt(getProperties().getProperty(CONSISTENCY_READ_PROPERTY, CONSISTENCY_READ_PROPERTY_DEFAULT)));
+    consistency_write = ConsistencyLevel.findByValue(Integer.parseInt(getProperties().getProperty(CONSISTENCY_WRITE_PROPERTY, CONSISTENCY_WRITE_PROPERTY_DEFAULT)));
 
 		_debug=Boolean.parseBoolean(getProperties().getProperty("debug","false"));
 
@@ -172,7 +181,7 @@ public class CassandraClient6 extends DB
 		   }
 		   
 		   ColumnParent parent = new ColumnParent(ColumnFamily);
-		   List<ColumnOrSuperColumn> results = client.get_slice(table, key, parent, predicate, ConsistencyLevel.ONE);
+		   List<ColumnOrSuperColumn> results = client.get_slice(table, key, parent, predicate, consistency_read);
 		   
 		   if (_debug)
 		   {
@@ -257,7 +266,7 @@ public class CassandraClient6 extends DB
 			}
 			ColumnParent parent = new ColumnParent(ColumnFamily);
 			
-			List<KeySlice> results = client.get_range_slice(table,parent,predicate,startkey,"",recordcount,ConsistencyLevel.ONE);
+			List<KeySlice> results = client.get_range_slice(table,parent,predicate,startkey,"",recordcount,consistency_read);
 			
 			if (_debug)
 			{
@@ -358,7 +367,7 @@ public class CassandraClient6 extends DB
 			client.batch_insert(table,
 					key,
 					batch_mutation,
-					ConsistencyLevel.ONE);
+					consistency_write);
 			
 			if (_debug)
 			{
@@ -400,7 +409,7 @@ public class CassandraClient6 extends DB
 	   {
 		try
 		{
-			client.remove(table,key,new ColumnPath(ColumnFamily),System.currentTimeMillis(),ConsistencyLevel.ONE);
+			client.remove(table,key,new ColumnPath(ColumnFamily),System.currentTimeMillis(),consistency_write);
 			
 			if (_debug)
 			{
