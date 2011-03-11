@@ -19,6 +19,7 @@ package com.yahoo.ycsb.db;
 
 import com.yahoo.ycsb.*;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -199,18 +200,20 @@ public class CassandraClient7 extends DB
           predicate.setSlice_range(sliceRange);
         } else
         {
-          ArrayList<byte[]> fieldlist = new ArrayList<byte[]>(fields.size());
+          List<ByteBuffer>  fieldlist = new ArrayList<ByteBuffer>(fields.size());
           for (String s : fields)
           {
-            fieldlist.add(s.getBytes("UTF-8"));
+        	fieldlist.add(ByteBuffer.wrap(s.getBytes("UTF-8")));
           }
 
           predicate = new SlicePredicate();
           predicate.setColumn_names(fieldlist);
+		
         }
 
         ColumnParent parent = new ColumnParent(column_family);
-        List<ColumnOrSuperColumn> results = client.get_slice(key.getBytes("UTF-8"), parent, predicate,
+        
+        List<ColumnOrSuperColumn> results = client.get_slice(ByteBuffer.wrap(key.getBytes("UTF-8")), parent, predicate,
             ConsistencyLevel.ONE);
 
         if (_debug)
@@ -221,11 +224,11 @@ public class CassandraClient7 extends DB
         for (ColumnOrSuperColumn oneresult : results)
         {
           Column column = oneresult.column;
-          result.put(new String(column.name), new String(column.value));
+          result.put(new String(column.name.array()), new String(column.value.array()));
 
           if (_debug)
           {
-            System.out.print("(" + new String(column.name) + "=" + new String(column.value) + ")");
+            System.out.print("(" + new String(column.name.array()) + "=" + new String(column.value.array()) + ")");
           }
         }
 
@@ -301,10 +304,11 @@ public class CassandraClient7 extends DB
           predicate.setSlice_range(sliceRange);
         } else
         {
-          ArrayList<byte[]> fieldlist = new ArrayList<byte[]>(fields.size());
+          List<ByteBuffer> fieldlist = new ArrayList<ByteBuffer>(fields.size());
           for (String s : fields)
           {
-            fieldlist.add(s.getBytes("UTF-8"));
+        	ByteBuffer bb = ByteBuffer.wrap(s.getBytes("UTF-8"));  
+            fieldlist.add(bb);
           }
           predicate = new SlicePredicate();
           predicate.setColumn_names(fieldlist);
@@ -326,12 +330,12 @@ public class CassandraClient7 extends DB
           for (ColumnOrSuperColumn onecol : oneresult.columns)
           {
             Column column = onecol.column;
-            tuple.put(new String(column.name), new String(column.value));
+            tuple.put(new String(column.name.array()), new String(column.value.array()));
 
             if (_debug)
             {
               System.out
-                  .print("(" + new String(column.name) + "=" + new String(column.value) + ")");
+                  .print("(" + new String(column.name.array()) + "=" + new String(column.value.array()) + ")");
             }
           }
 
@@ -411,16 +415,16 @@ public class CassandraClient7 extends DB
 
       try
       {
-        Map<byte[], Map<String, List<Mutation>>> batch_mutation = new HashMap<byte[], Map<String, List<Mutation>>>();
+        Map<ByteBuffer, Map<String, List<Mutation>>> batch_mutation = new HashMap<ByteBuffer, Map<String, List<Mutation>>>();
         ArrayList<Mutation> v = new ArrayList<Mutation>(values.size());
         Map<String, List<Mutation>> cfMutationMap = new HashMap<String, List<Mutation>>();
         cfMutationMap.put(column_family, v);
-        batch_mutation.put(key.getBytes("UTF-8"), cfMutationMap);
+        batch_mutation.put(ByteBuffer.wrap(key.getBytes("UTF-8")), cfMutationMap);
 
         for (String field : values.keySet())
         {
           String val = values.get(field);
-          Column col = new Column(field.getBytes("UTF-8"), val.getBytes("UTF-8"), timestamp);
+          Column col = new Column(ByteBuffer.wrap(field.getBytes("UTF-8")), ByteBuffer.wrap(val.getBytes("UTF-8")), timestamp);
 
           ColumnOrSuperColumn c = new ColumnOrSuperColumn();
           c.setColumn(col);
@@ -482,7 +486,7 @@ public class CassandraClient7 extends DB
     {
       try
       {
-        client.remove(key.getBytes("UTF-8"), new ColumnPath(column_family), System.currentTimeMillis(),
+        client.remove(ByteBuffer.wrap(key.getBytes("UTF-8")), new ColumnPath(column_family), System.currentTimeMillis(),
             ConsistencyLevel.ONE);
 
         if (_debug)
