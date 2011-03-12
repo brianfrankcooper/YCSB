@@ -165,4 +165,17 @@ public class DBWrapper extends DB
 		_measurements.reportReturnCode("DELETE",res);
 		return res;
 	}
+
+	/**
+	 * truncate the specified table. NOTE that actual
+	 * truncation method is specific to the underlying datastore. 
+	 */
+  public int truncate(String table) {
+		long st=System.currentTimeMillis();
+		int res=_db.truncate(table);
+		long en=System.currentTimeMillis();
+		_measurements.measure("DELETE",(int)(en-st));
+		_measurements.reportReturnCode("DELETE",res);
+		return res;
+  }
 }

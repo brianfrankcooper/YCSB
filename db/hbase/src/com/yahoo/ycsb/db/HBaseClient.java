@@ -391,7 +391,13 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         return Ok;
     }
 
-    public static void main(String[] args)
+    @Override
+	public int truncate(String table) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	public static void main(String[] args)
     {
         if (args.length!=3)
         {

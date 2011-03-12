@@ -237,6 +237,17 @@ public class BasicDB extends DB
 		return 0;
 	}
 
+
+	@Override
+  public int truncate(String table) {
+	  if (verbose) 
+	  {
+	  	System.out.println("TRUNCATE "+table);
+	  }
+	  
+	  return 0;
+  }
+
 	/**
 	 * Short test of BasicDB
 	 */

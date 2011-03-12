@@ -511,7 +511,50 @@ public class CassandraClient7 extends DB
     return Error;
   }
 
-  public static void main(String[] args)
+  @Override
+public int truncate(String table) {
+	  Exception errorexception = null;
+
+    try
+    {
+      client.set_keyspace(table);
+    } catch (Exception e)
+    {
+      e.printStackTrace();
+      e.printStackTrace(System.out);
+      return Error;
+    }
+
+    for (int i = 0; i < OperationRetries; i++)
+    {
+      try
+      {
+      	client.truncate(column_family);
+        
+        if (_debug)
+        {
+          System.out.println("TRUNCATE");
+        }
+
+        return Ok;
+      } catch (Exception e)
+      {
+        errorexception = e;
+      }
+      try
+      {
+        Thread.sleep(500);
+      } catch (InterruptedException e)
+      {
+      }
+    }
+    errorexception.printStackTrace();
+    errorexception.printStackTrace(System.out);
+    return Error;
+
+}
+
+public static void main(String[] args)
   {
     CassandraClient7 cli = new CassandraClient7();
 

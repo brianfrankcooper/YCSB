@@ -572,4 +572,10 @@ public class CoreWorkload extends Workload
 		}
 		db.insert(table,dbkey,values);
 	}
+
+	@Override
+  public boolean doTruncation(DB db) {
+	  int res = db.truncate(table);
+		return res == 0 ? true : false;
+  }
 }

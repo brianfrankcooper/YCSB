@@ -409,6 +409,12 @@ public class CassandraClient5 extends DB
 	}
 
 
+	@Override
+	public int truncate(String table) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
 	public static void main(String[] args)
 	{
 		CassandraClient5 cli=new CassandraClient5();

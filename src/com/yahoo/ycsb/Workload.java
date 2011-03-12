@@ -90,4 +90,12 @@ public abstract class Workload
        * @return false if the workload knows it is done for this thread. Client will terminate the thread. Return true otherwise. Return true for workloads that rely on operationcount. For workloads that read traces from a file, return true when there are more to do, false when you are done.
        */
       public abstract boolean doTransaction(DB db, Object threadstate);
+      
+      /**
+       * do one truncation operation. This op is not called from a thread, because it is a single op to clean out a table. 
+       * This op does not have to be threadsafe, it is called from the main thread.
+       * @param db
+       * @return false if truncation fails, else true. 
+       */
+      public abstract boolean doTruncation(DB db);
 }

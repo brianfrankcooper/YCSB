@@ -422,6 +422,12 @@ public class CassandraClient6 extends DB
 	}
 
 
+	@Override
+	public int truncate(String table) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
 	public static void main(String[] args)
 	{
 		CassandraClient6 cli=new CassandraClient6();

@@ -129,6 +129,12 @@ public class VoldemortClient extends DB {
 		return OK;
 	}
 	
+	@Override
+	public int truncate(String table) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
 	private int checkStore(String table) {
 		if ( table.compareTo(storeName) != 0) {
 			try {

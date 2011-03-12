@@ -80,6 +80,13 @@ public abstract class DB
 	public void cleanup() throws DBException
 	{
 	}
+	
+	/**
+	 * removes all data from the specified table. 
+	 * @param table
+	 * @return
+	 */
+	public abstract int truncate(String table);
 
 	/**
 	 * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
