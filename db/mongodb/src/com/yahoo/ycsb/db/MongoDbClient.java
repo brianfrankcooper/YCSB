@@ -74,6 +74,7 @@ public class MongoDbClient extends DB {
             if (url.startsWith("mongodb://")) {
                 url = url.substring(10);
             }
+	    // need to append db to url.
             url += "/"+database;
             mongo = new Mongo(new DBAddress(url));
         } catch (Exception e1) {
