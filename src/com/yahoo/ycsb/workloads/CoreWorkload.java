@@ -171,6 +171,16 @@ public class CoreWorkload extends Workload
 	public static final String READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT="0.0";
 	
 	/**
+	 * the name of the property for the proportion of transactions that are deletes. 
+	 */
+	public static final String DELETE_PROPORTION_PROPERTY = "deleteproportion";
+	
+	/**
+	 * The default proportion of transactions that are scans.
+	 */
+	public static final String DELETE_PROPORTION_PROPERTY_DEFAULT="0.0";
+	
+	/**
 	 * The name of the property for the the distribution of requests across the keyspace. Options are "uniform", "zipfian" and "latest"
 	 */
 	public static final String REQUEST_DISTRIBUTION_PROPERTY="requestdistribution";
@@ -199,7 +209,7 @@ public class CoreWorkload extends Workload
 	 * The default max scan length.
 	 */
 	public static final String SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT="uniform";
-	
+
 	/**
 	 * The name of the property for the order to insert records. Options are "ordered" or "hashed"
 	 */
@@ -209,6 +219,8 @@ public class CoreWorkload extends Workload
 	 * Default insert order.
 	 */
 	public static final String INSERT_ORDER_PROPERTY_DEFAULT="hashed";
+
+	
 	
 	IntegerGenerator keysequence;
 
@@ -240,6 +252,7 @@ public class CoreWorkload extends Workload
 		double insertproportion=Double.parseDouble(p.getProperty(INSERT_PROPORTION_PROPERTY,INSERT_PROPORTION_PROPERTY_DEFAULT));
 		double scanproportion=Double.parseDouble(p.getProperty(SCAN_PROPORTION_PROPERTY,SCAN_PROPORTION_PROPERTY_DEFAULT));
 		double readmodifywriteproportion=Double.parseDouble(p.getProperty(READMODIFYWRITE_PROPORTION_PROPERTY,READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT));
+		double deleteproportion=Double.parseDouble(p.getProperty(DELETE_PROPORTION_PROPERTY,DELETE_PROPORTION_PROPERTY_DEFAULT));
 		recordcount=Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY));
 		String requestdistrib=p.getProperty(REQUEST_DISTRIBUTION_PROPERTY,REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
 		int maxscanlength=Integer.parseInt(p.getProperty(MAX_SCAN_LENGTH_PROPERTY,MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
@@ -285,6 +298,11 @@ public class CoreWorkload extends Workload
 		{
 			operationchooser.addValue(readmodifywriteproportion,"READMODIFYWRITE");
 		}
+		
+		if(deleteproportion>0) {
+			operationchooser.addValue(deleteproportion, "DELETE");
+		}
+		
 
 		transactioninsertkeysequence=new CounterGenerator(recordcount);
 		if (requestdistrib.compareTo("uniform")==0)
@@ -383,6 +401,9 @@ public class CoreWorkload extends Workload
 		{
 			doTransactionScan(db);
 		}
+		else if (op.compareTo("DELETE") == 0) {
+			doTransactionDelete(db);
+		}
 		else
 		{
 			doTransactionReadModifyWrite(db);
@@ -390,6 +411,13 @@ public class CoreWorkload extends Workload
 		
 		return true;
 	}
+
+	public void doTransactionDelete(DB db) {
+	  
+	  int id = keysequence.nextInt();
+	  String userid = "user"+id;
+	  db.delete(table,userid);
+  }
 
 	public void doTransactionRead(DB db)
 	{

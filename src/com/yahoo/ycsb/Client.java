@@ -239,7 +239,7 @@ class ClientThread extends Thread
 					}
 
 					_opsdone++;
-
+					
 					//throttle the operations
 					if (_target>0)
 					{

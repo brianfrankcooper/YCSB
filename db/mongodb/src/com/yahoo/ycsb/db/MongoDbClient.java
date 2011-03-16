@@ -74,9 +74,12 @@ public class MongoDbClient extends DB {
             if (url.startsWith("mongodb://")) {
                 url = url.substring(10);
             }
+            
 	    // need to append db to url.
             url += "/"+database;
+            System.out.println("new database url = "+url);
             mongo = new Mongo(new DBAddress(url));
+            System.out.println("mongo connection created with "+url);
         } catch (Exception e1) {
             logger.error(
                     "Could not initialize MongoDB connection pool for Loader: "
