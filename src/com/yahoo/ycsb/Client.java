@@ -37,20 +37,26 @@ import com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter;
  */
 class StatusThread extends Thread
 {
+	public enum StatusType {
+		STDERR,
+		STDOUT,
+		STDOUT_TABDELIMITED,
+	}
+	
 	Vector<Thread> _threads;
 	String _label;
-	boolean _standardstatus;
+	StatusType _statusType;
 	
 	/**
 	 * The interval for reporting status.
 	 */
 	public static final long sleeptime=10000;
 
-	public StatusThread(Vector<Thread> threads, String label, boolean standardstatus)
+	public StatusThread(Vector<Thread> threads, String label, StatusType statusType)
 	{
 		_threads=threads;
 		_label=label;
-		_standardstatus=standardstatus;
+		_statusType=statusType;
 	}
 
 	/**
@@ -95,25 +101,47 @@ class StatusThread extends Thread
 			
 			DecimalFormat d = new DecimalFormat("#.##");
 			
-			if (totalops==0)
-			{
-				System.err.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary());
+			if(_statusType.equals(StatusType.STDERR)) {
+				if (totalops==0) {
+					System.err.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary());
+				}
+				else
+				{
+					System.err.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());
+				}
 			}
-			else
+			else if (_statusType.equals(StatusType.STDOUT))
 			{
-				System.err.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());
+				if (totalops==0)
+				{
+					System.out.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary());
+				}
+				else
+				{
+					System.out.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());
+				}
 			}
-
-			if (_standardstatus)
-			{
-			if (totalops==0)
-			{
-				System.out.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary());
-			}
-			else
-			{
-				System.out.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());
-			}
+			else if(_statusType.equals(StatusType.STDOUT_TABDELIMITED)) {
+				if (totalops==0)
+				{
+					if(_label != null) 
+					{
+						System.out.println("test\tseconds\toperations\toperations/sec\toperation type");
+						System.out.println(_label+"\t"+(interval/1000)+"\t"+totalops+"\tnone yet\t"+Measurements.getMeasurements().getSummary());
+					} else {
+						System.out.println("seconds\toperations\toperations/sec\toperation type");
+						System.out.println((interval/1000)+"\t"+totalops+"\tnone yet\t"+Measurements.getMeasurements().getSummary());
+					}
+				}
+				else
+				{
+					if(_label != null) 
+					{
+						System.out.println(_label+"\t"+(interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary());
+					} else {
+						System.out.println((interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary());
+					}
+				}
 			}
 
 			try
@@ -742,12 +770,17 @@ public class Client
 
 		if (status)
 		{
-			boolean standardstatus=false;
+			StatusThread.StatusType statusType = StatusThread.StatusType.STDERR;
+			
 			if (props.getProperty("measurementtype","").compareTo("timeseries")==0) 
 			{
-				standardstatus=true;
+				statusType = StatusThread.StatusType.STDOUT;
 			}	
-			statusthread=new StatusThread(threads,label,standardstatus);
+			else if(props.getProperty("measurementtype","").compareTo("tabdelimited") == 0) 
+			{
+				statusType = StatusThread.StatusType.STDOUT_TABDELIMITED;
+			}
+			statusthread=new StatusThread(threads,label,statusType);
 			statusthread.start();
 		}
 
