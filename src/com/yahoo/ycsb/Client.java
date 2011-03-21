@@ -489,7 +489,7 @@ public class Client
 	 * histogram file -- stores results of histogram measurements. 
 	 */
 	public static final String HISTOGRAM_KEY = "histogramkey";
-	public static final String HISTOGRAM_FNAME = "histogram";
+	public static final String HISTOGRAM_FNAME = "histogramfile";
 	
 	/**
 	 * 
