@@ -20,7 +20,9 @@ package com.yahoo.ycsb;
 
 import java.io.*;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.yahoo.ycsb.Client.Operation;
 import com.yahoo.ycsb.measurements.Measurements;
@@ -40,23 +42,41 @@ class StatusThread extends Thread
 	public enum StatusType {
 		STDERR,
 		STDOUT,
-		STDOUT_TABDELIMITED,
+		STDOUT_TABDELIMITED, 
+		FILE_TABDELIMITED
 	}
 	
-	Vector<Thread> _threads;
+	Vector<ClientThread> _threads;
 	String _label;
 	StatusType _statusType;
+	private String _outputFile;
+	private FileWriter _fw;
 	
 	/**
 	 * The interval for reporting status.
 	 */
 	public static final long sleeptime=10000;
 
-	public StatusThread(Vector<Thread> threads, String label, StatusType statusType)
+	public StatusThread(Vector<ClientThread> threads, String label, StatusType statusType, String outputFile)
 	{
 		_threads=threads;
 		_label=label;
 		_statusType=statusType;
+		_outputFile = outputFile;
+		_fw = null;
+	}
+	
+	@Override
+	public void interrupt() {
+		if(_fw != null) {
+			try {
+	      _fw.flush();
+	      _fw.close();
+      } catch (IOException e) {
+	      System.out.println("error flushing to "+_outputFile);
+      }
+		}
+		super.interrupt();
 	}
 
 	/**
@@ -71,91 +91,144 @@ class StatusThread extends Thread
 		
 		boolean alldone;
 
-		do 
-		{
-			alldone=true;
-
-			int totalops=0;
-
-			//terminate this thread when all the worker threads are done
-			for (Thread t : _threads)
-			{
-				if (t.getState()!=Thread.State.TERMINATED)
-				{
-					alldone=false;
-				}
-
-				ClientThread ct=(ClientThread)t;
-				totalops+=ct.getOpsDone();
+		boolean canContinue = true;
+		
+		
+		
+		try {
+			if(_statusType.equals(StatusType.FILE_TABDELIMITED) && _outputFile != null) {
+				_fw = new FileWriter(new File(_outputFile));
 			}
-
-			long en=System.currentTimeMillis();
-
-			long interval=en-st;
-			//double throughput=1000.0*((double)totalops)/((double)interval);
-
-			double curthroughput=1000.0*(((double)(totalops-lasttotalops))/((double)(en-lasten)));
-			
-			lasttotalops=totalops;
-			lasten=en;
-			
-			DecimalFormat d = new DecimalFormat("#.##");
-			
-			if(_statusType.equals(StatusType.STDERR)) {
-				if (totalops==0) {
-					System.err.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary());
-				}
-				else
+      if(canContinue == true) {
+				do 
 				{
-					System.err.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());
-				}
-			}
-			else if (_statusType.equals(StatusType.STDOUT))
-			{
-				if (totalops==0)
-				{
-					System.out.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary());
-				}
-				else
-				{
-					System.out.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());
-				}
-			}
-			else if(_statusType.equals(StatusType.STDOUT_TABDELIMITED)) {
-				if (totalops==0)
-				{
-					if(_label != null) 
+					alldone=true;
+		
+					int totalops=0;
+		
+					//terminate this thread when all the worker threads are done
+					for (Thread t : _threads)
 					{
-						System.out.println("test\tseconds\toperations\toperations/sec\toperation type");
-						System.out.println(_label+"\t"+(interval/1000)+"\t"+totalops+"\tnone yet\t"+Measurements.getMeasurements().getSummary());
-					} else {
-						System.out.println("seconds\toperations\toperations/sec\toperation type");
-						System.out.println((interval/1000)+"\t"+totalops+"\tnone yet\t"+Measurements.getMeasurements().getSummary());
+						
+						if (t.getState()!=Thread.State.TERMINATED)
+						{
+							alldone=false;
+						}
+		
+						ClientThread ct=(ClientThread)t;
+						totalops+=ct.getOpsDone();
 					}
-				}
-				else
-				{
-					if(_label != null) 
+		
+					long en=System.currentTimeMillis();
+		
+					long interval=en-st;
+		
+					double curthroughput=1000.0*(((double)(totalops-lasttotalops))/((double)(en-lasten)));
+					
+					lasttotalops=totalops;
+					lasten=en;
+					
+					DecimalFormat d = new DecimalFormat("#.##");
+					
+					if(_statusType.equals(StatusType.STDERR)) {
+						if (totalops==0) {
+							System.err.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary());
+						}
+						else
+						{
+							System.err.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());
+						}
+					}
+					else if (_statusType.equals(StatusType.STDOUT))
 					{
-						System.out.println(_label+"\t"+(interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary());
-					} else {
-						System.out.println((interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary());
+						if (totalops==0)
+						{
+							System.out.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary());
+						}
+						else
+						{
+							System.out.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());
+						}
 					}
+					else if(_statusType.equals(StatusType.STDOUT_TABDELIMITED)) {
+						if (totalops==0)
+						{
+							if(_label != null) 
+							{
+								System.out.println("test\tseconds\toperations\toperations/sec\toperation type");
+								System.out.println(_label+"\t"+(interval/1000)+"\t"+totalops+"\tnone yet\t"+Measurements.getMeasurements().getSummary());
+							} else {
+								System.out.println("seconds\toperations\toperations/sec\toperation type");
+								System.out.println((interval/1000)+"\t"+totalops+"\tnone yet\t"+Measurements.getMeasurements().getSummary());
+							}
+						}
+						else
+						{
+							if(_label != null) 
+							{
+								System.out.println(_label+"\t"+(interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary());
+							} else {
+								System.out.println((interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary());
+							}
+						}
+					} else if(_statusType.equals(StatusType.FILE_TABDELIMITED)) {
+						try {
+		          if(_label != null) 
+		          {
+		          	System.out.println(_label+"\t"+(interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary());
+		          	_fw.write(_label+"\t"+(interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary());
+		          	
+		          } else {
+		          	System.out.println(_label+"\t"+(interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary());
+		          	_fw.write((interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary());
+		          }
+	          } catch (IOException e) {
+		          System.err.println(e.getMessage());
+		          
+		          shutAllClientsDown();
+		          alldone = true;
+		          
+		          
+	          }
+					}
+		
+					try
+					{
+						sleep(sleeptime);
+					}
+					catch (InterruptedException e)
+					{
+						//do nothing
+					}
+		
 				}
+				while (!alldone);
 			}
-
-			try
-			{
-				sleep(sleeptime);
+		} catch (IOException e) {
+      System.out.println(e.getMessage());
+    } finally {
+			if(_fw != null) {
+				try {
+					_fw.flush();
+          _fw.close();
+        } catch (IOException e) {
+          System.out.println("error closing status file handle:"+e.getMessage());
+        }
 			}
-			catch (InterruptedException e)
-			{
-				//do nothing
-			}
-
-		}
-		while (!alldone);
+			
+		} 
+		
 	}
+
+	/**
+	 * force threads to stop
+	 */
+	private void shutAllClientsDown() {
+	  for(ClientThread t: _threads) {
+	  	t.stopFast();
+	  }
+	  
+  }
 }
 
 /**
@@ -179,7 +252,7 @@ class ClientThread extends Thread
 	int _threadcount;
 	Object _workloadstate;
 	Properties _props;
-
+	AtomicBoolean _keepGoing;
 
 	/**
 	 * Constructor.
@@ -206,7 +279,13 @@ class ClientThread extends Thread
 		_threadcount=threadcount;
 		_props=props;
 		//System.out.println("Interval = "+interval);
+		_keepGoing = new AtomicBoolean(true);
 	}
+
+	public void stopFast() {
+	  _keepGoing.set(false);
+	  
+  }
 
 	public int getOpsDone()
 	{
@@ -254,81 +333,88 @@ class ClientThread extends Thread
 		
 		try
 		{
-			if (_operation.equals(Client.Operation.IS_TRANSACTION))
+			while ( (_opcount==0) || (_opsdone<_opcount) ) 
 			{
-				long st=System.currentTimeMillis();
-
-				while ( (_opcount==0) || (_opsdone<_opcount) )
+				if(_keepGoing.get() == false) {
+					break;
+				}
+				
+				if (_operation.equals(Client.Operation.IS_TRANSACTION))
 				{
-
-					if (!_workload.doTransaction(_db,_workloadstate))
-					{
-						break;
-					}
-
-					_opsdone++;
+					long st=System.currentTimeMillis();
+	
+	
+	
+						if (!_workload.doTransaction(_db,_workloadstate))
+						{
+							break;
+						}
+	
+						_opsdone++;
+						
+						//throttle the operations
+						if (_target>0)
+						{
+							//this is more accurate than other throttling approaches we have tried,
+							//like sleeping for (1/target throughput)-operation latency,
+							//because it smooths timing inaccuracies (from sleep() taking an int, 
+							//current time in millis) over many operations
+							while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
+							{
+								try
+								{
+									sleep(1);
+								}
+								catch (InterruptedException e)
+								{
+									//do nothing
+								}
+	
+							}
+						}
 					
-					//throttle the operations
-					if (_target>0)
-					{
-						//this is more accurate than other throttling approaches we have tried,
-						//like sleeping for (1/target throughput)-operation latency,
-						//because it smooths timing inaccuracies (from sleep() taking an int, 
-						//current time in millis) over many operations
-						while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
-						{
-							try
-							{
-								sleep(1);
-							}
-							catch (InterruptedException e)
-							{
-								//do nothing
-							}
-
-						}
-					}
 				}
-			}
-			else if(_operation.equals(Client.Operation.IS_INSERTION))
-			{
-				long st=System.currentTimeMillis();
-
-				while ( (_opcount==0) || (_opsdone<_opcount) )
+				else if(_operation.equals(Client.Operation.IS_INSERTION))
 				{
-
-					if (!_workload.doInsert(_db,_workloadstate))
+					long st=System.currentTimeMillis();
+	
+					while ( (_opcount==0) || (_opsdone<_opcount) )
 					{
-						break;
-					}
-
-					_opsdone++;
-
-					//throttle the operations
-					if (_target>0)
-					{
-						//this is more accurate than other throttling approaches we have tried,
-						//like sleeping for (1/target throughput)-operation latency,
-						//because it smooths timing inaccuracies (from sleep() taking an int, 
-						//current time in millis) over many operations
-						while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
+	
+						if (!_workload.doInsert(_db,_workloadstate))
 						{
-							try 
+							break;
+						}
+	
+						_opsdone++;
+	
+						//throttle the operations
+						if (_target>0)
+						{
+							//this is more accurate than other throttling approaches we have tried,
+							//like sleeping for (1/target throughput)-operation latency,
+							//because it smooths timing inaccuracies (from sleep() taking an int, 
+							//current time in millis) over many operations
+							while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
 							{
-								sleep(1);
-							}
-							catch (InterruptedException e)
-							{
-								//do nothing
+								try 
+								{
+									sleep(1);
+								}
+								catch (InterruptedException e)
+								{
+									//do nothing
+								}
 							}
 						}
 					}
 				}
-			}
-			else if(_operation.equals(Client.Operation.IS_TRUNCATION)) {
-					if(!_workload.doTruncation(_db)) {
-						throw new Exception("truncation attempt on database failed!");
-					}
+				else if(_operation.equals(Client.Operation.IS_TRUNCATION)) {
+						if(!_workload.doTruncation(_db)) {
+							throw new Exception("truncation attempt on database failed!");
+						}
+				}
+			
 			}
 		}
 		catch (Exception e)
@@ -357,6 +443,8 @@ class ClientThread extends Thread
 public class Client
 {
 
+	private static final String MEASUREMENTTYPE_PROPERTY = "measurementtype";
+
 	public static final String OPERATION_COUNT_PROPERTY="operationcount";
 
 	public static final String RECORD_COUNT_PROPERTY="recordcount";
@@ -377,6 +465,35 @@ public class Client
 	 */
 	public static final String INSERT_COUNT_PROPERTY="insertcount";
 
+	/**
+	 * storage directory to store summary and throughput data in.
+	 */
+	public static final String STORAGE_DIR = "storagedir";
+	public static final String DIR_KEY = "directorykey";
+	
+	/**
+	 * summary file -- stores results of op
+	 */
+	
+	public static final String SUMMARY_KEY = "summarykey";
+	public static final String SUMMARY_FNAME = "summaryfile";
+
+
+	/**
+	 * thruput file -- stores results of throughput measurements
+	 */
+	public static final String THRUPUT_KEY = "thruputkey";
+	public static final String THRUPUT_FNAME = "throughputfile";
+
+	/**
+	 * histogram file -- stores results of histogram measurements. 
+	 */
+	public static final String HISTOGRAM_KEY = "histogramkey";
+	public static final String HISTOGRAM_FNAME = "histogram";
+	
+	/**
+	 * 
+	 */
 	public static void usageMessage()
 	{
 		System.out.println("Usage: java com.yahoo.ycsb.Client [options]");
@@ -405,6 +522,21 @@ public class Client
 		System.out.println("use the \"insertcount\" and \"insertstart\" properties to divide up the records to be inserted");
 	}
 
+	/**
+	 * given a file handle that represents a directory, recursively remove all subdirs and files from it 
+	 * @param sd
+	 */
+	private static void cleanDir(File sd) {
+    for(File file : sd.listFiles()) {
+    	if(file.isDirectory() == true) {
+    		cleanDir(file);
+    	}
+    	
+    	file.delete();
+    }
+    
+  }
+
 	public static boolean checkRequiredProperties(Properties props)
 	{
 		if (props.getProperty(WORKLOAD_PROPERTY)==null)
@@ -420,52 +552,107 @@ public class Client
 	/**
 	 * Exports the measurements to either sysout or a file using the exporter
 	 * loaded from conf.
+	 * @param props
+	 * @param opcount
+	 * @param startTime
+	 * @param endTime
+	 * @param summaryFile
+	 * @param latencyFile
+   *
 	 * @throws IOException Either failed to write to output stream or failed to close it.
 	 */
-	private static void exportMeasurements(Properties props, int opcount, long runtime)
+	
+	
+	private static void exportMeasurements(Properties props, int opcount, long startTime, long endTime, String summaryFile, String latencyFile)
 			throws IOException
 	{
-		MeasurementsExporter exporter = null;
+		MeasurementsExporter summaryExporter = null;
+		MeasurementsExporter latencyExporter = null;
+		OutputStream summaryOut = null;
+		OutputStream latencyOut = null;
 		try
 		{
 			// if no destination file is provided the results will be written to stdout
-			OutputStream out;
-			String exportFile = props.getProperty("exportfile");
-			if (exportFile == null)
+			
+			
+			if (summaryFile == null)
 			{
-				out = System.out;
+				summaryOut = System.out;
 			} else
 			{
-				out = new FileOutputStream(exportFile);
+				summaryOut = new FileOutputStream(summaryFile);
 			}
 
 			// if no exporter is provided the default text one will be used
 			String exporterStr = props.getProperty("exporter", "com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter");
 			try
 			{
-				exporter = (MeasurementsExporter) Class.forName(exporterStr).getConstructor(OutputStream.class).newInstance(out);
+				summaryExporter = (MeasurementsExporter) Class.forName(exporterStr).getConstructor(OutputStream.class).newInstance(summaryOut);
 			} catch (Exception e)
 			{
 				System.err.println("Could not find exporter " + exporterStr
 						+ ", will use default text reporter.");
 				e.printStackTrace();
-				exporter = new TextMeasurementsExporter(out);
+				summaryExporter = new TextMeasurementsExporter(summaryOut);
 			}
+			
+			Date start = new Date(startTime);
+			Date finish = new Date(endTime);
+			
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd:hh:mm:ss");
+			
+			
+			summaryExporter.write("START TIME","ms",sdf.format(start)+"\n");
+			summaryExporter.write("END TIME","ms",sdf.format(finish)+"\n");
+			summaryExporter.write("OVERALL", "RunTime(ms)", endTime - startTime);
+			double throughput = 1000.0 * ((double) opcount) / ((double) (endTime - startTime));
+			summaryExporter.write("OVERALL", "Throughput(ops/sec)", throughput);
 
-			exporter.write("OVERALL", "RunTime(ms)", runtime);
-			double throughput = 1000.0 * ((double) opcount) / ((double) runtime);
-			exporter.write("OVERALL", "Throughput(ops/sec)", throughput);
-
-			// only show measurements if any were requested. 
+			// only show measurements if any were requested.
+			
+			
 			if(opcount != 0) {
-				Measurements.getMeasurements().exportMeasurements(exporter);
+				
+				
+				
+				if (latencyFile == null)
+				{
+					latencyOut = System.out;
+				} else
+				{
+					latencyOut = new FileOutputStream(latencyFile);
+				}
+				
+				try
+				{
+					latencyExporter = (MeasurementsExporter) Class.forName(exporterStr).getConstructor(OutputStream.class).newInstance(latencyOut);
+				} catch (Exception e)
+				{
+					System.err.println("Could not find exporter " + exporterStr
+							+ ", will use default text reporter.");
+					e.printStackTrace();
+					latencyExporter = new TextMeasurementsExporter(latencyOut);
+				}
+				
+				Measurements.getMeasurements().exportMeasurements(latencyExporter);
 			}
 		} finally
 		{
-			if (exporter != null)
-			{
-				exporter.close();
+			if(summaryExporter != null) {
+				summaryExporter.close();
 			}
+			
+//			if (summaryOut != null)
+//			{
+//				summaryOut.flush();
+//				summaryOut.close();
+//			}
+			
+			if(latencyExporter != null) {
+				latencyExporter.close();
+			}
+			
+			
 		}
 	}
 	
@@ -745,7 +932,7 @@ public class Client
 			}
 		} 
 
-		Vector<Thread> threads=new Vector<Thread>();
+		Vector<ClientThread> threads=new Vector<ClientThread>();
 
 		for (int threadid=0; threadid<threadcount; threadid++)
 		{
@@ -760,28 +947,61 @@ public class Client
 				System.exit(0);
 			}
 
-			Thread t=new ClientThread(db,operation,workload,threadid,threadcount,props,opcount/threadcount,targetperthreadperms);
+			ClientThread t=new ClientThread(db,operation,workload,threadid,threadcount,props,opcount/threadcount,targetperthreadperms);
 
 			threads.add(t);
 			//t.start();
 		}
+		
+		// determine whether we want to output to a file structure. 
+		
+		String storeDir = props.getProperty(STORAGE_DIR);
+		
+		String summaryFile = null;
+		String thruputFile = null;
+		String histogramFile = null;
+		
+		if(storeDir  != null) {
+			// does dir exist? If so, remove all files.
+
+			File sd = new File(storeDir);
+			
+			if(sd.exists()) {
+				cleanDir(sd);
+			} else {
+				sd.mkdirs();
+			}
+			
+			summaryFile = storeDir+"/"+props.getProperty(SUMMARY_FNAME,"summary.txt");
+			thruputFile = storeDir+"/"+props.getProperty(THRUPUT_FNAME,"thruput.txt");
+			histogramFile = storeDir+"/"+props.getProperty(HISTOGRAM_FNAME,"histogram.txt");
+			
+		}
 
 		StatusThread statusthread=null;
 
+		StatusThread.StatusType statusType = StatusThread.StatusType.STDOUT; // default without user selection is STDOUT. 
+		
 		if (status)
 		{
-			StatusThread.StatusType statusType = StatusThread.StatusType.STDERR;
+			statusType = StatusThread.StatusType.STDERR; // default to stdErr output  if user selected async status.
 			
-			if (props.getProperty("measurementtype","").compareTo("timeseries")==0) 
+			if (props.getProperty(MEASUREMENTTYPE_PROPERTY,"").compareTo("timeseries")==0) 
 			{
 				statusType = StatusThread.StatusType.STDOUT;
 			}	
-			else if(props.getProperty("measurementtype","").compareTo("tabdelimited") == 0) 
+			else if(props.getProperty(MEASUREMENTTYPE_PROPERTY,"").compareTo("tabdelimited") == 0) 
 			{
 				statusType = StatusThread.StatusType.STDOUT_TABDELIMITED;
+			} 
+			else if(props.getProperty(MEASUREMENTTYPE_PROPERTY,"").compareTo("filetabdelimited") == 0) {
+				statusType = StatusThread.StatusType.FILE_TABDELIMITED;
 			}
-			statusthread=new StatusThread(threads,label,statusType);
+			
+			statusthread=new StatusThread(threads,label,statusType,thruputFile);
 			statusthread.start();
+			
+			statusType = StatusThread.StatusType.STDOUT; // revert back to stdout for the rest of status output. 
 		}
 
 		long st=System.currentTimeMillis();
@@ -822,7 +1042,7 @@ public class Client
 
 			try
 			{
-				exportMeasurements(props, opcount, en - st);
+				exportMeasurements(props, opcount, st, en,summaryFile,histogramFile);
 			} catch (IOException e)
 			{
 				System.err.println("Could not export measurements, error: " + e.getMessage());

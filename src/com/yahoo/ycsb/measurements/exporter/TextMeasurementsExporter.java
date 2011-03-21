@@ -48,7 +48,15 @@ public class TextMeasurementsExporter implements MeasurementsExporter
 
   public void close() throws IOException
   {
+  	this.bw.flush();
     this.bw.close();
+  }
+
+	@Override
+  public void write(String metric, String measurement, String s)
+      throws IOException {
+	  bw.write("["+metric+"],"+measurement+", "+ s);
+	  
   }
 
 }
