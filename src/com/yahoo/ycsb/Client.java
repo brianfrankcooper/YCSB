@@ -333,88 +333,90 @@ class ClientThread extends Thread
 		
 		try
 		{
-			while ( (_opcount==0) || (_opsdone<_opcount) ) 
-			{
-				if(_keepGoing.get() == false) {
-					break;
-				}
-				
-				if (_operation.equals(Client.Operation.IS_TRANSACTION))
+			// all non truncation ops need to execute the user specified # of times. 
+			if(!_operation.equals(Client.Operation.IS_TRUNCATION)) {
+				while ( (_opcount==0) || (_opsdone<_opcount) ) 
 				{
-					long st=System.currentTimeMillis();
-	
-	
-	
-						if (!_workload.doTransaction(_db,_workloadstate))
-						{
-							break;
-						}
-	
-						_opsdone++;
-						
-						//throttle the operations
-						if (_target>0)
-						{
-							//this is more accurate than other throttling approaches we have tried,
-							//like sleeping for (1/target throughput)-operation latency,
-							//because it smooths timing inaccuracies (from sleep() taking an int, 
-							//current time in millis) over many operations
-							while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
-							{
-								try
-								{
-									sleep(1);
-								}
-								catch (InterruptedException e)
-								{
-									//do nothing
-								}
-	
-							}
-						}
+					if(_keepGoing.get() == false) {
+						break;
+					}
 					
-				}
-				else if(_operation.equals(Client.Operation.IS_INSERTION))
-				{
-					long st=System.currentTimeMillis();
-	
-					while ( (_opcount==0) || (_opsdone<_opcount) )
+					if (_operation.equals(Client.Operation.IS_TRANSACTION))
 					{
-	
-						if (!_workload.doInsert(_db,_workloadstate))
-						{
-							break;
-						}
-	
-						_opsdone++;
-	
-						//throttle the operations
-						if (_target>0)
-						{
-							//this is more accurate than other throttling approaches we have tried,
-							//like sleeping for (1/target throughput)-operation latency,
-							//because it smooths timing inaccuracies (from sleep() taking an int, 
-							//current time in millis) over many operations
-							while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
+						long st=System.currentTimeMillis();
+		
+		
+		
+							if (!_workload.doTransaction(_db,_workloadstate))
 							{
-								try 
+								break;
+							}
+		
+							_opsdone++;
+							
+							//throttle the operations
+							if (_target>0)
+							{
+								//this is more accurate than other throttling approaches we have tried,
+								//like sleeping for (1/target throughput)-operation latency,
+								//because it smooths timing inaccuracies (from sleep() taking an int, 
+								//current time in millis) over many operations
+								while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
 								{
-									sleep(1);
+									try
+									{
+										sleep(1);
+									}
+									catch (InterruptedException e)
+									{
+										//do nothing
+									}
+		
 								}
-								catch (InterruptedException e)
+							}
+						
+					}
+					else if(_operation.equals(Client.Operation.IS_INSERTION))
+					{
+						long st=System.currentTimeMillis();
+		
+						while ( (_opcount==0) || (_opsdone<_opcount) )
+						{
+		
+							if (!_workload.doInsert(_db,_workloadstate))
+							{
+								break;
+							}
+		
+							_opsdone++;
+		
+							//throttle the operations
+							if (_target>0)
+							{
+								//this is more accurate than other throttling approaches we have tried,
+								//like sleeping for (1/target throughput)-operation latency,
+								//because it smooths timing inaccuracies (from sleep() taking an int, 
+								//current time in millis) over many operations
+								while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
 								{
-									//do nothing
+									try 
+									{
+										sleep(1);
+									}
+									catch (InterruptedException e)
+									{
+										//do nothing
+									}
 								}
 							}
 						}
 					}
 				}
-				else if(_operation.equals(Client.Operation.IS_TRUNCATION)) {
-						if(!_workload.doTruncation(_db)) {
-							throw new Exception("truncation attempt on database failed!");
-						}
-				}
-			
+			}
+			else {
+					if(!_workload.doTruncation(_db)) {
+						throw new Exception("truncation attempt on database failed!");
+					}
 			}
 		}
 		catch (Exception e)
@@ -443,7 +445,7 @@ class ClientThread extends Thread
 public class Client
 {
 
-	private static final String MEASUREMENTTYPE_PROPERTY = "measurementtype";
+	private static final String MEASUREMENTFORMAT_PROPERTY = "measurementformat";
 
 	public static final String OPERATION_COUNT_PROPERTY="operationcount";
 
@@ -513,6 +515,7 @@ public class Client
 		System.out.println("                  values in the propertyfile");
 		System.out.println("  -s:  show status during run (default: no status)");
 		System.out.println("  -l label:  use label for status (e.g. to label one experiment out of a whole batch)");
+		System.out.println("  -truncate: drop contents of the table (but keep the table)");
 		System.out.println("");
 		System.out.println("Required properties:");
 		System.out.println("  "+WORKLOAD_PROPERTY+": the name of the workload class to use (e.g. com.yahoo.ycsb.workloads.CoreWorkload)");
@@ -638,19 +641,15 @@ public class Client
 			}
 		} finally
 		{
+			if(latencyExporter != null) {
+				latencyExporter.close();
+			}
 			if(summaryExporter != null) {
 				summaryExporter.close();
 			}
 			
-//			if (summaryOut != null)
-//			{
-//				summaryOut.flush();
-//				summaryOut.close();
-//			}
 			
-			if(latencyExporter != null) {
-				latencyExporter.close();
-			}
+		
 			
 			
 		}
@@ -986,15 +985,15 @@ public class Client
 		{
 			statusType = StatusThread.StatusType.STDERR; // default to stdErr output  if user selected async status.
 			
-			if (props.getProperty(MEASUREMENTTYPE_PROPERTY,"").compareTo("timeseries")==0) 
+			if (props.getProperty(MEASUREMENTFORMAT_PROPERTY,"").compareTo("timeseries")==0) 
 			{
 				statusType = StatusThread.StatusType.STDOUT;
 			}	
-			else if(props.getProperty(MEASUREMENTTYPE_PROPERTY,"").compareTo("tabdelimited") == 0) 
+			else if(props.getProperty(MEASUREMENTFORMAT_PROPERTY,"").compareTo("tabdelimited") == 0) 
 			{
 				statusType = StatusThread.StatusType.STDOUT_TABDELIMITED;
 			} 
-			else if(props.getProperty(MEASUREMENTTYPE_PROPERTY,"").compareTo("filetabdelimited") == 0) {
+			else if(props.getProperty(MEASUREMENTFORMAT_PROPERTY,"").compareTo("filetabdelimited") == 0) {
 				statusType = StatusThread.StatusType.FILE_TABDELIMITED;
 			}
 			

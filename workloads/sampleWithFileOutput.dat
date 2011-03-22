@@ -3,5 +3,5 @@ mongodb.database=ycsb
 insertcount=1000000
 operationcount=100000
 recordcount=10000
-measurementtype=filetabdelimited
+measurementformat=filetabdelimited
 storagedir=/tmp/mongod/testname

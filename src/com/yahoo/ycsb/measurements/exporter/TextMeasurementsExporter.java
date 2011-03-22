@@ -28,9 +28,10 @@ public class TextMeasurementsExporter implements MeasurementsExporter
 {
 
   private BufferedWriter bw;
-
+  private OutputStream os;
   public TextMeasurementsExporter(OutputStream os)
   {
+  	this.os = os;
     this.bw = new BufferedWriter(new OutputStreamWriter(os));
   }
 
@@ -49,7 +50,10 @@ public class TextMeasurementsExporter implements MeasurementsExporter
   public void close() throws IOException
   {
   	this.bw.flush();
-    this.bw.close();
+  	if(!this.os.equals(System.out))
+  	{
+  		this.bw.close();
+  	}
   }
 
 	@Override
