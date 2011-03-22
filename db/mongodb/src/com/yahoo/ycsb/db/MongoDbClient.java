@@ -320,30 +320,31 @@ public class MongoDbClient extends DB {
 	@Override
 	public int truncate(String table) {
 		com.mongodb.DB db = null;
-        try {
-            db = mongo.getDB(database);
-
-            db.requestStart();
-
-            DBCollection collection = db.getCollection(table);
-            collection.drop();
-                        
-          
-            return 0;
-        } catch (Exception e) {
-        	System.out.println(e.toString());
-            logger.error(e + "", e);
-            return 1;
-        } finally {
-	   if (db!=null)
-	   {
-	      db.requestDone();
-	   }
-        }
+		try {
+		  db = mongo.getDB(database);
+	    
+	    db.requestStart();
+	
+	    DBCollection collection = db.getCollection(table);
+	    DBObject q = new BasicDBObject();
+	    collection.remove(q);          
+	
+	
+	    return 0;
+		} catch (Exception e) {
+		      System.out.println(e.toString());
+		    logger.error(e + "", e);
+		    return 1;
+		} finally {
+		  if (db!=null)
+		  {
+		     db.requestDone();
+		  }
+		}
+        
 	}
 
 	
-
 }
 
 
