@@ -1,7 +1,7 @@
 mongodb.url=mongodb://localhost:27017
 mongodb.database=ycsb
 insertcount=100000
-operationcount=500000
-recordcount=500000
+operationcount=100000
+recordcount=100000
 measurementformat=filetabdelimited
 storagedir=/tmp/mongod/testname

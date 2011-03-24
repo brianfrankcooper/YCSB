@@ -123,7 +123,9 @@ class StatusThread extends Thread
 					}
 		
 					long en=System.currentTimeMillis();
-		
+					Date date = new Date(en);
+					SimpleDateFormat df = new SimpleDateFormat("yyyy/MM/dd:hh:mm:ss");
+					String dateVal = df.format(date);
 					long interval=en-st;
 		
 					double curthroughput=1000.0*(((double)(totalops-lasttotalops))/((double)(en-lasten)));
@@ -176,13 +178,14 @@ class StatusThread extends Thread
 						}
 					} else if(_statusType.equals(StatusType.FILE_TABDELIMITED) && _isFWClosed.get() == false) {
 						try {
-		          if(_label != null) 
+							
+		          if(_label != null && _label.length() > 0) 
 		          {
-		          	String out = _label+"\t"+(interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary()+"\n";
+		          	String out = _label+"\t"+dateVal+"\t"+en+"\t"+(interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary()+"\n";
 		          	System.out.println(out);
 		          	_fw.write(out);
 		          } else {
-		          	String out = (interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary()+"\n";
+		          	String out = dateVal+"\t"+en+"\t"+(interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary()+"\n";
 		          	System.out.println(out);
 		          	_fw.write(out);
 		          }

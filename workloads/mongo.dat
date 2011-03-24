@@ -1,0 +1,7 @@
+mongodb.url=mongodb://localhost:27017
+mongodb.database=ycsb
+insertcount=10000
+operationcount=10000
+recordcount=10000
+fieldlength=100
+fieldcount=10
