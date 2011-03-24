@@ -51,7 +51,7 @@ class StatusThread extends Thread
 	StatusType _statusType;
 	private String _outputFile;
 	private FileWriter _fw;
-	
+	private AtomicBoolean _isFWClosed = new AtomicBoolean(true);
 	/**
 	 * The interval for reporting status.
 	 */
@@ -68,10 +68,12 @@ class StatusThread extends Thread
 	
 	@Override
 	public void interrupt() {
-		if(_fw != null) {
+		if(_fw != null && _isFWClosed.get() == false) {
 			try {
 	      _fw.flush();
 	      _fw.close();
+	      _isFWClosed.set(true);
+	      
       } catch (IOException e) {
 	      System.out.println("error flushing to "+_outputFile);
       }
@@ -98,6 +100,7 @@ class StatusThread extends Thread
 		try {
 			if(_statusType.equals(StatusType.FILE_TABDELIMITED) && _outputFile != null) {
 				_fw = new FileWriter(new File(_outputFile));
+				_isFWClosed.set(false);
 			}
       if(canContinue == true) {
 				do 
@@ -171,16 +174,17 @@ class StatusThread extends Thread
 								System.out.println((interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary());
 							}
 						}
-					} else if(_statusType.equals(StatusType.FILE_TABDELIMITED)) {
+					} else if(_statusType.equals(StatusType.FILE_TABDELIMITED) && _isFWClosed.get() == false) {
 						try {
 		          if(_label != null) 
 		          {
-		          	System.out.println(_label+"\t"+(interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary());
-		          	_fw.write(_label+"\t"+(interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary());
-		          	
+		          	String out = _label+"\t"+(interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary()+"\n";
+		          	System.out.println(out);
+		          	_fw.write(out);
 		          } else {
-		          	System.out.println(_label+"\t"+(interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary());
-		          	_fw.write((interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary());
+		          	String out = (interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary()+"\n";
+		          	System.out.println(out);
+		          	_fw.write(out);
 		          }
 	          } catch (IOException e) {
 		          System.err.println(e.getMessage());
@@ -207,7 +211,7 @@ class StatusThread extends Thread
 		} catch (IOException e) {
       System.out.println(e.getMessage());
     } finally {
-			if(_fw != null) {
+			if(_fw != null && _isFWClosed.get() == false) {
 				try {
 					_fw.flush();
           _fw.close();
@@ -227,6 +231,12 @@ class StatusThread extends Thread
 	  for(ClientThread t: _threads) {
 	  	t.stopFast();
 	  }
+	  try {
+	    _fw.flush();
+	    _fw.close();
+    } catch (IOException e) {
+	    System.out.println(e.getMessage());
+    }
 	  
   }
 }
