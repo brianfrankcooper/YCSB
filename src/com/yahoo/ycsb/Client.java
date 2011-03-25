@@ -29,8 +29,6 @@ import com.yahoo.ycsb.measurements.Measurements;
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 import com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter;
 
-//import org.apache.log4j.BasicConfigurator;
-
 /**
  * A thread to periodically show the status of the experiment, to reassure you that progress is being made.
  * 
@@ -39,16 +37,9 @@ import com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter;
  */
 class StatusThread extends Thread
 {
-	public enum StatusType {
-		STDERR,
-		STDOUT,
-		STDOUT_TABDELIMITED, 
-		FILE_TABDELIMITED
-	}
-	
 	Vector<ClientThread> _threads;
 	String _label;
-	StatusType _statusType;
+	Client.OutputType _statusType;
 	private String _outputFile;
 	private FileWriter _fw;
 	private AtomicBoolean _isFWClosed = new AtomicBoolean(true);
@@ -57,7 +48,7 @@ class StatusThread extends Thread
 	 */
 	public static final long sleeptime=10000;
 
-	public StatusThread(Vector<ClientThread> threads, String label, StatusType statusType, String outputFile)
+	public StatusThread(Vector<ClientThread> threads, String label, Client.OutputType statusType, String outputFile)
 	{
 		_threads=threads;
 		_label=label;
@@ -98,7 +89,7 @@ class StatusThread extends Thread
 		
 		
 		try {
-			if(_statusType.equals(StatusType.FILE_TABDELIMITED) && _outputFile != null) {
+			if(_statusType.equals(Client.OutputType.FILE_TABDELIMITED) && _outputFile != null) {
 				_fw = new FileWriter(new File(_outputFile));
 				_isFWClosed.set(false);
 			}
@@ -135,7 +126,7 @@ class StatusThread extends Thread
 					
 					DecimalFormat d = new DecimalFormat("#.##");
 					
-					if(_statusType.equals(StatusType.STDERR)) {
+					if(_statusType.equals(Client.OutputType.STDERR)) {
 						if (totalops==0) {
 							System.err.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary());
 						}
@@ -144,7 +135,7 @@ class StatusThread extends Thread
 							System.err.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());
 						}
 					}
-					else if (_statusType.equals(StatusType.STDOUT))
+					else if (_statusType.equals(Client.OutputType.STDOUT))
 					{
 						if (totalops==0)
 						{
@@ -155,7 +146,7 @@ class StatusThread extends Thread
 							System.out.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());
 						}
 					}
-					else if(_statusType.equals(StatusType.STDOUT_TABDELIMITED)) {
+					else if(_statusType.equals(Client.OutputType.STDOUT_TABDELIMITED)) {
 						if (totalops==0)
 						{
 							if(_label != null) 
@@ -176,7 +167,7 @@ class StatusThread extends Thread
 								System.out.println((interval/1000)+"\t"+totalops+"\t"+d.format(curthroughput)+"\t"+Measurements.getMeasurements().getSummary());
 							}
 						}
-					} else if(_statusType.equals(StatusType.FILE_TABDELIMITED) && _isFWClosed.get() == false) {
+					} else if(_statusType.equals(Client.OutputType.FILE_TABDELIMITED) && _isFWClosed.get() == false) {
 						try {
 							
 		          if(_label != null && _label.length() > 0) 
@@ -458,6 +449,20 @@ class ClientThread extends Thread
 public class Client
 {
 
+	public enum OutputType {
+  	STDERR,
+  	STDOUT,
+  	STDOUT_TABDELIMITED, 
+  	FILE_TABDELIMITED
+  }
+
+	private static final String SUMMARY_TXT = "summary.txt";
+	private static final String THRUPUT_TXT = "thruput.txt";
+	private static final String HISTOGRAM_TXT = "histogram.txt";
+
+	
+	private static final String FILELIST[] = {SUMMARY_TXT,THRUPUT_TXT,HISTOGRAM_TXT};
+
 	private static final String MEASUREMENTFORMAT_PROPERTY = "measurementformat";
 
 	public static final String OPERATION_COUNT_PROPERTY="operationcount";
@@ -505,6 +510,8 @@ public class Client
 	 */
 	public static final String HISTOGRAM_KEY = "histogramkey";
 	public static final String HISTOGRAM_FNAME = "histogramfile";
+
+	
 	
 	/**
 	 * 
@@ -538,20 +545,7 @@ public class Client
 		System.out.println("use the \"insertcount\" and \"insertstart\" properties to divide up the records to be inserted");
 	}
 
-	/**
-	 * given a file handle that represents a directory, recursively remove all subdirs and files from it 
-	 * @param sd
-	 */
-	private static void cleanDir(File sd) {
-    for(File file : sd.listFiles()) {
-    	if(file.isDirectory() == true) {
-    		cleanDir(file);
-    	}
-    	
-    	file.delete();
-    }
-    
-  }
+	
 
 	public static boolean checkRequiredProperties(Properties props)
 	{
@@ -572,6 +566,7 @@ public class Client
 	 * @param opcount
 	 * @param startTime
 	 * @param endTime
+	 * @param outputType 
 	 * @param summaryFile
 	 * @param latencyFile
    *
@@ -579,7 +574,7 @@ public class Client
 	 */
 	
 	
-	private static void exportMeasurements(Properties props, int opcount, long startTime, long endTime, String summaryFile, String latencyFile)
+	private static void exportMeasurements(Properties props, int opcount, long startTime, long endTime, OutputType outputType, String summaryFile, String latencyFile)
 			throws IOException
 	{
 		MeasurementsExporter summaryExporter = null;
@@ -591,12 +586,28 @@ public class Client
 			// if no destination file is provided the results will be written to stdout
 			
 			
-			if (summaryFile == null)
+			if (outputType.equals(OutputType.STDOUT) || outputType.equals(OutputType.STDOUT_TABDELIMITED))
 			{
 				summaryOut = System.out;
-			} else
+				latencyOut = System.out;
+			} else if(outputType.equals(OutputType.FILE_TABDELIMITED))
 			{
-				summaryOut = new FileOutputStream(summaryFile);
+				if(summaryFile != null) {
+					summaryOut = new FileOutputStream(summaryFile);
+					
+				} else {
+					throw new IOException("summary file not specified even though file-tabdelimited format was requested.");
+				}
+				
+				if(latencyFile != null) {
+					latencyOut = new FileOutputStream(latencyFile);
+				} else {
+					throw new IOException("latency file not specified even though file-tabdelimited format was requested.");
+				}
+				
+			} else if(outputType.equals(OutputType.STDERR)) {
+				summaryOut = System.err;
+				latencyOut = System.err;
 			}
 
 			// if no exporter is provided the default text one will be used
@@ -628,16 +639,6 @@ public class Client
 			
 			
 			if(opcount != 0) {
-				
-				
-				
-				if (latencyFile == null)
-				{
-					latencyOut = System.out;
-				} else
-				{
-					latencyOut = new FileOutputStream(latencyFile);
-				}
 				
 				try
 				{
@@ -680,6 +681,7 @@ public class Client
 		boolean status=false;
 		String label="";
 
+		System.out.println("current working dir = "+System.getProperty("user.dir"));
 		//parse arguments
 		int argindex=0;
 
@@ -965,57 +967,61 @@ public class Client
 			//t.start();
 		}
 		
+		Client.OutputType outputType = Client.OutputType.STDOUT; // default without user selection is STDOUT.
+		
+		if(status) {
+			outputType = Client.OutputType.STDERR; // default to stdErr output  if user selected async status.
+		} 
+		
+		// get the measurement format property
+		if(props.getProperty(MEASUREMENTFORMAT_PROPERTY,"").compareTo("tabdelimited") == 0) 
+		{
+			outputType = Client.OutputType.STDOUT_TABDELIMITED;
+		} 
+		else if(props.getProperty(MEASUREMENTFORMAT_PROPERTY,"").compareTo("filetabdelimited") == 0) {
+			outputType = Client.OutputType.FILE_TABDELIMITED;
+		} else {
+			outputType = Client.OutputType.STDOUT;
+		}
+		
 		// determine whether we want to output to a file structure. 
 		
-		String storeDir = props.getProperty(STORAGE_DIR);
+		String storeDir = props.getProperty(STORAGE_DIR,".");
 		
-		String summaryFile = null;
-		String thruputFile = null;
-		String histogramFile = null;
+		String summaryFile = storeDir+"/"+props.getProperty(SUMMARY_FNAME,SUMMARY_TXT);
+		String thruputFile = storeDir+"/"+props.getProperty(THRUPUT_FNAME,THRUPUT_TXT);
+		String histogramFile = storeDir+"/"+props.getProperty(HISTOGRAM_FNAME,HISTOGRAM_TXT);
+
 		
-		if(storeDir  != null) {
 			// does dir exist? If so, remove all files.
 
 			File sd = new File(storeDir);
 			
 			if(sd.exists()) {
-				cleanDir(sd);
+				for(String fileName : FILELIST) {
+		    	File file = new File(fileName);
+		    	
+		    	if(file.exists()) {
+		    		file.delete();
+		    	}
+		    }
 			} else {
 				sd.mkdirs();
 			}
-			
-			summaryFile = storeDir+"/"+props.getProperty(SUMMARY_FNAME,"summary.txt");
-			thruputFile = storeDir+"/"+props.getProperty(THRUPUT_FNAME,"thruput.txt");
-			histogramFile = storeDir+"/"+props.getProperty(HISTOGRAM_FNAME,"histogram.txt");
-			
-		}
 
+		
+	
 		StatusThread statusthread=null;
 
-		StatusThread.StatusType statusType = StatusThread.StatusType.STDOUT; // default without user selection is STDOUT. 
+		 
 		
 		if (status)
 		{
-			statusType = StatusThread.StatusType.STDERR; // default to stdErr output  if user selected async status.
-			
-			if (props.getProperty(MEASUREMENTFORMAT_PROPERTY,"").compareTo("timeseries")==0) 
-			{
-				statusType = StatusThread.StatusType.STDOUT;
-			}	
-			else if(props.getProperty(MEASUREMENTFORMAT_PROPERTY,"").compareTo("tabdelimited") == 0) 
-			{
-				statusType = StatusThread.StatusType.STDOUT_TABDELIMITED;
-			} 
-			else if(props.getProperty(MEASUREMENTFORMAT_PROPERTY,"").compareTo("filetabdelimited") == 0) {
-				statusType = StatusThread.StatusType.FILE_TABDELIMITED;
-			}
-			
-			statusthread=new StatusThread(threads,label,statusType,thruputFile);
+			statusthread=new StatusThread(threads,label,outputType,thruputFile);
 			statusthread.start();
-			
-			statusType = StatusThread.StatusType.STDOUT; // revert back to stdout for the rest of status output. 
 		}
 
+		
 		long st=System.currentTimeMillis();
 
 		for (Thread t : threads)
@@ -1054,7 +1060,7 @@ public class Client
 
 			try
 			{
-				exportMeasurements(props, opcount, st, en,summaryFile,histogramFile);
+				exportMeasurements(props, opcount, st, en,outputType,summaryFile,histogramFile);
 			} catch (IOException e)
 			{
 				System.err.println("Could not export measurements, error: " + e.getMessage());
