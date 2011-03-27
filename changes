@@ -9,5 +9,5 @@ Changes since 0.1.3
 	* Fixes for Cassandra 0.7 client (tjake)
 	* New generator FileGenerator (nono)
 	* Fixes for MongoDB (nono)
-
+	* Fixes for Voldemort (nono)
 	
