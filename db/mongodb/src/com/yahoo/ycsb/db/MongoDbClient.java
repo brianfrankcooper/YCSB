@@ -9,6 +9,7 @@
 
 package com.yahoo.ycsb.db;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Properties;
@@ -18,27 +19,32 @@ import java.util.Vector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.bson.types.ObjectId;
+
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBAddress;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
+import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcern;
+
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 
 /**
-* MongoDB client for YCSB framework.
-*
-* Properties to set:
-*
-* mongodb.url=mongodb://localhost:27017
-* mongodb.database=ycsb
-*
-* @author ypai
-*
-*/
+ * MongoDB client for YCSB framework.
+ *
+ * Properties to set:
+ *
+ * mongodb.url=mongodb://localhost:27017
+ * mongodb.database=ycsb
+ * mongodb.writeConcern=normal
+ *
+ * @author ypai
+ *
+ */
 public class MongoDbClient extends DB {
 
     private static final Logger logger = LoggerFactory.getLogger(MongoDbClient.class);
@@ -48,9 +54,9 @@ public class MongoDbClient extends DB {
     private String database;
 
     /**
-* Initialize any state for this DB. Called once per DB instance; there is
-* one DB instance per client thread.
-*/
+     * Initialize any state for this DB. Called once per DB instance; there is
+     * one DB instance per client thread.
+     */
     public void init() throws DBException {
         // initialize MongoDb driver
         Properties props = getProperties();
@@ -68,14 +74,17 @@ public class MongoDbClient extends DB {
 
         try {
             // strip out prefix since Java driver doesn't currently support
-            // standard
-            // connection format URL yet
+            // standard connection format URL yet
             // http://www.mongodb.org/display/DOCS/Connections
             if (url.startsWith("mongodb://")) {
                 url = url.substring(10);
             }
 
-            mongo = new Mongo(new DBAddress(url));
+            ArrayList<ServerAddress> addr = new ArrayList<ServerAddress>();
+            for (String s: url.split(",")) {
+                addr.add(new ServerAddress(s));
+            }
+            mongo = new Mongo(addr);
         } catch (Exception e1) {
             logger.error(
                     "Could not initialize MongoDB connection pool for Loader: "
@@ -87,19 +96,19 @@ public class MongoDbClient extends DB {
 
     @Override
     /**
-* Delete a record from the database.
-*
-* @param table The name of the table
-* @param key The record key of the record to delete.
-* @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
-*/
+     * Delete a record from the database.
+     *
+     * @param table The name of the table
+     * @param key The record key of the record to delete.
+     * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
+     */
     public int delete(String table, String key) {
-       com.mongodb.DB db=null;
+        com.mongodb.DB db=null;
         try {
             db = mongo.getDB(database);
-	    db.requestStart(); 
+            db.requestStart();
             DBCollection collection = db.getCollection(table);
-            DBObject q = new BasicDBObject().append("_id", key);
+            DBObject q = new BasicDBObject().append("_id", new ObjectId(key));
             if (writeConcern.equals(WriteConcern.SAFE)) {
                 q.put("$atomic", true);
             }
@@ -108,30 +117,30 @@ public class MongoDbClient extends DB {
             // see if record was deleted
             DBObject errors = db.getLastError();
 
-            return (Long) errors.get("n") == 1 ? 0 : 1;
+            return ((Integer) errors.get("n")) == 1 ? 0 : 1;
         } catch (Exception e) {
             logger.error(e + "", e);
             return 1;
         }
-	finally
-	{
-	   if (db!=null)
-	   {
-	      db.requestDone();
-	   }
-	}
+        finally
+        {
+            if (db!=null)
+            {
+                db.requestDone();
+            }
+        }
     }
 
-@Override
+    @Override
     /**
-* Insert a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
-* record key.
-*
-* @param table The name of the table
-* @param key The record key of the record to insert.
-* @param values A HashMap of field/value pairs to insert in the record
-* @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
-*/
+     * Insert a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
+     * record key.
+     *
+     * @param table The name of the table
+     * @param key The record key of the record to insert.
+     * @param values A HashMap of field/value pairs to insert in the record
+     * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
+     */
     public int insert(String table, String key, HashMap<String, String> values) {
         com.mongodb.DB db = null;
         try {
@@ -140,7 +149,7 @@ public class MongoDbClient extends DB {
             db.requestStart();
 
             DBCollection collection = db.getCollection(table);
-            DBObject r = new BasicDBObject().append("_id", key);
+            DBObject r = new BasicDBObject().append("_id", new ObjectId(key));
             r.putAll(values);
 
             collection.setWriteConcern(writeConcern);
@@ -151,31 +160,29 @@ public class MongoDbClient extends DB {
             // n=<records affected> for insert
             DBObject errors = db.getLastError();
 
-            return (Boolean) errors.get("ok") && errors.get("err") == null ? 0
-                    : 1;
+            return (errors.get("ok") != null && errors.get("err") == null) ? 0 : 1;
         } catch (Exception e) {
             logger.error(e + "", e);
             return 1;
         } finally {
-	   if (db!=null)
-	   {
-	      db.requestDone();
-	   }
+            if (db!=null)
+            {
+                db.requestDone();
+            }
         }
-
     }
 
     @Override
     @SuppressWarnings("unchecked")
     /**
-* Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
-*
-* @param table The name of the table
-* @param key The record key of the record to read.
-* @param fields The list of fields to read, or null for all of them
-* @param result A HashMap of field/value pairs for the result
-* @return Zero on success, a non-zero error code on error or "not found".
-*/
+     * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
+     *
+     * @param table The name of the table
+     * @param key The record key of the record to read.
+     * @param fields The list of fields to read, or null for all of them
+     * @param result A HashMap of field/value pairs for the result
+     * @return Zero on success, a non-zero error code on error or "not found".
+     */
     public int read(String table, String key, Set<String> fields,
             HashMap<String, String> result) {
         com.mongodb.DB db = null;
@@ -185,7 +192,7 @@ public class MongoDbClient extends DB {
             db.requestStart();
 
             DBCollection collection = db.getCollection(table);
-            DBObject q = new BasicDBObject().append("_id", key);
+            DBObject q = new BasicDBObject().append("_id", new ObjectId(key));
             DBObject fieldsToReturn = new BasicDBObject();
             boolean returnAllFields = fields == null;
 
@@ -208,25 +215,24 @@ public class MongoDbClient extends DB {
             logger.error(e + "", e);
             return 1;
         } finally {
-	   if (db!=null)
-	   {
-	      db.requestDone();
-	   }
+            if (db!=null)
+            {
+                db.requestDone();
+            }
         }
-
     }
 
 
     @Override
     /**
-* Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
-* record key, overwriting any existing values with the same field name.
-*
-* @param table The name of the table
-* @param key The record key of the record to write.
-* @param values A HashMap of field/value pairs to update in the record
-* @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
-*/
+     * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
+     * record key, overwriting any existing values with the same field name.
+     *
+     * @param table The name of the table
+     * @param key The record key of the record to write.
+     * @param values A HashMap of field/value pairs to update in the record
+     * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
+     */
     public int update(String table, String key, HashMap<String, String> values) {
         com.mongodb.DB db = null;
         try {
@@ -235,7 +241,7 @@ public class MongoDbClient extends DB {
             db.requestStart();
 
             DBCollection collection = db.getCollection(table);
-            DBObject q = new BasicDBObject().append("_id", key);
+            DBObject q = new BasicDBObject().append("_id", new ObjectId(key));
             DBObject u = new BasicDBObject();
             DBObject fieldsToSet = new BasicDBObject();
             Iterator<String> keys = values.keySet().iterator();
@@ -260,39 +266,38 @@ public class MongoDbClient extends DB {
             logger.error(e + "", e);
             return 1;
         } finally {
-	   if (db!=null)
-	   {
-	      db.requestDone();
-	   }
+            if (db!=null)
+            {
+                db.requestDone();
+            }
         }
-
     }
 
     @Override
     @SuppressWarnings("unchecked")
     /**
-* Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a HashMap.
-*
-* @param table The name of the table
-* @param startkey The record key of the first record to read.
-* @param recordcount The number of records to read
-* @param fields The list of fields to read, or null for all of them
-* @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
-* @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
-*/
+     * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a HashMap.
+     *
+     * @param table The name of the table
+     * @param startkey The record key of the first record to read.
+     * @param recordcount The number of records to read
+     * @param fields The list of fields to read, or null for all of them
+     * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
+     * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
+     */
     public int scan(String table, String startkey, int recordcount,
             Set<String> fields, Vector<HashMap<String, String>> result) {
-       com.mongodb.DB db=null;
+        com.mongodb.DB db=null;
         try {
             db = mongo.getDB(database);
-	    db.requestStart(); 
+            db.requestStart();
             DBCollection collection = db.getCollection(table);
             // { "_id":{"$gte":startKey, "$lte":{"appId":key+"\uFFFF"}} }
             DBObject scanRange = new BasicDBObject().append("$gte", startkey);
             DBObject q = new BasicDBObject().append("_id", scanRange);
             DBCursor cursor = collection.find(q).limit(recordcount);
             while (cursor.hasNext()) {
-	       //toMap() returns a Map, but result.add() expects a Map<String,String>. Hence, the suppress warnings.
+                //toMap() returns a Map, but result.add() expects a Map<String,String>. Hence, the suppress warnings.
                 result.add((HashMap<String, String>) cursor.next().toMap());
             }
 
@@ -301,16 +306,14 @@ public class MongoDbClient extends DB {
             logger.error(e + "", e);
             return 1;
         }
-	finally
-	{
-	   if (db!=null)
-	   {
-	      db.requestDone();
-	   }
-	}
-	
+        finally
+        {
+            if (db!=null)
+            {
+                db.requestDone();
+            }
+        }
+
     }
-
 }
-
 
