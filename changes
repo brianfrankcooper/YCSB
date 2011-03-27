@@ -10,4 +10,5 @@ Changes since 0.1.3
 	* New generator FileGenerator (nono)
 	* Fixes for MongoDB (nono)
 	* Fixes for Voldemort (nono)
-	
+	* JDBC client (sudiptodas)
+	* HotspotIntegerGenerator (sudiptodas)	
