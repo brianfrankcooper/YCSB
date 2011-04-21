@@ -434,7 +434,7 @@ public class CassandraClient7 extends DB
           v.add(m);
         }
 
-        client.batch_mutate(batch_mutation, ConsistencyLevel.ONE);
+        client.batch_mutate(batch_mutation, ConsistencyLevel.ANY);
 
         if (_debug)
         {
