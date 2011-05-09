@@ -48,6 +48,10 @@ public class RedisClient extends DB {
         }
     }
 
+    public void cleanup() throws DBException {
+        jedis.disconnect();
+    }
+
     //XXX jedis.select(int index) to switch to `table`
 
     @Override
