@@ -30,7 +30,8 @@ import com.yahoo.ycsb.Utils;
  */
 public class ScrambledZipfianGenerator extends IntegerGenerator 
 {
-	public static final double ZETAN=52.93805640344461;
+	public static final double ZETAN=26.46902820178302;
+        public static final double USED_ZIPFIAN_CONSTANT=0.99;
 	public static final long ITEM_COUNT=10000000000L;
 	
 	ZipfianGenerator gen;
@@ -72,18 +73,23 @@ public class ScrambledZipfianGenerator extends IntegerGenerator
 */
 	
 	/**
-	 * Create a zipfian generator for items between min and max (inclusive) for the specified zipfian constant.
+	 * Create a zipfian generator for items between min and max (inclusive) for the specified zipfian constant. If you 
+	 * use a zipfian constant other than 0.99, this will take a long time to complete because we need to recompute zeta.
 	 * @param min The smallest integer to generate in the sequence.
 	 * @param max The largest integer to generate in the sequence.
 	 * @param _zipfianconstant The zipfian constant to use.
 	 */
-	ScrambledZipfianGenerator(long min, long max, double _zipfianconstant)
+        public ScrambledZipfianGenerator(long min, long max, double _zipfianconstant)
 	{
-		//not public as we only support one value of zipfianconstant for which we have precomputed zeta
 		_min=min;
 		_max=max;
 		_itemcount=_max-_min+1;
-		gen=new ZipfianGenerator(0,ITEM_COUNT,_zipfianconstant,ZETAN);
+		if (_zipfianconstant == USED_ZIPFIAN_CONSTANT) 
+		{
+		    gen=new ZipfianGenerator(0,ITEM_COUNT,_zipfianconstant,ZETAN);
+		} else {
+		    gen=new ZipfianGenerator(0,ITEM_COUNT,_zipfianconstant);
+		}
 	}
 	
 	/**************************************************************************************************/
@@ -109,6 +115,10 @@ public class ScrambledZipfianGenerator extends IntegerGenerator
 	
 	public static void main(String[] args)
 	{
+	    double newzetan = ZipfianGenerator.zetastatic(ITEM_COUNT,ZipfianGenerator.ZIPFIAN_CONSTANT);
+	    System.out.println("zetan: "+newzetan);
+	    System.exit(0);
+
 		ScrambledZipfianGenerator gen=new ScrambledZipfianGenerator(10000);
 		
 		for (int i=0; i<1000000; i++)
