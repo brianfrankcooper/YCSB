@@ -9,4 +9,9 @@
       <transport clusterName="x" />
    </global>
 
+   <default>
+      <transaction />
+      <invocationBatching enabled="true" />
+   </default>
+
 </infinispan>
