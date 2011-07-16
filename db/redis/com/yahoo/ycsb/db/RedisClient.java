@@ -1,6 +1,8 @@
 /**
  * Redis client binding for YCSB.
  *
+ * All YCSB records are mapped to a Redis *hash field*.  For scanning
+ * operations, all keys are saved (by an arbitrary hash) in a sorted set.
  */
 
 package com.yahoo.ycsb.db;
@@ -24,6 +26,8 @@ public class RedisClient extends DB {
     public static final String HOST_PROPERTY = "redis.host";
     public static final String PORT_PROPERTY = "redis.port";
     public static final String PASSWORD_PROPERTY = "redis.password";
+
+    public static final String INDEX_KEY = "_indices";
 
     public void init() throws DBException {
         Properties props = getProperties();
@@ -52,6 +56,14 @@ public class RedisClient extends DB {
         jedis.disconnect();
     }
 
+    /* Calculate a hash for a key to store it in an index.  The actual return
+     * value of this function is not interesting -- it primarily needs to be
+     * fast and scattered along the whole space of doubles.
+     */
+    private double hash(String key) {
+        return key.hashCode();
+    }
+
     //XXX jedis.select(int index) to switch to `table`
 
     @Override
@@ -77,12 +89,16 @@ public class RedisClient extends DB {
 
     @Override
     public int insert(String table, String key, HashMap<String, String> values) {
-        return jedis.hmset(key, values).equals("OK") ? 0 : 1;
+        return jedis.hmset(key, values).equals("OK")
+            && jedis.zadd(INDEX_KEY, hash(key), key) == 1
+               ? 0 : 1;
     }
 
     @Override
     public int delete(String table, String key) {
-        return jedis.del(key) == 0 ? 1 : 0;
+        return jedis.del(key) == 0
+            && jedis.zrem(INDEX_KEY, key) == 0
+               ? 1 : 0;
     }
 
     @Override
@@ -93,7 +109,16 @@ public class RedisClient extends DB {
     @Override
     public int scan(String table, String startkey, int recordcount,
             Set<String> fields, Vector<HashMap<String, String>> result) {
-        //XXX
+        Set<String> keys = jedis.zrangeByScore(INDEX_KEY, hash(startkey),
+                                Double.POSITIVE_INFINITY, 0, recordcount);
+
+        HashMap<String, String> values;
+        for (String key : keys) {
+            values = new HashMap<String, String>();
+            read(table, key, fields, values);
+            result.add(values);
+        }
+
         return 0;
     }
 
