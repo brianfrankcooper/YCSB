@@ -58,7 +58,8 @@ public class RedisClient extends DB {
 
     /* Calculate a hash for a key to store it in an index.  The actual return
      * value of this function is not interesting -- it primarily needs to be
-     * fast and scattered along the whole space of doubles.
+     * fast and scattered along the whole space of doubles.  In a real world
+     * scenario one would probably use the ASCII values of the keys.
      */
     private double hash(String key) {
         return key.hashCode();
