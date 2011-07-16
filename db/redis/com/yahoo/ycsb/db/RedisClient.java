@@ -48,7 +48,6 @@ public class RedisClient extends DB {
         String password = props.getProperty(PASSWORD_PROPERTY);
         if (password != null) {
             jedis.auth(password);
-            jedis.flushAll();
         }
     }
 
