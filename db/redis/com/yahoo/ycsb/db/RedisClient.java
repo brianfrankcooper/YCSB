@@ -90,9 +90,11 @@ public class RedisClient extends DB {
 
     @Override
     public int insert(String table, String key, HashMap<String, String> values) {
-        return jedis.hmset(key, values).equals("OK")
-            && jedis.zadd(INDEX_KEY, hash(key), key) == 1
-               ? 0 : 1;
+        if (jedis.hmset(key, values).equals("OK")) {
+            jedis.zadd(INDEX_KEY, hash(key), key);
+            return 1;
+        }
+        return 0;
     }
 
     @Override
