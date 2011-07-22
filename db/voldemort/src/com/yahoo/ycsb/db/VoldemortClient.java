@@ -21,45 +21,46 @@ public class VoldemortClient extends DB {
 	private StoreClient<String, HashMap<String, String>> storeClient;
 	private SocketStoreClientFactory socketFactory;
 	private String storeName;
-    private final Logger logger = Logger.getLogger(VoldemortClient.class);
-    
-    public static final int OK = 0;
-    public static final int ERROR = -1;
-    public static final int NOT_FOUND = -2;
-    
-    /**
-     * Initialize the DB layer. This accepts all properties allowed by the Voldemort client.
-     * A store maps to a table.
-     * Required : bootstrap_urls
-     * Additional property : store_name -> to preload once, should be same as -t <table>
-     * 
-     * {@linktourl http://project-voldemort.com/javadoc/client/voldemort/client/ClientConfig.html}
-     */
+	private final Logger logger = Logger.getLogger(VoldemortClient.class);
+
+	public static final int OK = 0;
+	public static final int ERROR = -1;
+	public static final int NOT_FOUND = -2;
+
+	/**
+	 * Initialize the DB layer. This accepts all properties allowed by the
+	 * Voldemort client. A store maps to a table. Required : bootstrap_urls
+	 * Additional property : store_name -> to preload once, should be same as -t
+	 * <table>
+	 * 
+	 * {@linktourl http://project-voldemort.com/javadoc/client/voldemort/client/
+	 * ClientConfig.html}
+	 */
 	public void init() throws DBException {
 		ClientConfig clientConfig = new ClientConfig(getProperties());
 		socketFactory = new SocketStoreClientFactory(clientConfig);
-		
+
 		// Retrieve store name
 		storeName = getProperties().getProperty("store_name", "usertable");
-		
+
 		// Use store name to retrieve client
 		storeClient = socketFactory.getStoreClient(storeName);
-		if ( storeClient == null )
+		if (storeClient == null)
 			throw new DBException("Unable to instantiate store client");
-		
+
 	}
-	
+
 	public void cleanup() throws DBException {
 		socketFactory.close();
 	}
-	
+
 	@Override
 	public int delete(String table, String key) {
-		if ( checkStore(table) == ERROR ) {
+		if (checkStore(table) == ERROR) {
 			return ERROR;
 		}
-		
-		if ( storeClient.delete(key) )
+
+		if (storeClient.delete(key))
 			return OK;
 		else
 			return ERROR;
@@ -67,7 +68,7 @@ public class VoldemortClient extends DB {
 
 	@Override
 	public int insert(String table, String key, HashMap<String, String> values) {
-		if ( checkStore(table) == ERROR ) {
+		if (checkStore(table) == ERROR) {
 			return ERROR;
 		}
 		storeClient.put(key, values);
@@ -77,19 +78,20 @@ public class VoldemortClient extends DB {
 	@Override
 	public int read(String table, String key, Set<String> fields,
 			HashMap<String, String> result) {
-		if ( checkStore(table) == ERROR ) {
+		if (checkStore(table) == ERROR) {
 			return ERROR;
 		}
-		
-		Versioned<HashMap<String, String>> versionedValue = storeClient.get(key);
-		
-		if ( versionedValue == null )
+
+		Versioned<HashMap<String, String>> versionedValue = storeClient
+				.get(key);
+
+		if (versionedValue == null)
 			return NOT_FOUND;
-		
-		if ( fields != null ) {
+
+		if (fields != null) {
 			for (String field : fields) {
 				String val = versionedValue.getValue().get(field);
-				if ( val != null )
+				if (val != null)
 					result.put(field, val);
 			}
 		} else {
@@ -107,15 +109,17 @@ public class VoldemortClient extends DB {
 
 	@Override
 	public int update(String table, String key, HashMap<String, String> values) {
-		if ( checkStore(table) == ERROR ) {
+		if (checkStore(table) == ERROR) {
 			return ERROR;
 		}
-		
-		Versioned<HashMap<String, String>> versionedValue = storeClient.get(key);
+
+		Versioned<HashMap<String, String>> versionedValue = storeClient
+				.get(key);
 		HashMap<String, String> value = new HashMap<String, String>();
 		VectorClock version;
-		if ( versionedValue != null ) {
-			version = ((VectorClock) versionedValue.getVersion()).incremented(0, 1);
+		if (versionedValue != null) {
+			version = ((VectorClock) versionedValue.getVersion()).incremented(
+					0, 1);
 			value = versionedValue.getValue();
 			for (Entry<String, String> entry : values.entrySet()) {
 				value.put(entry.getKey(), entry.getValue());
@@ -124,21 +128,22 @@ public class VoldemortClient extends DB {
 			version = new VectorClock();
 			value.putAll(values);
 		}
-		
+
 		storeClient.put(key, Versioned.value(value, version));
 		return OK;
 	}
-	
+
 	private int checkStore(String table) {
-		if ( table.compareTo(storeName) != 0 ) {
+		if (table.compareTo(storeName) != 0) {
 			try {
 				storeClient = socketFactory.getStoreClient(table);
-				if ( storeClient == null ) {
-					logger.error("Could not instantiate storeclient for " + table);
+				if (storeClient == null) {
+					logger.error("Could not instantiate storeclient for "
+							+ table);
 					return ERROR;
 				}
 				storeName = table;
-			} catch ( Exception e ) {
+			} catch (Exception e) {
 				return ERROR;
 			}
 		}

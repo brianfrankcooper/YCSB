@@ -24,24 +24,24 @@ import java.io.IOException;
 /**
  * A generator, whose sequence is the lines of a file.
  */
-public class FileGenerator extends Generator
-{
+public class FileGenerator extends Generator {
 	String filename;
 	String current;
 	BufferedReader reader;
 
 	/**
 	 * Create a FileGenerator with the given file.
-	 * @param _filename The file to read lines from.
+	 * 
+	 * @param _filename
+	 *            The file to read lines from.
 	 */
-	public FileGenerator(String _filename)
-	{
+	public FileGenerator(String _filename) {
 		try {
 			filename = _filename;
 			File file = new File(filename);
 			FileInputStream in = new FileInputStream(file);
 			reader = new BufferedReader(new InputStreamReader(in));
-		} catch(IOException e) {
+		} catch (IOException e) {
 			System.err.println("Exception: " + e);
 		}
 	}
@@ -49,14 +49,14 @@ public class FileGenerator extends Generator
 	/**
 	 * Return the next string of the sequence, ie the next line of the file.
 	 */
-	public synchronized String nextString()
-	{
+	public synchronized String nextString() {
 		try {
 			return current = reader.readLine();
-		} catch(NullPointerException e) {
-			System.err.println("NullPointerException: " + filename + ':' + current);
+		} catch (NullPointerException e) {
+			System.err.println("NullPointerException: " + filename + ':'
+					+ current);
 			throw e;
-		} catch(IOException e) {
+		} catch (IOException e) {
 			System.err.println("Exception: " + e);
 			return null;
 		}
@@ -65,23 +65,21 @@ public class FileGenerator extends Generator
 	/**
 	 * Return the previous read line.
 	 */
-	public String lastString()
-	{
+	public String lastString() {
 		return current;
 	}
 
 	/**
 	 * Reopen the file to reuse values.
 	 */
-	public synchronized void reloadFile()
-	{
+	public synchronized void reloadFile() {
 		try {
 			System.err.println("Reload " + filename);
 			reader.close();
 			File file = new File(filename);
 			FileInputStream in = new FileInputStream(file);
 			reader = new BufferedReader(new InputStreamReader(in));
-		} catch(IOException e) {
+		} catch (IOException e) {
 			System.err.println("Exception: " + e);
 		}
 	}

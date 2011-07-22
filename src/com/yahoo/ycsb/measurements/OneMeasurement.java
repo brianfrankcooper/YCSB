@@ -27,7 +27,7 @@ import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 public abstract class OneMeasurement {
 
 	String _name;
-	
+
 	public String getName() {
 		return _name;
 	}
@@ -45,11 +45,12 @@ public abstract class OneMeasurement {
 
 	public abstract String getSummary();
 
-  /**
-   * Export the current measurements to a suitable format.
-   * 
-   * @param exporter Exporter representing the type of format to write to.
-   * @throws IOException Thrown if the export failed.
-   */
-  public abstract void exportMeasurements(MeasurementsExporter exporter) throws IOException;
+	/**
+	 * Export the current measurements to a suitable format.
+	 * 
+	 * @param exporter Exporter representing the type of format to write to.
+	 * @throws IOException Thrown if the export failed.
+	 */
+	public abstract void exportMeasurements(MeasurementsExporter exporter)
+			throws IOException;
 }

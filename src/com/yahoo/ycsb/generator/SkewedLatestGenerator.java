@@ -18,36 +18,34 @@
 package com.yahoo.ycsb.generator;
 
 /**
- * Generate a popularity distribution of items, skewed to favor recent items significantly more than older items.
+ * Generate a popularity distribution of items, skewed to favor recent items
+ * significantly more than older items.
  */
-public class SkewedLatestGenerator extends IntegerGenerator
-{
+public class SkewedLatestGenerator extends IntegerGenerator {
 	CounterGenerator _basis;
 	ZipfianGenerator _zipfian;
 
-	public SkewedLatestGenerator(CounterGenerator basis)
-	{
-		_basis=basis;
-		_zipfian=new ZipfianGenerator(Integer.parseInt(_basis.lastString()));
+	public SkewedLatestGenerator(CounterGenerator basis) {
+		_basis = basis;
+		_zipfian = new ZipfianGenerator(Integer.parseInt(_basis.lastString()));
 		nextInt();
 	}
 
 	/**
-	 * Generate the next string in the distribution, skewed Zipfian favoring the items most recently returned by the basis generator.
+	 * Generate the next string in the distribution, skewed Zipfian favoring the
+	 * items most recently returned by the basis generator.
 	 */
-	public int nextInt()
-	{
-		int max=Integer.parseInt(_basis.lastString());
-		int nextint=max-_zipfian.nextInt(max);
+	public int nextInt() {
+		int max = Integer.parseInt(_basis.lastString());
+		int nextint = max - _zipfian.nextInt(max);
 		setLastInt(nextint);
 		return nextint;
 	}
 
-	public static void main(String[] args)
-	{
-		SkewedLatestGenerator gen=new SkewedLatestGenerator(new CounterGenerator(1000));
-		for (int i=0; i<Integer.parseInt(args[0]); i++)
-		{
+	public static void main(String[] args) {
+		SkewedLatestGenerator gen = new SkewedLatestGenerator(
+				new CounterGenerator(1000));
+		for (int i = 0; i < Integer.parseInt(args[0]); i++) {
 			System.out.println(gen.nextString());
 		}
 
