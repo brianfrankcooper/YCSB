@@ -35,12 +35,12 @@ import com.basho.riak.client.bucket.Bucket;
 import com.basho.riak.pbc.RiakObject;
 import com.basho.riak.client.IRiakClient;
 import com.basho.riak.client.IRiakObject;
-import com.google.protobuf.ByteString;
-
 import com.basho.riak.client.RiakException;
 import com.basho.riak.client.RiakRetryFailedException;
 import com.basho.riak.client.cap.UnresolvedConflictException;
 import com.basho.riak.client.convert.ConversionException; 
+
+import com.google.protobuf.ByteString;
 
 /**
  * @author yourabi
@@ -58,26 +58,37 @@ public class RiakClient extends DB {
 	 * one DB instance per client thread.
 	 */
 	public void init() throws DBException {
-
             String riakTransport = getProperties().getProperty("transport", "pb");
-		
-            try {
+	    String host  = getProperties().getProperty("host", "localhost");
+	    String port = getProperties().getProperty("port", "8098");
+	    String connectionURL = "http://"+host+":"+port;
+	    _debug = Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
+            riakBucketName = getProperties().getProperty("bucket", "ycsb_bucket");
+
+	    try {
                 if (riakTransport.equalsIgnoreCase("http")) {
-			riakClient = RiakFactory.httpClient();
+		    riakClient = RiakFactory.httpClient(connectionURL);
 		} else if (riakTransport.equalsIgnoreCase("pb") || riakTransport == null) {
-			// RiakClient riak = new RiakClient("http://localhost:8098/riak");
-			riakClient = RiakFactory.pbcClient();
+		    riakClient = RiakFactory.pbcClient();
 		}
             } catch (RiakException re) {
                 re.printStackTrace();
             }
-                
-                System.err.println("Riak Transport chosen " + riakTransport);
 
-                riakBucketName = getProperties().getProperty("bucket", "ycsb_bucket");
+	    if (_debug) {
+		System.err.println("Transport protocol: " + riakTransport);
+		System.err.println("Connection URL: " + connectionURL);
+		System.err.println("Bucket: " + riakBucketName);
+	    }
 
-		_debug = Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
-
+	    try {
+		riakClient.ping();
+		riakBucket = riakClient.createBucket(riakBucketName).execute();
+	    } catch (RiakRetryFailedException rrfe) {
+		rrfe.printStackTrace();
+	    } catch (RiakException re) {
+		re.printStackTrace();
+	    }
         }
 
 	/**
@@ -171,7 +182,18 @@ public class RiakClient extends DB {
 	 */
 	public int insert(String table, String key, HashMap<String, String> values) {
 		Exception errorexception = null;
-                return 0;
+                System.out.println("Calling insert with Table " + table + " and key " + key);
+		
+		try {
+		    riakBucket.store(key, "value1").execute();
+		} catch (UnresolvedConflictException uce) {
+		    uce.printStackTrace();
+		} catch (RiakRetryFailedException rrfe) {
+		    rrfe.printStackTrace();
+		} catch (ConversionException ce) {
+		    ce.printStackTrace();
+		}
+		return 0;
 	}
 
 	/**
@@ -193,7 +215,7 @@ public class RiakClient extends DB {
 
 	public static void main(String[] args) {
 		
-            System.out.println("Welcome to the riak client \n");
+            System.err.println("Welcome to the riak client \n");
             RiakClient cli = new RiakClient();
 		Properties props = new Properties();
 
