@@ -1,0 +1,12 @@
+-- Creates a Table.
+
+-- Drop the table if it exists;
+DROP TABLE IF EXISTS usertable;
+
+-- Create the user table with 5 fields.
+CREATE TABLE usertable(YCSB_KEY VARCHAR (255) PRIMARY KEY,
+  FIELD1 TEXT, FIELD2 TEXT,
+  FIELD3 TEXT, FIELD4 TEXT,
+  FIELD5 TEXT, FIELD6 TEXT,
+  FIELD7 TEXT, FIELD8 TEXT,
+  FIELD9 TEXT, FIELD10 TEXT);
