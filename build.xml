@@ -15,6 +15,11 @@
         </fileset>
     </path>
 
+    <target name="dbcompile-infinispan-5.0" depends="compile">
+        <property name="db.dir" value="db/infinispan-5.0" />
+        <antcall target="dbcompile" />
+    </target>
+
     <target name="dbcompile-cassandra-0.5" depends="compile">
     	<property name="db.dir" value="db/cassandra-0.5"/>
         <antcall target="dbcompile"/>
