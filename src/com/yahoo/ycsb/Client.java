@@ -220,9 +220,7 @@ class ClientThread extends Thread
 		}
 		catch (InterruptedException e)
 		{
-		  // Changed from doing nothing to returning to support interruption
-      // of the client threads.
-		  return;
+		  // do nothing.
 		}
 		
 		try
@@ -231,7 +229,7 @@ class ClientThread extends Thread
 			{
 				long st=System.currentTimeMillis();
 
-				while ( (_opcount==0) || (_opsdone<_opcount) )
+				while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
 				{
 
 					if (!_workload.doTransaction(_db,_workloadstate))
@@ -256,9 +254,7 @@ class ClientThread extends Thread
 							}
 							catch (InterruptedException e)
 							{
-							  // Changed from doing nothing to returning to support interruption
-                // of the client threads.
-								return;
+							  // do nothing.
 							}
 
 						}
@@ -269,7 +265,7 @@ class ClientThread extends Thread
 			{
 				long st=System.currentTimeMillis();
 
-				while ( (_opcount==0) || (_opsdone<_opcount) )
+				while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
 				{
 
 					if (!_workload.doInsert(_db,_workloadstate))
@@ -294,9 +290,7 @@ class ClientThread extends Thread
 							}
 							catch (InterruptedException e)
 							{
-							  // Changed from doing nothing to returning to support interruption
-							  // of the client threads.
-								return;
+							  // do nothing.
 							}
 						}
 					}
@@ -755,7 +749,7 @@ public class Client
     Thread terminator = null;
     
     if (maxExecutionTime > 0) {
-      terminator = new TerminatorThread(maxExecutionTime, threads);
+      terminator = new TerminatorThread(maxExecutionTime, threads, workload);
       terminator.start();
     }
     
