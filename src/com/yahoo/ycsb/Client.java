@@ -220,7 +220,7 @@ class ClientThread extends Thread
 		}
 		catch (InterruptedException e)
 		{
-		   //do nothing
+		  // do nothing.
 		}
 		
 		try
@@ -229,7 +229,7 @@ class ClientThread extends Thread
 			{
 				long st=System.currentTimeMillis();
 
-				while ( (_opcount==0) || (_opsdone<_opcount) )
+				while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
 				{
 
 					if (!_workload.doTransaction(_db,_workloadstate))
@@ -254,7 +254,7 @@ class ClientThread extends Thread
 							}
 							catch (InterruptedException e)
 							{
-								//do nothing
+							  // do nothing.
 							}
 
 						}
@@ -265,7 +265,7 @@ class ClientThread extends Thread
 			{
 				long st=System.currentTimeMillis();
 
-				while ( (_opcount==0) || (_opsdone<_opcount) )
+				while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
 				{
 
 					if (!_workload.doInsert(_db,_workloadstate))
@@ -290,7 +290,7 @@ class ClientThread extends Thread
 							}
 							catch (InterruptedException e)
 							{
-								//do nothing
+							  // do nothing.
 							}
 						}
 					}
@@ -335,6 +335,11 @@ public class Client
 	 * should support the "insertstart" property, which tells them which record to start at.
 	 */
 	public static final String INSERT_COUNT_PROPERTY="insertcount";
+	
+	/**
+   * The maximum amount of time (in seconds) for which the benchmark will be run.
+   */
+  public static final String MAX_EXECUTION_TIME = "maxexecutiontime";
 
 	public static void usageMessage()
 	{
@@ -599,6 +604,8 @@ public class Client
 		{
 			System.exit(0);
 		}
+		
+		long maxExecutionTime = Integer.parseInt(props.getProperty(MAX_EXECUTION_TIME, "0"));
 
 		//get number of threads, target and db
 		threadcount=Integer.parseInt(props.getProperty("threadcount","1"));
@@ -738,12 +745,22 @@ public class Client
 		{
 			t.start();
 		}
+		
+    Thread terminator = null;
+    
+    if (maxExecutionTime > 0) {
+      terminator = new TerminatorThread(maxExecutionTime, threads, workload);
+      terminator.start();
+    }
+    
+    int opsDone = 0;
 
 		for (Thread t : threads)
 		{
 			try
 			{
 				t.join();
+				opsDone += ((ClientThread)t).getOpsDone();
 			}
 			catch (InterruptedException e)
 			{
@@ -751,6 +768,10 @@ public class Client
 		}
 
 		long en=System.currentTimeMillis();
+		
+		if (terminator != null && !terminator.isInterrupted()) {
+      terminator.interrupt();
+    }
 
 		if (status)
 		{
@@ -770,7 +791,7 @@ public class Client
 
 		try
 		{
-			exportMeasurements(props, opcount, en - st);
+			exportMeasurements(props, opsDone, en - st);
 		} catch (IOException e)
 		{
 			System.err.println("Could not export measurements, error: " + e.getMessage());
