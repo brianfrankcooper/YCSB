@@ -2,4 +2,7 @@ com.yahoo.ycsb
 com.yahoo.ycsb.db
 com.yahoo.ycsb.generator
 com.yahoo.ycsb.measurements
+com.yahoo.ycsb.measurements.exporter
+com.yahoo.ycsb.measurements.reporter
+com.yahoo.ycsb.security
 com.yahoo.ycsb.workloads
