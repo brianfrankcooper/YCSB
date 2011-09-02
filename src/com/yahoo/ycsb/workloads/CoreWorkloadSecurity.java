@@ -1,18 +1,19 @@
 /**
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved. 
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"); you
- * may not use this file except in compliance with the License. You
- * may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0 
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
- * implied. See the License for the specific language governing
- * permissions and limitations under the License. See accompanying
- * LICENSE file.
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.yahoo.ycsb.workloads;
@@ -27,11 +28,19 @@ import com.yahoo.ycsb.generator.ScrambledZipfianGenerator;
 import com.yahoo.ycsb.generator.SkewedLatestGenerator;
 import com.yahoo.ycsb.generator.UniformIntegerGenerator;
 import com.yahoo.ycsb.generator.ZipfianGenerator;
-import com.yahoo.ycsb.generator.ConstantGenerator;
 import com.yahoo.ycsb.measurements.Measurements;
+import com.yahoo.ycsb.security.AccessControlList;
+import com.yahoo.ycsb.security.CellAccessControlList;
+import com.yahoo.ycsb.security.ColumnAccessControlList;
+import com.yahoo.ycsb.security.Credential;
+import com.yahoo.ycsb.security.Permission;
+import com.yahoo.ycsb.security.TableAccessControlList;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.Vector;
 
 /**
@@ -56,7 +65,7 @@ import java.util.Vector;
  * <LI><b>insertorder</b>: should records be inserted in order by key ("ordered"), or in hashed order ("hashed") (default: hashed)
  * </ul> 
  */
-public class CoreWorkload extends Workload
+public class CoreWorkloadSecurity extends Workload
 {
 
 	/**
@@ -227,6 +236,46 @@ public class CoreWorkload extends Workload
 
 	int recordcount;
 	
+	public static final String CREDENTIAL_PROPERTY="security.credential";
+	public static final String CREDENTIAL_PROPERTY_DEFAULT="user";
+	Credential credential;
+	
+	public static final String CELL_SECURITY_PROPERTY="security.cell.enable";
+	public static final String CELL_SECURITY_PROPERTY_DEFAULT="false";
+	boolean cell_enable;
+	public static final String CELL_SECURITY_ENTRIES_PROPERTY="security.cell.entries";
+	public static final String CELL_SECURITY_ENTRIES_PROPERTY_DEFAULT="user,admin";
+	Set<String> cell_users;
+	public static final String CELL_SECURITY_ADDROW_PROPERTY="security.cell.addrow";
+	public static final String CELL_SECURITY_ADDROW_PROPERTY_DEFAULT="true";
+	boolean cell_addrow;
+	public static final String CELL_SECURITY_ADDCOLUMN_PROPERTY="security.cell.addcolumn";
+	public static final String CELL_SECURITY_ADDCOLUMN_PROPERTY_DEFAULT="false";
+	boolean cell_addcolumn;
+	
+	public static final String COLUMN_SECURITY_PROPERTY="security.column.enable";
+	public static final String COLUMN_SECURITY_PROPERTY_DEFAULT="false";
+	boolean column_enable;
+	public static final String COLUMN_SECURITY_NAME_PROPERTY="security.column.names";
+	public static final String COLUMN_SECURITY_NAME_PROPERTY_DEFAULT="field0";
+	Set<String> column_names;
+	public static final String COLUMN_SECURITY_ENTRIES_PROPERTY="security.column.entries";
+	public static final String COLUMN_SECURITY_ENTRIES_PROPERTY_DEFAULT="user,admin";
+	Set<String> column_users;
+	public static final String COLUMN_SECURITY_ADDCOLUMN_PROPERTY="security.column.addcolumn";
+	public static final String COLUMN_SECURITY_ADDCOLUMN_PROPERTY_DEFAULT="false";
+	boolean column_addcolumn;
+
+	public static final String TABLE_SECURITY_PROPERTY="security.table.enable";
+	public static final String TABLE_SECURITY_PROPERTY_DEFAULT="false";
+	boolean table_enable;
+	public static final String TABLE_SECURITY_ENTRIES_PROPERTY="security.table.entries";
+	public static final String TABLE_SECURITY_ENTRIES_PROPERTY_DEFAULT="user";
+	Set<String> table_users;
+
+	List<AccessControlList> schema_acl;
+	
+
 	/**
 	 * Initialize the scenario. 
 	 * Called once, in the main client thread, before any operations are started.
@@ -241,7 +290,7 @@ public class CoreWorkload extends Workload
 		double insertproportion=Double.parseDouble(p.getProperty(INSERT_PROPORTION_PROPERTY,INSERT_PROPORTION_PROPERTY_DEFAULT));
 		double scanproportion=Double.parseDouble(p.getProperty(SCAN_PROPORTION_PROPERTY,SCAN_PROPORTION_PROPERTY_DEFAULT));
 		double readmodifywriteproportion=Double.parseDouble(p.getProperty(READMODIFYWRITE_PROPORTION_PROPERTY,READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT));
-		recordcount=Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY, "0"));
+		recordcount=Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY));
 		String requestdistrib=p.getProperty(REQUEST_DISTRIBUTION_PROPERTY,REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
 		int maxscanlength=Integer.parseInt(p.getProperty(MAX_SCAN_LENGTH_PROPERTY,MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
 		String scanlengthdistrib=p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY,SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
@@ -325,14 +374,77 @@ public class CoreWorkload extends Workload
 		{
 			scanlength=new ZipfianGenerator(1,maxscanlength);
 		}
-		else if (scanlengthdistrib.compareTo("constant")==0)
-		{
-			scanlength=new ConstantGenerator(maxscanlength);
-		}		
+		else if (scanlengthdistrib.compareTo("constant") == 0) {
+			scanlength = new UniformIntegerGenerator(maxscanlength,
+					maxscanlength);
+		}
 		else
 		{
 			throw new WorkloadException("Distribution \""+scanlengthdistrib+"\" not allowed for scan length");
 		}
+		
+		credential = new Credential(p.getProperty(CREDENTIAL_PROPERTY,CREDENTIAL_PROPERTY_DEFAULT));
+		
+		String entries_string;
+		String [] entries;
+		
+		cell_enable = Boolean.parseBoolean(p.getProperty(CELL_SECURITY_PROPERTY, CELL_SECURITY_PROPERTY_DEFAULT));
+		
+		entries_string = p.getProperty(CELL_SECURITY_ENTRIES_PROPERTY, CELL_SECURITY_ENTRIES_PROPERTY_DEFAULT);
+		entries = entries_string.split(",");
+		
+		cell_users = new HashSet<String>();
+		for(String entry: entries) {
+			cell_users.add(entry);
+		}
+		cell_addrow = Boolean.parseBoolean(p.getProperty(CELL_SECURITY_ADDROW_PROPERTY, CELL_SECURITY_ADDROW_PROPERTY_DEFAULT));
+		cell_addcolumn = Boolean.parseBoolean(p.getProperty(CELL_SECURITY_ADDCOLUMN_PROPERTY, CELL_SECURITY_ADDCOLUMN_PROPERTY_DEFAULT));
+
+		column_enable = Boolean.parseBoolean(p.getProperty(COLUMN_SECURITY_PROPERTY, COLUMN_SECURITY_PROPERTY_DEFAULT));
+		
+		entries_string = p.getProperty(COLUMN_SECURITY_NAME_PROPERTY, COLUMN_SECURITY_NAME_PROPERTY_DEFAULT);
+		entries = entries_string.split(",");
+		
+		column_names = new HashSet<String>();
+		for(String entry: entries) {
+			column_names.add(entry);
+		}
+		
+		entries_string = p.getProperty(COLUMN_SECURITY_ENTRIES_PROPERTY, COLUMN_SECURITY_ENTRIES_PROPERTY_DEFAULT);
+		entries = entries_string.split(",");
+		
+		column_users = new HashSet<String>();
+		for(String entry: entries) {
+			column_users.add(entry);
+		}
+		column_addcolumn = Boolean.parseBoolean(p.getProperty(COLUMN_SECURITY_ADDCOLUMN_PROPERTY, COLUMN_SECURITY_ADDCOLUMN_PROPERTY_DEFAULT));
+
+		table_enable = Boolean.parseBoolean(p.getProperty(TABLE_SECURITY_PROPERTY, TABLE_SECURITY_PROPERTY_DEFAULT));
+		
+		entries_string = p.getProperty(TABLE_SECURITY_ENTRIES_PROPERTY, TABLE_SECURITY_ENTRIES_PROPERTY);
+		entries = entries_string.split(",");
+		
+		table_users = new HashSet<String>();
+		for(String entry: entries) {
+			table_users.add(entry);
+		}
+
+		//		List<AccessControlList> schema_acl;
+		schema_acl = new ArrayList<AccessControlList>();
+		if(column_enable)
+			for(String field: column_names)
+				schema_acl.add(new ColumnAccessControlList(table, field, column_users, Permission.READWRITE, column_addcolumn));
+		if(table_enable)
+			schema_acl.add(new TableAccessControlList(table, table_users, Permission.READWRITE));
+	}
+
+	
+	
+	public void setDBParameters(DB db, Object threadstate) {
+		if(cell_enable || column_enable || table_enable)
+			db.setCredential(credential);
+		if(column_enable || table_enable)
+			db.setSchemaAccessControl(schema_acl);
 	}
 
 	/**
@@ -349,13 +461,17 @@ public class CoreWorkload extends Workload
 			keynum=Utils.hash(keynum);
 		}
 		String dbkey="user"+keynum;
+		List<AccessControlList> acl = new ArrayList<AccessControlList>();
 		HashMap<String,String> values=new HashMap<String,String>();
 		for (int i=0; i<fieldcount; i++)
 		{
 			String fieldkey="field"+i;
 			String data=Utils.ASCIIString(fieldlength);
 			values.put(fieldkey,data);
+			acl.add(new CellAccessControlList(table, dbkey, fieldkey, cell_users, Permission.READWRITE, cell_addrow, cell_addcolumn));
 		}
+		if(cell_enable)
+			db.setOperationAccessControl(acl);
 		if (db.insert(table,dbkey,values) == 0)
 			return true;
 		else
@@ -534,7 +650,8 @@ public class CoreWorkload extends Workload
 			keynum=Utils.hash(keynum);
 		}
 		String keyname="user"+keynum;
-
+		
+		List<AccessControlList> acl = new ArrayList<AccessControlList>();
 		HashMap<String,String> values=new HashMap<String,String>();
 
 		if (writeallfields)
@@ -545,6 +662,7 @@ public class CoreWorkload extends Workload
 		      String fieldname="field"+i;
 		      String data=Utils.ASCIIString(fieldlength);		   
 		      values.put(fieldname,data);
+		      acl.add(new CellAccessControlList(table, keyname, fieldname, cell_users, Permission.READWRITE, cell_addrow, cell_addcolumn));
 		   }
 		}
 		else
@@ -553,8 +671,11 @@ public class CoreWorkload extends Workload
 		   String fieldname="field"+fieldchooser.nextString();
 		   String data=Utils.ASCIIString(fieldlength);		   
 		   values.put(fieldname,data);
+		   acl.add(new CellAccessControlList(table, keyname, fieldname, cell_users, Permission.READWRITE, cell_addrow, cell_addcolumn));
 		}
 
+		if(cell_enable)
+			db.setOperationAccessControl(acl);
 		db.update(table,keyname,values);
 	}
 
@@ -568,13 +689,17 @@ public class CoreWorkload extends Workload
 		}
 		String dbkey="user"+keynum;
 		
+		List<AccessControlList> acl = new ArrayList<AccessControlList>();
 		HashMap<String,String> values=new HashMap<String,String>();
 		for (int i=0; i<fieldcount; i++)
 		{
 			String fieldkey="field"+i;
 			String data=Utils.ASCIIString(fieldlength);
 			values.put(fieldkey,data);
+			acl.add(new CellAccessControlList(table, dbkey, fieldkey, cell_users, Permission.READWRITE, cell_addrow, cell_addcolumn));
 		}
+		if(cell_enable)
+			db.setOperationAccessControl(acl);
 		db.insert(table,dbkey,values);
 	}
 }

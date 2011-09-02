@@ -44,7 +44,8 @@ public abstract class OneMeasurement {
 	public abstract void measure(int latency);
 
 	public abstract String getSummary();
-
+        
+        public abstract double getAvgLatency();
   /**
    * Export the current measurements to a suitable format.
    * 

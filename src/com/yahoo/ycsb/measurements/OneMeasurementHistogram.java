@@ -149,6 +149,19 @@ public class OneMeasurementHistogram extends OneMeasurement
     exporter.write(getName(), ">"+_buckets, histogramoverflow);
   }
 
+        @Override
+	public double getAvgLatency() {
+		if (windowoperations==0)
+		{
+			return 0;
+		}
+		DecimalFormat d = new DecimalFormat("#.##");
+		double report=((double)windowtotallatency)/((double)windowoperations);
+		windowtotallatency=0;
+		windowoperations=0;
+                return report;
+        }
+
 	@Override
 	public String getSummary() {
 		if (windowoperations==0)

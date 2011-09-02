@@ -25,6 +25,7 @@ import java.util.*;
 import com.yahoo.ycsb.measurements.Measurements;
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 import com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter;
+import com.yahoo.ycsb.measurements.reporter.*;
 
 //import org.apache.log4j.BasicConfigurator;
 
@@ -38,18 +39,34 @@ class StatusThread extends Thread
 {
 	Vector<Thread> _threads;
 	String _label;
+        String _phase;
 	boolean _standardstatus;
-	
+	Reporter reporter;
+
 	/**
 	 * The interval for reporting status.
 	 */
 	public static final long sleeptime=10000;
 
-	public StatusThread(Vector<Thread> threads, String label, boolean standardstatus)
+	public StatusThread(Vector<Thread> threads, String label, String phase, boolean standardstatus, Properties props)
 	{
 		_threads=threads;
 		_label=label;
+                if (phase == "") {
+                  _phase = "0";
+                } else {
+                  _phase=phase;
+                }
 		_standardstatus=standardstatus;
+
+
+                reporter = null;
+                String reportername = props.getProperty("reporter");
+                if (reportername == null) {
+                    reporter = null;
+                } else {
+                    reporter = ReporterFactory.newReporter(reportername, props);
+                }
 	}
 
 	/**
@@ -64,7 +81,12 @@ class StatusThread extends Thread
 		
 		boolean alldone;
 
-		do 
+                if (reporter != null) {
+                  reporter.start();
+                  reporter.send("phase", Integer.parseInt(_phase));
+                }
+
+		do
 		{
 			alldone=true;
 
@@ -93,27 +115,35 @@ class StatusThread extends Thread
 			lasten=en;
 			
 			DecimalFormat d = new DecimalFormat("#.##");
-			
-			if (totalops==0)
-			{
-				System.err.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary());
-			}
-			else
-			{
-				System.err.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());
-			}
+
 
 			if (_standardstatus)
 			{
 			if (totalops==0)
 			{
-				System.out.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary());
+				System.out.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary(reporter));
 			}
 			else
 			{
-				System.out.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());
+				System.out.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary(reporter));
 			}
-			}
+			} else {
+                          if (totalops==0)
+                          {
+                                  System.err.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary(reporter));
+                          }
+                          else
+                          {
+                                  System.err.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary(reporter));
+                          }
+                        }
+
+                        if (reporter != null) {
+                            reporter.send("ops", totalops);
+                            reporter.send("throughput", curthroughput);
+                            reporter.send("phase", Integer.parseInt(_phase));
+                            reporter.commit();
+                        }
 
 			try
 			{
@@ -222,6 +252,8 @@ class ClientThread extends Thread
 		{
 		   //do nothing
 		}
+		
+		_workload.setDBParameters(_db, _workloadstate);
 		
 		try
 		{
@@ -727,8 +759,8 @@ public class Client
 			if (props.getProperty("measurementtype","").compareTo("timeseries")==0) 
 			{
 				standardstatus=true;
-			}	
-			statusthread=new StatusThread(threads,label,standardstatus);
+			}
+			statusthread=new StatusThread(threads,label,"",standardstatus, props);
 			statusthread.start();
 		}
 
@@ -755,6 +787,7 @@ public class Client
 		if (status)
 		{
 			statusthread.interrupt();
+
 		}
 
 		try
@@ -777,6 +810,21 @@ public class Client
 			e.printStackTrace();
 			System.exit(-1);
 		}
+
+                if (status) {
+                        String reportername = props.getProperty("reporter");
+                        if (reportername != null) {
+                            Reporter reporter = ReporterFactory.newReporter(reportername, props);
+                            if (reporter != null) {
+                                reporter.start();
+                                reporter.send("ops", 0);
+                                reporter.send("throughput", 0);
+                                reporter.send("phase", 0);
+                                reporter.commit();
+                                reporter.end();
+                            }
+                        }
+                }
 
 		System.exit(0);
 	}

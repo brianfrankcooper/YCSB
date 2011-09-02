@@ -18,9 +18,13 @@
 package com.yahoo.ycsb;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
+
+import com.yahoo.ycsb.security.AccessControlList;
+import com.yahoo.ycsb.security.Credential;
 
 /**
  * A layer for accessing a database to be benchmarked. Each thread in the client
@@ -92,6 +96,52 @@ public abstract class DB
 	 */
 	public abstract int read(String table, String key, Set<String> fields, HashMap<String,String> result);
 
+	
+	public enum Filter {
+		NONE,
+		/**
+		 * Only return fields matching the filter pattern
+		 */
+		FIELD, 
+		/**
+		 * Only return fields whose value matches the pattern
+		 */
+		VALUE, 
+		/**
+		 * Only return rows whose key match the pattern
+		 */
+		KEY, 
+		/**
+		 * Only return rows which have a match for the specified field and its
+		 * value matches the pattern. Field has to be explicitly specified; the
+		 * value should be a regular expression, the two separated with a newline.
+		 */
+		FIELD_VALUE;
+	}
+	
+	/**
+	 * Sets a filter for a table. This filter will be applied to all future reads or scans.
+	 * Interpretation of the filter is specific to the individual database backend.
+	 * A default no-op implementation is provided here so that implementation of this functionality
+	 * is optional.
+	 * @param table The name of the table for the filter
+	 * @param filterType The name of the filter to apply. Interpretation specific to backends.
+	 * @param filterOptions Options for the filter. Interpretation specific to backends.
+	 * @return Zero on success, a non-zerror error code on error, such as an error in the filter strings.
+	 */
+	public int setFilter(String table, Filter filterType, String filterOptions)
+	{
+		return 0;
+	}
+	
+	/**
+	 * Clears the filter set on a table.
+	 * @param table The name of the table to clear the filter on.
+	 */
+	public void clearFilters(String table)
+	{
+	}
+	
 	/**
 	 * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a HashMap.
 	 *
@@ -134,4 +184,27 @@ public abstract class DB
 	 * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
 	 */
 	public abstract int delete(String table, String key);
+	
+	/**
+	 * Presplit the table
+	 *  
+	 * @param table The name of the table
+	 * @param splitKeys The keys used to split the table
+	 * @return Zero on success, a non-zero error code on error. -1 means not supported
+	 */
+	public int presplit(String table, String[] splitKeys) {
+		return -1;
+	}
+	
+	public void setCredential(Credential credential) {
+		throw new UnsupportedOperationException();
+	}
+
+	public void setSchemaAccessControl(List<AccessControlList> acl) {
+		throw new UnsupportedOperationException();
+	}
+
+	public void setOperationAccessControl(List<AccessControlList> acl) {
+		throw new UnsupportedOperationException();
+	}
 }

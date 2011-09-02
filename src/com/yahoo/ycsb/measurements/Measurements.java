@@ -20,8 +20,10 @@ package com.yahoo.ycsb.measurements;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Properties;
+import java.text.DecimalFormat;
 
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
+import com.yahoo.ycsb.measurements.reporter.Reporter;
 
 /**
  * Collects latency measurements, and reports them when requested.
@@ -92,6 +94,10 @@ public class Measurements
 		}
 	}
 
+      public void cleanMeasurement() {
+        data=new HashMap<String,OneMeasurement>();
+      }
+
       /**
        * Report a single value of a single metric. E.g. for read latency, operation="READ" and latency is the measured value.
        */
@@ -151,17 +157,21 @@ public class Measurements
     }
   }
 	
-      /**
-       * Return a one line summary of the measurements.
-       */
-	public String getSummary()
-	{
-		String ret="";
-		for (OneMeasurement m : data.values())
-		{
-			ret+=m.getSummary()+" ";
-		}
-		
-		return ret;
-	}
+  /**
+  * Return a one line summary of the measurements.
+  */
+  public String getSummary(Reporter rep)
+  {
+      String ret="";
+      DecimalFormat d = new DecimalFormat("#.##");
+      for (OneMeasurement m : data.values())
+      {
+          double latency = m.getAvgLatency();
+          if (rep != null) {
+              rep.send("latency_"+m.getName().toLowerCase(), latency);
+          }
+          ret+="["+m.getName()+" AverageLatency(ms)="+d.format(latency)+"]";
+      }
+      return ret;
+  }
 }

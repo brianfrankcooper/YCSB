@@ -18,11 +18,14 @@
 package com.yahoo.ycsb;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
 import com.yahoo.ycsb.measurements.Measurements;
+import com.yahoo.ycsb.security.AccessControlList;
+import com.yahoo.ycsb.security.Credential;
 
 /**
  * Wrapper around a "real" DB that measures latencies and counts return codes.
@@ -165,4 +168,64 @@ public class DBWrapper extends DB
 		_measurements.reportReturnCode("DELETE",res);
 		return res;
 	}
+	
+	/**
+	 * Presplit the table
+	 *  
+	 * @param table The name of the table
+	 * @param splitKeys The keys used to split the table
+	 * @return Zero on success, a non-zero error code on error. -1 means not supported
+	 */
+	public int presplit(String table, String[] splitKeys)
+	{
+		System.out.println("Call presplit from db wrapper");
+		long st=System.currentTimeMillis();
+		int res = _db.presplit(table, splitKeys);
+		long en=System.currentTimeMillis();
+		_measurements.measure("SPLIT",(int)(en-st));
+		_measurements.reportReturnCode("SPLIT",res);
+		return res;
+	}
+	
+	/**
+	 * Sets a filter for a table. This filter will be applied to all future reads or scans.
+	 * Interpretation of the filter is specific to the individual database backend.
+	 * A default no-op implementation is provided here so that implementation of this functionality
+	 * is optional.
+	 * @param table The name of the table for the filter
+	 * @param filterType The name of the filter to apply. Interpretation specific to backends.
+	 * @param filterOptions Options for the filter. Interpretation specific to backends.
+	 * @return Zero on success, a non-zerror error code on error, such as an error in the filter strings.
+	 */
+	public int setFilter(String table, Filter filterType, String filterOptions)
+	{
+		return _db.setFilter(table, filterType, filterOptions);
+	}
+	
+	/**
+	 * Clears the filter set on a table.
+	 * @param table The name of the table to clear the filter on.
+	 */
+	public void clearFilters(String table)
+	{
+		_db.clearFilters(table);
+	}
+
+	@Override
+	public void setCredential(Credential credential) {
+		_db.setCredential(credential);
+	}
+
+	@Override
+	public void setSchemaAccessControl(List<AccessControlList> acl) {
+		_db.setSchemaAccessControl(acl);
+	}
+
+	@Override
+	public void setOperationAccessControl(List<AccessControlList> acl) {
+		_db.setOperationAccessControl(acl);
+	}
+
+
+
 }

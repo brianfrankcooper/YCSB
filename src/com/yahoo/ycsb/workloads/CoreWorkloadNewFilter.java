@@ -1,18 +1,19 @@
 /**
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved. 
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"); you
- * may not use this file except in compliance with the License. You
- * may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0 
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
- * implied. See the License for the specific language governing
- * permissions and limitations under the License. See accompanying
- * LICENSE file.
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.yahoo.ycsb.workloads;
@@ -23,11 +24,11 @@ import com.yahoo.ycsb.generator.CounterGenerator;
 import com.yahoo.ycsb.generator.DiscreteGenerator;
 import com.yahoo.ycsb.generator.Generator;
 import com.yahoo.ycsb.generator.IntegerGenerator;
+import com.yahoo.ycsb.generator.ConstantGenerator;
 import com.yahoo.ycsb.generator.ScrambledZipfianGenerator;
 import com.yahoo.ycsb.generator.SkewedLatestGenerator;
 import com.yahoo.ycsb.generator.UniformIntegerGenerator;
 import com.yahoo.ycsb.generator.ZipfianGenerator;
-import com.yahoo.ycsb.generator.ConstantGenerator;
 import com.yahoo.ycsb.measurements.Measurements;
 
 import java.util.HashMap;
@@ -56,7 +57,7 @@ import java.util.Vector;
  * <LI><b>insertorder</b>: should records be inserted in order by key ("ordered"), or in hashed order ("hashed") (default: hashed)
  * </ul> 
  */
-public class CoreWorkload extends Workload
+public class CoreWorkloadNewFilter extends Workload
 {
 
 	/**
@@ -210,9 +211,23 @@ public class CoreWorkload extends Workload
 	 * Default insert order.
 	 */
 	public static final String INSERT_ORDER_PROPERTY_DEFAULT="hashed";
-	
-	IntegerGenerator keysequence;
 
+	/**
+	 * The name of the property for Whether all the columns are in 
+	 * their own families or not.
+	 */
+	public static final String UNIQUE_FAMILIES_PROPERTY="uniquefamilies";
+
+	public static final String UNIQUE_FAMILIES_PROPERTY_DEFAULT="false";
+
+	public static final String FILTER_TYPE_PROPERTY="filtertype";
+	public static final String FILTER_TYPE_PROPERTY_DEFAULT="none";
+
+	public static final String FILTER_OPTIONS_PROPERTY="filteroptions";
+	public static final String FILTER_OPTIONS_PROPERTY_DEFAULT="";
+
+	IntegerGenerator keysequence;
+	
 	DiscreteGenerator operationchooser;
 
 	IntegerGenerator keychooser;
@@ -226,7 +241,9 @@ public class CoreWorkload extends Workload
 	boolean orderedinserts;
 
 	int recordcount;
-	
+	DB.Filter filtertype;
+	String filteroptions;
+
 	/**
 	 * Initialize the scenario. 
 	 * Called once, in the main client thread, before any operations are started.
@@ -241,16 +258,16 @@ public class CoreWorkload extends Workload
 		double insertproportion=Double.parseDouble(p.getProperty(INSERT_PROPORTION_PROPERTY,INSERT_PROPORTION_PROPERTY_DEFAULT));
 		double scanproportion=Double.parseDouble(p.getProperty(SCAN_PROPORTION_PROPERTY,SCAN_PROPORTION_PROPERTY_DEFAULT));
 		double readmodifywriteproportion=Double.parseDouble(p.getProperty(READMODIFYWRITE_PROPORTION_PROPERTY,READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT));
-		recordcount=Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY, "0"));
+		recordcount=Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY));
 		String requestdistrib=p.getProperty(REQUEST_DISTRIBUTION_PROPERTY,REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
 		int maxscanlength=Integer.parseInt(p.getProperty(MAX_SCAN_LENGTH_PROPERTY,MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
 		String scanlengthdistrib=p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY,SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
-		
+		String filtertypestring=p.getProperty(FILTER_TYPE_PROPERTY,FILTER_TYPE_PROPERTY_DEFAULT);
 		int insertstart=Integer.parseInt(p.getProperty(INSERT_START_PROPERTY,INSERT_START_PROPERTY_DEFAULT));
 		
 		readallfields=Boolean.parseBoolean(p.getProperty(READ_ALL_FIELDS_PROPERTY,READ_ALL_FIELDS_PROPERTY_DEFAULT));
 		writeallfields=Boolean.parseBoolean(p.getProperty(WRITE_ALL_FIELDS_PROPERTY,WRITE_ALL_FIELDS_PROPERTY_DEFAULT));
-		
+		filteroptions=p.getProperty(FILTER_OPTIONS_PROPERTY, FILTER_OPTIONS_PROPERTY_DEFAULT);
 		if (p.getProperty(INSERT_ORDER_PROPERTY,INSERT_ORDER_PROPERTY_DEFAULT).compareTo("hashed")==0)
 		{
 			orderedinserts=false;
@@ -328,12 +345,31 @@ public class CoreWorkload extends Workload
 		else if (scanlengthdistrib.compareTo("constant")==0)
 		{
 			scanlength=new ConstantGenerator(maxscanlength);
-		}		
+		}
 		else
 		{
 			throw new WorkloadException("Distribution \""+scanlengthdistrib+"\" not allowed for scan length");
 		}
+
+		if (filtertypestring.compareTo("field")==0) {
+			filtertype = DB.Filter.FIELD;
+		} else if (filtertypestring.compareTo("value")==0) {
+			filtertype = DB.Filter.VALUE;
+		} else if (filtertypestring.compareTo("key")==0) {
+			filtertype = DB.Filter.KEY;
+		} else if (filtertypestring.compareTo("fieldvalue")==0) {
+			filtertype = DB.Filter.FIELD_VALUE;
+		} else {
+			filtertype = DB.Filter.NONE;
+		}
 	}
+
+
+      public void setDBParameters(DB db, Object threadstate) {
+	      if (filtertype != DB.Filter.NONE) {
+		      db.setFilter(table, filtertype, filteroptions);
+	      }
+      }
 
 	/**
 	 * Do one insert operation. Because it will be called concurrently from multiple client threads, this 

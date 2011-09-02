@@ -14,67 +14,84 @@
           <include name="**/*.jar" />
         </fileset>
     </path>
+    <target name="bulkcompile-hbase" depends="compile">
+        <property name="bulk.dir" value="bulkloader/hbase"/>
+        <antcall target="bulkcompile"/>
+    </target>
 
     <target name="dbcompile-cassandra-0.5" depends="compile">
-    	<property name="db.dir" value="db/cassandra-0.5"/>
+        <property name="db.dir" value="db/cassandra-0.5"/>
         <antcall target="dbcompile"/>
     </target>
-    	
-   	<target name="dbcompile-cassandra-0.6" depends="compile">
-		<property name="db.dir" value="db/cassandra-0.6"/>
-		<antcall target="dbcompile"/>
-	</target>
-   	
-   	<target name="dbcompile-cassandra-0.7" depends="compile">
-		<property name="db.dir" value="db/cassandra-0.7"/>
-		<antcall target="dbcompile"/>
-	</target>   	
-   	
-   	<target name="dbcompile-hbase" depends="compile">
-		<property name="db.dir" value="db/hbase"/>
-		<antcall target="dbcompile"/>
-	</target>
+        
+    <target name="dbcompile-cassandra-0.6" depends="compile">
+        <property name="db.dir" value="db/cassandra-0.6"/>
+        <antcall target="dbcompile"/>
+    </target>
+    
+    <target name="dbcompile-cassandra-0.7" depends="compile">
+        <property name="db.dir" value="db/cassandra-0.7"/>
+        <antcall target="dbcompile"/>
+    </target>       
+    
+    <target name="dbcompile-hbase" depends="compile">
+        <property name="db.dir" value="db/hbase"/>
+        <antcall target="dbcompile"/>
+    </target>
 
-   	<target name="dbcompile-mongodb" depends="compile">
-		<property name="db.dir" value="db/mongodb"/>
-		<antcall target="dbcompile"/>
-	</target>
+    <target name="dbcompile-mongodb" depends="compile">
+        <property name="db.dir" value="db/mongodb"/>
+        <antcall target="dbcompile"/>
+    </target>
 
-   	<target name="dbcompile-voldemort" depends="compile">
-		<property name="db.dir" value="db/voldemort"/>
-		<antcall target="dbcompile"/>
-	</target>
-   	
-   	<target name="dbcompile-jdbc" depends="compile">
-   		<property name="db.dir" value="db/jdbc"/>
-   	    <antcall target="dbcompile"/>
-   	</target>
-	
- 	<target name="compile">
+    <target name="dbcompile-voldemort" depends="compile">
+        <property name="db.dir" value="db/voldemort"/>
+        <antcall target="dbcompile"/>
+    </target>
+
+    <target name="dbcompile-cloudbase" depends="compile">
+        <property name="db.dir" value="db/cloudbase"/>
+        <antcall target="dbcompile"/>
+    </target>
+    
+    <target name="compile">
         <mkdir dir="${classes.dir}"/>
-        <javac srcdir="${src.dir}" destdir="${classes.dir}" classpathref="build.classpath" deprecation="on">
+        <javac srcdir="${src.dir}" destdir="${classes.dir}" classpathref="build.classpath" deprecation="on"  debug="on" debuglevel="lines,vars,source" >
           <compilerarg value="-Xlint:unchecked"/>
         </javac>
         <antcall target="makejar"/>
     </target>
 
-	<target name="dbcompile">
-	    <path id="dbclasspath">
-	        <fileset dir="${db.dir}/lib" includes="**/*.jar"/>
-	        <fileset file="build/ycsb.jar"/>
-	    </path>
-		
-    	<mkdir dir="${classes.dir}"/>
-        <javac srcdir="${db.dir}/src" destdir="${classes.dir}" classpathref="dbclasspath" deprecation="on">
+    <target name="bulkcompile">
+        <path id="bulkclasspath">
+            <fileset dir="${bulk.dir}/lib" includes="**/*.jar"/>
+            <fileset file="build/ycsb.jar"/>
+        </path>
+        
+        <mkdir dir="${classes.dir}"/>
+        <javac srcdir="${bulk.dir}/src" destdir="${classes.dir}" classpathref="bulkclasspath" deprecation="on"  debug="on" debuglevel="lines,vars,source" >
           <compilerarg value="-Xlint:unchecked"/>
         </javac>
         <antcall target="makejar"/>
     </target>
 
-   	<target name ="makejar" description="Create a jar for the YCSB project">
-		<jar jarfile="build/ycsb.jar" includes="**/*.class" basedir="${classes.dir}"/>
-	</target>
-   	
+    <target name="dbcompile">
+        <path id="dbclasspath">
+            <fileset dir="${db.dir}/lib" includes="**/*.jar"/>
+            <fileset file="build/ycsb.jar"/>
+        </path>
+        
+        <mkdir dir="${classes.dir}"/>
+        <javac srcdir="${db.dir}/src" destdir="${classes.dir}" classpathref="dbclasspath" deprecation="on"  debug="on" debuglevel="lines,vars,source" >
+          <compilerarg value="-Xlint:unchecked"/>
+        </javac>
+        <antcall target="makejar"/>
+    </target>
+
+    <target name ="makejar" description="Create a jar for the YCSB project">
+        <jar jarfile="build/ycsb.jar" includes="**/*.class" basedir="${classes.dir}"/>
+    </target>
+    
     <target name="clean">
        <delete includeemptydirs="true">
           <fileset dir="build" includes="**/*"/>

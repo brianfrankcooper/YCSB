@@ -163,6 +163,18 @@ public class OneMeasurementTimeSeries extends OneMeasurement
 
 	}
 
+        @Override
+	public double getAvgLatency() {
+		if (windowoperations==0)
+		{
+			return 0;
+		}
+		double report=((double)windowtotallatency)/((double)windowoperations);
+		windowtotallatency=0;
+		windowoperations=0;
+                return report;
+        }
+
 	@Override
 	public String getSummary() {
 		if (windowoperations==0)
