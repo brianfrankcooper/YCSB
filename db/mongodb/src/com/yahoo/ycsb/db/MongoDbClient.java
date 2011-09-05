@@ -80,11 +80,11 @@ public class MongoDbClient extends DB {
                 url = url.substring(10);
             }
 
-            ArrayList<ServerAddress> addr = new ArrayList<ServerAddress>();
-            for (String s: url.split(",")) {
-                addr.add(new ServerAddress(s));
-            }
-            mongo = new Mongo(addr);
+            // need to append db to url.
+            url += "/"+database;
+            System.out.println("new database url = "+url);
+            mongo = new Mongo(new DBAddress(url));
+            System.out.println("mongo connection created with "+url);
         } catch (Exception e1) {
             logger.error(
                     "Could not initialize MongoDB connection pool for Loader: "
@@ -159,8 +159,9 @@ public class MongoDbClient extends DB {
             // determine if record was inserted, does not seem to return
             // n=<records affected> for insert
             DBObject errors = db.getLastError();
+            System.out.println(errors.toString());
 
-            return (errors.get("ok") != null && errors.get("err") == null) ? 0 : 1;
+            return ((Double) errors.get("ok")  == 1.0) && errors.get("err") == null ? 0 : 1;
         } catch (Exception e) {
             logger.error(e + "", e);
             return 1;
