@@ -108,7 +108,7 @@ public class MongoDbClient extends DB {
             db = mongo.getDB(database);
             db.requestStart();
             DBCollection collection = db.getCollection(table);
-            DBObject q = new BasicDBObject().append("_id", new ObjectId(key));
+            DBObject q = new BasicDBObject().append("_id", key);
             if (writeConcern.equals(WriteConcern.SAFE)) {
                 q.put("$atomic", true);
             }
@@ -149,7 +149,7 @@ public class MongoDbClient extends DB {
             db.requestStart();
 
             DBCollection collection = db.getCollection(table);
-            DBObject r = new BasicDBObject().append("_id", new ObjectId(key));
+            DBObject r = new BasicDBObject().append("_id", key);
             r.putAll(values);
 
             collection.setWriteConcern(writeConcern);
@@ -192,7 +192,7 @@ public class MongoDbClient extends DB {
             db.requestStart();
 
             DBCollection collection = db.getCollection(table);
-            DBObject q = new BasicDBObject().append("_id", new ObjectId(key));
+            DBObject q = new BasicDBObject().append("_id", key);
             DBObject fieldsToReturn = new BasicDBObject();
             boolean returnAllFields = fields == null;
 
@@ -241,7 +241,7 @@ public class MongoDbClient extends DB {
             db.requestStart();
 
             DBCollection collection = db.getCollection(table);
-            DBObject q = new BasicDBObject().append("_id", new ObjectId(key));
+            DBObject q = new BasicDBObject().append("_id", key);
             DBObject u = new BasicDBObject();
             DBObject fieldsToSet = new BasicDBObject();
             Iterator<String> keys = values.keySet().iterator();
