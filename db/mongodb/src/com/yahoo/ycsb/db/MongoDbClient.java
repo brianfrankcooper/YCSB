@@ -16,9 +16,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.bson.types.ObjectId;
 
 import com.mongodb.BasicDBObject;
@@ -46,8 +43,6 @@ import com.yahoo.ycsb.DBException;
  *
  */
 public class MongoDbClient extends DB {
-
-    private static final Logger logger = LoggerFactory.getLogger(MongoDbClient.class);
 
     private Mongo mongo;
     private WriteConcern writeConcern;
@@ -86,9 +81,9 @@ public class MongoDbClient extends DB {
             mongo = new Mongo(new DBAddress(url));
             System.out.println("mongo connection created with "+url);
         } catch (Exception e1) {
-            logger.error(
+            System.err.println(
                     "Could not initialize MongoDB connection pool for Loader: "
-                            + e1, e1);
+                            + e1.toString());
             return;
         }
 
@@ -119,7 +114,7 @@ public class MongoDbClient extends DB {
 
             return ((Integer) errors.get("n")) == 1 ? 0 : 1;
         } catch (Exception e) {
-            logger.error(e + "", e);
+            System.err.println(e.toString());
             return 1;
         }
         finally
@@ -159,11 +154,11 @@ public class MongoDbClient extends DB {
             // determine if record was inserted, does not seem to return
             // n=<records affected> for insert
             DBObject errors = db.getLastError();
-            System.out.println(errors.toString());
+            System.err.println(errors.toString());
 
             return ((Double) errors.get("ok")  == 1.0) && errors.get("err") == null ? 0 : 1;
         } catch (Exception e) {
-            logger.error(e + "", e);
+            System.err.println(e.toString());
             return 1;
         } finally {
             if (db!=null)
@@ -213,7 +208,7 @@ public class MongoDbClient extends DB {
             }
             return queryResult != null ? 0 : 1;
         } catch (Exception e) {
-            logger.error(e + "", e);
+            System.err.println(e.toString());
             return 1;
         } finally {
             if (db!=null)
@@ -264,7 +259,7 @@ public class MongoDbClient extends DB {
 
             return (Integer) errors.get("n") == 1 ? 0 : 1;
         } catch (Exception e) {
-            logger.error(e + "", e);
+            System.err.println(e.toString());
             return 1;
         } finally {
             if (db!=null)
@@ -304,7 +299,7 @@ public class MongoDbClient extends DB {
 
             return 0;
         } catch (Exception e) {
-            logger.error(e + "", e);
+            System.err.println(e.toString());
             return 1;
         }
         finally
