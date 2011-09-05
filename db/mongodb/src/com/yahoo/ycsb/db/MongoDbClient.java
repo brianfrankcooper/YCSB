@@ -154,7 +154,6 @@ public class MongoDbClient extends DB {
             // determine if record was inserted, does not seem to return
             // n=<records affected> for insert
             DBObject errors = db.getLastError();
-            System.err.println(errors.toString());
 
             return ((Double) errors.get("ok")  == 1.0) && errors.get("err") == null ? 0 : 1;
         } catch (Exception e) {
