@@ -11,6 +11,7 @@
         * gh-35 Cassandra0.8 support (joaquincasares)
         * gh-30 IllegalArgumentException with MongoDB (m1ch1)
         * gh-27 MongoDbClient was not working with non localhost URLs (arunxarun)
+        * gh-29 Add simple sharding capabilities for JDBC driver (kibab)
 
 0.1.3
 	* Voldemort binding (rsumbaly)
