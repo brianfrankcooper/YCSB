@@ -60,6 +60,11 @@
    	    <antcall target="dbcompile"/>
    	</target>
 	
+   	<target name="dbcompile-mysql" depends="compile">
+		<property name="db.dir" value="db/mysql"/>
+		<antcall target="dbcompile"/>
+	</target>
+	
  	<target name="compile">
         <mkdir dir="${classes.dir}"/>
         <javac srcdir="${src.dir}" destdir="${classes.dir}" classpathref="build.classpath" deprecation="on">
