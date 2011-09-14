@@ -59,6 +59,11 @@
    		<property name="db.dir" value="db/jdbc"/>
    	    <antcall target="dbcompile"/>
    	</target>
+
+    <target name="dbcompile-redis" depends="compile">
+        <property name="db.dir" value="db/redis"/>
+        <antcall target="dbcompile"/>
+    </target>
 	
  	<target name="compile">
         <mkdir dir="${classes.dir}"/>
