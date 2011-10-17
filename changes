@@ -13,6 +13,7 @@
         * gh-27 MongoDbClient was not working with non localhost URLs (arunxarun)
         * gh-29 Add simple sharding capabilities for JDBC driver (kibab)
         * gh-40 Merge Redis database interface layer (lehmannro)
+        * gh-42 Response latencies are measured in microseconds (mikewied)
 
 0.1.3
 	* Voldemort binding (rsumbaly)
