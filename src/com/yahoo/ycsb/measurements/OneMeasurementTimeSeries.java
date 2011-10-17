@@ -132,9 +132,9 @@ public class OneMeasurementTimeSeries extends OneMeasurement
     checkEndOfUnit(true);
 
     exporter.write(getName(), "Operations", operations);
-    exporter.write(getName(), "AverageLatency(ms)", (((double)totallatency)/((double)operations)));
-    exporter.write(getName(), "MinLatency(ms)", min);
-    exporter.write(getName(), "MaxLatency(ms)", max);
+    exporter.write(getName(), "AverageLatency(us)", (((double)totallatency)/((double)operations)));
+    exporter.write(getName(), "MinLatency(us)", min);
+    exporter.write(getName(), "MaxLatency(us)", max);
 
     //TODO: 95th and 99th percentile latency
 
@@ -173,7 +173,7 @@ public class OneMeasurementTimeSeries extends OneMeasurement
 		double report=((double)windowtotallatency)/((double)windowoperations);
 		windowtotallatency=0;
 		windowoperations=0;
-		return "["+getName()+" AverageLatency(ms)="+d.format(report)+"]";
+		return "["+getName()+" AverageLatency(us)="+d.format(report)+"]";
 	}
 
 }

@@ -83,10 +83,10 @@ public class DBWrapper extends DB
 	 */
 	public int read(String table, String key, Set<String> fields, HashMap<String,String> result)
 	{
-		long st=System.currentTimeMillis();
+		long st=System.nanoTime();
 		int res=_db.read(table,key,fields,result);
-		long en=System.currentTimeMillis();
-		_measurements.measure("READ",(int)(en-st));
+		long en=System.nanoTime();
+		_measurements.measure("READ",(int)((en-st)/1000));
 		_measurements.reportReturnCode("READ",res);
 		return res;
 	}
@@ -103,10 +103,10 @@ public class DBWrapper extends DB
 	 */
 	public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,String>> result)
 	{
-		long st=System.currentTimeMillis();
+		long st=System.nanoTime();
 		int res=_db.scan(table,startkey,recordcount,fields,result);
-		long en=System.currentTimeMillis();
-		_measurements.measure("SCAN",(int)(en-st));
+		long en=System.nanoTime();
+		_measurements.measure("SCAN",(int)((en-st)/1000));
 		_measurements.reportReturnCode("SCAN",res);
 		return res;
 	}
@@ -122,10 +122,10 @@ public class DBWrapper extends DB
 	 */
 	public int update(String table, String key, HashMap<String,String> values)
 	{
-		long st=System.currentTimeMillis();
+		long st=System.nanoTime();
 		int res=_db.update(table,key,values);
-		long en=System.currentTimeMillis();
-		_measurements.measure("UPDATE",(int)(en-st));
+		long en=System.nanoTime();
+		_measurements.measure("UPDATE",(int)((en-st)/1000));
 		_measurements.reportReturnCode("UPDATE",res);
 		return res;
 	}
@@ -141,10 +141,10 @@ public class DBWrapper extends DB
 	 */
 	public int insert(String table, String key, HashMap<String,String> values)
 	{
-		long st=System.currentTimeMillis();
+		long st=System.nanoTime();
 		int res=_db.insert(table,key,values);
-		long en=System.currentTimeMillis();
-		_measurements.measure("INSERT",(int)(en-st));
+		long en=System.nanoTime();
+		_measurements.measure("INSERT",(int)((en-st)/1000));
 		_measurements.reportReturnCode("INSERT",res);
 		return res;
 	}
@@ -158,10 +158,10 @@ public class DBWrapper extends DB
 	 */
 	public int delete(String table, String key)
 	{
-		long st=System.currentTimeMillis();
+		long st=System.nanoTime();
 		int res=_db.delete(table,key);
-		long en=System.currentTimeMillis();
-		_measurements.measure("DELETE",(int)(en-st));
+		long en=System.nanoTime();
+		_measurements.measure("DELETE",(int)((en-st)/1000));
 		_measurements.reportReturnCode("DELETE",res);
 		return res;
 	}
