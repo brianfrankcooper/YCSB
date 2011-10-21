@@ -17,36 +17,92 @@ import com.gemstone.gemfire.cache.client.ClientCache;
 import com.gemstone.gemfire.cache.client.ClientCacheFactory;
 import com.gemstone.gemfire.cache.client.ClientRegionFactory;
 import com.gemstone.gemfire.cache.client.ClientRegionShortcut;
+import com.gemstone.gemfire.internal.admin.remote.DistributionLocatorId;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 
+/**
+ * VMware vFabric GemFire client for the YCSB benchmark.<br />
+ * <p>By default acts as a GemFire client and tries to connect
+ * to GemFire cache server running on localhost with default
+ * cache server port. Hostname and port of a GemFire cacheServer
+ * can be provided using <code>gemfire.serverport=port</code> and <code>
+ * gemfire.serverhost=host</code> properties on YCSB command line.
+ * A locator may also be used for discovering a cacheServer
+ * by using the property <code>gemfire.locator=host[port]</code></p>
+ * 
+ * <p>To run this client in a peer-to-peer topology with other GemFire
+ * nodes, use the property <code>gemfire.topology=p2p</code>. Running
+ * in p2p mode will enable embedded caching in this client.</p>
+ * 
+ * <p>YCSB by default does its operations against "usertable". When running
+ * as a client this is a <code>ClientRegionShortcut.PROXY</code> region,
+ * when running in p2p mode it is a <code>RegionShortcut.PARTITION</code>
+ * region. A cache.xml defining "usertable" region can be placed in the
+ * working directory to override these region definitions.</p>
+ * 
+ * @author Swapnil Bawaskar (sbawaska at vmware)
+ *
+ */
 public class GemFireClient extends DB {
 
   private static final int SUCCESS = 0;
   private static final int ERROR = -1;
+  private static final String SERVERPORT_PROPERTY_NAME = "gemfire.serverport";
+  private static final String SERVERHOST_PROPERTY_NAME = "gemfire.serverhost";
+  private static final String SERVERHOST_PROPERTY_DEFAULT = "localhost";
+  private static final String LOCATOR_PROPERTY_NAME = "gemfire.locator";
+  private static final String TOPOLOGY_PROPERTY_NAME = "gemfire.topology";
+  private static final String TOPOLOGY_P2P_VALUE = "p2p";
   
   private GemFireCache cache;
-  
-  private int serverPort;
+
+  /**
+   * true if ycsb client runs as a client to a
+   * GemFire cache server
+   */
+  private boolean isClient;
   
   @Override
   public void init() throws DBException {
     Properties props = getProperties();
+    // hostName where GemFire cacheServer is running
+    String serverHost = null;
+    // port of GemFire cacheServer
+    int serverPort = 0;
+    String locatorStr = null;
+
     if (props != null && !props.isEmpty()) {
-      String serverPortStr = props.getProperty("gemfire.serverport");
+      String serverPortStr = props.getProperty(SERVERPORT_PROPERTY_NAME);
       if (serverPortStr != null) {
         serverPort = Integer.parseInt(serverPortStr);
       }
-      String topology = props.getProperty("gemfire.topology");
-      if (topology != null) {
-        if (topology.equals("embedded")) {
-          cache = new CacheFactory().create();
+      serverHost = props.getProperty(SERVERHOST_PROPERTY_NAME, SERVERHOST_PROPERTY_DEFAULT);
+      locatorStr = props.getProperty(LOCATOR_PROPERTY_NAME);
+      
+      String topology = props.getProperty(TOPOLOGY_PROPERTY_NAME);
+      if (topology != null && topology.equals(TOPOLOGY_P2P_VALUE)) {
+        CacheFactory cf = new CacheFactory();
+        if (locatorStr != null) {
+          cf.set("locators", locatorStr);
         }
+        cache = cf.create();
+        isClient = false;
         return;
       }
     }
-    cache = new ClientCacheFactory().create();
-    
+    isClient = true;
+    DistributionLocatorId locator = null;
+    if (locatorStr != null) {
+      locator = new DistributionLocatorId(locatorStr);
+    }
+    ClientCacheFactory ccf = new ClientCacheFactory();
+    if (serverPort != 0) {
+      ccf.addPoolServer(serverHost, serverPort);
+    } else if (locator != null) {
+      ccf.addPoolLocator(locator.getHost().getCanonicalHostName(), locator.getPort());
+    }
+    cache = ccf.create();
   }
   
   @Override
@@ -70,8 +126,8 @@ public class GemFireClient extends DB {
   @Override
   public int scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String, String>> result) {
-    // TODO 
-    return SUCCESS;
+    // TODO GemFire does not support scan
+    return ERROR;
   }
 
   @Override
@@ -96,7 +152,7 @@ public class GemFireClient extends DB {
     Region<String, Map<String, String>> r = cache.getRegion(table);
     if (r == null) {
       try {
-        if (cache instanceof ClientCache) {
+        if (isClient) {
           ClientRegionFactory<String, Map<String, String>> crf = ((ClientCache) cache).createClientRegionFactory(ClientRegionShortcut.PROXY);
           r = crf.create(table);
         } else {
