@@ -7,6 +7,14 @@ import java.io.InputStreamReader;
 import com.gemstone.gemfire.cache.util.ObjectSizer;
 import com.yahoo.ycsb.workloads.CoreWorkload;
 
+/**
+ * Utility to help figure out the number of entries to be
+ * inserted to fill the heap to a certain percentage. The
+ * output provided does <i>not</i> consider redundant copies.
+ * 
+ * @author Swapnil Bawaskar (sbawaska at vmware)
+ *
+ */
 public class ConfigHelper {
 
   public static void main(String[] args) throws IOException {
