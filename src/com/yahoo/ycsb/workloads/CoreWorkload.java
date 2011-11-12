@@ -304,7 +304,7 @@ public class CoreWorkload extends Workload
 	{
 		table = p.getProperty(TABLENAME_PROPERTY,TABLENAME_PROPERTY_DEFAULT);
 		
-		int fieldcount=Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY,FIELD_COUNT_PROPERTY_DEFAULT));
+		fieldcount=Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY,FIELD_COUNT_PROPERTY_DEFAULT));
 		fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
 		
 		double readproportion=Double.parseDouble(p.getProperty(READ_PROPORTION_PROPERTY,READ_PROPORTION_PROPERTY_DEFAULT));
@@ -426,6 +426,7 @@ public class CoreWorkload extends Workload
 		}
 		String dbkey="user"+keynum;
 		HashMap<String,String> values=new HashMap<String,String>();
+
 		for (int i=0; i<fieldcount; i++)
 		{
 			String fieldkey="field"+i;
