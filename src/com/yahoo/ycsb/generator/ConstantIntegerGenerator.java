@@ -1,4 +1,4 @@
-/**                                                                                                                                                                                
+/**
  * Copyright (c) 2010 Yahoo! Inc. All rights reserved.                                                                                                                             
  *                                                                                                                                                                                 
  * Licensed under the Apache License, Version 2.0 (the "License"); you                                                                                                             
@@ -12,41 +12,33 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or                                                                                                                 
  * implied. See the License for the specific language governing                                                                                                                    
  * permissions and limitations under the License. See accompanying                                                                                                                 
- * LICENSE file.                                                                                                                                                                   
+ * LICENSE file.
  */
-
 package com.yahoo.ycsb.generator;
 
 /**
- * Generates a sequence of integers 0, 1, ...
+ * A trivial integer generator that always returns the same value.
+ * 
+ * @author sears
+ *
  */
-public class CounterGenerator extends IntegerGenerator
-{
-	int counter;
-
+public class ConstantIntegerGenerator extends IntegerGenerator {
+	private final int i;
 	/**
-	 * Create a counter that starts at countstart
+	 * @param i The integer that this generator will always return.
 	 */
-	public CounterGenerator(int countstart)
-	{
-		counter=countstart;
-		setLastInt(countstart-1);
+	public ConstantIntegerGenerator(int i) {
+		this.i = i;
 	}
-	
-	/**
-	 * If the generator returns numeric (integer) values, return the next value as an int. Default is to return -1, which
-	 * is appropriate for generators that do not return numeric values.
-	 */
-	public synchronized int nextInt() 
-	{
-		int lastint=counter;
-		counter++;
-		setLastInt(lastint);
-		return lastint;
+
+	@Override
+	public int nextInt() {
+		return i;
 	}
 
 	@Override
 	public double mean() {
-		throw new UnsupportedOperationException("Can't compute mean of non-stationary distribution!");
+		return i;
 	}
+
 }
