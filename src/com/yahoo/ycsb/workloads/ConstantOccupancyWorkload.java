@@ -74,12 +74,13 @@ public class ConstantOccupancyWorkload extends CoreWorkload {
 			System.err.println("Warning: record, insert or operation count was set prior to initting ConstantOccupancyWorkload.  Overriding old values.");
 		}
 		IntegerGenerator g = CoreWorkload.getFieldLengthGenerator(p);
-		System.out.println(g+ " mean " + g.mean());
 		double fieldsize = g.mean();
 		int fieldcount = Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
 
 		object_count = (long)(occupancy * ((double)disksize / (fieldsize * (double)fieldcount)));
-		System.out.println("occupancy " + occupancy + " object count " + object_count);
+                if(object_count == 0) {
+                    throw new IllegalStateException("Object count was zero.  Perhaps disksize is too low?");
+                }
 		p.setProperty(Client.RECORD_COUNT_PROPERTY, object_count+"");
 		p.setProperty(Client.OPERATION_COUNT_PROPERTY, (storageages*object_count)+"");
 		p.setProperty(Client.INSERT_COUNT_PROPERTY, object_count+"");
