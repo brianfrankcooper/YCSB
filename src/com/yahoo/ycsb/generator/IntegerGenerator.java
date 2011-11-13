@@ -67,4 +67,8 @@ public abstract class IntegerGenerator extends Generator
 	{
 		return lastint;
 	}
+	/**
+	 * Return the expected value (mean) of the values this generator will return.
+	 */
+	public abstract double mean();
 }

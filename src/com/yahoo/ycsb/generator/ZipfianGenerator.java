@@ -316,4 +316,12 @@ public class ZipfianGenerator extends IntegerGenerator
 	{
 		new ZipfianGenerator(ScrambledZipfianGenerator.ITEM_COUNT);
 	}
+
+	/**
+	 * @todo Implement ZipfianGenerator.mean()
+	 */
+	@Override
+	public double mean() {
+		throw new UnsupportedOperationException("@todo implement ZipfianGenerator.mean()");
+	}
 }

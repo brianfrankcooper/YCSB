@@ -50,4 +50,8 @@ public class UniformIntegerGenerator extends IntegerGenerator
 		return ret;
 	}
 
+	@Override
+	public double mean() {
+		return ((double)((long)(_lb + (long)_ub))) / 2.0;
+	}
 }

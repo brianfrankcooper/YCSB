@@ -22,7 +22,9 @@ import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.generator.CounterGenerator;
 import com.yahoo.ycsb.generator.DiscreteGenerator;
 import com.yahoo.ycsb.generator.Generator;
+import com.yahoo.ycsb.generator.ConstantIntegerGenerator;
 import com.yahoo.ycsb.generator.HotspotIntegerGenerator;
+import com.yahoo.ycsb.generator.HistogramGenerator;
 import com.yahoo.ycsb.generator.IntegerGenerator;
 import com.yahoo.ycsb.generator.ScrambledZipfianGenerator;
 import com.yahoo.ycsb.generator.SkewedLatestGenerator;
@@ -30,6 +32,7 @@ import com.yahoo.ycsb.generator.UniformIntegerGenerator;
 import com.yahoo.ycsb.generator.ZipfianGenerator;
 import com.yahoo.ycsb.measurements.Measurements;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Vector;
@@ -85,17 +88,40 @@ public class CoreWorkload extends Workload
 	int fieldcount;
 
 	/**
+	 * The name of the property for the field length distribution. Options are "uniform", "zipfian" (favoring short records), "constant", and "histogram".
+	 * 
+	 * If "uniform", "zipfian" or "constant", the maximum field length will be that specified by the fieldlength property.  If "histogram", then the
+	 * histogram will be read from the filename specified in the "fieldlengthhistogram" property.
+	 */
+	public static final String FIELD_LENGTH_DISTRIBUTION_PROPERTY="fieldlengthdistribution";
+	/**
+	 * The default field length distribution.
+	 */
+	public static final String FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT = "constant";
+
+	/**
 	 * The name of the property for the length of a field in bytes.
 	 */
 	public static final String FIELD_LENGTH_PROPERTY="fieldlength";
-	
 	/**
-	 * The default length of a field in bytes.
+	 * The default maximum length of a field in bytes.
 	 */
 	public static final String FIELD_LENGTH_PROPERTY_DEFAULT="100";
 
-	int fieldlength;
+	/**
+	 * The name of a property that specifies the filename containing the field length histogram (only used if fieldlengthdistribution is "histogram").
+	 */
+	public static final String FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY = "fieldlengthhistogram";
+	/**
+	 * The default filename containing a field length histogram.
+	 */
+	public static final String FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY_DEFAULT = "hist.txt";
 
+	/**
+	 * Generator object that produces field lengths.  The value of this depends on the properties that start with "FIELD_LENGTH_".
+	 */
+	IntegerGenerator fieldlengthgenerator;
+	
 	/**
 	 * The name of the property for deciding whether to read one field (false) or all fields (true) of a record.
 	 */
@@ -247,6 +273,29 @@ public class CoreWorkload extends Workload
 
 	int recordcount;
 	
+	protected static IntegerGenerator getFieldLengthGenerator(Properties p) throws WorkloadException{
+		IntegerGenerator fieldlengthgenerator;
+		String fieldlengthdistribution = p.getProperty(FIELD_LENGTH_DISTRIBUTION_PROPERTY, FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
+		int fieldlength=Integer.parseInt(p.getProperty(FIELD_LENGTH_PROPERTY,FIELD_LENGTH_PROPERTY_DEFAULT));
+		String fieldlengthhistogram = p.getProperty(FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY, FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY_DEFAULT);
+		if(fieldlengthdistribution.compareTo("constant") == 0) {
+			fieldlengthgenerator = new ConstantIntegerGenerator(fieldlength);
+		} else if(fieldlengthdistribution.compareTo("uniform") == 0) {
+			fieldlengthgenerator = new UniformIntegerGenerator(1, fieldlength);
+		} else if(fieldlengthdistribution.compareTo("zipfian") == 0) {
+			fieldlengthgenerator = new ZipfianGenerator(1, fieldlength);
+		} else if(fieldlengthdistribution.compareTo("histogram") == 0) {
+			try {
+				fieldlengthgenerator = new HistogramGenerator(fieldlengthhistogram);
+			} catch(IOException e) {
+				throw new WorkloadException("Couldn't read field length histogram file: "+fieldlengthhistogram, e);
+			}
+		} else {
+			throw new WorkloadException("Unknown field length distribution \""+fieldlengthdistribution+"\"");
+		}
+		return fieldlengthgenerator;
+	}
+	
 	/**
 	 * Initialize the scenario. 
 	 * Called once, in the main client thread, before any operations are started.
@@ -254,8 +303,10 @@ public class CoreWorkload extends Workload
 	public void init(Properties p) throws WorkloadException
 	{
 		table = p.getProperty(TABLENAME_PROPERTY,TABLENAME_PROPERTY_DEFAULT);
+		
 		fieldcount=Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY,FIELD_COUNT_PROPERTY_DEFAULT));
-		fieldlength=Integer.parseInt(p.getProperty(FIELD_LENGTH_PROPERTY,FIELD_LENGTH_PROPERTY_DEFAULT));
+		fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
+		
 		double readproportion=Double.parseDouble(p.getProperty(READ_PROPORTION_PROPERTY,READ_PROPORTION_PROPERTY_DEFAULT));
 		double updateproportion=Double.parseDouble(p.getProperty(UPDATE_PROPORTION_PROPERTY,UPDATE_PROPORTION_PROPERTY_DEFAULT));
 		double insertproportion=Double.parseDouble(p.getProperty(INSERT_PROPORTION_PROPERTY,INSERT_PROPORTION_PROPERTY_DEFAULT));
@@ -341,7 +392,7 @@ public class CoreWorkload extends Workload
     }
 		else
 		{
-			throw new WorkloadException("Unknown distribution \""+requestdistrib+"\"");
+			throw new WorkloadException("Unknown request distribution \""+requestdistrib+"\"");
 		}
 
 		fieldchooser=new UniformIntegerGenerator(0,fieldcount-1);
@@ -375,10 +426,11 @@ public class CoreWorkload extends Workload
 		}
 		String dbkey="user"+keynum;
 		HashMap<String,String> values=new HashMap<String,String>();
+
 		for (int i=0; i<fieldcount; i++)
 		{
 			String fieldkey="field"+i;
-			String data=Utils.ASCIIString(fieldlength);
+			String data=Utils.ASCIIString(fieldlengthgenerator.nextInt());
 			values.put(fieldkey,data);
 		}
 		if (db.insert(table,dbkey,values) == 0)
@@ -486,7 +538,7 @@ public class CoreWorkload extends Workload
 		   for (int i=0; i<fieldcount; i++)
 		   {
 		      String fieldname="field"+i;
-		      String data=Utils.ASCIIString(fieldlength);		   
+		      String data=Utils.ASCIIString(fieldlengthgenerator.nextInt());
 		      values.put(fieldname,data);
 		   }
 		}
@@ -494,7 +546,7 @@ public class CoreWorkload extends Workload
 		{
 		   //update a random field
 		   String fieldname="field"+fieldchooser.nextString();
-		   String data=Utils.ASCIIString(fieldlength);		   
+		   String data=Utils.ASCIIString(fieldlengthgenerator.nextInt());
 		   values.put(fieldname,data);
 		}
 
@@ -568,7 +620,7 @@ public class CoreWorkload extends Workload
 		   for (int i=0; i<fieldcount; i++)
 		   {
 		      String fieldname="field"+i;
-		      String data=Utils.ASCIIString(fieldlength);		   
+		      String data=Utils.ASCIIString(fieldlengthgenerator.nextInt());
 		      values.put(fieldname,data);
 		   }
 		}
@@ -576,7 +628,7 @@ public class CoreWorkload extends Workload
 		{
 		   //update a random field
 		   String fieldname="field"+fieldchooser.nextString();
-		   String data=Utils.ASCIIString(fieldlength);		   
+		   String data=Utils.ASCIIString(fieldlengthgenerator.nextInt());
 		   values.put(fieldname,data);
 		}
 
@@ -597,7 +649,7 @@ public class CoreWorkload extends Workload
 		for (int i=0; i<fieldcount; i++)
 		{
 			String fieldkey="field"+i;
-			String data=Utils.ASCIIString(fieldlength);
+			String data=Utils.ASCIIString(fieldlengthgenerator.nextInt());
 			values.put(fieldkey,data);
 		}
 		db.insert(table,dbkey,values);
