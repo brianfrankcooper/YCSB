@@ -425,12 +425,12 @@ public class CoreWorkload extends Workload
 			keynum=Utils.hash(keynum);
 		}
 		String dbkey="user"+keynum;
-		HashMap<String,String> values=new HashMap<String,String>();
+		HashMap<String,ByteIterator> values=new HashMap<String,ByteIterator>();
 
 		for (int i=0; i<fieldcount; i++)
 		{
 			String fieldkey="field"+i;
-			String data=Utils.ASCIIString(fieldlengthgenerator.nextInt());
+			ByteIterator data= new RandomByteIterator(fieldlengthgenerator.nextInt());
 			values.put(fieldkey,data);
 		}
 		if (db.insert(table,dbkey,values) == 0)
@@ -500,7 +500,7 @@ public class CoreWorkload extends Workload
 			fields.add(fieldname);
 		}
 
-		db.read(table,keyname,fields,new HashMap<String,String>());
+		db.read(table,keyname,fields,new HashMap<String,ByteIterator>());
 	}
 	
 	public void doTransactionReadModifyWrite(DB db)
@@ -530,7 +530,7 @@ public class CoreWorkload extends Workload
 			fields.add(fieldname);
 		}
 		
-		HashMap<String,String> values=new HashMap<String,String>();
+		HashMap<String,ByteIterator> values=new HashMap<String,ByteIterator>();
 
 		if (writeallfields)
 		{
@@ -538,7 +538,7 @@ public class CoreWorkload extends Workload
 		   for (int i=0; i<fieldcount; i++)
 		   {
 		      String fieldname="field"+i;
-		      String data=Utils.ASCIIString(fieldlengthgenerator.nextInt());
+		      ByteIterator data = new RandomByteIterator(fieldlengthgenerator.nextInt());
 		      values.put(fieldname,data);
 		   }
 		}
@@ -546,7 +546,7 @@ public class CoreWorkload extends Workload
 		{
 		   //update a random field
 		   String fieldname="field"+fieldchooser.nextString();
-		   String data=Utils.ASCIIString(fieldlengthgenerator.nextInt());
+		   ByteIterator data = new RandomByteIterator(fieldlengthgenerator.nextInt());
 		   values.put(fieldname,data);
 		}
 
@@ -554,7 +554,7 @@ public class CoreWorkload extends Workload
 		
 		long st=System.currentTimeMillis();
 
-		db.read(table,keyname,fields,new HashMap<String,String>());
+		db.read(table,keyname,fields,new HashMap<String,ByteIterator>());
 		
 		db.update(table,keyname,values);
 
@@ -593,7 +593,7 @@ public class CoreWorkload extends Workload
 			fields.add(fieldname);
 		}
 
-		db.scan(table,startkeyname,len,fields,new Vector<HashMap<String,String>>());
+		db.scan(table,startkeyname,len,fields,new Vector<HashMap<String,ByteIterator>>());
 	}
 
 	public void doTransactionUpdate(DB db)
@@ -612,7 +612,7 @@ public class CoreWorkload extends Workload
 		}
 		String keyname="user"+keynum;
 
-		HashMap<String,String> values=new HashMap<String,String>();
+		HashMap<String,ByteIterator> values=new HashMap<String,ByteIterator>();
 
 		if (writeallfields)
 		{
@@ -620,7 +620,7 @@ public class CoreWorkload extends Workload
 		   for (int i=0; i<fieldcount; i++)
 		   {
 		      String fieldname="field"+i;
-		      String data=Utils.ASCIIString(fieldlengthgenerator.nextInt());
+		      ByteIterator data = new RandomByteIterator(fieldlengthgenerator.nextInt());
 		      values.put(fieldname,data);
 		   }
 		}
@@ -628,7 +628,7 @@ public class CoreWorkload extends Workload
 		{
 		   //update a random field
 		   String fieldname="field"+fieldchooser.nextString();
-		   String data=Utils.ASCIIString(fieldlengthgenerator.nextInt());
+		   ByteIterator data = new RandomByteIterator(fieldlengthgenerator.nextInt());
 		   values.put(fieldname,data);
 		}
 
@@ -645,11 +645,11 @@ public class CoreWorkload extends Workload
 		}
 		String dbkey="user"+keynum;
 		
-		HashMap<String,String> values=new HashMap<String,String>();
+		HashMap<String,ByteIterator> values=new HashMap<String,ByteIterator>();
 		for (int i=0; i<fieldcount; i++)
 		{
 			String fieldkey="field"+i;
-			String data=Utils.ASCIIString(fieldlengthgenerator.nextInt());
+			ByteIterator data = new RandomByteIterator(fieldlengthgenerator.nextInt());
 			values.put(fieldkey,data);
 		}
 		db.insert(table,dbkey,values);

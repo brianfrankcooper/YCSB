@@ -293,10 +293,10 @@ public class CommandLine
 		     }
 		  }
 		  
-		  HashMap<String,String> result=new HashMap<String,String>();
+		  HashMap<String,ByteIterator> result=new HashMap<String,ByteIterator>();
 		  int ret=db.read(table,tokens[1],fields,result);
 		  System.out.println("Return code: "+ret);
-		  for (Map.Entry<String,String> ent : result.entrySet())
+		  for (Map.Entry<String,ByteIterator> ent : result.entrySet())
 		  {
 		     System.out.println(ent.getKey()+"="+ent.getValue());
 		  }
@@ -322,7 +322,7 @@ public class CommandLine
 		     }
 		  }
 		  
-		  Vector<HashMap<String,String>> results=new Vector<HashMap<String,String>>();
+		  Vector<HashMap<String,ByteIterator>> results=new Vector<HashMap<String,ByteIterator>>();
 		  int ret=db.scan(table,tokens[1],Integer.parseInt(tokens[2]),fields,results);
 		  System.out.println("Return code: "+ret);
 		  int record=0;
@@ -334,10 +334,10 @@ public class CommandLine
 		  {
 		     System.out.println("--------------------------------");
 		  }
-		  for (HashMap<String,String> result : results)
+		  for (HashMap<String,ByteIterator> result : results)
 		  {
 		     System.out.println("Record "+(record++));
-		     for (Map.Entry<String,String> ent : result.entrySet())
+		     for (Map.Entry<String,ByteIterator> ent : result.entrySet())
 		     {
 			System.out.println(ent.getKey()+"="+ent.getValue());
 		     }
@@ -353,12 +353,12 @@ public class CommandLine
 	       }
 	       else 
 	       {
-		  HashMap<String,String> values=new HashMap<String,String>();
+		  HashMap<String,ByteIterator> values=new HashMap<String,ByteIterator>();
 
 		  for (int i=2; i<tokens.length; i++)
 		  {
 		     String[] nv=tokens[i].split("=");
-		     values.put(nv[0],nv[1]);
+		     values.put(nv[0],new StringByteIterator(nv[1]));
 		  }
 
 		  int ret=db.update(table,tokens[1],values);
@@ -373,12 +373,12 @@ public class CommandLine
 	       }
 	       else 
 	       {
-		  HashMap<String,String> values=new HashMap<String,String>();
+		  HashMap<String,ByteIterator> values=new HashMap<String,ByteIterator>();
 
 		  for (int i=2; i<tokens.length; i++)
 		  {
 		     String[] nv=tokens[i].split("=");
-		     values.put(nv[0],nv[1]);
+		     values.put(nv[0],new StringByteIterator(nv[1]));
 		  }
 
 		  int ret=db.insert(table,tokens[1],values);
