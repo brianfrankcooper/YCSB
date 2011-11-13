@@ -19,6 +19,9 @@ package com.yahoo.ycsb.db;
 
 
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.ByteArrayByteIterator;
+import com.yahoo.ycsb.StringByteIterator;
 
 import java.io.IOException;
 import java.util.*;
@@ -123,7 +126,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 	 * @param result A HashMap of field/value pairs for the result
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int read(String table, String key, Set<String> fields, HashMap<String,String> result)
+	public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
         if (!_table.equals(table)) {
@@ -171,7 +174,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
   for (KeyValue kv : r.raw()) {
     result.put(
         Bytes.toString(kv.getQualifier()),
-        Bytes.toString(kv.getValue()));
+        new ByteArrayByteIterator(kv.getValue()));
     if (_debug) {
       System.out.println("Result for field: "+Bytes.toString(kv.getQualifier())+
           " is: "+Bytes.toString(kv.getValue()));
@@ -191,7 +194,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 	 * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
 	 * @return Zero on success, a non-zero error code on error
 	 */
-    public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,String>> result)
+    public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
         if (!_table.equals(table)) {
@@ -240,12 +243,12 @@ public class HBaseClient extends com.yahoo.ycsb.DB
                     System.out.println("Got scan result for key: "+key);
                 }
 
-                HashMap<String,String> rowResult = new HashMap<String, String>();
+                HashMap<String,ByteIterator> rowResult = new HashMap<String, ByteIterator>();
 
                 for (KeyValue kv : rr.raw()) {
                   rowResult.put(
                       Bytes.toString(kv.getQualifier()),
-                      Bytes.toString(kv.getValue()));
+                      new ByteArrayByteIterator(kv.getValue()));
                 }
                 //add rowResult to result vector
                 result.add(rowResult);
@@ -282,7 +285,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      * @param values A HashMap of field/value pairs to update in the record
      * @return Zero on success, a non-zero error code on error
      */
-    public int update(String table, String key, HashMap<String,String> values)
+    public int update(String table, String key, HashMap<String,ByteIterator> values)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
         if (!_table.equals(table)) {
@@ -304,13 +307,13 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             System.out.println("Setting up put for key: "+key);
         }
         Put p = new Put(Bytes.toBytes(key));
-        for (Map.Entry<String, String> entry : values.entrySet())
+        for (Map.Entry<String, ByteIterator> entry : values.entrySet())
         {
             if (_debug) {
                 System.out.println("Adding field/value " + entry.getKey() + "/"+
                   entry.getValue() + " to put request");
             }	       
-            p.add(_columnFamilyBytes,Bytes.toBytes(entry.getKey()),Bytes.toBytes(entry.getValue()));
+            p.add(_columnFamilyBytes,Bytes.toBytes(entry.getKey()),entry.getValue().toArray());
         }
 
         try 
@@ -342,7 +345,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      * @param values A HashMap of field/value pairs to insert in the record
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int insert(String table, String key, HashMap<String,String> values)
+	public int insert(String table, String key, HashMap<String,ByteIterator> values)
     {
         return update(table,key,values);
     }
@@ -456,7 +459,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
                             HashSet<String> scanFields = new HashSet<String>();
                             scanFields.add("field1");
                             scanFields.add("field3");
-                            Vector<HashMap<String,String>> scanResults = new Vector<HashMap<String,String>>();
+                            Vector<HashMap<String,ByteIterator>> scanResults = new Vector<HashMap<String,ByteIterator>>();
                             rescode = cli.scan("table1","user2",20,null,scanResults);
                            
                             long en=System.currentTimeMillis();

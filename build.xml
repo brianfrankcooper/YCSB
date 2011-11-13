@@ -15,6 +15,8 @@
         </fileset>
     </path>
 
+    <target name="dbcompile-all" depends="dbcompile-infinispan-5.0,dbcompile-cassandra-0.5,dbcompile-cassandra-0.6,dbcompile-cassandra-0.7,dbcompile-cassandra-0.8,dbcompile-hbase,dbcompile-mongodb,dbcompile-voldemort,dbcompile-jdbc,dbcompile-redis"/>
+
     <target name="dbcompile-infinispan-5.0" depends="compile">
         <property name="db.dir" value="db/infinispan-5.0" />
         <antcall target="dbcompile" />
@@ -100,7 +102,7 @@
       <javadoc destdir="${doc.dir}/javadoc" packagenames="com.yahoo.ycsb,com.yahoo.ycsb.workloads,com.yahoo.ycsb.db,com.yahoo.ycsb.generator,com.yahoo.ycsb.measurements"> 
          <fileset dir="." defaultexcludes="yes">
            <include name="src/**"/>
-           <include name="db/**/src/**"/>
+           <include name="db/*/src/**"/>
          </fileset>
       </javadoc>
    </target>

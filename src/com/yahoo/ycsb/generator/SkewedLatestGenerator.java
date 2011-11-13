@@ -53,4 +53,9 @@ public class SkewedLatestGenerator extends IntegerGenerator
 
 	}
 
+	@Override
+	public double mean() {
+		throw new UnsupportedOperationException("Can't compute mean of non-stationary distribution!");
+	}
+
 }

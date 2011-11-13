@@ -2,6 +2,9 @@ package com.yahoo.ycsb.db;
 
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.StringByteIterator;
+
 import org.infinispan.Cache;
 import org.infinispan.atomic.AtomicMap;
 import org.infinispan.atomic.AtomicMapLookup;
@@ -53,7 +56,7 @@ public class InfinispanClient extends DB {
       infinispanManager = null;
    }
 
-   public int read(String table, String key, Set<String> fields, HashMap<String, String> result) {
+   public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
       try {
          Map<String, String> row;
          if (clustered) {
@@ -65,9 +68,9 @@ public class InfinispanClient extends DB {
          if (row != null) {
             result.clear();
             if (fields == null || fields.isEmpty()) {
-               result.putAll(row);
+		StringByteIterator.putAllAsByteIterators(result, row);
             } else {
-               for (String field : fields) result.put(field, row.get(field));
+	       for (String field : fields) result.put(field, new StringByteIterator(row.get(field)));
             }
          }
          return OK;
@@ -76,24 +79,24 @@ public class InfinispanClient extends DB {
       }
    }
 
-   public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, String>> result) {
+   public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
       logger.warn("Infinispan does not support scan semantics");
       return OK;
    }
 
-   public int update(String table, String key, HashMap<String, String> values) {
+   public int update(String table, String key, HashMap<String, ByteIterator> values) {
       try {
          if (clustered) {
             AtomicMap<String, String> row = AtomicMapLookup.getAtomicMap(infinispanManager.getCache(table), key);
-            row.putAll(values);
+            StringByteIterator.putAllAsStrings(row, values);
          } else {
             Cache<String, Map<String, String>> cache = infinispanManager.getCache(table);
             Map<String, String> row = cache.get(key);
             if (row == null) {
-               row = values;
+               row = StringByteIterator.getStringMap(values);
                cache.put(key, row);
             } else {
-               row.putAll(values);
+               StringByteIterator.putAllAsStrings(row, values);
             }
          }
 
@@ -103,12 +106,12 @@ public class InfinispanClient extends DB {
       }
    }
 
-   public int insert(String table, String key, HashMap<String, String> values) {
+   public int insert(String table, String key, HashMap<String, ByteIterator> values) {
       try {
          if (clustered) {
             AtomicMap<String, String> row = AtomicMapLookup.getAtomicMap(infinispanManager.getCache(table), key);
             row.clear();
-            row.putAll(values);
+            StringByteIterator.putAllAsStrings(row, values);
          } else {
             infinispanManager.getCache(table).put(key, values);
          }

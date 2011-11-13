@@ -15,6 +15,9 @@ import voldemort.versioning.Versioned;
 
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.StringByteIterator;
+
 
 public class VoldemortClient extends DB {
 
@@ -66,17 +69,17 @@ public class VoldemortClient extends DB {
 	}
 
 	@Override
-	public int insert(String table, String key, HashMap<String, String> values) {
+	public int insert(String table, String key, HashMap<String, ByteIterator> values) {
 		if ( checkStore(table) == ERROR ) {
 			return ERROR;
 		}
-		storeClient.put(key, values);
+		storeClient.put(key, (HashMap<String,String>)StringByteIterator.getStringMap(values));
 		return OK;
 	}
 
 	@Override
 	public int read(String table, String key, Set<String> fields,
-			HashMap<String, String> result) {
+			HashMap<String, ByteIterator> result) {
 		if ( checkStore(table) == ERROR ) {
 			return ERROR;
 		}
@@ -90,23 +93,23 @@ public class VoldemortClient extends DB {
 			for (String field : fields) {
 				String val = versionedValue.getValue().get(field);
 				if ( val != null )
-					result.put(field, val);
+				    result.put(field, new StringByteIterator(val));
 			}
 		} else {
-			result.putAll(versionedValue.getValue());
+			StringByteIterator.putAllAsByteIterators(result, versionedValue.getValue());
 		}
 		return OK;
 	}
 
 	@Override
 	public int scan(String table, String startkey, int recordcount,
-			Set<String> fields, Vector<HashMap<String, String>> result) {
+			Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
 		logger.warn("Voldemort does not support Scan semantics");
 		return OK;
 	}
 
 	@Override
-	public int update(String table, String key, HashMap<String, String> values) {
+	public int update(String table, String key, HashMap<String, ByteIterator> values) {
 		if ( checkStore(table) == ERROR ) {
 			return ERROR;
 		}
@@ -117,12 +120,12 @@ public class VoldemortClient extends DB {
 		if ( versionedValue != null ) {
 			version = ((VectorClock) versionedValue.getVersion()).incremented(0, 1);
 			value = versionedValue.getValue();
-			for (Entry<String, String> entry : values.entrySet()) {
-				value.put(entry.getKey(), entry.getValue());
+			for (Entry<String, ByteIterator> entry : values.entrySet()) {
+				value.put(entry.getKey(), entry.getValue().toString());
 			}
 		} else {
 			version = new VectorClock();
-			value.putAll(values);
+			StringByteIterator.putAllAsStrings(value, values);
 		}
 		
 		storeClient.put(key, Versioned.value(value, version));
