@@ -126,4 +126,12 @@ public class ScrambledZipfianGenerator extends IntegerGenerator
 			System.out.println(""+gen.nextInt());
 		}
 	}
+
+	/**
+	 * since the values are scrambled (hopefully uniformly), the mean is simply the middle of the range.
+	 */
+	@Override
+	public double mean() {
+		return ((double)(((long)_min) +(long)_max))/2.0;
+	}
 }

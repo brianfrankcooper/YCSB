@@ -14,39 +14,42 @@
  * permissions and limitations under the License. See accompanying                                                                                                                 
  * LICENSE file.                                                                                                                                                                   
  */
+package com.yahoo.ycsb;
 
-package com.yahoo.ycsb.generator;
+import java.io.InputStream;
 
-/**
- * Generates a sequence of integers 0, 1, ...
- */
-public class CounterGenerator extends IntegerGenerator
-{
-	int counter;
-
-	/**
-	 * Create a counter that starts at countstart
-	 */
-	public CounterGenerator(int countstart)
-	{
-		counter=countstart;
-		setLastInt(countstart-1);
+public class InputStreamByteIterator extends ByteIterator {
+	long len;
+	InputStream ins;
+	long off;
+	
+	public InputStreamByteIterator(InputStream ins, long len) {
+		this.len = len;
+		this.ins = ins;
+		off = 0;
 	}
 	
-	/**
-	 * If the generator returns numeric (integer) values, return the next value as an int. Default is to return -1, which
-	 * is appropriate for generators that do not return numeric values.
-	 */
-	public synchronized int nextInt() 
-	{
-		int lastint=counter;
-		counter++;
-		setLastInt(lastint);
-		return lastint;
+	@Override
+	public boolean hasNext() {
+		return off < len;
 	}
 
 	@Override
-	public double mean() {
-		throw new UnsupportedOperationException("Can't compute mean of non-stationary distribution!");
+	public byte nextByte() {
+		int ret;
+		try {
+			ret = ins.read();
+		} catch(Exception e) {
+			throw new IllegalStateException(e);
+		}
+		if(ret == -1) { throw new IllegalStateException("Past EOF!"); }
+		off++;
+		return (byte)ret;
 	}
+
+	@Override
+	public long bytesLeft() {
+		return len - off;
+	}
+
 }

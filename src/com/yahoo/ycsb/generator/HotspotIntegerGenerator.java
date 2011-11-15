@@ -115,5 +115,9 @@ public class HotspotIntegerGenerator extends IntegerGenerator {
   public double getHotOpnFraction() {
     return hotOpnFraction;
   }
-
+  @Override
+  public double mean() {
+    return hotOpnFraction * (lowerBound + hotInterval/2.0)
+      + (1 - hotOpnFraction) * (lowerBound + hotInterval + coldInterval/2.0);
+  }
 }

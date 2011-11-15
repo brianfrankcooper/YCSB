@@ -29,6 +29,8 @@ import com.mongodb.WriteConcern;
 
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.StringByteIterator;
 
 /**
  * MongoDB client for YCSB framework.
@@ -136,7 +138,7 @@ public class MongoDbClient extends DB {
      * @param values A HashMap of field/value pairs to insert in the record
      * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
      */
-    public int insert(String table, String key, HashMap<String, String> values) {
+    public int insert(String table, String key, HashMap<String, ByteIterator> values) {
         com.mongodb.DB db = null;
         try {
             db = mongo.getDB(database);
@@ -179,7 +181,7 @@ public class MongoDbClient extends DB {
      * @return Zero on success, a non-zero error code on error or "not found".
      */
     public int read(String table, String key, Set<String> fields,
-            HashMap<String, String> result) {
+            HashMap<String, ByteIterator> result) {
         com.mongodb.DB db = null;
         try {
             db = mongo.getDB(database);
@@ -228,7 +230,7 @@ public class MongoDbClient extends DB {
      * @param values A HashMap of field/value pairs to update in the record
      * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
      */
-    public int update(String table, String key, HashMap<String, String> values) {
+    public int update(String table, String key, HashMap<String, ByteIterator> values) {
         com.mongodb.DB db = null;
         try {
             db = mongo.getDB(database);
@@ -243,7 +245,7 @@ public class MongoDbClient extends DB {
             String tmpKey = null, tmpVal = null;
             while (keys.hasNext()) {
                 tmpKey = keys.next();
-                tmpVal = values.get(tmpKey);
+                tmpVal = values.get(tmpKey).toString();
                 fieldsToSet.put(tmpKey, tmpVal);
 
             }
@@ -281,7 +283,7 @@ public class MongoDbClient extends DB {
      * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
      */
     public int scan(String table, String startkey, int recordcount,
-            Set<String> fields, Vector<HashMap<String, String>> result) {
+            Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
         com.mongodb.DB db=null;
         try {
             db = mongo.getDB(database);
@@ -293,7 +295,7 @@ public class MongoDbClient extends DB {
             DBCursor cursor = collection.find(q).limit(recordcount);
             while (cursor.hasNext()) {
                 //toMap() returns a Map, but result.add() expects a Map<String,String>. Hence, the suppress warnings.
-                result.add((HashMap<String, String>) cursor.next().toMap());
+                result.add(StringByteIterator.getByteIteratorMap((Map<String,String>)cursor.next().toMap()));
             }
 
             return 0;

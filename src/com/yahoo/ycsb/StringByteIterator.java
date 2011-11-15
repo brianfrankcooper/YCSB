@@ -15,38 +15,94 @@
  * LICENSE file.                                                                                                                                                                   
  */
 
-package com.yahoo.ycsb.generator;
+package com.yahoo.ycsb;
 
-/**
- * Generates a sequence of integers 0, 1, ...
- */
-public class CounterGenerator extends IntegerGenerator
-{
-	int counter;
+import java.util.Map;
+import java.util.HashMap;
+
+public class StringByteIterator extends ByteIterator {
+	String str;
+	int off;
 
 	/**
-	 * Create a counter that starts at countstart
+	 * Put all of the entries of one map into the other, converting
+	 * String values into ByteIterators.
 	 */
-	public CounterGenerator(int countstart)
-	{
-		counter=countstart;
-		setLastInt(countstart-1);
+	public static void putAllAsByteIterators(Map<String, ByteIterator> out, Map<String, String> in) {
+	       for(String s: in.keySet()) { out.put(s, new StringByteIterator(in.get(s))); }
+	} 
+
+	/**
+	 * Put all of the entries of one map into the other, converting
+	 * ByteIterator values into Strings.
+	 */
+	public static void putAllAsStrings(Map<String, String> out, Map<String, ByteIterator> in) {
+	       for(String s: in.keySet()) { out.put(s, in.get(s).toString()); }
+	} 
+
+	/**
+	 * Create a copy of a map, converting the values from Strings to
+	 * StringByteIterators.
+	 */
+	public static Map<String, ByteIterator> getByteIteratorMap(Map<String, String> m) {
+		Map<String, ByteIterator> ret =
+			new HashMap<String,ByteIterator>();
+
+		for(String s: m.keySet()) {
+			ret.put(s, new StringByteIterator(m.get(s)));
+		}
+		return ret;
 	}
-	
+
 	/**
-	 * If the generator returns numeric (integer) values, return the next value as an int. Default is to return -1, which
-	 * is appropriate for generators that do not return numeric values.
+	 * Create a copy of a map, converting the values from
+	 * StringByteIterators to Strings.
 	 */
-	public synchronized int nextInt() 
-	{
-		int lastint=counter;
-		counter++;
-		setLastInt(lastint);
-		return lastint;
+	public static Map<String, String> getStringMap(Map<String, ByteIterator> m) {
+		Map<String, String> ret = new HashMap<String,String>();
+
+		for(String s: m.keySet()) {
+			ret.put(s, m.get(s).toString());;
+		}
+		return ret;
+	}
+
+	public StringByteIterator(String s) {
+		this.str = s;
+		this.off = 0;
+	}
+	@Override
+	public boolean hasNext() {
+		return off < str.length();
 	}
 
 	@Override
-	public double mean() {
-		throw new UnsupportedOperationException("Can't compute mean of non-stationary distribution!");
+	public byte nextByte() {
+		byte ret = (byte)str.charAt(off);
+		off++;
+		return ret;
+	}
+
+	@Override
+	public long bytesLeft() {
+		return str.length() - off;
+	}
+
+	/**
+	 * Specialization of general purpose toString() to avoid unnecessary
+	 * copies.
+	 * <p>
+	 * Creating a new StringByteIterator, then calling toString()
+	 * yields the original String object, and does not perform any copies
+	 * or String conversion operations.
+	 * </p>
+	 */
+	@Override
+	public String toString() {
+		if(off > 0) {
+			return super.toString();
+		} else {
+			return str;
+		}
 	}
 }

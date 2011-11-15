@@ -179,7 +179,7 @@ public class CassandraClient7 extends DB
    *          A HashMap of field/value pairs for the result
    * @return Zero on success, a non-zero error code on error
    */
-  public int read(String table, String key, Set<String> fields, HashMap<String, String> result)
+  public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result)
   {
     if (!_table.equals(table)) {
       try 
@@ -224,13 +224,13 @@ public class CassandraClient7 extends DB
 
         Column column;
         String name;
-        String value;
+        ByteIterator value;
         for (ColumnOrSuperColumn oneresult : results)
         {
 
           column = oneresult.column;
 	        name = new String(column.name.array(), column.name.position()+column.name.arrayOffset(), column.name.remaining());
-      	  value = new String(column.value.array(), column.value.position()+column.value.arrayOffset(), column.value.remaining());
+      	  value = new ByteArrayByteIterator(column.value.array(), column.value.position()+column.value.arrayOffset(), column.value.remaining());
 
           result.put(name,value);
 
@@ -282,7 +282,7 @@ public class CassandraClient7 extends DB
    * @return Zero on success, a non-zero error code on error
    */
   public int scan(String table, String startkey, int recordcount, Set<String> fields,
-      Vector<HashMap<String, String>> result)
+      Vector<HashMap<String, ByteIterator>> result)
   {
     if (!_table.equals(table)) {
       try 
@@ -327,19 +327,19 @@ public class CassandraClient7 extends DB
           System.out.println("Scanning startkey: " + startkey);
         }
 
-        HashMap<String, String> tuple;
+        HashMap<String, ByteIterator> tuple;
         for (KeySlice oneresult : results)
         {
-          tuple = new HashMap<String, String>();
+          tuple = new HashMap<String, ByteIterator>();
           
           Column column;
           String name;
-          String value;
+          ByteIterator value;
           for (ColumnOrSuperColumn onecol : oneresult.columns)
           {
 	          column = onecol.column;
       	    name = new String(column.name.array(), column.name.position()+column.name.arrayOffset(), column.name.remaining());
-      	    value = new String(column.value.array(), column.value.position()+column.value.arrayOffset(), column.value.remaining());
+      	    value = new ByteArrayByteIterator(column.value.array(), column.value.position()+column.value.arrayOffset(), column.value.remaining());
             
       	    tuple.put(name, value);
 
@@ -386,7 +386,7 @@ public class CassandraClient7 extends DB
    *          A HashMap of field/value pairs to update in the record
    * @return Zero on success, a non-zero error code on error
    */
-  public int update(String table, String key, HashMap<String, String> values)
+  public int update(String table, String key, HashMap<String, ByteIterator> values)
   {
     return insert(table, key, values);
   }
@@ -404,7 +404,7 @@ public class CassandraClient7 extends DB
    *          A HashMap of field/value pairs to insert in the record
    * @return Zero on success, a non-zero error code on error
    */
-  public int insert(String table, String key, HashMap<String, String> values)
+  public int insert(String table, String key, HashMap<String, ByteIterator> values)
   {
     if (!_table.equals(table)) {
       try 
@@ -432,11 +432,11 @@ public class CassandraClient7 extends DB
         ByteBuffer wrappedKey = ByteBuffer.wrap(key.getBytes("UTF-8"));
 
         ColumnOrSuperColumn column;
-        for (Map.Entry<String, String> entry : values.entrySet())
+        for (Map.Entry<String, ByteIterator> entry : values.entrySet())
         {
           column = new ColumnOrSuperColumn();
           column.setColumn( new Column( ByteBuffer.wrap(entry.getKey().getBytes("UTF-8")), 
-                                        ByteBuffer.wrap(entry.getValue().getBytes("UTF-8")), 
+                                        ByteBuffer.wrap(entry.getValue().toArray()),
                                         System.currentTimeMillis()) );
                                         
           mutations.add(new Mutation().setColumn_or_supercolumn(column));
@@ -543,14 +543,14 @@ public class CassandraClient7 extends DB
       System.exit(0);
     }
 
-    HashMap<String, String> vals = new HashMap<String, String>();
-    vals.put("age", "57");
-    vals.put("middlename", "bradley");
-    vals.put("favoritecolor", "blue");
+    HashMap<String, ByteIterator> vals = new HashMap<String, ByteIterator>();
+    vals.put("age", new StringByteIterator("57"));
+    vals.put("middlename", new StringByteIterator("bradley"));
+    vals.put("favoritecolor", new StringByteIterator("blue"));
     int res = cli.insert("usertable", "BrianFrankCooper", vals);
     System.out.println("Result of insert: " + res);
 
-    HashMap<String, String> result = new HashMap<String, String>();
+    HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
     HashSet<String> fields = new HashSet<String>();
     fields.add("middlename");
     fields.add("age");
