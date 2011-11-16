@@ -14,6 +14,9 @@
         * gh-29 Add simple sharding capabilities for JDBC driver (kibab)
         * gh-40 Merge Redis database interface layer (lehmannro)
         * gh-42 Response latencies are measured in microseconds (mikewied)
+        * gh-43 Variable length fields (sears)
+        * gh-44 Constant occupancy workload (sears)
+        * gh-45 Modify DB API for efficient large object support (sears)
 
 0.1.3
 	* Voldemort binding (rsumbaly)
