@@ -73,7 +73,7 @@ public class RedisClient extends DB {
     public int read(String table, String key, Set<String> fields,
             HashMap<String, ByteIterator> result) {
         if (fields == null) {
-            StringByteIteartor.putAllAsByteIterators(result, jedis.hgetAll(key));
+            StringByteIterator.putAllAsByteIterators(result, jedis.hgetAll(key));
         }
         else {
             String[] fieldArray = (String[])fields.toArray(new String[fields.size()]);
