@@ -44,8 +44,8 @@ public class StringByteIterator extends ByteIterator {
 	 * Create a copy of a map, converting the values from Strings to
 	 * StringByteIterators.
 	 */
-	public static Map<String, ByteIterator> getByteIteratorMap(Map<String, String> m) {
-		Map<String, ByteIterator> ret =
+	public static HashMap<String, ByteIterator> getByteIteratorMap(Map<String, String> m) {
+		HashMap<String, ByteIterator> ret =
 			new HashMap<String,ByteIterator>();
 
 		for(String s: m.keySet()) {
@@ -58,8 +58,8 @@ public class StringByteIterator extends ByteIterator {
 	 * Create a copy of a map, converting the values from
 	 * StringByteIterators to Strings.
 	 */
-	public static Map<String, String> getStringMap(Map<String, ByteIterator> m) {
-		Map<String, String> ret = new HashMap<String,String>();
+	public static HashMap<String, String> getStringMap(Map<String, ByteIterator> m) {
+		HashMap<String, String> ret = new HashMap<String,String>();
 
 		for(String s: m.keySet()) {
 			ret.put(s, m.get(s).toString());;
