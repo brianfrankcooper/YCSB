@@ -442,9 +442,9 @@ public class CassandraClient6 extends DB
 		}
 
 		HashMap<String,ByteIterator> vals=new HashMap<String,ByteIterator>();
-		vals.put("age","57");
-		vals.put("middlename","bradley");
-		vals.put("favoritecolor","blue");
+		vals.put("age",new StringByteIterator("57"));
+		vals.put("middlename",new StringByteIterator("bradley"));
+		vals.put("favoritecolor",new StringByteIterator("blue"));
 		int res=cli.insert("usertable","BrianFrankCooper",vals);
 		System.out.println("Result of insert: "+res);
 
