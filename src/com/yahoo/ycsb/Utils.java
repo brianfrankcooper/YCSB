@@ -48,9 +48,9 @@ public class Utils
       /**
        * Hash an integer value.
        */
-      public static int hash(int val)
+      public static long hash(long val)
       {
-	 return FNVhash32(val);
+	 return FNVhash64(val);
       }
 	
       public static final int FNV_offset_basis_32=0x811c9dc5;
