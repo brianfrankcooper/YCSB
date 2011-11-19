@@ -411,7 +411,7 @@ public class CoreWorkload extends Workload
 		}
 	}
 
-	public String buildKeyName(int keynum) {
+	public String buildKeyName(long keynum) {
  		if (!orderedinserts)
  		{
  			keynum=Utils.hash(keynum);
