@@ -28,6 +28,7 @@ import redis.clients.jedis.ShardedJedis;
 import redis.clients.jedis.ShardedJedisPool;
 import redis.clients.jedis.JedisShardInfo;
 import redis.clients.jedis.Protocol;
+import redis.clients.jedis.exceptions.JedisConnectionException;
 
 public class RedisClient extends DB {
 
@@ -86,21 +87,27 @@ public class RedisClient extends DB {
     public int read(String table, String key, Set<String> fields,
             HashMap<String, ByteIterator> result) {
         ShardedJedis jedis = pool.getResource();
-        if (fields == null) {
-            StringByteIterator.putAllAsByteIterators(result, jedis.hgetAll(key));
-        }
-        else {
-            String[] fieldArray = (String[])fields.toArray(new String[fields.size()]);
-            List<String> values = jedis.hmget(key, fieldArray);
-
-            Iterator<String> fieldIterator = fields.iterator();
-            Iterator<String> valueIterator = values.iterator();
-
-            while (fieldIterator.hasNext() && valueIterator.hasNext()) {
-                result.put(fieldIterator.next(),
-			   new StringByteIterator(valueIterator.next()));
+        try {
+            if (fields == null) {
+                StringByteIterator.putAllAsByteIterators(result, jedis.hgetAll(key));
             }
-            assert !fieldIterator.hasNext() && !valueIterator.hasNext();
+            else {
+                String[] fieldArray = (String[])fields.toArray(new String[fields.size()]);
+                List<String> values = jedis.hmget(key, fieldArray);
+
+                Iterator<String> fieldIterator = fields.iterator();
+                Iterator<String> valueIterator = values.iterator();
+
+                while (fieldIterator.hasNext() && valueIterator.hasNext()) {
+                    result.put(fieldIterator.next(),
+                               new StringByteIterator(valueIterator.next()));
+                }
+                assert !fieldIterator.hasNext() && !valueIterator.hasNext();
+            }
+        }
+        catch (JedisConnectionException e) {
+            pool.returnResource(jedis);
+            return 1;
         }
         pool.returnResource(jedis);
         return result.isEmpty() ? 1 : 0;
@@ -109,45 +116,69 @@ public class RedisClient extends DB {
     @Override
     public int insert(String table, String key, HashMap<String, ByteIterator> values) {
         ShardedJedis jedis = pool.getResource();
-        if (jedis.hmset(key, StringByteIterator.getStringMap(values)).equals("OK")) {
-            jedis.zadd(INDEX_KEY, hash(key), key);
+        try {
+            if (jedis.hmset(key, StringByteIterator.getStringMap(values)).equals("OK")) {
+                jedis.zadd(INDEX_KEY, hash(key), key);
+                pool.returnResource(jedis);
+                return 0;
+            }
             pool.returnResource(jedis);
-            return 0;
+            return 1;
         }
-        pool.returnResource(jedis);
-        return 1;
+        catch (JedisConnectionException e) {
+            pool.returnResource(jedis);
+            return 1;
+        }
     }
 
     @Override
     public int delete(String table, String key) {
         ShardedJedis jedis = pool.getResource();
-        int r = jedis.del(key) == 0
-          && jedis.zrem(INDEX_KEY, key) == 0
-            ? 1 : 0;
-        pool.returnResource(jedis);
-        return r;
+        try {
+            int r = jedis.del(key) == 0
+              && jedis.zrem(INDEX_KEY, key) == 0
+                ? 1 : 0;
+            pool.returnResource(jedis);
+            return r;
+        }
+        catch (JedisConnectionException e) {
+            pool.returnResource(jedis);
+            return 1;
+        }
     }
 
     @Override
     public int update(String table, String key, HashMap<String, ByteIterator> values) {
         ShardedJedis jedis = pool.getResource();
-        int r = jedis.hmset(key, StringByteIterator.getStringMap(values)).equals("OK") ? 0 : 1;
-        pool.returnResource(jedis);
-        return r;
+        try {
+            int r = jedis.hmset(key, StringByteIterator.getStringMap(values)).equals("OK") ? 0 : 1;
+            pool.returnResource(jedis);
+            return r;
+        }
+        catch (JedisConnectionException e) {
+            pool.returnResource(jedis);
+            return 1;
+        }
     }
 
     @Override
     public int scan(String table, String startkey, int recordcount,
             Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
         ShardedJedis jedis = pool.getResource();
-        Set<String> keys = jedis.zrangeByScore(INDEX_KEY, hash(startkey),
+        try {
+            Set<String> keys = jedis.zrangeByScore(INDEX_KEY, hash(startkey),
                                 Double.POSITIVE_INFINITY, 0, recordcount);
-        pool.returnResource(jedis);
-        HashMap<String, ByteIterator> values;
-        for (String key : keys) {
-            values = new HashMap<String, ByteIterator>();
-            read(table, key, fields, values);
-            result.add(values);
+            pool.returnResource(jedis);
+            HashMap<String, ByteIterator> values;
+            for (String key : keys) {
+                values = new HashMap<String, ByteIterator>();
+                read(table, key, fields, values);
+                result.add(values);
+            }
+        }
+        catch (JedisConnectionException e) {
+            pool.returnResource(jedis);
+            return 1;
         }
 
         return 0;
