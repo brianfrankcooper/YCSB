@@ -29,6 +29,7 @@ import redis.clients.jedis.ShardedJedisPool;
 import redis.clients.jedis.JedisShardInfo;
 import redis.clients.jedis.Protocol;
 import redis.clients.jedis.exceptions.JedisConnectionException;
+import redis.clients.jedis.exceptions.JedisDataException;
 
 public class RedisClient extends DB {
 
@@ -111,6 +112,10 @@ public class RedisClient extends DB {
             pool.returnResource(jedis);
             return 1;
         }
+        catch (JedisDataException e) {
+            pool.returnResource(jedis);
+            return 1;
+        }
         pool.returnResource(jedis);
         return result.isEmpty() ? 1 : 0;
     }
@@ -131,6 +136,10 @@ public class RedisClient extends DB {
             pool.returnResource(jedis);
             return 1;
         }
+        catch (JedisDataException e) {
+            pool.returnResource(jedis);
+            return 1;
+        }
     }
 
     @Override
@@ -147,6 +156,11 @@ public class RedisClient extends DB {
             pool.returnResource(jedis);
             return 1;
         }
+        catch (JedisDataException e) {
+            pool.returnResource(jedis);
+            return 1;
+        }
+
     }
 
     @Override
@@ -158,6 +172,10 @@ public class RedisClient extends DB {
             return r;
         }
         catch (JedisConnectionException e) {
+            pool.returnResource(jedis);
+            return 1;
+        }
+        catch (JedisDataException e) {
             pool.returnResource(jedis);
             return 1;
         }
@@ -179,6 +197,10 @@ public class RedisClient extends DB {
             }
         }
         catch (JedisConnectionException e) {
+            pool.returnResource(jedis);
+            return 1;
+        }
+        catch (JedisDataException e) {
             pool.returnResource(jedis);
             return 1;
         }
