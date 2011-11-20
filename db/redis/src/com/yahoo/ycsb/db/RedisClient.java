@@ -56,6 +56,8 @@ public class RedisClient extends DB {
         String[] hosts = host.split(",");
 
         for (String s : hosts) {
+            host = s;
+            port = Protocol.DEFAULT_PORT;
             String parts[] = s.split(":");
             if (parts.length > 1) {
                host = parts[0];
