@@ -19,6 +19,8 @@ package com.yahoo.ycsb.generator;
 
 import java.util.Random;
 
+import com.yahoo.ycsb.Utils;
+
 /**
  * A generator of an exponential distribution. It produces a sequence
  * of time intervals (integers) according to an exponential
@@ -43,8 +45,6 @@ public class ExponentialGenerator extends IntegerGenerator
 	 */
 	double _gamma;	
 
-	Random _random;
-
 	/******************************* Constructors **************************************/
 
 	/**
@@ -54,12 +54,10 @@ public class ExponentialGenerator extends IntegerGenerator
 	public ExponentialGenerator(double mean)
 	{
 		_gamma = 1.0/mean;
-		_random = new Random();
 	}
 	public ExponentialGenerator(double percentile, double range)
 	{
 		_gamma = -Math.log(1.0-percentile/100.0) / range;  //1.0/mean;
-		_random = new Random();
 	}
 
 	/****************************************************************************************/
@@ -84,7 +82,7 @@ public class ExponentialGenerator extends IntegerGenerator
 	 */
 	public long nextLong()
 	{
-		return (long) (-Math.log(_random.nextDouble()) / _gamma);
+		return (long) (-Math.log(Utils.random().nextDouble()) / _gamma);
 	}
 
 	@Override

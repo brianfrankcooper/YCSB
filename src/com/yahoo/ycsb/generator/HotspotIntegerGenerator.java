@@ -18,6 +18,8 @@ package com.yahoo.ycsb.generator;
 
 import java.util.Random;
 
+import com.yahoo.ycsb.Utils;
+
 /**
  * Generate integers resembling a hotspot distribution where x% of operations
  * access y% of data items. The parameters specify the bounds for the numbers,
@@ -37,7 +39,6 @@ public class HotspotIntegerGenerator extends IntegerGenerator {
   private final int coldInterval;
   private final double hotsetFraction;
   private final double hotOpnFraction;
-  private final Random random;
   
   /**
    * Create a generator for Hotspot distributions.
@@ -71,12 +72,12 @@ public class HotspotIntegerGenerator extends IntegerGenerator {
     this.hotInterval = (int)(interval * hotsetFraction);
     this.coldInterval = interval - hotInterval;
     this.hotOpnFraction = hotOpnFraction;
-    random = new Random();
   }
   
   @Override
   public int nextInt() {
     int value = 0;
+    Random random = Utils.random();
     if (random.nextDouble() < hotOpnFraction) {
       // Choose a value from the hot set.
       value = lowerBound + random.nextInt(hotInterval);

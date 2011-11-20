@@ -19,6 +19,8 @@ package com.yahoo.ycsb.generator;
 
 import java.util.Random;
 
+import com.yahoo.ycsb.Utils;
+
 /**
  * A generator of a zipfian distribution. It produces a sequence of items, such that some items are more popular than others, according
  * to a zipfian distribution. When you construct an instance of this class, you specify the number of items in the set to draw from, either
@@ -61,8 +63,6 @@ public class ZipfianGenerator extends IntegerGenerator
 	 */
 	double alpha,zetan,eta,theta,zeta2theta;
 	
-	Random random;
-
 	/**
 	 * The number of items used to compute zetan the last time.
 	 */
@@ -135,8 +135,6 @@ public class ZipfianGenerator extends IntegerGenerator
 		items=max-min+1;
 		base=min;
 		zipfianconstant=_zipfianconstant;
-
-		random=new Random();	 
 
 		theta=zipfianconstant;
 
@@ -273,7 +271,7 @@ public class ZipfianGenerator extends IntegerGenerator
 			}
 		}
 
-		double u=random.nextDouble();
+		double u=Utils.random().nextDouble();
 		double uz=u*zetan;
 
 		if (uz<1.0)
