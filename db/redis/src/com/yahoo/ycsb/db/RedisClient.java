@@ -108,7 +108,7 @@ public class RedisClient extends DB {
             }
         }
         catch (JedisConnectionException e) {
-            pool.returnResource(jedis);
+            pool.returnBrokenResource(jedis);
             return 1;
         }
         pool.returnResource(jedis);
@@ -128,7 +128,7 @@ public class RedisClient extends DB {
             return 1;
         }
         catch (JedisConnectionException e) {
-            pool.returnResource(jedis);
+            pool.returnBrokenResource(jedis);
             return 1;
         }
     }
@@ -144,7 +144,7 @@ public class RedisClient extends DB {
             return r;
         }
         catch (JedisConnectionException e) {
-            pool.returnResource(jedis);
+            pool.returnBrokenResource(jedis);
             return 1;
         }
     }
@@ -158,7 +158,7 @@ public class RedisClient extends DB {
             return r;
         }
         catch (JedisConnectionException e) {
-            pool.returnResource(jedis);
+            pool.returnBrokenResource(jedis);
             return 1;
         }
     }
@@ -179,7 +179,7 @@ public class RedisClient extends DB {
             }
         }
         catch (JedisConnectionException e) {
-            pool.returnResource(jedis);
+            pool.returnBrokenResource(jedis);
             return 1;
         }
 
