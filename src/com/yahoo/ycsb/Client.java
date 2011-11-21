@@ -137,8 +137,6 @@ class StatusThread extends Thread
  */
 class ClientThread extends Thread
 {
-	static Random random=new Random();
-
 	DB _db;
 	boolean _dotransactions;
 	Workload _workload;
@@ -215,7 +213,7 @@ class ClientThread extends Thread
 		   //and the sleep() doesn't make sense for granularities < 1 ms anyway
 		   if ( (_target>0) && (_target<=1.0) ) 
 		   {
-		      sleep(random.nextInt((int)(1.0/_target)));
+		      sleep(Utils.random().nextInt((int)(1.0/_target)));
 		   }
 		}
 		catch (InterruptedException e)

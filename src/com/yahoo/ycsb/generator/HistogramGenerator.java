@@ -20,6 +20,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
+
+import com.yahoo.ycsb.Utils;
 import com.yahoo.ycsb.generator.IntegerGenerator;
 
 /**
@@ -41,7 +43,6 @@ public class HistogramGenerator extends IntegerGenerator {
 	long block_size;
 	long[] buckets;
 	long area;
-	Random rand = new Random();
 	long weighted_area = 0;
 	double mean_size = 0;
 	
@@ -93,7 +94,7 @@ public class HistogramGenerator extends IntegerGenerator {
 
 	@Override
 	public int nextInt() {
-		int number = rand.nextInt((int)area);
+		int number = Utils.random().nextInt((int)area);
 		int i;
 		
 		for(i = 0; i < (buckets.length - 1); i++){

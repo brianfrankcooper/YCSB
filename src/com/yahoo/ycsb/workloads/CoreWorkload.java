@@ -21,6 +21,7 @@ import java.util.Properties;
 import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.generator.CounterGenerator;
 import com.yahoo.ycsb.generator.DiscreteGenerator;
+import com.yahoo.ycsb.generator.ExponentialGenerator;
 import com.yahoo.ycsb.generator.Generator;
 import com.yahoo.ycsb.generator.ConstantIntegerGenerator;
 import com.yahoo.ycsb.generator.HotspotIntegerGenerator;
@@ -326,6 +327,14 @@ public class CoreWorkload extends Workload
 		{
 			orderedinserts=false;
 		}
+		else if (requestdistrib.compareTo("exponential")==0)
+		{
+                    double percentile = Double.parseDouble(p.getProperty(ExponentialGenerator.EXPONENTIAL_PERCENTILE_PROPERTY,
+                                                                         ExponentialGenerator.EXPONENTIAL_PERCENTILE_DEFAULT));
+                    double frac       = Double.parseDouble(p.getProperty(ExponentialGenerator.EXPONENTIAL_FRAC_PROPERTY,
+                                                                         ExponentialGenerator.EXPONENTIAL_FRAC_DEFAULT));
+                    keychooser = new ExponentialGenerator(percentile, recordcount*frac);
+		}
 		else
 		{
 			orderedinserts=true;
@@ -489,15 +498,28 @@ public class CoreWorkload extends Workload
 		return true;
 	}
 
+    int nextKeynum() {
+        int keynum;
+        if(keychooser instanceof ExponentialGenerator) {
+            do
+                {
+                    keynum=transactioninsertkeysequence.lastInt() - keychooser.nextInt();
+                }
+            while(keynum < 0);
+        } else {
+            do
+                {
+                    keynum=keychooser.nextInt();
+                }
+            while (keynum > transactioninsertkeysequence.lastInt());
+        }
+        return keynum;
+    }
+
 	public void doTransactionRead(DB db)
 	{
 		//choose a random key
-		int keynum;
-		do
-		{
-			keynum=keychooser.nextInt();
-		}
-		while (keynum>transactioninsertkeysequence.lastInt());
+		int keynum = nextKeynum();
 		
 		String keyname = buildKeyName(keynum);
 		
@@ -518,13 +540,8 @@ public class CoreWorkload extends Workload
 	public void doTransactionReadModifyWrite(DB db)
 	{
 		//choose a random key
-		int keynum;
-		do
-		{
-			keynum=keychooser.nextInt();
-		}
-		while (keynum>transactioninsertkeysequence.lastInt());
-		
+		int keynum = nextKeynum();
+
 		String keyname = buildKeyName(keynum);
 
 		HashSet<String> fields=null;
@@ -567,12 +584,7 @@ public class CoreWorkload extends Workload
 	public void doTransactionScan(DB db)
 	{
 		//choose a random key
-		int keynum;
-		do
-		{
-			keynum=keychooser.nextInt();
-		}
-		while (keynum>transactioninsertkeysequence.lastInt());
+		int keynum = nextKeynum();
 
 		String startkeyname = buildKeyName(keynum);
 		
@@ -596,12 +608,7 @@ public class CoreWorkload extends Workload
 	public void doTransactionUpdate(DB db)
 	{
 		//choose a random key
-		int keynum;
-		do
-		{
-			keynum=keychooser.nextInt();
-		}
-		while (keynum>transactioninsertkeysequence.lastInt());
+		int keynum = nextKeynum();
 
 		String keyname=buildKeyName(keynum);
 

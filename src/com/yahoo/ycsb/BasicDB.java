@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Enumeration;
-import java.util.Random;
 import java.util.Vector;
 
 
@@ -37,13 +36,11 @@ public class BasicDB extends DB
 	public static final String SIMULATE_DELAY_DEFAULT="0";
 	
 	
-	Random random;
 	boolean verbose;
 	int todelay;
 
 	public BasicDB()
 	{
-		random=new Random();
 		todelay=0;
 	}
 
@@ -54,7 +51,7 @@ public class BasicDB extends DB
 		{
 			try
 			{
-				Thread.sleep((long)random.nextInt(todelay));
+				Thread.sleep((long)Utils.random().nextInt(todelay));
 			}
 			catch (InterruptedException e)
 			{

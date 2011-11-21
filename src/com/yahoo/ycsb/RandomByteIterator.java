@@ -16,10 +16,7 @@
  */
 package com.yahoo.ycsb;
 
-import java.util.Random;
-
 public class RandomByteIterator extends ByteIterator {
-	static Random random=new Random();
 	long len;
 	long off;
 	int buf_off;
@@ -31,7 +28,7 @@ public class RandomByteIterator extends ByteIterator {
 	}
 
 	private void fillBytesImpl(byte[] buf, int base) {
-		int bytes = random.nextInt();
+		int bytes = Utils.random().nextInt();
 		try {
 			buf[base+0] = (byte)(((bytes      ) & 31) + ' ');
 			buf[base+1] = (byte)(((bytes >> 5 ) & 31) + ' ');
