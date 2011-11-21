@@ -148,8 +148,9 @@ public class MongoDbClient extends DB {
 
             DBCollection collection = db.getCollection(table);
             DBObject r = new BasicDBObject().append("_id", key);
-            r.putAll(values);
-
+	    for(String k: values.keySet()) {
+		r.put(k, values.get(k).toString());
+	    }
             collection.setWriteConcern(writeConcern);
 
             collection.insert(r);
