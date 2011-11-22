@@ -18,6 +18,10 @@
         * gh-44 Constant occupancy workload (sears)
         * gh-45 Modify DB API for efficient large object support (sears)
         * gh-46 Fixed typo in RedisClient (Zlender)
+        * gh-49 Build fix (sears)
+        * gh-50 Switch unordered key generation from FNV32 to FNV64 (sears)
+        * gh-51 Improved Random Number Generation Performance and add Exponential distribution support (sears)
+        * gh-52 Mongo db fix (sears)
 
 0.1.3
 	* Voldemort binding (rsumbaly)

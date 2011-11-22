@@ -21,6 +21,10 @@ REDIS_FILE=jedis-2.0.0.jar
 VOLDEMORT_DIR=db/voldemort/lib
 VOLDEMORT_FILE=voldemort-0.90.1.tar.gz
 
+.PHONY: build
+build: download-database-deps
+	ant -q -e compile
+	grep name=\"dbcompile build.xml | perl -ne '$$_=~/name=\"(.+)\"\s+depends/; print "$$1\n"; system "ant -q -e $$1"'
 
 download-database-deps:  $(CASSANDRA_5_DIR)/$(CASSANDRA_5_FILE) \
 			 $(CASSANDRA_6_DIR)/$(CASSANDRA_6_FILE) \
@@ -35,7 +39,7 @@ download-database-deps:  $(CASSANDRA_5_DIR)/$(CASSANDRA_5_FILE) \
 $(CASSANDRA_5_DIR)/$(CASSANDRA_5_FILE) :
 	wget http://archive.apache.org/dist/cassandra/0.5.1/$(CASSANDRA_5_FILE)\
 		 -O $(CASSANDRA_5_DIR)/$(CASSANDRA_5_FILE)
-	tar -C $(CASSANDRA_5_DIR) -zxf $(CASSANDRA_6_DIR)/$(CASSANDRA_5_FILE)
+	tar -C $(CASSANDRA_5_DIR) -zxf $(CASSANDRA_5_DIR)/$(CASSANDRA_5_FILE)
 
 $(CASSANDRA_6_DIR)/$(CASSANDRA_6_FILE) :
 	wget http://archive.apache.org/dist/cassandra/0.6.13/$(CASSANDRA_6_FILE)\
