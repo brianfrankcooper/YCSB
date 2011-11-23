@@ -15,8 +15,6 @@
         </fileset>
     </path>
 
-    <target name="dbcompile-all" depends="dbcompile-infinispan-5.0,dbcompile-cassandra-0.5,dbcompile-cassandra-0.6,dbcompile-cassandra-0.7,dbcompile-cassandra-0.8,dbcompile-hbase,dbcompile-mongodb,dbcompile-voldemort,dbcompile-jdbc,dbcompile-redis"/>
-
     <target name="dbcompile-infinispan-5.0" depends="compile">
         <property name="db.dir" value="db/infinispan-5.0" />
         <antcall target="dbcompile" />
@@ -69,20 +67,20 @@
 	
  	<target name="compile">
         <mkdir dir="${classes.dir}"/>
-        <javac srcdir="${src.dir}" destdir="${classes.dir}" classpathref="build.classpath" deprecation="on">
+        <javac includeantruntime="false" srcdir="${src.dir}" destdir="${classes.dir}" classpathref="build.classpath" deprecation="on">
           <compilerarg value="-Xlint:unchecked"/>
         </javac>
         <antcall target="makejar"/>
     </target>
 
-	<target name="dbcompile">
+    <target name="dbcompile">
 	    <path id="dbclasspath">
 	        <fileset dir="${db.dir}/lib" includes="**/*.jar"/>
 	        <fileset file="build/ycsb.jar"/>
 	    </path>
 		
     	<mkdir dir="${classes.dir}"/>
-        <javac srcdir="${db.dir}/src" destdir="${classes.dir}" classpathref="dbclasspath" deprecation="on">
+        <javac includeantruntime="false" srcdir="${db.dir}/src" destdir="${classes.dir}" classpathref="dbclasspath" deprecation="on">
           <compilerarg value="-Xlint:unchecked"/>
         </javac>
         <antcall target="makejar"/>

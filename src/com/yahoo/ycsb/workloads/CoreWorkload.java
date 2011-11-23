@@ -21,6 +21,7 @@ import java.util.Properties;
 import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.generator.CounterGenerator;
 import com.yahoo.ycsb.generator.DiscreteGenerator;
+import com.yahoo.ycsb.generator.ExponentialGenerator;
 import com.yahoo.ycsb.generator.Generator;
 import com.yahoo.ycsb.generator.ConstantIntegerGenerator;
 import com.yahoo.ycsb.generator.HotspotIntegerGenerator;
@@ -326,6 +327,14 @@ public class CoreWorkload extends Workload
 		{
 			orderedinserts=false;
 		}
+		else if (requestdistrib.compareTo("exponential")==0)
+		{
+                    double percentile = Double.parseDouble(p.getProperty(ExponentialGenerator.EXPONENTIAL_PERCENTILE_PROPERTY,
+                                                                         ExponentialGenerator.EXPONENTIAL_PERCENTILE_DEFAULT));
+                    double frac       = Double.parseDouble(p.getProperty(ExponentialGenerator.EXPONENTIAL_FRAC_PROPERTY,
+                                                                         ExponentialGenerator.EXPONENTIAL_FRAC_DEFAULT));
+                    keychooser = new ExponentialGenerator(percentile, recordcount*frac);
+		}
 		else
 		{
 			orderedinserts=true;
@@ -411,6 +420,33 @@ public class CoreWorkload extends Workload
 		}
 	}
 
+	public String buildKeyName(long keynum) {
+ 		if (!orderedinserts)
+ 		{
+ 			keynum=Utils.hash(keynum);
+ 		}
+		return "user"+keynum;
+	}
+	HashMap<String, ByteIterator> buildValues() {
+ 		HashMap<String,ByteIterator> values=new HashMap<String,ByteIterator>();
+
+ 		for (int i=0; i<fieldcount; i++)
+ 		{
+ 			String fieldkey="field"+i;
+ 			ByteIterator data= new RandomByteIterator(fieldlengthgenerator.nextInt());
+ 			values.put(fieldkey,data);
+ 		}
+		return values;
+	}
+	HashMap<String, ByteIterator> buildUpdate() {
+		//update a random field
+		HashMap<String, ByteIterator> values=new HashMap<String,ByteIterator>();
+		String fieldname="field"+fieldchooser.nextString();
+		ByteIterator data = new RandomByteIterator(fieldlengthgenerator.nextInt());
+		values.put(fieldname,data);
+		return values;
+	}
+
 	/**
 	 * Do one insert operation. Because it will be called concurrently from multiple client threads, this 
 	 * function must be thread safe. However, avoid synchronized, or the threads will block waiting for each 
@@ -420,19 +456,8 @@ public class CoreWorkload extends Workload
 	public boolean doInsert(DB db, Object threadstate)
 	{
 		int keynum=keysequence.nextInt();
-		if (!orderedinserts)
-		{
-			keynum=Utils.hash(keynum);
-		}
-		String dbkey="user"+keynum;
-		HashMap<String,ByteIterator> values=new HashMap<String,ByteIterator>();
-
-		for (int i=0; i<fieldcount; i++)
-		{
-			String fieldkey="field"+i;
-			ByteIterator data= new RandomByteIterator(fieldlengthgenerator.nextInt());
-			values.put(fieldkey,data);
-		}
+		String dbkey = buildKeyName(keynum);
+		HashMap<String, ByteIterator> values = buildValues();
 		if (db.insert(table,dbkey,values) == 0)
 			return true;
 		else
@@ -473,22 +498,31 @@ public class CoreWorkload extends Workload
 		return true;
 	}
 
+    int nextKeynum() {
+        int keynum;
+        if(keychooser instanceof ExponentialGenerator) {
+            do
+                {
+                    keynum=transactioninsertkeysequence.lastInt() - keychooser.nextInt();
+                }
+            while(keynum < 0);
+        } else {
+            do
+                {
+                    keynum=keychooser.nextInt();
+                }
+            while (keynum > transactioninsertkeysequence.lastInt());
+        }
+        return keynum;
+    }
+
 	public void doTransactionRead(DB db)
 	{
 		//choose a random key
-		int keynum;
-		do
-		{
-			keynum=keychooser.nextInt();
-		}
-		while (keynum>transactioninsertkeysequence.lastInt());
+		int keynum = nextKeynum();
 		
-		if (!orderedinserts)
-		{
-			keynum=Utils.hash(keynum);
-		}
-		String keyname="user"+keynum;
-
+		String keyname = buildKeyName(keynum);
+		
 		HashSet<String> fields=null;
 
 		if (!readallfields)
@@ -506,18 +540,9 @@ public class CoreWorkload extends Workload
 	public void doTransactionReadModifyWrite(DB db)
 	{
 		//choose a random key
-		int keynum;
-		do
-		{
-			keynum=keychooser.nextInt();
-		}
-		while (keynum>transactioninsertkeysequence.lastInt());
-		
-		if (!orderedinserts)
-		{
-			keynum=Utils.hash(keynum);
-		}
-		String keyname="user"+keynum;
+		int keynum = nextKeynum();
+
+		String keyname = buildKeyName(keynum);
 
 		HashSet<String> fields=null;
 
@@ -530,24 +555,17 @@ public class CoreWorkload extends Workload
 			fields.add(fieldname);
 		}
 		
-		HashMap<String,ByteIterator> values=new HashMap<String,ByteIterator>();
+		HashMap<String,ByteIterator> values;
 
 		if (writeallfields)
 		{
 		   //new data for all the fields
-		   for (int i=0; i<fieldcount; i++)
-		   {
-		      String fieldname="field"+i;
-		      ByteIterator data = new RandomByteIterator(fieldlengthgenerator.nextInt());
-		      values.put(fieldname,data);
-		   }
+		   values = buildValues();
 		}
 		else
 		{
 		   //update a random field
-		   String fieldname="field"+fieldchooser.nextString();
-		   ByteIterator data = new RandomByteIterator(fieldlengthgenerator.nextInt());
-		   values.put(fieldname,data);
+		   values = buildUpdate();
 		}
 
 		//do the transaction
@@ -566,18 +584,9 @@ public class CoreWorkload extends Workload
 	public void doTransactionScan(DB db)
 	{
 		//choose a random key
-		int keynum;
-		do
-		{
-			keynum=keychooser.nextInt();
-		}
-		while (keynum>transactioninsertkeysequence.lastInt());
+		int keynum = nextKeynum();
 
-		if (!orderedinserts)
-		{
-			keynum=Utils.hash(keynum);
-		}
-		String startkeyname="user"+keynum;
+		String startkeyname = buildKeyName(keynum);
 		
 		//choose a random scan length
 		int len=scanlength.nextInt();
@@ -599,37 +608,21 @@ public class CoreWorkload extends Workload
 	public void doTransactionUpdate(DB db)
 	{
 		//choose a random key
-		int keynum;
-		do
-		{
-			keynum=keychooser.nextInt();
-		}
-		while (keynum>transactioninsertkeysequence.lastInt());
+		int keynum = nextKeynum();
 
-		if (!orderedinserts)
-		{
-			keynum=Utils.hash(keynum);
-		}
-		String keyname="user"+keynum;
+		String keyname=buildKeyName(keynum);
 
-		HashMap<String,ByteIterator> values=new HashMap<String,ByteIterator>();
+		HashMap<String,ByteIterator> values;
 
 		if (writeallfields)
 		{
 		   //new data for all the fields
-		   for (int i=0; i<fieldcount; i++)
-		   {
-		      String fieldname="field"+i;
-		      ByteIterator data = new RandomByteIterator(fieldlengthgenerator.nextInt());
-		      values.put(fieldname,data);
-		   }
+		   values = buildValues();
 		}
 		else
 		{
 		   //update a random field
-		   String fieldname="field"+fieldchooser.nextString();
-		   ByteIterator data = new RandomByteIterator(fieldlengthgenerator.nextInt());
-		   values.put(fieldname,data);
+		   values = buildUpdate();
 		}
 
 		db.update(table,keyname,values);
@@ -639,19 +632,10 @@ public class CoreWorkload extends Workload
 	{
 		//choose the next key
 		int keynum=transactioninsertkeysequence.nextInt();
-		if (!orderedinserts)
-		{
-			keynum=Utils.hash(keynum);
-		}
-		String dbkey="user"+keynum;
-		
-		HashMap<String,ByteIterator> values=new HashMap<String,ByteIterator>();
-		for (int i=0; i<fieldcount; i++)
-		{
-			String fieldkey="field"+i;
-			ByteIterator data = new RandomByteIterator(fieldlengthgenerator.nextInt());
-			values.put(fieldkey,data);
-		}
+
+		String dbkey = buildKeyName(keynum);
+
+		HashMap<String, ByteIterator> values = buildValues();
 		db.insert(table,dbkey,values);
 	}
 }

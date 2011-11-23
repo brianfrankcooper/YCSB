@@ -19,12 +19,13 @@ package com.yahoo.ycsb.generator;
 
 import java.util.Random;
 
+import com.yahoo.ycsb.Utils;
+
 /**
  * Generates integers randomly uniform from an interval.
  */
 public class UniformIntegerGenerator extends IntegerGenerator 
 {
-	Random _random;
 	int _lb,_ub,_interval;
 	
 	/**
@@ -35,7 +36,6 @@ public class UniformIntegerGenerator extends IntegerGenerator
 	 */
 	public UniformIntegerGenerator(int lb, int ub)
 	{
-		_random=new Random();
 		_lb=lb;
 		_ub=ub;
 		_interval=_ub-_lb+1;
@@ -44,7 +44,7 @@ public class UniformIntegerGenerator extends IntegerGenerator
 	@Override
 	public int nextInt() 
 	{
-		int ret=_random.nextInt(_interval)+_lb;
+		int ret=Utils.random().nextInt(_interval)+_lb;
 		setLastInt(ret);
 		
 		return ret;
