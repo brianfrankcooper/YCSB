@@ -46,15 +46,32 @@ import com.yahoo.ycsb.DBException;
  */
 public class GemFireClient extends DB {
 
+  /** Return code when operation succeeded */
   private static final int SUCCESS = 0;
+
+  /** Return code when operation did not succeed */
   private static final int ERROR = -1;
+
+  /** property name of the port where GemFire server is listening for connections */
   private static final String SERVERPORT_PROPERTY_NAME = "gemfire.serverport";
+
+  /** property name of the host where GemFire server is running */
   private static final String SERVERHOST_PROPERTY_NAME = "gemfire.serverhost";
+
+  /** default value of {@link #SERVERHOST_PROPERTY_NAME} */
   private static final String SERVERHOST_PROPERTY_DEFAULT = "localhost";
+
+  /** property name to specify a GemFire locator. This property can be used in both
+   * client server and p2p topology */
   private static final String LOCATOR_PROPERTY_NAME = "gemfire.locator";
+
+  /** property name to specify GemFire topology */
   private static final String TOPOLOGY_PROPERTY_NAME = "gemfire.topology";
+
+  /** value of {@value #TOPOLOGY_PROPERTY_NAME} when peer to peer topology should be used.
+   *  (client-server topology is default) */
   private static final String TOPOLOGY_P2P_VALUE = "p2p";
-  
+
   private GemFireCache cache;
 
   /**
@@ -126,7 +143,7 @@ public class GemFireClient extends DB {
   @Override
   public int scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String, String>> result) {
-    // TODO GemFire does not support scan
+    // GemFire does not support scan
     return ERROR;
   }
 
