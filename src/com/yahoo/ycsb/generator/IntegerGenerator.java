@@ -31,7 +31,7 @@ public abstract class IntegerGenerator extends Generator
 	 * Set the last value generated. IntegerGenerator subclasses must use this call
 	 * to properly set the last string value, or the lastString() and lastInt() calls won't work.
 	 */
-	public void setLastInt(int last)
+	protected void setLastInt(int last)
 	{
 		lastint=last;
 	}
@@ -54,9 +54,10 @@ public abstract class IntegerGenerator extends Generator
 	 * Calling lastString() should not advance the distribution or have any side effects. If nextString() has not yet 
 	 * been called, lastString() should return something reasonable.
 	 */
+	@Override
 	public String lastString()
 	{
-		return ""+lastint;
+		return ""+lastInt();
 	}
 	
 	/**
@@ -67,4 +68,8 @@ public abstract class IntegerGenerator extends Generator
 	{
 		return lastint;
 	}
+	/**
+	 * Return the expected value (mean) of the values this generator will return.
+	 */
+	public abstract double mean();
 }

@@ -132,7 +132,7 @@ public class CassandraClient6 extends DB
 	 * @param result A HashMap of field/value pairs for the result
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int read(String table, String key, Set<String> fields, HashMap<String,String> result)
+	public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
 	{
 	   Exception errorexception=null;
 	   
@@ -177,7 +177,7 @@ public class CassandraClient6 extends DB
 		   for (ColumnOrSuperColumn oneresult : results)
 		   {
 		      Column column=oneresult.column;
-		      result.put(new String(column.name),new String(column.value));
+		      result.put(new String(column.name),new ByteArrayByteIterator(column.value));
 		      
 		      if (_debug)
 		      {
@@ -221,7 +221,7 @@ public class CassandraClient6 extends DB
 	 * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
 	 * @return Zero on success, a non-zero error code on error
 	 */
-      public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,String>> result)
+      public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
       {
 	 Exception errorexception=null;	 
 
@@ -261,12 +261,12 @@ public class CassandraClient6 extends DB
 			
 			for (KeySlice oneresult : results)
 			{
-				HashMap<String,String> tuple = new HashMap<String, String>();
+				HashMap<String,ByteIterator> tuple = new HashMap<String,ByteIterator>();
 				
 				for (ColumnOrSuperColumn onecol : oneresult.columns)
 				{
 					Column column=onecol.column;
-					tuple.put(new String(column.name),new String(column.value));
+					tuple.put(new String(column.name),new ByteArrayByteIterator(column.value));
 					
 					if (_debug)
 					{
@@ -309,7 +309,7 @@ public class CassandraClient6 extends DB
 	 * @param values A HashMap of field/value pairs to update in the record
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int update(String table, String key, HashMap<String,String> values)
+	public int update(String table, String key, HashMap<String,ByteIterator> values)
 	{
 		return insert(table,key,values);
 	}
@@ -323,7 +323,7 @@ public class CassandraClient6 extends DB
 	 * @param values A HashMap of field/value pairs to insert in the record
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int insert(String table, String key, HashMap<String,String> values)
+	public int insert(String table, String key, HashMap<String,ByteIterator> values)
 	{
 	   Exception errorexception=null;
 	   
@@ -340,8 +340,8 @@ public class CassandraClient6 extends DB
 		{
 			for (String field : values.keySet())
 			{
-				String val=values.get(field);
-				Column col=new Column(field.getBytes("UTF-8"),val.getBytes("UTF-8"),timestamp);
+				ByteIterator val=values.get(field);
+				Column col=new Column(field.getBytes("UTF-8"),val.toArray(),timestamp);
 
 				ColumnOrSuperColumn c=new ColumnOrSuperColumn();
 				c.setColumn(col);
@@ -441,14 +441,14 @@ public class CassandraClient6 extends DB
 			System.exit(0);
 		}
 
-		HashMap<String,String> vals=new HashMap<String,String>();
-		vals.put("age","57");
-		vals.put("middlename","bradley");
-		vals.put("favoritecolor","blue");
+		HashMap<String,ByteIterator> vals=new HashMap<String,ByteIterator>();
+		vals.put("age",new StringByteIterator("57"));
+		vals.put("middlename",new StringByteIterator("bradley"));
+		vals.put("favoritecolor",new StringByteIterator("blue"));
 		int res=cli.insert("usertable","BrianFrankCooper",vals);
 		System.out.println("Result of insert: "+res);
 
-		HashMap<String,String> result=new HashMap<String,String>();
+		HashMap<String,ByteIterator> result=new HashMap<String,ByteIterator>();
 		HashSet<String> fields=new HashSet<String>();
 		fields.add("middlename");
 		fields.add("age");

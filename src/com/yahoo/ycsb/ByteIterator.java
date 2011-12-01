@@ -14,48 +14,79 @@
  * permissions and limitations under the License. See accompanying                                                                                                                 
  * LICENSE file.                                                                                                                                                                   
  */
+package com.yahoo.ycsb;
 
-package com.yahoo.ycsb.generator;
-
+import java.util.Iterator;
+import java.util.ArrayList;
 /**
- * Generate a popularity distribution of items, skewed to favor recent items significantly more than older items.
+ * YCSB-specific buffer class.  ByteIterators are designed to support
+ * efficient field generation, and to allow backend drivers that can stream
+ * fields (instead of materializing them in RAM) to do so.
+ * <p>
+ * YCSB originially used String objects to represent field values.  This led to
+ * two performance issues.
+ * </p><p>
+ * First, it leads to unnecessary conversions between UTF-16 and UTF-8, both
+ * during field generation, and when passing data to byte-based backend
+ * drivers.
+ * </p><p>
+ * Second, Java strings are represented internally using UTF-16, and are
+ * built by appending to a growable array type (StringBuilder or
+ * StringBuffer), then calling a toString() method.  This leads to a 4x memory
+ * overhead as field values are being built, which prevented YCSB from
+ * driving large object stores.
+ * </p>
+ * The StringByteIterator class contains a number of convenience methods for
+ * backend drivers that convert between Map&lt;String,String&gt; and
+ * Map&lt;String,ByteBuffer&gt;.
+ *
+ * @author sears
  */
-public class SkewedLatestGenerator extends IntegerGenerator
-{
-	CounterGenerator _basis;
-	ZipfianGenerator _zipfian;
-
-	public SkewedLatestGenerator(CounterGenerator basis)
-	{
-		_basis=basis;
-		_zipfian=new ZipfianGenerator(_basis.lastInt());
-		nextInt();
-	}
-
-	/**
-	 * Generate the next string in the distribution, skewed Zipfian favoring the items most recently returned by the basis generator.
-	 */
-	public int nextInt()
-	{
-		int max=_basis.lastInt();
-		int nextint=max-_zipfian.nextInt(max);
-		setLastInt(nextint);
-		return nextint;
-	}
-
-	public static void main(String[] args)
-	{
-		SkewedLatestGenerator gen=new SkewedLatestGenerator(new CounterGenerator(1000));
-		for (int i=0; i<Integer.parseInt(args[0]); i++)
-		{
-			System.out.println(gen.nextString());
-		}
-
-	}
+public abstract class ByteIterator implements Iterator<Byte> {
 
 	@Override
-	public double mean() {
-		throw new UnsupportedOperationException("Can't compute mean of non-stationary distribution!");
+	public abstract boolean hasNext();
+
+	@Override
+	public Byte next() {
+		throw new UnsupportedOperationException();
+		//return nextByte();
+	}
+
+	public abstract byte nextByte();
+        /** @return byte offset immediately after the last valid byte */
+	public int nextBuf(byte[] buf, int buf_off) {
+		int sz = buf_off;
+		while(sz < buf.length && hasNext()) {
+			buf[sz] = nextByte();
+			sz++;
+		}
+		return sz;
+	}
+
+	public abstract long bytesLeft();
+	
+	@Override
+	public void remove() {
+		throw new UnsupportedOperationException();
+	}
+
+	/** Consumes remaining contents of this object, and returns them as a string. */
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		while(this.hasNext()) { sb.append((char)nextByte()); }
+		return sb.toString();
+	}
+	/** Consumes remaining contents of this object, and returns them as a byte array. */
+	public byte[] toArray() {
+	    long left = bytesLeft();
+	    if(left != (int)left) { throw new ArrayIndexOutOfBoundsException("Too much data to fit in one array!"); }
+	    byte[] ret = new byte[(int)left];
+	    int off = 0;
+	    while(off < ret.length) {
+		off = nextBuf(ret, off);
+	    }
+	    return ret;
 	}
 
 }

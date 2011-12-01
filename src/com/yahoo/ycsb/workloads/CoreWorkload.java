@@ -21,8 +21,11 @@ import java.util.Properties;
 import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.generator.CounterGenerator;
 import com.yahoo.ycsb.generator.DiscreteGenerator;
+import com.yahoo.ycsb.generator.ExponentialGenerator;
 import com.yahoo.ycsb.generator.Generator;
+import com.yahoo.ycsb.generator.ConstantIntegerGenerator;
 import com.yahoo.ycsb.generator.HotspotIntegerGenerator;
+import com.yahoo.ycsb.generator.HistogramGenerator;
 import com.yahoo.ycsb.generator.IntegerGenerator;
 import com.yahoo.ycsb.generator.ScrambledZipfianGenerator;
 import com.yahoo.ycsb.generator.SkewedLatestGenerator;
@@ -30,6 +33,7 @@ import com.yahoo.ycsb.generator.UniformIntegerGenerator;
 import com.yahoo.ycsb.generator.ZipfianGenerator;
 import com.yahoo.ycsb.measurements.Measurements;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Vector;
@@ -85,17 +89,40 @@ public class CoreWorkload extends Workload
 	int fieldcount;
 
 	/**
+	 * The name of the property for the field length distribution. Options are "uniform", "zipfian" (favoring short records), "constant", and "histogram".
+	 * 
+	 * If "uniform", "zipfian" or "constant", the maximum field length will be that specified by the fieldlength property.  If "histogram", then the
+	 * histogram will be read from the filename specified in the "fieldlengthhistogram" property.
+	 */
+	public static final String FIELD_LENGTH_DISTRIBUTION_PROPERTY="fieldlengthdistribution";
+	/**
+	 * The default field length distribution.
+	 */
+	public static final String FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT = "constant";
+
+	/**
 	 * The name of the property for the length of a field in bytes.
 	 */
 	public static final String FIELD_LENGTH_PROPERTY="fieldlength";
-	
 	/**
-	 * The default length of a field in bytes.
+	 * The default maximum length of a field in bytes.
 	 */
 	public static final String FIELD_LENGTH_PROPERTY_DEFAULT="100";
 
-	int fieldlength;
+	/**
+	 * The name of a property that specifies the filename containing the field length histogram (only used if fieldlengthdistribution is "histogram").
+	 */
+	public static final String FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY = "fieldlengthhistogram";
+	/**
+	 * The default filename containing a field length histogram.
+	 */
+	public static final String FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY_DEFAULT = "hist.txt";
 
+	/**
+	 * Generator object that produces field lengths.  The value of this depends on the properties that start with "FIELD_LENGTH_".
+	 */
+	IntegerGenerator fieldlengthgenerator;
+	
 	/**
 	 * The name of the property for deciding whether to read one field (false) or all fields (true) of a record.
 	 */
@@ -247,6 +274,29 @@ public class CoreWorkload extends Workload
 
 	int recordcount;
 	
+	protected static IntegerGenerator getFieldLengthGenerator(Properties p) throws WorkloadException{
+		IntegerGenerator fieldlengthgenerator;
+		String fieldlengthdistribution = p.getProperty(FIELD_LENGTH_DISTRIBUTION_PROPERTY, FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
+		int fieldlength=Integer.parseInt(p.getProperty(FIELD_LENGTH_PROPERTY,FIELD_LENGTH_PROPERTY_DEFAULT));
+		String fieldlengthhistogram = p.getProperty(FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY, FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY_DEFAULT);
+		if(fieldlengthdistribution.compareTo("constant") == 0) {
+			fieldlengthgenerator = new ConstantIntegerGenerator(fieldlength);
+		} else if(fieldlengthdistribution.compareTo("uniform") == 0) {
+			fieldlengthgenerator = new UniformIntegerGenerator(1, fieldlength);
+		} else if(fieldlengthdistribution.compareTo("zipfian") == 0) {
+			fieldlengthgenerator = new ZipfianGenerator(1, fieldlength);
+		} else if(fieldlengthdistribution.compareTo("histogram") == 0) {
+			try {
+				fieldlengthgenerator = new HistogramGenerator(fieldlengthhistogram);
+			} catch(IOException e) {
+				throw new WorkloadException("Couldn't read field length histogram file: "+fieldlengthhistogram, e);
+			}
+		} else {
+			throw new WorkloadException("Unknown field length distribution \""+fieldlengthdistribution+"\"");
+		}
+		return fieldlengthgenerator;
+	}
+	
 	/**
 	 * Initialize the scenario. 
 	 * Called once, in the main client thread, before any operations are started.
@@ -254,8 +304,10 @@ public class CoreWorkload extends Workload
 	public void init(Properties p) throws WorkloadException
 	{
 		table = p.getProperty(TABLENAME_PROPERTY,TABLENAME_PROPERTY_DEFAULT);
+		
 		fieldcount=Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY,FIELD_COUNT_PROPERTY_DEFAULT));
-		fieldlength=Integer.parseInt(p.getProperty(FIELD_LENGTH_PROPERTY,FIELD_LENGTH_PROPERTY_DEFAULT));
+		fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
+		
 		double readproportion=Double.parseDouble(p.getProperty(READ_PROPORTION_PROPERTY,READ_PROPORTION_PROPERTY_DEFAULT));
 		double updateproportion=Double.parseDouble(p.getProperty(UPDATE_PROPORTION_PROPERTY,UPDATE_PROPORTION_PROPERTY_DEFAULT));
 		double insertproportion=Double.parseDouble(p.getProperty(INSERT_PROPORTION_PROPERTY,INSERT_PROPORTION_PROPERTY_DEFAULT));
@@ -274,6 +326,14 @@ public class CoreWorkload extends Workload
 		if (p.getProperty(INSERT_ORDER_PROPERTY,INSERT_ORDER_PROPERTY_DEFAULT).compareTo("hashed")==0)
 		{
 			orderedinserts=false;
+		}
+		else if (requestdistrib.compareTo("exponential")==0)
+		{
+                    double percentile = Double.parseDouble(p.getProperty(ExponentialGenerator.EXPONENTIAL_PERCENTILE_PROPERTY,
+                                                                         ExponentialGenerator.EXPONENTIAL_PERCENTILE_DEFAULT));
+                    double frac       = Double.parseDouble(p.getProperty(ExponentialGenerator.EXPONENTIAL_FRAC_PROPERTY,
+                                                                         ExponentialGenerator.EXPONENTIAL_FRAC_DEFAULT));
+                    keychooser = new ExponentialGenerator(percentile, recordcount*frac);
 		}
 		else
 		{
@@ -341,7 +401,7 @@ public class CoreWorkload extends Workload
     }
 		else
 		{
-			throw new WorkloadException("Unknown distribution \""+requestdistrib+"\"");
+			throw new WorkloadException("Unknown request distribution \""+requestdistrib+"\"");
 		}
 
 		fieldchooser=new UniformIntegerGenerator(0,fieldcount-1);
@@ -360,6 +420,33 @@ public class CoreWorkload extends Workload
 		}
 	}
 
+	public String buildKeyName(long keynum) {
+ 		if (!orderedinserts)
+ 		{
+ 			keynum=Utils.hash(keynum);
+ 		}
+		return "user"+keynum;
+	}
+	HashMap<String, ByteIterator> buildValues() {
+ 		HashMap<String,ByteIterator> values=new HashMap<String,ByteIterator>();
+
+ 		for (int i=0; i<fieldcount; i++)
+ 		{
+ 			String fieldkey="field"+i;
+ 			ByteIterator data= new RandomByteIterator(fieldlengthgenerator.nextInt());
+ 			values.put(fieldkey,data);
+ 		}
+		return values;
+	}
+	HashMap<String, ByteIterator> buildUpdate() {
+		//update a random field
+		HashMap<String, ByteIterator> values=new HashMap<String,ByteIterator>();
+		String fieldname="field"+fieldchooser.nextString();
+		ByteIterator data = new RandomByteIterator(fieldlengthgenerator.nextInt());
+		values.put(fieldname,data);
+		return values;
+	}
+
 	/**
 	 * Do one insert operation. Because it will be called concurrently from multiple client threads, this 
 	 * function must be thread safe. However, avoid synchronized, or the threads will block waiting for each 
@@ -369,18 +456,8 @@ public class CoreWorkload extends Workload
 	public boolean doInsert(DB db, Object threadstate)
 	{
 		int keynum=keysequence.nextInt();
-		if (!orderedinserts)
-		{
-			keynum=Utils.hash(keynum);
-		}
-		String dbkey="user"+keynum;
-		HashMap<String,String> values=new HashMap<String,String>();
-		for (int i=0; i<fieldcount; i++)
-		{
-			String fieldkey="field"+i;
-			String data=Utils.ASCIIString(fieldlength);
-			values.put(fieldkey,data);
-		}
+		String dbkey = buildKeyName(keynum);
+		HashMap<String, ByteIterator> values = buildValues();
 		if (db.insert(table,dbkey,values) == 0)
 			return true;
 		else
@@ -421,22 +498,31 @@ public class CoreWorkload extends Workload
 		return true;
 	}
 
+    int nextKeynum() {
+        int keynum;
+        if(keychooser instanceof ExponentialGenerator) {
+            do
+                {
+                    keynum=transactioninsertkeysequence.lastInt() - keychooser.nextInt();
+                }
+            while(keynum < 0);
+        } else {
+            do
+                {
+                    keynum=keychooser.nextInt();
+                }
+            while (keynum > transactioninsertkeysequence.lastInt());
+        }
+        return keynum;
+    }
+
 	public void doTransactionRead(DB db)
 	{
 		//choose a random key
-		int keynum;
-		do
-		{
-			keynum=keychooser.nextInt();
-		}
-		while (keynum>transactioninsertkeysequence.lastInt());
+		int keynum = nextKeynum();
 		
-		if (!orderedinserts)
-		{
-			keynum=Utils.hash(keynum);
-		}
-		String keyname="user"+keynum;
-
+		String keyname = buildKeyName(keynum);
+		
 		HashSet<String> fields=null;
 
 		if (!readallfields)
@@ -448,24 +534,15 @@ public class CoreWorkload extends Workload
 			fields.add(fieldname);
 		}
 
-		db.read(table,keyname,fields,new HashMap<String,String>());
+		db.read(table,keyname,fields,new HashMap<String,ByteIterator>());
 	}
 	
 	public void doTransactionReadModifyWrite(DB db)
 	{
 		//choose a random key
-		int keynum;
-		do
-		{
-			keynum=keychooser.nextInt();
-		}
-		while (keynum>transactioninsertkeysequence.lastInt());
-		
-		if (!orderedinserts)
-		{
-			keynum=Utils.hash(keynum);
-		}
-		String keyname="user"+keynum;
+		int keynum = nextKeynum();
+
+		String keyname = buildKeyName(keynum);
 
 		HashSet<String> fields=null;
 
@@ -478,31 +555,24 @@ public class CoreWorkload extends Workload
 			fields.add(fieldname);
 		}
 		
-		HashMap<String,String> values=new HashMap<String,String>();
+		HashMap<String,ByteIterator> values;
 
 		if (writeallfields)
 		{
 		   //new data for all the fields
-		   for (int i=0; i<fieldcount; i++)
-		   {
-		      String fieldname="field"+i;
-		      String data=Utils.ASCIIString(fieldlength);		   
-		      values.put(fieldname,data);
-		   }
+		   values = buildValues();
 		}
 		else
 		{
 		   //update a random field
-		   String fieldname="field"+fieldchooser.nextString();
-		   String data=Utils.ASCIIString(fieldlength);		   
-		   values.put(fieldname,data);
+		   values = buildUpdate();
 		}
 
 		//do the transaction
 		
 		long st=System.currentTimeMillis();
 
-		db.read(table,keyname,fields,new HashMap<String,String>());
+		db.read(table,keyname,fields,new HashMap<String,ByteIterator>());
 		
 		db.update(table,keyname,values);
 
@@ -514,18 +584,9 @@ public class CoreWorkload extends Workload
 	public void doTransactionScan(DB db)
 	{
 		//choose a random key
-		int keynum;
-		do
-		{
-			keynum=keychooser.nextInt();
-		}
-		while (keynum>transactioninsertkeysequence.lastInt());
+		int keynum = nextKeynum();
 
-		if (!orderedinserts)
-		{
-			keynum=Utils.hash(keynum);
-		}
-		String startkeyname="user"+keynum;
+		String startkeyname = buildKeyName(keynum);
 		
 		//choose a random scan length
 		int len=scanlength.nextInt();
@@ -541,43 +602,27 @@ public class CoreWorkload extends Workload
 			fields.add(fieldname);
 		}
 
-		db.scan(table,startkeyname,len,fields,new Vector<HashMap<String,String>>());
+		db.scan(table,startkeyname,len,fields,new Vector<HashMap<String,ByteIterator>>());
 	}
 
 	public void doTransactionUpdate(DB db)
 	{
 		//choose a random key
-		int keynum;
-		do
-		{
-			keynum=keychooser.nextInt();
-		}
-		while (keynum>transactioninsertkeysequence.lastInt());
+		int keynum = nextKeynum();
 
-		if (!orderedinserts)
-		{
-			keynum=Utils.hash(keynum);
-		}
-		String keyname="user"+keynum;
+		String keyname=buildKeyName(keynum);
 
-		HashMap<String,String> values=new HashMap<String,String>();
+		HashMap<String,ByteIterator> values;
 
 		if (writeallfields)
 		{
 		   //new data for all the fields
-		   for (int i=0; i<fieldcount; i++)
-		   {
-		      String fieldname="field"+i;
-		      String data=Utils.ASCIIString(fieldlength);		   
-		      values.put(fieldname,data);
-		   }
+		   values = buildValues();
 		}
 		else
 		{
 		   //update a random field
-		   String fieldname="field"+fieldchooser.nextString();
-		   String data=Utils.ASCIIString(fieldlength);		   
-		   values.put(fieldname,data);
+		   values = buildUpdate();
 		}
 
 		db.update(table,keyname,values);
@@ -587,19 +632,10 @@ public class CoreWorkload extends Workload
 	{
 		//choose the next key
 		int keynum=transactioninsertkeysequence.nextInt();
-		if (!orderedinserts)
-		{
-			keynum=Utils.hash(keynum);
-		}
-		String dbkey="user"+keynum;
-		
-		HashMap<String,String> values=new HashMap<String,String>();
-		for (int i=0; i<fieldcount; i++)
-		{
-			String fieldkey="field"+i;
-			String data=Utils.ASCIIString(fieldlength);
-			values.put(fieldkey,data);
-		}
+
+		String dbkey = buildKeyName(keynum);
+
+		HashMap<String, ByteIterator> values = buildValues();
 		db.insert(table,dbkey,values);
 	}
 }

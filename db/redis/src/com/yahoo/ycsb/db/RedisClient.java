@@ -8,7 +8,10 @@
 package com.yahoo.ycsb.db;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.StringByteIterator;
 
+import java.util.Map;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -68,9 +71,9 @@ public class RedisClient extends DB {
 
     @Override
     public int read(String table, String key, Set<String> fields,
-            HashMap<String, String> result) {
+            HashMap<String, ByteIterator> result) {
         if (fields == null) {
-            result.putAll(jedis.hgetAll(key));
+            StringByteIterator.putAllAsByteIterators(result, jedis.hgetAll(key));
         }
         else {
             String[] fieldArray = (String[])fields.toArray(new String[fields.size()]);
@@ -80,7 +83,8 @@ public class RedisClient extends DB {
             Iterator<String> valueIterator = values.iterator();
 
             while (fieldIterator.hasNext() && valueIterator.hasNext()) {
-                result.put(fieldIterator.next(), valueIterator.next());
+                result.put(fieldIterator.next(),
+			   new StringByteIterator(valueIterator.next()));
             }
             assert !fieldIterator.hasNext() && !valueIterator.hasNext();
         }
@@ -88,8 +92,8 @@ public class RedisClient extends DB {
     }
 
     @Override
-    public int insert(String table, String key, HashMap<String, String> values) {
-        if (jedis.hmset(key, values).equals("OK")) {
+    public int insert(String table, String key, HashMap<String, ByteIterator> values) {
+        if (jedis.hmset(key, StringByteIterator.getStringMap(values)).equals("OK")) {
             jedis.zadd(INDEX_KEY, hash(key), key);
             return 0;
         }
@@ -104,19 +108,19 @@ public class RedisClient extends DB {
     }
 
     @Override
-    public int update(String table, String key, HashMap<String, String> values) {
-        return jedis.hmset(key, values).equals("OK") ? 0 : 1;
+    public int update(String table, String key, HashMap<String, ByteIterator> values) {
+        return jedis.hmset(key, StringByteIterator.getStringMap(values)).equals("OK") ? 0 : 1;
     }
 
     @Override
     public int scan(String table, String startkey, int recordcount,
-            Set<String> fields, Vector<HashMap<String, String>> result) {
+            Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
         Set<String> keys = jedis.zrangeByScore(INDEX_KEY, hash(startkey),
                                 Double.POSITIVE_INFINITY, 0, recordcount);
 
-        HashMap<String, String> values;
+        HashMap<String, ByteIterator> values;
         for (String key : keys) {
-            values = new HashMap<String, String>();
+            values = new HashMap<String, ByteIterator>();
             read(table, key, fields, values);
             result.add(values);
         }

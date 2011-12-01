@@ -86,13 +86,13 @@ public class OneMeasurementHistogram extends OneMeasurement
 	 */
 	public synchronized void measure(int latency)
 	{
-		if (latency>=_buckets)
+		if (latency/1000>=_buckets)
 		{
 			histogramoverflow++;
 		}
 		else
 		{
-			histogram[latency]++;
+			histogram[latency/1000]++;
 		}
 		operations++;
 		totallatency+=latency;
@@ -115,9 +115,9 @@ public class OneMeasurementHistogram extends OneMeasurement
   public void exportMeasurements(MeasurementsExporter exporter) throws IOException
   {
     exporter.write(getName(), "Operations", operations);
-    exporter.write(getName(), "AverageLatency(ms)", (((double)totallatency)/((double)operations)));
-    exporter.write(getName(), "MinLatency(ms)", min);
-    exporter.write(getName(), "MaxLatency(ms)", max);
+    exporter.write(getName(), "AverageLatency(us)", (((double)totallatency)/((double)operations)));
+    exporter.write(getName(), "MinLatency(us)", min);
+    exporter.write(getName(), "MaxLatency(us)", max);
     
     int opcounter=0;
     boolean done95th=false;
@@ -159,7 +159,7 @@ public class OneMeasurementHistogram extends OneMeasurement
 		double report=((double)windowtotallatency)/((double)windowoperations);
 		windowtotallatency=0;
 		windowoperations=0;
-		return "["+getName()+" AverageLatency(ms)="+d.format(report)+"]";
+		return "["+getName()+" AverageLatency(us)="+d.format(report)+"]";
 	}
 
 }

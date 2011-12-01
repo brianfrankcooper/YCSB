@@ -14,48 +14,42 @@
  * permissions and limitations under the License. See accompanying                                                                                                                 
  * LICENSE file.                                                                                                                                                                   
  */
+package com.yahoo.ycsb;
 
-package com.yahoo.ycsb.generator;
+import java.io.InputStream;
 
-/**
- * Generate a popularity distribution of items, skewed to favor recent items significantly more than older items.
- */
-public class SkewedLatestGenerator extends IntegerGenerator
-{
-	CounterGenerator _basis;
-	ZipfianGenerator _zipfian;
-
-	public SkewedLatestGenerator(CounterGenerator basis)
-	{
-		_basis=basis;
-		_zipfian=new ZipfianGenerator(_basis.lastInt());
-		nextInt();
+public class InputStreamByteIterator extends ByteIterator {
+	long len;
+	InputStream ins;
+	long off;
+	
+	public InputStreamByteIterator(InputStream ins, long len) {
+		this.len = len;
+		this.ins = ins;
+		off = 0;
 	}
-
-	/**
-	 * Generate the next string in the distribution, skewed Zipfian favoring the items most recently returned by the basis generator.
-	 */
-	public int nextInt()
-	{
-		int max=_basis.lastInt();
-		int nextint=max-_zipfian.nextInt(max);
-		setLastInt(nextint);
-		return nextint;
-	}
-
-	public static void main(String[] args)
-	{
-		SkewedLatestGenerator gen=new SkewedLatestGenerator(new CounterGenerator(1000));
-		for (int i=0; i<Integer.parseInt(args[0]); i++)
-		{
-			System.out.println(gen.nextString());
-		}
-
+	
+	@Override
+	public boolean hasNext() {
+		return off < len;
 	}
 
 	@Override
-	public double mean() {
-		throw new UnsupportedOperationException("Can't compute mean of non-stationary distribution!");
+	public byte nextByte() {
+		int ret;
+		try {
+			ret = ins.read();
+		} catch(Exception e) {
+			throw new IllegalStateException(e);
+		}
+		if(ret == -1) { throw new IllegalStateException("Past EOF!"); }
+		off++;
+		return (byte)ret;
+	}
+
+	@Override
+	public long bytesLeft() {
+		return len - off;
 	}
 
 }

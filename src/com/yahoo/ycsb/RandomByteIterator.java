@@ -14,48 +14,71 @@
  * permissions and limitations under the License. See accompanying                                                                                                                 
  * LICENSE file.                                                                                                                                                                   
  */
+package com.yahoo.ycsb;
 
-package com.yahoo.ycsb.generator;
-
-/**
- * Generate a popularity distribution of items, skewed to favor recent items significantly more than older items.
- */
-public class SkewedLatestGenerator extends IntegerGenerator
-{
-	CounterGenerator _basis;
-	ZipfianGenerator _zipfian;
-
-	public SkewedLatestGenerator(CounterGenerator basis)
-	{
-		_basis=basis;
-		_zipfian=new ZipfianGenerator(_basis.lastInt());
-		nextInt();
-	}
-
-	/**
-	 * Generate the next string in the distribution, skewed Zipfian favoring the items most recently returned by the basis generator.
-	 */
-	public int nextInt()
-	{
-		int max=_basis.lastInt();
-		int nextint=max-_zipfian.nextInt(max);
-		setLastInt(nextint);
-		return nextint;
-	}
-
-	public static void main(String[] args)
-	{
-		SkewedLatestGenerator gen=new SkewedLatestGenerator(new CounterGenerator(1000));
-		for (int i=0; i<Integer.parseInt(args[0]); i++)
-		{
-			System.out.println(gen.nextString());
-		}
-
-	}
-
+public class RandomByteIterator extends ByteIterator {
+	long len;
+	long off;
+	int buf_off;
+	byte[] buf;
+	
 	@Override
-	public double mean() {
-		throw new UnsupportedOperationException("Can't compute mean of non-stationary distribution!");
+	public boolean hasNext() {
+		return (off + buf_off) < len;
 	}
 
+	private void fillBytesImpl(byte[] buf, int base) {
+		int bytes = Utils.random().nextInt();
+		try {
+			buf[base+0] = (byte)(((bytes      ) & 31) + ' ');
+			buf[base+1] = (byte)(((bytes >> 5 ) & 31) + ' ');
+			buf[base+2] = (byte)(((bytes >> 10) & 31) + ' ');
+			buf[base+3] = (byte)(((bytes >> 15) & 31) + ' ');
+			buf[base+4] = (byte)(((bytes >> 20) & 31) + ' ');
+			buf[base+5] = (byte)(((bytes >> 25) & 31) + ' ');
+		} catch (ArrayIndexOutOfBoundsException e) { /* ignore it */ }
+	}
+	
+	private void fillBytes() {
+		if(buf_off ==  buf.length) {
+			fillBytesImpl(buf, 0);
+			buf_off = 0;
+			off += buf.length;
+		}
+	}
+	
+	public RandomByteIterator(long len) {
+		this.len = len;
+		this.buf = new byte[6];
+		this.buf_off = buf.length;
+		fillBytes();
+		this.off = 0;
+	}
+
+	public byte nextByte() {
+		fillBytes();
+		buf_off++;
+		return buf[buf_off-1];
+	}
+	@Override
+	public int nextBuf(byte[] b, int buf_off) {
+		int ret;
+		if(len - off < b.length - buf_off) {
+			ret = (int)(len - off);
+		} else {
+			ret = b.length - buf_off;
+		}
+		int i;
+		for(i = 0; i < ret; i+=6) {
+			fillBytesImpl(b, i+buf_off);
+		}
+		off+=ret;
+		return ret + buf_off;
+	}
+	
+	
+	@Override
+	public long bytesLeft() {
+		return len - off;
+	}
 }

@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Enumeration;
-import java.util.Random;
 import java.util.Vector;
 
 
@@ -37,13 +36,11 @@ public class BasicDB extends DB
 	public static final String SIMULATE_DELAY_DEFAULT="0";
 	
 	
-	Random random;
 	boolean verbose;
 	int todelay;
 
 	public BasicDB()
 	{
-		random=new Random();
 		todelay=0;
 	}
 
@@ -54,7 +51,7 @@ public class BasicDB extends DB
 		{
 			try
 			{
-				Thread.sleep((long)random.nextInt(todelay));
+				Thread.sleep((long)Utils.random().nextInt(todelay));
 			}
 			catch (InterruptedException e)
 			{
@@ -98,7 +95,7 @@ public class BasicDB extends DB
 	 * @param result A HashMap of field/value pairs for the result
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int read(String table, String key, Set<String> fields, HashMap<String,String> result)
+	public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
 	{
 		delay();
 
@@ -133,7 +130,7 @@ public class BasicDB extends DB
 	 * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,String>> result)
+	public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
 	{
 		delay();
 
@@ -167,7 +164,7 @@ public class BasicDB extends DB
 	 * @param values A HashMap of field/value pairs to update in the record
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int update(String table, String key, HashMap<String,String> values)
+	public int update(String table, String key, HashMap<String,ByteIterator> values)
 	{
 		delay();
 
@@ -196,7 +193,7 @@ public class BasicDB extends DB
 	 * @param values A HashMap of field/value pairs to insert in the record
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int insert(String table, String key, HashMap<String,String> values)
+	public int insert(String table, String key, HashMap<String,ByteIterator> values)
 	{
 		delay();
 

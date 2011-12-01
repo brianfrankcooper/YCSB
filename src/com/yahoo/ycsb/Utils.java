@@ -24,8 +24,17 @@ import java.util.Random;
  */
 public class Utils
 {
-	static Random random=new Random();
-	
+  private static final Random rand = new Random();
+  private static final ThreadLocal<Random> rng = new ThreadLocal<Random>();
+
+  public static Random random() {
+    Random ret = rng.get();
+    if(ret == null) {
+      ret = new Random(rand.nextLong());
+      rng.set(ret);
+    }
+    return ret;
+  }
       /**
        * Generate a random ASCII string of a given length.
        */
@@ -34,7 +43,7 @@ public class Utils
 	 int interval='~'-' '+1;
 	
         byte []buf = new byte[length];
-        random.nextBytes(buf);
+        random().nextBytes(buf);
         for (int i = 0; i < length; i++) {
           if (buf[i] < 0) {
             buf[i] = (byte)((-buf[i] % interval) + ' ');
@@ -48,9 +57,9 @@ public class Utils
       /**
        * Hash an integer value.
        */
-      public static int hash(int val)
+      public static long hash(long val)
       {
-	 return FNVhash32(val);
+	 return FNVhash64(val);
       }
 	
       public static final int FNV_offset_basis_32=0x811c9dc5;

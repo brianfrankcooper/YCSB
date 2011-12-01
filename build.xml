@@ -72,20 +72,20 @@
 	
  	<target name="compile">
         <mkdir dir="${classes.dir}"/>
-        <javac srcdir="${src.dir}" destdir="${classes.dir}" classpathref="build.classpath" deprecation="on">
+        <javac includeantruntime="false" srcdir="${src.dir}" destdir="${classes.dir}" classpathref="build.classpath" deprecation="on">
           <compilerarg value="-Xlint:unchecked"/>
         </javac>
         <antcall target="makejar"/>
     </target>
 
-	<target name="dbcompile">
+    <target name="dbcompile">
 	    <path id="dbclasspath">
 	        <fileset dir="${db.dir}/lib" includes="**/*.jar"/>
 	        <fileset file="build/ycsb.jar"/>
 	    </path>
 		
     	<mkdir dir="${classes.dir}"/>
-        <javac srcdir="${db.dir}/src" destdir="${classes.dir}" classpathref="dbclasspath" deprecation="on">
+        <javac includeantruntime="false" srcdir="${db.dir}/src" destdir="${classes.dir}" classpathref="dbclasspath" deprecation="on">
           <compilerarg value="-Xlint:unchecked"/>
         </javac>
         <antcall target="makejar"/>
@@ -105,7 +105,7 @@
       <javadoc destdir="${doc.dir}/javadoc" packagenames="com.yahoo.ycsb,com.yahoo.ycsb.workloads,com.yahoo.ycsb.db,com.yahoo.ycsb.generator,com.yahoo.ycsb.measurements"> 
          <fileset dir="." defaultexcludes="yes">
            <include name="src/**"/>
-           <include name="db/**/src/**"/>
+           <include name="db/*/src/**"/>
          </fileset>
       </javadoc>
    </target>

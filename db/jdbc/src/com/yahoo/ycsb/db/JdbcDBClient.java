@@ -19,6 +19,8 @@ package com.yahoo.ycsb.db;
 
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.StringByteIterator;
 
 import java.sql.*;
 import java.util.*;
@@ -294,7 +296,7 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
 
 	@Override
 	public int read(String tableName, String key, Set<String> fields,
-			HashMap<String, String> result) {
+			HashMap<String, ByteIterator> result) {
 	  if (tableName == null) {
       return -1;
     }
@@ -316,7 +318,7 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
       if (result != null && fields != null) {
         for (String field : fields) {
           String value = resultSet.getString(field);
-          result.put(field, value);
+          result.put(field, new StringByteIterator(value));
         }
       }
       resultSet.close();
@@ -329,7 +331,7 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
 
 	@Override
 	public int scan(String tableName, String startKey, int recordcount,
-			Set<String> fields, Vector<HashMap<String, String>> result) {
+			Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
 	  if (tableName == null) {
       return -1;
     }
@@ -346,10 +348,10 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
       ResultSet resultSet = scanStatement.executeQuery();
       for (int i = 0; i < recordcount && resultSet.next(); i++) {
         if (result != null && fields != null) {
-          HashMap<String, String> values = new HashMap<String, String>();
+          HashMap<String, ByteIterator> values = new HashMap<String, ByteIterator>();
           for (String field : fields) {
             String value = resultSet.getString(field);
-            values.put(field, value);
+            values.put(field, new StringByteIterator(value));
           }
           result.add(values);
         }
@@ -363,7 +365,7 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
 	}
 
 	@Override
-	public int update(String tableName, String key, HashMap<String, String> values) {
+	public int update(String tableName, String key, HashMap<String, ByteIterator> values) {
 	  if (tableName == null) {
       return -1;
     }
@@ -378,8 +380,8 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
         updateStatement = createAndCacheUpdateStatement(type, key);
       }
       int index = 1;
-      for (Map.Entry<String, String> entry : values.entrySet()) {
-        updateStatement.setString(index++, entry.getValue());
+      for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+        updateStatement.setString(index++, entry.getValue().toString());
       }
       updateStatement.setString(index, key);
       int result = updateStatement.executeUpdate();
@@ -392,7 +394,7 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
 	}
 
 	@Override
-	public int insert(String tableName, String key, HashMap<String, String> values) {
+	public int insert(String tableName, String key, HashMap<String, ByteIterator> values) {
 	  if (tableName == null) {
 	    return -1;
 	  }
@@ -408,8 +410,8 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
 	    }
       insertStatement.setString(1, key);
       int index = 2;
-      for (Map.Entry<String, String> entry : values.entrySet()) {
-        String field = entry.getValue();
+      for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+        String field = entry.getValue().toString();
         insertStatement.setString(index++, field);
       }
       int result = insertStatement.executeUpdate();
