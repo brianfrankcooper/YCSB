@@ -1,4 +1,4 @@
-This directory should contain gemfire.jar OR gemfire.jar can be added to CLASSPATH for compiling GemFireClient.
+This directory should contain gemfire.jar for compiling GemFireClient.
 
 GemFireClient can be compiled using target:
 $ ant dbcompile-gemfire
