@@ -18,8 +18,11 @@ import com.gemstone.gemfire.cache.client.ClientCacheFactory;
 import com.gemstone.gemfire.cache.client.ClientRegionFactory;
 import com.gemstone.gemfire.cache.client.ClientRegionShortcut;
 import com.gemstone.gemfire.internal.admin.remote.DistributionLocatorId;
+import com.yahoo.ycsb.ByteArrayByteIterator;
+import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.StringByteIterator;
 
 /**
  * VMware vFabric GemFire client for the YCSB benchmark.<br />
@@ -124,15 +127,17 @@ public class GemFireClient extends DB {
   
   @Override
   public int read(String table, String key, Set<String> fields,
-      HashMap<String, String> result) {
-    Region<String, Map<String, String>> r = getRegion(table);
-    Map<String, String> val = r.get(key);
+      HashMap<String, ByteIterator> result) {
+    Region<String, Map<String, byte[]>> r = getRegion(table);
+    Map<String, byte[]> val = r.get(key);
     if (val != null) {
       if (fields == null) {
-        result.putAll(val);
+        for (String k : val.keySet()) {
+          result.put(key, new ByteArrayByteIterator(val.get(key)));
+        }
       } else {
         for (String field : fields) {
-          result.put(field, val.get(field));
+          result.put(field, new ByteArrayByteIterator(val.get(field)));
         }
       }
       return SUCCESS;
@@ -142,20 +147,20 @@ public class GemFireClient extends DB {
 
   @Override
   public int scan(String table, String startkey, int recordcount,
-      Set<String> fields, Vector<HashMap<String, String>> result) {
+      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     // GemFire does not support scan
     return ERROR;
   }
 
   @Override
-  public int update(String table, String key, HashMap<String, String> values) {
-    getRegion(table).put(key, values);
+  public int update(String table, String key, HashMap<String, ByteIterator> values) {
+    getRegion(table).put(key, convertToBytearrayMap(values));
     return 0;
   }
 
   @Override
-  public int insert(String table, String key, HashMap<String, String> values) {
-    getRegion(table).put(key, values);
+  public int insert(String table, String key, HashMap<String, ByteIterator> values) {
+    getRegion(table).put(key, convertToBytearrayMap(values));
     return 0;
   }
 
@@ -165,15 +170,23 @@ public class GemFireClient extends DB {
     return 0;
   }
 
-  private Region<String, Map<String, String>> getRegion(String table) {
-    Region<String, Map<String, String>> r = cache.getRegion(table);
+  private Map<String, byte[]> convertToBytearrayMap(Map<String,ByteIterator> values) {
+    Map<String, byte[]> retVal = new HashMap<String, byte[]>();
+    for (String key : values.keySet()) {
+      retVal.put(key, values.get(key).toArray());
+    }
+    return retVal;
+  }
+  
+  private Region<String, Map<String, byte[]>> getRegion(String table) {
+    Region<String, Map<String, byte[]>> r = cache.getRegion(table);
     if (r == null) {
       try {
         if (isClient) {
-          ClientRegionFactory<String, Map<String, String>> crf = ((ClientCache) cache).createClientRegionFactory(ClientRegionShortcut.PROXY);
+          ClientRegionFactory<String, Map<String, byte[]>> crf = ((ClientCache) cache).createClientRegionFactory(ClientRegionShortcut.PROXY);
           r = crf.create(table);
         } else {
-          RegionFactory<String, Map<String, String>> rf = ((Cache)cache).createRegionFactory(RegionShortcut.PARTITION);
+          RegionFactory<String, Map<String, byte[]>> rf = ((Cache)cache).createRegionFactory(RegionShortcut.PARTITION);
           r = rf.create(table);
         }
       } catch (RegionExistsException e) {
