@@ -65,6 +65,11 @@
         <antcall target="dbcompile"/>
     </target>
 	
+   	<target name="dbcompile-mapkeeper" depends="compile">
+            <property name="db.dir" value="db/mapkeeper"/>
+            <antcall target="dbcompile"/>
+   	</target>
+
  	<target name="compile">
         <mkdir dir="${classes.dir}"/>
         <javac includeantruntime="false" srcdir="${src.dir}" destdir="${classes.dir}" classpathref="build.classpath" deprecation="on">
