@@ -20,6 +20,8 @@ REDIS_DIR=db/redis/lib
 REDIS_FILE=jedis-2.0.0.jar
 VOLDEMORT_DIR=db/voldemort/lib
 VOLDEMORT_FILE=voldemort-0.90.1.tar.gz
+MAPKEEPER_DIR=db/mapkeeper/lib
+MAPKEEPER_FILE=mapkeeper.jar
 
 .PHONY: build
 build: download-database-deps
@@ -35,6 +37,7 @@ download-database-deps:  $(CASSANDRA_5_DIR)/$(CASSANDRA_5_FILE) \
 			 $(MONGODB_DIR)/$(MONGODB_FILE)   \
 			 $(REDIS_DIR)/$(REDIS_FILE)   \
 			 $(VOLDEMORT_DIR)/$(VOLDEMORT_FILE)   \
+			 $(MAPKEEPER_DIR)/$(MAPKEEPER_FILE)   \
 
 $(CASSANDRA_5_DIR)/$(CASSANDRA_5_FILE) :
 	wget http://archive.apache.org/dist/cassandra/0.5.1/$(CASSANDRA_5_FILE)\
@@ -79,3 +82,8 @@ $(VOLDEMORT_DIR)/$(VOLDEMORT_FILE) :
 		 -O $(VOLDEMORT_DIR)/$(VOLDEMORT_FILE)
 	tar -C $(VOLDEMORT_DIR) -zxf $(VOLDEMORT_DIR)/$(VOLDEMORT_FILE)
 
+$(MAPKEEPER_DIR)/$(MAPKEEPER_FILE) :
+	wget https://raw.github.com/m1ch1/mapkeeper/master/lib/mapkeeper.jar \
+		 -O $(MAPKEEPER_DIR)/$(MAPKEEPER_FILE)
+	wget https://raw.github.com/m1ch1/mapkeeper/master/lib/libthrift-0.6.1.jar \
+		 -O $(MAPKEEPER_DIR)/libthrift-0.6.1.jar
