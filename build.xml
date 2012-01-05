@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
    <project name="ycsb" default="compile" basedir=".">
-   
+
     <property name="src.dir"     value="src"/>
     <property name="lib.dir"     value="lib"/>
     <property name="doc.dir"     value="doc"/>
@@ -21,56 +21,61 @@
     </target>
 
     <target name="dbcompile-cassandra-0.5" depends="compile">
-    	<property name="db.dir" value="db/cassandra-0.5"/>
-        <antcall target="dbcompile"/>
+      <property name="db.dir" value="db/cassandra-0.5"/>
+      <antcall target="dbcompile"/>
     </target>
-    	
-   	<target name="dbcompile-cassandra-0.6" depends="compile">
-		<property name="db.dir" value="db/cassandra-0.6"/>
-		<antcall target="dbcompile"/>
-	</target>
-   	
-   	<target name="dbcompile-cassandra-0.7" depends="compile">
-		<property name="db.dir" value="db/cassandra-0.7"/>
-		<antcall target="dbcompile"/>
-	</target>   	
+
+  <target name="dbcompile-cassandra-0.6" depends="compile">
+    <property name="db.dir" value="db/cassandra-0.6"/>
+    <antcall target="dbcompile"/>
+  </target>
+
+  <target name="dbcompile-cassandra-0.7" depends="compile">
+    <property name="db.dir" value="db/cassandra-0.7"/>
+    <antcall target="dbcompile"/>
+  </target>
 
         <target name="dbcompile-cassandra-0.8" depends="compile">
                 <property name="db.dir" value="db/cassandra-0.8"/>
                 <antcall target="dbcompile"/>
         </target>
-   	
-   	<target name="dbcompile-hbase" depends="compile">
-		<property name="db.dir" value="db/hbase"/>
-		<antcall target="dbcompile"/>
-	</target>
 
-   	<target name="dbcompile-mongodb" depends="compile">
-		<property name="db.dir" value="db/mongodb"/>
-		<antcall target="dbcompile"/>
-	</target>
+    <target name="dbcompile-cassandra-1.0.6" depends="compile">
+            <property name="db.dir" value="db/cassandra-1.0.6"/>
+            <antcall target="dbcompile"/>
+    </target>
 
-   	<target name="dbcompile-voldemort" depends="compile">
-		<property name="db.dir" value="db/voldemort"/>
-		<antcall target="dbcompile"/>
-	</target>
-   	
-   	<target name="dbcompile-jdbc" depends="compile">
-   		<property name="db.dir" value="db/jdbc"/>
-   	    <antcall target="dbcompile"/>
-   	</target>
+  <target name="dbcompile-hbase" depends="compile">
+    <property name="db.dir" value="db/hbase"/>
+    <antcall target="dbcompile"/>
+  </target>
+
+  <target name="dbcompile-mongodb" depends="compile">
+    <property name="db.dir" value="db/mongodb"/>
+    <antcall target="dbcompile"/>
+  </target>
+
+  <target name="dbcompile-voldemort" depends="compile">
+    <property name="db.dir" value="db/voldemort"/>
+    <antcall target="dbcompile"/>
+  </target>
+
+     <target name="dbcompile-jdbc" depends="compile">
+       <property name="db.dir" value="db/jdbc"/>
+       <antcall target="dbcompile"/>
+     </target>
 
     <target name="dbcompile-redis" depends="compile">
         <property name="db.dir" value="db/redis"/>
         <antcall target="dbcompile"/>
     </target>
-	
-   	<target name="dbcompile-mapkeeper" depends="compile">
+
+     <target name="dbcompile-mapkeeper" depends="compile">
             <property name="db.dir" value="db/mapkeeper"/>
             <antcall target="dbcompile"/>
-   	</target>
+     </target>
 
- 	<target name="compile">
+   <target name="compile">
         <mkdir dir="${classes.dir}"/>
         <javac includeantruntime="false" srcdir="${src.dir}" destdir="${classes.dir}" classpathref="build.classpath" deprecation="on">
           <compilerarg value="-Xlint:unchecked"/>
@@ -79,22 +84,22 @@
     </target>
 
     <target name="dbcompile">
-	    <path id="dbclasspath">
-	        <fileset dir="${db.dir}/lib" includes="**/*.jar"/>
-	        <fileset file="build/ycsb.jar"/>
-	    </path>
-		
-    	<mkdir dir="${classes.dir}"/>
-        <javac includeantruntime="false" srcdir="${db.dir}/src" destdir="${classes.dir}" classpathref="dbclasspath" deprecation="on">
+      <path id="dbclasspath">
+          <fileset dir="${db.dir}/lib" includes="**/*.jar"/>
+          <fileset file="build/ycsb.jar"/>
+      </path>
+
+      <mkdir dir="${classes.dir}"/>
+      <javac includeantruntime="false" srcdir="${db.dir}/src" destdir="${classes.dir}" classpathref="dbclasspath" deprecation="on">
           <compilerarg value="-Xlint:unchecked"/>
-        </javac>
-        <antcall target="makejar"/>
+      </javac>
+      <antcall target="makejar"/>
     </target>
 
-   	<target name ="makejar" description="Create a jar for the YCSB project">
-		<jar jarfile="build/ycsb.jar" includes="**/*.class" basedir="${classes.dir}"/>
-	</target>
-   	
+    <target name ="makejar" description="Create a jar for the YCSB project">
+         <jar jarfile="build/ycsb.jar" includes="**/*.class" basedir="${classes.dir}"/>
+    </target>
+
     <target name="clean">
        <delete includeemptydirs="true">
           <fileset dir="build" includes="**/*"/>
@@ -102,7 +107,7 @@
     </target>
 
    <target name="doc">
-      <javadoc destdir="${doc.dir}/javadoc" packagenames="com.yahoo.ycsb,com.yahoo.ycsb.workloads,com.yahoo.ycsb.db,com.yahoo.ycsb.generator,com.yahoo.ycsb.measurements"> 
+      <javadoc destdir="${doc.dir}/javadoc" packagenames="com.yahoo.ycsb,com.yahoo.ycsb.workloads,com.yahoo.ycsb.db,com.yahoo.ycsb.generator,com.yahoo.ycsb.measurements">
          <fileset dir="." defaultexcludes="yes">
            <include name="src/**"/>
            <include name="db/*/src/**"/>

@@ -10,6 +10,9 @@ CASSANDRA_7_DIR=db/cassandra-0.7/lib
 CASSANDRA_7_FILE=apache-cassandra-0.7.9-bin.tar.gz
 CASSANDRA_8_DIR=db/cassandra-0.8/lib
 CASSANDRA_8_FILE=apache-cassandra-0.8.7-bin.tar.gz
+CASSANDRA_1X_VERSION=1.0.6
+CASSANDRA_1X_DIR=db/cassandra-$(CASSANDRA_1X_VERSION)/lib
+CASSANDRA_1X_FILE=apache-cassandra-$(CASSANDRA_1X_VERSION)-bin.tar.gz
 HBASE_DIR=db/hbase/lib
 HBASE_FILE=hbase-0.90.4.tar.gz
 INFINISPAN_DIR=db/infinispan-5.0/lib
@@ -32,12 +35,13 @@ download-database-deps:  $(CASSANDRA_5_DIR)/$(CASSANDRA_5_FILE) \
 			 $(CASSANDRA_6_DIR)/$(CASSANDRA_6_FILE) \
 			 $(CASSANDRA_7_DIR)/$(CASSANDRA_7_FILE) \
 			 $(CASSANDRA_8_DIR)/$(CASSANDRA_8_FILE) \
+			 $(CASSANDRA_1X_DIR)/$(CASSANDRA_1X_FILE) \
 			 $(HBASE_DIR)/$(HBASE_FILE)             \
 			 $(INFINISPAN_DIR)/$(INFINISPAN_FILE)   \
 			 $(MONGODB_DIR)/$(MONGODB_FILE)   \
 			 $(REDIS_DIR)/$(REDIS_FILE)   \
 			 $(VOLDEMORT_DIR)/$(VOLDEMORT_FILE)   \
-			 $(MAPKEEPER_DIR)/$(MAPKEEPER_FILE)   \
+			 $(MAPKEEPER_DIR)/$(MAPKEEPER_FILE)	\
 
 $(CASSANDRA_5_DIR)/$(CASSANDRA_5_FILE) :
 	wget http://archive.apache.org/dist/cassandra/0.5.1/$(CASSANDRA_5_FILE)\
@@ -58,6 +62,11 @@ $(CASSANDRA_8_DIR)/$(CASSANDRA_8_FILE) :
 	wget http://archive.apache.org/dist/cassandra/0.8.7/$(CASSANDRA_8_FILE)\
 		 -O $(CASSANDRA_8_DIR)/$(CASSANDRA_8_FILE)
 	tar -C $(CASSANDRA_8_DIR) -zxf $(CASSANDRA_8_DIR)/$(CASSANDRA_8_FILE)
+
+$(CASSANDRA_1X_DIR)/$(CASSANDRA_1X_FILE) :
+	wget http://archive.apache.org/dist/cassandra/$(CASSANDRA_1X_VERSION)/$(CASSANDRA_1X_FILE)\
+		 -O $(CASSANDRA_1X_DIR)/$(CASSANDRA_1X_FILE)
+	tar -C $(CASSANDRA_1X_DIR) -zxf $(CASSANDRA_1X_DIR)/$(CASSANDRA_1X_FILE)
 
 $(HBASE_DIR)/$(HBASE_FILE) :
 	wget http://archive.apache.org/dist/hbase/hbase-0.90.4/$(HBASE_FILE)\
