@@ -1,18 +1,18 @@
-/**                                                                                                                                                                                
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved.                                                                                                                             
- *                                                                                                                                                                                 
- * Licensed under the Apache License, Version 2.0 (the "License"); you                                                                                                             
- * may not use this file except in compliance with the License. You                                                                                                                
- * may obtain a copy of the License at                                                                                                                                             
- *                                                                                                                                                                                 
- * http://www.apache.org/licenses/LICENSE-2.0                                                                                                                                      
- *                                                                                                                                                                                 
- * Unless required by applicable law or agreed to in writing, software                                                                                                             
- * distributed under the License is distributed on an "AS IS" BASIS,                                                                                                               
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or                                                                                                                 
- * implied. See the License for the specific language governing                                                                                                                    
- * permissions and limitations under the License. See accompanying                                                                                                                 
- * LICENSE file.                                                                                                                                                                   
+/**
+ * Copyright (c) 2010 Yahoo! Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
  */
 
 package com.yahoo.ycsb.db;
@@ -52,7 +52,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 {
     // BFC: Change to fix broken build (with HBase 0.20.6)
     //private static final Configuration config = HBaseConfiguration.create();
-    private static final HBaseConfiguration config = new HBaseConfiguration();
+    private static final Configuration config = HBaseConfiguration.create(); //new HBaseConfiguration();
 
     public boolean _debug=false;
 
@@ -68,32 +68,32 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 
     public static final Object tableLock = new Object();
 
-	/**
-	 * Initialize any state for this DB.
-	 * Called once per DB instance; there is one DB instance per client thread.
-	 */
-	public void init() throws DBException
-	{
-		if ( (getProperties().getProperty("debug")!=null) &&
-				(getProperties().getProperty("debug").compareTo("true")==0) )
-		{
-		    _debug=true;
-	    }
+    /**
+     * Initialize any state for this DB.
+     * Called once per DB instance; there is one DB instance per client thread.
+     */
+    public void init() throws DBException
+    {
+        if ( (getProperties().getProperty("debug")!=null) &&
+                (getProperties().getProperty("debug").compareTo("true")==0) )
+        {
+            _debug=true;
+        }
 
-	    _columnFamily = getProperties().getProperty("columnfamily");
-	    if (_columnFamily == null) 
-	    {
-		    System.err.println("Error, must specify a columnfamily for HBase table");
-		    throw new DBException("No columnfamily specified");
-	    }
+        _columnFamily = getProperties().getProperty("columnfamily");
+        if (_columnFamily == null)
+        {
+            System.err.println("Error, must specify a columnfamily for HBase table");
+            throw new DBException("No columnfamily specified");
+        }
       _columnFamilyBytes = Bytes.toBytes(_columnFamily);
 
     }
 
     /**
-	 * Cleanup any state for this DB.
-	 * Called once per DB instance; there is one DB instance per client thread.
-	 */
+     * Cleanup any state for this DB.
+     * Called once per DB instance; there is one DB instance per client thread.
+     */
     public void cleanup() throws DBException
     {
         try {
@@ -119,24 +119,24 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 
     /**
      * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
-	 *
-	 * @param table The name of the table
-	 * @param key The record key of the record to read.
-	 * @param fields The list of fields to read, or null for all of them
-	 * @param result A HashMap of field/value pairs for the result
-	 * @return Zero on success, a non-zero error code on error
-	 */
-	public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
+     *
+     * @param table The name of the table
+     * @param key The record key of the record to read.
+     * @param fields The list of fields to read, or null for all of them
+     * @param result A HashMap of field/value pairs for the result
+     * @return Zero on success, a non-zero error code on error
+     */
+    public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
         if (!_table.equals(table)) {
             _hTable = null;
-            try 
+            try
             {
                 getHTable(table);
                 _table = table;
             }
-            catch (IOException e) 
+            catch (IOException e)
             {
                 System.err.println("Error accessing HBase table: "+e);
                 return ServerError;
@@ -146,10 +146,10 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         Result r = null;
         try
         {
-	    if (_debug) {
-		System.out.println("Doing read from HBase columnfamily "+_columnFamily);
-		System.out.println("Doing read for key: "+key);
-	    }
+        if (_debug) {
+        System.out.println("Doing read from HBase columnfamily "+_columnFamily);
+        System.out.println("Doing read for key: "+key);
+        }
             Get g = new Get(Bytes.toBytes(key));
           if (fields == null) {
             g.addFamily(_columnFamilyBytes);
@@ -181,30 +181,30 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     }
 
   }
-	return Ok;
+    return Ok;
     }
 
     /**
      * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a HashMap.
-	 *
-	 * @param table The name of the table
-	 * @param startkey The record key of the first record to read.
-	 * @param recordcount The number of records to read
-	 * @param fields The list of fields to read, or null for all of them
-	 * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
-	 * @return Zero on success, a non-zero error code on error
-	 */
+     *
+     * @param table The name of the table
+     * @param startkey The record key of the first record to read.
+     * @param recordcount The number of records to read
+     * @param fields The list of fields to read, or null for all of them
+     * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
+     * @return Zero on success, a non-zero error code on error
+     */
     public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
         if (!_table.equals(table)) {
             _hTable = null;
-            try 
+            try
             {
                 getHTable(table);
                 _table = table;
             }
-            catch (IOException e) 
+            catch (IOException e)
             {
                 System.err.println("Error accessing HBase table: "+e);
                 return ServerError;
@@ -290,12 +290,12 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         //if this is a "new" table, init HTable object.  Else, use existing one
         if (!_table.equals(table)) {
             _hTable = null;
-            try 
+            try
             {
                 getHTable(table);
                 _table = table;
             }
-            catch (IOException e) 
+            catch (IOException e)
             {
                 System.err.println("Error accessing HBase table: "+e);
                 return ServerError;
@@ -312,11 +312,11 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             if (_debug) {
                 System.out.println("Adding field/value " + entry.getKey() + "/"+
                   entry.getValue() + " to put request");
-            }	       
+            }
             p.add(_columnFamilyBytes,Bytes.toBytes(entry.getKey()),entry.getValue().toArray());
         }
 
-        try 
+        try
         {
             _hTable.put(p);
         }
@@ -327,7 +327,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             }
             return ServerError;
         }
-        catch (ConcurrentModificationException e) 
+        catch (ConcurrentModificationException e)
         {
             //do nothing for now...hope this is rare
             return ServerError;
@@ -343,31 +343,31 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      * @param table The name of the table
      * @param key The record key of the record to insert.
      * @param values A HashMap of field/value pairs to insert in the record
-	 * @return Zero on success, a non-zero error code on error
-	 */
-	public int insert(String table, String key, HashMap<String,ByteIterator> values)
+     * @return Zero on success, a non-zero error code on error
+     */
+    public int insert(String table, String key, HashMap<String,ByteIterator> values)
     {
         return update(table,key,values);
     }
 
-	/**
-	 * Delete a record from the database. 
-	 *
-	 * @param table The name of the table
-	 * @param key The record key of the record to delete.
-	 * @return Zero on success, a non-zero error code on error
-	 */
-	public int delete(String table, String key)
+    /**
+     * Delete a record from the database.
+     *
+     * @param table The name of the table
+     * @param key The record key of the record to delete.
+     * @return Zero on success, a non-zero error code on error
+     */
+    public int delete(String table, String key)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
         if (!_table.equals(table)) {
             _hTable = null;
-            try 
+            try
             {
                 getHTable(table);
                 _table = table;
             }
-            catch (IOException e) 
+            catch (IOException e)
             {
                 System.err.println("Error accessing HBase table: "+e);
                 return ServerError;
@@ -379,7 +379,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         }
 
         Delete d = new Delete(Bytes.toBytes(key));
-        try 
+        try
         {
             _hTable.delete(d);
         }
@@ -404,7 +404,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 
         final int keyspace=10000; //120000000;
 
-        final int threadcount=Integer.parseInt(args[0]);	 
+        final int threadcount=Integer.parseInt(args[0]);
 
         final String columnfamily=args[1];
 
@@ -415,7 +415,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 
         for (int i=0; i<threadcount; i++)
         {
-            Thread t=new Thread() 
+            Thread t=new Thread()
             {
                 public void run()
                 {
@@ -451,7 +451,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
                             HashSet<String> s = new HashSet();
                             s.add("field1");
                             s.add("field2");
-                            
+
                             rescode=cli.read("table1", key, s, result);
                             //rescode=cli.delete("table1",key);
                             rescode=cli.read("table1", key, s, result);
@@ -461,7 +461,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
                             scanFields.add("field3");
                             Vector<HashMap<String,ByteIterator>> scanResults = new Vector<HashMap<String,ByteIterator>>();
                             rescode = cli.scan("table1","user2",20,null,scanResults);
-                           
+
                             long en=System.currentTimeMillis();
 
                             accum+=(en-st);
