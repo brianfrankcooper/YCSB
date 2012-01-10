@@ -42,7 +42,7 @@ import org.apache.cassandra.thrift.*;
 /**
  * Cassandra 1.0.6 client for YCSB framework
  */
-public class CassandraClient8 extends DB
+public class CassandraClient10 extends DB
 {
   static Random random = new Random();
   public static final int Ok = 0;
@@ -531,7 +531,7 @@ public class CassandraClient8 extends DB
 
   public static void main(String[] args)
   {
-    CassandraClient8 cli = new CassandraClient8();
+    CassandraClient10 cli = new CassandraClient10();
 
     Properties props = new Properties();
 
