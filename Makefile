@@ -11,7 +11,8 @@ CASSANDRA_7_FILE=apache-cassandra-0.7.9-bin.tar.gz
 CASSANDRA_8_DIR=db/cassandra-0.8/lib
 CASSANDRA_8_FILE=apache-cassandra-0.8.7-bin.tar.gz
 HBASE_DIR=db/hbase/lib
-HBASE_FILE=hbase-0.90.4.tar.gz
+HBASE_VERSION=0.90.5
+HBASE_FILE=hbase-$(HBASE_VERSION).tar.gz
 INFINISPAN_DIR=db/infinispan-5.0/lib
 INFINISPAN_FILE=infinispan-5.0.0.CR8-bin.zip
 MONGODB_DIR=db/mongodb/lib
@@ -60,7 +61,7 @@ $(CASSANDRA_8_DIR)/$(CASSANDRA_8_FILE) :
 	tar -C $(CASSANDRA_8_DIR) -zxf $(CASSANDRA_8_DIR)/$(CASSANDRA_8_FILE)
 
 $(HBASE_DIR)/$(HBASE_FILE) :
-	wget http://archive.apache.org/dist/hbase/hbase-0.90.4/$(HBASE_FILE)\
+	wget http://archive.apache.org/dist/hbase/hbase-$(HBASE_VERSION)/$(HBASE_FILE)\
 		 -O $(HBASE_DIR)/$(HBASE_FILE)
 	tar -C $(HBASE_DIR) -zxf $(HBASE_DIR)/$(HBASE_FILE)
 
