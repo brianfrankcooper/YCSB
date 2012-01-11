@@ -23,6 +23,8 @@ VOLDEMORT_DIR=db/voldemort/lib
 VOLDEMORT_FILE=voldemort-0.90.1.tar.gz
 MAPKEEPER_DIR=db/mapkeeper/lib
 MAPKEEPER_FILE=mapkeeper.jar
+GEMFIRE_DIR=db/gemfire/lib
+GEMFIRE_FILE=gemfire-6.6.1.jar
 
 .PHONY: build
 build: download-database-deps
@@ -39,6 +41,7 @@ download-database-deps:  $(CASSANDRA_5_DIR)/$(CASSANDRA_5_FILE) \
 			 $(REDIS_DIR)/$(REDIS_FILE)   \
 			 $(VOLDEMORT_DIR)/$(VOLDEMORT_FILE)   \
 			 $(MAPKEEPER_DIR)/$(MAPKEEPER_FILE)   \
+			 $(GEMFIRE_DIR)/$(GEMFIRE_FILE)   \
 
 $(CASSANDRA_5_DIR)/$(CASSANDRA_5_FILE) :
 	wget http://archive.apache.org/dist/cassandra/0.5.1/$(CASSANDRA_5_FILE)\
@@ -88,3 +91,10 @@ $(MAPKEEPER_DIR)/$(MAPKEEPER_FILE) :
 		 -O $(MAPKEEPER_DIR)/$(MAPKEEPER_FILE)
 	wget https://raw.github.com/m1ch1/mapkeeper/master/lib/libthrift-0.6.1.jar \
 		 -O $(MAPKEEPER_DIR)/libthrift-0.6.1.jar
+
+$(GEMFIRE_DIR)/$(GEMFIRE_FILE) :
+	wget http://dist.gemstone.com.s3.amazonaws.com/maven/release/com/gemstone/gemfire/gemfire/6.6.1/$(GEMFIRE_FILE) \
+		 -O $(GEMFIRE_DIR)/$(GEMFIRE_FILE)
+
+
+

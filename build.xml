@@ -15,6 +15,11 @@
         </fileset>
     </path>
 
+    <target name="dbcompile-gemfire" depends="compile">
+        <property name="db.dir" value="db/gemfire" />
+        <antcall target="dbcompile" />
+    </target>
+
     <target name="dbcompile-infinispan-5.0" depends="compile">
         <property name="db.dir" value="db/infinispan-5.0" />
         <antcall target="dbcompile" />
