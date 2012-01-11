@@ -22,6 +22,9 @@
         * gh-50 Switch unordered key generation from FNV32 to FNV64 (sears)
         * gh-51 Improved Random Number Generation Performance and add Exponential distribution support (sears)
         * gh-52 Mongo db fix (sears)
+        * gh-54 Add mapkeeper driver (m1ch1)
+        * gh-57 voldemort - enable nio connector (akkumar)
+        * gh-58 benchmarking with hbase 0.90.5 (akkumar)
 
 0.1.3
 	* Voldemort binding (rsumbaly)

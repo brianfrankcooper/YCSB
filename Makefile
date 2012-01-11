@@ -11,7 +11,8 @@ CASSANDRA_7_FILE=apache-cassandra-0.7.9-bin.tar.gz
 CASSANDRA_8_DIR=db/cassandra-0.8/lib
 CASSANDRA_8_FILE=apache-cassandra-0.8.7-bin.tar.gz
 HBASE_DIR=db/hbase/lib
-HBASE_FILE=hbase-0.90.4.tar.gz
+HBASE_VERSION=0.90.5
+HBASE_FILE=hbase-$(HBASE_VERSION).tar.gz
 INFINISPAN_DIR=db/infinispan-5.0/lib
 INFINISPAN_FILE=infinispan-5.0.0.CR8-bin.zip
 MONGODB_DIR=db/mongodb/lib
@@ -20,6 +21,8 @@ REDIS_DIR=db/redis/lib
 REDIS_FILE=jedis-2.0.0.jar
 VOLDEMORT_DIR=db/voldemort/lib
 VOLDEMORT_FILE=voldemort-0.90.1.tar.gz
+MAPKEEPER_DIR=db/mapkeeper/lib
+MAPKEEPER_FILE=mapkeeper.jar
 
 .PHONY: build
 build: download-database-deps
@@ -35,6 +38,7 @@ download-database-deps:  $(CASSANDRA_5_DIR)/$(CASSANDRA_5_FILE) \
 			 $(MONGODB_DIR)/$(MONGODB_FILE)   \
 			 $(REDIS_DIR)/$(REDIS_FILE)   \
 			 $(VOLDEMORT_DIR)/$(VOLDEMORT_FILE)   \
+			 $(MAPKEEPER_DIR)/$(MAPKEEPER_FILE)   \
 
 $(CASSANDRA_5_DIR)/$(CASSANDRA_5_FILE) :
 	wget http://archive.apache.org/dist/cassandra/0.5.1/$(CASSANDRA_5_FILE)\
@@ -57,7 +61,7 @@ $(CASSANDRA_8_DIR)/$(CASSANDRA_8_FILE) :
 	tar -C $(CASSANDRA_8_DIR) -zxf $(CASSANDRA_8_DIR)/$(CASSANDRA_8_FILE)
 
 $(HBASE_DIR)/$(HBASE_FILE) :
-	wget http://archive.apache.org/dist/hbase/hbase-0.90.4/$(HBASE_FILE)\
+	wget http://archive.apache.org/dist/hbase/hbase-$(HBASE_VERSION)/$(HBASE_FILE)\
 		 -O $(HBASE_DIR)/$(HBASE_FILE)
 	tar -C $(HBASE_DIR) -zxf $(HBASE_DIR)/$(HBASE_FILE)
 
@@ -79,3 +83,8 @@ $(VOLDEMORT_DIR)/$(VOLDEMORT_FILE) :
 		 -O $(VOLDEMORT_DIR)/$(VOLDEMORT_FILE)
 	tar -C $(VOLDEMORT_DIR) -zxf $(VOLDEMORT_DIR)/$(VOLDEMORT_FILE)
 
+$(MAPKEEPER_DIR)/$(MAPKEEPER_FILE) :
+	wget https://raw.github.com/m1ch1/mapkeeper/master/lib/mapkeeper.jar \
+		 -O $(MAPKEEPER_DIR)/$(MAPKEEPER_FILE)
+	wget https://raw.github.com/m1ch1/mapkeeper/master/lib/libthrift-0.6.1.jar \
+		 -O $(MAPKEEPER_DIR)/libthrift-0.6.1.jar
