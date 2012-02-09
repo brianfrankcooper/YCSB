@@ -1,0 +1,38 @@
+This directory should contain kvclient-1.2.123.jar for building
+and running Oracle NoSQL Database client.
+
+BUILD
+
+Oracle NoSQL Database client can be compiled using target:
+$ ant dbcompile-nosqldb
+
+CONFIGURE
+
+$KVHOME is Oracle NoSQL Database package files.
+$KVROOT is a data directory.
+
+$ mkdir $KVROOT
+$ java -jar $KVHOME/lib/kvstore-1.2.123.jar makebootconfig \
+	-root $KVROOT -port 5000 -admin 5001 -host localhost \
+	-harange 5010,5020
+$ java -jar $KVHOME/lib/kvstore-1.2.123.jar start -root $KVROOT
+$ java -jar $KVHOME/lib/kvstore-1.2.123.jar runadmin \
+	-port 5000 -host localhost -script ../script.txt
+
+BENCHMARK
+
+$ java -cp build/ycsb.jar:db/nosqldb/lib/kvclient-1.2.123.jar \
+	com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.NoSqlDbClient \
+	-P workloads/workloada
+
+PROPERTIES
+
+See nosqldb.properties.
+
+STOP
+
+$ java -jar $KVHOME/lib/kvstore-1.2.123.jar stop -root $KVROOT
+
+
+Please refer to Oracle NoSQL Database docs here:
+http://docs.oracle.com/cd/NOSQL/html/index.html

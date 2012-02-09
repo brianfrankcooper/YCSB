@@ -1,0 +1,9 @@
+# Simple configuration file; only one node in a system
+configure kvstore
+plan -execute -name "Deploy DC" deploy-datacenter "Local"
+plan -execute -name "Deploy n01" deploy-sn 1 localhost 5000
+plan -execute -name "Deploy admin" deploy-admin 1 5001
+addpool LocalPool
+joinpool LocalPool 1
+plan -execute -name "Deploy the store" deploy-store LocalPool 1 100
+quit
