@@ -80,6 +80,11 @@
             <antcall target="dbcompile"/>
      </target>
 
+    <target name="dbcompile-nosqldb" depends="compile">
+      <property name="db.dir" value="db/nosqldb"/>
+      <antcall target="dbcompile"/>
+    </target>
+
    <target name="compile">
         <mkdir dir="${classes.dir}"/>
         <javac includeantruntime="false" srcdir="${src.dir}" destdir="${classes.dir}" classpathref="build.classpath" deprecation="on">

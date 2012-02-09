@@ -28,6 +28,8 @@ MAPKEEPER_DIR=db/mapkeeper/lib
 MAPKEEPER_FILE=mapkeeper.jar
 GEMFIRE_DIR=db/gemfire/lib
 GEMFIRE_FILE=gemfire-6.6.1.jar
+NOSQLDB_DIR=db/nosqldb/lib
+NOSQLDB_FILE=kv-ce-1.2.123.tar.gz
 
 .PHONY: build
 build: download-database-deps
@@ -46,6 +48,7 @@ download-database-deps:  $(CASSANDRA_5_DIR)/$(CASSANDRA_5_FILE) \
 			 $(VOLDEMORT_DIR)/$(VOLDEMORT_FILE)   \
 			 $(MAPKEEPER_DIR)/$(MAPKEEPER_FILE)   \
 			 $(GEMFIRE_DIR)/$(GEMFIRE_FILE)   \
+			 $(NOSQLDB_DIR)/$(NOSQLDB_FILE)   \
 
 $(CASSANDRA_5_DIR)/$(CASSANDRA_5_FILE) :
 	wget http://archive.apache.org/dist/cassandra/0.5.1/$(CASSANDRA_5_FILE)\
@@ -104,6 +107,11 @@ $(MAPKEEPER_DIR)/$(MAPKEEPER_FILE) :
 $(GEMFIRE_DIR)/$(GEMFIRE_FILE) :
 	wget http://dist.gemstone.com.s3.amazonaws.com/maven/release/com/gemstone/gemfire/gemfire/6.6.1/$(GEMFIRE_FILE) \
 		 -O $(GEMFIRE_DIR)/$(GEMFIRE_FILE)
+
+$(NOSQLDB_DIR)/$(NOSQLDB_FILE) :
+	wget http://download.oracle.com/otn/nosql-database/$(NOSQLDB_FILE) \
+		 -O $(NOSQLDB_DIR)/$(NOSQLDB_FILE)
+	tar -C $(NOSQLDB_DIR) -zxf $(NOSQLDB_DIR)/$(NOSQLDB_FILE)
 
 
 
