@@ -42,6 +42,15 @@ public interface JdbcDBClientConstants {
   /** Default number of fields in a record. */
   public static final String FIELD_COUNT_PROPERTY_DEFAULT="10";
   
+  /** 
+   * The name of the property that specify the maximum number of entries
+   * prefetched when a scan is executed. 
+   */
+  public static final String SCAN_FETCH_LIMIT = "scan.fetch.limit";
+  
+  /** Default limit for scan fetch. */
+  public static final int SCAN_FETCH_LIMIT_DEFAULT = 10;
+  
   /** Representing a NULL value. */
   public static final String NULL_VALUE = "NULL";
   
