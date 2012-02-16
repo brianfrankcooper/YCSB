@@ -1,4 +1,0 @@
-This directory should contain jars for building and running Redis, namely
-jedis.jar (tested with 1.5.2).
-
-Jedis is available from https://github.com/xetorthio/jedis/downloads

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>org.apache.ycsb</groupId>
+  <artifactId>root</artifactId>
+  <version>0.1.3</version>
+  <packaging>pom</packaging>
+
+  <name>YCSB Root</name>
+
+  <!-- Properties Management -->
+  <properties>
+    <maven.assembly.version>2.2.1</maven.assembly.version>
+    <hbase.version>0.90.5</hbase.version>
+    <cassandra.version>1.0.7</cassandra.version>
+    <gemfire.version>1.0.0.M3</gemfire.version>
+    <infinispan.version>7.1.0.CR1</infinispan.version>
+    <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
+    <mongodb.version>2.7.2</mongodb.version>
+    <redis.version>2.0.0</redis.version>
+    <voldemort.version>0.81</voldemort.version>
+  </properties>
+
+  <modules>
+    <module>core</module>
+    <module>hbase</module>
+    <module>cassandra</module>
+    <!--module>gemfire</module-->
+    <module>infinispan</module>
+    <module>jdbc</module>
+    <!--module>mapkeeper</module-->
+    <module>mongodb</module>
+    <module>redis</module>
+    <module>voldemort</module>
+    <module>distribution</module>
+  </modules>
+
+  <description>
+    This is the top level project that builds, packages the core and all the DB bindings for YCSB infrastructure.
+  </description>
+
+</project>
