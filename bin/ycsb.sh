@@ -92,10 +92,6 @@ fi
 # so that filenames w/ spaces are handled correctly in loops below
 IFS=
 
-for f in $YCSB_HOME/build/*.jar; do
-  CLASSPATH=${CLASSPATH}:$f
-done
-
 for f in $YCSB_HOME/lib/*.jar; do
   CLASSPATH=${CLASSPATH}:$f
 done
@@ -108,7 +104,7 @@ for f in $YCSB_HOME/db/*; do
   fi
 done
 
-#echo "CLASSPATH=$CLASSPATH"
+echo "CLASSPATH=$CLASSPATH"
 
 # restore ordinary behavior
 unset IFS
