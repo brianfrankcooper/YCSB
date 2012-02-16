@@ -1,0 +1,16 @@
+<stores>
+  <store>
+    <name>usertable</name>
+    <persistence>bdb</persistence>
+    <routing>client</routing>
+    <replication-factor>1</replication-factor>
+    <required-reads>1</required-reads>
+    <required-writes>1</required-writes>
+    <key-serializer>
+      <type>string</type>
+    </key-serializer>
+    <value-serializer>
+      <type>java-serialization</type>
+    </value-serializer>
+  </store>
+</stores>
