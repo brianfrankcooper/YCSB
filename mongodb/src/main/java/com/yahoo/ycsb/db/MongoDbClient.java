@@ -27,6 +27,7 @@ import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcern;
+import com.mongodb.WriteResult;
 
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
@@ -87,6 +88,7 @@ public class MongoDbClient extends DB {
             System.err.println(
                     "Could not initialize MongoDB connection pool for Loader: "
                             + e1.toString());
+            e1.printStackTrace();
             return;
         }
 
@@ -107,15 +109,8 @@ public class MongoDbClient extends DB {
             db.requestStart();
             DBCollection collection = db.getCollection(table);
             DBObject q = new BasicDBObject().append("_id", key);
-            if (writeConcern.equals(WriteConcern.SAFE)) {
-                q.put("$atomic", true);
-            }
-            collection.remove(q);
-
-            // see if record was deleted
-            DBObject errors = db.getLastError();
-
-            return ((Integer) errors.get("n")) == 1 ? 0 : 1;
+            WriteResult res = collection.remove(q, writeConcern);
+            return res.getN() == 1 ? 0 : 1;
         } catch (Exception e) {
             System.err.println(e.toString());
             return 1;
@@ -149,17 +144,10 @@ public class MongoDbClient extends DB {
             DBCollection collection = db.getCollection(table);
             DBObject r = new BasicDBObject().append("_id", key);
 	    for(String k: values.keySet()) {
-		r.put(k, values.get(k).toString());
+		r.put(k, values.get(k).toArray());
 	    }
-            collection.setWriteConcern(writeConcern);
-
-            collection.insert(r);
-
-            // determine if record was inserted, does not seem to return
-            // n=<records affected> for insert
-            DBObject errors = db.getLastError();
-
-            return ((Double) errors.get("ok")  == 1.0) && errors.get("err") == null ? 0 : 1;
+            WriteResult res = collection.insert(r,writeConcern);
+            return res.getError() == null ? 0 : 1;
         } catch (Exception e) {
             System.err.println(e.toString());
             return 1;
@@ -244,23 +232,15 @@ public class MongoDbClient extends DB {
             DBObject u = new BasicDBObject();
             DBObject fieldsToSet = new BasicDBObject();
             Iterator<String> keys = values.keySet().iterator();
-            String tmpKey = null, tmpVal = null;
             while (keys.hasNext()) {
-                tmpKey = keys.next();
-                tmpVal = values.get(tmpKey).toString();
-                fieldsToSet.put(tmpKey, tmpVal);
+                String tmpKey = keys.next();
+                fieldsToSet.put(tmpKey, values.get(tmpKey).toArray());
 
             }
             u.put("$set", fieldsToSet);
-
-            collection.setWriteConcern(writeConcern);
-
-            collection.update(q, u);
-
-            // determine if record was inserted
-            DBObject errors = db.getLastError();
-
-            return (Integer) errors.get("n") == 1 ? 0 : 1;
+            WriteResult res = collection.update(q, u, false, false,
+                    writeConcern);
+            return res.getN() == 1 ? 0 : 1;
         } catch (Exception e) {
             System.err.println(e.toString());
             return 1;
