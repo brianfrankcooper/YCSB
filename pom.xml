@@ -10,6 +10,10 @@
 
   <name>YCSB Root</name>
 
+  <description>
+    This is the top level project that builds, packages the core and all the DB bindings for YCSB infrastructure.
+  </description>
+
   <!-- Properties Management -->
   <properties>
     <maven.assembly.version>2.2.1</maven.assembly.version>
@@ -37,8 +41,18 @@
     <module>distribution</module>
   </modules>
 
-  <description>
-    This is the top level project that builds, packages the core and all the DB bindings for YCSB infrastructure.
-  </description>
+  <build>
+    <plugins>
+     <plugin>
+       <groupId>org.apache.maven.plugins</groupId>
+       <artifactId>maven-compiler-plugin</artifactId>
+       <version>2.3.2</version>
+       <configuration>
+         <source>1.6</source>
+         <target>1.6</target>
+       </configuration>
+     </plugin>
+   </plugins>
+  </build>
 
 </project>
