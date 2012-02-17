@@ -18,7 +18,7 @@
   <properties>
     <maven.assembly.version>2.2.1</maven.assembly.version>
     <hbase.version>0.90.5</hbase.version>
-    <cassandra.version>1.0.7</cassandra.version>
+    <cassandra.version>0.7.0</cassandra.version>
     <gemfire.version>1.0.0.M3</gemfire.version>
     <infinispan.version>7.1.0.CR1</infinispan.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
