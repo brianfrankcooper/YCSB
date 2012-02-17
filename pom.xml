@@ -10,14 +10,19 @@
 
   <name>YCSB Root</name>
 
+  <description>
+    This is the top level project that builds, packages the core and all the DB bindings for YCSB infrastructure.
+  </description>
+
   <!-- Properties Management -->
   <properties>
     <maven.assembly.version>2.2.1</maven.assembly.version>
     <hbase.version>0.90.5</hbase.version>
-    <cassandra.version>1.0.7</cassandra.version>
+    <cassandra.version>0.7.0</cassandra.version>
     <gemfire.version>1.0.0.M3</gemfire.version>
     <infinispan.version>7.1.0.CR1</infinispan.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
+    <mapkeeper.version>1.0</mapkeeper.version>
     <mongodb.version>2.7.2</mongodb.version>
     <redis.version>2.0.0</redis.version>
     <voldemort.version>0.81</voldemort.version>
@@ -30,15 +35,25 @@
     <!--module>gemfire</module-->
     <module>infinispan</module>
     <module>jdbc</module>
-    <!--module>mapkeeper</module-->
+    <module>mapkeeper</module>
     <module>mongodb</module>
     <module>redis</module>
     <module>voldemort</module>
     <module>distribution</module>
   </modules>
 
-  <description>
-    This is the top level project that builds, packages the core and all the DB bindings for YCSB infrastructure.
-  </description>
+  <build>
+    <plugins>
+     <plugin>
+       <groupId>org.apache.maven.plugins</groupId>
+       <artifactId>maven-compiler-plugin</artifactId>
+       <version>2.3.2</version>
+       <configuration>
+         <source>1.6</source>
+         <target>1.6</target>
+       </configuration>
+     </plugin>
+   </plugins>
+  </build>
 
 </project>
