@@ -1,6 +1,0 @@
-This directory should contain 2 jars; mapkeeper.jar and libthrift-0.6.1.jar.
-To get them, do:
-
-$ wget https://raw.github.com/m1ch1/mapkeeper/master/lib/mapkeeper.jar
-$ wget https://raw.github.com/m1ch1/mapkeeper/master/lib/libthrift-0.6.1.jar
-

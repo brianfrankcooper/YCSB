@@ -1,0 +1,99 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.apache.ycsb</groupId>
+    <artifactId>root</artifactId>
+    <version>0.1.3</version>
+  </parent>
+
+  <artifactId>ycsb-distribution</artifactId>
+  <name>YCSB Release Distribution Builder</name>
+  <packaging>pom</packaging>
+
+  <description>
+    This module creates the release package of the YCSB with all DB library bindings.
+    It is only used by the build process and does not contain any real
+    code of itself.
+  </description>
+
+  <dependencies>
+    <!--dependency>
+      <groupId>org.apache.ycsb</groupId>
+      <artifactId>core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.ycsb</groupId>
+      <artifactId>hbase-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.ycsb</groupId>
+      <artifactId>cassandra-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.ycsb</groupId>
+      <artifactId>gemfire-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.ycsb</groupId>
+      <artifactId>infinispan-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.ycsb</groupId>
+      <artifactId>jdbc-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.ycsb</groupId>
+      <artifactId>mapkeeper-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.ycsb</groupId>
+      <artifactId>mongodb-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.ycsb</groupId>
+      <artifactId>redis-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.ycsb</groupId>
+      <artifactId>voldemort-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency-->
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>${maven.assembly.version}</version>
+        <configuration>
+          <descriptors>
+            <descriptor>src/main/assembly/distribution.xml</descriptor>
+          </descriptors>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+    </plugins>
+  </build>
+
+</project>
+
