@@ -5,22 +5,28 @@ import sys
 import subprocess
 
 COMMANDS = {
-    "load" : "-load",
-    "run"  : "-t",
+    "load" : {
+        "command"     : "-load",
+        "description" : "Execute the load phase",
+    },
+    "run" : {
+        "command"     : "-t",
+        "description" : "Execute the transaction phase",
+    },
 }
 
 DATABASES = {
-    "basic"       : "com.yahoo.ycsb.BasicDB",
-    "cassandra7"  : "com.yahoo.ycsb.db.CassandraClient7",
-    "cassandra8"  : "com.yahoo.ycsb.db.CassandraClient8",
-    "cassandra10" : "com.yahoo.ycsb.db.CassandraClient10",
-    "hbase"       : "com.yahoo.ycsb.db.HBaseClient",
-    "infispan"    : "com.yahoo.ycsb.db.InfinispanClient",
-    "jbdc"        : "com.yahoo.ycsb.db.JdbcDBClient",
-    "mapkeeper"   : "com.yahoo.ycsb.db.MapKeeperClient",
-    "mongodb"     : "com.yahoo.ycsb.db.MongoDbClient",
-    "redis"       : "com.yahoo.ycsb.db.RedisClient", 
-    "voldemort"   : "com.yahoo.ycsb.db.VoldemortClient", 
+    "basic"        : "com.yahoo.ycsb.BasicDB",
+    "cassandra-7"  : "com.yahoo.ycsb.db.CassandraClient7",
+    "cassandra-8"  : "com.yahoo.ycsb.db.CassandraClient8",
+    "cassandra-10" : "com.yahoo.ycsb.db.CassandraClient10",
+    "hbase"        : "com.yahoo.ycsb.db.HBaseClient",
+    "infinispan"   : "com.yahoo.ycsb.db.InfinispanClient",
+    "jdbc"         : "com.yahoo.ycsb.db.JdbcDBClient",
+    "mapkeeper"    : "com.yahoo.ycsb.db.MapKeeperClient",
+    "mongodb"      : "com.yahoo.ycsb.db.MongoDbClient",
+    "redis"        : "com.yahoo.ycsb.db.RedisClient", 
+    "voldemort"    : "com.yahoo.ycsb.db.VoldemortClient", 
 }
 
 OPTIONS = {
@@ -35,22 +41,34 @@ def usage():
 
     print "Commands:"
     for command in sorted(COMMANDS.keys()):
-        print "    %s" % command
+        print "    {0:13} {1}".format(command, COMMANDS[command]["description"])
+    print
 
     print "Databases:"
     for db in sorted(DATABASES.keys()):
         print "    %s" % db
+    print
+
+    print """Workload Files:
+    There are various predefined workloads under workloads/ directory.
+    See https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties
+    for the list of workload properties.
+    """
 
     print "Options:"
     for option in sorted(OPTIONS.keys()):
         print "    {0:13} {1}".format(option, OPTIONS[option])
     sys.exit(1)
 
-def find_jars(dir):
+def find_jars(dir, database):
     jars = []
+    print database
     for (dirpath, dirnames, filenames) in os.walk(dir):
         for filename in filenames:
-            if filename.endswith(".jar"):
+            print filename
+            if filename.endswith(".jar") and \
+               filename.startswith("core") or filename.startswith(database.split("-")[0]):
+                print filename
                 jars.append(os.path.join(dirpath, filename))
     return jars
 
@@ -66,7 +84,7 @@ def get_command():
     if sys.argv[1] not in COMMANDS:
         print "ERROR: Command '%s' not found" % sys.argv[1]
         usage()
-    return COMMANDS[sys.argv[1]]
+    return COMMANDS[sys.argv[1]]["command"]
 
 def get_database():
     if len(sys.argv) < 3:
@@ -74,7 +92,7 @@ def get_database():
     if sys.argv[2] not in DATABASES:
         print "ERROR: Database '%s' not found" % sys.argv[2]
         usage()
-    return DATABASES[sys.argv[2]]
+    return sys.argv[2], DATABASES[sys.argv[2]]
 
 def get_workload():
     if len(sys.argv) < 4:
@@ -86,10 +104,11 @@ def get_options():
 
 ycsb_home = get_ycsb_home()
 command = get_command()
-database = get_database()
+database, db_classname = get_database()
 workload = get_workload()
 options = get_options()
-ycsb_command = ["java", "-cp", ":".join(find_jars(ycsb_home)), \
-                "com.yahoo.ycsb.Client", command, "-db", database, \
+ycsb_command = ["java", "-cp", ":".join(find_jars(ycsb_home, database)), \
+                "com.yahoo.ycsb.Client", command, "-db", db_classname, \
                 "-P", workload] + options
+print " ".join(ycsb_command)
 subprocess.call(ycsb_command)
