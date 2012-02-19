@@ -25,6 +25,10 @@ import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.workloads.CoreWorkload;
 
 public class MapKeeperClient extends DB {
+    private static final String HOST = "mapkeeper.host";
+    private static final String HOST_DEFAULT = "localhost";
+    private static final String PORT = "mapkeeper.port";
+    private static final String PORT_DEFAULT = "9090";
     MapKeeper.Client c; 
     boolean writeallfields;
     static boolean initteddb = false;
@@ -36,7 +40,9 @@ public class MapKeeperClient extends DB {
     }
 
     public void init() {
-        TTransport tr = new TFramedTransport(new TSocket("localhost", 9090));
+        String host = getProperties().getProperty(HOST, HOST_DEFAULT);
+        int port = Integer.parseInt(getProperties().getProperty(PORT, PORT_DEFAULT));
+        TTransport tr = new TFramedTransport(new TSocket(host, port));
         TProtocol proto = new TBinaryProtocol(tr);
         c = new MapKeeper.Client(proto);
         try {
