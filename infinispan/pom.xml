@@ -7,8 +7,8 @@
     <version>0.1.3</version>
   </parent>
   
-  <artifactId>infispan-binding</artifactId>
-  <name>Infispan DB Binding</name>
+  <artifactId>infinispan-binding</artifactId>
+  <name>Infinispan DB Binding</name>
   <packaging>jar</packaging>
 
   <dependencies>
