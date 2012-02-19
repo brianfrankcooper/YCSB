@@ -1,0 +1,94 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import subprocess
+
+COMMANDS = {
+    "load" : "-load",
+    "run"  : "-t",
+}
+
+DATABASES = {
+    "basic"       : "com.yahoo.ycsb.BasicDB",
+    "cassandra7"  : "com.yahoo.ycsb.db.CassandraClient7",
+    "cassandra8"  : "com.yahoo.ycsb.db.CassandraClient8",
+    "cassandra10" : "com.yahoo.ycsb.db.CassandraClient10",
+    "hbase"       : "com.yahoo.ycsb.db.HBaseClient",
+    "infispan"    : "com.yahoo.ycsb.db.InfinispanClient",
+    "jbdc"        : "com.yahoo.ycsb.db.JdbcDBClient",
+    "mapkeeper"   : "com.yahoo.ycsb.db.MapKeeperClient",
+    "mongodb"     : "com.yahoo.ycsb.db.MongoDbClient",
+    "redis"       : "com.yahoo.ycsb.db.RedisClient", 
+    "voldemort"   : "com.yahoo.ycsb.db.VoldemortClient", 
+}
+
+OPTIONS = {
+    "-p key=value" : "Override workload property",
+    "-s"           : "Print status to stderr",
+    "-target n"    : "Target ops/sec (default: unthrottled)",
+    "-threads n"   : "Number of client threads (default: 1)",
+}
+def usage():
+    usage = "Usage: %s command database workload-file [options]" % sys.argv[0]
+    print usage
+
+    print "Commands:"
+    for command in sorted(COMMANDS.keys()):
+        print "    %s" % command
+
+    print "Databases:"
+    for db in sorted(DATABASES.keys()):
+        print "    %s" % db
+
+    print "Options:"
+    for option in sorted(OPTIONS.keys()):
+        print "    {0:13} {1}".format(option, OPTIONS[option])
+    sys.exit(1)
+
+def find_jars(dir):
+    jars = []
+    for (dirpath, dirnames, filenames) in os.walk(dir):
+        for filename in filenames:
+            if filename.endswith(".jar"):
+                jars.append(os.path.join(dirpath, filename))
+    return jars
+
+def get_ycsb_home():
+    bin_dir = os.path.abspath(os.path.dirname(sys.argv[0]))
+    ycsb_home = os.path.join(*([bin_dir] + [os.path.pardir] * 4))
+    return os.path.abspath(ycsb_home)
+
+def get_command():
+    if len(sys.argv) < 2:
+        usage()
+    if sys.argv[1] not in COMMANDS:
+        print "ERROR: Command '%s' not found" % sys.argv[1]
+        usage()
+    return COMMANDS[sys.argv[1]]
+
+def get_database():
+    if len(sys.argv) < 3:
+        usage()
+    if sys.argv[2] not in DATABASES:
+        print "ERROR: Database '%s' not found" % sys.argv[2]
+        usage()
+    return DATABASES[sys.argv[2]]
+
+def get_workload():
+    if len(sys.argv) < 4:
+        usage()
+    return sys.argv[3]
+
+def get_options():
+    return sys.argv[4:]
+
+ycsb_home = get_ycsb_home()
+command = get_command()
+database = get_database()
+workload = get_workload()
+options = get_options()
+ycsb_command = ["java", "-cp", ":".join(find_jars(ycsb_home)), \
+                "com.yahoo.ycsb.Client", command, "-db", database, \
+                "-P", workload] + options
+subprocess.call(ycsb_command)
