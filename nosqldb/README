@@ -1,6 +1,17 @@
 This directory should contain kvclient-1.2.123.jar for building
 and running Oracle NoSQL Database client.
 
+INSTALL
+
+Download kv-ce-1.2.123.tar.gz from here:
+
+http://www.oracle.com/technetwork/database/nosqldb/downloads/index.html
+
+Install kvclient-1.2.123.jar in your local maven repository:
+
+    mvn install:install-file -Dfile=kv-1.2.123/lib/kvclient-1.2.123.jar \
+        -DgroupId=com.oracle -DartifactId=kvclient -Dversion=1.2.123 -Dpackaging=jar
+
 BUILD
 
 Oracle NoSQL Database client can be compiled using target:

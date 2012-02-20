@@ -26,6 +26,7 @@ DATABASES = {
     "jdbc"         : "com.yahoo.ycsb.db.JdbcDBClient",
     "mapkeeper"    : "com.yahoo.ycsb.db.MapKeeperClient",
     "mongodb"      : "com.yahoo.ycsb.db.MongoDbClient",
+    "nosqldb"      : "com.yahoo.ycsb.db.NoSqlDbClient",
     "redis"        : "com.yahoo.ycsb.db.RedisClient", 
     "voldemort"    : "com.yahoo.ycsb.db.VoldemortClient", 
 }
