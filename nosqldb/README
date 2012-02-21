@@ -1,28 +1,25 @@
-This directory should contain kvclient-1.2.123.jar for building
-and running Oracle NoSQL Database client.
-
 CONFIGURE
 
 $KVHOME is Oracle NoSQL Database package files.
 $KVROOT is a data directory.
+$YCSBHOME is a YCSB home directory.
 
-$ mkdir $KVROOT
-$ java -jar $KVHOME/lib/kvstore-1.2.123.jar makebootconfig \
-	-root $KVROOT -port 5000 -admin 5001 -host localhost \
-	-harange 5010,5020
-$ java -jar $KVHOME/lib/kvstore-1.2.123.jar start -root $KVROOT
-$ java -jar $KVHOME/lib/kvstore-1.2.123.jar runadmin \
-	-port 5000 -host localhost -script ../script.txt
+    mkdir $KVROOT
+    java -jar $KVHOME/lib/kvstore-1.2.123.jar makebootconfig \
+       -root $KVROOT -port 5000 -admin 5001 -host localhost \
+       -harange 5010,5020
+    java -jar $KVHOME/lib/kvstore-1.2.123.jar start -root $KVROOT
+    java -jar $KVHOME/lib/kvstore-1.2.123.jar runadmin \
+        -port 5000 -host localhost -script $YCSBHOME/conf/script.txt
 
 BENCHMARK
 
-$ java -cp build/ycsb.jar:db/nosqldb/lib/kvclient-1.2.123.jar \
-	com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.NoSqlDbClient \
-	-P workloads/workloada
+    $YCSBHOME/bin/ycsb load nosqldb workloads/workloada
+    $YCSBHOME/bin/ycsb run nosqldb workloads/workloada
 
 PROPERTIES
 
-See nosqldb.properties.
+See $YCSBHOME/conf/nosqldb.properties.
 
 STOP
 
