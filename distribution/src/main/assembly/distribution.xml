@@ -13,6 +13,14 @@
         <includeModuleDirectory>false</includeModuleDirectory>
         <fileSets>
           <fileSet>
+            <directory>../</directory>
+            <outputDirectory>.</outputDirectory>
+            <includes>
+              <include>README</include>
+              <include>CHANGELOG</include>
+            </includes>
+          </fileSet>
+          <fileSet>
             <directory>src/main/conf</directory>
             <outputDirectory>conf</outputDirectory>
             <fileMode>0644</fileMode>
