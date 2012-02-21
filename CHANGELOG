@@ -29,6 +29,7 @@
 - gh-59 Cassandra 1.0.6 (akkumar)
 - gh-62 Oracle NoSQL Database Client (y-namiki)
 - gh-64 Mavenisation of YCSB with a (tar ball) distribution packager (hariprasad-k)
+- gh-65 Patch for improving the MongoDB Client (singhsiddharth)
 
 0.1.3 - 10/26/10
 
