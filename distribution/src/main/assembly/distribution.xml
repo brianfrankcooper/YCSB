@@ -5,35 +5,48 @@
     <format>tar.gz</format>
   </formats>
   <includeBaseDirectory>true</includeBaseDirectory>
+  <fileSets>
+    <fileSet>
+      <directory>..</directory>
+      <outputDirectory>.</outputDirectory>
+      <fileMode>0644</fileMode>
+      <includes>
+        <include>README</include>
+        <include>CHANGELOG</include>
+        <include>LICENSE.txt</include>
+        <include>NOTICE.txt</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <directory>../bin</directory>
+      <outputDirectory>bin</outputDirectory>
+      <fileMode>0755</fileMode>
+    </fileSet>
+    <fileSet>
+      <directory>../workloads</directory>
+      <outputDirectory>workloads</outputDirectory>
+      <fileMode>0644</fileMode>
+    </fileSet>
+  </fileSets>
   <moduleSets>
     <moduleSet>
       <useAllReactorProjects>true</useAllReactorProjects>
       <includeSubModules>true</includeSubModules>
       <sources>
-        <includeModuleDirectory>false</includeModuleDirectory>
+        <includeModuleDirectory>true</includeModuleDirectory>
+
         <fileSets>
           <fileSet>
-            <directory>../</directory>
-            <outputDirectory>.</outputDirectory>
-            <includes>
+            <directory>.</directory>
+            <fileMode>0644</fileMode>
+    	    <includes>
               <include>README</include>
-              <include>CHANGELOG</include>
             </includes>
           </fileSet>
           <fileSet>
             <directory>src/main/conf</directory>
             <outputDirectory>conf</outputDirectory>
             <fileMode>0644</fileMode>
-          </fileSet>
-          <fileSet>
-            <directory>src/main/bin</directory>
-            <outputDirectory>bin</outputDirectory>
-	    <fileMode>0755</fileMode>
-          </fileSet>
-          <fileSet>
-            <directory>src/main/resources/workloads</directory>
-            <outputDirectory>workloads</outputDirectory>
-	    <fileMode>0644</fileMode>
           </fileSet>
 	  <fileSet>
             <outputDirectory>lib</outputDirectory>
