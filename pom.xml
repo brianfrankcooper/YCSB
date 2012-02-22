@@ -56,7 +56,7 @@
   </properties>
 
   <modules>
-    <module>build-tools</module>
+    <!--module>build-tools</module-->
     <module>core</module>
     <module>hbase</module>
     <module>cassandra</module>
@@ -88,15 +88,15 @@
         <version>2.6</version>
         <configuration>
           <consoleOutput>true</consoleOutput>
-          <configLocation>checkstyle.xml</configLocation>
+          <!--configLocation>checkstyle.xml</configLocation-->
         </configuration>
-        <dependencies>
+        <!--dependencies>
           <dependency>
             <groupId>com.yahoo.ycsb</groupId>
             <artifactId>build-tools</artifactId>
             <version>0.1.4</version>
           </dependency>
-        </dependencies>
+        </dependencies-->
         <executions>
           <execution>
           <id>validate</id>
