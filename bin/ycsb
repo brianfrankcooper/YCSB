@@ -48,7 +48,7 @@ def usage():
 
     print "\nDatabases:"
     for db in sorted(DATABASES.keys()):
-        print "    {0:13} {1}".format(db, BASE_URL + db.split("-")[0])
+        print "    %s %s" % (db.ljust(13), BASE_URL + db.split("-")[0])
 
     print """\nWorkload Files:
     There are various predefined workloads under workloads/ directory.
