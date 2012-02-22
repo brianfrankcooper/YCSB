@@ -43,7 +43,7 @@ def usage():
 
     print "\nCommands:"
     for command in sorted(COMMANDS.keys()):
-        print "    {0:13} {1}".format(command, COMMANDS[command]["description"])
+        print "    %s %s" % (command.ljust(13), COMMANDS[command]["description"])
 
     print "\nDatabases:"
     for db in sorted(DATABASES.keys()):
@@ -56,7 +56,7 @@ def usage():
 
     print "\nOptions:"
     for option in sorted(OPTIONS.keys()):
-        print "    {0:13} {1}".format(option, OPTIONS[option])
+        print "    %s %s" % (option.ljust(13), OPTIONS[option])
     sys.exit(1)
 
 def find_jars(dir, database):
