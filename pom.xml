@@ -16,6 +16,11 @@
   <dependencies>
     <!-- voldemort -->
     <dependency>
+      <groupId>checkstyle</groupId>
+      <artifactId>checkstyle</artifactId>
+      <version>5.0</version>
+    </dependency>
+    <dependency>
       <groupId>org.jdom</groupId>
       <artifactId>jdom</artifactId>
       <version>1.1</version>
@@ -51,6 +56,7 @@
   </properties>
 
   <modules>
+    <module>build-tools</module>
     <module>core</module>
     <module>hbase</module>
     <module>cassandra</module>
@@ -67,16 +73,40 @@
 
   <build>
     <plugins>
-     <plugin>
-       <groupId>org.apache.maven.plugins</groupId>
-       <artifactId>maven-compiler-plugin</artifactId>
-       <version>2.3.2</version>
-       <configuration>
-         <source>1.6</source>
-         <target>1.6</target>
-       </configuration>
-     </plugin>
-   </plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>2.3.2</version>
+        <configuration>
+          <source>1.6</source>
+          <target>1.6</target>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>2.6</version>
+        <configuration>
+          <consoleOutput>true</consoleOutput>
+          <configLocation>checkstyle.xml</configLocation>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>com.yahoo.ycsb</groupId>
+            <artifactId>build-tools</artifactId>
+            <version>0.1.4</version>
+          </dependency>
+        </dependencies>
+        <executions>
+          <execution>
+          <id>validate</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>checkstyle</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
-
 </project>
