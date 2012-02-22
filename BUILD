@@ -4,6 +4,13 @@ To build YCSB, run:
 
     mvn clean package
 
+# Running YCSB
+
+Once `mvn clean package` succeeds, you can run `ycsb` command:
+
+    ./bin/ycsb load basic workloads/workloada
+    ./bin/ycsb run basic workloads/workloada
+
 # Oracle NoSQL Database
 
 Oracle NoSQL Database binding doesn't get built by default because there is no

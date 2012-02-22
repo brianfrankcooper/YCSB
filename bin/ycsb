@@ -4,6 +4,7 @@ import os
 import sys
 import subprocess
 
+BASE_URL = "https://github.com/brianfrankcooper/YCSB/tree/master/"
 COMMANDS = {
     "load" : {
         "command"     : "-load",
@@ -47,7 +48,7 @@ def usage():
 
     print "\nDatabases:"
     for db in sorted(DATABASES.keys()):
-        print "    %s" % db
+        print "    {0:13} {1}".format(db, BASE_URL + db.split("-")[0])
 
     print """\nWorkload Files:
     There are various predefined workloads under workloads/ directory.
@@ -66,8 +67,9 @@ def find_jars(dir, database):
             jars.append(dirpath)
         for filename in filenames:
             if filename.endswith(".jar") and \
-               filename.startswith("core") or \
-               filename.startswith(database.split("-")[0]):
+               (filename.startswith("core") or \
+                filename.startswith(database.split("-")[0]) or \
+                not "binding" in filename):
                 jars.append(os.path.join(dirpath, filename))
     return jars
 
@@ -96,4 +98,5 @@ options = sys.argv[4:]
 ycsb_command = ["java", "-cp", ":".join(find_jars(ycsb_home, database)), \
                 "com.yahoo.ycsb.Client", command, "-db", db_classname, \
                 "-P", workload] + options
+print " ".join(ycsb_command)
 subprocess.call(ycsb_command)
