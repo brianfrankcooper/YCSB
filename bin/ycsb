@@ -6,13 +6,20 @@ import subprocess
 
 BASE_URL = "https://github.com/brianfrankcooper/YCSB/tree/master/"
 COMMANDS = {
+    "shell" : {
+        "command"     : "",
+        "description" : "Interactive mode",
+        "main"        : "com.yahoo.ycsb.CommandLine",
+    },
     "load" : {
         "command"     : "-load",
         "description" : "Execute the load phase",
+        "main"        : "com.yahoo.ycsb.Client",
     },
     "run" : {
         "command"     : "-t",
         "description" : "Execute the transaction phase",
+        "main"        : "com.yahoo.ycsb.Client",
     },
 }
 
@@ -96,7 +103,9 @@ workload = sys.argv[3]
 options = sys.argv[4:]
 
 ycsb_command = ["java", "-cp", ":".join(find_jars(ycsb_home, database)), \
-                "com.yahoo.ycsb.Client", command, "-db", db_classname, \
+                COMMANDS[sys.argv[1]]["main"], "-db", db_classname, \
                 "-P", workload] + options
+if command:
+    ycsb_command.append(command)
 print " ".join(ycsb_command)
 subprocess.call(ycsb_command)
