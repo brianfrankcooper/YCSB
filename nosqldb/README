@@ -14,8 +14,8 @@ $YCSBHOME is a YCSB home directory.
 
 BENCHMARK
 
-    $YCSBHOME/bin/ycsb load nosqldb workloads/workloada
-    $YCSBHOME/bin/ycsb run nosqldb workloads/workloada
+    $YCSBHOME/bin/ycsb load nosqldb -P workloads/workloada
+    $YCSBHOME/bin/ycsb run nosqldb -P workloads/workloada
 
 PROPERTIES
 
