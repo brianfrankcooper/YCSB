@@ -40,6 +40,7 @@ DATABASES = {
 }
 
 OPTIONS = {
+    "-P file"      : "Specify workload file",
     "-p key=value" : "Override workload property",
     "-s"           : "Print status to stderr",
     "-target n"    : "Target ops/sec (default: unthrottled)",
@@ -47,7 +48,7 @@ OPTIONS = {
 }
 
 def usage():
-    print "Usage: %s command database workload-file [options]" % sys.argv[0]
+    print "Usage: %s command database [options]" % sys.argv[0]
 
     print "\nCommands:"
     for command in sorted(COMMANDS.keys()):
@@ -57,14 +58,15 @@ def usage():
     for db in sorted(DATABASES.keys()):
         print "    %s %s" % (db.ljust(13), BASE_URL + db.split("-")[0])
 
+    print "\nOptions:"
+    for option in sorted(OPTIONS.keys()):
+        print "    %s %s" % (option.ljust(13), OPTIONS[option])
+
     print """\nWorkload Files:
     There are various predefined workloads under workloads/ directory.
     See https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties
     for the list of workload properties."""
 
-    print "\nOptions:"
-    for option in sorted(OPTIONS.keys()):
-        print "    %s %s" % (option.ljust(13), OPTIONS[option])
     sys.exit(1)
 
 def find_jars(dir, database):
@@ -86,7 +88,7 @@ def get_ycsb_home():
         dir = os.path.join(dir, os.path.pardir)
     return os.path.abspath(dir)
 
-if len(sys.argv) < 4:
+if len(sys.argv) < 3:
     usage()
 if sys.argv[1] not in COMMANDS:
     print "ERROR: Command '%s' not found" % sys.argv[1]
@@ -99,12 +101,10 @@ ycsb_home = get_ycsb_home()
 command = COMMANDS[sys.argv[1]]["command"]
 database = sys.argv[2]
 db_classname = DATABASES[database]
-workload = sys.argv[3]
-options = sys.argv[4:]
+options = sys.argv[3:]
 
 ycsb_command = ["java", "-cp", ":".join(find_jars(ycsb_home, database)), \
-                COMMANDS[sys.argv[1]]["main"], "-db", db_classname, \
-                "-P", workload] + options
+                COMMANDS[sys.argv[1]]["main"], "-db", db_classname] + options
 if command:
     ycsb_command.append(command)
 print " ".join(ycsb_command)
