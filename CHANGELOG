@@ -1,3 +1,5 @@
+- gh-67 Use checkstyle (m1ch1)
+
 0.1.4 - 2/22/12 
 
 - Fixes for Cassandra 0.7 client (tjake)
