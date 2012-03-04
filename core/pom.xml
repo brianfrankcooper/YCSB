@@ -26,6 +26,12 @@
       <artifactId>jackson-core-asl</artifactId>
       <version>${jackson.api.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.testng</groupId>
+      <artifactId>testng</artifactId>
+      <version>6.1.1</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>	
 
 </project>
