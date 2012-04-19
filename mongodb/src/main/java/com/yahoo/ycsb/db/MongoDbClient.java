@@ -9,7 +9,6 @@
 
 package com.yahoo.ycsb.db;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Properties;
@@ -17,15 +16,12 @@ import java.util.Set;
 import java.util.Map;
 import java.util.Vector;
 
-import org.bson.types.ObjectId;
-
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBAddress;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
-import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
 
@@ -59,16 +55,24 @@ public class MongoDbClient extends DB {
     public void init() throws DBException {
         // initialize MongoDb driver
         Properties props = getProperties();
-        String url = props.getProperty("mongodb.url");
-        database = props.getProperty("mongodb.database");
-        String writeConcernType = props.getProperty("mongodb.writeConcern");
+        String url = props.getProperty("mongodb.url", "mongodb://localhost:27017");
+        database = props.getProperty("mongodb.database", "ycsb");
+        String writeConcernType = props.getProperty("mongodb.writeConcern", "safe").toLowerCase();
 
         if ("none".equals(writeConcernType)) {
             writeConcern = WriteConcern.NONE;
-        } else if ("strict".equals(writeConcernType)) {
+        } else if ("safe".equals(writeConcernType)) {
             writeConcern = WriteConcern.SAFE;
         } else if ("normal".equals(writeConcernType)) {
             writeConcern = WriteConcern.NORMAL;
+        } else if ("fsync_safe".equals(writeConcernType)) {
+            writeConcern = WriteConcern.FSYNC_SAFE;
+        } else if ("replicas_safe".equals(writeConcernType)) {
+            writeConcern = WriteConcern.REPLICAS_SAFE;
+        } else {
+            System.err.println("ERROR: Invalid writeConcern: '" + writeConcernType + "'. " +
+                "Must be [ none | safe | normal | fsync_safe | replicas_safe ]");
+            System.exit(1);
         }
 
         try {
@@ -149,7 +153,7 @@ public class MongoDbClient extends DB {
             WriteResult res = collection.insert(r,writeConcern);
             return res.getError() == null ? 0 : 1;
         } catch (Exception e) {
-            System.err.println(e.toString());
+            e.printStackTrace();
             return 1;
         } finally {
             if (db!=null)
