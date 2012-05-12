@@ -18,6 +18,8 @@ import com.orientechnologies.orient.core.config.OGlobalConfiguration;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.dictionary.ODictionary;
 import com.orientechnologies.orient.core.intent.OIntentMassiveInsert;
+import com.orientechnologies.orient.core.metadata.schema.OClass.INDEX_TYPE;
+import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.ORecordInternal;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.yahoo.ycsb.ByteIterator;
@@ -41,7 +43,8 @@ import com.yahoo.ycsb.StringByteIterator;
 public class OrientDBClient extends DB {
 
   private ODatabaseDocumentTx             db;
-  private static final String             CLASS = "usertable";
+  private static final String             CLASS     = "usertable";
+  private static final String             FIELD_KEY = "_key";
   private ODictionary<ORecordInternal<?>> dictionary;
 
   /**
@@ -68,16 +71,17 @@ public class OrientDBClient extends DB {
           db.drop();
           db.create();
         }
-      } else{
+      } else {
         System.out.println("OrientDB database not found, create fresh db");
         db.create();
       }
-      
+
       System.out.println("OrientDB connection created with " + url);
 
       dictionary = db.getMetadata().getIndexManager().getDictionary();
-      if (!db.getMetadata().getSchema().existsClass(CLASS))
-        db.getMetadata().getSchema().createClass(CLASS);
+      if (!db.getMetadata().getSchema().existsClass(CLASS)) {
+        db.getMetadata().getSchema().createClass(CLASS).createProperty(FIELD_KEY, OType.STRING).createIndex(INDEX_TYPE.UNIQUE);
+      }
 
       db.declareIntent(new OIntentMassiveInsert());
 
