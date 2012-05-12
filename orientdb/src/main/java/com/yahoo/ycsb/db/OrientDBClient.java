@@ -14,6 +14,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
+import com.orientechnologies.orient.core.config.OGlobalConfiguration;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.dictionary.ODictionary;
 import com.orientechnologies.orient.core.intent.OIntentMassiveInsert;
@@ -40,7 +41,7 @@ import com.yahoo.ycsb.StringByteIterator;
 public class OrientDBClient extends DB {
 
   private ODatabaseDocumentTx             db;
-  private static final String             CLASS = "Test";
+  private static final String             CLASS = "usertable";
   private ODictionary<ORecordInternal<?>> dictionary;
 
   /**
@@ -53,12 +54,26 @@ public class OrientDBClient extends DB {
     String url = props.getProperty("orientdb.url", "local:C:/temp/databases/ycsb");
     String user = props.getProperty("orientdb.user", "admin");
     String password = props.getProperty("orientdb.password", "admin");
+    Boolean newdb = Boolean.parseBoolean(props.getProperty("orientdb.newdb", "false"));
 
     try {
-      System.out.println("new database url = " + url);
+      System.out.println("OrientDB loading database url = " + url);
+
+      OGlobalConfiguration.STORAGE_KEEP_OPEN.setValue(false);
       db = new ODatabaseDocumentTx(url);
-      db.open(user, password);
-      System.out.println("orientdb connection created with " + url);
+      if (db.exists()) {
+        db.open(user, password);
+        if (newdb) {
+          System.out.println("OrientDB drop and recreate fresh db");
+          db.drop();
+          db.create();
+        }
+      } else{
+        System.out.println("OrientDB database not found, create fresh db");
+        db.create();
+      }
+      
+      System.out.println("OrientDB connection created with " + url);
 
       dictionary = db.getMetadata().getIndexManager().getDictionary();
       if (!db.getMetadata().getSchema().existsClass(CLASS))
@@ -138,10 +153,15 @@ public class OrientDBClient extends DB {
   public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
     try {
       final ODocument document = dictionary.get(key);
-      for (String field : fields)
-        result.put(field, new StringByteIterator((String) document.field(field)));
-
-      return 0;
+      if (document != null) {
+        if (fields != null)
+          for (String field : fields)
+            result.put(field, new StringByteIterator((String) document.field(field)));
+        else
+          for (String field : document.fieldNames())
+            result.put(field, new StringByteIterator((String) document.field(field)));
+        return 0;
+      }
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -161,11 +181,12 @@ public class OrientDBClient extends DB {
   public int update(String table, String key, HashMap<String, ByteIterator> values) {
     try {
       final ODocument document = dictionary.get(key);
-      for (Entry<String, String> entry : StringByteIterator.getStringMap(values).entrySet())
-        document.field(entry.getKey(), entry.getValue());
-      document.save();
-
-      return 0;
+      if (document != null) {
+        for (Entry<String, String> entry : StringByteIterator.getStringMap(values).entrySet())
+          document.field(entry.getKey(), entry.getValue());
+        document.save();
+        return 0;
+      }
     } catch (Exception e) {
       e.printStackTrace();
     }
