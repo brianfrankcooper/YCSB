@@ -14,11 +14,11 @@ Clone the YCSB git repository and compile:
     
 Now you are ready to run! First, load the data:
 
-    ./bin/ycsb load OrientDB -s -P workloads/workloada
+    ./bin/ycsb load orientdb -s -P workloads/workloada
 
 Then, run the workload:
 
-    ./bin/ycsb run OrientDB -s -P workloads/workloada
+    ./bin/ycsb run orientdb -s -P workloads/workloada
 
 See the next section for the list of configuration parameters for OrientDB.
 
