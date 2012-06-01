@@ -53,7 +53,12 @@
         <property name="db.dir" value="db/cloudbase"/>
         <antcall target="dbcompile"/>
     </target>
-    
+ 
+    <target name="dbcompile-accumulo" depends="compile">
+        <property name="db.dir" value="db/accumulo"/>
+        <antcall target="dbcompile"/>
+    </target>
+   
     <target name="compile">
         <mkdir dir="${classes.dir}"/>
         <javac srcdir="${src.dir}" destdir="${classes.dir}" classpathref="build.classpath" deprecation="on"  debug="on" debuglevel="lines,vars,source" >
