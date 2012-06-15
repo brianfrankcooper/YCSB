@@ -1,5 +1,3 @@
-Created by Shay Hassidim
-GigaSpaces Deputy CTO
 March 2012
 ----------------------------------------
 This readme is part of the Yahoo cloud benchmark. It allows you to compare GigaSpaces and Gemfire performance in various scenarios. The readme provide info about :
