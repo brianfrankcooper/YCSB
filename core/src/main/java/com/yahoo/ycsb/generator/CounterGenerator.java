@@ -48,10 +48,19 @@ public class CounterGenerator extends IntegerGenerator
 	@Override
 	public int lastInt()
 	{
-	                return counter.get() - 1;
+		return counter.get() - 1;
 	}
 	@Override
 	public double mean() {
 		throw new UnsupportedOperationException("Can't compute mean of non-stationary distribution!");
 	}
+
+	/**
+	 * Reset the generator to 0
+	 */
+	public void reset ()
+	{
+		counter.set(0);
+	}
+
 }

@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 
@@ -48,7 +49,7 @@ public class OneMeasurementHistogram extends OneMeasurement
 	
 	int min;
 	int max;
-	HashMap<Integer,int[]> returncodes;
+	ConcurrentHashMap<Integer,int[]> returncodes;
 
 	public OneMeasurementHistogram(String name, Properties props)
 	{
@@ -62,13 +63,13 @@ public class OneMeasurementHistogram extends OneMeasurement
 		windowtotallatency=0;
 		min=-1;
 		max=-1;
-		returncodes=new HashMap<Integer,int[]>();
+		returncodes=new ConcurrentHashMap<Integer,int[]>();
 	}
 
 	/* (non-Javadoc)
 	 * @see com.yahoo.ycsb.OneMeasurement#reportReturnCode(int)
 	 */
-	public synchronized void reportReturnCode(int code)
+	public void reportReturnCode(int code)
 	{
 		Integer Icode=code;
 		if (!returncodes.containsKey(Icode))

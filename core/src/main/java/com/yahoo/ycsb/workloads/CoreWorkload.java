@@ -58,6 +58,8 @@ import java.util.Vector;
  * <LI><b>maxscanlength</b>: for scans, what is the maximum number of records to scan (default: 1000)
  * <LI><b>scanlengthdistribution</b>: for scans, what distribution should be used to choose the number of records to scan, for each scan, between 1 and maxscanlength (default: uniform)
  * <LI><b>insertorder</b>: should records be inserted in order by key ("ordered"), or in hashed order ("hashed") (default: hashed)
+ * <LI><b>readrepeatcount</b>: repeat read operation (default: 1)
+ * <LI><b>readorder</b>: should records be read in order by key ("ordered"), or in a random order ("random") (default: random)
  * </ul> 
  */
 public class CoreWorkload extends Workload
@@ -232,12 +234,23 @@ public class CoreWorkload extends Workload
 	 * The name of the property for the order to insert records. Options are "ordered" or "hashed"
 	 */
 	public static final String INSERT_ORDER_PROPERTY="insertorder";
+
 	
+	/**
+	 * The name of the property for the order to read records. Options are "ordered" or "random"
+	 */
+	public static final String READ_ORDER_PROPERTY="readorder";
+
 	/**
 	 * Default insert order.
 	 */
 	public static final String INSERT_ORDER_PROPERTY_DEFAULT="hashed";
-	
+
+	/**
+	 * Default read order. 
+	 */
+	public static final String READ_ORDER_PROPERTY_DEFAULT="random";
+
 	/**
    * Percentage data items that constitute the hot set.
    */
@@ -257,7 +270,16 @@ public class CoreWorkload extends Workload
    * Default value of the percentage operations accessing the hot set.
    */
   public static final String HOTSPOT_OPN_FRACTION_DEFAULT = "0.8";
+
+
+	/**
+	 * Cache values. Setting this property to true will write the same values each time instead of 
+	 * generating a random byte array which consumes time and CPU and distort the results
+	 */
+	public static final String CACHE_VALUES_PROPERTY="cachevalues";
 	
+	public static final String CACHE_VALUES_DEFAULT="false";
+
 	IntegerGenerator keysequence;
 
 	DiscreteGenerator operationchooser;
@@ -272,7 +294,11 @@ public class CoreWorkload extends Workload
 	
 	boolean orderedinserts;
 
+	boolean orderedreads;
+
 	int recordcount;
+	
+	boolean cacheValues = false;
 	
 	protected static IntegerGenerator getFieldLengthGenerator(Properties p) throws WorkloadException{
 		IntegerGenerator fieldlengthgenerator;
@@ -307,7 +333,12 @@ public class CoreWorkload extends Workload
 		
 		fieldcount=Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY,FIELD_COUNT_PROPERTY_DEFAULT));
 		fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
-		
+
+		if (p.getProperty(CACHE_VALUES_PROPERTY,CACHE_VALUES_DEFAULT).equalsIgnoreCase("true"))
+		{
+			cacheValues = true;
+		}
+
 		double readproportion=Double.parseDouble(p.getProperty(READ_PROPORTION_PROPERTY,READ_PROPORTION_PROPERTY_DEFAULT));
 		double updateproportion=Double.parseDouble(p.getProperty(UPDATE_PROPORTION_PROPERTY,UPDATE_PROPORTION_PROPERTY_DEFAULT));
 		double insertproportion=Double.parseDouble(p.getProperty(INSERT_PROPORTION_PROPERTY,INSERT_PROPORTION_PROPERTY_DEFAULT));
@@ -322,7 +353,12 @@ public class CoreWorkload extends Workload
 		
 		readallfields=Boolean.parseBoolean(p.getProperty(READ_ALL_FIELDS_PROPERTY,READ_ALL_FIELDS_PROPERTY_DEFAULT));
 		writeallfields=Boolean.parseBoolean(p.getProperty(WRITE_ALL_FIELDS_PROPERTY,WRITE_ALL_FIELDS_PROPERTY_DEFAULT));
-		
+
+		if (p.getProperty(READ_ORDER_PROPERTY,READ_ORDER_PROPERTY_DEFAULT).compareTo("ordered")==0)
+		{
+			orderedreads=true;
+		}
+
 		if (p.getProperty(INSERT_ORDER_PROPERTY,INSERT_ORDER_PROPERTY_DEFAULT).compareTo("hashed")==0)
 		{
 			orderedinserts=false;
@@ -368,7 +404,12 @@ public class CoreWorkload extends Workload
 		}
 
 		transactioninsertkeysequence=new CounterGenerator(recordcount);
-		if (requestdistrib.compareTo("uniform")==0)
+		
+		if (orderedreads)
+		{
+			keychooser=new CounterGenerator(0);
+		}
+		else if (requestdistrib.compareTo("uniform")==0)
 		{
 			keychooser=new UniformIntegerGenerator(0,recordcount-1);
 		}
@@ -418,6 +459,7 @@ public class CoreWorkload extends Workload
 		{
 			throw new WorkloadException("Distribution \""+scanlengthdistrib+"\" not allowed for scan length");
 		}
+
 	}
 
 	public String buildKeyName(long keynum) {
@@ -427,7 +469,8 @@ public class CoreWorkload extends Workload
  		}
 		return "user"+keynum;
 	}
-	HashMap<String, ByteIterator> buildValues() {
+	
+	public HashMap<String, ByteIterator> buildValues() {
  		HashMap<String,ByteIterator> values=new HashMap<String,ByteIterator>();
 
  		for (int i=0; i<fieldcount; i++)
@@ -438,6 +481,7 @@ public class CoreWorkload extends Workload
  		}
 		return values;
 	}
+	
 	HashMap<String, ByteIterator> buildUpdate() {
 		//update a random field
 		HashMap<String, ByteIterator> values=new HashMap<String,ByteIterator>();
@@ -447,6 +491,8 @@ public class CoreWorkload extends Workload
 		return values;
 	}
 
+	
+	public static final ThreadLocal<HashMap<String, ByteIterator>> valuesThreadLocal = new ThreadLocal<HashMap<String, ByteIterator>>();
 	/**
 	 * Do one insert operation. Because it will be called concurrently from multiple client threads, this 
 	 * function must be thread safe. However, avoid synchronized, or the threads will block waiting for each 
@@ -457,7 +503,22 @@ public class CoreWorkload extends Workload
 	{
 		int keynum=keysequence.nextInt();
 		String dbkey = buildKeyName(keynum);
-		HashMap<String, ByteIterator> values = buildValues();
+		HashMap<String, ByteIterator> values  ;
+		if (cacheValues)
+		{
+			// getting cached value from Thread Local
+			values  = valuesThreadLocal.get();
+			if (values ==null)
+			{
+				values = buildValues();
+				valuesThreadLocal.set(values);
+			}
+		}
+		else
+		{
+			values = buildValues();
+		}
+
 		if (db.insert(table,dbkey,values) == 0)
 			return true;
 		else
@@ -472,8 +533,14 @@ public class CoreWorkload extends Workload
 	 */
 	public boolean doTransaction(DB db, Object threadstate)
 	{
-		String op=operationchooser.nextString();
-
+		if (orderedreads)
+		{
+			doTransactionRead(db);
+			return true;
+		}
+		String op = "READ";
+		// This should be bit flag and not String
+		op=operationchooser.nextString();
 		if (op.compareTo("READ")==0)
 		{
 			doTransactionRead(db);
@@ -534,7 +601,8 @@ public class CoreWorkload extends Workload
 			fields.add(fieldname);
 		}
 
-		db.read(table,keyname,fields,new HashMap<String,ByteIterator>());
+//		db.read(table,keyname,fields,new HashMap<String,ByteIterator>());
+		db.read(table,keyname,fields,null);
 	}
 	
 	public void doTransactionReadModifyWrite(DB db)
@@ -638,4 +706,9 @@ public class CoreWorkload extends Workload
 		HashMap<String, ByteIterator> values = buildValues();
 		db.insert(table,dbkey,values);
 	}
+	
+	public IntegerGenerator getKeychooser() {
+		return keychooser;
+	}
+
 }

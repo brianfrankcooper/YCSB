@@ -4,6 +4,14 @@
   "-//GemStone Systems, Inc.//GemFire Declarative Caching 6.5//EN"
   "http://www.gemstone.com/dtd/cache6_5.dtd">
 <cache>
-  <region name="usertable" refid="PARTITION"/>
+		<cache-server port="40404"/>
+
+		<region name="usertable" refid="REPLICATE">	
+			<region-attributes index-update-type="synchronous" scope="global" >
+			
+		</region-attributes>
+
+	</region>
+
 </cache>
 

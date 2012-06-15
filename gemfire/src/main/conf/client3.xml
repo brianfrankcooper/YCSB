@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!DOCTYPE client-cache PUBLIC
+    "-//GemStone Systems, Inc.//GemFire Declarative Caching 6.5//EN"
+    "http://www.gemstone.com/dtd/cache6_5.dtd">
+        
+<!--
+  | BenchmarkClient.xml
+  |
+  | Configures a region as a client region in a client/server cache. The 
+  | region's pool connects to a server listening on port 40404.
+ -->
+<client-cache>
+	<pool name="client" subscription-enabled="true">
+		<server host="127.0.0.1" port="40404" />
+	</pool>
+
+	<region name="usertable">
+		<region-attributes scope="global"  pool-name="client" data-policy="empty" refid="PROXY"/>
+	</region>
+</client-cache>

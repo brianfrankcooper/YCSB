@@ -19,8 +19,11 @@ package com.yahoo.ycsb;
 
 
 import java.io.*;
+import java.sql.Time;
 import java.text.DecimalFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.yahoo.ycsb.measurements.Measurements;
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
@@ -43,7 +46,7 @@ class StatusThread extends Thread
 	/**
 	 * The interval for reporting status.
 	 */
-	public static final long sleeptime=10000;
+	public static final long sleeptime=1000;
 
 	public StatusThread(Vector<Thread> threads, String label, boolean standardstatus)
 	{
@@ -85,15 +88,24 @@ class StatusThread extends Thread
 			long en=System.currentTimeMillis();
 
 			long interval=en-st;
-			//double throughput=1000.0*((double)totalops)/((double)interval);
-
-			double curthroughput=1000.0*(((double)(totalops-lasttotalops))/((double)(en-lasten)));
+			double curthroughput =0;
 			
+			if (Client.batchMode)
+				curthroughput = ((double)(totalops-lasttotalops) * Client.batchSize) / ((double)(en-lasten)/1000);
+			else
+				curthroughput = (double)1000 * (double)((double)(totalops-lasttotalops) / (double)(en-lasten));
+
+			
+			if (curthroughput==0)
+			{
+				System.out.println(" >>>>lasttotalops  "+ lasttotalops + " totalops " + totalops + " en " + en + " lasten "+lasten);
+			}
+
 			lasttotalops=totalops;
 			lasten=en;
 			
 			DecimalFormat d = new DecimalFormat("#.##");
-			
+/*			
 			if (totalops==0)
 			{
 				System.err.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary());
@@ -102,17 +114,21 @@ class StatusThread extends Thread
 			{
 				System.err.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());
 			}
-
+*/
 			if (_standardstatus)
 			{
-			if (totalops==0)
-			{
-				System.out.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary());
-			}
-			else
-			{
-				System.out.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());
-			}
+				if (totalops==0)
+				{
+					System.out.println(_label+" "+(interval/1000)+" sec: "+totalops+
+							" operations; "+Measurements.getMeasurements().getSummary());
+				}
+				else
+				{
+					System.out.println(_label+" "+(interval/1000)+" sec: "+
+							totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+
+							Measurements.getMeasurements().getSummary());
+					
+				}
 			}
 
 			try
@@ -137,18 +153,20 @@ class StatusThread extends Thread
  */
 class ClientThread extends Thread
 {
+	
+	
 	DB _db;
 	boolean _dotransactions;
 	Workload _workload;
 	int _opcount;
 	double _target;
 
-	int _opsdone;
+	AtomicInteger _opsdone = new AtomicInteger (0);
 	int _threadid;
 	int _threadcount;
 	Object _workloadstate;
 	Properties _props;
-
+	public static AtomicBoolean testStarted = new AtomicBoolean(false);
 
 	/**
 	 * Constructor.
@@ -169,7 +187,7 @@ class ClientThread extends Thread
 		_dotransactions=dotransactions;
 		_workload=workload;
 		_opcount=opcount;
-		_opsdone=0;
+		_opsdone= new AtomicInteger(0);
 		_target=targetperthreadperms;
 		_threadid=threadid;
 		_threadcount=threadcount;
@@ -179,7 +197,7 @@ class ClientThread extends Thread
 
 	public int getOpsDone()
 	{
-		return _opsdone;
+		return _opsdone.get();
 	}
 
 	public void run()
@@ -221,49 +239,64 @@ class ClientThread extends Thread
 		  // do nothing.
 		}
 		
+		// Make sure only the first thread will establish test start time
+		if (!testStarted.get())
+		{
+			testStarted.set(true);
+			long startTestTime = System.currentTimeMillis();
+			System.setProperty(Workload.START_TIME_PROP, String.valueOf(startTestTime));
+			System.out.println("Start Test Time " + new Time(startTestTime) + " " + startTestTime);
+		}
+
+		int readRepeatCount=Integer.parseInt(_props.getProperty(Client.READ_REPEAET_COUNT,Client.READ_REPEAT_COUNT_DEFAULT));
+		if (readRepeatCount<1)
+			readRepeatCount=1;
 		try
 		{
 			if (_dotransactions)
 			{
-				long st=System.currentTimeMillis();
-
-				while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
+				for (int rc =0 ; rc<readRepeatCount;rc++)
 				{
-
-					if (!_workload.doTransaction(_db,_workloadstate))
+					long st=System.currentTimeMillis();
+					_opsdone =new AtomicInteger(0);
+					
+					while (((_opcount == 0) || (_opsdone.get() < _opcount)) && !_workload.isStopRequested())
 					{
-						break;
-					}
-
-					_opsdone++;
-
-					//throttle the operations
-					if (_target>0)
-					{
-						//this is more accurate than other throttling approaches we have tried,
-						//like sleeping for (1/target throughput)-operation latency,
-						//because it smooths timing inaccuracies (from sleep() taking an int, 
-						//current time in millis) over many operations
-						while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
+						if (!_workload.doTransaction(_db,_workloadstate))
 						{
-							try
+							break;
+						}
+	
+						_opsdone.incrementAndGet();
+						//throttle the operations
+						if (_target>0)
+						{
+							//this is more accurate than other throttling approaches we have tried,
+							//like sleeping for (1/target throughput)-operation latency,
+							//because it smooths timing inaccuracies (from sleep() taking an int, 
+							//current time in millis) over many operations
+							while (System.currentTimeMillis()-st<((double)_opsdone.get())/_target)
 							{
-								sleep(1);
+								try
+								{
+									sleep(1);
+								}
+								catch (InterruptedException e)
+								{
+								  // do nothing.
+								}
+	
 							}
-							catch (InterruptedException e)
-							{
-							  // do nothing.
-							}
-
 						}
 					}
+					_workload.getKeychooser().reset();
 				}
 			}
 			else
 			{
 				long st=System.currentTimeMillis();
 
-				while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
+				while (((_opcount == 0) || (_opsdone.get() < _opcount)) && !_workload.isStopRequested())
 				{
 
 					if (!_workload.doInsert(_db,_workloadstate))
@@ -271,7 +304,7 @@ class ClientThread extends Thread
 						break;
 					}
 
-					_opsdone++;
+					_opsdone.getAndIncrement();
 
 					//throttle the operations
 					if (_target>0)
@@ -280,7 +313,7 @@ class ClientThread extends Thread
 						//like sleeping for (1/target throughput)-operation latency,
 						//because it smooths timing inaccuracies (from sleep() taking an int, 
 						//current time in millis) over many operations
-						while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
+						while (System.currentTimeMillis()-st<((double)_opsdone.get())/_target)
 						{
 							try 
 							{
@@ -321,11 +354,33 @@ class ClientThread extends Thread
 public class Client
 {
 
+	public static final String TARGET_PROPERTY="target";
+	public static final String MUKTI_TEST_PROPERTY="multitest";
+	
 	public static final String OPERATION_COUNT_PROPERTY="operationcount";
 
 	public static final String RECORD_COUNT_PROPERTY="recordcount";
 
+	public static final String BATCH_SIZE_PROPERTY="batchsize";
+
+	public static final String BATCH_MODE_PROPERTY="batchmode";
+
 	public static final String WORKLOAD_PROPERTY="workload";
+	
+	public static final String MEASUREMENT_TYPE_PROPERTY="measurementtype";
+
+	public static final String MEASUREMENT_TYPE_TIME_SERIES="timeseries";
+
+	
+	  /**
+	   * read operation read count.
+	   */
+	  public static final String READ_REPEAET_COUNT= "readrepeatcount";
+	
+	  /**
+	   * Default read repeat count.
+	   */
+	  public static final String READ_REPEAT_COUNT_DEFAULT = "1";
 	
 	/**
 	 * Indicates how many inserts to do, if less than recordcount. Useful for partitioning
@@ -338,7 +393,8 @@ public class Client
    * The maximum amount of time (in seconds) for which the benchmark will be run.
    */
   public static final String MAX_EXECUTION_TIME = "maxexecutiontime";
-
+  
+  
 	public static void usageMessage()
 	{
 		System.out.println("Usage: java com.yahoo.ycsb.Client [options]");
@@ -378,6 +434,8 @@ public class Client
 		return true;
 	}
 
+	static MeasurementsExporter exporter = null;
+	static OutputStream out;
 
 	/**
 	 * Exports the measurements to either sysout or a file using the exporter
@@ -387,46 +445,69 @@ public class Client
 	private static void exportMeasurements(Properties props, int opcount, long runtime)
 			throws IOException
 	{
-		MeasurementsExporter exporter = null;
 		try
 		{
 			// if no destination file is provided the results will be written to stdout
-			OutputStream out;
 			String exportFile = props.getProperty("exportfile");
-			if (exportFile == null)
+			
+			if (out==null)
 			{
-				out = System.out;
-			} else
-			{
-				out = new FileOutputStream(exportFile);
+				if (exportFile == null)
+				{
+					out = System.out;
+				} else
+				{
+					out = new FileOutputStream(exportFile);
+				}
 			}
-
-			// if no exporter is provided the default text one will be used
-			String exporterStr = props.getProperty("exporter", "com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter");
-			try
+			
+			if (exporter==null)
 			{
-				exporter = (MeasurementsExporter) Class.forName(exporterStr).getConstructor(OutputStream.class).newInstance(out);
-			} catch (Exception e)
-			{
-				System.err.println("Could not find exporter " + exporterStr
-						+ ", will use default text reporter.");
-				e.printStackTrace();
-				exporter = new TextMeasurementsExporter(out);
+				// if no exporter is provided the default text one will be used
+				String exporterStr = props.getProperty("exporter", "com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter");
+				try
+				{
+					exporter = (MeasurementsExporter) Class.forName(exporterStr).getConstructor(OutputStream.class).newInstance(out);
+				} catch (Exception e)
+				{
+					System.err.println("Could not find exporter " + exporterStr
+							+ ", will use default text reporter.");
+					e.printStackTrace();
+					exporter = new TextMeasurementsExporter(out);
+				}
 			}
-
 			exporter.write("OVERALL", "RunTime(ms)", runtime);
+
+			int readRepeatCount=Integer.parseInt(props.getProperty(READ_REPEAET_COUNT,READ_REPEAT_COUNT_DEFAULT));
+			if (readRepeatCount==0) readRepeatCount=1;
+			
+			opcount = opcount * readRepeatCount;
+			
+			exporter.write("OVERALL", "TOTAL OPERATIONS", opcount);
+			
+			if (batchMode)
+			{
+				int batchSize = Integer.valueOf(props.getProperty(Client.BATCH_SIZE_PROPERTY, "0"));
+				opcount = opcount * batchSize;
+			}
+			
 			double throughput = 1000.0 * ((double) opcount) / ((double) runtime);
 			exporter.write("OVERALL", "Throughput(ops/sec)", throughput);
 
 			Measurements.getMeasurements().exportMeasurements(exporter);
+			
 		} finally
 		{
 			if (exporter != null)
 			{
-				exporter.close();
+				//exporter.close();
 			}
 		}
 	}
+	
+	
+	static boolean batchMode = false;
+	static int batchSize ;
 	
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args)
@@ -472,7 +553,7 @@ public class Client
 					System.exit(0);
 				}
 				int ttarget=Integer.parseInt(args[argindex]);
-				props.setProperty("target", ttarget+"");
+				props.setProperty(TARGET_PROPERTY, ttarget+"");
 				argindex++;
 			}
 			else if (args[argindex].compareTo("-load")==0)
@@ -604,12 +685,13 @@ public class Client
 		}
 		
 		long maxExecutionTime = Integer.parseInt(props.getProperty(MAX_EXECUTION_TIME, "0"));
-
 		//get number of threads, target and db
 		threadcount=Integer.parseInt(props.getProperty("threadcount","1"));
 		dbname=props.getProperty("db","com.yahoo.ycsb.BasicDB");
-		target=Integer.parseInt(props.getProperty("target","0"));
-		
+		target=Integer.parseInt(props.getProperty(TARGET_PROPERTY,"0"));
+		batchMode = Boolean.valueOf(props.getProperty(BATCH_MODE_PROPERTY,"false")).booleanValue();
+		batchSize = Integer.valueOf(props.getProperty(BATCH_SIZE_PROPERTY, "1000")).intValue();
+
 		//compute the target throughput
 		double targetperthreadperms=-1;
 		if (target>0)
@@ -618,7 +700,7 @@ public class Client
 			targetperthreadperms=targetperthread/1000.0;
 		}	 
 
-		System.out.println("YCSB Client 0.1");
+		System.out.println("YCSB Client 0.5");
 		System.out.print("Command line:");
 		for (int i=0; i<args.length; i++)
 		{
@@ -729,7 +811,7 @@ public class Client
 		if (status)
 		{
 			boolean standardstatus=false;
-			if (props.getProperty("measurementtype","").compareTo("timeseries")==0) 
+			if (props.getProperty(MEASUREMENT_TYPE_PROPERTY,"").compareTo(MEASUREMENT_TYPE_TIME_SERIES)==0) 
 			{
 				standardstatus=true;
 			}	
@@ -737,6 +819,7 @@ public class Client
 			statusthread.start();
 		}
 
+		// start time for Throughput calculation
 		long st=System.currentTimeMillis();
 
 		for (Thread t : threads)
@@ -744,14 +827,14 @@ public class Client
 			t.start();
 		}
 		
-    Thread terminator = null;
-    
-    if (maxExecutionTime > 0) {
-      terminator = new TerminatorThread(maxExecutionTime, threads, workload);
-      terminator.start();
-    }
-    
-    int opsDone = 0;
+	    Thread terminator = null;
+	    
+	    if (maxExecutionTime > 0) {
+	    	terminator = new TerminatorThread(maxExecutionTime, threads, workload);
+	    	terminator.start();
+	    }
+	    
+	    int opsDone = 0;
 
 		for (Thread t : threads)
 		{
@@ -765,11 +848,12 @@ public class Client
 			}
 		}
 
+		// end time for Throughput calculation
 		long en=System.currentTimeMillis();
 		
 		if (terminator != null && !terminator.isInterrupted()) {
-      terminator.interrupt();
-    }
+			terminator.interrupt();
+		}
 
 		if (status)
 		{
@@ -789,6 +873,9 @@ public class Client
 
 		try
 		{
+			if (System.getProperties().containsKey(Workload.START_TIME_PROP))
+				st = Long.valueOf(System.getProperty(Workload.START_TIME_PROP)).longValue();
+			
 			exportMeasurements(props, opsDone, en - st);
 		} catch (IOException e)
 		{
@@ -796,7 +883,12 @@ public class Client
 			e.printStackTrace();
 			System.exit(-1);
 		}
-
-		System.exit(0);
+		
+		if (!props.getProperty(MUKTI_TEST_PROPERTY,"false").equals("true"))
+			System.exit(0);
+		else
+			ClientThread.testStarted.set(false);
 	}
+	
+	
 }

@@ -32,10 +32,14 @@ public class DBWrapper extends DB
 	DB _db;
 	Measurements _measurements;
 
+	public static boolean COLLECT_LATENCY_STATS = true;
+	public static final String COLLECT_LATENCY_STATS_PROPERTY="collectlatencystats";
+
 	public DBWrapper(DB db)
 	{
 		_db=db;
 		_measurements=Measurements.getMeasurements();
+		COLLECT_LATENCY_STATS = Boolean.valueOf(_db.getProperties().getProperty(COLLECT_LATENCY_STATS_PROPERTY,"false"));
 	}
 
 	/**
@@ -83,11 +87,19 @@ public class DBWrapper extends DB
 	 */
 	public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
 	{
-		long st=System.nanoTime();
-		int res=_db.read(table,key,fields,result);
-		long en=System.nanoTime();
-		_measurements.measure("READ",(int)((en-st)/1000));
-		_measurements.reportReturnCode("READ",res);
+		int res;
+		if (COLLECT_LATENCY_STATS)
+		{
+			long st=System.nanoTime();
+			res=_db.read(table,key,fields,result);
+			long en=System.nanoTime();
+			_measurements.measure("READ",(int)((en-st)/1000));
+			_measurements.reportReturnCode("READ",res);
+		}
+		else
+		{
+			res=_db.read(table,key,fields,result);
+		}
 		return res;
 	}
 
@@ -103,11 +115,18 @@ public class DBWrapper extends DB
 	 */
 	public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
 	{
-		long st=System.nanoTime();
-		int res=_db.scan(table,startkey,recordcount,fields,result);
-		long en=System.nanoTime();
-		_measurements.measure("SCAN",(int)((en-st)/1000));
-		_measurements.reportReturnCode("SCAN",res);
+		int res;
+		if (COLLECT_LATENCY_STATS)
+		{
+			long st=System.nanoTime();
+			res=_db.scan(table,startkey,recordcount,fields,result);
+			long en=System.nanoTime();
+			_measurements.measure("SCAN",(int)((en-st)/1000));
+			_measurements.reportReturnCode("SCAN",res);
+		}
+		else
+			res=_db.scan(table,startkey,recordcount,fields,result);
+		
 		return res;
 	}
 	
@@ -122,11 +141,18 @@ public class DBWrapper extends DB
 	 */
 	public int update(String table, String key, HashMap<String,ByteIterator> values)
 	{
-		long st=System.nanoTime();
-		int res=_db.update(table,key,values);
-		long en=System.nanoTime();
-		_measurements.measure("UPDATE",(int)((en-st)/1000));
-		_measurements.reportReturnCode("UPDATE",res);
+		int res;
+		if (COLLECT_LATENCY_STATS)
+		{
+			long st=System.nanoTime();
+			res=_db.update(table,key,values);
+			long en=System.nanoTime();
+			_measurements.measure("UPDATE",(int)((en-st)/1000));
+			_measurements.reportReturnCode("UPDATE",res);
+		}
+		else
+			res=_db.update(table,key,values);
+			
 		return res;
 	}
 
@@ -141,11 +167,18 @@ public class DBWrapper extends DB
 	 */
 	public int insert(String table, String key, HashMap<String,ByteIterator> values)
 	{
-		long st=System.nanoTime();
-		int res=_db.insert(table,key,values);
-		long en=System.nanoTime();
-		_measurements.measure("INSERT",(int)((en-st)/1000));
-		_measurements.reportReturnCode("INSERT",res);
+		int res;
+		if (COLLECT_LATENCY_STATS)
+		{
+			long st=System.nanoTime();
+			res=_db.insert(table,key,values);
+			long en=System.nanoTime();
+			_measurements.measure("INSERT",(int)((en-st)/1000));
+			_measurements.reportReturnCode("INSERT",res);
+		}
+		else
+			res=_db.insert(table,key,values);
+			
 		return res;
 	}
 
@@ -158,11 +191,18 @@ public class DBWrapper extends DB
 	 */
 	public int delete(String table, String key)
 	{
-		long st=System.nanoTime();
-		int res=_db.delete(table,key);
-		long en=System.nanoTime();
-		_measurements.measure("DELETE",(int)((en-st)/1000));
-		_measurements.reportReturnCode("DELETE",res);
+		int res;
+		if (COLLECT_LATENCY_STATS)
+		{
+			long st=System.nanoTime();
+			res=_db.delete(table,key);
+			long en=System.nanoTime();
+			_measurements.measure("DELETE",(int)((en-st)/1000));
+			_measurements.reportReturnCode("DELETE",res);
+		}
+		else
+			res=_db.delete(table,key);
+		
 		return res;
 	}
 }

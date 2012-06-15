@@ -20,6 +20,8 @@ package com.yahoo.ycsb;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.yahoo.ycsb.generator.IntegerGenerator;
+
 /**
  * One experiment scenario. One object of this type will
  * be instantiated and shared among all client threads. This class
@@ -40,6 +42,8 @@ public abstract class Workload
 	
 	public static final String INSERT_START_PROPERTY_DEFAULT="0";
 	
+	public static final String START_TIME_PROP = "startTime" ;
+
 	private volatile AtomicBoolean stopRequested = new AtomicBoolean(false);
 	
       /**
@@ -109,4 +113,5 @@ public abstract class Workload
         if (stopRequested.get() == true) return true;
         else return false;
       }
+      public abstract IntegerGenerator getKeychooser() ;
 }
