@@ -51,7 +51,7 @@
     <mapkeeper.version>1.0</mapkeeper.version>
     <mongodb.version>2.8.0</mongodb.version>
     <redis.version>2.0.0</redis.version>
-    <voldemort.version>0.81</voldemort.version>
+    <voldemort.version>0.90.1</voldemort.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
