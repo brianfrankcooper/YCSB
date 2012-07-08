@@ -48,9 +48,10 @@ public class MongoDbClient extends DB {
     private WriteConcern writeConcern;
     private String database;
 
+    @Override
     /**
-     * Initialize any state for this DB. Called once per DB instance; there is
-     * one DB instance per client thread.
+     * Initialize any state for this DB.
+     * Called once per DB instance; there is one DB instance per client thread.
      */
     public void init() throws DBException {
         // initialize MongoDb driver
@@ -97,6 +98,24 @@ public class MongoDbClient extends DB {
         }
 
     }
+    
+    @Override
+	/**
+	 * Cleanup any state for this DB.
+	 * Called once per DB instance; there is one DB instance per client thread.
+	 */
+	public void cleanup() throws DBException
+	{
+        try {
+        	mongo.close();
+        } catch (Exception e1) {
+        	System.err.println(
+                    "Could not close MongoDB connection pool: "
+                            + e1.toString());
+            e1.printStackTrace();
+            return;
+        }
+	}
 
     @Override
     /**
