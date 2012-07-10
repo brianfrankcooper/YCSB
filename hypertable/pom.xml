@@ -9,6 +9,7 @@
   
   <artifactId>hypertable-binding</artifactId>
   <name>Hypertable DB Binding</name>
+  <packaging>jar</packaging>
 
   <dependencies>
     <dependency>
@@ -27,6 +28,13 @@
       <version>${hypertable.version}</version>
     </dependency>
   </dependencies>
+
+  <repositories>
+    <repository>
+      <id>clojars.org</id>
+      <url>http://clojars.org/repo</url>
+    </repository>
+  </repositories>
 
   <build>
     <plugins>
