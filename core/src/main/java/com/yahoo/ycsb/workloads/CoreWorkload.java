@@ -570,15 +570,15 @@ public class CoreWorkload extends Workload
 
 		//do the transaction
 		
-		long st=System.currentTimeMillis();
+		long st=System.nanoTime();
 
 		db.read(table,keyname,fields,new HashMap<String,ByteIterator>());
 		
 		db.update(table,keyname,values);
 
-		long en=System.currentTimeMillis();
+		long en=System.nanoTime();
 		
-		Measurements.getMeasurements().measure("READ-MODIFY-WRITE", (int)(en-st));
+		Measurements.getMeasurements().measure("READ-MODIFY-WRITE", (int)((en-st)/1000));
 	}
 	
 	public void doTransactionScan(DB db)
