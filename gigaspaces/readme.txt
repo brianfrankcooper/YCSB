@@ -19,9 +19,9 @@ To run vFabric GemFire Server:
 Install GemFire 
 - set JAVA_HOME as the JDK home folder
 - set CLASSPATH to include the benchmark jars
-- For regular payload benchmarks: run <GigaSpaces root>/bin/cacheserver start cache-xml-file=/YCSB/gemfire/src/main/conf/cache.xml
-- For indexed payload benchmarks: run <GigaSpaces root>/bin/cacheserver start cache-xml-file=/YCSB/gemfire/src/main/conf/cacheindexed.xml
-- For P2P benchmarks: run <GigaSpaces root>/bin/cacheserver start cache-xml-file=/YCSB/gemfire/src/main/conf/cachep2p.xml
+- For regular payload benchmarks: run <gemfire root>/bin/cacheserver start cache-xml-file=/YCSB/gemfire/src/main/conf/cache.xml
+- For indexed payload benchmarks: run <gemfire root>/bin/cacheserver start cache-xml-file=/YCSB/gemfire/src/main/conf/cacheindexed.xml
+- For P2P benchmarks: run <gemfire root>/bin/cacheserver start cache-xml-file=/YCSB/gemfire/src/main/conf/cachep2p.xml
 
 Client Benchmark execution script
 # Supported Variables
