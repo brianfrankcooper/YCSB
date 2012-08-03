@@ -163,11 +163,9 @@ public class DynamoDBClient extends DB {
             gres = dynamoDB.getItem(greq);
         }catch (AmazonServiceException ex) {
             logger.error(ex.getMessage());
-            ex.printStackTrace();
             return SERVER_ERROR;
         }catch (AmazonClientException ex){
             logger.error(ex.getMessage());
-            ex.printStackTrace();
            return CLIENT_ERROR;
         }
 
