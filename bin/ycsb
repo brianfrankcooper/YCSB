@@ -28,6 +28,7 @@ DATABASES = {
     "cassandra-7"  : "com.yahoo.ycsb.db.CassandraClient7",
     "cassandra-8"  : "com.yahoo.ycsb.db.CassandraClient8",
     "cassandra-10" : "com.yahoo.ycsb.db.CassandraClient10",
+    "dynamodb"     : "com.yahoo.ycsb.db.DynamoDBClient",
     "gemfire"      : "com.yahoo.ycsb.db.GemFireClient",
     "hbase"        : "com.yahoo.ycsb.db.HBaseClient",
     "hypertable"   : "com.yahoo.ycsb.db.HypertableClient",
