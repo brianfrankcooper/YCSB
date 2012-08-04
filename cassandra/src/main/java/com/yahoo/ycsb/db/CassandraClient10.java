@@ -64,6 +64,19 @@ public class CassandraClient10 extends DB
 
   public static final String COLUMN_FAMILY_PROPERTY = "cassandra.columnfamily";
   public static final String COLUMN_FAMILY_PROPERTY_DEFAULT = "data";
+ 
+  public static final String READ_CONSISTENCY_LEVEL_PROPERTY = "cassandra.readconsistencylevel";
+  public static final String READ_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
+
+  public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY = "cassandra.writeconsistencylevel";
+  public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
+
+  public static final String SCAN_CONSISTENCY_LEVEL_PROPERTY = "cassandra.scanconsistencylevel";
+  public static final String SCAN_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
+
+  public static final String DELETE_CONSISTENCY_LEVEL_PROPERTY = "cassandra.deleteconsistencylevel";
+  public static final String DELETE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
+
 
   TTransport tr;
   Cassandra.Client client;
@@ -78,6 +91,12 @@ public class CassandraClient10 extends DB
   Map<ByteBuffer, Map<String, List<Mutation>>> record = new HashMap<ByteBuffer, Map<String, List<Mutation>>>();
 
   ColumnParent parent;
+ 
+  ConsistencyLevel readConsistencyLevel = ConsistencyLevel.ONE;
+  ConsistencyLevel writeConsistencyLevel = ConsistencyLevel.ONE;
+  ConsistencyLevel scanConsistencyLevel = ConsistencyLevel.ONE;
+  ConsistencyLevel deleteConsistencyLevel = ConsistencyLevel.ONE;
+
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
@@ -101,6 +120,12 @@ public class CassandraClient10 extends DB
 
     String username = getProperties().getProperty(USERNAME_PROPERTY);
     String password = getProperties().getProperty(PASSWORD_PROPERTY);
+
+    readConsistencyLevel = ConsistencyLevel.valueOf(getProperties().getProperty(READ_CONSISTENCY_LEVEL_PROPERTY, READ_CONSISTENCY_LEVEL_PROPERTY_DEFAULT));
+    writeConsistencyLevel = ConsistencyLevel.valueOf(getProperties().getProperty(WRITE_CONSISTENCY_LEVEL_PROPERTY, WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT));
+    scanConsistencyLevel = ConsistencyLevel.valueOf(getProperties().getProperty(SCAN_CONSISTENCY_LEVEL_PROPERTY, SCAN_CONSISTENCY_LEVEL_PROPERTY_DEFAULT));
+    deleteConsistencyLevel = ConsistencyLevel.valueOf(getProperties().getProperty(DELETE_CONSISTENCY_LEVEL_PROPERTY, DELETE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT));
+
 
     _debug = Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
 
@@ -133,8 +158,6 @@ public class CassandraClient10 extends DB
     if (connectexception != null)
     {
       System.err.println("Unable to connect to " + myhost + " after " + ConnectionRetries
-          + " tries");
-      System.out.println("Unable to connect to " + myhost + " after " + ConnectionRetries
           + " tries");
       throw new DBException(connectexception);
     }
@@ -215,7 +238,7 @@ public class CassandraClient10 extends DB
           predicate = new SlicePredicate().setColumn_names(fieldlist);
         }
 
-        List<ColumnOrSuperColumn> results = client.get_slice(ByteBuffer.wrap(key.getBytes("UTF-8")), parent, predicate, ConsistencyLevel.ONE);
+        List<ColumnOrSuperColumn> results = client.get_slice(ByteBuffer.wrap(key.getBytes("UTF-8")), parent, predicate, readConsistencyLevel);
 
         if (_debug)
         {
@@ -243,6 +266,7 @@ public class CassandraClient10 extends DB
         if (_debug)
         {
           System.out.println();
+          System.out.println("ConsistencyLevel=" + readConsistencyLevel.toString());
         }
 
         return Ok;
@@ -320,7 +344,7 @@ public class CassandraClient10 extends DB
 
         KeyRange kr = new KeyRange().setStart_key(startkey.getBytes("UTF-8")).setEnd_key(new byte[] {}).setCount(recordcount);
 
-        List<KeySlice> results = client.get_range_slices(parent, predicate, kr, ConsistencyLevel.ONE);
+        List<KeySlice> results = client.get_range_slices(parent, predicate, kr, scanConsistencyLevel);
 
         if (_debug)
         {
@@ -353,6 +377,7 @@ public class CassandraClient10 extends DB
           if (_debug)
           {
             System.out.println();
+            System.out.println("ConsistencyLevel=" + scanConsistencyLevel.toString());
           }
         }
 
@@ -449,11 +474,16 @@ public class CassandraClient10 extends DB
         mutationMap.put(column_family, mutations);
         record.put(wrappedKey, mutationMap);
 
-        client.batch_mutate(record, ConsistencyLevel.ONE);
+        client.batch_mutate(record, writeConsistencyLevel);
 
         mutations.clear();
         mutationMap.clear();
         record.clear();
+        
+        if (_debug)
+        {
+           System.out.println("ConsistencyLevel=" + writeConsistencyLevel.toString());
+        }
 
         return Ok;
       } catch (Exception e)
@@ -505,11 +535,12 @@ public class CassandraClient10 extends DB
         client.remove(ByteBuffer.wrap(key.getBytes("UTF-8")),
                       new ColumnPath(column_family),
                       System.currentTimeMillis(),
-                      ConsistencyLevel.ONE);
+                      deleteConsistencyLevel);
 
         if (_debug)
         {
           System.out.println("Delete key: " + key);
+          System.out.println("ConsistencyLevel=" + deleteConsistencyLevel.toString());
         }
 
         return Ok;
