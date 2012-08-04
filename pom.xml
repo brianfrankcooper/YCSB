@@ -53,6 +53,7 @@
     <redis.version>2.0.0</redis.version>
     <voldemort.version>0.81</voldemort.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<riak.version>1.2</riak.version>
   </properties>
 
   <modules>
@@ -68,6 +69,7 @@
     <!--module>nosqldb</module-->
     <module>redis</module>
     <module>voldemort</module>
+    <module>riak</module>
     <module>distribution</module>
   </modules>
 

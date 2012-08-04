@@ -37,6 +37,7 @@ DATABASES = {
     "nosqldb"      : "com.yahoo.ycsb.db.NoSqlDbClient",
     "redis"        : "com.yahoo.ycsb.db.RedisClient", 
     "voldemort"    : "com.yahoo.ycsb.db.VoldemortClient", 
+		"riak-1.2"         : "com.yahoo.ycsb.db.RiakClient12"
 }
 
 OPTIONS = {
