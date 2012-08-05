@@ -30,6 +30,7 @@ DATABASES = {
     "cassandra-10" : "com.yahoo.ycsb.db.CassandraClient10",
     "gemfire"      : "com.yahoo.ycsb.db.GemFireClient",
     "hbase"        : "com.yahoo.ycsb.db.HBaseClient",
+    "hypertable"   : "com.yahoo.ycsb.db.HypertableClient",
     "infinispan"   : "com.yahoo.ycsb.db.InfinispanClient",
     "jdbc"         : "com.yahoo.ycsb.db.JdbcDBClient",
     "mapkeeper"    : "com.yahoo.ycsb.db.MapKeeperClient",
