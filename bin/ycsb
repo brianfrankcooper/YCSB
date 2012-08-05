@@ -38,6 +38,7 @@ DATABASES = {
     "nosqldb"      : "com.yahoo.ycsb.db.NoSqlDbClient",
     "redis"        : "com.yahoo.ycsb.db.RedisClient", 
     "voldemort"    : "com.yahoo.ycsb.db.VoldemortClient", 
+    "dynamodb"     : "com.yahoo.ycsb.db.DynamoDBClient",
 }
 
 OPTIONS = {

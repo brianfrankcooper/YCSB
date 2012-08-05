@@ -68,6 +68,7 @@
     <module>jdbc</module>
     <module>mapkeeper</module>
     <module>mongodb</module>
+    <module>dynamodb</module>
     <!--module>nosqldb</module-->
     <module>redis</module>
     <module>voldemort</module>
