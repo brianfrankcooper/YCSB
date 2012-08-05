@@ -63,7 +63,7 @@
     <module>hbase</module>
     <module>hypertable</module>
     <module>cassandra</module>
-    <module>gemfire</module>
+    <!--<module>gemfire</module>-->
     <module>infinispan</module>
     <module>jdbc</module>
     <module>mapkeeper</module>
