@@ -80,6 +80,7 @@ public class RiakClient12 extends DB {
             Bucket bucket = riakClient.fetchBucket(table).execute();
             IRiakObject robj = bucket.fetch(key).execute();
             HashMap<String, String> m = StringByteIterator.getStringMap(values);
+            @SuppressWarnings("unchecked")
             IRiakObject obj = new JSONConverter(m.getClass(), table, key).fromDomain(m,robj.getVClock());
             bucket.store(obj);
         } catch (Exception e) {
@@ -93,6 +94,7 @@ public class RiakClient12 extends DB {
         try {
             Bucket bucket = riakClient.fetchBucket(table).execute();
             HashMap<String, String> m = StringByteIterator.getStringMap(values);
+            @SuppressWarnings("unchecked")
             IRiakObject obj = new JSONConverter(m.getClass(), table, key).fromDomain(m,null);
             bucket.store(obj);
         } catch (Exception e) {
