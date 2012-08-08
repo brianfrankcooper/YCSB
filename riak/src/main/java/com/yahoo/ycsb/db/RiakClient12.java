@@ -15,6 +15,11 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.*;
 
+/*
+  This is considered pre-alpha, gin-inspired code. 
+  Use at your own risk. It's currently awaiting review.
+*/
+
 public class RiakClient12 extends DB {
     IRiakClient riakClient;
 
