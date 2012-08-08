@@ -75,7 +75,6 @@ public class RiakClient12 extends DB {
 
     public int update(String table, String key,
                       HashMap<String, ByteIterator> values) {
-
         try {
             Bucket bucket = riakClient.fetchBucket(table).execute();
             IRiakObject robj = bucket.fetch(key).execute();
@@ -112,38 +111,5 @@ public class RiakClient12 extends DB {
             return ERROR;
         }
         return OK;
-    }
-
-    public static void main(String[] args) {
-        RiakClient12 client = new RiakClient12();
-        Properties props = new Properties();
-        try {
-            //client.setProperties(props);
-            client.init();
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.exit(0);
-        }
-
-        HashMap<String, ByteIterator> vals = new HashMap<String, ByteIterator>();
-        vals.put("age", new StringByteIterator("57"));
-        vals.put("middlename", new StringByteIterator("bradley"));
-        vals.put("favoritecolor", new StringByteIterator("blue"));
-        int res = client.insert("usertable", "BrianFrankCooper", vals);
-        System.out.println("Result of insert: " + res);
-
-        HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
-        HashSet<String> fields = new HashSet<String>();
-        fields.add("middlename");
-        fields.add("age");
-        fields.add("favoritecolor");
-        res = client.read("usertable", "BrianFrankCooper", null, result);
-        System.out.println("Result of read: " + res);
-        for (String s : result.keySet()) {
-            System.out.println("[" + s + "]=[" + result.get(s) + "]");
-        }
-
-        res = client.delete("usertable", "BrianFrankCooper");
-        System.out.println("Result of delete: " + res);
     }
 }
