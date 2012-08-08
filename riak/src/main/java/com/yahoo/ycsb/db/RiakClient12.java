@@ -76,8 +76,7 @@ public class RiakClient12 extends DB {
     public int insert(String table, String key,
                       HashMap<String, ByteIterator> values) {
         try {
-            // can I just call fetchBucket()?
-            Bucket bucket = riakClient.createBucket(table).execute();
+            Bucket bucket = riakClient.fetchBucket(table).execute();
             HashMap<String, String> m = StringByteIterator.getStringMap(values);
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             ObjectOutputStream oos = new ObjectOutputStream(bos);
