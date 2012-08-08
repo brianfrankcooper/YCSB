@@ -4,6 +4,10 @@ import com.basho.riak.client.IRiakClient;
 import com.basho.riak.client.IRiakObject;
 import com.basho.riak.client.RiakFactory;
 import com.basho.riak.client.bucket.Bucket;
+import com.basho.riak.client.cap.VClock;
+import com.basho.riak.client.convert.ConversionException;
+import com.basho.riak.client.convert.Converter;
+import com.basho.riak.client.convert.JSONConverter;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
@@ -16,7 +20,7 @@ import java.io.ObjectOutputStream;
 import java.util.*;
 
 /*
-  This is considered pre-alpha, gin-inspired code. 
+  This is considered pre-alpha, gin-inspired code.
   Use at your own risk. It's currently awaiting review.
 */
 
@@ -54,11 +58,8 @@ public class RiakClient12 extends DB {
         try {
             Bucket bucket = riakClient.fetchBucket(table).execute();
             IRiakObject obj = bucket.fetch(key).execute();
-            ByteArrayInputStream bis = new ByteArrayInputStream(obj.getValue());
-            ObjectInputStream ois = new ObjectInputStream(bis);
-            // this might be really slow :-(
-            HashMap<String, String> kv = (HashMap<String, String>) ois.readObject();
-            StringByteIterator.putAllAsStrings(kv, result);
+            HashMap m = new JSONConverter<HashMap>(HashMap.class, table, key).toDomain(obj);
+            StringByteIterator.putAllAsStrings(m, result);
         } catch (Exception e) {
             e.printStackTrace();
             return ERROR;
@@ -74,7 +75,16 @@ public class RiakClient12 extends DB {
 
     public int update(String table, String key,
                       HashMap<String, ByteIterator> values) {
-        insert(table, key, values);
+
+        try {
+            Bucket bucket = riakClient.fetchBucket(table).execute();
+            IRiakObject robj = bucket.fetch(key).execute();
+            HashMap<String, String> m = StringByteIterator.getStringMap(values);
+            IRiakObject obj = new JSONConverter(m.getClass(), table, key).fromDomain(m,robj.getVClock());
+            bucket.store(obj);
+        } catch (Exception e) {
+            insert(table, key, values);
+        }
         return OK;
     }
 
@@ -83,11 +93,8 @@ public class RiakClient12 extends DB {
         try {
             Bucket bucket = riakClient.fetchBucket(table).execute();
             HashMap<String, String> m = StringByteIterator.getStringMap(values);
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(bos);
-            // this might be really slow :-(
-            oos.writeObject(m);
-            bucket.store(key, bos.toByteArray()).execute();
+            IRiakObject obj = new JSONConverter(m.getClass(), table, key).fromDomain(m,null);
+            bucket.store(obj);
         } catch (Exception e) {
             e.printStackTrace();
             return ERROR;
