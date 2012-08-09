@@ -34,17 +34,18 @@ would cost 2 capacity units. With the change in payload size, each request would
 For more information refer to
 http://docs.amazonwebservices.com/amazondynamodb/latest/developerguide/WorkingWithDDTables.html
 
-* How to identify throttling?
-    Unless you have disabled logging, when you exceeded your provisioned throughput
-limit you will receive "configured provisioned throughput for the table was exceeded" error 
-message. The request is then retried by the DynamoDB plugin, and the latency measured by 
-YCSB is increased. Check Cloudwatch for ThrottledRequests, and increase the provisioned
-throughput of the table as needed or adjust the number of YCSB client threads
+* How do you know if DynamoDB throttling is affecting benchmarking?
+    Monitor CloudWatch for ThrottledRequests and if ThrottledRequests is greater
+than zero, either increase the DynamoDB table provisioned throughput or reduce
+YCSB throughput by reducing YCSB target throughput, adjusting the number of YCSB
+client threads, or combination of both.
 
-For more information refer to 
-https://github.com/jananin/YCSB/blob/master/doc/tipsfaq.html
+For more information please refer to 
+https://github.com/brianfrankcooper/YCSB/blob/master/doc/tipsfaq.html
 
-Please refer to aws.amazon.com/dynamodb/faqs/ for more information.
+When requests are throttled, latency measurements by YCSB can increase.
+
+Please refer to http://aws.amazon.com/dynamodb/faqs/ for more information.
 
 Please refer to Amazon DynamoDB docs here:
 http://aws.amazon.com/documentation/dynamodb/
