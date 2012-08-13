@@ -4,20 +4,18 @@ import com.basho.riak.client.IRiakClient;
 import com.basho.riak.client.IRiakObject;
 import com.basho.riak.client.RiakFactory;
 import com.basho.riak.client.bucket.Bucket;
-import com.basho.riak.client.cap.VClock;
-import com.basho.riak.client.convert.ConversionException;
-import com.basho.riak.client.convert.Converter;
 import com.basho.riak.client.convert.JSONConverter;
+import com.basho.riak.client.raw.pbc.PBClientConfig;
+import com.basho.riak.client.raw.pbc.PBClusterConfig;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.StringByteIterator;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Properties;
+import java.util.Set;
+import java.util.Vector;
 
 /*
   This is considered pre-alpha, gin-inspired code.
@@ -26,26 +24,40 @@ import java.util.*;
 
 public class RiakClient12 extends DB {
     IRiakClient riakClient;
-
     public static final int OK = 0;
     public static final int ERROR = -1;
-    //public static final int NOT_FOUND = -2;
-    public static final String RIAK_HOST = "riak_host";
-    public static final String RIAK_HOST_DEFAULT = "127.0.0.1";
-
-    public static final String RIAK_PORT = "riak_port";
-    public static final String RIAK_PORT_DEFAULT = "8087";
+    public static final String RIAK_CLUSTER_HOSTS = "riak_cluster_hosts";
+    public static final String RIAK_CLUSTER_HOST_DEFAULT = "127.0.0.1:8087";
 
     public void init() throws DBException {
         try {
             Properties props = getProperties();
-            // should probably expand this to allow more than 1 host etc
-            String ip = props.getProperty(RIAK_HOST, RIAK_HOST_DEFAULT);
-            int port = Integer.parseInt(props.getProperty(RIAK_PORT, RIAK_PORT_DEFAULT));
-            riakClient = RiakFactory.pbcClient(ip, port);
+            String cluster_hosts = props.getProperty(RIAK_CLUSTER_HOSTS, RIAK_CLUSTER_HOST_DEFAULT);
+            String[] servers = cluster_hosts.split(",");
+            if(servers.length == 1) {
+                String[] ipAndPort = servers[0].split(":");
+                String ip = ipAndPort[0].trim();
+                int port = Integer.parseInt(ipAndPort[1].trim());
+                System.out.println("Riak connection to " + ip + ":" + port);
+                riakClient = RiakFactory.pbcClient(ip, port);
+            } else {
+                PBClusterConfig clusterConf = new PBClusterConfig(200);
+                for(String server:servers) {
+                    String[] ipAndPort = server.split(":");
+                    String ip = ipAndPort[0].trim();
+                    int port = Integer.parseInt(ipAndPort[1].trim());
+                    System.out.println("Riak connection to " + ip + ":" + port);
+                    PBClientConfig node = PBClientConfig.Builder
+                            .from(PBClientConfig.defaults())
+                            .withHost(ip)
+                            .withPort(port).build();
+                    clusterConf.addClient(node);
+                }
+                riakClient = RiakFactory.newClient(clusterConf);
+            }
         } catch (Exception e) {
             e.printStackTrace();
-            throw new DBException(e.getMessage());
+            throw new DBException("Error connecting to Riak: " + e.getMessage());
         }
     }
 
