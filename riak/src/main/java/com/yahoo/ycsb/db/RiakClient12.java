@@ -12,10 +12,7 @@ import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.StringByteIterator;
 
-import java.util.HashMap;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 /*
   This is considered pre-alpha, gin-inspired code.
@@ -68,9 +65,8 @@ public class RiakClient12 extends DB {
     public int read(String table, String key, Set<String> fields,
                     HashMap<String, ByteIterator> result) {
         try {
-            Bucket bucket = riakClient.fetchBucket(table).execute();
-            IRiakObject obj = bucket.fetch(key).execute();
-            HashMap m = new JSONConverter<HashMap>(HashMap.class, table, key).toDomain(obj);
+            Bucket bucket = riakClient.fetchBucket(table).lazyLoadBucketProperties().execute();
+            Map m = bucket.fetch(key, Map.class).execute();
             StringByteIterator.putAllAsStrings(m, result);
         } catch (Exception e) {
             e.printStackTrace();
@@ -88,7 +84,7 @@ public class RiakClient12 extends DB {
     public int update(String table, String key,
                       HashMap<String, ByteIterator> values) {
         try {
-            Bucket bucket = riakClient.fetchBucket(table).execute();
+            Bucket bucket = riakClient.fetchBucket(table).lazyLoadBucketProperties().execute();
             IRiakObject robj = bucket.fetch(key).execute();
             HashMap<String, String> m = StringByteIterator.getStringMap(values);
             @SuppressWarnings("unchecked")
@@ -103,7 +99,7 @@ public class RiakClient12 extends DB {
     public int insert(String table, String key,
                       HashMap<String, ByteIterator> values) {
         try {
-            Bucket bucket = riakClient.fetchBucket(table).execute();
+            Bucket bucket = riakClient.fetchBucket(table).lazyLoadBucketProperties().execute();
             HashMap<String, String> m = StringByteIterator.getStringMap(values);
             @SuppressWarnings("unchecked")
             IRiakObject obj = new JSONConverter(m.getClass(), table, key).fromDomain(m,null);
