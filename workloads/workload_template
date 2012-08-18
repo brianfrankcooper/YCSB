@@ -1,0 +1,108 @@
+# Yahoo! Cloud System Benchmark
+# Workload Template: Default Values
+#
+# File contains all properties that can be set to define a
+# YCSB session. All properties are set to their default
+# value if one exists. If not, the property is commented
+# out. When a property has a finite number of settings,
+# the default is enabled and the alternates are shown in
+# comments below it.
+# 
+# Use of most explained through comments in Client.java or 
+# CoreWorkload.java or on the YCSB wiki page:
+# https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties
+
+# The name of the workload class to use
+workload=com.yahoo.ycsb.workloads.CoreWorkload
+
+# There is no default setting for recordcount but it is
+# required to be set.
+# The number of records in the table to be inserted in
+# the load phase or the number of records already in the 
+# table before the run phase.
+recordcount=1000000
+
+# There is no default setting for operationcount but it is
+# required to be set.
+# The number of operations to use during the run phase.
+operationcount=3000000
+
+# The number of insertions to do, if different from recordcount.
+# Used with insertstart to grow an existing table.
+#insertcount=
+
+# The offset of the first insertion
+insertstart=0
+
+# The number of fields in a record
+fieldcount=10
+
+# The size of each field (in bytes)
+fieldlength=100
+
+# Should read all fields
+readallfields=true
+
+# Should write all fields on update
+writeallfields=false
+
+# The distribution used to choose the length of a field
+fieldlengthdistribution=constant
+#fieldlengthdistribution=uniform
+#fieldlengthdistribution=zipfian
+
+# What proportion of operations are reads
+readproportion=0.95
+
+# What proportion of operations are updates
+updateproportion=0.05
+
+# What proportion of operations are inserts
+insertproportion=0
+
+# What proportion of operations read then modify a record
+readmodifywriteproportion=0
+
+# What proportion of operations are scans
+scanproportion=0
+
+# On a single scan, the maximum number of records to access
+maxscanlength=1000
+
+# The distribution used to choose the number of records to access on a scan
+scanlengthdistribution=uniform
+#scanlengthdistribution=zipfian
+
+# Should records be inserted in order or pseudo-randomly
+insertorder=hashed
+#insertorder=ordered
+
+# The distribution of requests across the keyspace
+requestdistribution=zipfian
+#requestdistribution=uniform
+#requestdistribution=latest
+
+# Percentage of data items that constitute the hot set
+hotspotdatafraction=0.2
+
+# Percentage of operations that access the hot set
+hotspotopnfraction=0.8
+
+# Maximum execution time in seconds
+#maxexecutiontime= 
+
+# The name of the database table to run queries against
+table=usertable
+
+# The column family of fields (required by some databases)
+#columnfamily=
+
+# How the latency measurements are presented
+measurementtype=histogram
+#measurementtype=timeseries
+
+# The range of latencies to track in the histogram (milliseconds)
+histogram.buckets=1000
+
+# Granularity for time series (in milliseconds)
+timeseries.granularity=1000
