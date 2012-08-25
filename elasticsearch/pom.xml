@@ -7,7 +7,7 @@
         <version>0.1.4</version>
     </parent>
 
-    <artifactId>orientdb-binding</artifactId>
+    <artifactId>elasticsearch-binding</artifactId>
     <name>ElasticSearch Binding</name>
     <packaging>jar</packaging>
     <properties>
@@ -30,6 +30,17 @@
             <groupId>org.elasticsearch</groupId>
             <artifactId>elasticsearch</artifactId>
             <version>${elasticsearch-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>6.1.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-nop</artifactId>
+            <version>1.6.4</version>
         </dependency>
     </dependencies>
 

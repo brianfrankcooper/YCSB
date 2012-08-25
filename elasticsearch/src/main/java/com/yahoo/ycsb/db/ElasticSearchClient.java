@@ -12,9 +12,13 @@ import java.util.Vector;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.client.Requests;
+import static org.elasticsearch.common.settings.ImmutableSettings.*;
+import org.elasticsearch.common.settings.ImmutableSettings.Builder;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import static org.elasticsearch.common.xcontent.XContentFactory.*;
 import static org.elasticsearch.index.query.FilterBuilders.*;
+import static org.elasticsearch.index.query.QueryBuilders.*;
 import org.elasticsearch.index.query.RangeFilterBuilder;
 import org.elasticsearch.node.Node;
 import static org.elasticsearch.node.NodeBuilder.*;
@@ -30,10 +34,12 @@ import org.elasticsearch.search.SearchHit;
  *
  */
 public class ElasticSearchClient extends DB {
-    
+
     public static final String DEFAULT_CLUSTER_NAME = "es.ycsb.cluster";
     public static final String DEFAULT_INDEX_KEY = "es.ycsb";
-    public static final Boolean DEFAULT_CLIENT_TYPE = Boolean.TRUE;
+    public static final String DEFAULT_DATA_PATH = "target/data";
+    public static final String DEFAULT_CLIENT = "true";
+    public static final String DEFAULT_LOCAL = "true";
     private Node node;
     private Client client;
     private String indexKey;
@@ -46,26 +52,48 @@ public class ElasticSearchClient extends DB {
     public void init() throws DBException {
         // initialize OrientDB driver
         Properties props = getProperties();
-        
-        String clusterName = props.getProperty("es.cluster.name", DEFAULT_CLUSTER_NAME);
-        boolean isClient = Boolean.valueOf(props.getProperty("es.client", DEFAULT_CLIENT_TYPE.toString()));
         this.indexKey = props.getProperty("es.index.key", DEFAULT_INDEX_KEY);
-        
+
+        String clusterName = props.getProperty("cluster.name", DEFAULT_CLUSTER_NAME);
+        Boolean newdb = Boolean.parseBoolean(props.getProperty("elasticsearch.newdb", "false"));
+
+        Builder settings = settingsBuilder()
+                .put("node.local", props.getProperty("node.local", DEFAULT_LOCAL))
+                .put("path.data", props.getProperty("path.data", DEFAULT_DATA_PATH))
+                .put("discovery.zen.ping.multicast.enabled", "false")
+                .put("index.mapping._id.indexed", "true")
+                .put("index.store.type", "memory")
+                .put("index.store.fs.memory.enabled", "true")
+                .put("index.gateway.type", "none")
+                .put("gateway.type", "none")
+                .put("index.number_of_shards", "1")
+                .put("index.number_of_replicas", "0");
+
+
         System.out.println("ElasticSearch starting node = " + clusterName);
-        
-        node = nodeBuilder().clusterName(clusterName).client(isClient).node();
+
+
+        node = nodeBuilder().clusterName(clusterName).settings(settings).node();
         node.start();
         client = node.client();
-        client.admin().indices().prepareCreate(indexKey).execute().actionGet();
+
+        if (newdb) {
+            client.admin().indices().prepareDelete(indexKey).execute().actionGet();
+            client.admin().indices().prepareCreate(indexKey).execute().actionGet();
+        } else {
+            boolean exists = client.admin().indices().exists(Requests.indicesExistsRequest(indexKey)).actionGet().isExists();
+            if (!exists) {
+                client.admin().indices().prepareCreate(indexKey).execute().actionGet();
+            }
+        }
     }
-    
+
     @Override
     public void cleanup() throws DBException {
         if (!node.isClosed()) {
-            client.admin().indices().prepareDelete(indexKey).execute().actionGet();
             client.close();
-            node.close();
             node.stop();
+            node.close();
         }
     }
 
@@ -83,17 +111,19 @@ public class ElasticSearchClient extends DB {
     @Override
     public int insert(String table, String key, HashMap<String, ByteIterator> values) {
         try {
-            final XContentBuilder doc = jsonBuilder();
-            
+            final XContentBuilder doc = jsonBuilder().startObject();
+
             for (Entry<String, String> entry : StringByteIterator.getStringMap(values).entrySet()) {
                 doc.field(entry.getKey(), entry.getValue());
             }
-            
+
+            doc.endObject();
+
             client.prepareIndex(indexKey, table, key)
                     .setSource(doc)
                     .execute()
                     .actionGet();
-            
+
             return 0;
         } catch (Exception e) {
             e.printStackTrace();
@@ -138,7 +168,7 @@ public class ElasticSearchClient extends DB {
             final GetResponse response = client.prepareGet(indexKey, table, key)
                     .execute()
                     .actionGet();
-            
+
             if (response.isExists()) {
                 if (fields != null) {
                     for (String field : fields) {
@@ -174,20 +204,20 @@ public class ElasticSearchClient extends DB {
             final GetResponse response = client.prepareGet(indexKey, table, key)
                     .execute()
                     .actionGet();
-            
+
             if (response.isExists()) {
                 for (Entry<String, String> entry : StringByteIterator.getStringMap(values).entrySet()) {
                     response.getSource().put(entry.getKey(), entry.getValue());
                 }
-                
+
                 client.prepareIndex(indexKey, table, key)
                         .setSource(response.getSource())
                         .execute()
                         .actionGet();
-                
+
                 return 0;
             }
-            
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -213,27 +243,36 @@ public class ElasticSearchClient extends DB {
             final RangeFilterBuilder filter = rangeFilter("_id").gte(startkey);
             final SearchResponse response = client.prepareSearch(indexKey)
                     .setTypes(table)
+                    .setQuery(matchAllQuery())
                     .setFilter(filter)
                     .setSize(recordcount)
                     .execute()
                     .actionGet();
-            
+
             HashMap<String, ByteIterator> entry;
-            
+
             for (SearchHit hit : response.getHits()) {
                 entry = new HashMap<String, ByteIterator>(fields.size());
-                
+
                 for (String field : fields) {
-                    entry.put(field, new StringByteIterator((String) hit.field(field).getValue()));
+                    entry.put(field, new StringByteIterator((String) hit.getSource().get(field)));
                 }
-                
+
                 result.add(entry);
             }
-            
+
             return 0;
         } catch (Exception e) {
             e.printStackTrace();
         }
         return 1;
+    }
+
+    public Client getClient() {
+        return client;
+    }
+
+    public Node getNode() {
+        return node;
     }
 }
