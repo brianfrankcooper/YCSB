@@ -29,6 +29,7 @@ DATABASES = {
     "cassandra-8"  : "com.yahoo.ycsb.db.CassandraClient8",
     "cassandra-10" : "com.yahoo.ycsb.db.CassandraClient10",
     "dynamodb"     : "com.yahoo.ycsb.db.DynamoDBClient",
+    "elasticsearch": "com.yahoo.ycsb.db.ElasticSearchClient",
     "gemfire"      : "com.yahoo.ycsb.db.GemFireClient",
     "hbase"        : "com.yahoo.ycsb.db.HBaseClient",
     "hypertable"   : "com.yahoo.ycsb.db.HypertableClient",
@@ -39,7 +40,7 @@ DATABASES = {
     "nosqldb"      : "com.yahoo.ycsb.db.NoSqlDbClient",
     "orientdb"     : "com.yahoo.ycsb.db.OrientDBClient",
     "redis"        : "com.yahoo.ycsb.db.RedisClient", 
-    "voldemort"    : "com.yahoo.ycsb.db.VoldemortClient", 
+    "voldemort"    : "com.yahoo.ycsb.db.VoldemortClient",
 }
 
 OPTIONS = {

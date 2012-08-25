@@ -60,11 +60,12 @@
 
   <modules>
     <!--module>build-tools</module-->
+    <module>cassandra</module>
     <module>core</module>
     <module>hbase</module>
     <module>hypertable</module>
-    <module>cassandra</module>
     <module>dynamodb</module>
+    <module>elasticsearch</module>
     <!--<module>gemfire</module>-->
     <module>infinispan</module>
     <module>jdbc</module>
