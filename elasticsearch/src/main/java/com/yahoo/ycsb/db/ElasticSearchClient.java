@@ -37,9 +37,6 @@ public class ElasticSearchClient extends DB {
 
     public static final String DEFAULT_CLUSTER_NAME = "es.ycsb.cluster";
     public static final String DEFAULT_INDEX_KEY = "es.ycsb";
-    public static final String DEFAULT_DATA_PATH = "target/data";
-    public static final String DEFAULT_CLIENT = "true";
-    public static final String DEFAULT_LOCAL = "true";
     private Node node;
     private Client client;
     private String indexKey;
@@ -53,25 +50,24 @@ public class ElasticSearchClient extends DB {
         // initialize OrientDB driver
         Properties props = getProperties();
         this.indexKey = props.getProperty("es.index.key", DEFAULT_INDEX_KEY);
-
         String clusterName = props.getProperty("cluster.name", DEFAULT_CLUSTER_NAME);
         Boolean newdb = Boolean.parseBoolean(props.getProperty("elasticsearch.newdb", "false"));
-
         Builder settings = settingsBuilder()
-                .put("node.local", props.getProperty("node.local", DEFAULT_LOCAL))
-                .put("path.data", props.getProperty("path.data", DEFAULT_DATA_PATH))
+                .put("node.local", "true")
+                .put("path.data", System.getProperty("java.io.tmpdir") + "/esdata")
                 .put("discovery.zen.ping.multicast.enabled", "false")
                 .put("index.mapping._id.indexed", "true")
-                .put("index.store.type", "memory")
-                .put("index.store.fs.memory.enabled", "true")
                 .put("index.gateway.type", "none")
                 .put("gateway.type", "none")
                 .put("index.number_of_shards", "1")
                 .put("index.number_of_replicas", "0");
 
 
-        System.out.println("ElasticSearch starting node = " + clusterName);
-
+        //if properties file contains elasticsearch user defined properties
+        //add it to the settings file (will overwrite the defaults).
+        settings.put(props);
+        System.out.println("ElasticSearch starting node = " + settings.get("cluster.name"));
+        System.out.println("ElasticSearch node data path = " + settings.get("path.data"));
 
         node = nodeBuilder().clusterName(clusterName).settings(settings).node();
         node.start();
@@ -266,13 +262,5 @@ public class ElasticSearchClient extends DB {
             e.printStackTrace();
         }
         return 1;
-    }
-
-    public Client getClient() {
-        return client;
-    }
-
-    public Node getNode() {
-        return node;
     }
 }
