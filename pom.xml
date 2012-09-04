@@ -65,7 +65,7 @@
     <module>hypertable</module>
     <module>cassandra</module>
     <module>dynamodb</module>
-    <!--<module>gemfire</module>-->
+    <module>gemfire</module>
     <module>infinispan</module>
     <module>jdbc</module>
     <module>mapkeeper</module>
