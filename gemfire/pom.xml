@@ -15,7 +15,7 @@
     <dependency>
       <groupId>com.gemstone.gemfire</groupId>
       <artifactId>gemfire</artifactId>
-      <version>6.6</version>
+      <version>7.0.2</version>
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
@@ -27,7 +27,7 @@
   <repositories>
     <repository>
       <id>gemstone</id>
-      <url>http://dist.gemstone.com.s3.amazonaws.com/maven/release/</url>
+      <url>http://dist.gemstone.com.s3.amazonaws.com/maven/release</url>
     </repository>
   </repositories>	
  

@@ -77,6 +77,7 @@
     <module>accumulo</module>
     <module>dynamodb</module>
     <module>elasticsearch</module>
+    <module>gemfire</module>
     <module>infinispan</module>
     <module>jdbc</module>
     <module>mongodb</module>
@@ -86,7 +87,6 @@
     <module>distribution</module>
     <!--<module>mapkeeper</module>-->
     <!--module>nosqldb</module-->
-    <!--<module>gemfire</module>-->
     <module>couchbase</module>
   </modules>
 
