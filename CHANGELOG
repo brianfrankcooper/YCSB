@@ -3,6 +3,7 @@
 - gh-88 YCSB client for Amazon DynamoDB (jananin)
 - gh-89 Patch for YCSB Cassandra Client version 1.0.6 (jananin)
 - gh-93 New ElasticSearch Database Implementation (saden1)
+- gh-97 Bug fixes in dynamodb plugin (jananin)
 
 0.1.4 - 2/22/12 
 
