@@ -200,7 +200,7 @@ public class DynamoDBClient extends DB {
             }
             startKey = res.getLastEvaluatedKey();
 
-        } 
+        }
 
         return OK;
     }
@@ -249,7 +249,7 @@ public class DynamoDBClient extends DB {
             logger.error(ex.getMessage());
             return CLIENT_ERROR;
         }
-        return res.getConsumedCapacityUnits().intValue();
+        return OK;
     }
 
     @Override
@@ -267,7 +267,7 @@ public class DynamoDBClient extends DB {
             logger.error(ex.getMessage());
             return CLIENT_ERROR;
         }
-        return res.getConsumedCapacityUnits().intValue();
+        return OK;
     }
 
     private static Map<String, AttributeValue> createAttributes(
