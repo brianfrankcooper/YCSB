@@ -65,8 +65,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     public static final int HttpError=-2;
     public static final int NoMatchingRecord=-3;
 
-    public static final Object tableLock = new Object();
-
     /**
      * Initialize any state for this DB.
      * Called once per DB instance; there is one DB instance per client thread.
@@ -96,9 +94,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     public void cleanup() throws DBException
     {
         try {
-            if (_hTable != null) {
-                _hTable.flushCommits();
-            }
+            _hTable.close();
         } catch (IOException e) {
             throw new DBException(e);
         }
@@ -106,9 +102,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 
     public void initHTable(String table) throws IOException
     {
-        synchronized (tableLock) {
-            _hTable = new HTable(config, table);
-        }
+        _hTable = new HTable(config, table);
     }
 
     /**
