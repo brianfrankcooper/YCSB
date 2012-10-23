@@ -21,7 +21,6 @@ package com.yahoo.ycsb.db;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.ByteArrayByteIterator;
-import com.yahoo.ycsb.StringByteIterator;
 
 import java.io.IOException;
 import java.util.*;
@@ -105,7 +104,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         }
     }
 
-    public void getHTable(String table) throws IOException
+    public void initHTable(String table) throws IOException
     {
         synchronized (tableLock) {
             _hTable = new HTable(config, table);
@@ -128,7 +127,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             _hTable = null;
             try
             {
-                getHTable(table);
+                initHTable(table);
                 _table = table;
             }
             catch (IOException e)
@@ -196,7 +195,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             _hTable = null;
             try
             {
-                getHTable(table);
+                initHTable(table);
                 _table = table;
             }
             catch (IOException e)
@@ -287,7 +286,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             _hTable = null;
             try
             {
-                getHTable(table);
+                initHTable(table);
                 _table = table;
             }
             catch (IOException e)
@@ -359,7 +358,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             _hTable = null;
             try
             {
-                getHTable(table);
+                initHTable(table);
                 _table = table;
             }
             catch (IOException e)
