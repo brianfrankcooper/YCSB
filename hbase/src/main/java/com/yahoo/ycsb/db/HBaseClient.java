@@ -53,17 +53,17 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     //private static final Configuration config = HBaseConfiguration.create();
     private static final Configuration config = HBaseConfiguration.create(); //new HBaseConfiguration();
 
-    public boolean _debug=false;
+    private boolean _debug=false;
 
-    public String _table="";
-    public HTable _hTable=null;
-    public String _columnFamily="";
-    public byte _columnFamilyBytes[];
+    private String _table="";
+    private HTable _hTable=null;
+    private String _columnFamily="";
+    private byte _columnFamilyBytes[];
 
-    public static final int Ok=0;
-    public static final int ServerError=-1;
-    public static final int HttpError=-2;
-    public static final int NoMatchingRecord=-3;
+    private static final int Ok=0;
+    private static final int ServerError=-1;
+    private static final int HttpError=-2;
+    private static final int NoMatchingRecord=-3;
 
     /**
      * Initialize any state for this DB.
