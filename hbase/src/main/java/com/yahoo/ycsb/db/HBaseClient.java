@@ -109,12 +109,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     {
         synchronized (tableLock) {
             _hTable = new HTable(config, table);
-            //2 suggestions from http://ryantwopointoh.blogspot.com/2009/01/performance-of-hbase-importing.html
-            _hTable.setAutoFlush(false);
-            _hTable.setWriteBufferSize(1024*1024*12);
-            //return hTable;
         }
-
     }
 
     /**
