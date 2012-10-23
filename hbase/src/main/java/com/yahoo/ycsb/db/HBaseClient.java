@@ -49,9 +49,7 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
  */
 public class HBaseClient extends com.yahoo.ycsb.DB
 {
-    // BFC: Change to fix broken build (with HBase 0.20.6)
-    //private static final Configuration config = HBaseConfiguration.create();
-    private static final Configuration config = HBaseConfiguration.create(); //new HBaseConfiguration();
+    private static final Configuration config = HBaseConfiguration.create();
 
     private boolean _debug=false;
 
@@ -420,8 +418,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 
                         cli.init();
 
-                        //HashMap<String,String> result=new HashMap<String,String>();
-
                         long accum=0;
 
                         for (int i=0; i<opcount; i++)
@@ -430,20 +426,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
                             String key="user"+keynum;
                             long st=System.currentTimeMillis();
                             int rescode;
-                            /*
-                            HashMap hm = new HashMap();
-                            hm.put("field1","value1");
-                            hm.put("field2","value2");
-                            hm.put("field3","value3");
-                            rescode=cli.insert("table1",key,hm);
-                            HashSet<String> s = new HashSet();
-                            s.add("field1");
-                            s.add("field2");
-
-                            rescode=cli.read("table1", key, s, result);
-                            //rescode=cli.delete("table1",key);
-                            rescode=cli.read("table1", key, s, result);
-                            */
                             HashSet<String> scanFields = new HashSet<String>();
                             scanFields.add("field1");
                             scanFields.add("field3");
@@ -464,9 +446,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
                                 System.out.println(i+" operations, average latency: "+(((double)accum)/((double)i)));
                             }
                         }
-
-                        //System.out.println("Average latency: "+(((double)accum)/((double)opcount)));
-                        //System.out.println("Average get latency: "+(((double)cli.TotalGetTime)/((double)cli.TotalGetOps)));
                     }
                     catch (Exception e)
                     {
