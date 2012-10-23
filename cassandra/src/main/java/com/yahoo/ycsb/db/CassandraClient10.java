@@ -19,15 +19,7 @@ package com.yahoo.ycsb.db;
 
 import com.yahoo.ycsb.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Vector;
-import java.util.Random;
-import java.util.Properties;
+import java.util.*;
 import java.nio.ByteBuffer;
 
 import org.apache.thrift.transport.TTransport;
@@ -87,8 +79,6 @@ public class CassandraClient10 extends DB
   Exception errorexception = null;
 
   List<Mutation> mutations = new ArrayList<Mutation>();
-  Map<String, List<Mutation>> mutationMap = new HashMap<String, List<Mutation>>();
-  Map<ByteBuffer, Map<String, List<Mutation>>> record = new HashMap<ByteBuffer, Map<String, List<Mutation>>>();
 
   ColumnParent parent;
  
@@ -471,15 +461,12 @@ public class CassandraClient10 extends DB
           mutations.add(new Mutation().setColumn_or_supercolumn(column));
         }
 
-        mutationMap.put(column_family, mutations);
-        record.put(wrappedKey, mutationMap);
-
-        client.batch_mutate(record, writeConsistencyLevel);
+        client.batch_mutate(Collections.singletonMap(wrappedKey,
+                                                     Collections.singletonMap(column_family, mutations)),
+                            writeConsistencyLevel);
 
         mutations.clear();
-        mutationMap.clear();
-        record.clear();
-        
+
         if (_debug)
         {
            System.out.println("ConsistencyLevel=" + writeConsistencyLevel.toString());
