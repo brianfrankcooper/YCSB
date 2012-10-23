@@ -37,56 +37,56 @@ import org.apache.cassandra.thrift.*;
  */
 public class CassandraClient10 extends DB
 {
-    static Random random = new Random();
-    public static final int Ok = 0;
-    public static final int Error = -1;
-    public static final ByteBuffer emptyByteBuffer = ByteBuffer.wrap(new byte[0]);
+    private static Random random = new Random();
+    private static final int Ok = 0;
+    private static final int Error = -1;
+    private static final ByteBuffer emptyByteBuffer = ByteBuffer.wrap(new byte[0]);
 
-    public int ConnectionRetries;
-    public int OperationRetries;
-    public String column_family;
+    private int ConnectionRetries;
+    private int OperationRetries;
+    private String column_family;
 
-    public static final String CONNECTION_RETRY_PROPERTY = "cassandra.connectionretries";
-    public static final String CONNECTION_RETRY_PROPERTY_DEFAULT = "300";
+    private static final String CONNECTION_RETRY_PROPERTY = "cassandra.connectionretries";
+    private static final String CONNECTION_RETRY_PROPERTY_DEFAULT = "300";
 
-    public static final String OPERATION_RETRY_PROPERTY = "cassandra.operationretries";
-    public static final String OPERATION_RETRY_PROPERTY_DEFAULT = "300";
+    private static final String OPERATION_RETRY_PROPERTY = "cassandra.operationretries";
+    private static final String OPERATION_RETRY_PROPERTY_DEFAULT = "300";
 
-    public static final String USERNAME_PROPERTY = "cassandra.username";
-    public static final String PASSWORD_PROPERTY = "cassandra.password";
+    private static final String USERNAME_PROPERTY = "cassandra.username";
+    private static final String PASSWORD_PROPERTY = "cassandra.password";
 
-    public static final String COLUMN_FAMILY_PROPERTY = "cassandra.columnfamily";
-    public static final String COLUMN_FAMILY_PROPERTY_DEFAULT = "data";
+    private static final String COLUMN_FAMILY_PROPERTY = "cassandra.columnfamily";
+    private static final String COLUMN_FAMILY_PROPERTY_DEFAULT = "data";
 
-    public static final String READ_CONSISTENCY_LEVEL_PROPERTY = "cassandra.readconsistencylevel";
-    public static final String READ_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
+    private static final String READ_CONSISTENCY_LEVEL_PROPERTY = "cassandra.readconsistencylevel";
+    private static final String READ_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
 
-    public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY = "cassandra.writeconsistencylevel";
-    public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
+    private static final String WRITE_CONSISTENCY_LEVEL_PROPERTY = "cassandra.writeconsistencylevel";
+    private static final String WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
 
-    public static final String SCAN_CONSISTENCY_LEVEL_PROPERTY = "cassandra.scanconsistencylevel";
-    public static final String SCAN_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
+    private static final String SCAN_CONSISTENCY_LEVEL_PROPERTY = "cassandra.scanconsistencylevel";
+    private static final String SCAN_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
 
-    public static final String DELETE_CONSISTENCY_LEVEL_PROPERTY = "cassandra.deleteconsistencylevel";
-    public static final String DELETE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
+    private static final String DELETE_CONSISTENCY_LEVEL_PROPERTY = "cassandra.deleteconsistencylevel";
+    private static final String DELETE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
 
 
-    TTransport tr;
-    Cassandra.Client client;
+    private TTransport tr;
+    private Cassandra.Client client;
 
-    boolean _debug = false;
+    private boolean _debug = false;
 
-    String _table = "";
-    Exception errorexception = null;
+    private String _table = "";
+    private Exception errorexception = null;
 
-    List<Mutation> mutations = new ArrayList<Mutation>();
+    private List<Mutation> mutations = new ArrayList<Mutation>();
 
-    ColumnParent parent;
+    private ColumnParent parent;
 
-    ConsistencyLevel readConsistencyLevel = ConsistencyLevel.ONE;
-    ConsistencyLevel writeConsistencyLevel = ConsistencyLevel.ONE;
-    ConsistencyLevel scanConsistencyLevel = ConsistencyLevel.ONE;
-    ConsistencyLevel deleteConsistencyLevel = ConsistencyLevel.ONE;
+    private ConsistencyLevel readConsistencyLevel = ConsistencyLevel.ONE;
+    private ConsistencyLevel writeConsistencyLevel = ConsistencyLevel.ONE;
+    private ConsistencyLevel scanConsistencyLevel = ConsistencyLevel.ONE;
+    private ConsistencyLevel deleteConsistencyLevel = ConsistencyLevel.ONE;
 
 
     /**
@@ -210,14 +210,12 @@ public class CassandraClient10 extends DB
 
         for (int i = 0; i < OperationRetries; i++)
         {
-
             try
             {
                 SlicePredicate predicate;
                 if (fields == null)
                 {
                     predicate = new SlicePredicate().setSlice_range(new SliceRange(emptyByteBuffer, emptyByteBuffer, false, 1000000));
-
                 }
                 else
                 {
@@ -242,7 +240,6 @@ public class CassandraClient10 extends DB
                 ByteIterator value;
                 for (ColumnOrSuperColumn oneresult : results)
                 {
-
                     column = oneresult.column;
                     name = new String(column.name.array(), column.name.position() + column.name.arrayOffset(), column.name.remaining());
                     value = new ByteArrayByteIterator(column.value.array(), column.value.position() + column.value.arrayOffset(), column.value.remaining());
@@ -314,14 +311,12 @@ public class CassandraClient10 extends DB
 
         for (int i = 0; i < OperationRetries; i++)
         {
-
             try
             {
                 SlicePredicate predicate;
                 if (fields == null)
                 {
                     predicate = new SlicePredicate().setSlice_range(new SliceRange(emptyByteBuffer, emptyByteBuffer, false, 1000000));
-
                 }
                 else
                 {
