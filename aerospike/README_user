@@ -1,0 +1,73 @@
+############# SETUP #######################################################################################
+1. Download the ycsb tool.
+2. tar xzf ycsb-0.1.4.tar.gz
+3. cd ycsb-<version>
+4. Add '"aerospike"    : "com.yahoo.ycsb.db.AerospikeClient",;' into the DATABASE section of bin/ycsb
+5. mkdir aerospike-binding
+6. cd aerospike-binding
+7. Download aerospike-binding.jar here
+
+############################################################################################################
+
+########################## TO TEST THE DATABASE LAYER ######################################################
+
+"./bin/ycsb shell aerospike"
+
+Commands:
+        read key [field1 field2 ...] - Read a record
+        scan key recordcount [field1 field2 ...] - Scan starting at key
+        insert key name1=value1 [name2=value2 ...] - Insert a new record
+        update key name1=value1 [name2=value2 ...] - Update a record
+        delete key - Delete a record
+        table [tablename] - Get or [set] the name of the table
+        quit - Quit
+
+The return codes are defined in the database interface layer. 0 means success.
+
+*Our plugin does not support "scan" and "table"
+#NOTE: We do not support scan, so please keep its proportion always zero in the workload.
+
+#############################################################################################################
+
+Load the data :
+
+"./bin/ycsb load aerospike -s -P workloads/workloada > transaction.dat"
+
+Execute the load :
+
+"./bin/ycsb run aerospike -P workloads/workloada -s -threads 10 -target 1000 > transactions.dat"
+
+Running parameters :
+
+-threads :      the number of client threads.
+-target :       the target number of operations per second.
+-s :            status. By specifying "-s" on the command line, the Client will report status every 10 seconds to stderr.
+-p :            defination of property. (for example: "-p port=3000 -p host=192.34.5.6").
+
+Various properties that can be define in workload file or as a parameter <-p property=value>  with ycsb command:
+
+host:                   host address. [ default: localhost]
+port:                   port address. [ default: 3000]
+ns:                     namespace. [default: "test"]
+set:                    set. [default: "YCSB"]
+
+fieldcount:             the number of fields in a record (default: 10)
+fieldlength:            the size of each field (default: 100)
+readallfields:          should reads read all fields (true) or just one (false) (default: true)
+readproportion:         what proportion of operations should be reads (default: 0.95)
+updateproportion:       what proportion of operations should be updates (default: 0.05)
+insertproportion:       what proportion of operations should be inserts (default: 0)
+scanproportion:         what proportion of operations should be scans (default: 0)
+readmodifywriteproportion: what proportion of operations should be read a record, modify it, write it back (default: 0)
+requestdistribution: what distribution should be used to select the records to operate on – uniform, zipfian or latest (default: uniform)
+
+maxscanlength:          for scans, what is the maximum number of records to scan (default: 1000)
+scanlengthdistribution: for scans, what distribution should be used to choose the number of records to scan, for each scan, between 1 and maxscanlength (default: uniform)
+
+insertorder:            should records be inserted in order by key (“ordered”), or in hashed order (“hashed”) (default: hashed)
+operationcount:         Number of operations to perform.
+maxexecutiontime:       Maximum execution time in seconds. The benchmark runs until either the operation count has exhausted or the maximum specified time has elapsed, whichever is earlier.
+
+We recommend you reffering to this link before experimenting with the workload.
+"https://github.com/brianfrankcooper/YCSB/wiki/Running-a-Workload"
+
