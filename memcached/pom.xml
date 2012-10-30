@@ -19,7 +19,7 @@
 		<dependency>
 			<groupId>com.yahoo.ycsb</groupId>
 			<artifactId>core</artifactId>
-			<version>1.0</version>
+			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.codehaus.jackson</groupId>
