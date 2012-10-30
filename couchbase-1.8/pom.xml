@@ -11,7 +11,6 @@
 	<name>couchbase-1.8</name>
 	<groupId>com.yahoo.ycsb</groupId>
 	<artifactId>couchbase-1.8</artifactId>
-	<version>1.0</version>
 	<modelVersion>4.0.0</modelVersion>
 	<packaging>jar</packaging>
 
@@ -34,7 +33,7 @@
         <dependency>
             <groupId>com.yahoo.ycsb</groupId>
             <artifactId>memcached</artifactId>
-            <version>1.0</version>
+            <version>${project.version}</version>
         </dependency>
 	</dependencies>
 	<repositories>
