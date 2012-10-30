@@ -34,11 +34,11 @@
     Nail down slf4j version to 1.6 so that it defaults to no-op logger.
     http://www.slf4j.org/codes.html#StaticLoggerBinder
     -->
-    <dependency>
+<!--    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>1.6.4</version>
-    </dependency>
+    </dependency>-->
   </dependencies>
  
   <!-- Properties Management -->
@@ -60,7 +60,7 @@
 
   <modules>
     <!--module>build-tools</module-->
-    <module>cassandra</module>
+    <!--<module>cassandra</module>-->
     <module>core</module>
     <module>hbase</module>
     <module>hypertable</module>
@@ -75,6 +75,8 @@
     <!--module>nosqldb</module-->
     <module>redis</module>
     <module>voldemort</module>
+    <module>memcached</module>
+    <module>couchbase-1.8</module>
     <module>distribution</module>
   </modules>
 
@@ -88,24 +90,6 @@
           <source>1.6</source>
           <target>1.6</target>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>2.6</version>
-        <configuration>
-          <consoleOutput>true</consoleOutput>
-          <configLocation>checkstyle.xml</configLocation>
-        </configuration>
-        <executions>
-          <execution>
-          <id>validate</id>
-            <phase>validate</phase>
-            <goals>
-              <goal>checkstyle</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>
