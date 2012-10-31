@@ -16,7 +16,26 @@ import com.yahoo.ycsb.DBException;
 
 public class AerospikeClient extends com.yahoo.ycsb.DB{
 	
-	private CitrusleafClient cl;
+	private static final Map<ClResultCode, Integer> RESULT_CODE_MAPPER;
+    static {
+        RESULT_CODE_MAPPER = new HashMap<ClResultCode, Integer>();
+        RESULT_CODE_MAPPER.put(ClResultCode.NOT_SET, 1);
+        RESULT_CODE_MAPPER.put(ClResultCode.KEY_NOT_FOUND_ERROR, 2);
+        RESULT_CODE_MAPPER.put(ClResultCode.GENERATION_ERROR, 3);
+        RESULT_CODE_MAPPER.put(ClResultCode.PARAMETER_ERROR, 4);
+        RESULT_CODE_MAPPER.put(ClResultCode.KEY_EXISTS_ERROR, 5);
+        RESULT_CODE_MAPPER.put(ClResultCode.BIN_EXISTS_ERROR, 6);
+        RESULT_CODE_MAPPER.put(ClResultCode.CLUSTER_KEY_MISMATCH, 7);
+        RESULT_CODE_MAPPER.put(ClResultCode.SERVER_MEM_ERROR, 8);
+        RESULT_CODE_MAPPER.put(ClResultCode.TIMEOUT, 9);
+        RESULT_CODE_MAPPER.put(ClResultCode.NO_XDS, 10);
+        RESULT_CODE_MAPPER.put(ClResultCode.SERVER_NOT_AVAILABLE, 11);
+        RESULT_CODE_MAPPER.put(ClResultCode.BIN_TYPE_ERROR, 12);
+        RESULT_CODE_MAPPER.put(ClResultCode.RECORD_TOO_BIG, 13);
+        RESULT_CODE_MAPPER.put(ClResultCode.KEY_BUSY, 14);
+    }
+
+    private CitrusleafClient cl;
 
 	public static  String NAMESPACE = "test";
 
@@ -85,7 +104,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB{
 					result.put(bin, new ByteArrayByteIterator(res.result.toString().getBytes()));
 				}
 				else {
-					return res.resultCode.ordinal();
+					return RESULT_CODE_MAPPER.get(res.resultCode);
 				}
 			}
 			return OK;
@@ -98,7 +117,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB{
 				}
 				return OK;
 			}
-			return res.resultCode.ordinal();;
+			return RESULT_CODE_MAPPER.get(res.resultCode);
 		}
 	}
 
@@ -123,7 +142,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB{
 			return OK;
 		}
 
-		return rc.ordinal();
+		return RESULT_CODE_MAPPER.get(rc);
 	}
 
 	@Override
@@ -139,7 +158,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB{
                 if(rc == ClResultCode.OK) {
                         return OK;
                 }
-		return rc.ordinal();
+		return RESULT_CODE_MAPPER.get(rc);
 	}
 
 	@Override
@@ -149,3 +168,5 @@ public class AerospikeClient extends com.yahoo.ycsb.DB{
 	}
 
 }
+
+
