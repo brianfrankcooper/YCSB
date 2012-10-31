@@ -33,6 +33,11 @@ public class AerospikeClient extends com.yahoo.ycsb.DB{
         RESULT_CODE_MAPPER.put(ClResultCode.BIN_TYPE_ERROR, 12);
         RESULT_CODE_MAPPER.put(ClResultCode.RECORD_TOO_BIG, 13);
         RESULT_CODE_MAPPER.put(ClResultCode.KEY_BUSY, 14);
+
+        RESULT_CODE_MAPPER.put(ClResultCode.OK, 0);
+        RESULT_CODE_MAPPER.put(ClResultCode.SERVER_ERROR, -2);
+        RESULT_CODE_MAPPER.put(ClResultCode.CLIENT_ERROR, -4);
+        RESULT_CODE_MAPPER.put(ClResultCode.SERIALIZE_ERROR, -10);
     }
 
     private CitrusleafClient cl;
