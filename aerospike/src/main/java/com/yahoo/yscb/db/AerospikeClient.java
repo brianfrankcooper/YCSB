@@ -85,7 +85,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB{
 					result.put(bin, new ByteArrayByteIterator(res.result.toString().getBytes()));
 				}
 				else {
-					return ERROR;
+					return res.resultCode.ordinal();
 				}
 			}
 			return OK;
@@ -98,7 +98,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB{
 				}
 				return OK;
 			}
-			return ERROR;
+			return res.resultCode.ordinal();;
 		}
 	}
 
@@ -123,7 +123,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB{
 			return OK;
 		}
 
-		return ERROR;
+		return rc.ordinal();
 	}
 
 	@Override
@@ -139,7 +139,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB{
                 if(rc == ClResultCode.OK) {
                         return OK;
                 }
-		return ERROR;
+		return rc.ordinal();
 	}
 
 	@Override
