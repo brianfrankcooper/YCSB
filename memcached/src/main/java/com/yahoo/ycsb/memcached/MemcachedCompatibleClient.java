@@ -41,10 +41,6 @@ public abstract class MemcachedCompatibleClient extends DB {
 
     private int objectExpirationTime;
 
-    public static final int OK = 0;
-    public static final int ERROR = -1;
-    public static final int NOT_FOUND = -2;
-
     @Override
     public void init() throws DBException {
         try {
@@ -63,7 +59,7 @@ public abstract class MemcachedCompatibleClient extends DB {
     protected abstract MemcachedClient createMemcachedClient() throws Exception;
 
     @Override
-    public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+    public int read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
         try {
             GetFuture<Object> future = client.asyncGet(createQualifiedKey(table, key));
             Object document = future.get();
@@ -80,12 +76,12 @@ public abstract class MemcachedCompatibleClient extends DB {
     }
 
     @Override
-    public int scan(String table, String startKey, int limit, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    public int scan(String table, String startKey, int limit, Set<String> fields, List<Map<String, ByteIterator>> result) {
         throw new IllegalStateException("Range scan is not supported");
     }
 
     @Override
-    public int update(String table, String key, HashMap<String, ByteIterator> values) {
+    public int update(String table, String key, Map<String, ByteIterator> values) {
         key = createQualifiedKey(table, key);
         try {
             OperationFuture<Boolean> future = client.replace(key, objectExpirationTime, toJson(values));
@@ -99,7 +95,7 @@ public abstract class MemcachedCompatibleClient extends DB {
     }
 
     @Override
-    public int insert(String table, String key, HashMap<String, ByteIterator> values) {
+    public int insert(String table, String key, Map<String, ByteIterator> values) {
         key = createQualifiedKey(table, key);
         try {
             OperationFuture<Boolean> future = client.add(key, objectExpirationTime, toJson(values));
