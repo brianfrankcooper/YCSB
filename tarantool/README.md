@@ -10,8 +10,10 @@ First, clone Tarantool from it's own git repo and build it(You'll need cmake >= 
 	cd tarantool
 	cmake .
 	make
-	cd test/
-	./run --start-and-exit
+	cp test/box/tarantool.cfg test/var/
+	cp src/box/tarantool_box test/var/
+	cd test/var
+	./tarantool_box
 
 OR you can simply download ans install binary package for your GNU/Linux of BSD distro from http://tarantool.org/download.html
 
