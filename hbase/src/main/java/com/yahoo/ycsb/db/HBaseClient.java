@@ -464,7 +464,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
                             rescode=cli.read("table1", key, s, result);
                             */
                             HashSet<String> scanFields = new HashSet<String>();
-                            scanFields.add("field1");
+                            scanFields.add("field1");   //TODO: remove hardcoded field prefix
                             scanFields.add("field3");
                             Vector<HashMap<String,ByteIterator>> scanResults = new Vector<HashMap<String,ByteIterator>>();
                             rescode = cli.scan("table1","user2",20,null,scanResults);

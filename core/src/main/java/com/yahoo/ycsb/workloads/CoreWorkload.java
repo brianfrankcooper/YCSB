@@ -252,11 +252,22 @@ public class CoreWorkload extends Workload
    * Percentage operations that access the hot set.
    */
   public static final String HOTSPOT_OPN_FRACTION = "hotspotopnfraction";
-  
+
   /**
    * Default value of the percentage operations accessing the hot set.
    */
   public static final String HOTSPOT_OPN_FRACTION_DEFAULT = "0.8";
+
+    /**
+     * Field name prefix.
+     */
+    public static final String FIELD_NAME_PREFIX = "fieldnameprefix";
+
+    /**
+     * Default value of the field name prefix.
+     */
+    public static final String FIELD_NAME_PREFIX_DEFAULT = "field";
+
 	
 	IntegerGenerator keysequence;
 
@@ -273,6 +284,8 @@ public class CoreWorkload extends Workload
 	boolean orderedinserts;
 
 	int recordcount;
+
+    String fieldnameprefix;
 	
 	protected static IntegerGenerator getFieldLengthGenerator(Properties p) throws WorkloadException{
 		IntegerGenerator fieldlengthgenerator;
@@ -307,6 +320,8 @@ public class CoreWorkload extends Workload
 		
 		fieldcount=Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY,FIELD_COUNT_PROPERTY_DEFAULT));
 		fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
+
+        fieldnameprefix = p.getProperty(FIELD_NAME_PREFIX, FIELD_NAME_PREFIX_DEFAULT);
 		
 		double readproportion=Double.parseDouble(p.getProperty(READ_PROPORTION_PROPERTY,READ_PROPORTION_PROPERTY_DEFAULT));
 		double updateproportion=Double.parseDouble(p.getProperty(UPDATE_PROPORTION_PROPERTY,UPDATE_PROPORTION_PROPERTY_DEFAULT));
@@ -432,16 +447,16 @@ public class CoreWorkload extends Workload
 
  		for (int i=0; i<fieldcount; i++)
  		{
- 			String fieldkey="field"+i;
- 			ByteIterator data= new RandomByteIterator(fieldlengthgenerator.nextInt());
+ 			String fieldkey = fieldnameprefix + i;
+ 			ByteIterator data = new RandomByteIterator(fieldlengthgenerator.nextInt());
  			values.put(fieldkey,data);
  		}
 		return values;
 	}
 	HashMap<String, ByteIterator> buildUpdate() {
 		//update a random field
-		HashMap<String, ByteIterator> values=new HashMap<String,ByteIterator>();
-		String fieldname="field"+fieldchooser.nextString();
+		HashMap<String, ByteIterator> values = new HashMap<String,ByteIterator>();
+		String fieldname = fieldnameprefix + fieldchooser.nextString();
 		ByteIterator data = new RandomByteIterator(fieldlengthgenerator.nextInt());
 		values.put(fieldname,data);
 		return values;
@@ -528,9 +543,9 @@ public class CoreWorkload extends Workload
 		if (!readallfields)
 		{
 			//read a random field  
-			String fieldname="field"+fieldchooser.nextString();
+			String fieldname = fieldnameprefix + fieldchooser.nextString();
 
-			fields=new HashSet<String>();
+			fields = new HashSet<String>();
 			fields.add(fieldname);
 		}
 
@@ -549,9 +564,9 @@ public class CoreWorkload extends Workload
 		if (!readallfields)
 		{
 			//read a random field  
-			String fieldname="field"+fieldchooser.nextString();
+			String fieldname = fieldnameprefix + fieldchooser.nextString();
 
-			fields=new HashSet<String>();
+			fields = new HashSet<String>();
 			fields.add(fieldname);
 		}
 		
@@ -596,7 +611,7 @@ public class CoreWorkload extends Workload
 		if (!readallfields)
 		{
 			//read a random field  
-			String fieldname="field"+fieldchooser.nextString();
+			String fieldname = fieldnameprefix + fieldchooser.nextString();
 
 			fields=new HashSet<String>();
 			fields.add(fieldname);
