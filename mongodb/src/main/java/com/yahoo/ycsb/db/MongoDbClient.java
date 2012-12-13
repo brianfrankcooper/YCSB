@@ -9,12 +9,8 @@
 
 package com.yahoo.ycsb.db;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Map;
-import java.util.Vector;
+import java.io.UnsupportedEncodingException;
+import java.util.*;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBAddress;
@@ -25,10 +21,7 @@ import com.mongodb.Mongo;
 import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
 
-import com.yahoo.ycsb.DB;
-import com.yahoo.ycsb.DBException;
-import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.StringByteIterator;
+import com.yahoo.ycsb.*;
 
 /**
  * MongoDB client for YCSB framework.
@@ -183,7 +176,6 @@ public class MongoDbClient extends DB {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     /**
      * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
      *
@@ -218,7 +210,7 @@ public class MongoDbClient extends DB {
             }
 
             if (queryResult != null) {
-                result.putAll(queryResult.toMap());
+                result.putAll(resultify(queryResult));
             }
             return queryResult != null ? 0 : 1;
         } catch (Exception e) {
@@ -276,7 +268,6 @@ public class MongoDbClient extends DB {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     /**
      * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a HashMap.
      *
@@ -299,8 +290,7 @@ public class MongoDbClient extends DB {
             DBObject q = new BasicDBObject().append("_id", scanRange);
             DBCursor cursor = collection.find(q).limit(recordcount);
             while (cursor.hasNext()) {
-                //toMap() returns a Map, but result.add() expects a Map<String,String>. Hence, the suppress warnings.
-                result.add(StringByteIterator.getByteIteratorMap((Map<String,String>)cursor.next().toMap()));
+                result.add(resultify(cursor.next()));
             }
 
             return 0;
@@ -316,6 +306,31 @@ public class MongoDbClient extends DB {
             }
         }
 
+    }
+
+    /**
+     * Turn everything in the object into a ByteIterator
+     */
+    @SuppressWarnings("unchecked")
+    private HashMap<String, ByteIterator> resultify(DBObject object) {
+        HashMap<String, ByteIterator> decoded = new HashMap<String, ByteIterator>();
+
+        for (Map.Entry<String, Object> entry : ((Map<String, Object>) object.toMap()).entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            if (key.equals("_id")) {
+                try {
+                    decoded.put(key, new ByteArrayByteIterator(((String) value).getBytes("UTF-8")));
+                } catch (UnsupportedEncodingException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            else {
+                decoded.put(key, new ByteArrayByteIterator((byte[]) value));
+            }
+        }
+
+        return decoded;
     }
 }
 
