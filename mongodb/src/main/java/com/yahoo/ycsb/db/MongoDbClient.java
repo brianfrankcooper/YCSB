@@ -135,7 +135,7 @@ public class MongoDbClient extends DB {
             WriteResult res = collection.remove(q, writeConcern);
             return res.getN() == 1 ? 0 : 1;
         } catch (Exception e) {
-            System.err.println(e.toString());
+            e.printStackTrace();
             return 1;
         }
         finally
@@ -222,7 +222,7 @@ public class MongoDbClient extends DB {
             }
             return queryResult != null ? 0 : 1;
         } catch (Exception e) {
-            System.err.println(e.toString());
+            e.printStackTrace();
             return 1;
         } finally {
             if (db!=null)
@@ -265,7 +265,7 @@ public class MongoDbClient extends DB {
                     writeConcern);
             return res.getN() == 1 ? 0 : 1;
         } catch (Exception e) {
-            System.err.println(e.toString());
+            e.printStackTrace();
             return 1;
         } finally {
             if (db!=null)
@@ -305,7 +305,7 @@ public class MongoDbClient extends DB {
 
             return 0;
         } catch (Exception e) {
-            System.err.println(e.toString());
+            e.printStackTrace();
             return 1;
         }
         finally

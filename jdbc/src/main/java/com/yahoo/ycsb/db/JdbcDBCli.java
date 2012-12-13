@@ -99,7 +99,7 @@ public class JdbcDBCli implements JdbcDBClientConstants {
         try {
           myfileprops.load(new FileInputStream(propfile));
         } catch (IOException e) {
-          System.out.println(e.getMessage());
+          e.printStackTrace();
           System.exit(0);
         }
 
