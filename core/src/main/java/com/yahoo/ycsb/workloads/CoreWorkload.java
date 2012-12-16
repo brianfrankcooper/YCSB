@@ -474,13 +474,15 @@ public class CoreWorkload extends Workload
 		int keynum=keysequence.nextInt();
 		String dbkey = buildKeyName(keynum);
 		HashMap<String, ByteIterator> values = buildValues();
+        int result = db.insert(table, dbkey, values);
         if (ignoreinserterrors) {
             return true;
         }
-		if (db.insert(table,dbkey,values) == 0)
+        if (result == 0) {
 			return true;
-		else
+        } else {
 			return false;
+        }
 	}
 
 	/**
