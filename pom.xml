@@ -55,7 +55,8 @@
     <voldemort.version>0.81</voldemort.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <thrift.version>0.8.0</thrift.version>
-    <hypertable.version>0.9.5.6</hypertable.version>
+	<hypertable.version>0.9.5.6</hypertable.version>
+	<tarantool.version>0.1.2</tarantool.version>
   </properties>
 
   <modules>
@@ -74,7 +75,8 @@
     <module>orientdb</module>
     <!--module>nosqldb</module-->
     <module>redis</module>
-    <module>voldemort</module>
+	<module>voldemort</module>
+	<module>tarantool</module>
     <module>distribution</module>
   </modules>
 
