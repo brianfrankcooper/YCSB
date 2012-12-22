@@ -42,6 +42,7 @@ DATABASES = {
     "redis"        : "com.yahoo.ycsb.db.RedisClient", 
     "voldemort"    : "com.yahoo.ycsb.db.VoldemortClient",
     "couchbase"    : "com.yahoo.ycsb.couchbase.CouchbaseClient1_8",
+    "couchbase2"    : "com.yahoo.ycsb.couchbase.CouchbaseClient2_0",
 }
 
 OPTIONS = {
