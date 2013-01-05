@@ -2,6 +2,7 @@ package com.yahoo.ycsb.memcached;
 
 import com.yahoo.ycsb.config.PropertiesConfig;
 import net.spy.memcached.FailureMode;
+import net.spy.memcached.ReplicateTo;
 
 import java.util.Properties;
 
@@ -83,4 +84,5 @@ public class MemcachedConfig extends PropertiesConfig implements MemcachedCompat
     public int getObjectExpirationTime() {
         return getInteger(OBJECT_EXPIRATION_TIME_PROPERTY);
     }
+
 }

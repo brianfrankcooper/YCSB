@@ -1,6 +1,7 @@
 package com.yahoo.ycsb.memcached;
 
 import net.spy.memcached.FailureMode;
+import net.spy.memcached.ReplicateTo;
 
 public interface MemcachedCompatibleConfig {
 
@@ -17,4 +18,5 @@ public interface MemcachedCompatibleConfig {
     long getShutdownTimeoutMillis();
 
     int getObjectExpirationTime();
+
 }

@@ -9,6 +9,7 @@ import com.couchbase.client.CouchbaseConnectionFactoryBuilder;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.memcached.MemcachedCompatibleClient;
+import net.spy.memcached.ReplicateTo;
 import net.spy.memcached.internal.GetFuture;
 import net.spy.memcached.internal.OperationFuture;
 import org.slf4j.Logger;
@@ -21,7 +22,7 @@ import java.util.*;
 public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
-    protected CouchbaseClient client;
+    protected CouchbaseClient couchbaseClient;
 
     protected CouchbaseConfig couchbaseConfig;
 
@@ -41,16 +42,20 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
 
     private String[] view_names;
 
+    protected ReplicateTo replicateTo = ReplicateTo.ZERO;
+
     @Override
     public void init() throws DBException {
         try {
             couchbaseConfig = createMemcachedConfig();
-            client = createMemcachedClient();
+            couchbaseClient = createCouchbaseClient();
+            client = couchbaseClient;
             checkOperationStatus = couchbaseConfig.getCheckOperationStatus();
             objectExpirationTime = couchbaseConfig.getObjectExpirationTime();
             shutdownTimeoutMillis = couchbaseConfig.getShutdownTimeoutMillis();
             ddoc_names = couchbaseConfig.getDdocs();
             view_names = couchbaseConfig.getViews();
+            replicateTo = couchbaseConfig.getReplicateTo();
         } catch (Exception e) {
             throw new DBException(e);
         }
@@ -83,7 +88,7 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
     @Override
     public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
         try {
-            GetFuture<Object> future = client.asyncGet(createQualifiedKey(table, key));
+            GetFuture<Object> future = couchbaseClient.asyncGet(createQualifiedKey(table, key));
             Object document = future.get();
             if (document != null) {
                 fromJson((String) document, fields, result);
@@ -101,7 +106,7 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
     public int update(String table, String key, HashMap<String, ByteIterator> values) {
         key = createQualifiedKey(table, key);
         try {
-            OperationFuture<Boolean> future = client.replace(key, objectExpirationTime, toJson(values));
+            OperationFuture<Boolean> future = couchbaseClient.replace(key, objectExpirationTime, toJson(values), replicateTo);
             return getReturnCode(future);
         } catch (Exception e) {
             if (log.isErrorEnabled()) {
@@ -115,7 +120,7 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
     public int insert(String table, String key, HashMap<String, ByteIterator> values) {
         key = createQualifiedKey(table, key);
         try {
-            OperationFuture<Boolean> future = client.add(key, objectExpirationTime, toJson(values));
+            OperationFuture<Boolean> future = couchbaseClient.add(key, objectExpirationTime, toJson(values), replicateTo);
             return getReturnCode(future);
         } catch (Exception e) {
             if (log.isErrorEnabled()) {
@@ -152,7 +157,7 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
 
         Query query = get_query(key, limit);
         View view = get_view(rnd_ddoc, rnd_view);
-        ViewResponse response = client.query(view, query);
+        ViewResponse response = couchbaseClient.query(view, query);
 
         Collection errors = response.getErrors();
         if (errors.isEmpty()) {
@@ -168,7 +173,7 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
         String id = ddoc_name + view_name;
 
         if (views.get(id) == null) {
-            view = client.getView(ddoc_name, view_name);
+            view = couchbaseClient.getView(ddoc_name, view_name);
             views.put(id, view);
         }
 

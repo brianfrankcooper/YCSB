@@ -3,6 +3,7 @@ package com.yahoo.ycsb.couchbase;
 import com.yahoo.ycsb.memcached.MemcachedCompatibleConfig;
 import com.yahoo.ycsb.config.PropertiesConfig;
 import net.spy.memcached.FailureMode;
+import net.spy.memcached.ReplicateTo;
 
 import java.util.Properties;
 
@@ -46,6 +47,10 @@ public class CouchbaseConfig extends PropertiesConfig implements MemcachedCompat
 
     public static final String VIEWS_PROPERTY = "couchbase.views";
 
+    public static final String REPLICATE_TO_PROPERTY = "memcached.replicateTo";
+
+    public static final ReplicateTo REPLICATE_TO_PROPERTY_DEFAULT = ReplicateTo.ZERO;
+
     public CouchbaseConfig(Properties properties) {
         super(properties);
         declareProperty(HOSTS_PROPERTY, true);
@@ -60,6 +65,7 @@ public class CouchbaseConfig extends PropertiesConfig implements MemcachedCompat
         declareProperty(OBJECT_EXPIRATION_TIME_PROPERTY, DEFAULT_OBJECT_EXPIRATION_TIME);
         declareProperty(DDOCS_PROPERTY, false);
         declareProperty(VIEWS_PROPERTY, false);
+        declareProperty(REPLICATE_TO_PROPERTY, REPLICATE_TO_PROPERTY_DEFAULT);
     }
 
     @Override
@@ -119,4 +125,12 @@ public class CouchbaseConfig extends PropertiesConfig implements MemcachedCompat
     public String[] getViews() {
         return getString(VIEWS_PROPERTY).split(",");
     }
+
+    public ReplicateTo getReplicateTo() {
+        String replicateToValue = getProperty(REPLICATE_TO_PROPERTY);
+        return replicateToValue != null ?
+                ReplicateTo.valueOf(replicateToValue) :
+                this.<ReplicateTo>getDefaultValue(REPLICATE_TO_PROPERTY);
+    }
+
 }
