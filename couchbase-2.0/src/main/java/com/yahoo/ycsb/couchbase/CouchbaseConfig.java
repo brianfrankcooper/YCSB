@@ -47,7 +47,7 @@ public class CouchbaseConfig extends PropertiesConfig implements MemcachedCompat
 
     public static final String VIEWS_PROPERTY = "couchbase.views";
 
-    public static final String REPLICATE_TO_PROPERTY = "memcached.replicateTo";
+    public static final String REPLICATE_TO_PROPERTY = "couchbase.replicateTo";
 
     public static final ReplicateTo REPLICATE_TO_PROPERTY_DEFAULT = ReplicateTo.ZERO;
 
