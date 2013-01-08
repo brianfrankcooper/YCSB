@@ -9,6 +9,7 @@ import com.couchbase.client.CouchbaseConnectionFactoryBuilder;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.memcached.MemcachedCompatibleClient;
+import net.spy.memcached.PersistTo;
 import net.spy.memcached.ReplicateTo;
 import net.spy.memcached.internal.GetFuture;
 import net.spy.memcached.internal.OperationFuture;
@@ -42,6 +43,8 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
 
     private String[] view_names;
 
+    protected PersistTo persistTo = PersistTo.ZERO;
+
     protected ReplicateTo replicateTo = ReplicateTo.ZERO;
 
     @Override
@@ -55,6 +58,7 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
             shutdownTimeoutMillis = couchbaseConfig.getShutdownTimeoutMillis();
             ddoc_names = couchbaseConfig.getDdocs();
             view_names = couchbaseConfig.getViews();
+            persistTo = couchbaseConfig.getPersistTo();
             replicateTo = couchbaseConfig.getReplicateTo();
         } catch (Exception e) {
             throw new DBException(e);
@@ -106,7 +110,8 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
     public int update(String table, String key, HashMap<String, ByteIterator> values) {
         key = createQualifiedKey(table, key);
         try {
-            OperationFuture<Boolean> future = couchbaseClient.replace(key, objectExpirationTime, toJson(values), replicateTo);
+            OperationFuture<Boolean> future = couchbaseClient.replace(key, objectExpirationTime, toJson(values),
+                    persistTo, replicateTo);
             return getReturnCode(future);
         } catch (Exception e) {
             if (log.isErrorEnabled()) {
@@ -120,7 +125,8 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
     public int insert(String table, String key, HashMap<String, ByteIterator> values) {
         key = createQualifiedKey(table, key);
         try {
-            OperationFuture<Boolean> future = couchbaseClient.add(key, objectExpirationTime, toJson(values), replicateTo);
+            OperationFuture<Boolean> future = couchbaseClient.add(key, objectExpirationTime, toJson(values),
+                    persistTo, replicateTo);
             return getReturnCode(future);
         } catch (Exception e) {
             if (log.isErrorEnabled()) {
