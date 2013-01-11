@@ -4,6 +4,7 @@
 1.1. tar xvf citrusleaf_client_java_<version>.tgz
 1.2. cd citrusleaf_client_java_<version>
 1.3. ./build_all
+1.4. you must edit aerospike/pom.xml to set corrent version of installed citrusleaf-client
 2.   Clone the ycsb git repo and build it.
 2.2. cd YCSB-<version>
 2.3. mvn install
