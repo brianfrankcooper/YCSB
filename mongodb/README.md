@@ -35,10 +35,4 @@ See the next section for the list of configuration parameters for MongoDB.
 
 ## MongoDB Configuration Parameters
 
-### `mongodb.url` (default: `mongodb://localhost:27017`)
-
-### `mongodb.database` (default: `ycsb`)
-
-### `mongodb.writeConcern` (default `safe`)
-
-### `mongodb.maxconnections` (default `10`)
+### `mongodb.url` (default: `mongodb://localhost:27017/ycsb`)
