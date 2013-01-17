@@ -22,8 +22,9 @@ import com.mongodb.DBAddress;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
-import com.mongodb.Mongo;
-import com.mongodb.MongoOptions;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
+import com.mongodb.MongoClientOptions;
 import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
 import com.yahoo.ycsb.ByteArrayByteIterator;
@@ -47,7 +48,7 @@ public class MongoDbClient extends DB {
     protected static final Integer INCLUDE = Integer.valueOf(1);
 
     /** A singleton Mongo instance. */
-    private static Mongo mongo;
+    private static MongoClient mongo;
 
     /** The default write concern for the test. */
     private static WriteConcern writeConcern;
@@ -73,53 +74,17 @@ public class MongoDbClient extends DB {
             // initialize MongoDb driver
             Properties props = getProperties();
             String url = props.getProperty("mongodb.url",
-                    "mongodb://localhost:27017");
-            database = props.getProperty("mongodb.database", "ycsb");
-            String writeConcernType = props.getProperty("mongodb.writeConcern",
-                    "safe").toLowerCase();
-            final String maxConnections = props.getProperty(
-                    "mongodb.maxconnections", "10");
-
-            if ("none".equals(writeConcernType)) {
-                writeConcern = WriteConcern.NONE;
-            }
-            else if ("safe".equals(writeConcernType)) {
-                writeConcern = WriteConcern.SAFE;
-            }
-            else if ("normal".equals(writeConcernType)) {
-                writeConcern = WriteConcern.NORMAL;
-            }
-            else if ("fsync_safe".equals(writeConcernType)) {
-                writeConcern = WriteConcern.FSYNC_SAFE;
-            }
-            else if ("replicas_safe".equals(writeConcernType)) {
-                writeConcern = WriteConcern.REPLICAS_SAFE;
-            }
-            else {
-                System.err
-                        .println("ERROR: Invalid writeConcern: '"
-                                + writeConcernType
-                                + "'. "
-                                + "Must be [ none | safe | normal | fsync_safe | replicas_safe ]");
-                System.exit(1);
-            }
-
+                    "mongodb://localhost:27017/ycsb");
             try {
-                // strip out prefix since Java driver doesn't currently support
-                // standard connection format URL yet
-                // http://www.mongodb.org/display/DOCS/Connections
-                if (url.startsWith("mongodb://")) {
-                    url = url.substring(10);
+                System.out.println("mongo url = " + url);
+                MongoClientURI uri = new MongoClientURI(url);
+                database = uri.getDatabase();
+                if (database.isEmpty()) {
+                  database = "ycsb";
                 }
-
-                // need to append db to url.
-                url += "/" + database;
-                System.out.println("new database url = " + url);
-                MongoOptions options = new MongoOptions();
-                options.connectionsPerHost = Integer.parseInt(maxConnections);
-                mongo = new Mongo(new DBAddress(url), options);
-
-                System.out.println("mongo connection created with " + url);
+                MongoClientOptions options = uri.getOptions();
+                writeConcern = options.getWriteConcern();
+                mongo = new MongoClient(uri);
             }
             catch (Exception e1) {
                 System.err
