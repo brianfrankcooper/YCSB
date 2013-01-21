@@ -137,6 +137,8 @@ class StatusThread extends Thread
  */
 class ClientThread extends Thread
 {
+    private static final double CHECK_THROUGHPUT_INTERVAL = 100; // in milliseconds
+
 	DB _db;
 	boolean _dotransactions;
 	Workload _workload;
@@ -149,6 +151,9 @@ class ClientThread extends Thread
 	Object _workloadstate;
 	Properties _props;
 
+    protected interface OperationHandler {
+        boolean handle(DB _db, Object _workloadstate);
+    }
 
 	/**
 	 * Constructor.
@@ -181,6 +186,50 @@ class ClientThread extends Thread
 	{
 		return _opsdone;
 	}
+
+    protected void doOperation(OperationHandler handler)
+    {
+        long intervaltime = System.currentTimeMillis();
+        long intervalops = 0;
+
+        while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
+        {
+            long currenttime = System.currentTimeMillis();
+            if(currenttime - intervaltime > CHECK_THROUGHPUT_INTERVAL)
+            {
+                intervaltime = currenttime;
+                intervalops = 0;
+            }
+
+            if (!handler.handle(_db, _workloadstate))
+            {
+                break;
+            }
+
+            intervalops++;
+            _opsdone++;
+
+            //throttle the operations
+            if (_target>0)
+            {
+                //this is more accurate than other throttling approaches we have tried,
+                //like sleeping for (1/target throughput)-operation latency,
+                //because it smooths timing inaccuracies (from sleep() taking an int,
+                //current time in millis) over many operations
+                while (_target < (double) intervalops / (System.currentTimeMillis() - intervaltime))
+                {
+                    try
+                    {
+                        sleep(1);
+                    }
+                    catch (InterruptedException e)
+                    {
+                        // do nothing.
+                    }
+                }
+            }
+        }
+    }
 
 	public void run()
 	{
@@ -220,79 +269,28 @@ class ClientThread extends Thread
 		{
 		  // do nothing.
 		}
-		
+
 		try
 		{
 			if (_dotransactions)
 			{
-				long st=System.currentTimeMillis();
-
-				while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
-				{
-
-					if (!_workload.doTransaction(_db,_workloadstate))
-					{
-						break;
-					}
-
-					_opsdone++;
-
-					//throttle the operations
-					if (_target>0)
-					{
-						//this is more accurate than other throttling approaches we have tried,
-						//like sleeping for (1/target throughput)-operation latency,
-						//because it smooths timing inaccuracies (from sleep() taking an int, 
-						//current time in millis) over many operations
-						while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
-						{
-							try
-							{
-								sleep(1);
-							}
-							catch (InterruptedException e)
-							{
-							  // do nothing.
-							}
-
-						}
-					}
-				}
+                doOperation(new OperationHandler()
+                {
+                    public boolean handle(DB _db, Object _workloadstate)
+                    {
+                       return _workload.doTransaction(_db, _workloadstate);
+                    }
+                });
 			}
 			else
 			{
-				long st=System.currentTimeMillis();
-
-				while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
-				{
-
-					if (!_workload.doInsert(_db,_workloadstate))
-					{
-						break;
-					}
-
-					_opsdone++;
-
-					//throttle the operations
-					if (_target>0)
-					{
-						//this is more accurate than other throttling approaches we have tried,
-						//like sleeping for (1/target throughput)-operation latency,
-						//because it smooths timing inaccuracies (from sleep() taking an int, 
-						//current time in millis) over many operations
-						while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
-						{
-							try 
-							{
-								sleep(1);
-							}
-							catch (InterruptedException e)
-							{
-							  // do nothing.
-							}
-						}
-					}
-				}
+                doOperation(new OperationHandler()
+                {
+                    public boolean handle(DB _db, Object _workloadstate)
+                    {
+                        return _workload.doInsert(_db, _workloadstate);
+                    }
+                });
 			}
 		}
 		catch (Exception e)
