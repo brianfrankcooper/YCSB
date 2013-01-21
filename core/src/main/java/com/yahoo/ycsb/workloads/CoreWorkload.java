@@ -498,6 +498,12 @@ public class CoreWorkload extends Workload
 		return true;
 	}
 
+    public boolean doRead(DB db, Object threadstate)
+    {
+        doTransactionRead(db);
+        return true;
+    }
+
     int nextKeynum() {
         int keynum;
         if(keychooser instanceof ExponentialGenerator) {
