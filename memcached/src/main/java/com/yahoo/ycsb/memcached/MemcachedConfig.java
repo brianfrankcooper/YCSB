@@ -24,7 +24,7 @@ public class MemcachedConfig extends PropertiesConfig implements MemcachedCompat
 
     public static final boolean CHECK_OPERATION_STATUS_DEFAULT = true;
 
-    public static final int DEFAULT_OP_TIMEOUT = 60000;
+    public static final long DEFAULT_OP_TIMEOUT = 60000;
 
     public static final String OP_TIMEOUT_PROPERTY = "memcached.opTimeout";
 

@@ -42,9 +42,13 @@ public abstract class MemcachedCompatibleClient extends DB {
 
     private int objectExpirationTime;
 
+    private static final String TEMPORARY_FAILURE_MESSAGE = "Temporary failure";
+    private static final String CANCELLED_MESSAGE = "cancelled";
+
     public static final int OK = 0;
     public static final int ERROR = -1;
     public static final int NOT_FOUND = -2;
+    public static final int RETRY = 1;
 
     @Override
     public void init() throws DBException {
@@ -133,7 +137,13 @@ public abstract class MemcachedCompatibleClient extends DB {
 
     protected int getReturnCode(OperationFuture<Boolean> future) {
         if (checkOperationStatus) {
-            return future.getStatus().isSuccess() ? OK : ERROR;
+            if(future.getStatus().isSuccess()) {
+                return OK;
+            }
+            if(TEMPORARY_FAILURE_MESSAGE.equals(future.getStatus().getMessage()) || CANCELLED_MESSAGE.equals(future.getStatus().getMessage())) {
+                return RETRY;
+            }
+            return ERROR;
         } else {
             return OK;
         }
