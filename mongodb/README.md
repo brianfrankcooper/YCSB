@@ -41,6 +41,16 @@ See the next section for the list of configuration parameters for MongoDB.
 
 ### `mongodb.writeConcern` (default `safe`)
 
+### `mongodb.writeConcern.w` (default `1`)
+
+### `mongodb.writeConcern.wtimeout` (default `0`)
+
+### `mongodb.writeConcern.fsync` (default `false`)
+
+### `mongodb.writeConcern.j` (default `false`)
+
+### `mongodb.writeConcern.continueOnInsertError` (default `false`)
+
 ### `mongodb.readPreference` (default `primary`)
 
 ### `mongodb.maxconnections` (default `10`)

@@ -1,3 +1,4 @@
+- Added mongodb.writeConcern.X properties (thumbtack)
 - Added mongodb.readPreference property (thumbtack)
 - Upgraded MongoDB client to v.2.10.1 (thumbtack)
 
