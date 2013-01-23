@@ -58,6 +58,7 @@ import java.util.Vector;
  * <LI><b>maxscanlength</b>: for scans, what is the maximum number of records to scan (default: 1000)
  * <LI><b>scanlengthdistribution</b>: for scans, what distribution should be used to choose the number of records to scan, for each scan, between 1 and maxscanlength (default: uniform)
  * <LI><b>insertorder</b>: should records be inserted in order by key ("ordered"), or in hashed order ("hashed") (default: hashed)
+ * <LI><b>ignoreinserterrors</b>: if set to true the insert operations are continues ever when one of the operations failed (default: false)
  * </ul> 
  */
 public class CoreWorkload extends Workload
@@ -257,6 +258,17 @@ public class CoreWorkload extends Workload
    * Default value of the percentage operations accessing the hot set.
    */
   public static final String HOTSPOT_OPN_FRACTION_DEFAULT = "0.8";
+
+  /**
+   * Ignore insert errors.
+   */
+  public static final String IGNORE_INSERT_ERRORS = "ignoreinserterrors";
+
+   /**
+    * Default value of the ignore insert errors.
+    */
+  public static final String IGNORE_INSERT_ERRORS_DEFAULT = "false";
+
 	
 	IntegerGenerator keysequence;
 
@@ -273,6 +285,8 @@ public class CoreWorkload extends Workload
 	boolean orderedinserts;
 
 	int recordcount;
+
+    boolean ignoreinserterrors;
 	
 	protected static IntegerGenerator getFieldLengthGenerator(Properties p) throws WorkloadException{
 		IntegerGenerator fieldlengthgenerator;
@@ -322,6 +336,8 @@ public class CoreWorkload extends Workload
 		
 		readallfields=Boolean.parseBoolean(p.getProperty(READ_ALL_FIELDS_PROPERTY,READ_ALL_FIELDS_PROPERTY_DEFAULT));
 		writeallfields=Boolean.parseBoolean(p.getProperty(WRITE_ALL_FIELDS_PROPERTY,WRITE_ALL_FIELDS_PROPERTY_DEFAULT));
+
+        ignoreinserterrors = Boolean.parseBoolean(p.getProperty(IGNORE_INSERT_ERRORS, IGNORE_INSERT_ERRORS_DEFAULT));
 		
 		if (p.getProperty(INSERT_ORDER_PROPERTY,INSERT_ORDER_PROPERTY_DEFAULT).compareTo("hashed")==0)
 		{
@@ -458,10 +474,15 @@ public class CoreWorkload extends Workload
 		int keynum=keysequence.nextInt();
 		String dbkey = buildKeyName(keynum);
 		HashMap<String, ByteIterator> values = buildValues();
-		if (db.insert(table,dbkey,values) == 0)
+        int result = db.insert(table, dbkey, values);
+        if (ignoreinserterrors) {
+            return true;
+        }
+        if (result == 0) {
 			return true;
-		else
+        } else {
 			return false;
+        }
 	}
 
 	/**
