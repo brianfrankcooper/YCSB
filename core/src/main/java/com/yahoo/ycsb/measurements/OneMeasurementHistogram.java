@@ -115,6 +115,7 @@ public class OneMeasurementHistogram extends OneMeasurement
   public void exportMeasurements(MeasurementsExporter exporter) throws IOException
   {
     exporter.write(getName(), "Operations", operations);
+    exporter.write(getName(), "Retries", _retrycount);
     exporter.write(getName(), "AverageLatency(us)", (((double)totallatency)/((double)operations)));
     exporter.write(getName(), "MinLatency(us)", min);
     exporter.write(getName(), "MaxLatency(us)", max);

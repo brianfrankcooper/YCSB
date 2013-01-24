@@ -136,6 +136,24 @@ public class Measurements
 		}
 		data.get(operation).reportReturnCode(code);
 	}
+
+    /**
+     * Report a count of retries for a single DB operaiton.
+     */
+    public void reportRetryCount(String operation, int retryCount)
+    {
+        if (!data.containsKey(operation))
+        {
+            synchronized(this)
+            {
+                if (!data.containsKey(operation))
+                {
+                    data.put(operation,constructOneMeasurement(operation));
+                }
+            }
+        }
+        data.get(operation).reportRetryCount(retryCount);
+    }
 	
   /**
    * Export the current measurements to a suitable format.
