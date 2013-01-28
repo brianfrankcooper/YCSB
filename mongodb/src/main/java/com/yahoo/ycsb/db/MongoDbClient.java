@@ -64,10 +64,14 @@ public class MongoDbClient extends DB {
      */
     @Override
     public void init() throws DBException {
-        initCount.incrementAndGet();
+        boolean reinit = (initCount.incrementAndGet() == 1);
         synchronized (INCLUDE) {
             if (mongo != null) {
-                return;
+                if (reinit) {
+                    System.err.println("Reconnecting to MongoDB...");
+                } else {
+                    return;
+                }
             }
 
             // initialize MongoDb driver
