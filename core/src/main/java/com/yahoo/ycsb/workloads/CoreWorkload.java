@@ -58,6 +58,8 @@ import java.util.Vector;
  * <LI><b>maxscanlength</b>: for scans, what is the maximum number of records to scan (default: 1000)
  * <LI><b>scanlengthdistribution</b>: for scans, what distribution should be used to choose the number of records to scan, for each scan, between 1 and maxscanlength (default: uniform)
  * <LI><b>insertorder</b>: should records be inserted in order by key ("ordered"), or in hashed order ("hashed") (default: hashed)
+ * <LI><b>warmupoperationcount</b>: max number of warmup operations (default: 0)
+ * <LI><b>warmupexecutiontime</b>: max execution time of warmup phase in milliseconds (default: 0)
  * </ul> 
  */
 public class CoreWorkload extends Workload
