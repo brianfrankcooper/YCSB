@@ -38,6 +38,7 @@ def merge():
     ops['INSERT']  = other_ops
     ops['READ']    = other_ops
     ops['UPDATE']  = other_ops
+    ops['CLEANUP'] = other_ops
     ops_keys = ops.keys()
     regexps = map(re.compile, metrics)
     cns = []
