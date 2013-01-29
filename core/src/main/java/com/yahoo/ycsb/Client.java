@@ -27,6 +27,9 @@ import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Vector;
 
+import sun.misc.Signal;
+import sun.misc.SignalHandler;
+
 import com.yahoo.ycsb.measurements.Measurements;
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 import com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter;
@@ -170,6 +173,7 @@ class ClientThread extends Thread
   public ClientThread(DB db, boolean dotransactions, Workload workload, int threadid, int threadcount, Properties props, int opcount, double targetperthreadperms)
   {
     //TODO: consider removing threadcount and threadid
+    super("YCSB Client Thread " + threadid + "/" + threadcount);
     _db=db;
     _dotransactions=dotransactions;
     _workload=workload;
@@ -433,7 +437,7 @@ public class Client
     }
       }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings("rawtypes")
   public static void main(String[] args)
   {
     String dbname;
@@ -659,20 +663,30 @@ public class Client
     //load the workload
     ClassLoader classLoader = Client.class.getClassLoader();
 
-    Workload workload=null;
+    Workload currentworkload = null;
 
     try
     {
       Class workloadclass = classLoader.loadClass(props.getProperty(WORKLOAD_PROPERTY));
 
-      workload=(Workload)workloadclass.newInstance();
+      currentworkload = (Workload)workloadclass.newInstance();
     }
     catch (Exception e)
     {
       e.printStackTrace();
       e.printStackTrace(System.out);
-      System.exit(0);
+      System.exit(-1);
     }
+
+    final Workload workload = currentworkload;
+    Signal.handle(new Signal("TERM"),
+      new SignalHandler() {
+        @Override
+        public void handle(Signal signal) {
+          workload.requestStop();
+        }
+      }
+    );
 
     try
     {
@@ -720,7 +734,7 @@ public class Client
       catch (UnknownDBException e)
       {
         System.out.println("Unknown DB "+dbname);
-        System.exit(0);
+        System.exit(-1);
       }
 
       Thread t=new ClientThread(db,dotransactions,workload,threadid,threadcount,props,opcount/threadcount,targetperthreadperms);
@@ -789,7 +803,7 @@ public class Client
     {
       e.printStackTrace();
       e.printStackTrace(System.out);
-      System.exit(0);
+      System.exit(-1);
     }
 
     try
