@@ -32,11 +32,11 @@ public class ExponentialGenerator extends IntegerGenerator
 {
   // What percentage of the readings should be within the most recent exponential.frac portion of the dataset?
   public static final String EXPONENTIAL_PERCENTILE_PROPERTY="exponential.percentile";
-  public static final String EXPONENTIAL_PERCENTILE_DEFAULT="95";
+  public static final double EXPONENTIAL_PERCENTILE_DEFAULT= 95.0d;
 
   // What fraction of the dataset should be accessed exponential.percentile of the time?
   public static final String EXPONENTIAL_FRAC_PROPERTY = "exponential.frac";
-  public static final String EXPONENTIAL_FRAC_DEFAULT  = "0.8571428571";  // 1/7
+  public static final double EXPONENTIAL_FRAC_DEFAULT  = 0.8571428571d;  // 1/7
 
   /**
    * The exponential constant to use.

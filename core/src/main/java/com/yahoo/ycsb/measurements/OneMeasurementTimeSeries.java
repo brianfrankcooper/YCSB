@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.Vector;
 
+import com.yahoo.ycsb.Utils;
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 
 class SeriesUnit
@@ -49,7 +50,7 @@ public class OneMeasurementTimeSeries extends OneMeasurement
    */
   public static final String GRANULARITY="timeseries.granularity";
 
-  public static final String GRANULARITY_DEFAULT="1000";
+  public static final int GRANULARITY_DEFAULT=1000;
 
   int _granularity;
   Vector<SeriesUnit> _measurements;
@@ -73,7 +74,7 @@ public class OneMeasurementTimeSeries extends OneMeasurement
   public OneMeasurementTimeSeries(String name, Properties props)
   {
     super(name);
-    _granularity=Integer.parseInt(props.getProperty(GRANULARITY,GRANULARITY_DEFAULT));
+    _granularity=Utils.getPropertyInt(props, GRANULARITY,GRANULARITY_DEFAULT);
     _measurements=new Vector<SeriesUnit>();
     returncodes=new HashMap<Integer,int[]>();
   }

@@ -608,12 +608,12 @@ public class Client
       System.exit(0);
     }
 
-    long maxExecutionTime = Integer.parseInt(props.getProperty(MAX_EXECUTION_TIME, "0"));
+    long maxExecutionTime = Utils.getPropertyLong(props, MAX_EXECUTION_TIME, 0);
 
     //get number of threads, target and db
-    threadcount=Integer.parseInt(props.getProperty("threadcount","1"));
+    threadcount=Utils.getPropertyInt(props, "threadcount", 1);
     dbname=props.getProperty("db","com.yahoo.ycsb.BasicDB");
-    target=Integer.parseInt(props.getProperty("target","0"));
+    target=Utils.getPropertyInt(props, "target", 0);
 
     //compute the target throughput
     double targetperthreadperms=-1;
@@ -694,17 +694,17 @@ public class Client
     int opcount;
     if (dotransactions)
     {
-      opcount=Integer.parseInt(props.getProperty(OPERATION_COUNT_PROPERTY,"0"));
+      opcount = Utils.getPropertyInt(props, OPERATION_COUNT_PROPERTY, 0);
     }
     else
     {
       if (props.containsKey(INSERT_COUNT_PROPERTY))
       {
-        opcount=Integer.parseInt(props.getProperty(INSERT_COUNT_PROPERTY,"0"));
+        opcount = Utils.getPropertyInt(props, INSERT_COUNT_PROPERTY, 0);
       }
       else
       {
-        opcount=Integer.parseInt(props.getProperty(RECORD_COUNT_PROPERTY,"0"));
+        opcount = Utils.getPropertyInt(props, RECORD_COUNT_PROPERTY, 0);
       }
     }
 

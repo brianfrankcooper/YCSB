@@ -65,6 +65,56 @@ public abstract class DB
     return _p;
   }
 
+  public String getProperty(String key)
+  {
+    return getProperty(key, null);
+  }
+
+  public String getProperty(String key, String defaultValue)
+  {
+    return _p != null ? _p.getProperty(key, defaultValue) : defaultValue;
+  }
+
+  public boolean getPropertyBool(String key)
+  {
+    return getPropertyBool(key, false);
+  }
+
+  public boolean getPropertyBool(String key, Boolean defaultValue)
+  {
+    return Utils.getPropertyBool(_p, key, defaultValue);
+  }
+
+  public int getPropertyInt(String key)
+  {
+    return getPropertyInt(key, 0);
+  }
+
+  public int getPropertyInt(String key, Integer defaultValue)
+  {
+    return Utils.getPropertyInt(_p, key, defaultValue);
+  }
+
+  public long getPropertyLong(String key)
+  {
+    return getPropertyLong(key, 0L);
+  }
+
+  public long getPropertyLong(String key, Long defaultValue)
+  {
+    return Utils.getPropertyLong(_p, key, defaultValue);
+  }
+
+  public double getPropertyDouble(String key)
+  {
+    return getPropertyDouble(key, 0d);
+  }
+
+  public double getPropertyDouble(String key, Double defaultValue)
+  {
+    return Utils.getPropertyDouble(_p, key, defaultValue);
+  }
+
   /**
    * Initialize any state for this DB.
    * Called once per DB instance; there is one DB instance per client thread.

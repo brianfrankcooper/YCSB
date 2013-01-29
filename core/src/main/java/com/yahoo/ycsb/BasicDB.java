@@ -30,10 +30,10 @@ import java.util.Vector;
 public class BasicDB extends DB
 {
   public static final String VERBOSE="basicdb.verbose";
-  public static final String VERBOSE_DEFAULT="true";
+  public static final boolean VERBOSE_DEFAULT=true;
 
   public static final String SIMULATE_DELAY="basicdb.simulatedelay";
-  public static final String SIMULATE_DELAY_DEFAULT="0";
+  public static final int SIMULATE_DELAY_DEFAULT=0;
 
 
   boolean verbose;
@@ -67,8 +67,8 @@ public class BasicDB extends DB
   @SuppressWarnings("unchecked")
   public void init()
   {
-    verbose=Boolean.parseBoolean(getProperties().getProperty(VERBOSE, VERBOSE_DEFAULT));
-    todelay=Integer.parseInt(getProperties().getProperty(SIMULATE_DELAY, SIMULATE_DELAY_DEFAULT));
+    verbose=getPropertyBool(VERBOSE, VERBOSE_DEFAULT);
+    todelay=getPropertyInt(SIMULATE_DELAY, SIMULATE_DELAY_DEFAULT);
 
     if (verbose)
     {

@@ -17,13 +17,17 @@
 
 package com.yahoo.ycsb;
 
+import java.util.Properties;
 import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Utility functions.
  */
 public class Utils
 {
+  private final static Pattern NUMBER_PATTERN = Pattern.compile("^([0-9\\.]*)([kKmMbBtT])*$");
   private static final Random rand = new Random();
   private static final ThreadLocal<Random> rng = new ThreadLocal<Random>();
 
@@ -112,5 +116,68 @@ public class Utils
     //hashval = hashval ^ octet;
     }
     return Math.abs(hashval);
+  }
+
+  public static boolean getPropertyBool(Properties _p, String key, Boolean defaultValue)
+  {
+    return _p != null
+        ? Boolean.parseBoolean(_p.getProperty(key, defaultValue.toString()))
+            : defaultValue;
+  }
+
+  public static int getPropertyInt(Properties _p, String key, int defaultValue) {
+    return (int) getPropertyDouble(_p, key, defaultValue);
+  }
+
+  public static long getPropertyLong(Properties _p, String key,
+      long defaultValue) {
+    return (long) getPropertyDouble(_p, key, (long) defaultValue);
+  }
+
+  public static double getPropertyDouble(Properties _p, String key,
+      double defaultValue) {
+    double result = defaultValue;
+    String val = null;
+    if (_p != null && (val = _p.getProperty(key)) != null) {
+      result = -1;
+      try {
+        Matcher matcher = NUMBER_PATTERN.matcher(val.trim());
+        if (matcher.matches() && matcher.groupCount() == 2) {
+          double number = Double.valueOf(matcher.group(1));
+          long multiplier = 1;
+
+          if (matcher.group(2) != null) {
+            switch (matcher.group(2).toLowerCase().charAt(0)) {
+            case 't':
+              multiplier *= 1000;
+            case 'b':
+              multiplier *= 1000;
+            case 'm':
+              multiplier *= 1000;
+            case 'k':
+              multiplier *= 1000;
+            }
+          }
+          result = (number * multiplier);
+        }
+      } catch (Throwable e) {
+        result = -1;
+      } finally {
+        if (result == -1) {
+          result = defaultValue;
+          System.err.println("Invalid value '" + val
+            + "' for property '" + key + "' assuming default.");
+        }
+      }
+    }
+    return result;
+  }
+
+  public static void main(String[] args) {
+    Properties _p = new Properties();
+    _p.setProperty("number", "12.234k");
+    System.out.println(getPropertyDouble(_p, "number", 3));
+    System.out.println(getPropertyInt(_p, "number", 3));
+    System.out.println(getPropertyLong(_p, "number", 3));
   }
 }

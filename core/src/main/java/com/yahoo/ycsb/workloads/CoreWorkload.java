@@ -90,7 +90,7 @@ public class CoreWorkload extends Workload
   /**
    * Default number of fields in a record.
    */
-  public static final String FIELD_COUNT_PROPERTY_DEFAULT="10";
+  public static final int FIELD_COUNT_PROPERTY_DEFAULT = 10;
 
   int fieldcount;
 
@@ -113,7 +113,7 @@ public class CoreWorkload extends Workload
   /**
    * The default maximum length of a field in bytes.
    */
-  public static final String FIELD_LENGTH_PROPERTY_DEFAULT="100";
+  public static final int FIELD_LENGTH_PROPERTY_DEFAULT = 100;
 
   /**
    * The name of a property that specifies the filename containing the field length histogram (only used if fieldlengthdistribution is "histogram").
@@ -137,7 +137,7 @@ public class CoreWorkload extends Workload
   /**
    * The default value for the readallfields property.
    */
-  public static final String READ_ALL_FIELDS_PROPERTY_DEFAULT="true";
+  public static final boolean READ_ALL_FIELDS_PROPERTY_DEFAULT=true;
 
   boolean readallfields;
 
@@ -149,7 +149,7 @@ public class CoreWorkload extends Workload
   /**
    * The default value for the writeallfields property.
    */
-  public static final String WRITE_ALL_FIELDS_PROPERTY_DEFAULT="false";
+  public static final boolean WRITE_ALL_FIELDS_PROPERTY_DEFAULT=false;
 
   boolean writeallfields;
 
@@ -162,7 +162,7 @@ public class CoreWorkload extends Workload
   /**
    * The default proportion of transactions that are reads.
    */
-  public static final String READ_PROPORTION_PROPERTY_DEFAULT="0.95";
+  public static final double READ_PROPORTION_PROPERTY_DEFAULT = 0.95d;
 
   /**
    * The name of the property for the proportion of transactions that are updates.
@@ -172,7 +172,7 @@ public class CoreWorkload extends Workload
   /**
    * The default proportion of transactions that are updates.
    */
-  public static final String UPDATE_PROPORTION_PROPERTY_DEFAULT="0.05";
+  public static final double UPDATE_PROPORTION_PROPERTY_DEFAULT = 0.05d;
 
   /**
    * The name of the property for the proportion of transactions that are inserts.
@@ -182,7 +182,7 @@ public class CoreWorkload extends Workload
   /**
    * The default proportion of transactions that are inserts.
    */
-  public static final String INSERT_PROPORTION_PROPERTY_DEFAULT="0.0";
+  public static final double INSERT_PROPORTION_PROPERTY_DEFAULT = 0.0d;
 
   /**
    * The name of the property for the proportion of transactions that are scans.
@@ -192,7 +192,7 @@ public class CoreWorkload extends Workload
   /**
    * The default proportion of transactions that are scans.
    */
-  public static final String SCAN_PROPORTION_PROPERTY_DEFAULT="0.0";
+  public static final double SCAN_PROPORTION_PROPERTY_DEFAULT = 0.0d;
 
   /**
    * The name of the property for the proportion of transactions that are read-modify-write.
@@ -202,7 +202,7 @@ public class CoreWorkload extends Workload
   /**
    * The default proportion of transactions that are scans.
    */
-  public static final String READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT="0.0";
+  public static final double READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT = 0.0d;
 
   /**
    * The name of the property for the the distribution of requests across the keyspace. Options are "uniform", "zipfian" and "latest"
@@ -222,7 +222,7 @@ public class CoreWorkload extends Workload
   /**
    * The default max scan length.
    */
-  public static final String MAX_SCAN_LENGTH_PROPERTY_DEFAULT="1000";
+  public static final int MAX_SCAN_LENGTH_PROPERTY_DEFAULT = 1000;
 
   /**
    * The name of the property for the scan length distribution. Options are "uniform" and "zipfian" (favoring short scans)
@@ -252,7 +252,7 @@ public class CoreWorkload extends Workload
   /**
    * Default value of the size of the hot set.
    */
-  public static final String HOTSPOT_DATA_FRACTION_DEFAULT = "0.2";
+  public static final double HOTSPOT_DATA_FRACTION_DEFAULT = 0.2d;
 
   /**
    * Percentage operations that access the hot set.
@@ -262,7 +262,7 @@ public class CoreWorkload extends Workload
   /**
    * Default value of the percentage operations accessing the hot set.
    */
-  public static final String HOTSPOT_OPN_FRACTION_DEFAULT = "0.8";
+  public static final double HOTSPOT_OPN_FRACTION_DEFAULT = 0.8d;
 
   IntegerGenerator keysequence;
 
@@ -283,7 +283,7 @@ public class CoreWorkload extends Workload
   protected static IntegerGenerator getFieldLengthGenerator(Properties p) throws WorkloadException{
     IntegerGenerator fieldlengthgenerator;
     String fieldlengthdistribution = p.getProperty(FIELD_LENGTH_DISTRIBUTION_PROPERTY, FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
-    int fieldlength=Integer.parseInt(p.getProperty(FIELD_LENGTH_PROPERTY,FIELD_LENGTH_PROPERTY_DEFAULT));
+    int fieldlength = Utils.getPropertyInt(p, FIELD_LENGTH_PROPERTY, FIELD_LENGTH_PROPERTY_DEFAULT);
     String fieldlengthhistogram = p.getProperty(FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY, FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY_DEFAULT);
     if(fieldlengthdistribution.compareTo("constant") == 0) {
       fieldlengthgenerator = new ConstantIntegerGenerator(fieldlength);
@@ -311,23 +311,23 @@ public class CoreWorkload extends Workload
   {
     table = p.getProperty(TABLENAME_PROPERTY,TABLENAME_PROPERTY_DEFAULT);
 
-    fieldcount=Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY,FIELD_COUNT_PROPERTY_DEFAULT));
+    fieldcount = Utils.getPropertyInt(p, FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT);
     fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
 
-    double readproportion=Double.parseDouble(p.getProperty(READ_PROPORTION_PROPERTY,READ_PROPORTION_PROPERTY_DEFAULT));
-    double updateproportion=Double.parseDouble(p.getProperty(UPDATE_PROPORTION_PROPERTY,UPDATE_PROPORTION_PROPERTY_DEFAULT));
-    double insertproportion=Double.parseDouble(p.getProperty(INSERT_PROPORTION_PROPERTY,INSERT_PROPORTION_PROPERTY_DEFAULT));
-    double scanproportion=Double.parseDouble(p.getProperty(SCAN_PROPORTION_PROPERTY,SCAN_PROPORTION_PROPERTY_DEFAULT));
-    double readmodifywriteproportion=Double.parseDouble(p.getProperty(READMODIFYWRITE_PROPORTION_PROPERTY,READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT));
-    recordcount=Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY));
+    double readproportion=Utils.getPropertyDouble(p, READ_PROPORTION_PROPERTY,READ_PROPORTION_PROPERTY_DEFAULT);
+    double updateproportion=Utils.getPropertyDouble(p, UPDATE_PROPORTION_PROPERTY,UPDATE_PROPORTION_PROPERTY_DEFAULT);
+    double insertproportion=Utils.getPropertyDouble(p, INSERT_PROPORTION_PROPERTY,INSERT_PROPORTION_PROPERTY_DEFAULT);
+    double scanproportion=Utils.getPropertyDouble(p, SCAN_PROPORTION_PROPERTY,SCAN_PROPORTION_PROPERTY_DEFAULT);
+    double readmodifywriteproportion=Utils.getPropertyDouble(p, READMODIFYWRITE_PROPORTION_PROPERTY,READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT);
+    recordcount = Utils.getPropertyInt(p, Client.RECORD_COUNT_PROPERTY, 0);
     String requestdistrib=p.getProperty(REQUEST_DISTRIBUTION_PROPERTY,REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
-    int maxscanlength=Integer.parseInt(p.getProperty(MAX_SCAN_LENGTH_PROPERTY,MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
+    int maxscanlength = Utils.getPropertyInt(p, MAX_SCAN_LENGTH_PROPERTY, MAX_SCAN_LENGTH_PROPERTY_DEFAULT);
     String scanlengthdistrib=p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY,SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
 
-    int insertstart=Integer.parseInt(p.getProperty(INSERT_START_PROPERTY,INSERT_START_PROPERTY_DEFAULT));
+    int insertstart = Utils.getPropertyInt(p, INSERT_START_PROPERTY, INSERT_START_PROPERTY_DEFAULT);
 
-    readallfields=Boolean.parseBoolean(p.getProperty(READ_ALL_FIELDS_PROPERTY,READ_ALL_FIELDS_PROPERTY_DEFAULT));
-    writeallfields=Boolean.parseBoolean(p.getProperty(WRITE_ALL_FIELDS_PROPERTY,WRITE_ALL_FIELDS_PROPERTY_DEFAULT));
+    readallfields=Utils.getPropertyBool(p, READ_ALL_FIELDS_PROPERTY,READ_ALL_FIELDS_PROPERTY_DEFAULT);
+    writeallfields=Utils.getPropertyBool(p, WRITE_ALL_FIELDS_PROPERTY,WRITE_ALL_FIELDS_PROPERTY_DEFAULT);
 
     if (p.getProperty(INSERT_ORDER_PROPERTY,INSERT_ORDER_PROPERTY_DEFAULT).compareTo("hashed")==0)
     {
@@ -335,10 +335,10 @@ public class CoreWorkload extends Workload
     }
     else if (requestdistrib.compareTo("exponential")==0)
     {
-      double percentile = Double.parseDouble(p.getProperty(ExponentialGenerator.EXPONENTIAL_PERCENTILE_PROPERTY,
-        ExponentialGenerator.EXPONENTIAL_PERCENTILE_DEFAULT));
-      double frac       = Double.parseDouble(p.getProperty(ExponentialGenerator.EXPONENTIAL_FRAC_PROPERTY,
-        ExponentialGenerator.EXPONENTIAL_FRAC_DEFAULT));
+      double percentile = Utils.getPropertyDouble(p, ExponentialGenerator.EXPONENTIAL_PERCENTILE_PROPERTY,
+        ExponentialGenerator.EXPONENTIAL_PERCENTILE_DEFAULT);
+      double frac       = Utils.getPropertyDouble(p, ExponentialGenerator.EXPONENTIAL_FRAC_PROPERTY,
+        ExponentialGenerator.EXPONENTIAL_FRAC_DEFAULT);
       keychooser = new ExponentialGenerator(percentile, recordcount*frac);
     }
     else
@@ -387,7 +387,7 @@ public class CoreWorkload extends Workload
       //plus the number of predicted keys as the total keyspace. then, if the generator picks a key that hasn't been inserted yet, will
       //just ignore it and pick another key. this way, the size of the keyspace doesn't change from the perspective of the scrambled zipfian generator
 
-      int opcount=Integer.parseInt(p.getProperty(Client.OPERATION_COUNT_PROPERTY));
+      int opcount = Utils.getPropertyInt(p, Client.OPERATION_COUNT_PROPERTY, 0);
       int expectednewkeys=(int)(((double)opcount)*insertproportion*2.0); //2 is fudge factor
 
       keychooser=new ScrambledZipfianGenerator(recordcount+expectednewkeys);
@@ -398,10 +398,10 @@ public class CoreWorkload extends Workload
     }
     else if (requestdistrib.equals("hotspot"))
     {
-      double hotsetfraction = Double.parseDouble(p.getProperty(
-        HOTSPOT_DATA_FRACTION, HOTSPOT_DATA_FRACTION_DEFAULT));
-      double hotopnfraction = Double.parseDouble(p.getProperty(
-        HOTSPOT_OPN_FRACTION, HOTSPOT_OPN_FRACTION_DEFAULT));
+      double hotsetfraction = Utils.getPropertyDouble(p,
+        HOTSPOT_DATA_FRACTION, HOTSPOT_DATA_FRACTION_DEFAULT);
+      double hotopnfraction = Utils.getPropertyDouble(p,
+        HOTSPOT_OPN_FRACTION, HOTSPOT_OPN_FRACTION_DEFAULT);
       keychooser = new HotspotIntegerGenerator(0, recordcount - 1,
         hotsetfraction, hotopnfraction);
     }
