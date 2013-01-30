@@ -133,7 +133,7 @@ public class GemFireClient extends DB {
     if (val != null) {
       if (fields == null) {
         for (String k : val.keySet()) {
-          result.put(key, new ByteArrayByteIterator(val.get(key)));
+          result.put(k, new ByteArrayByteIterator(val.get(k)));
         }
       } else {
         for (String field : fields) {
