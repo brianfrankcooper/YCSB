@@ -54,11 +54,11 @@ public class HBaseClient extends com.yahoo.ycsb.DB
   //private static final Configuration config = HBaseConfiguration.create();
   private static final Configuration config = HBaseConfiguration.create(); //new HBaseConfiguration();
 
+  private final Map<String, HTable> hTableMap = new HashMap<String, HTable>();
   public boolean _debug=false;
+  public boolean _writeToWal = true;
 
-  public String _table="";
-  public HTable _hTable=null;
-  public String _columnFamily="";
+  public String _columnFamily = "";
   public byte _columnFamilyBytes[];
 
   public static final int Ok=0;
@@ -74,10 +74,9 @@ public class HBaseClient extends com.yahoo.ycsb.DB
    */
   public void init() throws DBException
   {
-    if (getPropertyBool("debug", false))
-    {
-      _debug=true;
-    }
+    _debug = getPropertyBool("debug", false);
+
+    _writeToWal = getPropertyBool("hbase.writeToWal", true);
 
     _columnFamily = getProperty("columnfamily");
     if (_columnFamily == null)
@@ -100,8 +99,8 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     Measurements _measurements = Measurements.getMeasurements();
     try {
       long st=System.nanoTime();
-      if (_hTable != null) {
-        _hTable.flushCommits();
+      for (HTable table : hTableMap.values()) {
+        table.close();
       }
       long en=System.nanoTime();
       _measurements.measure("UPDATE", (int)((en-st)/1000));
@@ -110,16 +109,30 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     }
   }
 
-  public void getHTable(String table) throws IOException
+  public HTable getHTable(String table) 
   {
-    synchronized (tableLock) {
-      _hTable = new HTable(config, table);
-      //2 suggestions from http://ryantwopointoh.blogspot.com/2009/01/performance-of-hbase-importing.html
-      _hTable.setAutoFlush(false);
-      _hTable.setWriteBufferSize(1024*1024*12);
-      //return hTable;
-    }
+    synchronized (tableLock) 
+    {
+      HTable hTable = hTableMap.get(table);
+      if (hTable == null) 
+      {
+        try {
+          hTable = new HTable(config, table);
+          //2 suggestions from http://ryantwopointoh.blogspot.com/2009/01/performance-of-hbase-importing.html
+          boolean autoFlush = getPropertyBool("hbase.autoFlush", false);
+          boolean clearBufferOnFail = getPropertyBool("hbase.clearBufferOnFail", false);
+          hTable.setAutoFlush(autoFlush, clearBufferOnFail);
 
+          long writeBufferSize = getPropertyLong("hbase.writeBufferSize", 12L << 20);
+          hTable.setWriteBufferSize(writeBufferSize);
+        } catch (IOException e) {
+          System.err.println("Error accessing HBase table: " + e);
+          return null;
+        }
+        hTableMap.put(table, hTable);
+      }
+      return hTable;
+    }
   }
 
   /**
@@ -133,19 +146,9 @@ public class HBaseClient extends com.yahoo.ycsb.DB
    */
   public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
   {
-    //if this is a "new" table, init HTable object.  Else, use existing one
-    if (!_table.equals(table)) {
-      _hTable = null;
-      try
-      {
-        getHTable(table);
-        _table = table;
-      }
-      catch (IOException e)
-      {
-        System.err.println("Error accessing HBase table: "+e);
-        return ServerError;
-      }
+    HTable hTable = getHTable(table);
+    if (hTable == null) {
+      return ServerError;
     }
 
     Result r = null;
@@ -163,7 +166,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
           g.addColumn(_columnFamilyBytes, Bytes.toBytes(field));
         }
       }
-      r = _hTable.get(g);
+      r = hTable.get(g);
     }
     catch (IOException e)
     {
@@ -201,19 +204,9 @@ public class HBaseClient extends com.yahoo.ycsb.DB
    */
   public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
   {
-    //if this is a "new" table, init HTable object.  Else, use existing one
-    if (!_table.equals(table)) {
-      _hTable = null;
-      try
-      {
-        getHTable(table);
-        _table = table;
-      }
-      catch (IOException e)
-      {
-        System.err.println("Error accessing HBase table: "+e);
-        return ServerError;
-      }
+    HTable hTable = getHTable(table);
+    if (hTable == null) {
+      return ServerError;
     }
 
     Scan s = new Scan(Bytes.toBytes(startkey));
@@ -237,7 +230,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     //get results
     ResultScanner scanner = null;
     try {
-      scanner = _hTable.getScanner(s);
+      scanner = hTable.getScanner(s);
       int numResults = 0;
       for (Result rr = scanner.next(); rr != null; rr = scanner.next())
       {
@@ -292,26 +285,16 @@ public class HBaseClient extends com.yahoo.ycsb.DB
    */
   public int update(String table, String key, HashMap<String,ByteIterator> values)
   {
-    //if this is a "new" table, init HTable object.  Else, use existing one
-    if (!_table.equals(table)) {
-      _hTable = null;
-      try
-      {
-        getHTable(table);
-        _table = table;
-      }
-      catch (IOException e)
-      {
-        System.err.println("Error accessing HBase table: "+e);
-        return ServerError;
-      }
+    HTable hTable = getHTable(table);
+    if (hTable == null) {
+      return ServerError;
     }
-
 
     if (_debug) {
       System.out.println("Setting up put for key: "+key);
     }
     Put p = new Put(Bytes.toBytes(key));
+    p.setWriteToWAL(_writeToWal);
     for (Map.Entry<String, ByteIterator> entry : values.entrySet())
     {
       if (_debug) {
@@ -323,7 +306,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 
     try
     {
-      _hTable.put(p);
+      hTable.put(p);
     }
     catch (IOException e)
     {
@@ -364,19 +347,9 @@ public class HBaseClient extends com.yahoo.ycsb.DB
    */
   public int delete(String table, String key)
   {
-    //if this is a "new" table, init HTable object.  Else, use existing one
-    if (!_table.equals(table)) {
-      _hTable = null;
-      try
-      {
-        getHTable(table);
-        _table = table;
-      }
-      catch (IOException e)
-      {
-        System.err.println("Error accessing HBase table: "+e);
-        return ServerError;
-      }
+    HTable hTable = getHTable(table);
+    if (hTable == null) {
+      return ServerError;
     }
 
     if (_debug) {
@@ -386,7 +359,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     Delete d = new Delete(Bytes.toBytes(key));
     try
     {
-      _hTable.delete(d);
+      hTable.delete(d);
     }
     catch (IOException e)
     {
@@ -428,14 +401,14 @@ public class HBaseClient extends com.yahoo.ycsb.DB
           {
             Random random=new Random();
 
-            HBaseClient cli=new HBaseClient();
+            HBaseClient client = new HBaseClient();
 
             Properties props=new Properties();
             props.setProperty("columnfamily",columnfamily);
             props.setProperty("debug","true");
-            cli.setProperties(props);
+            client.setProperties(props);
 
-            cli.init();
+            client.init();
 
             //HashMap<String,String> result=new HashMap<String,String>();
 
@@ -465,7 +438,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
               scanFields.add("field1");
               scanFields.add("field3");
               Vector<HashMap<String,ByteIterator>> scanResults = new Vector<HashMap<String,ByteIterator>>();
-              rescode = cli.scan("table1","user2",20,null,scanResults);
+              rescode = client.scan("table1", "user2", 20, null, scanResults);
 
               long en=System.currentTimeMillis();
 
