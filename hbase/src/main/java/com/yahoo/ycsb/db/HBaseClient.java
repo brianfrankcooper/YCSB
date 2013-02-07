@@ -179,17 +179,25 @@ public class HBaseClient extends com.yahoo.ycsb.DB
       return ServerError;
     }
 
-    for (KeyValue kv : r.raw()) {
-      result.put(
-        Bytes.toString(kv.getQualifier()),
-        new ByteArrayByteIterator(kv.getValue()));
-      if (_debug) {
-        System.out.println("Result for field: "+Bytes.toString(kv.getQualifier())+
-          " is: "+Bytes.toString(kv.getValue()));
+    if (!r.isEmpty()) 
+    {
+      for (KeyValue kv : r.raw()) 
+      {
+        result.put(
+          Bytes.toString(kv.getQualifier()),
+          new ByteArrayByteIterator(kv.getValue()));
+        if (_debug) {
+          System.out.println("Result for field: "+Bytes.toString(kv.getQualifier())+
+            " is: "+Bytes.toString(kv.getValue()));
+        }
       }
-
+      return Ok;
     }
-    return Ok;
+
+    if (_debug) {
+      System.out.println("No record found for key: "+key);
+    }
+    return NoMatchingRecord;
   }
 
   /**
