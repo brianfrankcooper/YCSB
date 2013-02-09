@@ -38,6 +38,8 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.ParseFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.yahoo.ycsb.ByteArrayByteIterator;
@@ -60,6 +62,8 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 
   public String _columnFamily = "";
   public byte _columnFamilyBytes[];
+
+  private Filter _filter = null;
 
   public static final int Ok=0;
   public static final int ServerError=-1;
@@ -86,6 +90,18 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     }
     _columnFamilyBytes = Bytes.toBytes(_columnFamily);
 
+    String hbaseFilter = getProperty("hbasefilter");
+    if (hbaseFilter != null) {
+      try {
+        _filter = new ParseFilter().parseFilterString(hbaseFilter);
+        if (_debug) {
+          System.out.println("Using HBase filter: " + _filter);
+        }
+      } catch (Exception e) {
+        System.err.println("An HBase filter was specified but could not be parsed.");
+        throw new DBException(e);
+      }
+    }
   }
 
   /**
@@ -166,6 +182,9 @@ public class HBaseClient extends com.yahoo.ycsb.DB
           g.addColumn(_columnFamilyBytes, Bytes.toBytes(field));
         }
       }
+      if (_filter != null) {
+        g.setFilter(_filter);
+      }
       r = hTable.get(g);
     }
     catch (IOException e)
@@ -220,6 +239,9 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     Scan s = new Scan(Bytes.toBytes(startkey));
     //HBase has no record limit.  Here, assume recordcount is small enough to bring back in one call.
     //We get back recordcount records
+    if (_debug) {
+      System.out.println("Scanning for " + recordcount+" records, starting at '" +startkey+ "'.");
+    }
     s.setCaching(recordcount);
 
     //add specified fields or else all fields
@@ -233,6 +255,9 @@ public class HBaseClient extends com.yahoo.ycsb.DB
       {
         s.addColumn(_columnFamilyBytes,Bytes.toBytes(field));
       }
+    }
+    if (_filter != null) {
+      s.setFilter(_filter);
     }
 
     //get results
