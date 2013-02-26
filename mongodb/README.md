@@ -40,3 +40,5 @@ See the next section for the list of configuration parameters for MongoDB.
 ### `mongodb.database` (default: `ycsb`)
 
 ### `mongodb.writeConcern` (default `safe`)
+
+### `mongodb.maxconnections` (default `10`)

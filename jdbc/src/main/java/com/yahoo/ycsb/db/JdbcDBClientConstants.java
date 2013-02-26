@@ -35,7 +35,13 @@ public interface JdbcDBClientConstants {
   
   /** The password to use for establishing the connection. */
   public static final String CONNECTION_PASSWD = "db.passwd";
-  
+
+  /** The JDBC fetch size hinted to the driver. */
+  public static final String JDBC_FETCH_SIZE = "jdbc.fetchsize";
+
+  /** The JDBC connection auto-commit property for the driver. */
+  public static final String JDBC_AUTO_COMMIT = "jdbc.autocommit";
+
   /** The name of the property for the number of fields in a record. */
   public static final String FIELD_COUNT_PROPERTY="fieldcount";
   
