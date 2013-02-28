@@ -59,20 +59,16 @@ public class RiakClient13 extends DB {
             Properties props = getProperties();
             String cluster_hosts = props.getProperty(RIAK_CLUSTER_HOSTS, RIAK_CLUSTER_HOST_DEFAULT);
             String[] servers = cluster_hosts.split(",");
-
             boolean useConnectionPool = true;
-
             if(props.containsKey(RIAK_POOL_ENABLED)) {
                 String usePool = props.getProperty(RIAK_POOL_ENABLED);
                 useConnectionPool = Boolean.parseBoolean(usePool);
             }
-
             if(useConnectionPool) {
                 setupConnectionPool(props, servers);
             }  else {
                 setupConnections(props, servers);
             }
-
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -81,12 +77,7 @@ public class RiakClient13 extends DB {
     }
 
     private void setupConnections(Properties props, String[] servers) throws IOException {
-        if(connectionNumber == servers.length-1) {
-            connectionNumber = 0;
-        } else {
-            connectionNumber++;
-        }
-        String server = servers[connectionNumber];
+        String server = servers[connectionNumber++ % servers.length];
         String[] ipAndPort = server.split(":");
         String ip = ipAndPort[0].trim();
         int port = Integer.parseInt(ipAndPort[1].trim());
@@ -144,20 +135,15 @@ public class RiakClient13 extends DB {
 
     public int read(String bucket, String key, Set<String> fields,
                     HashMap<String, ByteIterator> result) {
-
         try {
-
             RiakResponse response = rawClient.fetch(bucket, key);
-
-            if(response.hasSiblings()) {
-                System.out.println("Siblings detected");
-            }
             if(response.hasValue()) {
                 IRiakObject obj = response.getRiakObjects()[0];
                 riakObjToJson(obj, fields, result);
             }
         } catch(Exception e) {
             e.printStackTrace();
+            return ERROR;
         }
         return OK;
     }
@@ -169,12 +155,8 @@ public class RiakClient13 extends DB {
 
     public int update(String bucket, String key,
                       HashMap<String, ByteIterator> values) {
-
         try {
             RiakResponse response = rawClient.fetch(bucket, key);
-            if(response.hasSiblings()) {
-                System.out.println("Siblings detected");
-            }
             if(response.hasValue()) {
                 IRiakObject obj = response.getRiakObjects()[0];
                 byte[] data = updateJson(obj, values);
@@ -189,10 +171,8 @@ public class RiakClient13 extends DB {
             e.printStackTrace();
             return ERROR;
         }
-
         return OK;
     }
-
 
     public int insert(String bucket, String key,
                       HashMap<String, ByteIterator> values) {
@@ -225,7 +205,6 @@ public class RiakClient13 extends DB {
         Charset charSet = CharsetUtils.getCharset(contentType);
         byte[] data = object.getValue();
         String dataInCharset = CharsetUtils.asString(data, charSet);
-
         JsonNode jsonNode = om.readTree(dataInCharset);
         for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
             ((ObjectNode) jsonNode).put(entry.getKey(), entry.getValue().toString());
@@ -247,7 +226,6 @@ public class RiakClient13 extends DB {
         Charset charSet = CharsetUtils.getCharset(contentType);
         byte[] data = object.getValue();
         String dataInCharset = CharsetUtils.asString(data, charSet);
-
         JsonNode jsonNode = om.readTree(dataInCharset);
         if(fields != null) {
             // return a subset of all available fields in the json node
@@ -264,8 +242,6 @@ public class RiakClient13 extends DB {
           }
         }
     }
-
-
 
     public static void main(String[] args)
     {
@@ -319,37 +295,4 @@ public class RiakClient13 extends DB {
             System.out.println("Read person");
         }
     }
-
-//    public static void main(String[] args) throws Exception {
-//        PBClusterConfig clusterConf = new PBClusterConfig(200);
-//        String[] servers = {"localhost:10017", "localhost:10027", "localhost:10037"};
-//        for(String server:servers) {
-//            String[] ipAndPort = server.split(":");
-//            String ip = ipAndPort[0].trim();
-//            int port = Integer.parseInt(ipAndPort[1].trim());
-//            System.out.println("Riak connection to " + ip + ":" + port);
-//            PBClientConfig node = PBClientConfig.Builder
-//                    .from(PBClientConfig.defaults())
-//                    .withHost(ip)
-//                    .withPort(port)
-//                    .withIdleConnectionTTLMillis(100)
-//                    .withInitialPoolSize(10)
-//                    .withRequestTimeoutMillis(1000)
-//                    .withConnectionTimeoutMillis(1000)
-//                    .build();
-//            clusterConf.addClient(node);
-//        }
-//
-//        RawClient rawClient = PBClusterClientFactory.getInstance().newClient(clusterConf);
-//        //RiakClient pbcClient = new RiakClient("127.0.0.1",100);
-//        //RawClient rawClient = new PBClientAdapter(pbcClient);
-//        //IRiakObject obj = RiakObjectBuilder.newBuilder("FOO","BAR").withValue("THIS IS A TEST").build();
-//        //rawClient.store(obj);
-//        RiakResponse resp = rawClient.fetch("FOO","BAR");
-//        String ct = resp.getRiakObjects()[0].getContentType();
-//        System.out.println(ct);
-//        System.out.println(CharsetUtils.getCharset(ct));
-//
-//        //String[] chunks = ct.split(";");
-//    }
 }
