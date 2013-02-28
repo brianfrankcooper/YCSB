@@ -27,9 +27,9 @@ public class RiakClient13 extends DB {
 
     public static final String RIAK_CLUSTER_HOSTS = "riak_cluster_hosts";
     public static final String RIAK_CLUSTER_HOST_DEFAULT = "127.0.0.1:10017";
-    public static final int RIAK_POOL_TOTAL_MAX_CONNECTIONS = 500;
+    public static final int RIAK_POOL_TOTAL_MAX_CONNECTIONS = 50;
     public static final int RIAK_POOL_IDLE_CONNETION_TTL_MILLIS = 1000;
-    public static final int RIAK_POOL_INITIAL_POOL_SIZE = 50;
+    public static final int RIAK_POOL_INITIAL_POOL_SIZE = 5;
     public static final int RIAK_POOL_REQUEST_TIMEOUT_MILLIS = 1000;
     public static final int RIAK_POOL_CONNECTION_TIMEOUT_MILLIS = 1000;
     private static final Charset CHARSET_UTF8 = Charset.forName("UTF-8");
