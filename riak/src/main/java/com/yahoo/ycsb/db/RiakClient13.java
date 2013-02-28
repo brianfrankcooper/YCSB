@@ -2,22 +2,26 @@ package com.yahoo.ycsb.db;
 
 import com.basho.riak.client.IRiakObject;
 import com.basho.riak.client.builders.RiakObjectBuilder;
+import com.basho.riak.client.query.indexes.BinIndex;
+import com.basho.riak.client.query.indexes.IntIndex;
 import com.basho.riak.client.raw.RawClient;
 import com.basho.riak.client.raw.RiakResponse;
 import com.basho.riak.client.raw.pbc.PBClientAdapter;
 import com.basho.riak.client.raw.pbc.PBClientConfig;
 import com.basho.riak.client.raw.pbc.PBClusterClientFactory;
 import com.basho.riak.client.raw.pbc.PBClusterConfig;
+import com.basho.riak.client.raw.query.indexes.BinRangeQuery;
+import com.basho.riak.client.raw.query.indexes.BinValueQuery;
+import com.basho.riak.client.raw.query.indexes.IndexQuery;
+import com.basho.riak.client.raw.query.indexes.IntRangeQuery;
 import com.basho.riak.client.util.CharsetUtils;
 import com.basho.riak.pbc.RiakClient;
-import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.DB;
-import com.yahoo.ycsb.DBException;
-import com.yahoo.ycsb.StringByteIterator;
+import com.yahoo.ycsb.*;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.ObjectNode;
 
+import javax.management.monitor.StringMonitorMBean;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.*;
@@ -29,6 +33,7 @@ public class RiakClient13 extends DB {
     public static final String RIAK_POOL_INITIAL_POOL_SIZE = "riak_pool_initial_pool_size";
     public static final String RIAK_POOL_REQUEST_TIMEOUT_MILLIS = "riak_pool_request_timeout_millis";
     public static final String RIAK_POOL_CONNECTION_TIMEOUT_MILLIS = "riak_pool_connection_timeout_millis";
+    public static final String YCSB_INT = "ycsb_int";
     private RawClient rawClient;
     public static final int OK = 0;
     public static final int ERROR = -1;
@@ -46,7 +51,9 @@ public class RiakClient13 extends DB {
     private static final String CONTENT_TYPE_JSON_UTF8 = "application/json;charset=UTF-8";
 
     ObjectMapper om = new ObjectMapper();
+    Map<String, Long> bucketIndexes = new HashMap<String, Long>();
 
+    private boolean use2i = false;
     private static int connectionNumber = 0;
 
     private int getIntProperty(Properties props, String propname, int defaultValue) {
@@ -150,7 +157,35 @@ public class RiakClient13 extends DB {
 
     public int scan(String bucket, String startkey, int recordcount,
                     Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-        return OK;
+
+        if(use2i) {
+
+            try {
+                RiakResponse fetchResp = rawClient.fetch(bucket, startkey);
+                Set<Long> idx = fetchResp.getRiakObjects()[0].getIntIndexV2(YCSB_INT);
+                if(idx.size() == 0) {
+                    System.err.println("Index not found");
+                    return ERROR;
+                } else {
+                    Long id = idx.iterator().next();
+                    long range = id + recordcount;
+                    IndexQuery iq = new IntRangeQuery(IntIndex.named(YCSB_INT), bucket, id, range);
+                    List<String> results = rawClient.fetchIndex(iq);
+                    for(String key: results) {
+                        RiakResponse resp = rawClient.fetch(bucket, key);
+                        HashMap<String,ByteIterator> rowResult = new HashMap<String, ByteIterator>();
+                        riakObjToJson(resp.getRiakObjects()[0], fields, rowResult);
+                        result.add(rowResult);
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                return ERROR;
+            }
+            return OK;
+        } else {
+            return ERROR;
+        }
     }
 
     public int update(String bucket, String key,
@@ -181,7 +216,18 @@ public class RiakClient13 extends DB {
                                  .withContentType(CONTENT_TYPE_JSON_UTF8);
         try {
             byte[] rawValue = jsonToBytes(values);
-            rawClient.store(builder.withValue(rawValue).build());
+            RiakObjectBuilder objBuilder = builder.withValue(rawValue);
+            if(use2i) {
+                    long idxValue = 0;
+                    if(!bucketIndexes.containsKey(bucket)) {
+                        bucketIndexes.put(bucket, (long)0);
+                    } else {
+                        idxValue = bucketIndexes.get(bucket);
+                        bucketIndexes.put(bucket, idxValue+1);
+                    }
+                    objBuilder.addIndex(YCSB_INT, idxValue).build();
+            }
+            rawClient.store(objBuilder.build());
         } catch (Exception e) {
             e.printStackTrace();
             return ERROR;
