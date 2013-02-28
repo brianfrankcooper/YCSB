@@ -4,10 +4,12 @@ import com.basho.riak.client.IRiakObject;
 import com.basho.riak.client.builders.RiakObjectBuilder;
 import com.basho.riak.client.raw.RawClient;
 import com.basho.riak.client.raw.RiakResponse;
+import com.basho.riak.client.raw.pbc.PBClientAdapter;
 import com.basho.riak.client.raw.pbc.PBClientConfig;
 import com.basho.riak.client.raw.pbc.PBClusterClientFactory;
 import com.basho.riak.client.raw.pbc.PBClusterConfig;
 import com.basho.riak.client.util.CharsetUtils;
+import com.basho.riak.pbc.RiakClient;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
@@ -21,50 +23,119 @@ import java.nio.charset.Charset;
 import java.util.*;
 
 public class RiakClient13 extends DB {
+    public static final String RIAK_POOL_ENABLED = "riak_pool_enabled";
+    public static final String RIAK_POOL_TOTAL_MAX_CONNECTION = "riak_pool_total_max_connection";
+    public static final String RIAK_POOL_IDLE_CONNECTION_TTL_MILLIS = "riak_pool_idle_connection_ttl_millis";
+    public static final String RIAK_POOL_INITIAL_POOL_SIZE = "riak_pool_initial_pool_size";
+    public static final String RIAK_POOL_REQUEST_TIMEOUT_MILLIS = "riak_pool_request_timeout_millis";
+    public static final String RIAK_POOL_CONNECTION_TIMEOUT_MILLIS = "riak_pool_connection_timeout_millis";
     private RawClient rawClient;
     public static final int OK = 0;
     public static final int ERROR = -1;
 
     public static final String RIAK_CLUSTER_HOSTS = "riak_cluster_hosts";
     public static final String RIAK_CLUSTER_HOST_DEFAULT = "127.0.0.1:10017";
-    public static final int RIAK_POOL_TOTAL_MAX_CONNECTIONS = 50;
-    public static final int RIAK_POOL_IDLE_CONNETION_TTL_MILLIS = 1000;
-    public static final int RIAK_POOL_INITIAL_POOL_SIZE = 5;
-    public static final int RIAK_POOL_REQUEST_TIMEOUT_MILLIS = 1000;
-    public static final int RIAK_POOL_CONNECTION_TIMEOUT_MILLIS = 1000;
+
+    public static final int RIAK_POOL_TOTAL_MAX_CONNECTIONS_DEFAULT = 50;
+    public static final int RIAK_POOL_IDLE_CONNETION_TTL_MILLIS_DEFAULT = 1000;
+    public static final int RIAK_POOL_INITIAL_POOL_SIZE_DEFAULT = 5;
+    public static final int RIAK_POOL_REQUEST_TIMEOUT_MILLIS_DEFAULT = 1000;
+    public static final int RIAK_POOL_CONNECTION_TIMEOUT_MILLIS_DEFAULT = 1000;
+
     private static final Charset CHARSET_UTF8 = Charset.forName("UTF-8");
     private static final String CONTENT_TYPE_JSON_UTF8 = "application/json;charset=UTF-8";
 
     ObjectMapper om = new ObjectMapper();
+
+    private static int connectionNumber = 0;
+
+    private int getIntProperty(Properties props, String propname, int defaultValue) {
+        String stringProp = props.getProperty(propname, "" + defaultValue);
+        return Integer.parseInt(stringProp);
+    }
 
     public void init() throws DBException {
         try {
             Properties props = getProperties();
             String cluster_hosts = props.getProperty(RIAK_CLUSTER_HOSTS, RIAK_CLUSTER_HOST_DEFAULT);
             String[] servers = cluster_hosts.split(",");
-            PBClusterConfig clusterConf = new PBClusterConfig(RIAK_POOL_TOTAL_MAX_CONNECTIONS);
-            for(String server:servers) {
-                String[] ipAndPort = server.split(":");
-                String ip = ipAndPort[0].trim();
-                int port = Integer.parseInt(ipAndPort[1].trim());
-                System.out.println("Riak connection to " + ip + ":" + port);
-                PBClientConfig node = PBClientConfig.Builder
-                        .from(PBClientConfig.defaults())
-                        .withHost(ip)
-                        .withPort(port)
-                        .withIdleConnectionTTLMillis(RIAK_POOL_IDLE_CONNETION_TTL_MILLIS)
-                        .withInitialPoolSize(RIAK_POOL_INITIAL_POOL_SIZE)
-                        .withRequestTimeoutMillis(RIAK_POOL_REQUEST_TIMEOUT_MILLIS)
-                        .withConnectionTimeoutMillis(RIAK_POOL_CONNECTION_TIMEOUT_MILLIS)
-                        .build();
-                clusterConf.addClient(node);
+
+            boolean useConnectionPool = true;
+
+            if(props.containsKey(RIAK_POOL_ENABLED)) {
+                String usePool = props.getProperty(RIAK_POOL_ENABLED);
+                useConnectionPool = Boolean.parseBoolean(usePool);
             }
-            rawClient = PBClusterClientFactory.getInstance().newClient(clusterConf);
+
+            if(useConnectionPool) {
+                setupConnectionPool(props, servers);
+            }  else {
+                setupConnections(props, servers);
+            }
+
 
         } catch (Exception e) {
             e.printStackTrace();
             throw new DBException("Error connecting to Riak: " + e.getMessage());
         }
+    }
+
+    private void setupConnections(Properties props, String[] servers) throws IOException {
+        if(connectionNumber == servers.length-1) {
+            connectionNumber = 0;
+        } else {
+            connectionNumber++;
+        }
+        String server = servers[connectionNumber];
+        String[] ipAndPort = server.split(":");
+        String ip = ipAndPort[0].trim();
+        int port = Integer.parseInt(ipAndPort[1].trim());
+        //System.out.println("Riak connection to " + ip + ":" + port);
+        RiakClient pbcClient = new RiakClient(ip, port);
+        rawClient = new PBClientAdapter(pbcClient);
+    }
+
+    private void setupConnectionPool(Properties props, String[] servers) throws IOException {
+
+        int poolMaxConnections =
+                getIntProperty(props,
+                        RIAK_POOL_TOTAL_MAX_CONNECTION,
+                        RIAK_POOL_TOTAL_MAX_CONNECTIONS_DEFAULT);
+        int poolIdleConnectionTtlMillis =
+                getIntProperty(props,
+                        RIAK_POOL_IDLE_CONNECTION_TTL_MILLIS,
+                        RIAK_POOL_IDLE_CONNETION_TTL_MILLIS_DEFAULT);
+        int poolInitialPoolSize =
+                getIntProperty(props,
+                        RIAK_POOL_INITIAL_POOL_SIZE,
+                        RIAK_POOL_INITIAL_POOL_SIZE_DEFAULT);
+        int poolRequestTimeoutMillis =
+                getIntProperty(props,
+                        RIAK_POOL_REQUEST_TIMEOUT_MILLIS,
+                        RIAK_POOL_REQUEST_TIMEOUT_MILLIS_DEFAULT);
+        int poolConnectionTimeoutMillis =
+                getIntProperty(props,
+                        RIAK_POOL_CONNECTION_TIMEOUT_MILLIS,
+                        RIAK_POOL_CONNECTION_TIMEOUT_MILLIS_DEFAULT);
+
+        PBClusterConfig clusterConf = new PBClusterConfig(poolMaxConnections);
+        for(String server:servers) {
+            String[] ipAndPort = server.split(":");
+            String ip = ipAndPort[0].trim();
+            int port = Integer.parseInt(ipAndPort[1].trim());
+            //System.out.println("Riak connection to " + ip + ":" + port);
+            PBClientConfig node = PBClientConfig.Builder
+                    .from(PBClientConfig.defaults())
+                    .withHost(ip)
+                    .withPort(port)
+                    .withIdleConnectionTTLMillis(poolIdleConnectionTtlMillis)
+                    .withInitialPoolSize(poolInitialPoolSize)
+                    .withRequestTimeoutMillis(poolRequestTimeoutMillis)
+                    .withConnectionTimeoutMillis(poolConnectionTimeoutMillis)
+                    .build();
+            clusterConf.addClient(node);
+        }
+        rawClient = PBClusterClientFactory.getInstance().newClient(clusterConf);
     }
 
     public void cleanup() throws DBException {
