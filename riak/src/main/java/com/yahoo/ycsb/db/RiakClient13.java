@@ -33,6 +33,7 @@ public class RiakClient13 extends DB {
     public static final String RIAK_POOL_INITIAL_POOL_SIZE = "riak_pool_initial_pool_size";
     public static final String RIAK_POOL_REQUEST_TIMEOUT_MILLIS = "riak_pool_request_timeout_millis";
     public static final String RIAK_POOL_CONNECTION_TIMEOUT_MILLIS = "riak_pool_connection_timeout_millis";
+    public static final String RIAK_USE_2I = "riak_use_2i";
     public static final String YCSB_INT = "ycsb_int";
     private RawClient rawClient;
     public static final int OK = 0;
@@ -46,6 +47,7 @@ public class RiakClient13 extends DB {
     public static final int RIAK_POOL_INITIAL_POOL_SIZE_DEFAULT = 5;
     public static final int RIAK_POOL_REQUEST_TIMEOUT_MILLIS_DEFAULT = 1000;
     public static final int RIAK_POOL_CONNECTION_TIMEOUT_MILLIS_DEFAULT = 1000;
+    public static final String RIAK_USE_2I_DEFAULT = "false";
 
     private static final Charset CHARSET_UTF8 = Charset.forName("UTF-8");
     private static final String CONTENT_TYPE_JSON_UTF8 = "application/json;charset=UTF-8";
@@ -56,6 +58,7 @@ public class RiakClient13 extends DB {
     private boolean use2i = false;
     private static int connectionNumber = 0;
 
+
     private int getIntProperty(Properties props, String propname, int defaultValue) {
         String stringProp = props.getProperty(propname, "" + defaultValue);
         return Integer.parseInt(stringProp);
@@ -64,6 +67,7 @@ public class RiakClient13 extends DB {
     public void init() throws DBException {
         try {
             Properties props = getProperties();
+            use2i = Boolean.parseBoolean(props.getProperty(RIAK_USE_2I, RIAK_USE_2I_DEFAULT));
             String cluster_hosts = props.getProperty(RIAK_CLUSTER_HOSTS, RIAK_CLUSTER_HOST_DEFAULT);
             String[] servers = cluster_hosts.split(",");
             boolean useConnectionPool = true;
@@ -159,13 +163,12 @@ public class RiakClient13 extends DB {
                     Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
 
         if(use2i) {
-
             try {
                 RiakResponse fetchResp = rawClient.fetch(bucket, startkey);
                 Set<Long> idx = fetchResp.getRiakObjects()[0].getIntIndexV2(YCSB_INT);
                 if(idx.size() == 0) {
                     System.err.println("Index not found");
-                    return ERROR;
+                    return -5;
                 } else {
                     Long id = idx.iterator().next();
                     long range = id + recordcount;
@@ -180,7 +183,7 @@ public class RiakClient13 extends DB {
                 }
             } catch (IOException e) {
                 e.printStackTrace();
-                return ERROR;
+                return -2;
             }
             return OK;
         } else {
