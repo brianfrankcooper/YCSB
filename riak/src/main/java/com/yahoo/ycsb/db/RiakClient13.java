@@ -2,26 +2,24 @@ package com.yahoo.ycsb.db;
 
 import com.basho.riak.client.IRiakObject;
 import com.basho.riak.client.builders.RiakObjectBuilder;
-import com.basho.riak.client.query.indexes.BinIndex;
-import com.basho.riak.client.query.indexes.IntIndex;
+import com.basho.riak.client.query.MapReduceResult;
 import com.basho.riak.client.raw.RawClient;
 import com.basho.riak.client.raw.RiakResponse;
 import com.basho.riak.client.raw.pbc.PBClientAdapter;
 import com.basho.riak.client.raw.pbc.PBClientConfig;
 import com.basho.riak.client.raw.pbc.PBClusterClientFactory;
 import com.basho.riak.client.raw.pbc.PBClusterConfig;
-import com.basho.riak.client.raw.query.indexes.BinRangeQuery;
-import com.basho.riak.client.raw.query.indexes.BinValueQuery;
-import com.basho.riak.client.raw.query.indexes.IndexQuery;
-import com.basho.riak.client.raw.query.indexes.IntRangeQuery;
+import com.basho.riak.client.raw.query.MapReduceSpec;
 import com.basho.riak.client.util.CharsetUtils;
 import com.basho.riak.pbc.RiakClient;
-import com.yahoo.ycsb.*;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.DB;
+import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.StringByteIterator;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.ObjectNode;
 
-import javax.management.monitor.StringMonitorMBean;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.*;
@@ -159,6 +157,17 @@ public class RiakClient13 extends DB {
         return OK;
     }
 
+    private String getIndexMR(String bucket, String beginIndex, String endIndex) {
+        return "{\n" +
+                "   \"inputs\":{\n" +
+                "       \"bucket\":\""+bucket+"\",\n" +
+                "       \"index\":\""+YCSB_INT+"\",\n" +
+                "       \"start\":\""+beginIndex+"\",\n" +
+                "       \"end\":\""+endIndex+"\"\n" +
+                "   } " +
+                ",\"query\":[{\"map\":{\"language\":\"javascript\",\"source\":\"function(v) { return [v]; }\",\"keep\":true}}]}";
+    }
+
     public int scan(String bucket, String startkey, int recordcount,
                     Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
 
@@ -170,18 +179,31 @@ public class RiakClient13 extends DB {
                     System.err.println("Index not found");
                     return -5;
                 } else {
-                    Long id = idx.iterator().next();
-                    long range = id + recordcount;
-                    IndexQuery iq = new IntRangeQuery(IntIndex.named(YCSB_INT), bucket, id, range);
-                    List<String> results = rawClient.fetchIndex(iq);
-                    for(String key: results) {
-                        RiakResponse resp = rawClient.fetch(bucket, key);
-                        HashMap<String,ByteIterator> rowResult = new HashMap<String, ByteIterator>();
-                        riakObjToJson(resp.getRiakObjects()[0], fields, rowResult);
-                        result.add(rowResult);
+                    // instead of using MapReduce, would it be faster to use a 2i query, and then fetch each result?
+                    Long first = idx.iterator().next();
+                    long last = first + recordcount-1;
+                    MapReduceSpec spec = new MapReduceSpec(getIndexMR(bucket, Long.toString(first), Long.toString(last)));
+                    MapReduceResult mrResult = rawClient.mapReduce(spec);
+                    Collection<Object> results = mrResult.getResult(Object.class);
+                    for(Object o: results) {
+                        LinkedHashMap<?,?> res = (LinkedHashMap<?,?>)o;
+                        //[values, bucket, vclock, key]
+                        if(res.get("values") instanceof ArrayList<?>) {
+                            ArrayList vs = (ArrayList<?>)res.get("values");
+                            LinkedHashMap<?,?> v = (LinkedHashMap<?,?>)vs.get(0);
+                            LinkedHashMap<?,?> md = (LinkedHashMap<?,?>)v.get("metadata");
+                            String charset = (String)md.get("charset");
+                            String s = (String)v.get("data");
+                            HashMap<String,ByteIterator> rowResult = new HashMap<String, ByteIterator>();
+                            stringToJson(s, charset, fields, rowResult);
+                            result.add(rowResult);
+                        } else {
+                            return ERROR;
+                        }
+
                     }
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 return -2;
             }
@@ -267,6 +289,27 @@ public class RiakClient13 extends DB {
             objNode.put(entry.getKey(), entry.getValue().toString());
         }
         return objNode.toString().getBytes(CHARSET_UTF8);
+    }
+
+    public void stringToJson(String object, String charSet, Set<String> fields, Map<String, ByteIterator> result) throws IOException {
+        Charset charset = Charset.forName(charSet.toUpperCase());
+        // I'm guessing this is expensive
+        String dataInCharset = CharsetUtils.asString(object.getBytes(), charset);
+        JsonNode jsonNode = (JsonNode)om.readTree(dataInCharset);
+        if(fields != null) {
+            // return a subset of all available fields in the json node
+            for(String field: fields) {
+                JsonNode f = jsonNode.get(field);
+                result.put(field, new StringByteIterator(f.toString()));
+            }
+        } else {
+            // no fields specified, just return them all
+            Iterator<Map.Entry<String, JsonNode>> jsonFields = jsonNode.getFields();
+            while(jsonFields.hasNext()) {
+                Map.Entry<String, JsonNode> field = jsonFields.next();
+                result.put(field.getKey(), new StringByteIterator(field.getValue().toString()));
+            }
+        }
     }
 
     public void riakObjToJson(IRiakObject object, Set<String> fields, Map<String, ByteIterator> result)
