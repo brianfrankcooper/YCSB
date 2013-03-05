@@ -3,6 +3,7 @@ package com.yahoo.ycsb.db;
 import com.basho.riak.client.IRiakObject;
 import com.basho.riak.client.builders.RiakObjectBuilder;
 import com.basho.riak.client.query.MapReduceResult;
+import com.basho.riak.client.query.indexes.IntIndex;
 import com.basho.riak.client.raw.RawClient;
 import com.basho.riak.client.raw.RiakResponse;
 import com.basho.riak.client.raw.pbc.PBClientAdapter;
@@ -10,6 +11,8 @@ import com.basho.riak.client.raw.pbc.PBClientConfig;
 import com.basho.riak.client.raw.pbc.PBClusterClientFactory;
 import com.basho.riak.client.raw.pbc.PBClusterConfig;
 import com.basho.riak.client.raw.query.MapReduceSpec;
+import com.basho.riak.client.raw.query.indexes.IndexQuery;
+import com.basho.riak.client.raw.query.indexes.IntRangeQuery;
 import com.basho.riak.client.util.CharsetUtils;
 import com.basho.riak.pbc.RiakClient;
 import com.yahoo.ycsb.ByteIterator;
@@ -157,55 +160,30 @@ public class RiakClient13 extends DB {
         return OK;
     }
 
-    private String getIndexMR(String bucket, String beginIndex, String endIndex) {
-        return "{\n" +
-                "   \"inputs\":{\n" +
-                "       \"bucket\":\""+bucket+"\",\n" +
-                "       \"index\":\""+YCSB_INT+"\",\n" +
-                "       \"start\":\""+beginIndex+"\",\n" +
-                "       \"end\":\""+endIndex+"\"\n" +
-                "   } " +
-                ",\"query\":[{\"map\":{\"language\":\"javascript\",\"source\":\"function(v) { return [v]; }\",\"keep\":true}}]}";
-    }
-
     public int scan(String bucket, String startkey, int recordcount,
                     Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-
         if(use2i) {
             try {
                 RiakResponse fetchResp = rawClient.fetch(bucket, startkey);
                 Set<Long> idx = fetchResp.getRiakObjects()[0].getIntIndexV2(YCSB_INT);
                 if(idx.size() == 0) {
                     System.err.println("Index not found");
-                    return -5;
+                    return ERROR;
                 } else {
-                    // instead of using MapReduce, would it be faster to use a 2i query, and then fetch each result?
-                    Long first = idx.iterator().next();
-                    long last = first + recordcount-1;
-                    MapReduceSpec spec = new MapReduceSpec(getIndexMR(bucket, Long.toString(first), Long.toString(last)));
-                    MapReduceResult mrResult = rawClient.mapReduce(spec);
-                    Collection<Object> results = mrResult.getResult(Object.class);
-                    for(Object o: results) {
-                        LinkedHashMap<?,?> res = (LinkedHashMap<?,?>)o;
-                        //[values, bucket, vclock, key]
-                        if(res.get("values") instanceof ArrayList<?>) {
-                            ArrayList vs = (ArrayList<?>)res.get("values");
-                            LinkedHashMap<?,?> v = (LinkedHashMap<?,?>)vs.get(0);
-                            LinkedHashMap<?,?> md = (LinkedHashMap<?,?>)v.get("metadata");
-                            String charset = (String)md.get("charset");
-                            String s = (String)v.get("data");
-                            HashMap<String,ByteIterator> rowResult = new HashMap<String, ByteIterator>();
-                            stringToJson(s, charset, fields, rowResult);
-                            result.add(rowResult);
-                        } else {
-                            return ERROR;
-                        }
-
+                    Long id = idx.iterator().next();
+                    long range = id + recordcount;
+                    IndexQuery iq = new IntRangeQuery(IntIndex.named(YCSB_INT), bucket, id, range);
+                    List<String> results = rawClient.fetchIndex(iq);
+                    for(String key: results) {
+                        RiakResponse resp = rawClient.fetch(bucket, key);
+                        HashMap<String,ByteIterator> rowResult = new HashMap<String, ByteIterator>();
+                        riakObjToJson(resp.getRiakObjects()[0], fields, rowResult);
+                        result.add(rowResult);
                     }
                 }
-            } catch (Exception e) {
+            } catch (IOException e) {
                 e.printStackTrace();
-                return -2;
+                return ERROR;
             }
             return OK;
         } else {
