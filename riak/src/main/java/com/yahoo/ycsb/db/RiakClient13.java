@@ -2,7 +2,6 @@ package com.yahoo.ycsb.db;
 
 import com.basho.riak.client.IRiakObject;
 import com.basho.riak.client.builders.RiakObjectBuilder;
-import com.basho.riak.client.query.MapReduceResult;
 import com.basho.riak.client.query.indexes.IntIndex;
 import com.basho.riak.client.raw.RawClient;
 import com.basho.riak.client.raw.RiakResponse;
@@ -10,18 +9,17 @@ import com.basho.riak.client.raw.pbc.PBClientAdapter;
 import com.basho.riak.client.raw.pbc.PBClientConfig;
 import com.basho.riak.client.raw.pbc.PBClusterClientFactory;
 import com.basho.riak.client.raw.pbc.PBClusterConfig;
-import com.basho.riak.client.raw.query.MapReduceSpec;
 import com.basho.riak.client.raw.query.indexes.IndexQuery;
 import com.basho.riak.client.raw.query.indexes.IntRangeQuery;
 import com.basho.riak.client.util.CharsetUtils;
 import com.basho.riak.pbc.RiakClient;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.StringByteIterator;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.node.ObjectNode;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -282,7 +280,7 @@ public class RiakClient13 extends DB {
             }
         } else {
             // no fields specified, just return them all
-            Iterator<Map.Entry<String, JsonNode>> jsonFields = jsonNode.getFields();
+            Iterator<Map.Entry<String, JsonNode>> jsonFields = jsonNode.fields();
             while(jsonFields.hasNext()) {
                 Map.Entry<String, JsonNode> field = jsonFields.next();
                 result.put(field.getKey(), new StringByteIterator(field.getValue().toString()));
@@ -305,7 +303,7 @@ public class RiakClient13 extends DB {
             }
         } else {
           // no fields specified, just return them all
-          Iterator<Map.Entry<String, JsonNode>> jsonFields = jsonNode.getFields();
+          Iterator<Map.Entry<String, JsonNode>> jsonFields = jsonNode.fields();
           while(jsonFields.hasNext()) {
               Map.Entry<String, JsonNode> field = jsonFields.next();
                 result.put(field.getKey(), new StringByteIterator(field.getValue().toString()));
@@ -315,6 +313,9 @@ public class RiakClient13 extends DB {
 
     public static void main(String[] args)
     {
+
+
+
         RiakClient13 cli = new RiakClient13();
 
         Properties props = new Properties();
