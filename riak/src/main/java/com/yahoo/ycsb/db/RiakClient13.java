@@ -20,43 +20,24 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.StringByteIterator;
+import com.yahoo.ycsb.db.serializers.RiakSerializer;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.*;
 
+import static com.yahoo.ycsb.db.Constants.*;
+
 public class RiakClient13 extends DB {
-    public static final String RIAK_POOL_ENABLED = "riak_pool_enabled";
-    public static final String RIAK_POOL_TOTAL_MAX_CONNECTION = "riak_pool_total_max_connection";
-    public static final String RIAK_POOL_IDLE_CONNECTION_TTL_MILLIS = "riak_pool_idle_connection_ttl_millis";
-    public static final String RIAK_POOL_INITIAL_POOL_SIZE = "riak_pool_initial_pool_size";
-    public static final String RIAK_POOL_REQUEST_TIMEOUT_MILLIS = "riak_pool_request_timeout_millis";
-    public static final String RIAK_POOL_CONNECTION_TIMEOUT_MILLIS = "riak_pool_connection_timeout_millis";
-    public static final String RIAK_USE_2I = "riak_use_2i";
-    public static final String YCSB_INT = "ycsb_int";
     private RawClient rawClient;
-    public static final int OK = 0;
-    public static final int ERROR = -1;
-
-    public static final String RIAK_CLUSTER_HOSTS = "riak_cluster_hosts";
-    public static final String RIAK_CLUSTER_HOST_DEFAULT = "127.0.0.1:10017";
-
-    public static final int RIAK_POOL_TOTAL_MAX_CONNECTIONS_DEFAULT = 50;
-    public static final int RIAK_POOL_IDLE_CONNETION_TTL_MILLIS_DEFAULT = 1000;
-    public static final int RIAK_POOL_INITIAL_POOL_SIZE_DEFAULT = 5;
-    public static final int RIAK_POOL_REQUEST_TIMEOUT_MILLIS_DEFAULT = 1000;
-    public static final int RIAK_POOL_CONNECTION_TIMEOUT_MILLIS_DEFAULT = 1000;
-    public static final String RIAK_USE_2I_DEFAULT = "false";
-
-    private static final Charset CHARSET_UTF8 = Charset.forName("UTF-8");
-    private static final String CONTENT_TYPE_JSON_UTF8 = "application/json;charset=UTF-8";
-
-    ObjectMapper om = new ObjectMapper();
-    Map<String, Long> bucketIndexes = new HashMap<String, Long>();
-
+    private RiakSerializer serializer = null;
     private boolean use2i = false;
     private static int connectionNumber = 0;
 
+    public static final int OK = 0;
+    public static final int ERROR = -1;
+
+    Map<String, Long> bucketIndexes = new HashMap<String, Long>();
 
     private int getIntProperty(Properties props, String propname, int defaultValue) {
         String stringProp = props.getProperty(propname, "" + defaultValue);
@@ -67,6 +48,8 @@ public class RiakClient13 extends DB {
         try {
             Properties props = getProperties();
             use2i = Boolean.parseBoolean(props.getProperty(RIAK_USE_2I, RIAK_USE_2I_DEFAULT));
+            String serializerName = props.getProperty(RIAK_SERIALIZER, RIAK_DEFAULT_SERIALIZER);
+            serializer = (RiakSerializer)Class.forName(serializerName).newInstance();
             String cluster_hosts = props.getProperty(RIAK_CLUSTER_HOSTS, RIAK_CLUSTER_HOST_DEFAULT);
             String[] servers = cluster_hosts.split(",");
             boolean useConnectionPool = true;
@@ -148,8 +131,9 @@ public class RiakClient13 extends DB {
         try {
             RiakResponse response = rawClient.fetch(bucket, key);
             if(response.hasValue()) {
+                // TODO: conflict resolver
                 IRiakObject obj = response.getRiakObjects()[0];
-                riakObjToJson(obj, fields, result);
+                serializer.documentFromRiak(obj, fields, result);
             }
         } catch(Exception e) {
             e.printStackTrace();
@@ -174,8 +158,8 @@ public class RiakClient13 extends DB {
                     List<String> results = rawClient.fetchIndex(iq);
                     for(String key: results) {
                         RiakResponse resp = rawClient.fetch(bucket, key);
-                        HashMap<String,ByteIterator> rowResult = new HashMap<String, ByteIterator>();
-                        riakObjToJson(resp.getRiakObjects()[0], fields, rowResult);
+                        HashMap<String, ByteIterator> rowResult = new HashMap<String, ByteIterator>();
+                                serializer.rowFromRiakScan(resp.getRiakObjects()[0], fields, rowResult);
                         result.add(rowResult);
                     }
                 }
@@ -194,8 +178,9 @@ public class RiakClient13 extends DB {
         try {
             RiakResponse response = rawClient.fetch(bucket, key);
             if(response.hasValue()) {
+                // TODO: conflict resolver
                 IRiakObject obj = response.getRiakObjects()[0];
-                byte[] data = updateJson(obj, values);
+                byte[] data = serializer.updateDocumentFromRiak(obj, values);
                 RiakObjectBuilder builder =
                         RiakObjectBuilder.newBuilder(bucket, key)
                                 .withContentType(CONTENT_TYPE_JSON_UTF8)
@@ -216,7 +201,7 @@ public class RiakClient13 extends DB {
                 RiakObjectBuilder.newBuilder(bucket, key)
                                  .withContentType(CONTENT_TYPE_JSON_UTF8);
         try {
-            byte[] rawValue = jsonToBytes(values);
+            byte[] rawValue = serializer.documentToRiak(values);
             RiakObjectBuilder objBuilder = builder.withValue(rawValue);
             if(use2i) {
                     long idxValue = 0;
@@ -247,75 +232,10 @@ public class RiakClient13 extends DB {
         return OK;
     }
 
-    private byte[] updateJson(IRiakObject object, Map<String, ByteIterator> values) throws IOException {
-        String contentType = object.getContentType();
-        Charset charSet = CharsetUtils.getCharset(contentType);
-        byte[] data = object.getValue();
-        String dataInCharset = CharsetUtils.asString(data, charSet);
-        JsonNode jsonNode = om.readTree(dataInCharset);
-        for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-            ((ObjectNode) jsonNode).put(entry.getKey(), entry.getValue().toString());
-        }
-        return jsonNode.toString().getBytes(CHARSET_UTF8);
-    }
 
-    private byte[] jsonToBytes(Map<String, ByteIterator> values) {
-        ObjectNode objNode = om.createObjectNode();
-        for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-            objNode.put(entry.getKey(), entry.getValue().toString());
-        }
-        return objNode.toString().getBytes(CHARSET_UTF8);
-    }
-
-    public void stringToJson(String object, String charSet, Set<String> fields, Map<String, ByteIterator> result) throws IOException {
-        Charset charset = Charset.forName(charSet.toUpperCase());
-        // I'm guessing this is expensive
-        String dataInCharset = CharsetUtils.asString(object.getBytes(), charset);
-        JsonNode jsonNode = (JsonNode)om.readTree(dataInCharset);
-        if(fields != null) {
-            // return a subset of all available fields in the json node
-            for(String field: fields) {
-                JsonNode f = jsonNode.get(field);
-                result.put(field, new StringByteIterator(f.toString()));
-            }
-        } else {
-            // no fields specified, just return them all
-            Iterator<Map.Entry<String, JsonNode>> jsonFields = jsonNode.fields();
-            while(jsonFields.hasNext()) {
-                Map.Entry<String, JsonNode> field = jsonFields.next();
-                result.put(field.getKey(), new StringByteIterator(field.getValue().toString()));
-            }
-        }
-    }
-
-    public void riakObjToJson(IRiakObject object, Set<String> fields, Map<String, ByteIterator> result)
-            throws IOException {
-        String contentType = object.getContentType();
-        Charset charSet = CharsetUtils.getCharset(contentType);
-        byte[] data = object.getValue();
-        String dataInCharset = CharsetUtils.asString(data, charSet);
-        JsonNode jsonNode = om.readTree(dataInCharset);
-        if(fields != null) {
-            // return a subset of all available fields in the json node
-            for(String field: fields) {
-                JsonNode f = jsonNode.get(field);
-                result.put(field, new StringByteIterator(f.toString()));
-            }
-        } else {
-          // no fields specified, just return them all
-          Iterator<Map.Entry<String, JsonNode>> jsonFields = jsonNode.fields();
-          while(jsonFields.hasNext()) {
-              Map.Entry<String, JsonNode> field = jsonFields.next();
-                result.put(field.getKey(), new StringByteIterator(field.getValue().toString()));
-          }
-        }
-    }
 
     public static void main(String[] args)
     {
-
-
-
         RiakClient13 cli = new RiakClient13();
 
         Properties props = new Properties();
@@ -328,7 +248,6 @@ public class RiakClient13 extends DB {
         } catch(Exception e) {
             e.printStackTrace();
         }
-
 
         String bucket = "people";
         String key = "person1";
