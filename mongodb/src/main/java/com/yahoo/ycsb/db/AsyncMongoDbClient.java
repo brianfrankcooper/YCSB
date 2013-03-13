@@ -145,32 +145,31 @@ public class AsyncMongoDbClient extends DB {
             String url = props.getProperty("mongodb.url",
                     "mongodb://localhost:27017");
             database = props.getProperty("mongodb.database", "ycsb");
-            final String writeConcernType = props.getProperty(
-                    "mongodb.writeConcern",
-                    props.getProperty("mongodb.durability", "safe"))
+            String writeConcernType = props.getProperty("mongodb.writeConcern",
+                    props.getProperty("mongodb.durability", "acknowledged"))
                     .toLowerCase();
 
-            if ("none".equals(writeConcernType)) {
+            if ("errors_ignored".equals(writeConcernType)) {
                 writeConcern = Durability.NONE;
             }
-            else if ("safe".equals(writeConcernType)) {
+            else if ("unacknowledged".equals(writeConcernType)) {
+                writeConcern = Durability.NONE;
+            }
+            else if ("acknowledged".equals(writeConcernType)) {
                 writeConcern = Durability.ACK;
             }
-            else if ("normal".equals(writeConcernType)) {
-                writeConcern = Durability.ACK;
+            else if ("journaled".equals(writeConcernType)) {
+                writeConcern = Durability.journalDurable(0);
             }
-            else if ("fsync_safe".equals(writeConcernType)) {
-                writeConcern = Durability.fsyncDurable(10000);
-            }
-            else if ("replicas_safe".equals(writeConcernType)) {
-                writeConcern = Durability.replicaDurable(10000);
+            else if ("replica_acknowledged".equals(writeConcernType)) {
+                writeConcern = Durability.replicaDurable(2, 0);
             }
             else {
                 System.err
-                        .println("ERROR: Invalid durability: '"
+                        .println("ERROR: Invalid writeConcern: '"
                                 + writeConcernType
                                 + "'. "
-                                + "Must be [ none | safe | normal | fsync_safe | replicas_safe ]");
+                                + "Must be [ errors_ignored | unacknowledged | acknowledged | journaled | replica_acknowledged ]");
                 System.exit(1);
             }
 

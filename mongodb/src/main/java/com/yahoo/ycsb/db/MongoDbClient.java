@@ -39,7 +39,7 @@ import com.yahoo.ycsb.DBException;
  * Properties to set:
  * 
  * mongodb.url=mongodb://localhost:27017 mongodb.database=ycsb
- * mongodb.writeConcern=normal
+ * mongodb.writeConcern=acknowledged
  * 
  * @author ypai
  */
@@ -90,7 +90,9 @@ public class MongoDbClient extends DB {
 
             database = props.getProperty("mongodb.database", "ycsb");
             String writeConcernType = props.getProperty("mongodb.writeConcern",
-                    "safe").toLowerCase();
+                    "acknowledged").toLowerCase();
+
+            // Set connectionpool to size of ycsb thread pool
             final String maxConnections = props.getProperty(
                     "mongodb.maxconnections", "10");
             final String threadsAllowedToBlockForConnectionMultiplier = props
@@ -98,27 +100,27 @@ public class MongoDbClient extends DB {
                             "mongodb.threadsAllowedToBlockForConnectionMultiplier",
                             "5");
 
-            if ("none".equals(writeConcernType)) {
-                writeConcern = WriteConcern.NONE;
+            if ("errors_ignored".equals(writeConcernType)) {
+                writeConcern = WriteConcern.ERRORS_IGNORED;
             }
-            else if ("safe".equals(writeConcernType)) {
-                writeConcern = WriteConcern.SAFE;
+            else if ("unacknowledged".equals(writeConcernType)) {
+                writeConcern = WriteConcern.UNACKNOWLEDGED;
             }
-            else if ("normal".equals(writeConcernType)) {
-                writeConcern = WriteConcern.NORMAL;
+            else if ("acknowledged".equals(writeConcernType)) {
+                writeConcern = WriteConcern.ACKNOWLEDGED;
             }
-            else if ("fsync_safe".equals(writeConcernType)) {
-                writeConcern = WriteConcern.FSYNC_SAFE;
+            else if ("journaled".equals(writeConcernType)) {
+                writeConcern = WriteConcern.JOURNALED;
             }
-            else if ("replicas_safe".equals(writeConcernType)) {
-                writeConcern = WriteConcern.REPLICAS_SAFE;
+            else if ("replica_acknowledged".equals(writeConcernType)) {
+                writeConcern = WriteConcern.REPLICA_ACKNOWLEDGED;
             }
             else {
                 System.err
                         .println("ERROR: Invalid writeConcern: '"
                                 + writeConcernType
                                 + "'. "
-                                + "Must be [ none | safe | normal | fsync_safe | replicas_safe ]");
+                                + "Must be [ errors_ignored | unacknowledged | acknowledged | journaled | replica_acknowledged ]");
                 System.exit(1);
             }
 

@@ -39,7 +39,7 @@ See the next section for the list of configuration parameters for MongoDB.
 
 ### `mongodb.database` (default: `ycsb`)
 
-### `mongodb.writeConcern` (default `safe`)
+### `mongodb.writeConcern` (default `acknowledged`, options are `errors_ignored`, `unacknowledged`, `acknowledged`, `journaled`, `replica_acknowledged`)
 
 ### `mongodb.maxconnections` (default `10`)
 
