@@ -194,7 +194,7 @@ public class MongoDbClient extends DB {
             DBCollection collection = db.getCollection(table);
             DBObject q = new BasicDBObject().append("_id", key);
             WriteResult res = collection.remove(q, writeConcern);
-            return res.getN() == 1 ? 0 : 1;
+            return 0;
         }
         catch (Exception e) {
             System.err.println(e.toString());
@@ -236,7 +236,7 @@ public class MongoDbClient extends DB {
                 r.put(entry.getKey(), entry.getValue().toArray());
             }
             WriteResult res = collection.insert(r, writeConcern);
-            return res.getError() == null ? 0 : 1;
+            return 0;
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -341,7 +341,7 @@ public class MongoDbClient extends DB {
             u.put("$set", fieldsToSet);
             WriteResult res = collection.update(q, u, false, false,
                     writeConcern);
-            return res.getN() == 1 ? 0 : 1;
+            return 0;
         }
         catch (Exception e) {
             System.err.println(e.toString());
