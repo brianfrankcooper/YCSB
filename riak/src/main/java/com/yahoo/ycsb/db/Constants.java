@@ -27,6 +27,6 @@ public class Constants {
     public static final Charset CHARSET_UTF8 = Charset.forName(UTF_8);
     public static final String CONTENT_TYPE_JSON_UTF8 = "application/json;charset=UTF-8";
 
-    public static final String RIAK_DEFAULT_SERIALIZER = "com.yahoo.ycsb.db.RiakJsonSerializer";
+    public static final String RIAK_DEFAULT_SERIALIZER = "com.yahoo.ycsb.db.serializers.RiakJsonSerializer";
 
 }

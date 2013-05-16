@@ -11,11 +11,7 @@ import com.basho.riak.client.raw.pbc.PBClusterClientFactory;
 import com.basho.riak.client.raw.pbc.PBClusterConfig;
 import com.basho.riak.client.raw.query.indexes.IndexQuery;
 import com.basho.riak.client.raw.query.indexes.IntRangeQuery;
-import com.basho.riak.client.util.CharsetUtils;
 import com.basho.riak.pbc.RiakClient;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
@@ -23,7 +19,6 @@ import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.db.serializers.RiakSerializer;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.*;
 
 import static com.yahoo.ycsb.db.Constants.*;
