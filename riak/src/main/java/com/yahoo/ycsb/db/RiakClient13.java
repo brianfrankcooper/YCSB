@@ -72,6 +72,11 @@ public class RiakClient13 extends DB {
         //System.out.println("Riak connection to " + ip + ":" + port);
         RiakClient pbcClient = new RiakClient(ip, port);
         rawClient = new PBClientAdapter(pbcClient);
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     private void setupConnectionPool(Properties props, String[] servers) throws IOException {
