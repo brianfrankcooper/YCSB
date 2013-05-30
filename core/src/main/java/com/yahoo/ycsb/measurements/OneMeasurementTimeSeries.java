@@ -98,8 +98,11 @@ public class OneMeasurementTimeSeries extends OneMeasurement
 		{
 			double avg=((double)sum)/((double)count);
 			_measurements.add(new SeriesUnit(currentunit,avg));
-			//Record throughput for this period
-			tputstats.addValue(count/sum);
+			//Record throughput in ops/sec for this period if there was one
+			if (sum > 0) 
+			{
+				tputstats.addValue(count/((double)sum/1000));
+			}
 			currentunit=unit;
 			
 			count=0;
