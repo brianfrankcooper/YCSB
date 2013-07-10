@@ -1,1 +1,10 @@
 /elasticsearch/target/
+.project
+.classpath
+test-output
+*.swp
+.DS_Store
+target
+.settings
+*.config
+
