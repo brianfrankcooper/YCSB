@@ -1,6 +1,7 @@
 package com.yahoo.ycsb.db;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.*;
+import static com.google.common.collect.Maps.newHashMap;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -11,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.basho.riak.client.IRiakObject;
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 
@@ -42,8 +44,15 @@ final class RiakUtils {
 
     }
 
-    static void deserializeTable(byte[] aValue,
-            HashMap<String, ByteIterator> theResult) {
+    static void deserializeTable(final IRiakObject aRiakObject,
+            final HashMap<String, ByteIterator> theResult) {
+
+        deserializeTable(aRiakObject.getValue(), theResult);
+
+    }
+
+    static void deserializeTable(final byte[] aValue,
+            final Map<String, ByteIterator> theResult) {
 
         final ByteArrayInputStream anInputStream = new ByteArrayInputStream(
                 aValue);
@@ -102,7 +111,7 @@ final class RiakUtils {
 
     }
 
-    static byte[] serializeTable(HashMap<String, ByteIterator> aTable) {
+    static byte[] serializeTable(Map<String, ByteIterator> aTable) {
 
         final ByteArrayOutputStream anOutputStream = new ByteArrayOutputStream();
 
@@ -135,6 +144,22 @@ final class RiakUtils {
             close(anOutputStream);
 
         }
+
+    }
+
+    static <K, V> Map<K, V> merge(final Map<K, V> aMap,
+            final Map<K, V> theUpdatedMap) {
+
+        checkNotNull(aMap);
+        checkNotNull(theUpdatedMap);
+
+        final Map<K, V> theResult = newHashMap(aMap);
+
+        for (Map.Entry<K, V> aColumn : theUpdatedMap.entrySet()) {
+            theResult.put(aColumn.getKey(), aColumn.getValue());
+        }
+
+        return theResult;
 
     }
 
