@@ -180,11 +180,11 @@ public class RiakClient13 extends DB {
                     aTable.put(aColumn.getKey(), aColumn.getValue());
                 }
 
-                final RiakObjectBuilder builder = RiakObjectBuilder
+                final RiakObjectBuilder aBuilder = RiakObjectBuilder
                         .newBuilder(aBucket, aKey)
                         .withValue(serializeTable(aTable))
                         .withVClock(aResponse.getVclock());
-                rawClient.store(builder.build());
+                rawClient.store(aBuilder.build());
 
             }
 
