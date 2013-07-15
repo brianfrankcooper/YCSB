@@ -41,7 +41,7 @@ DATABASES = {
     "orientdb"     : "com.yahoo.ycsb.db.OrientDBClient",
     "redis"        : "com.yahoo.ycsb.db.RedisClient", 
     "voldemort"    : "com.yahoo.ycsb.db.VoldemortClient", 
-    "riak-1.3"         : "com.yahoo.ycsb.db.RiakClient13"
+    "riak"         : "com.yahoo.ycsb.db.RiakDBClient"
 }
 
 OPTIONS = {

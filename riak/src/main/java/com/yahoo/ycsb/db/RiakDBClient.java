@@ -20,18 +20,14 @@ import com.basho.riak.client.query.indexes.IntIndex;
 import com.basho.riak.client.raw.RawClient;
 import com.basho.riak.client.raw.RiakResponse;
 import com.basho.riak.client.raw.pbc.PBClientAdapter;
-import com.basho.riak.client.raw.pbc.PBClientConfig;
-import com.basho.riak.client.raw.pbc.PBClusterClientFactory;
-import com.basho.riak.client.raw.pbc.PBClusterConfig;
 import com.basho.riak.client.raw.query.indexes.IndexQuery;
 import com.basho.riak.client.raw.query.indexes.IntRangeQuery;
-import com.basho.riak.pbc.RiakClient;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.StringByteIterator;
 
-public final class RiakClient13 extends DB {
+public final class RiakDBClient extends DB {
 
     private static final AtomicLong SCAN_INDEX_SEQUENCE = new AtomicLong();
 
@@ -42,12 +38,6 @@ public final class RiakClient13 extends DB {
     public static final int OK = 0;
     public static final int ERROR = -1;
 
-    private int getIntProperty(Properties props, String propname,
-            int defaultValue) {
-        String stringProp = props.getProperty(propname, "" + defaultValue);
-        return Integer.parseInt(stringProp);
-    }
-
     public void init() throws DBException {
 
         try {
@@ -57,19 +47,7 @@ public final class RiakClient13 extends DB {
             final String cluster_hosts = props.getProperty(RIAK_CLUSTER_HOSTS,
                     RIAK_CLUSTER_HOST_DEFAULT);
             final String[] servers = cluster_hosts.split(",");
-            boolean useConnectionPool = true;
-
-            if (props.containsKey(RIAK_POOL_ENABLED)) {
-                String usePool = props.getProperty(RIAK_POOL_ENABLED);
-                useConnectionPool = Boolean.parseBoolean(usePool);
-            }
-
-            if (useConnectionPool) {
-                setupConnectionPool(props, servers);
-            } else {
-                setupConnections(props, servers);
-            }
-
+            setupConnections(props, servers);
         } catch (Exception e) {
 
             e.printStackTrace();
@@ -85,59 +63,10 @@ public final class RiakClient13 extends DB {
         final String[] ipAndPort = server.split(":");
         final String ip = ipAndPort[0].trim();
         final int port = Integer.parseInt(ipAndPort[1].trim());
-        // System.out.println("Riak connection to " + ip + ":" + port);
-        final RiakClient pbcClient = new RiakClient(ip, port);
+        final com.basho.riak.pbc.RiakClient pbcClient = new com.basho.riak.pbc.RiakClient(ip, port);
         rawClient = new PBClientAdapter(pbcClient);
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
     }
 
-    private void setupConnectionPool(Properties props, String[] servers)
-            throws IOException {
-
-        final int poolMaxConnections = getIntProperty(props,
-                RIAK_POOL_TOTAL_MAX_CONNECTION,
-                RIAK_POOL_TOTAL_MAX_CONNECTIONS_DEFAULT);
-        final int poolIdleConnectionTtlMillis = getIntProperty(props,
-                RIAK_POOL_IDLE_CONNECTION_TTL_MILLIS,
-                RIAK_POOL_IDLE_CONNETION_TTL_MILLIS_DEFAULT);
-        final int poolInitialPoolSize = getIntProperty(props,
-                RIAK_POOL_INITIAL_POOL_SIZE,
-                RIAK_POOL_INITIAL_POOL_SIZE_DEFAULT);
-        final int poolRequestTimeoutMillis = getIntProperty(props,
-                RIAK_POOL_REQUEST_TIMEOUT_MILLIS,
-                RIAK_POOL_REQUEST_TIMEOUT_MILLIS_DEFAULT);
-        final int poolConnectionTimeoutMillis = getIntProperty(props,
-                RIAK_POOL_CONNECTION_TIMEOUT_MILLIS,
-                RIAK_POOL_CONNECTION_TIMEOUT_MILLIS_DEFAULT);
-
-        final PBClusterConfig clusterConf = new PBClusterConfig(
-                poolMaxConnections);
-        for (final String server : servers) {
-
-            final String[] ipAndPort = server.split(":");
-            final String ip = ipAndPort[0].trim();
-            final int port = Integer.parseInt(ipAndPort[1].trim());
-            // System.out.println("Riak connection to " + ip + ":" + port);
-            PBClientConfig node = PBClientConfig.Builder
-                    .from(PBClientConfig.defaults()).withHost(ip)
-                    .withPort(port)
-                    .withIdleConnectionTTLMillis(poolIdleConnectionTtlMillis)
-                    .withInitialPoolSize(poolInitialPoolSize)
-                    .withRequestTimeoutMillis(poolRequestTimeoutMillis)
-                    .withConnectionTimeoutMillis(poolConnectionTimeoutMillis)
-                    .build();
-            clusterConf.addClient(node);
-
-        }
-
-        rawClient = PBClusterClientFactory.getInstance().newClient(clusterConf);
-
-    }
 
     @Override
     public void cleanup() throws DBException {
@@ -151,7 +80,6 @@ public final class RiakClient13 extends DB {
         try {
 
             final RiakResponse aResponse = rawClient.fetch(aBucket, aKey);
-            // TODO: conflict resolver
             if (aResponse.hasValue()) {
                 final IRiakObject aRiakObject = aResponse.getRiakObjects()[0];
                 deserializeTable(aRiakObject.getValue(), theResult);
@@ -217,7 +145,6 @@ public final class RiakClient13 extends DB {
                 final Map<String, ByteIterator> anUpdatedTable = merge(aTable,
                         theUpdatedColumns);
 
-                // TODO: conflict resolver
                 // The RiakObjectBuilder#from method copies indexes -- ensuring
                 // that the YCSB index is not lost on update ...
                 final RiakObjectBuilder aBuilder = RiakObjectBuilder.from(
@@ -275,7 +202,7 @@ public final class RiakClient13 extends DB {
     }
 
     public static void main(String[] args) {
-        RiakClient13 cli = new RiakClient13();
+        RiakDBClient cli = new RiakDBClient();
 
         Properties props = new Properties();
         props.setProperty(RIAK_CLUSTER_HOSTS,
