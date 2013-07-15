@@ -27,7 +27,7 @@ import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.StringByteIterator;
 
-public final class RiakClient extends DB {
+public final class RiakDBClient extends DB {
 
     private static final AtomicLong SCAN_INDEX_SEQUENCE = new AtomicLong();
 
@@ -202,7 +202,7 @@ public final class RiakClient extends DB {
     }
 
     public static void main(String[] args) {
-        RiakClient cli = new RiakClient();
+        RiakDBClient cli = new RiakDBClient();
 
         Properties props = new Properties();
         props.setProperty(RIAK_CLUSTER_HOSTS,
