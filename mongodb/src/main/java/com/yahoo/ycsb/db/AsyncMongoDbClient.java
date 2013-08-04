@@ -124,7 +124,7 @@ public class AsyncMongoDbClient extends DB {
 
         final Properties props = getProperties();
         final String maxConnections = props.getProperty(
-                "mongodb.maxconnections", "10");
+                "mongodb.maxconnections", "100");
         final int connections = Integer.parseInt(maxConnections);
 
         synchronized (AsyncMongoDbClient.class) {

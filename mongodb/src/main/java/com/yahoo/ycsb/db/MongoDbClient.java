@@ -26,7 +26,6 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.WriteConcern;
-import com.mongodb.WriteResult;
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
@@ -94,7 +93,7 @@ public class MongoDbClient extends DB {
 
             // Set connectionpool to size of ycsb thread pool
             final String maxConnections = props.getProperty(
-                    "mongodb.maxconnections", "10");
+                    "mongodb.maxconnections", "100");
             final String threadsAllowedToBlockForConnectionMultiplier = props
                     .getProperty(
                             "mongodb.threadsAllowedToBlockForConnectionMultiplier",
@@ -193,7 +192,7 @@ public class MongoDbClient extends DB {
             db.requestStart();
             DBCollection collection = db.getCollection(table);
             DBObject q = new BasicDBObject().append("_id", key);
-            WriteResult res = collection.remove(q, writeConcern);
+            collection.remove(q, writeConcern);
             return 0;
         }
         catch (Exception e) {
@@ -235,7 +234,7 @@ public class MongoDbClient extends DB {
             for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
                 r.put(entry.getKey(), entry.getValue().toArray());
             }
-            WriteResult res = collection.insert(r, writeConcern);
+            collection.insert(r, writeConcern);
             return 0;
         }
         catch (Exception e) {
@@ -339,8 +338,7 @@ public class MongoDbClient extends DB {
 
             }
             u.put("$set", fieldsToSet);
-            WriteResult res = collection.update(q, u, false, false,
-                    writeConcern);
+            collection.update(q, u, false, false, writeConcern);
             return 0;
         }
         catch (Exception e) {
