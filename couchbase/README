@@ -1,0 +1,10 @@
+Uses:
+	-Couchbase Java Client Library 1.1 (Couchbase java driver)
+	-Gson (Test client to/from Couchbase Server storage format JSON)
+
+Tested with:
+	Couchbase Server 2.1
+	using sample workload found in src/main/resources/workload_cb_sample.dat
+
+Test procedure:
+	Review sample properties(table, design document, view, etc) in src/main/resources/workload_cb_sample.dat
