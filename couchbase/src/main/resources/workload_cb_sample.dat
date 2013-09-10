@@ -1,0 +1,57 @@
+# Workload FDR: READ/UPDATE heavy workload
+#   Read/update ratio: 50/50
+#   Default data size: 1 KB records (10 fields, 100 bytes each, plus key)
+#   Request distribution: zipfian
+
+recordcount=1000
+operationcount=1000
+workload=com.yahoo.ycsb.workloads.CoreWorkload
+requestdistribution=zipfian
+
+
+readallfields=true
+
+readproportion=0.5
+insertproportion=0.5
+updateproportion=0
+scanproportion=0
+
+
+# WRITE
+writeallfields=true
+readmodifywriteproportion=0
+
+table=test_bucket
+ddoc=test_doc
+view=test_view
+Stale=OK
+password=
+
+fieldcount=1
+fieldlength=65536
+
+
+maxexecutiontime=60
+operationcount=1000
+
+measurementtype=timeseries
+timeseries.granularity=100
+
+
+
+# AVAILABLE PROPERTIES
+#fieldcount: the number of fields in a record (default: 10) 
+#fieldlength: the size of each field (default: 100) 
+#readallfields: should reads read all fields (true) or just one (false) (default: true) 
+#readproportion: what proportion of operations should be reads (default: 0.95) 
+#updateproportion: what proportion of operations should be updates (default: 0.05) 
+#insertproportion: what proportion of operations should be inserts (default: 0)
+#scanproportion: what proportion of operations should be scans (default: 0) 
+#readmodifywriteproportion: what proportion of operations should be read a record, modify it, write it back (default: 0) 
+#requestdistribution: what distribution should be used to select the records to operate on – uniform, zipfian or latest (default: uniform) 
+#maxscanlength: for scans, what is the maximum number of records to scan (default: 1000) 
+#scanlengthdistribution: for scans, what distribution should be used to choose the number of records to scan, for each scan, between 1 and maxscanlength (default: uniform) 
+#insertorder: should records be inserted in order by key (“ordered”), or in hashed order (“hashed”) (default: hashed) 
+#operationcount: Number of operations to perform. 
+#maxexecutiontime: Maximum execution time in seconds. The benchmark runs until either the operation count has exhausted or the maximum specified time has elapsed, whichever is earlier.
+#table: The name of the table (default: usertable)
