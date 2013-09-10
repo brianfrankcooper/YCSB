@@ -54,6 +54,13 @@ LICENSE file.
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
+        <!-- Gson: Java to Json conversion -->
+        <dependency>
+          <groupId>com.google.code.gson</groupId>
+          <artifactId>gson</artifactId>
+          <version>2.2.4</version>
+          <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <repositories>

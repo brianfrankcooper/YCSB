@@ -17,11 +17,13 @@
 
 package com.yahoo.ycsb.db;
 
+import com.couchbase.client.protocol.views.*;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.gson.*;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
@@ -37,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.StringWriter;
 import java.io.Writer;
+import java.lang.reflect.Type;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -82,6 +85,43 @@ public class CouchbaseClient extends DB {
   private boolean checkFutures;
   private boolean useJson;
   private final Logger log = LoggerFactory.getLogger(getClass());
+  private volatile Stale stale;
+  public final ThreadLocal<Gson> gson = new ThreadLocal<Gson>() {
+    public Gson get() {
+      return GSON_BUILDER
+        .create();
+    }
+  };
+
+  /**
+   * {@link Gson} instance builder
+   */
+  private static GsonBuilder GSON_BUILDER = new GsonBuilder().registerTypeAdapter(
+    ByteIterator.class,
+    new JsonSerializer<ByteIterator>() {
+
+      @Override
+      public JsonElement serialize(
+        ByteIterator arg0,
+        Type arg1,
+        JsonSerializationContext arg2) {
+        return new JsonPrimitive(
+          arg0.toString());
+      }
+    })
+    .registerTypeAdapter(
+      ByteIterator.class,
+      new JsonDeserializer<ByteIterator>() {
+        @Override
+        public ByteIterator deserialize(
+          JsonElement arg0,
+          Type arg1,
+          JsonDeserializationContext arg2)
+          throws JsonParseException {
+          return new StringByteIterator(
+            arg0.toString());
+        }
+      });
 
   @Override
   public void init() throws DBException {
@@ -196,6 +236,38 @@ public class CouchbaseClient extends DB {
   @Override
   public Status scan(final String table, final String startkey, final int recordcount,
     final Set<String> fields, final Vector<HashMap<String, ByteIterator>> result) {
+    String designDoc = getProperties().getProperty("ddoc");
+    String viewName = getProperties().getProperty("view");
+
+    if (designDoc == null || viewName == null) {
+      System.err.println("Scan requires [ddoc, view] params");
+      return Status.ERROR;
+    }
+
+    try {
+      final View view = client.getView(designDoc, viewName);
+      Query query = new Query().setRangeStart(startkey)
+        .setLimit(recordcount).setIncludeDocs(Boolean.TRUE)
+        .setStale(stale);
+
+      ViewResponse response = client.query(view, query);
+
+      HashMap<String, ByteIterator> resultMap = new HashMap<String, ByteIterator>();
+      for (ViewRow row : response) {
+        Object obj = row.getDocument();
+        if (obj == null) {
+          continue;
+        }
+        ByteIterator recVal = gson.get().fromJson(obj.toString(),
+          ByteIterator.class);
+        resultMap.put(row.getKey(), recVal);
+      }
+      result.add(resultMap);
+      return Status.OK;
+    } catch (Exception e) {
+      System.err.println(e.getMessage());
+    }
+
     return Status.ERROR;
   }
 
