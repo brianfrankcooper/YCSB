@@ -5,13 +5,16 @@ package com.yahoo.ycsb.db;
 
 import java.lang.reflect.Type;
 import java.net.URI;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import net.spy.memcached.PersistTo;
 import net.spy.memcached.ReplicateTo;
@@ -78,6 +81,11 @@ public class CouchbaseDbClient extends DB {
     private volatile PersistTo              persistTo;
     private volatile ReplicateTo            replicateTo;
     private volatile Stale                  stale;
+    /**
+     * Count the number of times initialized to teardown on the last
+     * {@link #cleanup()}.
+     */
+    private static final AtomicInteger      initCount    = new AtomicInteger(0);
 
     /**
      * {@link Gson} instance builder
@@ -124,6 +132,8 @@ public class CouchbaseDbClient extends DB {
      */
     @Override
     public void init() throws DBException {
+        initCount.incrementAndGet();
+
         super.init();
 
         // singleton CouchbaseClient as it is costly to construct & thread safe
@@ -141,7 +151,10 @@ public class CouchbaseDbClient extends DB {
                     // connection
                     final String hosts = getProperties().getProperty("hosts",
                             "http://127.0.0.1:8091/pools");
-                    final List<URI> nodes = Arrays.asList(new URI(hosts));
+                    final List<URI> nodes = new ArrayList<URI>();
+                    for (String host : hosts.split(",")) {
+                        nodes.add(new URI(host));
+                    }
 
                     // Name of the Bucket to connect to
                     final String bucket = getProperties().getProperty("table",
@@ -168,6 +181,27 @@ public class CouchbaseDbClient extends DB {
                     Stale.OK.name()).toUpperCase());
         } catch (Exception e) {
             throw new DBException(e);
+        }
+    }
+
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.yahoo.ycsb.DB#cleanup()
+     */
+    @Override
+    public void cleanup() throws DBException {
+        if (initCount.decrementAndGet() <= 0) {
+            try {
+                client.shutdown();
+            } catch (Exception e) {
+                System.err
+                        .println("Could not close Couchbase connection pool: "
+                        + e.toString());
+                e.printStackTrace();
+                return;
+            }
         }
     }
 
@@ -250,11 +284,13 @@ public class CouchbaseDbClient extends DB {
             String encoded = gson.get().toJson(values,
                     new TypeToken<Map<String, ByteIterator>>() {
                     }.getType());
-            return client.set(key, encoded, persistTo, replicateTo).get()
+            return client.set(key, encoded, persistTo, replicateTo).get(5, TimeUnit.SECONDS)
                     .booleanValue() ? 0 : 1;
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (ExecutionException e) {
+            System.err.println(e.getMessage());
+        } catch (TimeoutException e) {
             System.err.println(e.getMessage());
         }
         return 1;
@@ -273,11 +309,14 @@ public class CouchbaseDbClient extends DB {
             String encoded = gson.get().toJson(values,
                     new TypeToken<Map<String, ByteIterator>>() {
                     }.getType());
-            return client.add(key, encoded, persistTo, replicateTo).get()
+            return client.add(key, encoded, persistTo, replicateTo)
+                    .get(5, TimeUnit.SECONDS)
                     .booleanValue() ? 0 : 1;
         } catch (InterruptedException e) {
             System.err.println(e.getMessage());
         } catch (ExecutionException e) {
+            System.err.println(e.getMessage());
+        } catch (TimeoutException e) {
             System.err.println(e.getMessage());
         }
 
@@ -292,11 +331,13 @@ public class CouchbaseDbClient extends DB {
     @Override
     public int delete(String table, String key) {
         try {
-            return client.delete(key, persistTo, replicateTo).get()
+            return client.delete(key, persistTo, replicateTo).get(5, TimeUnit.SECONDS)
                     .booleanValue() ? 0 : 1;
         } catch (InterruptedException e) {
             System.err.println(e.getMessage());
         } catch (ExecutionException e) {
+            System.err.println(e.getMessage());
+        } catch (TimeoutException e) {
             System.err.println(e.getMessage());
         }
 
