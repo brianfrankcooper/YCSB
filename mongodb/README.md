@@ -29,6 +29,14 @@ Download MVN from http://maven.apache.org/download.cgi
     cd /usr/local
     sudo ln -s apache-maven-* maven
     sudo vi /etc/profile.d/maven.sh
+
+Add the following to `maven.sh`
+
+    export M2_HOME=/usr/local/maven
+    export PATH=${M2_HOME}/bin:${PATH}
+
+Reload bash and test mvn
+
     bash
     mvn -version
 
