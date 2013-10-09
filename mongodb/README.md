@@ -21,6 +21,10 @@ and get the url to download the rpm into your server. For example:
 
     wget http://download.oracle.com/otn-pub/java/jdk/7u40-b43/jdk-7u40-linux-x64.rpm?AuthParam=11232426132 -o jdk-7u40-linux-x64.rpm
     rpm -Uvh jdk-7u40-linux-x64.rpm
+    
+Or install via yum/apt-get
+
+    sudo yum install java-devel
 
 Download MVN from http://maven.apache.org/download.cgi
 
