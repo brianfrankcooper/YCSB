@@ -24,6 +24,7 @@ import com.allanbank.mongodb.MongoDatabase;
 import com.allanbank.mongodb.MongoDbUri;
 import com.allanbank.mongodb.MongoFactory;
 import com.allanbank.mongodb.MongoIterator;
+import com.allanbank.mongodb.ReadPreference;
 import com.allanbank.mongodb.bson.Document;
 import com.allanbank.mongodb.bson.Element;
 import com.allanbank.mongodb.bson.ElementType;
@@ -67,6 +68,9 @@ public class AsyncMongoDbClient extends DB {
 
     /** The write concern for the requests. */
     private static Durability writeConcern;
+
+    /** Which servers to use for reads. */
+    private static ReadPreference readPreference;
 
     /** The database to MongoDB. */
     private MongoDatabase db;
@@ -173,6 +177,32 @@ public class AsyncMongoDbClient extends DB {
                 System.exit(1);
             }
 
+            // readPreference
+            String readPreferenceType = props.getProperty(
+                    "mongodb.readPreference", "primary").toLowerCase();
+            if ("primary".equals(readPreferenceType)) {
+                readPreference = ReadPreference.primary();
+            }
+            else if ("primary_preferred".equals(readPreferenceType)) {
+                readPreference = ReadPreference.preferPrimary();
+            }
+            else if ("secondary".equals(readPreferenceType)) {
+                readPreference = ReadPreference.secondary();
+            }
+            else if ("secondary_preferred".equals(readPreferenceType)) {
+                readPreference = ReadPreference.preferSecondary();
+            }
+            else if ("nearest".equals(readPreferenceType)) {
+                readPreference = ReadPreference.closest();
+            }
+            else {
+                System.err
+                        .println("ERROR: Invalid readPreference: '"
+                                + readPreferenceType
+                                + "'. Must be [ primary | primary_preferred | secondary | secondary_preferred | nearest ]");
+                System.exit(1);
+            }
+
             try {
                 // need to append db to url.
                 url += "/" + database;
@@ -261,6 +291,7 @@ public class AsyncMongoDbClient extends DB {
                 fb.projection(fieldsToReturn);
                 fb.setLimit(1);
                 fb.setBatchSize(1);
+                fb.readPreference(readPreference);
 
                 final MongoIterator<Document> ci = collection.find(fb.build());
                 if (ci.hasNext()) {
@@ -314,6 +345,7 @@ public class AsyncMongoDbClient extends DB {
             fb.setQuery(where("_id").greaterThanOrEqualTo(startkey));
             fb.setLimit(recordcount);
             fb.setBatchSize(recordcount);
+            fb.readPreference(readPreference);
             if (fields != null) {
                 final DocumentBuilder fieldsDoc = BuilderFactory.start();
                 for (final String field : fields) {

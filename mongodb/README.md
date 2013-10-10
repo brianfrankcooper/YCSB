@@ -78,6 +78,14 @@ See the next section for the list of configuration parameters for MongoDB.
   - `journaled`
   - `replica_acknowledged`
 
+- `mongodb.readPreference` default `primary`
+ - options are :
+  - `primary`
+  - `primary_preferred`
+  - `secondary`
+  - `secondary_preferred`
+  - `nearest`
+
 - `mongodb.maxconnections` (default `100`)
 
 - `mongodb.threadsAllowedToBlockForConnectionMultiplier` (default `5`)
