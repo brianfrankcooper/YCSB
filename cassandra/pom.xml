@@ -17,6 +17,12 @@
        <artifactId>cassandra-all</artifactId>
        <version>${cassandra.version}</version>
      </dependency>
+     <!-- CQL driver -->
+     <dependency>
+       <groupId>com.datastax.cassandra</groupId>
+       <artifactId>cassandra-driver-core</artifactId>
+       <version>${cassandra.cql.version}</version>
+     </dependency>
      <dependency>
        <groupId>com.yahoo.ycsb</groupId>
        <artifactId>core</artifactId>

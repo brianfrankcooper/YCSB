@@ -431,13 +431,17 @@ public class CassandraClient7 extends DB
       { 
         ByteBuffer wrappedKey = ByteBuffer.wrap(key.getBytes("UTF-8"));
 
+        Column col;
         ColumnOrSuperColumn column;
         for (Map.Entry<String, ByteIterator> entry : values.entrySet())
         {
+          col = new Column();
+          col.setName(ByteBuffer.wrap(entry.getKey().getBytes("UTF-8")));
+          col.setValue(ByteBuffer.wrap(entry.getValue().toArray()));
+          col.setTimestamp(System.currentTimeMillis());
+
           column = new ColumnOrSuperColumn();
-          column.setColumn( new Column( ByteBuffer.wrap(entry.getKey().getBytes("UTF-8")), 
-                                        ByteBuffer.wrap(entry.getValue().toArray()),
-                                        System.currentTimeMillis()) );
+          column.setColumn(col);
                                         
           mutations.add(new Mutation().setColumn_or_supercolumn(column));
         }
