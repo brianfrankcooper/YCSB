@@ -12,16 +12,6 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.apache.hbase</groupId>
-      <artifactId>hbase</artifactId>
-      <version>${hbase.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.hadoop</groupId>
-      <artifactId>hadoop-core</artifactId>
-      <version>1.0.0</version>
-    </dependency>
-    <dependency>
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
@@ -51,5 +41,53 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <!-- This profile is intended for HBase up to 0.94.x included.
+    For 0.94:
+    mvn clean package -Dhbase.version=0.94.12 -Dhadoop.version=1.0.4 -Dslf4j-api.version=1.4.3 -DskipTests
+    or, to use the default settings (0.92, hadoop 1.0.0)
+    mvn clean package
+    -->
+    <profile>
+      <id>hbase-single-module</id>
+      <activation>
+        <property>
+          <name>!hbase-client</name>
+        </property>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.hbase</groupId>
+          <artifactId>hbase</artifactId>
+          <version>${hbase.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-core</artifactId>
+          <version>${hadoop.version}</version>
+        </dependency>
+      </dependencies>
+    </profile>
+
+    <profile>
+      <!-- This profile is intended for HBase since version 0.95
+           mvn clean package -Dhbase-client -Dhbase.version=0.95.2-hadoop2
+       -->
+      <id>hbase-client</id>
+      <activation>
+        <property>
+          <name>hbase-client</name>
+        </property>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.hbase</groupId>
+          <artifactId>hbase-client</artifactId>
+          <version>${hbase.version}</version>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
 
 </project>
