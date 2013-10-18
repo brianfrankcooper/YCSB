@@ -122,6 +122,7 @@ public class CassandraClient10 extends DB
 
         String[] allhosts = hosts.split(",");
         String myhost = allhosts[random.nextInt(allhosts.length)];
+        System.err.printf("Attempting to connect to %s:%d%n", myhost, 9160);
 
         Exception connectexception = null;
 
