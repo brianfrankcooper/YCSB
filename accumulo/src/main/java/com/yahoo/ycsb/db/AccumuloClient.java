@@ -92,6 +92,7 @@ public class AccumuloClient extends DB {
 	}
 
 
+	@Override
 	public void cleanup() throws DBException
 	{
 		try {
@@ -104,7 +105,7 @@ public class AccumuloClient extends DB {
 			}
 		} catch (MutationsRejectedException e) {
 			throw new DBException(e);
-		}	
+		}
 	}
 
 	/**
@@ -180,8 +181,7 @@ public class AccumuloClient extends DB {
 			// Pick out the results we care about.
 			for (Entry<Key, Value> entry : getRow(new Text(key), null)) {
 			    Value v = entry.getValue();
-			    byte[] buf = new byte[v.getSize()];
-			    v.copy(buf);
+			    byte[] buf = v.get();
 			    result.put(entry.getKey().getColumnQualifier().toString(), 
 				       new ByteArrayByteIterator(buf));
 			}
@@ -249,7 +249,7 @@ public class AccumuloClient extends DB {
 			}
 			// Now add the key to the hashmap.
 			Value v = entry.getValue();
-			byte[] buf = new byte[v.getSize()];
+		    byte[] buf = v.get();
 			currentHM.put(entry.getKey().getColumnQualifier().toString(), new ByteArrayByteIterator(buf));
 		}
 
