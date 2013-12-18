@@ -45,7 +45,7 @@
   <properties>
     <maven.assembly.version>2.2.1</maven.assembly.version>
     <hbase.version>0.92.1</hbase.version>
-    <accumulo.version>1.4.4</accumulo.version>
+    <accumulo.version>1.4.5</accumulo.version>
     <cassandra.version>0.7.0</cassandra.version>
     <infinispan.version>7.1.0.CR1</infinispan.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>

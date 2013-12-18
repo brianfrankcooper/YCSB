@@ -26,7 +26,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-
+import org.apache.accumulo.core.util.CleanUp;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 
@@ -41,6 +41,7 @@ public class AccumuloClient extends DB {
 	public static final int HttpError = -2;
 	public static final int NoMatchingRecord = -3;
 
+	private ZooKeeperInstance _inst;
 	private Connector _connector;
 	private String _table = "";
 	private BatchWriter _bw = null;
@@ -61,10 +62,10 @@ public class AccumuloClient extends DB {
 	public void init() {
 		_colFam = new Text(getProperties().getProperty("accumulo.columnFamily"));
 
-		Instance inst = new ZooKeeperInstance(getProperties().getProperty("accumulo.instanceName"),
+		_inst = new ZooKeeperInstance(getProperties().getProperty("accumulo.instanceName"),
 				getProperties().getProperty("accumulo.zooKeepers"));
 		try {
-			_connector = inst.getConnector(getProperties().getProperty("accumulo.username"), 
+			_connector = _inst.getConnector(getProperties().getProperty("accumulo.username"), 
 					getProperties().getProperty("accumulo.password"));
 		} catch (AccumuloException e) {
 			// TODO Auto-generated catch block
@@ -97,15 +98,12 @@ public class AccumuloClient extends DB {
 	{
 		try {
 			if (_bw != null) {
-				try {
-					//Thread.sleep(60000);
-				} catch (Exception e) {
-				}
 				_bw.close();
 			}
 		} catch (MutationsRejectedException e) {
 			throw new DBException(e);
 		}
+		CleanUp.shutdownNow();
 	}
 
 	/**
