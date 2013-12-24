@@ -1,0 +1,376 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Oss DB Binding
+[INFO]    task-segment: [clean, package]
+[INFO] ------------------------------------------------------------------------
+[INFO] [clean:clean {execution: default-clean}]
+[INFO] Deleting /home/liuchang/YCSB/oss/target
+[INFO] [checkstyle:checkstyle {execution: validate}]
+[INFO] Starting audit...
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:0: Missing package-info.java file.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:14:8: Unused import - java.util.Map.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:19:8: Unused import - java.util.Properties.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:35: Missing a Javadoc comment.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:37: member def modifier at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:38: member def modifier at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:38:36: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:39: member def modifier at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:42: method def modifier at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:43: if at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:43:12: '(' is followed by whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:44: if child at indentation level 12 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:44:61: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:45: if child at indentation level 12 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:46: if rcurly at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:47: if at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:47:12: '(' is followed by whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:48: if child at indentation level 12 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:48:65: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:49: if child at indentation level 12 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:50: if rcurly at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:51: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:51:70: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:52: method def rcurly at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:54: method def modifier at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:55: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:56: method def rcurly at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:63: method def modifier at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:64: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:65: method def rcurly at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:70: method def modifier at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:71: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:72: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:73: Line is longer than 80 characters.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:73: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:74: try at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:75: 'for' construct must use '{}'s.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:75: for at indentation level 8 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:77: try child at indentation level 8 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:78: try rcurly at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:79: catch child at indentation level 12 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:79:71: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:80: catch rcurly at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:81: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:82: method def rcurly at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:87: method def modifier at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:88: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:89: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:89:46: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:90: try at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:91: try child at indentation level 8 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:91:75: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:92: Line is longer than 80 characters.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:92: try child at indentation level 8 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:92:93: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:93: try child at indentation level 8 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:93:45: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:95: catch child at indentation level 12 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:95:71: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:96: catch rcurly at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:97: method def rcurly at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:102: Line is longer than 80 characters.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:102: method def modifier at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:103: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:103:54: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:104: method def rcurly at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:109: method def modifier at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:110: method def lcurly at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:110:5: '{' should be on the previous line.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:111: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:111:55: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:112: Line is longer than 80 characters.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:112: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:112:83: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:113: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:114: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:115: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:116: for at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:116:13: '(' is followed by whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:117: for lcurly at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:117:9: '{' should be on the previous line.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:118: for child at indentation level 12 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:118:25: '(' is followed by whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:118:49: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:119: for rcurly at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:120: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:121: method def rcurly at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:124: method def modifier at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:125: method def modifier at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:128: Line is longer than 80 characters.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:128: method def child at indentation level 12 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:129: method def child at indentation level 12 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:130: for at indentation level 12 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:130:27: ';' is not followed by whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:130:49: ';' is not followed by whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:130:50: '++' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:131: for child at indentation level 16 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:132: for child at indentation level 16 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:132:39: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:133: for child at indentation level 16 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:133:39: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:134: for child at indentation level 16 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:134:49: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:135: for child at indentation level 16 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:135:28: '(' is followed by whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:135:45: ',' is not followed by whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:135:67: ')' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:135:69: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:136: for rcurly at indentation level 12 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:138: method def child at indentation level 12 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:139: method def child at indentation level 12 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:141: while at indentation level 12 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:142: while child at indentation level 16 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:143:1: File contains tab characters (this is the first instance).
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:144: while rcurly at indentation level 12 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:146: method def child at indentation level 12 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:147: method def rcurly at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:149: method def modifier at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:150: Line is longer than 80 characters.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:150: method def modifier at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:151: 'if' construct must use '{}'s.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:151: if at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:152: for at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:152:13: '(' is followed by whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:153: for child at indentation level 16 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:154: for child at indentation level 16 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:154:39: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:155: for child at indentation level 16 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:155:39: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:156: for child at indentation level 16 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:156:37: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:157: Line is longer than 80 characters.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:157: for child at indentation level 16 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:157:87: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:158: for rcurly at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:159: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:160: method def rcurly at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:162: method def modifier at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:163: method def modifier at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:164: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:164:64: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:165: for at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:166: for child at indentation level 12 not at correct indentation, 6
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:166:56: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:167: for rcurly at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:168: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:169: method def rcurly at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:171: method def modifier at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:172: Line is longer than 80 characters.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:172: method def modifier at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:173: method def child at indentation level 6 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:173:45: ';' is preceded with whitespace.
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:174: method def rcurly at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:176: method def modifier at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:177: method def modifier at indentation level 4 not at correct indentation, 2
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:179: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:180: method def child at indentation level 8 not at correct indentation, 4
+/home/liuchang/YCSB/oss/src/main/java/com/yahoo/ycsb/db/OssClient.java:181: method def rcurly at indentation level 4 not at correct indentation, 2
+Audit done.
+
+[INFO] There are 158 checkstyle errors.
+[WARNING] Unable to locate Source XRef to link to - DISABLED
+[INFO] [resources:resources {execution: default-resources}]
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /home/liuchang/YCSB/oss/src/main/resources
+[INFO] [compiler:compile {execution: default-compile}]
+[INFO] Compiling 1 source file to /home/liuchang/YCSB/oss/target/classes
+[INFO] [resources:testResources {execution: default-testResources}]
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /home/liuchang/YCSB/oss/src/test/resources
+[INFO] [compiler:testCompile {execution: default-testCompile}]
+[INFO] No sources to compile
+[INFO] [surefire:test {execution: default-test}]
+[INFO] No tests to run.
+[INFO] Surefire report directory: /home/liuchang/YCSB/oss/target/surefire-reports
+
+-------------------------------------------------------
+ T E S T S
+-------------------------------------------------------
+
+Results :
+
+Tests run: 0, Failures: 0, Errors: 0, Skipped: 0
+
+[INFO] [jar:jar {execution: default-jar}]
+[INFO] Building jar: /home/liuchang/YCSB/oss/target/oss-binding-0.1.4.jar
+[INFO] [assembly:single {execution: default}]
+[WARNING] Artifact: com.yahoo.ycsb:oss-binding:jar:0.1.4 references the same file as the assembly destination file. Moving it to a temporary location for inclusion.
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] META-INF/maven/ already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] org/ already added, skipping
+[INFO] org/apache/ already added, skipping
+[INFO] org/apache/http/ already added, skipping
+[INFO] org/apache/http/impl/ already added, skipping
+[INFO] META-INF/NOTICE.txt already added, skipping
+[INFO] META-INF/LICENSE.txt already added, skipping
+[INFO] META-INF/maven/ already added, skipping
+[INFO] META-INF/maven/org.apache.httpcomponents/ already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] org/ already added, skipping
+[INFO] org/apache/ already added, skipping
+[INFO] META-INF/LICENSE.txt already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] org/ already added, skipping
+[INFO] org/apache/ already added, skipping
+[INFO] org/apache/commons/ already added, skipping
+[INFO] META-INF/LICENSE.txt already added, skipping
+[INFO] META-INF/NOTICE.txt already added, skipping
+[INFO] META-INF/maven/ already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] org/ already added, skipping
+[INFO] META-INF/LICENSE.txt already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] com/ already added, skipping
+[INFO] META-INF/maven/ already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] com/ already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] org/ already added, skipping
+[INFO] org/apache/ already added, skipping
+[INFO] org/apache/commons/ already added, skipping
+[INFO] META-INF/LICENSE.txt already added, skipping
+[INFO] META-INF/NOTICE.txt already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] org/ already added, skipping
+[INFO] org/apache/ already added, skipping
+[INFO] org/apache/commons/ already added, skipping
+[INFO] org/apache/commons/collections/ already added, skipping
+[INFO] org/apache/commons/collections/ArrayStack.class already added, skipping
+[INFO] org/apache/commons/collections/FastHashMap.class already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] org/ already added, skipping
+[INFO] org/apache/ already added, skipping
+[INFO] org/apache/commons/ already added, skipping
+[INFO] META-INF/LICENSE.txt already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] org/ already added, skipping
+[INFO] org/apache/ already added, skipping
+[INFO] org/apache/commons/ already added, skipping
+[INFO] META-INF/LICENSE.txt already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] com/ already added, skipping
+[INFO] META-INF/maven/ already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] org/ already added, skipping
+[INFO] META-INF/maven/ already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] com/ already added, skipping
+[INFO] com/yahoo/ already added, skipping
+[INFO] com/yahoo/ycsb/ already added, skipping
+[INFO] META-INF/maven/ already added, skipping
+[INFO] META-INF/maven/com.yahoo.ycsb/ already added, skipping
+[INFO] Building jar: /home/liuchang/YCSB/oss/target/oss-binding-0.1.4.jar
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] META-INF/maven/ already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] org/ already added, skipping
+[INFO] org/apache/ already added, skipping
+[INFO] org/apache/http/ already added, skipping
+[INFO] org/apache/http/impl/ already added, skipping
+[INFO] META-INF/NOTICE.txt already added, skipping
+[INFO] META-INF/LICENSE.txt already added, skipping
+[INFO] META-INF/maven/ already added, skipping
+[INFO] META-INF/maven/org.apache.httpcomponents/ already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] org/ already added, skipping
+[INFO] org/apache/ already added, skipping
+[INFO] META-INF/LICENSE.txt already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] org/ already added, skipping
+[INFO] org/apache/ already added, skipping
+[INFO] org/apache/commons/ already added, skipping
+[INFO] META-INF/LICENSE.txt already added, skipping
+[INFO] META-INF/NOTICE.txt already added, skipping
+[INFO] META-INF/maven/ already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] org/ already added, skipping
+[INFO] META-INF/LICENSE.txt already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] com/ already added, skipping
+[INFO] META-INF/maven/ already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] com/ already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] org/ already added, skipping
+[INFO] org/apache/ already added, skipping
+[INFO] org/apache/commons/ already added, skipping
+[INFO] META-INF/LICENSE.txt already added, skipping
+[INFO] META-INF/NOTICE.txt already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] org/ already added, skipping
+[INFO] org/apache/ already added, skipping
+[INFO] org/apache/commons/ already added, skipping
+[INFO] org/apache/commons/collections/ already added, skipping
+[INFO] org/apache/commons/collections/ArrayStack.class already added, skipping
+[INFO] org/apache/commons/collections/FastHashMap.class already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] org/ already added, skipping
+[INFO] org/apache/ already added, skipping
+[INFO] org/apache/commons/ already added, skipping
+[INFO] META-INF/LICENSE.txt already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] org/ already added, skipping
+[INFO] org/apache/ already added, skipping
+[INFO] org/apache/commons/ already added, skipping
+[INFO] META-INF/LICENSE.txt already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] com/ already added, skipping
+[INFO] META-INF/maven/ already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] org/ already added, skipping
+[INFO] META-INF/maven/ already added, skipping
+[INFO] META-INF/ already added, skipping
+[INFO] META-INF/MANIFEST.MF already added, skipping
+[INFO] com/ already added, skipping
+[INFO] com/yahoo/ already added, skipping
+[INFO] com/yahoo/ycsb/ already added, skipping
+[INFO] META-INF/maven/ already added, skipping
+[INFO] META-INF/maven/com.yahoo.ycsb/ already added, skipping
+[WARNING] Configuration options: 'appendAssemblyId' is set to false, and 'classifier' is missing.
+Instead of attaching the assembly file: /home/liuchang/YCSB/oss/target/oss-binding-0.1.4.jar, it will become the file for main project artifact.
+NOTE: If multiple descriptors or descriptor-formats are provided for this project, the value of this file will be non-deterministic!
+[WARNING] Replacing pre-existing project main-artifact file: /home/liuchang/YCSB/oss/target/archive-tmp/oss-binding-0.1.4.jar
+with assembly file: /home/liuchang/YCSB/oss/target/oss-binding-0.1.4.jar
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESSFUL
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 13 seconds
+[INFO] Finished at: Tue Dec 24 19:09:48 CST 2013
+[INFO] Final Memory: 41M/98M
+[INFO] ------------------------------------------------------------------------
