@@ -1,6 +1,6 @@
 ## Quick Start
 
-This section describes how to run YCSB on MongoDB running locally. 
+This section describes how to run YCSB on MongoDB. 
 
 ### 1. Start MongoDB
 
@@ -13,7 +13,10 @@ on x86-64 Linux box:
     cd mongodb-linux-x86_64-*
     ./bin/mongod --dbpath /tmp/mongodb
 
-### 2. Install Maven and Java
+Replace x.x.x above with the latest stable release version for MongoDB.
+See http://docs.mongodb.org/manual/installation/ for installation steps for various operating systems.
+
+### 2. Install Java and Maven
 
 Go to http://www.oracle.com/technetwork/java/javase/downloads/index.html
 
@@ -46,21 +49,22 @@ Reload bash and test mvn
 
 ### 3. Set Up YCSB
 
-Clone the YCSB git repository and compile:
+Download the YCSB zip file and compile:
 
-    git clone git://github.com/brianfrankcooper/YCSB.git
-    cd YCSB
-    mvn clean package
+    wget https://github.com/achille/YCSB/archive/master.zip
+    unzip master
+    cd YCSB-master
+    mvn -pl com.yahoo.ycsb:core,com.yahoo.ycsb:mongodb-binding clean package
 
 ### 4. Run YCSB
     
 Now you are ready to run! First, load the data:
 
-    ./bin/ycsb load mongodb -s -P workloads/workloada
+    ./bin/ycsb load mongodb -s -P workloads/workloada > outputLoad.txt
 
 Then, run the workload:
 
-    ./bin/ycsb run mongodb -s -P workloads/workloada
+    ./bin/ycsb run mongodb -s -P workloads/workloada > outputRun.txt
 
 See the next section for the list of configuration parameters for MongoDB.
 
