@@ -33,22 +33,21 @@ import com.aliyun.openservices.oss.model.ListObjectsRequest;
 
 
 public class OssClient extends DB {
-
+   
     private OSSClient mOssClient;
-    private String accessKeyId = "HrLKh0FZmx9eD9RM" ;
-    private String accessKeySecret = "PqhHjx6XCbxYZhvNJjVwHRcYt3kb6x";
 
 
     public void init() throws DBException {
-        if( this.accessKeyId == ""){
-            System.out.println("OSS access key id is NULL!") ;
-            return;
-        }
-        if( this.accessKeySecret == ""){
-            System.out.println("Oss access key secret is NULL!") ;
-            return;
-        }
-        this.mOssClient = new OSSClient(accessKeyId, accessKeySecret) ; 
+        Properties props = getProperties();
+        String host = props.getProperty("oss.host", "http://oss.aliyuncs.com");
+        String accessid = props.getProperty("oss.accessid", "HrLKh0FZmx9eD9RM");
+        String accesskey = props.getProperty("oss.accesskey", "PqhHjx6XCbxYZhvNJjVwHRcYt3kb6x");
+
+        System.out.println(host);
+        System.out.println(accessid);
+        System.out.println(accesskey);
+
+        this.mOssClient = new OSSClient(host, accessid, accesskey) ; 
     }
 
     public void cleanup() throws DBException {
@@ -85,13 +84,24 @@ public class OssClient extends DB {
      * Put object content
      */
     public void putObject(String bucketName, String objectName, String value){
+        try
+        {
+            if (!this.mOssClient.doesBucketExist(bucketName))
+                this.mOssClient.createBucket(bucketName);
+        }
+        catch (Exception e){
+            System.err.println("Caught Exception:" + e.getMessage());
+        }
+
         ObjectMetadata meta = new ObjectMetadata();
         meta.setContentLength(value.length()) ;
-        try{
-        InputStream in = new ByteArrayInputStream(value.getBytes("UTF-8")) ;
-        PutObjectResult result = this.mOssClient.putObject(bucketName, objectName, in, meta) ;
-        System.out.println(result.getETag()) ;
-    }catch(UnsupportedEncodingException e){
+        try
+        {
+            InputStream in = new ByteArrayInputStream(value.getBytes("UTF-8")) ;
+            PutObjectResult result = this.mOssClient.putObject(bucketName, objectName, in, meta) ;
+            System.out.println(result.getETag()) ;
+        }
+        catch(UnsupportedEncodingException e){
             System.err.println("Caught IOException:" + e.getMessage()) ;
         }
     }
@@ -124,7 +134,7 @@ public class OssClient extends DB {
     @Override
     public int read(String table, String key, Set<String> fields,
             HashMap<String, ByteIterator> result) {
-            table = "ycsb";
+            //table = "ycsb";
             if( fields != null){
             String[] fieldArray = (String[])fields.toArray(new String[fields.size()]);
             List<String> values = new ArrayList<String>();
@@ -147,20 +157,21 @@ public class OssClient extends DB {
             return result.isEmpty() ? 1 : 0;
             }
          else {
-             System.out.println(" filds is null ") ;
+             System.out.println(" fields is null ") ;
              return 1;
          }
     }
 
     @Override
     public int insert(String table, String key, HashMap<String, ByteIterator> values){
-        table = "ycsb";
+        //table = "ycsb";
         if(values.size() == 0) return 1;
         for( String k: values.keySet()){
                 StringBuilder objectName = new StringBuilder();
                 objectName.append(key) ;
                 objectName.append("/") ;
                 objectName.append(k) ;
+                System.out.println(objectName);
                 this.putObject(table, objectName.toString(), values.get(k).toString()) ;
         }
         return 0;
@@ -168,7 +179,7 @@ public class OssClient extends DB {
 
     @Override
     public int delete(String table, String key) {
-        table = "ycsb";
+        //table = "ycsb";
         List<String> objects = this.getPrefixObject(table, key) ; 
         for(String object:objects){
             this.mOssClient.deleteObject(table, object) ;
@@ -178,7 +189,7 @@ public class OssClient extends DB {
 
     @Override
     public int update(String table, String key, HashMap<String, ByteIterator> values) {
-      table = "ycsb";
+      //table = "ycsb";
       return this.insert(table, key, values) ;  
     }
 
