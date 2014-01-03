@@ -67,17 +67,19 @@ public class OssClient extends DB {
      * Get object content
      */
     public String getObject(String bucketName, String key){
-        OSSObject object = this.mOssClient.getObject(bucketName, key);
-        StringBuilder out = new StringBuilder();
-        BufferedReader br = new BufferedReader(new InputStreamReader(object.getObjectContent()));
-        try{
-        for(String line = br.readLine(); line != null; line = br.readLine())
-            out.append(line);
-        br.close();
+        try
+        {
+            OSSObject object = this.mOssClient.getObject(bucketName, key);
+            StringBuilder out = new StringBuilder();
+            BufferedReader br = new BufferedReader(new InputStreamReader(object.getObjectContent()));
+            for(String line = br.readLine(); line != null; line = br.readLine())
+                out.append(line);
+            br.close();
+            return out.toString();
         }catch (IOException e){
             System.err.println("Caught IOException:" + e.getMessage()) ;
+            return "";
         }
-        return out.toString();
     }
     
     /*
@@ -89,7 +91,7 @@ public class OssClient extends DB {
             if (!this.mOssClient.doesBucketExist(bucketName))
                 this.mOssClient.createBucket(bucketName);
         }
-        catch (Exception e){
+        catch (Exception e) {
             System.err.println("Caught Exception:" + e.getMessage());
         }
 
@@ -101,7 +103,7 @@ public class OssClient extends DB {
             PutObjectResult result = this.mOssClient.putObject(bucketName, objectName, in, meta) ;
             System.out.println(result.getETag()) ;
         }
-        catch(UnsupportedEncodingException e){
+        catch (UnsupportedEncodingException e) {
             System.err.println("Caught IOException:" + e.getMessage()) ;
         }
     }

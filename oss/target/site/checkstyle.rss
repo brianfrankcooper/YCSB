@@ -6,10 +6,10 @@
     <link>${project.url}</link>
     <description>Oss DB Binding - Checkstyle report</description>
     <language>en-us</language>
-    <copyright>&#169;2013</copyright>
+    <copyright>&#169;2014</copyright>
     <item>
       <title>File: 1,
-             Errors: 175,
+             Errors: 178,
              Warnings: 0,
              Infos: 0
       </title>
@@ -38,7 +38,7 @@
                   0
                 </td>
                 <td>
-                  175
+                  178
                 </td>
               </tr>
                       </tbody>
