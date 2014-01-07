@@ -72,11 +72,12 @@ public class OssClient extends DB {
             OSSObject object = this.mOssClient.getObject(bucketName, key);
             StringBuilder out = new StringBuilder();
             BufferedReader br = new BufferedReader(new InputStreamReader(object.getObjectContent()));
-            for(String line = br.readLine(); line != null; line = br.readLine())
+            for (String line = br.readLine(); line != null; line = br.readLine()) {
                 out.append(line);
+            }
             br.close();
             return out.toString();
-        }catch (IOException e){
+        }catch (Exception e){
             System.err.println("Caught IOException:" + e.getMessage()) ;
             return "";
         }
@@ -106,6 +107,9 @@ public class OssClient extends DB {
         catch (UnsupportedEncodingException e) {
             System.err.println("Caught IOException:" + e.getMessage()) ;
         }
+        catch (Exception e) {
+            System.err.println("Caught Exception:" + e.getMessage());
+        }
     }
 
     /*
@@ -120,16 +124,23 @@ public class OssClient extends DB {
      */
     public List<String> getPrefixObject(String bucketName, String prefix)
     {
-        List<String> objects = new ArrayList<String>() ;
-        ListObjectsRequest listobjectsrequest = new ListObjectsRequest(bucketName) ; 
-        listobjectsrequest.setDelimiter("/");
-        listobjectsrequest.setPrefix(prefix);
-        ObjectListing listing = this.mOssClient.listObjects(listobjectsrequest);
-        for( OSSObjectSummary objectSummary : listing.getObjectSummaries())
+        List<String> objects = new ArrayList<String>();
+        try
         {
-            objects.add( objectSummary.getKey()) ;
+            ListObjectsRequest listobjectsrequest = new ListObjectsRequest(bucketName) ; 
+            listobjectsrequest.setDelimiter("/");
+            listobjectsrequest.setPrefix(prefix);
+            ObjectListing listing = this.mOssClient.listObjects(listobjectsrequest);
+            for ( OSSObjectSummary objectSummary : listing.getObjectSummaries())
+            {
+                objects.add( objectSummary.getKey()) ;
+            }
+            return objects;
         }
-        return objects;
+        catch (Exception e) {
+            System.err.println("Caught Exception: %s" + e.getMessage());
+            return objects;
+        }
     }
 
 
@@ -159,14 +170,13 @@ public class OssClient extends DB {
             return result.isEmpty() ? 1 : 0;
             }
          else {
-             System.out.println(" fields is null ") ;
+             System.out.println(" field is null ") ;
              return 1;
          }
     }
 
     @Override
     public int insert(String table, String key, HashMap<String, ByteIterator> values){
-        //table = "ycsb";
         if(values.size() == 0) return 1;
         for( String k: values.keySet()){
                 StringBuilder objectName = new StringBuilder();
@@ -174,14 +184,20 @@ public class OssClient extends DB {
                 objectName.append("/") ;
                 objectName.append(k) ;
                 System.out.println(objectName);
+                try
+                {
                 this.putObject(table, objectName.toString(), values.get(k).toString()) ;
+                }
+                catch (Exception e)
+                {
+                    System.err.println(e.getMessage()) ;
+                }
         }
         return 0;
     }
 
     @Override
     public int delete(String table, String key) {
-        //table = "ycsb";
         List<String> objects = this.getPrefixObject(table, key) ; 
         for(String object:objects){
             this.mOssClient.deleteObject(table, object) ;

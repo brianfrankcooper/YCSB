@@ -34,5 +34,7 @@ scanproportion=0
 insertproportion=0
 
 requestdistribution=zipfian
-table=ycsb2
+table=ycsb3
 
+oss.accessid=HrLKh0FZmx9eD9RM
+oss.accesskey=PqhHjx6XCbxYZhvNJjVwHRcYt3kb6x
