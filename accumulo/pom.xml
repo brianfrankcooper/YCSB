@@ -93,4 +93,13 @@
       <url>http://repository.apache.org/snapshots</url>
     </repository>
   </repositories>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-log4j12</artifactId>
+        <version>1.5.8</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 </project>
