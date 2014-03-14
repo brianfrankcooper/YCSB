@@ -5,10 +5,10 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.gemstone.gemfire.cache.Cache;
 import com.gemstone.gemfire.cache.CacheFactory;
-import com.gemstone.gemfire.cache.GemFireCache;
 import com.gemstone.gemfire.cache.Region;
 import com.gemstone.gemfire.cache.RegionExistsException;
 import com.gemstone.gemfire.cache.RegionFactory;
@@ -17,184 +17,280 @@ import com.gemstone.gemfire.cache.client.ClientCache;
 import com.gemstone.gemfire.cache.client.ClientCacheFactory;
 import com.gemstone.gemfire.cache.client.ClientRegionFactory;
 import com.gemstone.gemfire.cache.client.ClientRegionShortcut;
-import com.gemstone.gemfire.internal.admin.remote.DistributionLocatorId;
-import com.yahoo.ycsb.ByteArrayByteIterator;
+import com.gemstone.gemfire.cache.query.FunctionDomainException;
+import com.gemstone.gemfire.cache.query.NameResolutionException;
+import com.gemstone.gemfire.cache.query.QueryInvocationTargetException;
+import com.gemstone.gemfire.cache.query.SelectResults;
+import com.gemstone.gemfire.cache.query.TypeMismatchException;
+import com.gemstone.gemfire.distributed.DistributedSystem;
 import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.DB;
+import com.yahoo.ycsb.Client;
 import com.yahoo.ycsb.DBException;
-import com.yahoo.ycsb.StringByteIterator;
+import com.yahoo.ycsb.db.gigaspaces.model.Class0Index;
 
 /**
  * VMware vFabric GemFire client for the YCSB benchmark.<br />
- * <p>By default acts as a GemFire client and tries to connect
- * to GemFire cache server running on localhost with default
- * cache server port. Hostname and port of a GemFire cacheServer
- * can be provided using <code>gemfire.serverport=port</code> and <code>
- * gemfire.serverhost=host</code> properties on YCSB command line.
- * A locator may also be used for discovering a cacheServer
- * by using the property <code>gemfire.locator=host[port]</code></p>
- * 
- * <p>To run this client in a peer-to-peer topology with other GemFire
- * nodes, use the property <code>gemfire.topology=p2p</code>. Running
- * in p2p mode will enable embedded caching in this client.</p>
- * 
- * <p>YCSB by default does its operations against "usertable". When running
- * as a client this is a <code>ClientRegionShortcut.PROXY</code> region,
+ * <p>
+ * By default acts as a GemFire client and tries to connect to GemFire cache
+ * server running on localhost with default cache server port. The
+ * <code>gemfireclientconfig<code> property sets the client <code>cache-xml-file<code> location.
+ * The <code>gemfireP2Pclient<code> property set to <code>true<code> will run the benchmark in P2P mode.
+ * </p>
+ * <p>
+ * YCSB by default does its operations against the "usertable" region. When
+ * running as a client this is a <code>ClientRegionShortcut.PROXY</code> region,
  * when running in p2p mode it is a <code>RegionShortcut.PARTITION</code>
- * region. A cache.xml defining "usertable" region can be placed in the
- * working directory to override these region definitions.</p>
+ * region.
+ * </p>
  * 
- * @author Swapnil Bawaskar (sbawaska at vmware)
- *
  */
-public class GemFireClient extends DB {
+public class GemFireClient extends CacheClient {
+	public static void reset() {
+		counter.set(0);
+		onInit.set(false);
+		doneInit.set(false);
+	}
 
-  /** Return code when operation succeeded */
-  private static final int SUCCESS = 0;
+	// private static GemFireCache cache;
 
-  /** Return code when operation did not succeed */
-  private static final int ERROR = -1;
+	/**
+	 * true if ycsb client runs as a client to a GemFire cache server
+	 */
+	private boolean isClient = true;
 
-  /** property name of the port where GemFire server is listening for connections */
-  private static final String SERVERPORT_PROPERTY_NAME = "gemfire.serverport";
+	private static final String GEMFIRE_CLIENT_CONFIG_PROP = "gemfireclientconfig";
+	private static final String CLIENT_P2P_PROP = "gemfireP2Pclient";
 
-  /** property name of the host where GemFire server is running */
-  private static final String SERVERHOST_PROPERTY_NAME = "gemfire.serverhost";
+	static AtomicBoolean onInit = new AtomicBoolean(false);
+	static AtomicBoolean doneInit = new AtomicBoolean(false);
 
-  /** default value of {@link #SERVERHOST_PROPERTY_NAME} */
-  private static final String SERVERHOST_PROPERTY_DEFAULT = "localhost";
+	private static Region region;
 
-  /** property name to specify a GemFire locator. This property can be used in both
-   * client server and p2p topology */
-  private static final String LOCATOR_PROPERTY_NAME = "gemfire.locator";
+	@Override
+	public void init() throws DBException {
+		synchronized (onInit) {
+			if (region == null) {
+				if (!onInit.getAndSet(true)) {
+					Properties props = getProperties();
 
-  /** property name to specify GemFire topology */
-  private static final String TOPOLOGY_PROPERTY_NAME = "gemfire.topology";
+					batchMode = Boolean.valueOf(
+							props.getProperty(Client.BATCH_MODE_PROPERTY,
+									"false")).booleanValue();
 
-  /** value of {@value #TOPOLOGY_PROPERTY_NAME} when peer to peer topology should be used.
-   *  (client-server topology is default) */
-  private static final String TOPOLOGY_P2P_VALUE = "p2p";
+					isClient = !(Boolean.valueOf(props.getProperty(
+							CLIENT_P2P_PROP, "false")).booleanValue());
 
-  private GemFireCache cache;
+					batchSize = Integer.valueOf(
+							props.getProperty(Client.BATCH_SIZE_PROPERTY,
+									"1000")).intValue();
 
-  /**
-   * true if ycsb client runs as a client to a
-   * GemFire cache server
-   */
-  private boolean isClient;
-  
-  @Override
-  public void init() throws DBException {
-    Properties props = getProperties();
-    // hostName where GemFire cacheServer is running
-    String serverHost = null;
-    // port of GemFire cacheServer
-    int serverPort = 0;
-    String locatorStr = null;
+					if (!props.containsKey(GEMFIRE_CLIENT_CONFIG_PROP)) {
+						System.out.println("No Gemfire client config - Exit");
+						System.exit(1);
+					}
+					// /////////////////////////////
+					if (isClient) {
+						System.out
+								.println("--------- Running in a remote Client mode --------- ");
+						ClientCache cache = new ClientCacheFactory()
+								.set("name", "BenchmarkClient")
+								.set("cache-xml-file",
+										props.getProperty(GEMFIRE_CLIENT_CONFIG_PROP))
+								.create();
 
-    if (props != null && !props.isEmpty()) {
-      String serverPortStr = props.getProperty(SERVERPORT_PROPERTY_NAME);
-      if (serverPortStr != null) {
-        serverPort = Integer.parseInt(serverPortStr);
-      }
-      serverHost = props.getProperty(SERVERHOST_PROPERTY_NAME, SERVERHOST_PROPERTY_DEFAULT);
-      locatorStr = props.getProperty(LOCATOR_PROPERTY_NAME);
-      
-      String topology = props.getProperty(TOPOLOGY_PROPERTY_NAME);
-      if (topology != null && topology.equals(TOPOLOGY_P2P_VALUE)) {
-        CacheFactory cf = new CacheFactory();
-        if (locatorStr != null) {
-          cf.set("locators", locatorStr);
-        }
-        cache = cf.create();
-        isClient = false;
-        return;
-      }
-    }
-    isClient = true;
-    DistributionLocatorId locator = null;
-    if (locatorStr != null) {
-      locator = new DistributionLocatorId(locatorStr);
-    }
-    ClientCacheFactory ccf = new ClientCacheFactory();
-    if (serverPort != 0) {
-      ccf.addPoolServer(serverHost, serverPort);
-    } else if (locator != null) {
-      ccf.addPoolLocator(locator.getHost().getCanonicalHostName(), locator.getPort());
-    }
-    cache = ccf.create();
-  }
-  
-  @Override
-  public int read(String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
-    Region<String, Map<String, byte[]>> r = getRegion(table);
-    Map<String, byte[]> val = r.get(key);
-    if (val != null) {
-      if (fields == null) {
-        for (String k : val.keySet()) {
-          result.put(key, new ByteArrayByteIterator(val.get(key)));
-        }
-      } else {
-        for (String field : fields) {
-          result.put(field, new ByteArrayByteIterator(val.get(field)));
-        }
-      }
-      return SUCCESS;
-    }
-    return ERROR;
-  }
+						region = cache.getRegion("usertable");
+					} else {
+						System.out
+								.println("--------- Running in a P2P mode --------- ");
+						Cache cache = new CacheFactory()
+								.set("name", "BenchmarkClientP2P")
+								.set("cache-xml-file",
+										props.getProperty(GEMFIRE_CLIENT_CONFIG_PROP))
+								.create();
+						region = cache.getRegion("usertable");
+					}
+					if (props.getProperty(CLEAR_BEFORE_PROP, "false")
+							.equalsIgnoreCase("true")) {
+						region.clear();
+					}
 
-  @Override
-  public int scan(String table, String startkey, int recordcount,
-      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-    // GemFire does not support scan
-    return ERROR;
-  }
+					regularPayloadMode = props.getProperty(PAYLOAD_TYPE_PROP,
+							"regular").equalsIgnoreCase("regular");
+					if (!regularPayloadMode) {
+						System.out.println("Running in indexed mode");
 
-  @Override
-  public int update(String table, String key, HashMap<String, ByteIterator> values) {
-    getRegion(table).put(key, convertToBytearrayMap(values));
-    return 0;
-  }
+						try {
+							dataClass = Class.forName(props
+									.getProperty(PAYLOAD_CLASS_TYPE_PROP));
+						} catch (ClassNotFoundException e) {
+							e.printStackTrace();
+							throw new DBException(e);
+						}
+					} else {
+						System.out.println("Running in regular mode");
+					}
+					printScenario();
+					doneInit.set(true);
+				} else {
+					while (!doneInit.get()) {
+						try {
+							Thread.sleep(100);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+		}
 
-  @Override
-  public int insert(String table, String key, HashMap<String, ByteIterator> values) {
-    getRegion(table).put(key, convertToBytearrayMap(values));
-    return 0;
-  }
+		System.out.println("----------- " + System.currentTimeMillis()
+				+ " GemFire has " + region.size() + " keys ----------");
 
-  @Override
-  public int delete(String table, String key) {
-    getRegion(table).destroy(key);
-    return 0;
-  }
+	}
 
-  private Map<String, byte[]> convertToBytearrayMap(Map<String,ByteIterator> values) {
-    Map<String, byte[]> retVal = new HashMap<String, byte[]>();
-    for (String key : values.keySet()) {
-      retVal.put(key, values.get(key).toArray());
-    }
-    return retVal;
-  }
-  
-  private Region<String, Map<String, byte[]>> getRegion(String table) {
-    Region<String, Map<String, byte[]>> r = cache.getRegion(table);
-    if (r == null) {
-      try {
-        if (isClient) {
-          ClientRegionFactory<String, Map<String, byte[]>> crf = ((ClientCache) cache).createClientRegionFactory(ClientRegionShortcut.PROXY);
-          r = crf.create(table);
-        } else {
-          RegionFactory<String, Map<String, byte[]>> rf = ((Cache)cache).createRegionFactory(RegionShortcut.PARTITION);
-          r = rf.create(table);
-        }
-      } catch (RegionExistsException e) {
-        // another thread created the region
-        r = cache.getRegion(table);
-      }
-    }
-    return r;
-  }
+	int query(String table, int limit) {
+		SelectResults queryResult = null;
+		String queryStr = null;
+		int counter_ = counter.incrementAndGet();
+		if (regularPayloadMode) {
+			queryStr = "select * from /" + table + " limit " + limit;
+		} else {
+			queryStr = "select * from /" + table + " where attrib2="
+					+ (counter_ % 100) + " limit " + limit;
+		}
+
+		try {
+			queryResult = region.query(queryStr);
+		} catch (FunctionDomainException e) {
+			e.printStackTrace();
+		} catch (TypeMismatchException e) {
+			e.printStackTrace();
+		} catch (NameResolutionException e) {
+			e.printStackTrace();
+		} catch (QueryInvocationTargetException e) {
+			e.printStackTrace();
+		}
+		return queryResult.size();
+	}
+
+	@Override
+	public int read(String table, String key, Set<String> fields,
+			HashMap<String, ByteIterator> result) {
+		if (batchMode) {
+			int res = query(table, batchSize);
+			if (res >= batchSize) {
+				return SUCCESS;
+			} else {
+				System.out.println("Batch Read - Can't find " + batchSize
+						+ " matching objects. Query found " + res
+						+ " matching objects");
+				return ERROR;
+			}
+		}
+		// single mode
+		if (regularPayloadMode) {
+			Object val = region.get(key);
+
+			if (val != null) {
+				return SUCCESS;
+			}
+		} else
+		// indexed mode
+		{
+			int res = query(table, 1);
+			if (res == 1) {
+				return SUCCESS;
+			} else {
+				System.out
+						.println("Single Read - Can't find one matching objects. Query found "
+								+ res + " matching objects");
+				return ERROR;
+			}
+		}
+		return ERROR;
+	}
+
+	@Override
+	public int scan(String table, String startkey, int recordcount,
+			Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+		// GemFire does not support scan
+		return ERROR;
+	}
+
+	@Override
+	public int update(String table, String key,
+			HashMap<String, ByteIterator> values) {
+		insert(table, key, values);
+		return SUCCESS;
+	}
+
+	@Override
+	public int insert(String table, String key,
+			HashMap<String, ByteIterator> values) {
+
+		if (batchMode) {
+			if (regularPayloadMode) {
+				Map<String, byte[]> val = convertToBytearrayMap(values);
+				HashMap<String, Object> map = new HashMap<String, Object>();
+				for (int i = 0; i < batchSize; i++) {
+					map.put(key + "_" + i, val);
+				}
+				region.putAll(map);
+				return SUCCESS;
+			} else {
+				// Batch indexed mode
+				HashMap<String, Object> map = new HashMap<String, Object>();
+				Class0Index data;
+				int counter_ = counter.incrementAndGet();
+				for (int i = 0; i < batchSize; i++) {
+					try {
+						data = (Class0Index) dataClass.newInstance();
+						data.setId(key + "_" + i);
+						data.setAttrib1(key);
+						data.setAttrib2(counter_ % 100);
+						data.setAttrib3((long) counter_ % 50);
+						data.setAttrib4((double) counter_ % 20);
+						map.put(key + "_" + i, data);
+					} catch (InstantiationException e) {
+						e.printStackTrace();
+					} catch (IllegalAccessException e) {
+						e.printStackTrace();
+					}
+				}
+				region.putAll(map);
+				return SUCCESS;
+			}
+		}
+
+		// single mode
+		if (regularPayloadMode) {
+			region.put(key, convertToBytearrayMap(values));
+			return SUCCESS;
+		} else {
+			Class0Index data;
+			try {
+				int counter_ = counter.incrementAndGet();
+				data = (Class0Index) dataClass.newInstance();
+				data.setId(key);
+				data.setAttrib1(key);
+				data.setAttrib2(counter_ % 100);
+				data.setAttrib3((long) counter_ % 50);
+				data.setAttrib4((double) counter_ % 20);
+				region.put(key, data);
+			} catch (InstantiationException e) {
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			}
+		}
+		// System.out.println("insert Key="+ key + " ret ="+ ret);
+		return SUCCESS;
+	}
+
+	@Override
+	public int delete(String table, String key) {
+		region.destroy(key);
+		return 0;
+	}
 
 }

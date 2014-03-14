@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE cache PUBLIC
+  "-//GemStone Systems, Inc.//GemFire Declarative Caching 6.5//EN"
+  "http://www.gemstone.com/dtd/cache6_5.dtd">
+<cache>
+		<cache-server port="40404"/>
+
+		<region name="usertable" refid="REPLICATE">	
+			<region-attributes index-update-type="synchronous" scope="global" >
+			
+		</region-attributes>
+		
+		<index name="attrib1">
+			<functional from-clause="/usertable" expression="getAttrib1"/>
+		</index>
+		
+		<index name="attrib2">
+			<functional from-clause="/usertable" expression="getAttrib2"/>
+		</index>
+		
+		<index name="attrib3">
+			<functional from-clause="/usertable" expression="getAttrib3"/>
+		</index>
+		
+		<index name="attrib4">
+			<functional from-clause="/usertable" expression="getAttrib4"/>
+		</index>
+
+	</region>
+
+</cache>
+

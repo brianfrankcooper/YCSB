@@ -20,6 +20,7 @@ package com.yahoo.ycsb.measurements;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 
@@ -56,7 +57,7 @@ public class Measurements
 		return singleton;
 	}
 
-	HashMap<String,OneMeasurement> data;
+	ConcurrentHashMap<String,OneMeasurement> data;
 	boolean histogram=true;
 
 	private Properties _props;
@@ -66,7 +67,7 @@ public class Measurements
        */
 	public Measurements(Properties props)
 	{
-		data=new HashMap<String,OneMeasurement>();
+		data=new ConcurrentHashMap<String,OneMeasurement>();
 		
 		_props=props;
 		
@@ -95,16 +96,13 @@ public class Measurements
       /**
        * Report a single value of a single metric. E.g. for read latency, operation="READ" and latency is the measured value.
        */
-	public synchronized void measure(String operation, int latency)
+	public void measure(String operation, int latency)
 	{
 		if (!data.containsKey(operation))
 		{
-			synchronized(this)
+			if (!data.containsKey(operation))
 			{
-				if (!data.containsKey(operation))
-				{
-					data.put(operation,constructOneMeasurement(operation));
-				}
+				data.put(operation,constructOneMeasurement(operation));
 			}
 		}
 		try
@@ -126,12 +124,9 @@ public class Measurements
 	{
 		if (!data.containsKey(operation))
 		{
-			synchronized(this)
+			if (!data.containsKey(operation))
 			{
-				if (!data.containsKey(operation))
-				{
-					data.put(operation,constructOneMeasurement(operation));
-				}
+				data.put(operation,constructOneMeasurement(operation));
 			}
 		}
 		data.get(operation).reportReturnCode(code);

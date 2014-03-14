@@ -1,0 +1,53 @@
+# Copyright (c) 2010 Yahoo! Inc. All rights reserved.
+# 
+# Licensed under the Apache License, Version 2.0 (the "License"); you  
+# may not use this file except in compliance with the License. You    
+# may obtain a copy of the License at 
+#  
+# http://www.apache.org/licenses/LICENSE-2.0 
+#  
+# Unless required by applicable law or agreed to in writing, software 
+# distributed under the License is distributed on an "AS IS" BASIS,  
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or 
+# implied. See the License for the specific language governing  
+# permissions and limitations under the License. See accompanying 
+# LICENSE file.                                                                                                                                                                   
+# Yahoo! Cloud System Benchmark
+# Workload 0r100i0u: Read/Insert/Update heavy workload
+#   Application example: Session store recording recent actions
+#                        
+#   Read/Insert/Update ratio: 00/100
+#   Default data size: 2.5 KB records (100 fields, 2.5 bytes each, plus key)
+#   Request distribution: zipfian
+
+insertstart=0
+recordcount=100000
+insertcount=100000
+operationcount=100000
+workload=com.yahoo.ycsb.workloads.CoreWorkload
+
+readproportion=0.5
+updateproportion=0.5
+scanproportion=0
+insertproportion=0
+
+requestdistribution=zipfian
+#requestdistribution=uniform
+
+scanproportion=0
+
+fieldcount=1
+fieldlength=10
+
+#should reads read all fields (true) or just one (false) (default: true)
+readallfields=true
+
+#should updates and read/modify/writes update all fields (true) or just one (false)
+#(default: false)
+writeallfields=true
+
+#report any operation greater than the number specified (ms)
+latency.threshold=3600000
+#the db implementation to load
+db=com.yahoo.ycsb.db.GigaSpacesClient
+gigspaces.url = jini://*/*/mySpace

@@ -38,17 +38,18 @@ public class TextMeasurementsExporter implements MeasurementsExporter
   {
     bw.write("[" + metric + "], " + measurement + ", " + i);
     bw.newLine();
+    bw.flush();
   }
 
   public void write(String metric, String measurement, double d) throws IOException
   {
     bw.write("[" + metric + "], " + measurement + ", " + d);
     bw.newLine();
+    bw.flush();
   }
 
   public void close() throws IOException
   {
     this.bw.close();
   }
-
 }

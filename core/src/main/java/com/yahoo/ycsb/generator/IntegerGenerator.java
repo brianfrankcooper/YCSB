@@ -72,4 +72,13 @@ public abstract class IntegerGenerator extends Generator
 	 * Return the expected value (mean) of the values this generator will return.
 	 */
 	public abstract double mean();
+	
+	/**
+	 * Reset the generator to 0
+	 */
+	public void reset ()
+	{
+		lastint=0;
+	}
+
 }
