@@ -29,6 +29,7 @@ DATABASES = {
     "cassandra-8"  : "com.yahoo.ycsb.db.CassandraClient8",
     "cassandra-10" : "com.yahoo.ycsb.db.CassandraClient10",
     "dynamodb"     : "com.yahoo.ycsb.db.DynamoDBClient",
+    "elasticsearch": "com.yahoo.ycsb.db.ElasticSearchClient",
     "gemfire"      : "com.yahoo.ycsb.db.GemFireClient",
     "hbase"        : "com.yahoo.ycsb.db.HBaseClient",
     "hypertable"   : "com.yahoo.ycsb.db.HypertableClient",
@@ -106,7 +107,7 @@ database = sys.argv[2]
 db_classname = DATABASES[database]
 options = sys.argv[3:]
 
-ycsb_command = ["java", "-cp", ":".join(find_jars(ycsb_home, database)), \
+ycsb_command = ["java", "-cp", os.pathsep.join(find_jars(ycsb_home, database)), \
                 COMMANDS[sys.argv[1]]["main"], "-db", db_classname] + options
 if command:
     ycsb_command.append(command)
