@@ -398,7 +398,7 @@ public class Client
 				out = System.out;
 			} else
 			{
-				out = new FileOutputStream(exportFile);
+				out = new FileOutputStream(exportFile, true);
 			}
 
 			// if no exporter is provided the default text one will be used

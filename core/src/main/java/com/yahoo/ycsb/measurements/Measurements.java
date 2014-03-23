@@ -27,13 +27,21 @@ import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
  * Collects latency measurements, and reports them when requested.
  * 
  * @author cooperb
+ * @author Christian Spann <christian dot spann at uni-ulm dot de>
  *
  */
 public class Measurements
 {
 	private static final String MEASUREMENT_TYPE = "measurementtype";
-
-	private static final String MEASUREMENT_TYPE_DEFAULT = "histogram";
+	
+	private enum MeasurementType
+	{
+		histogram,
+		timeseries,
+		statistics;
+		
+		public static MeasurementType defaulttype = histogram;		
+	}
 
 	static Measurements singleton=null;
 	
@@ -57,7 +65,7 @@ public class Measurements
 	}
 
 	HashMap<String,OneMeasurement> data;
-	boolean histogram=true;
+	MeasurementType type = MeasurementType.defaulttype;
 
 	private Properties _props;
 	
@@ -70,25 +78,20 @@ public class Measurements
 		
 		_props=props;
 		
-		if (_props.getProperty(MEASUREMENT_TYPE, MEASUREMENT_TYPE_DEFAULT).compareTo("histogram")==0)
-		{
-			histogram=true;
-		}
-		else
-		{
-			histogram=false;
-		}
+		type = MeasurementType.valueOf(_props.getProperty(MEASUREMENT_TYPE, MeasurementType.defaulttype.toString()));
 	}
 	
 	OneMeasurement constructOneMeasurement(String name)
 	{
-		if (histogram)
+		switch(type)
 		{
-			return new OneMeasurementHistogram(name,_props);
-		}
-		else
-		{
-			return new OneMeasurementTimeSeries(name,_props);
+			case timeseries:
+				return new OneMeasurementTimeSeries(name,_props);
+			case statistics:
+				return new OneMeasurementStatistics(name);
+			case histogram:
+			default:
+				return new OneMeasurementHistogram(name,_props);
 		}
 	}
 

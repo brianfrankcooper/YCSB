@@ -24,6 +24,7 @@ import java.util.Properties;
 import java.util.Vector;
 
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
+import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 
 class SeriesUnit
 {
@@ -70,12 +71,15 @@ public class OneMeasurementTimeSeries extends OneMeasurement
 
 	private HashMap<Integer, int[]> returncodes;
 	
+	private SummaryStatistics tputstats;
+	
 	public OneMeasurementTimeSeries(String name, Properties props)
 	{
 		super(name);
 		_granularity=Integer.parseInt(props.getProperty(GRANULARITY,GRANULARITY_DEFAULT));
 		_measurements=new Vector<SeriesUnit>();
 		returncodes=new HashMap<Integer,int[]>();
+		tputstats = new SummaryStatistics();
 	}
 	
 	void checkEndOfUnit(boolean forceend)
@@ -94,7 +98,11 @@ public class OneMeasurementTimeSeries extends OneMeasurement
 		{
 			double avg=((double)sum)/((double)count);
 			_measurements.add(new SeriesUnit(currentunit,avg));
-			
+			//Record throughput in ops/sec for this period if there was one
+			if (sum > 0) 
+			{
+				tputstats.addValue(count/((double)sum/1000));
+			}
 			currentunit=unit;
 			
 			count=0;
@@ -135,6 +143,10 @@ public class OneMeasurementTimeSeries extends OneMeasurement
     exporter.write(getName(), "AverageLatency(us)", (((double)totallatency)/((double)operations)));
     exporter.write(getName(), "MinLatency(us)", min);
     exporter.write(getName(), "MaxLatency(us)", max);
+	exporter.write(getName(), "TputStats AverageTput", tputstats.getMean());
+	exporter.write(getName(), "TputStats StdDev", tputstats.getStandardDeviation());
+	exporter.write(getName(), "TputStats 95%", OneMeasurementStatistics.get95ConfidenceIntervalWidth(tputstats));
+	exporter.write(getName(), "TputStats Intervals", tputstats.getN());
 
     //TODO: 95th and 99th percentile latency
 
