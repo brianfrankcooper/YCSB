@@ -26,32 +26,15 @@ public class RedisClient extends DB {
 
     private Jedis jedis;
 
-    public static final String HOST_PROPERTY = "redis.host";
-    public static final String PORT_PROPERTY = "redis.port";
-    public static final String PASSWORD_PROPERTY = "redis.password";
 
     public static final String INDEX_KEY = "_indices";
 
     public void init() throws DBException {
-        Properties props = getProperties();
-        int port;
-
-        String portString = props.getProperty(PORT_PROPERTY);
-        if (portString != null) {
-            port = Integer.parseInt(portString);
-        }
-        else {
-            port = Protocol.DEFAULT_PORT;
-        }
-        String host = props.getProperty(HOST_PROPERTY);
+        int port = 6379;
+        String host = "localhost";
 
         jedis = new Jedis(host, port);
         jedis.connect();
-
-        String password = props.getProperty(PASSWORD_PROPERTY);
-        if (password != null) {
-            jedis.auth(password);
-        }
     }
 
     public void cleanup() throws DBException {

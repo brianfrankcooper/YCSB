@@ -1,0 +1,25 @@
+Usage: java com.yahoo.ycsb.Client [options]
+Options:
+  -threads n: execute using n threads (default: 1) - can also be specified as the 
+              "threadcount" property using -p
+  -target n: attempt to do n operations per second (default: unlimited) - can also
+             be specified as the "target" property using -p
+  -load:  run the loading phase of the workload
+  -t:  run the transactions phase of the workload (default)
+  -db dbname: specify the name of the DB to use (default: com.yahoo.ycsb.BasicDB) - 
+              can also be specified as the "db" property using -p
+  -P propertyfile: load properties from the given file. Multiple files can
+                   be specified, and will be processed in the order specified
+  -p name=value:  specify a property to be passed to the DB and workloads;
+                  multiple properties can be specified, and override any
+                  values in the propertyfile
+  -s:  show status during run (default: no status)
+  -l label:  use label for status (e.g. to label one experiment out of a whole batch)
+
+Required properties:
+  workload: the name of the workload class to use (e.g. com.yahoo.ycsb.workloads.CoreWorkload)
+
+To run the transaction phase from multiple servers, start a separate client on each.
+To run the load phase from multiple servers, start a separate client on each; additionally,
+use the "insertcount" and "insertstart" properties to divide up the records to be inserted
+java -cp /home/liuchang/YCSB/redis/target/redis-binding-0.1.4.jar:/home/liuchang/YCSB/redis/target/archive-tmp/redis-binding-0.1.4.jar:/home/liuchang/YCSB/core/target/core-0.1.4.jar:/home/liuchang/YCSB/hbase/src/main/conf:/home/liuchang/YCSB/nosqldb/src/main/conf:/home/liuchang/YCSB/voldemort/src/main/conf:/home/liuchang/YCSB/dynamodb/conf:/home/liuchang/YCSB/gemfire/src/main/conf:/home/liuchang/YCSB/jdbc/src/main/conf:/home/liuchang/YCSB/infinispan/src/main/conf com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.RedisClient -P workloads/workloada -p large.dat -s -threads 10 -target 100 -t

@@ -1,0 +1,3 @@
+      mvn install:install-file -DgroupId=com.yahoo.ycsb -DartifactId=core -Dversion=0.1.4 -Dpackaging=jar -Dfile=../core/target/core-0.1.4.jar
+
+

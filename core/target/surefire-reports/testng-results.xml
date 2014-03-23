@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testng-results skipped="0" failed="0" total="1" passed="1">
+  <reporter-output>
+  </reporter-output>
+  <suite name="com.yahoo.ycsb.TestByteIterator" duration-ms="35" started-at="2013-12-24T01:14:21Z" finished-at="2013-12-24T01:14:21Z">
+    <groups>
+    </groups>
+    <test name="Command line test" duration-ms="35" started-at="2013-12-24T01:14:21Z" finished-at="2013-12-24T01:14:21Z">
+      <class name="com.yahoo.ycsb.TestByteIterator">
+        <test-method status="PASS" signature="testRandomByteIterator()" name="testRandomByteIterator" duration-ms="16" started-at="2013-12-24T01:14:21Z" finished-at="2013-12-24T01:14:21Z">
+        </test-method>
+      </class>
+    </test>
+  </suite>
+</testng-results>
