@@ -1,17 +1,17 @@
 /**
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved.                                                                                                                             
- *                                                                                                                                                                                 
- * Licensed under the Apache License, Version 2.0 (the "License"); you                                                                                                             
- * may not use this file except in compliance with the License. You                                                                                                                
- * may obtain a copy of the License at                                                                                                                                             
- *                                                                                                                                                                                 
- * http://www.apache.org/licenses/LICENSE-2.0                                                                                                                                      
- *                                                                                                                                                                                 
- * Unless required by applicable law or agreed to in writing, software                                                                                                             
- * distributed under the License is distributed on an "AS IS" BASIS,                                                                                                               
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or                                                                                                                 
- * implied. See the License for the specific language governing                                                                                                                    
- * permissions and limitations under the License. See accompanying                                                                                                                 
+ * Copyright (c) 2010 Yahoo! Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
  * LICENSE file.
  */
 package com.yahoo.ycsb.generator;
@@ -27,7 +27,7 @@ import com.yahoo.ycsb.Utils;
  * the percentage of operations that access the hot set. Numbers of the hot set are
  * always smaller than any number in the cold set. Elements from the hot set and
  * the cold set are chose using a uniform distribution.
- * 
+ *
  * @author sudipto
  *
  */
@@ -39,16 +39,16 @@ public class HotspotIntegerGenerator extends IntegerGenerator {
   private final int coldInterval;
   private final double hotsetFraction;
   private final double hotOpnFraction;
-  
+
   /**
    * Create a generator for Hotspot distributions.
-   * 
+   *
    * @param lowerBound lower bound of the distribution.
    * @param upperBound upper bound of the distribution.
    * @param hotsetFraction percentage of data item
    * @param hotOpnFraction percentage of operations accessing the hot set.
    */
-  public HotspotIntegerGenerator(int lowerBound, int upperBound, 
+  public HotspotIntegerGenerator(int lowerBound, int upperBound,
       double hotsetFraction, double hotOpnFraction) {
     if (hotsetFraction < 0.0 || hotsetFraction > 1.0) {
       System.err.println("Hotset fraction out of range. Setting to 0.0");
@@ -60,7 +60,7 @@ public class HotspotIntegerGenerator extends IntegerGenerator {
     }
     if (lowerBound > upperBound) {
       System.err.println("Upper bound of Hotspot generator smaller than the lower bound. " +
-      		"Swapping the values.");
+          "Swapping the values.");
       int temp = lowerBound;
       lowerBound = upperBound;
       upperBound = temp;
@@ -73,7 +73,7 @@ public class HotspotIntegerGenerator extends IntegerGenerator {
     this.coldInterval = interval - hotInterval;
     this.hotOpnFraction = hotOpnFraction;
   }
-  
+
   @Override
   public int nextInt() {
     int value = 0;
@@ -119,6 +119,6 @@ public class HotspotIntegerGenerator extends IntegerGenerator {
   @Override
   public double mean() {
     return hotOpnFraction * (lowerBound + hotInterval/2.0)
-      + (1 - hotOpnFraction) * (lowerBound + hotInterval + coldInterval/2.0);
+        + (1 - hotOpnFraction) * (lowerBound + hotInterval + coldInterval/2.0);
   }
 }
