@@ -245,11 +245,16 @@ public class AsyncMongoDbClient extends DB {
             final MongoCollection collection = db.getCollection(table);
             final DocumentBuilder r = DOCUMENT_BUILDER.get().reset()
                     .add("_id", key);
+            final Document q = r.build();
             for (final Map.Entry<String, ByteIterator> entry : values
                     .entrySet()) {
                 r.add(entry.getKey(), entry.getValue().toArray());
             }
             collection.insert(writeConcern, r);
+
+            collection.update(q, r, /* multi= */false, /* upsert= */true,
+                    writeConcern);
+
             return 0;
         }
         catch (final Exception e) {

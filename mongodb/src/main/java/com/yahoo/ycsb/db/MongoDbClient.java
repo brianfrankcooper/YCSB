@@ -261,11 +261,15 @@ public class MongoDbClient extends DB {
             db.requestStart();
 
             DBCollection collection = db.getCollection(table);
-            DBObject r = new BasicDBObject().append("_id", key);
+            DBObject criteria = new BasicDBObject().append("_id", key);
+            DBObject toInsert = new BasicDBObject().append("_id", key);
+
             for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-                r.put(entry.getKey(), entry.getValue().toArray());
+                toInsert.put(entry.getKey(), entry.getValue().toArray());
             }
-            collection.insert(r, writeConcern);
+
+            collection.update(criteria, toInsert, true, false, writeConcern);
+
             return 0;
         }
         catch (Exception e) {
