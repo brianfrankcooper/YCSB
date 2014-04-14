@@ -230,9 +230,15 @@ class ClientThread extends Thread
 				while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
 				{
 
-					if (!_workload.doTransaction(_db,_workloadstate))
-					{
-						break;
+					try {
+						_db.start();
+						if (_workload.doTransaction(_db,_workloadstate)) {
+							_db.commit();
+						} else {
+							_db.abort();							
+						}
+					} catch (DBException e) {
+						throw new WorkloadException(e);
 					}
 
 					_opsdone++;
@@ -266,9 +272,15 @@ class ClientThread extends Thread
 				while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
 				{
 
-					if (!_workload.doInsert(_db,_workloadstate))
-					{
-						break;
+					try {
+						_db.start();
+						if (_workload.doInsert(_db,_workloadstate)) {
+							_db.commit();
+						} else {
+							_db.abort();
+						}
+					} catch (DBException e) {
+						throw new WorkloadException(e);
 					}
 
 					_opsdone++;
@@ -776,6 +788,22 @@ public class Client
 			statusthread.interrupt();
 		}
 
+		try {
+			DB db = DBFactory.newDB(dbname,props);
+			db.init();
+			if (workload.validate(db))
+				System.out.println("Database validation succeeded");
+			else
+				System.out.println("Database validation failed");
+		} catch (WorkloadException e) {
+			System.out.println("Database validation failed with error: " + e.getMessage());
+		} catch (UnknownDBException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (DBException e) {
+			e.printStackTrace();
+		}
+		
 		try
 		{
 			workload.cleanup();

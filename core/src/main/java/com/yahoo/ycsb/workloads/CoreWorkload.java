@@ -36,6 +36,7 @@ import com.yahoo.ycsb.measurements.Measurements;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Vector;
 
 /**
@@ -257,6 +258,15 @@ public class CoreWorkload extends Workload
    * Default value of the percentage operations accessing the hot set.
    */
   public static final String HOTSPOT_OPN_FRACTION_DEFAULT = "0.8";
+  
+  private Measurements _measurements;
+  private Hashtable<String, String> _operations = new Hashtable<String, String>() {{
+	  	put("READ", "TX-READ"); 
+	  	put("UPDATE", "TX-UPDATE");
+	  	put("INSERT", "TX-INSERT");
+	  	put("SCAN", "TX-SCAN");
+	  	put("READMODIFYWRITE","TX-READMODIFYWRITE");
+  	}};
 	
 	IntegerGenerator keysequence;
 
@@ -418,6 +428,8 @@ public class CoreWorkload extends Workload
 		{
 			throw new WorkloadException("Distribution \""+scanlengthdistrib+"\" not allowed for scan length");
 		}
+		
+		_measurements=Measurements.getMeasurements();
 	}
 
 	public String buildKeyName(long keynum) {
@@ -425,6 +437,7 @@ public class CoreWorkload extends Workload
  		{
  			keynum=Utils.hash(keynum);
  		}
+ 		// System.err.println("key: " + keynum);
 		return "user"+keynum;
 	}
 	HashMap<String, ByteIterator> buildValues() {
@@ -452,16 +465,18 @@ public class CoreWorkload extends Workload
 	 * function must be thread safe. However, avoid synchronized, or the threads will block waiting for each 
 	 * other, and it will be difficult to reach the target throughput. Ideally, this function would have no side
 	 * effects other than DB operations.
+	 * @throws WorkloadException 
 	 */
-	public boolean doInsert(DB db, Object threadstate)
+	public boolean doInsert(DB db, Object threadstate) throws WorkloadException
 	{
 		int keynum=keysequence.nextInt();
 		String dbkey = buildKeyName(keynum);
 		HashMap<String, ByteIterator> values = buildValues();
-		if (db.insert(table,dbkey,values) == 0)
+		if (db.insert(table,dbkey,values) == 0) {
 			return true;
-		else
+		} else {
 			return false;
+		}
 	}
 
 	/**
@@ -469,33 +484,44 @@ public class CoreWorkload extends Workload
 	 * function must be thread safe. However, avoid synchronized, or the threads will block waiting for each 
 	 * other, and it will be difficult to reach the target throughput. Ideally, this function would have no side
 	 * effects other than DB operations.
+	 * @throws WorkloadException 
 	 */
-	public boolean doTransaction(DB db, Object threadstate)
+	public boolean doTransaction(DB db, Object threadstate) throws WorkloadException
 	{
+		boolean ret = true;
+		long st=System.nanoTime();
+
 		String op=operationchooser.nextString();
 
 		if (op.compareTo("READ")==0)
 		{
-			doTransactionRead(db);
+			ret = doTransactionRead(db);
 		}
 		else if (op.compareTo("UPDATE")==0)
 		{
-			doTransactionUpdate(db);
+			ret = doTransactionUpdate(db);
 		}
 		else if (op.compareTo("INSERT")==0)
 		{
-			doTransactionInsert(db);
+			ret = doTransactionInsert(db);
 		}
 		else if (op.compareTo("SCAN")==0)
 		{
-			doTransactionScan(db);
+			ret = doTransactionScan(db);
 		}
 		else
 		{
-			doTransactionReadModifyWrite(db);
+			ret = doTransactionReadModifyWrite(db);
 		}
 		
-		return true;
+		long en = System.nanoTime();
+		_measurements.measure(_operations.get(op), (int) ((en - st) / 1000));
+		if (ret)
+			_measurements.reportReturnCode(_operations.get(op), -1);
+		else {
+			_measurements.reportReturnCode(_operations.get(op), 0);
+		}
+		return ret;
 	}
 
     int nextKeynum() {
@@ -516,7 +542,7 @@ public class CoreWorkload extends Workload
         return keynum;
     }
 
-	public void doTransactionRead(DB db)
+	public boolean doTransactionRead(DB db)
 	{
 		//choose a random key
 		int keynum = nextKeynum();
@@ -534,10 +560,10 @@ public class CoreWorkload extends Workload
 			fields.add(fieldname);
 		}
 
-		db.read(table,keyname,fields,new HashMap<String,ByteIterator>());
+		return db.read(table,keyname,fields,new HashMap<String,ByteIterator>()) == 0;
 	}
 	
-	public void doTransactionReadModifyWrite(DB db)
+	public boolean doTransactionReadModifyWrite(DB db)
 	{
 		//choose a random key
 		int keynum = nextKeynum();
@@ -572,16 +598,18 @@ public class CoreWorkload extends Workload
 		
 		long st=System.currentTimeMillis();
 
-		db.read(table,keyname,fields,new HashMap<String,ByteIterator>());
+		boolean ret = db.read(table,keyname,fields,new HashMap<String,ByteIterator>()) == 0;
 		
-		db.update(table,keyname,values);
+		ret &= db.update(table,keyname,values) == 0;
 
 		long en=System.currentTimeMillis();
 		
 		Measurements.getMeasurements().measure("READ-MODIFY-WRITE", (int)(en-st));
+		
+		return ret;
 	}
 	
-	public void doTransactionScan(DB db)
+	public boolean doTransactionScan(DB db)
 	{
 		//choose a random key
 		int keynum = nextKeynum();
@@ -602,10 +630,10 @@ public class CoreWorkload extends Workload
 			fields.add(fieldname);
 		}
 
-		db.scan(table,startkeyname,len,fields,new Vector<HashMap<String,ByteIterator>>());
+		return db.scan(table,startkeyname,len,fields,new Vector<HashMap<String,ByteIterator>>()) == 0;
 	}
 
-	public void doTransactionUpdate(DB db)
+	public boolean doTransactionUpdate(DB db)
 	{
 		//choose a random key
 		int keynum = nextKeynum();
@@ -625,10 +653,10 @@ public class CoreWorkload extends Workload
 		   values = buildUpdate();
 		}
 
-		db.update(table,keyname,values);
+		return db.update(table,keyname,values) == 0;
 	}
 
-	public void doTransactionInsert(DB db)
+	public boolean doTransactionInsert(DB db)
 	{
 		//choose the next key
 		int keynum=transactioninsertkeysequence.nextInt();
@@ -636,6 +664,6 @@ public class CoreWorkload extends Workload
 		String dbkey = buildKeyName(keynum);
 
 		HashMap<String, ByteIterator> values = buildValues();
-		db.insert(table,dbkey,values);
+		return db.insert(table,dbkey,values) == 0;
 	}
 }
