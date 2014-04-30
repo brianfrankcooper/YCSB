@@ -137,7 +137,8 @@ public class AccumuloClient extends DB {
 
 		long bwSize = Long.parseLong(getProperties().getProperty("accumulo.batchWriterSize", "100000"));
 		long bwMaxLatency = Long.parseLong(getProperties().getProperty("accumulo.batchWriterMaxLatency", "30000"));
-		_bw = _connector.createBatchWriter(table, bwSize, bwMaxLatency, 1);
+		int bwThreads = Integer.parseInt(getProperties().getProperty("accumulo.batchWriterThreads", "1"));
+		_bw = _connector.createBatchWriter(table, bwSize, bwMaxLatency, bwThreads);
 		// Create our scanners
 		_singleScanner = _connector.createScanner(table, Constants.NO_AUTHS);
 		_scanScanner = _connector.createScanner(table, Constants.NO_AUTHS);
