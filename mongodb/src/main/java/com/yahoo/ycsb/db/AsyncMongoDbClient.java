@@ -51,17 +51,25 @@ public class AsyncMongoDbClient extends DB {
     /** The database to use. */
     private static String database;
 
+    /** Thread local document builder. */
+    private static final ThreadLocal<DocumentBuilder> DOCUMENT_BUILDER = new ThreadLocal<DocumentBuilder>() {
+        @Override
+        protected DocumentBuilder initialValue() {
+            return BuilderFactory.start();
+        }
+    };
+
+    /** The write concern for the requests. */
+    private static final AtomicInteger initCount = new AtomicInteger(0);
+
     /** The connection to MongoDB. */
     private static MongoClient mongo;
-
-    /** The database to MongoDB. */
-    private MongoDatabase db;
 
     /** The write concern for the requests. */
     private static Durability writeConcern;
 
-    /** The write concern for the requests. */
-    private static final AtomicInteger initCount = new AtomicInteger(0);
+    /** The database to MongoDB. */
+    private MongoDatabase db;
 
     /**
      * Cleanup any state for this DB. Called once per DB instance; there is one
@@ -112,7 +120,7 @@ public class AsyncMongoDbClient extends DB {
      */
     @Override
     public final void init() throws DBException {
-        int count = initCount.incrementAndGet();
+        final int count = initCount.incrementAndGet();
 
         final Properties props = getProperties();
         final String maxConnections = props.getProperty(
@@ -221,14 +229,6 @@ public class AsyncMongoDbClient extends DB {
         }
     }
 
-    /** Thread local document builder. */
-    private static final ThreadLocal<DocumentBuilder> DOCUMENT_BUILDER = new ThreadLocal<DocumentBuilder>() {
-        @Override
-        protected DocumentBuilder initialValue() {
-            return BuilderFactory.start();
-        }
-    };
-
     /**
      * Read a record from the database. Each field/value pair from the result
      * will be stored in a HashMap.
@@ -316,8 +316,8 @@ public class AsyncMongoDbClient extends DB {
             fb.setLimit(recordcount);
             fb.setBatchSize(recordcount);
             if (fields != null) {
-                DocumentBuilder fieldsDoc = BuilderFactory.start();
-                for (String field : fields) {
+                final DocumentBuilder fieldsDoc = BuilderFactory.start();
+                for (final String field : fields) {
                     fieldsDoc.add(field, 1);
                 }
 
@@ -419,9 +419,20 @@ public class AsyncMongoDbClient extends DB {
          * @param element
          *            The {@link BinaryElement} to iterate over.
          */
-        public BinaryByteArrayIterator(BinaryElement element) {
+        public BinaryByteArrayIterator(final BinaryElement element) {
             this.binaryElement = element;
             this.offset = 0;
+        }
+
+        /**
+         * {@inheritDoc}
+         * <p>
+         * Overridden to return the number of bytes remaining in the iterator.
+         * </p>
+         */
+        @Override
+        public long bytesLeft() {
+            return Math.max(0, binaryElement.length() - offset);
         }
 
         /**
@@ -439,26 +450,15 @@ public class AsyncMongoDbClient extends DB {
         /**
          * {@inheritDoc}
          * <p>
-         * Overridden to return the myNext value and advance the iterator.
+         * Overridden to return the next value and advance the iterator.
          * </p>
          */
         @Override
         public byte nextByte() {
-            byte value = binaryElement.get(offset);
+            final byte value = binaryElement.get(offset);
             offset += 1;
 
             return value;
-        }
-
-        /**
-         * {@inheritDoc}
-         * <p>
-         * Overridden to return the number of bytes remaining in the iterator.
-         * </p>
-         */
-        @Override
-        public long bytesLeft() {
-            return Math.max(0, binaryElement.length() - offset);
         }
     }
 }
