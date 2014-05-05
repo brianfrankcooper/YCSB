@@ -109,9 +109,15 @@ command = COMMANDS[sys.argv[1]]["command"]
 database = sys.argv[2]
 db_classname = DATABASES[database]
 options = sys.argv[3:]
+java_home = os.environ["JAVA_HOME"]
 
-ycsb_command = ["java", "-cp", os.pathsep.join(find_jars(ycsb_home, database)), \
+if java_home: 
+    ycsb_command = [java_home + "/bin/java", "-cp", os.pathsep.join(find_jars(ycsb_home, database)), \
                 COMMANDS[sys.argv[1]]["main"], "-db", db_classname] + options
+else: 
+    ycsb_command = ["java", "-cp", os.pathsep.join(find_jars(ycsb_home, database)), \
+                COMMANDS[sys.argv[1]]["main"], "-db", db_classname] + options
+
 if command:
     ycsb_command.append(command)
 print " ".join(ycsb_command)
