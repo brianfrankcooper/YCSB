@@ -56,15 +56,23 @@ Download the YCSB zip file and compile:
     mvn -pl com.yahoo.ycsb:core,com.yahoo.ycsb:mongodb-binding clean package
 
 ### 4. Run YCSB
+
+Now you are ready to run! First, use the asynchronous driver to load the data:
+
+    ./bin/ycsb load mongodb-async -s -P workloads/workloada > outputLoad.txt
+
+Then, run the workload:
+
+    ./bin/ycsb run mongodb-async -s -P workloads/workloada > outputRun.txt
     
-Now you are ready to run! First, load the data:
+Similarly, to use the synchronous driver from MongoDB Inc. we load the data: 
 
     ./bin/ycsb load mongodb -s -P workloads/workloada > outputLoad.txt
 
 Then, run the workload:
 
     ./bin/ycsb run mongodb -s -P workloads/workloada > outputRun.txt
-
+    
 See the next section for the list of configuration parameters for MongoDB.
 
 ## MongoDB Configuration Parameters
@@ -95,5 +103,8 @@ See the next section for the list of configuration parameters for MongoDB.
 
 For example:
 
-    ./bin/ycsb load mongodb -s -P workloads/workloada -p mongodb.writeConcern=unacknowledged
+    ./bin/ycsb load mongodb-async -s -P workloads/workloada -p mongodb.writeConcern=unacknowledged
 
+To run with the synchronous driver from MongoDB Inc.:
+
+    ./bin/ycsb load mongodb -s -P workloads/workloada -p mongodb.writeConcern=unacknowledged    
