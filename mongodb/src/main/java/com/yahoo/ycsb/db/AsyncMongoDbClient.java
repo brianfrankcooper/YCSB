@@ -6,6 +6,8 @@
 
 package com.yahoo.ycsb.db;
 
+import static com.allanbank.mongodb.builder.QueryBuilder.where;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -14,22 +16,21 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.allanbank.mongodb.MongoIterator;
 import com.allanbank.mongodb.Durability;
 import com.allanbank.mongodb.LockType;
-import com.allanbank.mongodb.Mongo;
+import com.allanbank.mongodb.MongoClient;
 import com.allanbank.mongodb.MongoCollection;
 import com.allanbank.mongodb.MongoDatabase;
 import com.allanbank.mongodb.MongoDbUri;
 import com.allanbank.mongodb.MongoFactory;
+import com.allanbank.mongodb.MongoIterator;
 import com.allanbank.mongodb.bson.Document;
 import com.allanbank.mongodb.bson.Element;
+import com.allanbank.mongodb.bson.ElementType;
 import com.allanbank.mongodb.bson.builder.BuilderFactory;
 import com.allanbank.mongodb.bson.builder.DocumentBuilder;
 import com.allanbank.mongodb.bson.element.BinaryElement;
 import com.allanbank.mongodb.builder.Find;
-import com.allanbank.mongodb.builder.QueryBuilder;
-import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
@@ -51,7 +52,7 @@ public class AsyncMongoDbClient extends DB {
     private static String database;
 
     /** The connection to MongoDB. */
-    private static Mongo mongo;
+    private static MongoClient mongo;
 
     /** The database to MongoDB. */
     private MongoDatabase db;
@@ -111,15 +112,28 @@ public class AsyncMongoDbClient extends DB {
      */
     @Override
     public final void init() throws DBException {
-        initCount.incrementAndGet();
+        int count = initCount.incrementAndGet();
+
+        final Properties props = getProperties();
+        final String maxConnections = props.getProperty(
+                "mongodb.maxconnections", "10");
+        final int connections = Integer.parseInt(maxConnections);
+
         synchronized (AsyncMongoDbClient.class) {
             if (mongo != null) {
                 db = mongo.getDatabase(database);
+
+                // If there are more threads (count) than connections then the
+                // Low latency spin lock is not really needed as we will keep
+                // the connections occupied.
+                if (count > connections) {
+                    mongo.getConfig().setLockType(LockType.MUTEX);
+                }
+
                 return;
             }
 
             // initialize MongoDb driver
-            final Properties props = getProperties();
             String url = props.getProperty("mongodb.url",
                     "mongodb://localhost:27017");
             database = props.getProperty("mongodb.database", "ycsb");
@@ -127,8 +141,6 @@ public class AsyncMongoDbClient extends DB {
                     "mongodb.writeConcern",
                     props.getProperty("mongodb.durability", "safe"))
                     .toLowerCase();
-            final String maxConnections = props.getProperty(
-                    "mongodb.maxconnections", "10");
 
             if ("none".equals(writeConcernType)) {
                 writeConcern = Durability.NONE;
@@ -158,10 +170,9 @@ public class AsyncMongoDbClient extends DB {
                 // need to append db to url.
                 url += "/" + database;
                 System.out.println("new database url = " + url);
-                mongo = MongoFactory.create(new MongoDbUri(url));
-                mongo.getConfig().setMaxConnectionCount(
-                        Integer.parseInt(maxConnections));
-                mongo.getConfig().setLockType(LockType.LOW_LATENCY_SPIN);
+                mongo = MongoFactory.createClient(new MongoDbUri(url));
+                mongo.getConfig().setMaxConnectionCount(connections);
+                mongo.getConfig().setLockType(LockType.LOW_LATENCY_SPIN); // assumed...
                 db = mongo.getDatabase(database);
 
                 System.out.println("mongo connection created with " + url);
@@ -195,7 +206,8 @@ public class AsyncMongoDbClient extends DB {
             final HashMap<String, ByteIterator> values) {
         try {
             final MongoCollection collection = db.getCollection(table);
-            final DocumentBuilder r = BuilderFactory.start().add("_id", key);
+            final DocumentBuilder r = DOCUMENT_BUILDER.get().reset()
+                    .add("_id", key);
             for (final Map.Entry<String, ByteIterator> entry : values
                     .entrySet()) {
                 r.add(entry.getKey(), entry.getValue().toArray());
@@ -208,6 +220,14 @@ public class AsyncMongoDbClient extends DB {
             return 1;
         }
     }
+
+    /** Thread local document builder. */
+    private static final ThreadLocal<DocumentBuilder> DOCUMENT_BUILDER = new ThreadLocal<DocumentBuilder>() {
+        @Override
+        protected DocumentBuilder initialValue() {
+            return BuilderFactory.start();
+        }
+    };
 
     /**
      * Read a record from the database. Each field/value pair from the result
@@ -228,7 +248,7 @@ public class AsyncMongoDbClient extends DB {
             final Set<String> fields, final HashMap<String, ByteIterator> result) {
         try {
             final MongoCollection collection = db.getCollection(table);
-            final Document q = BuilderFactory.start().add("_id", key).build();
+            final DocumentBuilder q = BuilderFactory.start().add("_id", key);
             final DocumentBuilder fieldsToReturn = BuilderFactory.start();
 
             Document queryResult = null;
@@ -239,12 +259,11 @@ public class AsyncMongoDbClient extends DB {
                 }
 
                 final Find.Builder fb = new Find.Builder(q);
-                fb.setReturnFields(fieldsToReturn);
+                fb.projection(fieldsToReturn);
                 fb.setLimit(1);
                 fb.setBatchSize(1);
 
-                final MongoIterator<Document> ci = collection.find(fb
-                        .build());
+                final MongoIterator<Document> ci = collection.find(fb.build());
                 if (ci.hasNext()) {
                     queryResult = ci.next();
                     ci.close();
@@ -291,10 +310,9 @@ public class AsyncMongoDbClient extends DB {
         try {
             final MongoCollection collection = db.getCollection(table);
 
-            // { "_id":{"$gte":startKey, "$lte":{"appId":key+"\uFFFF"}} }
+            // { "_id":{"$gte":startKey}} }
             final Find.Builder fb = new Find.Builder();
-            fb.setQuery(QueryBuilder.where("_id")
-                    .greaterThanOrEqualTo(startkey));
+            fb.setQuery(where("_id").greaterThanOrEqualTo(startkey));
             fb.setLimit(recordcount);
             fb.setBatchSize(recordcount);
             if (fields != null) {
@@ -303,12 +321,11 @@ public class AsyncMongoDbClient extends DB {
                     fieldsDoc.add(field, 1);
                 }
 
-                fb.setReturnFields(fieldsDoc);
+                fb.projection(fieldsDoc);
             }
 
             result.ensureCapacity(recordcount);
-            final MongoIterator<Document> cursor = collection.find(fb
-                    .build());
+            final MongoIterator<Document> cursor = collection.find(fb.build());
             while (cursor.hasNext()) {
                 // toMap() returns a Map but result.add() expects a
                 // Map<String,String>. Hence, the suppress warnings.
@@ -347,7 +364,7 @@ public class AsyncMongoDbClient extends DB {
             final HashMap<String, ByteIterator> values) {
         try {
             final MongoCollection collection = db.getCollection(table);
-            final Document q = BuilderFactory.start().add("_id", key).build();
+            final DocumentBuilder q = BuilderFactory.start().add("_id", key);
             final DocumentBuilder u = BuilderFactory.start();
             final DocumentBuilder fieldsToSet = u.push("$set");
             for (final Map.Entry<String, ByteIterator> entry : values
@@ -375,10 +392,73 @@ public class AsyncMongoDbClient extends DB {
     protected final void fillMap(final HashMap<String, ByteIterator> result,
             final Document queryResult) {
         for (final Element be : queryResult) {
-            if (be instanceof BinaryElement) {
-                result.put(be.getName(), new ByteArrayByteIterator(
-                        ((BinaryElement) be).getValue()));
+            if (be.getType() == ElementType.BINARY) {
+                result.put(be.getName(), new BinaryByteArrayIterator(
+                        (BinaryElement) be));
             }
+        }
+    }
+
+    /**
+     * BinaryByteArrayIterator provides an adapter from a {@link BinaryElement}
+     * to a {@link ByteIterator}.
+     * 
+     * @copyright 2013, Allanbank Consulting, Inc., All Rights Reserved
+     */
+    private final static class BinaryByteArrayIterator extends ByteIterator {
+
+        /** The binary data. */
+        private final BinaryElement binaryElement;
+
+        /** The current offset into the binary element. */
+        private int offset;
+
+        /**
+         * Creates a new BinaryByteArrayIterator.
+         * 
+         * @param element
+         *            The {@link BinaryElement} to iterate over.
+         */
+        public BinaryByteArrayIterator(BinaryElement element) {
+            this.binaryElement = element;
+            this.offset = 0;
+        }
+
+        /**
+         * {@inheritDoc}
+         * <p>
+         * Overridden to return true if there is more data in the
+         * {@link BinaryElement}.
+         * </p>
+         */
+        @Override
+        public boolean hasNext() {
+            return (offset < binaryElement.length());
+        }
+
+        /**
+         * {@inheritDoc}
+         * <p>
+         * Overridden to return the myNext value and advance the iterator.
+         * </p>
+         */
+        @Override
+        public byte nextByte() {
+            byte value = binaryElement.get(offset);
+            offset += 1;
+
+            return value;
+        }
+
+        /**
+         * {@inheritDoc}
+         * <p>
+         * Overridden to return the number of bytes remaining in the iterator.
+         * </p>
+         */
+        @Override
+        public long bytesLeft() {
+            return Math.max(0, binaryElement.length() - offset);
         }
     }
 }
