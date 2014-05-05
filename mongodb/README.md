@@ -74,20 +74,20 @@ See the next section for the list of configuration parameters for MongoDB.
 - `mongodb.database` default: `ycsb`
 
 - `mongodb.writeConcern` default `acknowledged`
- - options are :
-  - `errors_ignored`
-  - `unacknowledged`
-  - `acknowledged`
-  - `journaled`
-  - `replica_acknowledged`
+  - options are :
+    - `errors_ignored`
+    - `unacknowledged`
+    - `acknowledged`
+    - `journaled`
+    - `replica_acknowledged`
 
 - `mongodb.readPreference` default `primary`
- - options are :
-  - `primary`
-  - `primary_preferred`
-  - `secondary`
-  - `secondary_preferred`
-  - `nearest`
+  - options are :
+    - `primary`
+    - `primary_preferred`
+    - `secondary`
+    - `secondary_preferred`
+    - `nearest`
 
 - `mongodb.maxconnections` (default `100`)
 
