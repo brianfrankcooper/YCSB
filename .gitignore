@@ -3,3 +3,8 @@ target
 
 # ignore output files from testing
 output*
+
+# ignore standard eclipse
+.project
+.classpath
+.settings
