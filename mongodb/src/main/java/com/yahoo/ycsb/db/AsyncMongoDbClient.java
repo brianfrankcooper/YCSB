@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.allanbank.mongodb.Durability;
 import com.allanbank.mongodb.LockType;
 import com.allanbank.mongodb.MongoClient;
+import com.allanbank.mongodb.MongoClientConfiguration;
 import com.allanbank.mongodb.MongoCollection;
 import com.allanbank.mongodb.MongoDatabase;
 import com.allanbank.mongodb.MongoDbUri;
@@ -126,11 +127,6 @@ public class AsyncMongoDbClient extends DB {
     public final void init() throws DBException {
         final int count = initCount.incrementAndGet();
 
-        final Properties props = getProperties();
-        final String maxConnections = props.getProperty(
-                "mongodb.maxconnections", "100");
-        final int connections = Integer.parseInt(maxConnections);
-
         synchronized (AsyncMongoDbClient.class) {
             if (mongo != null) {
                 db = mongo.getDatabase(database);
@@ -138,78 +134,51 @@ public class AsyncMongoDbClient extends DB {
                 // If there are more threads (count) than connections then the
                 // Low latency spin lock is not really needed as we will keep
                 // the connections occupied.
-                if (count > connections) {
+                if (count > mongo.getConfig().getMaxConnectionCount()) {
                     mongo.getConfig().setLockType(LockType.MUTEX);
                 }
 
                 return;
             }
 
-            // initialize MongoDb driver
+            // Just use the standard connection format URL
+            // http://docs.mongodb.org/manual/reference/connection-string/
+            final Properties props = getProperties();
             String url = props.getProperty("mongodb.url",
-                    "mongodb://localhost:27017");
-            database = props.getProperty("mongodb.database", "ycsb");
-            String writeConcernType = props.getProperty("mongodb.writeConcern",
-                    props.getProperty("mongodb.durability", "acknowledged"))
-                    .toLowerCase();
-
-            if ("errors_ignored".equals(writeConcernType)) {
-                writeConcern = Durability.NONE;
-            }
-            else if ("unacknowledged".equals(writeConcernType)) {
-                writeConcern = Durability.NONE;
-            }
-            else if ("acknowledged".equals(writeConcernType)) {
-                writeConcern = Durability.ACK;
-            }
-            else if ("journaled".equals(writeConcernType)) {
-                writeConcern = Durability.journalDurable(0);
-            }
-            else if ("replica_acknowledged".equals(writeConcernType)) {
-                writeConcern = Durability.replicaDurable(2, 0);
-            }
-            else {
+                    "mongodb://localhost:27017/ycsb?w=1");
+            if (!url.startsWith("mongodb://")) {
                 System.err
-                        .println("ERROR: Invalid writeConcern: '"
-                                + writeConcernType
-                                + "'. "
-                                + "Must be [ errors_ignored | unacknowledged | acknowledged | journaled | replica_acknowledged ]");
+                        .println("ERROR: Invalid URL: '"
+                                + url
+                                + "'. Must be of the form "
+                                + "'mongodb://<host1>:<port1>,<host2>:<port2>/database?options'. "
+                                + "See http://docs.mongodb.org/manual/reference/connection-string/.");
                 System.exit(1);
             }
 
-            // readPreference
-            String readPreferenceType = props.getProperty(
-                    "mongodb.readPreference", "primary").toLowerCase();
-            if ("primary".equals(readPreferenceType)) {
-                readPreference = ReadPreference.primary();
-            }
-            else if ("primary_preferred".equals(readPreferenceType)) {
-                readPreference = ReadPreference.preferPrimary();
-            }
-            else if ("secondary".equals(readPreferenceType)) {
-                readPreference = ReadPreference.secondary();
-            }
-            else if ("secondary_preferred".equals(readPreferenceType)) {
-                readPreference = ReadPreference.preferSecondary();
-            }
-            else if ("nearest".equals(readPreferenceType)) {
-                readPreference = ReadPreference.closest();
-            }
-            else {
-                System.err
-                        .println("ERROR: Invalid readPreference: '"
-                                + readPreferenceType
-                                + "'. Must be [ primary | primary_preferred | secondary | secondary_preferred | nearest ]");
-                System.exit(1);
-            }
+            MongoDbUri uri = new MongoDbUri(url);
 
             try {
-                // need to append db to url.
-                url += "/" + database;
-                System.out.println("new database url = " + url);
-                mongo = MongoFactory.createClient(new MongoDbUri(url));
-                mongo.getConfig().setMaxConnectionCount(connections);
-                mongo.getConfig().setLockType(LockType.LOW_LATENCY_SPIN); // assumed...
+                database = uri.getDatabase();
+                if ((database == null) || database.isEmpty()) {
+                    System.err
+                            .println("ERROR: Invalid URL: '"
+                                    + url
+                                    + "'. Must provide a database name with the URI. "
+                                    + "'mongodb://<host1>:<port1>,<host2>:<port2>/database");
+                    System.exit(1);
+                }
+
+                mongo = MongoFactory.createClient(uri);
+
+                MongoClientConfiguration config = mongo.getConfig();
+                if (!url.toLowerCase().contains("locktype=")) {
+                    config.setLockType(LockType.LOW_LATENCY_SPIN); // assumed...
+                }
+
+                readPreference = config.getDefaultReadPreference();
+                writeConcern = config.getDefaultDurability();
+
                 db = mongo.getDatabase(database);
 
                 System.out.println("mongo connection created with " + url);

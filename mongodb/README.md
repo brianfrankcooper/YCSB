@@ -77,34 +77,19 @@ See the next section for the list of configuration parameters for MongoDB.
 
 ## MongoDB Configuration Parameters
 
-- `mongodb.url` default: `mongodb://localhost:27017`
+- `mongodb.url` default: `mongodb://localhost:27017/ycsb?w=1`
+  - This should be a MongoDB URI or connection string. 
+    - See http://docs.mongodb.org/manual/reference/connection-string/ for the standard options.
+    - For the complete set of options for the asynchronous driver see: 
+      - http://www.allanbank.com/mongodb-async-driver/apidocs/index.html?com/allanbank/mongodb/MongoDbUri.html
+    - For the complete set of options for the synchronous driver see:
+      - http://api.mongodb.org/java/current/index.html?com/mongodb/MongoClientURI.html
 
-- `mongodb.database` default: `ycsb`
-
-- `mongodb.writeConcern` default `acknowledged`
-  - options are :
-    - `errors_ignored`
-    - `unacknowledged`
-    - `acknowledged`
-    - `journaled`
-    - `replica_acknowledged`
-
-- `mongodb.readPreference` default `primary`
-  - options are :
-    - `primary`
-    - `primary_preferred`
-    - `secondary`
-    - `secondary_preferred`
-    - `nearest`
-
-- `mongodb.maxconnections` (default `100`)
-
-- `mongodb.threadsAllowedToBlockForConnectionMultiplier` (default `5`)
 
 For example:
 
-    ./bin/ycsb load mongodb-async -s -P workloads/workloada -p mongodb.writeConcern=unacknowledged
+    ./bin/ycsb load mongodb-async -s -P workloads/workloada -p mongodb.url=mongodb://localhost:27017/ycsb?w=0
 
 To run with the synchronous driver from MongoDB Inc.:
 
-    ./bin/ycsb load mongodb -s -P workloads/workloada -p mongodb.writeConcern=unacknowledged    
+    ./bin/ycsb load mongodb -s -P workloads/workloada -p mongodb.url=mongodb://localhost:27017/ycsb?w=0
