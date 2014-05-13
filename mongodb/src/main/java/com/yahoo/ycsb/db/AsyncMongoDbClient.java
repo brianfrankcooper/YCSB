@@ -1,5 +1,5 @@
 /**                                                                                                                                                                                
- * Copyright (c) 2013-2014, Allanbank Consulting, Inc. All rights reserved.                                                                                                                             
+ * Copyright (c) 2014, Yahoo!, Inc. All rights reserved.                                                                                                                             
  *                                                                                                                                                                                 
  * Licensed under the Apache License, Version 2.0 (the "License"); you                                                                                                             
  * may not use this file except in compliance with the License. You                                                                                                                
@@ -56,7 +56,6 @@ import com.yahoo.ycsb.DBException;
  * mongodb.writeConcern=normal
  * 
  * @author rjm
- * @copyright 2013-2014, Allanbank Consulting, Inc., All Rights Reserved
  */
 public class AsyncMongoDbClient extends DB {
 
@@ -417,8 +416,6 @@ public class AsyncMongoDbClient extends DB {
     /**
      * BinaryByteArrayIterator provides an adapter from a {@link BinaryElement}
      * to a {@link ByteIterator}.
-     * 
-     * @copyright 2013, Allanbank Consulting, Inc., All Rights Reserved
      */
     private final static class BinaryByteArrayIterator extends ByteIterator {
 
