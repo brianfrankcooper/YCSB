@@ -23,24 +23,25 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.ByteArrayByteIterator;
 
 import java.io.IOException;
-import java.util.*;
-//import java.util.HashMap;
-//import java.util.Properties;
-//import java.util.Set;
-//import java.util.Vector;
+import java.util.ConcurrentModificationException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Random;
+import java.util.Set;
+import java.util.Vector;
 
+import com.yahoo.ycsb.measurements.Measurements;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
-//import org.apache.hadoop.hbase.client.Scanner;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
-//import org.apache.hadoop.hbase.io.Cell;
-//import org.apache.hadoop.hbase.io.RowResult;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 
@@ -91,6 +92,9 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      */
     public void cleanup() throws DBException
     {
+        // Get the measurements instance as this is the only client that should
+        // count clean up time like an update since autoflush is off.
+        Measurements _measurements = Measurements.getMeasurements();
         try {
             _hTable.close();
         } catch (IOException e) {

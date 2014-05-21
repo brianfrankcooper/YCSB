@@ -1,0 +1,12 @@
+# more info here about TravisCI and Java projects
+# http://docs.travis-ci.com/user/languages/java/
+
+language: java
+
+jdk:
+  - oraclejdk7
+  - openjdk7  
+  
+install: mvn install -q -DskipTests=true
+
+script: mvn test -q

@@ -24,6 +24,7 @@ COMMANDS = {
 }
 
 DATABASES = {
+    "accumulo"     : "com.yahoo.ycsb.db.AccumuloClient",
     "basic"        : "com.yahoo.ycsb.BasicDB",
     "cassandra-7"  : "com.yahoo.ycsb.db.CassandraClient7",
     "cassandra-10" : "com.yahoo.ycsb.db.CassandraClient10",
@@ -107,7 +108,7 @@ database = sys.argv[2]
 db_classname = DATABASES[database]
 options = sys.argv[3:]
 
-ycsb_command = ["java", "-cp", ":".join(find_jars(ycsb_home, database)), \
+ycsb_command = ["java", "-cp", os.pathsep.join(find_jars(ycsb_home, database)), \
                 COMMANDS[sys.argv[1]]["main"], "-db", db_classname] + options
 if command:
     ycsb_command.append(command)

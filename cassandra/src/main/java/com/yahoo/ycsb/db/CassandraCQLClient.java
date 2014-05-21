@@ -167,7 +167,7 @@ public class CassandraCQLClient extends DB {
     @Override
     public void cleanup() throws DBException {
         if (initCount.decrementAndGet() <= 0) {
-            cluster.shutdown();
+            cluster.close();
         }
     }
 

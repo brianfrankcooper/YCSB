@@ -18,13 +18,20 @@
 package com.yahoo.ycsb;
 
 
-import java.io.*;
-import java.text.DecimalFormat;
-import java.util.*;
-
 import com.yahoo.ycsb.measurements.Measurements;
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 import com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter;
+
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.Properties;
+import java.util.Vector;
 
 //import org.apache.log4j.BasicConfigurator;
 
@@ -63,7 +70,8 @@ class StatusThread extends Thread
 		long lasttotalops=0;
 		
 		boolean alldone;
-
+		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
+		
 		do 
 		{
 			alldone=true;
@@ -93,26 +101,26 @@ class StatusThread extends Thread
 			lasten=en;
 			
 			DecimalFormat d = new DecimalFormat("#.##");
+			String label = _label + format.format(new Date());
 			
 			if (totalops==0)
 			{
-				System.err.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary());
+				System.err.println(label+ " " +(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary());
 			}
 			else
 			{
-				System.err.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());
+				System.err.println(label+" " + (interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());
 			}
 
 			if (_standardstatus)
 			{
 			if (totalops==0)
 			{
-				System.out.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary());
+				System.out.println(label+" "+(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary());
 			}
 			else
 			{
-				System.out.println(_label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());
-			}
+				System.out.println(label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());			}
 			}
 
 			try
