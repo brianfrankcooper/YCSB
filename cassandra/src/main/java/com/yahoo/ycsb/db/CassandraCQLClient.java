@@ -273,8 +273,7 @@ public class CassandraCQLClient extends DB {
             //  So, we need to build it manually.
             String initialStmt = stmt.toString();
             StringBuilder scanStmt = new StringBuilder();
-            scanStmt.append(
-                initialStmt.substring(0, initialStmt.length()-1));
+            scanStmt.append(initialStmt.substring(0, initialStmt.length()-1));
             scanStmt.append(" WHERE ");
             scanStmt.append(QueryBuilder.token(YCSB_KEY));
             scanStmt.append(" >= ");
@@ -374,7 +373,7 @@ public class CassandraCQLClient extends DB {
                 System.out.println(insertStmt.toString());
             }
 
-            ResultSet rs = session.execute(insertStmt);
+            session.execute(insertStmt);
 
             return OK;
         } catch (Exception e) {
@@ -404,7 +403,7 @@ public class CassandraCQLClient extends DB {
                 System.out.println(stmt.toString());
             }
 
-            ResultSet rs = session.execute(stmt);
+            session.execute(stmt);
 
             return OK;
         } catch (Exception e) {
