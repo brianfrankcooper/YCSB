@@ -9,6 +9,7 @@ import com.couchbase.client.CouchbaseConnectionFactoryBuilder;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.memcached.MemcachedCompatibleClient;
+import net.spy.memcached.FailureMode;
 import net.spy.memcached.PersistTo;
 import net.spy.memcached.ReplicateTo;
 import net.spy.memcached.internal.GetFuture;
@@ -21,52 +22,57 @@ import java.util.*;
 
 @SuppressWarnings({"NullableProblems"})
 public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
+    public static final String HOSTS_PROPERTY = "couchbase.hosts";
+    public static final String BUCKET_PROPERTY = "couchbase.bucket";
+    public static final String DEFAULT_BUCKET = "default";
+    public static final String USER_PROPERTY = "couchbase.user";
+    public static final String PASSWORD_PROPERTY = "couchbase.password";
+    public static final String DEFAULT_OP_TIMEOUT = "60000";
+    public static final String OP_TIMEOUT_PROPERTY = "couchbase.opTimeout";
+    public static final String READ_BUFFER_SIZE_PROPERTY = "couchbase.readBufferSize";
+    public static final String READ_BUFFER_SIZE_DEFAULT = "16384";
+    public static final String FAILURE_MODE_PROPERTY = "couchbase.failureMode";
+    public static final FailureMode FAILURE_MODE_PROPERTY_DEFAULT = FailureMode.Redistribute;
+    public static final String DDOCS_PROPERTY = "couchbase.ddocs";
+    public static final String VIEWS_PROPERTY = "couchbase.views";
+    public static final String PERSIST_TO_PROPERTY = "couchbase.persistTo";
+    public static final PersistTo PERSIST_TO_PROPERTY_DEFAULT = PersistTo.ONE;
+    public static final String REPLICATE_TO_PROPERTY = "couchbase.replicateTo";
+    public static final ReplicateTo REPLICATE_TO_PROPERTY_DEFAULT = ReplicateTo.ONE;
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
     protected CouchbaseClient couchbaseClient;
 
-    protected CouchbaseConfig couchbaseConfig;
-
     private static View view;
 
-    private boolean checkOperationStatus;
-
-    private long shutdownTimeoutMillis;
-
-    private int objectExpirationTime;
+    private String[] ddoc_names;
+    private String[] view_names;
+    protected PersistTo persistTo;
+    protected ReplicateTo replicateTo;
 
     private Random generator = new Random();
 
     private Map<String, View> views = new HashMap<String, View>();
 
-    private String[] ddoc_names;
-
-    private String[] view_names;
-
-    protected PersistTo persistTo = PersistTo.ZERO;
-
-    protected ReplicateTo replicateTo = ReplicateTo.ZERO;
-
     @Override
     public void init() throws DBException {
+        super.init();
         try {
-            couchbaseConfig = createMemcachedConfig();
             couchbaseClient = createCouchbaseClient();
             client = couchbaseClient;
-            checkOperationStatus = couchbaseConfig.getCheckOperationStatus();
-            objectExpirationTime = couchbaseConfig.getObjectExpirationTime();
-            shutdownTimeoutMillis = couchbaseConfig.getShutdownTimeoutMillis();
-            ddoc_names = couchbaseConfig.getDdocs();
-            view_names = couchbaseConfig.getViews();
-            persistTo = couchbaseConfig.getPersistTo();
-            replicateTo = couchbaseConfig.getReplicateTo();
+            ddoc_names = getProperties().getProperty(DDOCS_PROPERTY).split(",");
+            view_names = getProperties().getProperty(VIEWS_PROPERTY).split(",");
+            String persistToValue = getProperties().getProperty(PERSIST_TO_PROPERTY);
+            persistTo = persistToValue == null
+                        ? PERSIST_TO_PROPERTY_DEFAULT
+                        : PersistTo.valueOf(persistToValue);
+            String replicateToValue = (String) getProperties().get(REPLICATE_TO_PROPERTY);
+            replicateTo = replicateToValue == null
+                          ? REPLICATE_TO_PROPERTY_DEFAULT
+                          : ReplicateTo.valueOf(replicateToValue);
         } catch (Exception e) {
             throw new DBException(e);
         }
-    }
-
-    protected CouchbaseConfig createMemcachedConfig() {
-        return new CouchbaseConfig(getProperties());
     }
 
     protected CouchbaseClient createMemcachedClient() throws Exception {
@@ -75,17 +81,26 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
 
     protected CouchbaseClient createCouchbaseClient() throws Exception {
         CouchbaseConnectionFactoryBuilder builder = new CouchbaseConnectionFactoryBuilder();
-        builder.setReadBufferSize(couchbaseConfig.getReadBufferSize());
-        builder.setOpTimeout(couchbaseConfig.getOpTimeout());
-        builder.setFailureMode(couchbaseConfig.getFailureMode());
+        builder.setReadBufferSize(Integer.parseInt(getProperties().getProperty(READ_BUFFER_SIZE_PROPERTY, READ_BUFFER_SIZE_DEFAULT)));
+        builder.setOpTimeout(Long.parseLong(getProperties().getProperty(OP_TIMEOUT_PROPERTY, DEFAULT_OP_TIMEOUT)));
+        String failureModeValue = getProperties().getProperty(FAILURE_MODE_PROPERTY);
+        builder.setFailureMode(failureModeValue == null
+                               ? FAILURE_MODE_PROPERTY_DEFAULT
+                               : FailureMode.valueOf(failureModeValue));
 
         List<URI> servers = new ArrayList<URI>();
-        for (String address : couchbaseConfig.getHosts().split(",")) {
+        String result = getProperties().getProperty(HOSTS_PROPERTY);
+        if (result == null) {
+            throw new DBException("Missing required 'hosts' property");
+        }
+        for (String address : result.split(",")) {
             servers.add(new URI("http://" + address + ":8091/pools"));
         }
         CouchbaseConnectionFactory connectionFactory =
                 builder.buildCouchbaseConnection(servers,
-                        couchbaseConfig.getBucket(), couchbaseConfig.getUser(), couchbaseConfig.getPassword());
+                                                 getProperties().getProperty(BUCKET_PROPERTY, DEFAULT_BUCKET),
+                                                 getProperties().getProperty(USER_PROPERTY),
+                                                 getProperties().getProperty(PASSWORD_PROPERTY));
         return new com.couchbase.client.CouchbaseClient(connectionFactory);
     }
 

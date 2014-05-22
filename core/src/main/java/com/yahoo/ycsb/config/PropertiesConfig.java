@@ -7,7 +7,7 @@ import java.util.Properties;
 @SuppressWarnings({"unchecked"})
 public class PropertiesConfig {
 
-    private Properties properties = new Properties();
+    protected Properties properties = new Properties();
     private Map<String, PropertyValue> declared = new HashMap<String, PropertyValue>();
 
     public PropertiesConfig(Properties properties) {
@@ -41,19 +41,6 @@ public class PropertiesConfig {
             }
         }
         return null;
-    }
-
-    protected <T> T getProperty(String key) {
-        return (T) properties.get(key);
-    }
-
-    public String getString(String key) {
-        String property = properties.getProperty(key);
-        if (property != null) {
-            return property;
-        } else {
-            return getDefaultValue(key);
-        }
     }
 
     public Boolean getBoolean(String key) {

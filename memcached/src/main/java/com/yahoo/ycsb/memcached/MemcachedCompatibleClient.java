@@ -34,13 +34,9 @@ public abstract class MemcachedCompatibleClient extends DB {
 
     protected MemcachedClient client;
 
-    protected MemcachedCompatibleConfig config;
-
-    private boolean checkOperationStatus;
-
-    private long shutdownTimeoutMillis;
-
-    private int objectExpirationTime;
+    protected boolean checkOperationStatus;
+    protected long shutdownTimeoutMillis;
+    protected int objectExpirationTime;
 
     private static final String TEMPORARY_FAILURE_MESSAGE = "Temporary failure";
     private static final String CANCELLED_MESSAGE = "cancelled";
@@ -50,20 +46,24 @@ public abstract class MemcachedCompatibleClient extends DB {
     public static final int NOT_FOUND = -2;
     public static final int RETRY = 1;
 
+    public static final String SHUTDOWN_TIMEOUT_MILLIS_PROPERTY = "couchbase.shutdownTimeoutMillis";
+    public static final String DEFAULT_SHUTDOWN_TIMEOUT_MILLIS = "30000";
+    public static final String OBJECT_EXPIRATION_TIME_PROPERTY = "couchbase.objectExpirationTime";
+    public static final String DEFAULT_OBJECT_EXPIRATION_TIME = String.valueOf(Integer.MAX_VALUE);
+    public static final String CHECK_OPERATION_STATUS_PROPERTY = "couchbase.checkOperationStatus";
+    public static final String CHECK_OPERATION_STATUS_DEFAULT = "true";
+
     @Override
     public void init() throws DBException {
         try {
-            config = createMemcachedConfig();
             client = createMemcachedClient();
-            checkOperationStatus = config.getCheckOperationStatus();
-            objectExpirationTime = config.getObjectExpirationTime();
-            shutdownTimeoutMillis = config.getShutdownTimeoutMillis();
+            checkOperationStatus = Boolean.parseBoolean(getProperties().getProperty(CHECK_OPERATION_STATUS_PROPERTY, CHECK_OPERATION_STATUS_DEFAULT));
+            objectExpirationTime = Integer.getInteger(getProperties().getProperty(OBJECT_EXPIRATION_TIME_PROPERTY, DEFAULT_OBJECT_EXPIRATION_TIME));
+            shutdownTimeoutMillis = Integer.getInteger(getProperties().getProperty(SHUTDOWN_TIMEOUT_MILLIS_PROPERTY, DEFAULT_SHUTDOWN_TIMEOUT_MILLIS));
         } catch (Exception e) {
             throw new DBException(e);
         }
     }
-
-    protected abstract MemcachedCompatibleConfig createMemcachedConfig();
 
     protected abstract MemcachedClient createMemcachedClient() throws Exception;
 
