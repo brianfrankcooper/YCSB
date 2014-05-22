@@ -26,7 +26,6 @@ COMMANDS = {
 DATABASES = {
     "accumulo"     : "com.yahoo.ycsb.db.AccumuloClient",
     "basic"        : "com.yahoo.ycsb.BasicDB",
-    "cassandra-7"  : "com.yahoo.ycsb.db.CassandraClient7",
     "cassandra-10" : "com.yahoo.ycsb.db.CassandraClient10",
     "cassandra-cql": "com.yahoo.ycsb.db.CassandraCQLClient",
     "dynamodb"     : "com.yahoo.ycsb.db.DynamoDBClient",
@@ -41,7 +40,10 @@ DATABASES = {
     "nosqldb"      : "com.yahoo.ycsb.db.NoSqlDbClient",
     "orientdb"     : "com.yahoo.ycsb.db.OrientDBClient",
     "redis"        : "com.yahoo.ycsb.db.RedisClient", 
-    "voldemort"    : "com.yahoo.ycsb.db.VoldemortClient", 
+    "voldemort"    : "com.yahoo.ycsb.db.VoldemortClient",
+    "couchbase"    : "com.yahoo.ycsb.couchbase.CouchbaseClient1_8",
+    "couchbase2"    : "com.yahoo.ycsb.couchbase.CouchbaseClient2_0",
+    "aerospike"    : "com.yahoo.ycsb.db.AerospikeClient",
 }
 
 OPTIONS = {

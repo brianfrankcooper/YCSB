@@ -13,6 +13,11 @@
 
   <dependencies>
      <dependency>
+          <groupId>org.hectorclient</groupId>
+          <artifactId>hector-core</artifactId>
+          <version>${hector.version}</version>
+     </dependency>
+     <dependency>
        <groupId>org.apache.cassandra</groupId>
        <artifactId>cassandra-all</artifactId>
        <version>${cassandra.version}</version>

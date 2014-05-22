@@ -24,18 +24,18 @@
 <configuration>
   <property>
     <name>hbase.rootdir</name>
-    <value>hdfs://<HBASE_MASTER_SERVER>:20001/hbase</value>
+    <value>hdfs://r1.citrusleaf.local:20001/hbase</value>
     <description>The directory shared by region servers.
     </description>
   </property>
   <property>
     <name>hbase.master</name>
-    <value><HBASE_MASTER_SERVER>:60000</value>
+    <value>r1.citrusleaf.local:60000</value>
     <description>The host and port that the HBase master runs at.
     </description>
   </property>
   <property>
     <name>hbase.zookeeper.quorum</name>
-    <value><HBASE_MASTER_SERVER></value>
+    <value>r1.citrusleaf.local</value>
   </property>
 </configuration>

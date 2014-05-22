@@ -143,7 +143,8 @@ public class CassandraClient10 extends DB
             }
             try
             {
-                Thread.sleep(1000);
+                System.out.println("Reconnect!");
+                Thread.sleep(100);
             }
             catch (InterruptedException e)
             {
@@ -268,14 +269,13 @@ public class CassandraClient10 extends DB
 
             try
             {
-                Thread.sleep(500);
+                Thread.sleep(100);
             }
             catch (InterruptedException e)
             {
             }
         }
         errorexception.printStackTrace();
-        errorexception.printStackTrace(System.out);
         return Error;
 
     }
@@ -377,14 +377,13 @@ public class CassandraClient10 extends DB
             }
             try
             {
-                Thread.sleep(500);
+                Thread.sleep(100);
             }
             catch (InterruptedException e)
             {
             }
         }
         errorexception.printStackTrace();
-        errorexception.printStackTrace(System.out);
         return Error;
     }
 
@@ -475,7 +474,7 @@ public class CassandraClient10 extends DB
             }
             try
             {
-                Thread.sleep(500);
+                Thread.sleep(100);
             }
             catch (InterruptedException e)
             {
@@ -483,7 +482,6 @@ public class CassandraClient10 extends DB
         }
 
         errorexception.printStackTrace();
-        errorexception.printStackTrace(System.out);
         return Error;
     }
 
@@ -534,14 +532,13 @@ public class CassandraClient10 extends DB
             }
             try
             {
-                Thread.sleep(500);
+                Thread.sleep(100);
             }
             catch (InterruptedException e)
             {
             }
         }
         errorexception.printStackTrace();
-        errorexception.printStackTrace(System.out);
         return Error;
     }
 

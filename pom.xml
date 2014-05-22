@@ -62,8 +62,11 @@
 
   <modules>
     <!--module>build-tools</module-->
+    <module>aerospike</module>
     <module>cassandra</module>
     <module>core</module>
+    <!--<module>couchbase-1.8</module>-->
+    <module>couchbase-2.0</module>   <!--couchbase-2.0 conflicts with couchbase-1.8, use one of them-->
     <module>hbase</module>
     <module>hypertable</module>
     <module>accumulo</module>
@@ -73,6 +76,8 @@
     <!--<module>infinispan</module>-->
     <module>jdbc</module>
     <module>mapkeeper</module>
+    <!--<module>membase</module>-->
+    <module>memcached</module>
     <module>mongodb</module>
     <module>orientdb</module>
     <!--module>nosqldb</module-->
@@ -91,24 +96,6 @@
           <source>1.6</source>
           <target>1.6</target>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>2.6</version>
-        <configuration>
-          <consoleOutput>true</consoleOutput>
-          <configLocation>checkstyle.xml</configLocation>
-        </configuration>
-        <executions>
-          <execution>
-          <id>validate</id>
-            <phase>validate</phase>
-            <goals>
-              <goal>checkstyle</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>

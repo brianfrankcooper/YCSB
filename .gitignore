@@ -8,3 +8,7 @@ output*
 .project
 .classpath
 .settings
+
+# and intellij
+.idea/
+*.iml

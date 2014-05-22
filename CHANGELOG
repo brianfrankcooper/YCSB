@@ -1,4 +1,18 @@
-- gh-95 Bump MongoDB version to 2.9.0 (allanbank)
+- Upgraded MongoDB client to v.2.10.1 (thumbtack)
+- Added mongodb.readPreference property (thumbtack)
+- Added Aerospike client (thumbtack)
+- Throttling improvement: the throughput of last 100ms is used (thumbtack)
+- Output improvements, exportmeasurementsinterval property (thumbtack)
+- Added warm-up phase before run the workload (thumbtack)
+- Added fieldnameprefix property (thumbtack)
+- Added retries: readretrycount, updateretrycount, insertretrycount, retrydelay
+  properties (thumbtack)
+- Added ignoreinserterrors property (thumbtack)
+- Upgraded Couchbase client to v.1.1.0 and Spymemcached client to v.2.8.9
+  (thumbtack)
+- Added couchbase.replicateTo property (thumbtack)
+- Added Fabric scripts to run YCSB on multiple hosts (thumbtack) 
+
 - gh-67 Use checkstyle (m1ch1)
 - gh-76 Implemented OrientDB client (lvca)
 - gh-88 YCSB client for Amazon DynamoDB (jananin)
