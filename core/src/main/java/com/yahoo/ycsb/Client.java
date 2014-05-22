@@ -18,7 +18,6 @@
 package com.yahoo.ycsb;
 
 
-import com.sun.xml.internal.bind.v2.TODO;
 import com.yahoo.ycsb.measurements.Measurements;
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 import com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter;
@@ -30,12 +29,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Vector;
 
-//import org.apache.log4j.BasicConfigurator;
 
 /**
  * A thread to periodically show the status of the experiment, to reassure you that progress is being made.
