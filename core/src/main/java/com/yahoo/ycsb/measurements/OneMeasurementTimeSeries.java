@@ -20,6 +20,8 @@ package com.yahoo.ycsb.measurements;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -71,13 +73,12 @@ public class OneMeasurementTimeSeries extends OneMeasurement {
 
     private int first = 0;
 
-    private HashMap<Integer, int[]> returncodes;
+    private final ConcurrentMap<Integer, AtomicInteger> returncodes = new ConcurrentHashMap<Integer, AtomicInteger>();
 
     public OneMeasurementTimeSeries(String name, Properties props) {
         super(name);
         _granularity = Integer.parseInt(props.getProperty(GRANULARITY, GRANULARITY_DEFAULT));
         _measurements = new Vector<SeriesUnit>();
-        returncodes = new HashMap<Integer, int[]>();
     }
 
     void checkEndOfUnit(boolean forceend) {
@@ -112,12 +113,20 @@ public class OneMeasurementTimeSeries extends OneMeasurement {
         windowoperations.incrementAndGet();
         windowtotallatency.addAndGet(latency);
 
-        if (latency > max.get()) {
-            max.set(latency);
+        int lastMin = min.get();
+        while ((lastMin < 0) || (latency < lastMin)) {
+            if (min.compareAndSet(lastMin, latency)) {
+                break;
+            }
+            lastMin = min.get();
         }
 
-        if ((latency < min.get()) || (min.get() < 0)) {
-            min.set(latency);
+        int lastMax = max.get();
+        while (latency > lastMax) {
+            if (max.compareAndSet(lastMax, latency)) {
+                break;
+            }
+            lastMax = max.get();
         }
     }
 
@@ -142,8 +151,7 @@ public class OneMeasurementTimeSeries extends OneMeasurement {
         //TODO: 95th and 99th percentile latency
 
         for (Integer I : returncodes.keySet()) {
-            int[] val = returncodes.get(I);
-            exporter.write(getName(), "Return=" + I, val[0]);
+            exporter.write(getName(), "Return=" + I, returncodes.get(I).get());
         }
     }
 
@@ -166,14 +174,15 @@ public class OneMeasurementTimeSeries extends OneMeasurement {
 
     @Override
     public void reportReturnCode(int code) {
-        Integer Icode = code;
-        if (!returncodes.containsKey(Icode)) {
-            int[] val = new int[1];
-            val[0] = 0;
-            returncodes.put(Icode, val);
+        AtomicInteger count = returncodes.get(code);
+        if (count == null) {
+            count = new AtomicInteger();
+            AtomicInteger oldCount = returncodes.putIfAbsent(code, count);
+            if (oldCount != null) {
+                count = oldCount;
+            }
         }
-        returncodes.get(Icode)[0]++;
-
+        count.incrementAndGet();
     }
 
     @Override
