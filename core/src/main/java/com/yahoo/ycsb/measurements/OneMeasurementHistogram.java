@@ -19,8 +19,6 @@ package com.yahoo.ycsb.measurements;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -40,33 +38,25 @@ public class OneMeasurementHistogram extends OneMeasurement {
     public static final String BUCKETS = "histogram.buckets";
     public static final String BUCKETS_DEFAULT = "1000";
 
-    private AtomicInteger _buckets;
-    private AtomicIntegerArray histogram;
-    private AtomicInteger histogramoverflow;
-    private AtomicInteger operations;
-    private AtomicInteger retrycounts;
-    private AtomicLong totallatency;
+    private final AtomicInteger buckets;
+    private final AtomicIntegerArray histogram;
+    private final AtomicInteger histogramoverflow = new AtomicInteger(0);
+    private final AtomicInteger operations = new AtomicInteger(0);
+    private final AtomicInteger retrycounts = new AtomicInteger(0);
+    private final AtomicLong totallatency = new AtomicLong(0);
 
     //keep a windowed version of these stats for printing status
-    private AtomicInteger windowoperations;
-    private AtomicLong windowtotallatency;
+    private final AtomicInteger windowoperations = new AtomicInteger(0);
+    private final AtomicLong windowtotallatency = new AtomicLong(0);
 
-    private AtomicInteger min;
-    private AtomicInteger max;
+    private final AtomicInteger min = new AtomicInteger(-1);
+    private final AtomicInteger max = new AtomicInteger(-1);
     private final ConcurrentMap<Integer, AtomicInteger> returncodes = new ConcurrentHashMap<Integer, AtomicInteger>();
 
     public OneMeasurementHistogram(String name, Properties props) {
         super(name);
-        _buckets = new AtomicInteger(Integer.parseInt(props.getProperty(BUCKETS, BUCKETS_DEFAULT)));
-        histogram = new AtomicIntegerArray(_buckets.get());
-        histogramoverflow = new AtomicInteger(0);
-        operations = new AtomicInteger(0);
-        retrycounts = new AtomicInteger(0);
-        totallatency = new AtomicLong(0);
-        windowoperations = new AtomicInteger(0);
-        windowtotallatency = new AtomicLong(0);
-        min = new AtomicInteger(-1);
-        max = new AtomicInteger(-1);
+        buckets = new AtomicInteger(Integer.parseInt(props.getProperty(BUCKETS, BUCKETS_DEFAULT)));
+        histogram = new AtomicIntegerArray(buckets.get());
     }
 
     /* (non-Javadoc)
@@ -94,7 +84,7 @@ public class OneMeasurementHistogram extends OneMeasurement {
       * @see com.yahoo.ycsb.OneMeasurement#measure(int)
       */
     public void measure(int latency) {
-        if (latency / 1000 >= _buckets.get()) {
+        if (latency / 1000 >= buckets.get()) {
             histogramoverflow.incrementAndGet();
         } else {
             histogram.incrementAndGet(latency / 1000);
@@ -142,7 +132,7 @@ public class OneMeasurementHistogram extends OneMeasurement {
 
         int opcounter = 0;
         boolean done95th = false;
-        for (int i = 0; i < _buckets.get(); i++) {
+        for (int i = 0; i < buckets.get(); i++) {
             opcounter += histogram.get(i);
             if ((!done95th) && (((double) opcounter) / ((double) operations.get()) >= 0.95)) {
                 exporter.write(getName(), "95thPercentileLatency(ms)", i);
@@ -161,10 +151,10 @@ public class OneMeasurementHistogram extends OneMeasurement {
 
     @Override
     public void exportMeasurementsFinal(MeasurementsExporter exporter) throws IOException {
-        for (int i = 0; i < _buckets.get(); i++) {
+        for (int i = 0; i < buckets.get(); i++) {
             exporter.write(getName(), Integer.toString(i), histogram.get(i));
         }
-        exporter.write(getName(), ">" + _buckets.get(), histogramoverflow.get());
+        exporter.write(getName(), ">" + buckets.get(), histogramoverflow.get());
         exportGeneralMeasurements(exporter);
     }
 
