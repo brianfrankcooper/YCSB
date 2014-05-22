@@ -60,12 +60,6 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
             view_names = couchbaseConfig.getViews();
             persistTo = couchbaseConfig.getPersistTo();
             replicateTo = couchbaseConfig.getReplicateTo();
-            if (persistTo == null && replicateTo != null) {
-                persistTo = PersistTo.ZERO;
-            }
-            if (replicateTo == null && persistTo != null) {
-                replicateTo = ReplicateTo.ZERO;
-            }
         } catch (Exception e) {
             throw new DBException(e);
         }

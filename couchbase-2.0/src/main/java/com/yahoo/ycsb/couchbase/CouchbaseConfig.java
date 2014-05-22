@@ -50,11 +50,11 @@ public class CouchbaseConfig extends PropertiesConfig implements MemcachedCompat
 
     public static final String PERSIST_TO_PROPERTY = "couchbase.persistTo";
 
-    public static final PersistTo PERSIST_TO_PROPERTY_DEFAULT = null;
+    public static final PersistTo PERSIST_TO_PROPERTY_DEFAULT = PersistTo.ONE;
 
     public static final String REPLICATE_TO_PROPERTY = "couchbase.replicateTo";
 
-    public static final ReplicateTo REPLICATE_TO_PROPERTY_DEFAULT = null;
+    public static final ReplicateTo REPLICATE_TO_PROPERTY_DEFAULT = ReplicateTo.ONE;
 
     public CouchbaseConfig(Properties properties) {
         super(properties);
