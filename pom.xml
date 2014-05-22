@@ -62,7 +62,7 @@
 
   <modules>
     <!--module>build-tools</module-->
-    <module>aerospike</module>
+    <!-- <module>aerospike</module> -->
     <module>cassandra</module>
     <module>core</module>
     <!--<module>couchbase-1.8</module>-->
