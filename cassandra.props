@@ -1,0 +1,4 @@
+recordcount=10000000
+insertstart=0
+insertcount=2500000
+hosts=vpc-cass

@@ -1,0 +1,183 @@
+#####################       SETUP       ##################################################################
+
+1.   Download the aerospike java client and build it.
+1.1. tar xvf citrusleaf_client_java_<version>.tgz
+1.2. cd citrusleaf_client_java_<version>
+1.3. ./build_all
+1.4. you must edit aerospike/pom.xml to set corrent version of installed citrusleaf-client
+2.   Clone the ycsb git repo and build it.
+2.2. cd YCSB-<version>
+2.3. mvn install
+3.   Build our ycsb plugin 
+3.1. copy our ycsb plugin to ycsb repo: cp -r client/tools/ycsb/aerospike YCSB-<version>/
+3.2. Add  '"aerospike"    : "com.yahoo.ycsb.db.AerospikeClient",;' in DATABASE section of bin/ycsb script.
+3.3  cd aerospike
+3.4. mvn install
+
+Now, "target/aerospike-binding-0.1.4.jar" can be used in the ycsb tool.
+The same will be provided to users.
+
+Modification can be done in "src/main/java/com/yahoo/yscb/db/AerospikeClient.java"
+After modifying, do "mvn install" to build it.
+
+
+#############################################################################################################
+
+############################# TEST THE DATABASE LAYER #######################################################
+
+"./bin/ycsb shell aerospike"
+
+Commands:
+	read key [field1 field2 ...] - Read a record
+	scan key recordcount [field1 field2 ...] - Scan starting at key
+	insert key name1=value1 [name2=value2 ...] - Insert a new record
+	update key name1=value1 [name2=value2 ...] - Update a record
+	delete key - Delete a record
+	table [tablename] - Get or [set] the name of the table
+	quit - Quit
+
+*Our plugin does not support "scan" and "table"
+
+The return codes are defined in the database interface layer. 0 means success.
+
+#############################################################################################################
+
+########################## SETUP THE WORKLOAD ###############################################################
+
+A sample core workload file - 
+################################
+recordcount=1000
+operationcount=1000
+workload=com.yahoo.ycsb.workloads.CoreWorkload
+
+readallfields=true
+
+readproportion=0.5
+updateproportion=0.5
+scanproportion=0
+insertproportion=0
+
+requestdistribution=zipfian
+################################
+
+You can use the existing workload (workloads/ ) property files or else create one of your own.
+YCSB already has 6 different set of core workloads. To list them -
+ls workload/ 
+
+More information at : https://github.com/brianfrankcooper/YCSB/wiki/Core-Workloads
+
+Typically, a workload is a combination of:
+	Workload java class (subclass of com.yahoo.ycsb.Workload)
+	Parameter file (in the Java Properties format)
+
+You can also specify properties using < -p property=value > as a parameter with ycsb command. 
+These will override the ones from that of workload file.
+The property files used with the core workload generator can specify values for the following properties:
+
+host:			host address. [ default: localhost]
+port: 			port address. [ default: 3000]
+ns: 			namespace. [default: test]
+set:			set. [default: "YCSB"]
+
+fieldcount: 		the number of fields in a record (default: 10) 
+fieldlength: 		the size of each field (default: 100) 
+readallfields: 		should reads read all fields (true) or just one (false) (default: true) 
+readproportion: 	what proportion of operations should be reads (default: 0.95) 
+updateproportion: 	what proportion of operations should be updates (default: 0.05) 
+insertproportion:	what proportion of operations should be inserts (default: 0)
+scanproportion: 	what proportion of operations should be scans (default: 0) 
+readmodifywriteproportion: what proportion of operations should be read a record, modify it, write it back (default: 0) 
+requestdistribution: what distribution should be used to select the records to operate on – uniform, zipfian or latest (default: uniform) 
+
+maxscanlength: 		for scans, what is the maximum number of records to scan (default: 1000) 
+scanlengthdistribution: for scans, what distribution should be used to choose the number of records to scan, for each scan, between 1 and maxscanlength (default: uniform) 
+
+insertorder: 		should records be inserted in order by key (“ordered”), or in hashed order (“hashed”) (default: hashed) 
+operationcount: 	Number of operations to perform. 
+maxexecutiontime:	Maximum execution time in seconds. The benchmark runs until either the operation count has exhausted or the maximum specified time has elapsed, whichever is earlier.
+
+table: 			The name of the table (default: usertable)
+
+If someone wants to implement their own workloads :
+"https://github.com/brianfrankcooper/YCSB/wiki/Implementing-New-Workloads"
+
+***be careful with namespace and set. In case of an invalid arguments the transactions would return -1,
+which can be seen in the final output. 
+
+#############################################################################################################
+
+############### RUNNING PARAMETERS ##########################################################################
+
+-threads : 	the number of client threads.
+-target : 	the target number of operations per second.
+-s : 		status. By specifying "-s" on the command line, the Client will report status every 10 seconds to stderr.
+-p :		defination of property. (for example: "-p port=3000 -p host=192.34.5.6"). 
+
+#############################################################################################################
+
+############### LOAD THE DATA ###############################################################################
+
+Workloads have two executable phases: 
+	loading phase (which defines the data to be inserted). 
+	transactions phase (which defines the operations to be executed against the data set). 
+
+To load the data, run the YCSB Client and tell it to execute the loading section.
+
+"./bin/ycsb load aerospike -s -P workloads/workloada > transaction.dat"
+
+parameter -
+
+load : 		tells the Client to execute the loading section of the workload.
+aerospike: 	tells the Client to use the dummy AerospikeClient layer. 
+		You can also specify this as a property in your parameters file using the "db" property 
+		(for example, "db=com.yahoo.ycsb.AerospikeClient").
+
+-P : 		to load property files. In this case, we used it to load the workloada parameter file.
+-p : 		use to define a property.  ( for example "-p host=192.168.7.123 -p port=3000" ).
+
+#############################################################################################################
+
+############### EXECUTE THE WORKLOAD ########################################################################
+
+Once the data is loaded, you can execute the workload. This is done by telling the client to run the 
+transaction section of the workload. To execute the workload, you can use the following command:
+
+"./bin/ycsb run aerospike -P workloads/workloada -s -threads 10 -target 1000 > transactions.dat"
+
+At the end of the run, the Client will report performance statistics on stdout. 
+In the above example, these statistics will be written to the transactions.dat file. 
+The default is to produce average, min, max, 95th and 99th percentile latency for each 
+operation type (read, update, etc.), a count of the return codes for each operation, 
+and a histogram of latencies for each operation. 
+
+The return codes are defined in the database interface layer. 0 means success.
+
+Further information on running a workload:
+"https://github.com/brianfrankcooper/YCSB/wiki/Running-a-Workload"
+
+While a histogram of latencies is often useful, sometimes a timeseries is more useful. 
+To request a time series, specify the "measurementtype=timeseries" property on the 
+Client command line or in a properties file. By default, the Client will report average 
+latency for each interval of 1000 milliseconds. You can specify a different granularity 
+for reporting using the "timeseries.granularity" property. For example:
+
+"./bin/ycsb run aerospike -P workloads/workloada -P large.dat -s -threads 10 -target 100 -p measurementtype=timeseries -p timeseries.granularity=2000 > transactions.dat"
+
+will report a timeseries, with readings averaged every 2,000 milliseconds (2 seconds).
+
+
+A note about latency measurements: the Client measures the end to end latency of executing 
+a particular operation against the database. That is, it starts a timer before calling the 
+appropriate method in the DB interface layer class, and stops the timer when the method returns. 
+
+Thus latencies include: executing inside the interface layer, network latency to the database server, 
+and database execution time. 
+They do not include delays introduced for throttling the target throughput. 
+That is, if you specify a target of 10 operations per second (and a single thread) 
+then the Client will only execute an operation every 100 milliseconds. 
+
+If the operation takes 12 milliseconds, then the client will wait for an additional 88 milliseconds 
+before trying the next operation. However, the reported latency will not include this wait time; 
+a latency of 12 milliseconds, not 100, will be reported.
+
+#############################################################################################################

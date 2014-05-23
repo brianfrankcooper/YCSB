@@ -148,12 +148,12 @@ public class CassandraClient10 extends DB
       {
         connectexception = e;
       }
-      try
+/*      try
       {
         Thread.sleep(1000);
       } catch (InterruptedException e)
       {
-      }
+      }*/
     }
     if (connectexception != null)
     {
@@ -275,13 +275,13 @@ public class CassandraClient10 extends DB
         errorexception = e;
       }
 
-      try
+/*      try
       {
         Thread.sleep(500);
       } catch (InterruptedException e)
       {
       }
-    }
+*/    }
     errorexception.printStackTrace();
     errorexception.printStackTrace(System.out);
     return Error;
@@ -386,12 +386,12 @@ public class CassandraClient10 extends DB
       {
         errorexception = e;
       }
-      try
+/*      try
       {
         Thread.sleep(500);
       } catch (InterruptedException e)
       {
-      }
+      }*/
     }
     errorexception.printStackTrace();
     errorexception.printStackTrace(System.out);
@@ -490,12 +490,12 @@ public class CassandraClient10 extends DB
       {
         errorexception = e;
       }
-      try
+/*      try
       {
         Thread.sleep(500);
       } catch (InterruptedException e)
       {
-      }
+      }*/
     }
 
     errorexception.printStackTrace();
@@ -548,12 +548,12 @@ public class CassandraClient10 extends DB
       {
         errorexception = e;
       }
-      try
+/*      try
       {
         Thread.sleep(500);
       } catch (InterruptedException e)
       {
-      }
+      }*/
     }
     errorexception.printStackTrace();
     errorexception.printStackTrace(System.out);
