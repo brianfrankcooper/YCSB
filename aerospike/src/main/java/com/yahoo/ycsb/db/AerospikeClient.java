@@ -1,7 +1,11 @@
 package com.yahoo.ycsb.db;
 
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
@@ -14,6 +18,7 @@ import com.aerospike.client.ResultCode;
 import com.aerospike.client.Value;
 import com.aerospike.client.policy.Policy;
 import com.aerospike.client.policy.WritePolicy;
+import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 
@@ -104,6 +109,23 @@ public class AerospikeClient extends com.yahoo.ycsb.DB{
 			if(fields != null) {
 				Record rec = as.get(policy, new Key(NAMESPACE, SET, key), fields.toArray(new String[fields.size()]));
 //TODO: need a fair test, add a for loop to iterate through all bins and create new objects and put into result map
+				String name;
+				ByteIterator value;
+				for(Entry<String, Object> k : rec.bins.entrySet()){
+					name = new String(k.getKey());
+					Object val = k.getValue();
+					ByteArrayOutputStream bos = new ByteArrayOutputStream();
+					ObjectOutput out = null;
+					try{
+						out = new ObjectOutputStream(bos);
+						out.writeObject(val);
+						byte[] bytes = bos.toByteArray();
+						value = new ByteArrayByteIterator(bytes);
+						result.put(name, value);
+					}catch(Exception ex){
+						return ResultCode.SERIALIZE_ERROR;
+					}
+				}
 				return OK;
 			}
 			else {

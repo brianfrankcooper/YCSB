@@ -251,7 +251,6 @@ public class CassandraClient10 extends DB
         ByteIterator value;
         for (ColumnOrSuperColumn oneresult : results)
         {
-
           column = oneresult.column;
             name = new String(column.name.array(), column.name.position()+column.name.arrayOffset(), column.name.remaining());
             value = new ByteArrayByteIterator(column.value.array(), column.value.position()+column.value.arrayOffset(), column.value.remaining());

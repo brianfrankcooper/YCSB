@@ -412,7 +412,7 @@ public class CassandraCQLClient extends DB {
             System.out.println("Error deleting key: " + key);
         }
 
-        return ERR;
-    }
+		return ERR;
+	}
 
 }

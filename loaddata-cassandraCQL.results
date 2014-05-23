@@ -1,0 +1,71 @@
+YCSB Client 0.1
+Command line: -db com.yahoo.ycsb.db.CassandraCQLClient -P workloads/workloadb -P cassandra.props -threads 50 -s -load
+17:13:39.810 [Thread-1] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.166 [Thread-1] DEBUG i.n.u.i.l.InternalLoggerFactory - Using SLF4J as the default logging framework
+17:13:40.198 [Thread-1] DEBUG i.n.util.internal.PlatformDependent - UID: 0
+17:13:40.204 [Thread-1] DEBUG i.n.util.internal.PlatformDependent - Java version: 8
+17:13:40.204 [Thread-1] DEBUG i.n.util.internal.PlatformDependent - -Dio.netty.noUnsafe: false
+17:13:40.210 [Thread-1] DEBUG i.n.util.internal.PlatformDependent0 - java.nio.ByteBuffer.cleaner: available
+17:13:40.212 [Thread-1] DEBUG i.n.util.internal.PlatformDependent0 - java.nio.Buffer.address: available
+17:13:40.212 [Thread-1] DEBUG i.n.util.internal.PlatformDependent0 - sun.misc.Unsafe.theUnsafe: available
+17:13:40.213 [Thread-1] DEBUG i.n.util.internal.PlatformDependent0 - sun.misc.Unsafe.copyMemory: available
+17:13:40.215 [Thread-1] DEBUG i.n.util.internal.PlatformDependent0 - java.nio.Bits.unaligned: true
+17:13:40.215 [Thread-1] DEBUG i.n.util.internal.PlatformDependent - sun.misc.Unsafe: available
+17:13:40.216 [Thread-1] DEBUG i.n.util.internal.PlatformDependent - -Dio.netty.noJavassist: false
+17:13:40.218 [Thread-1] DEBUG i.n.util.internal.PlatformDependent - Javassist: unavailable
+17:13:40.218 [Thread-1] DEBUG i.n.util.internal.PlatformDependent - You don't have Javassist in your class path or you don't have enough permission to load dynamically generated classes.  Please check the configuration for better performance.
+17:13:40.218 [Thread-1] DEBUG i.n.util.internal.PlatformDependent - -Dio.netty.tmpdir: /tmp (java.io.tmpdir)
+17:13:40.218 [Thread-1] DEBUG i.n.util.internal.PlatformDependent - -Dio.netty.bitMode: 64 (sun.arch.data.model)
+17:13:40.218 [Thread-1] DEBUG i.n.util.internal.PlatformDependent - -Dio.netty.noPreferDirect: false
+17:13:40.220 [Thread-50] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.259 [Thread-49] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.312 [Thread-48] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.362 [Thread-47] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.414 [Thread-46] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.452 [Thread-45] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.495 [Thread-44] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.533 [Thread-43] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.542 [Thread-42] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.556 [Thread-41] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.569 [Thread-40] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.581 [Thread-39] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.603 [Thread-38] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.618 [Thread-37] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.631 [Thread-36] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.640 [Thread-35] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.655 [Thread-33] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.668 [Thread-34] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.679 [Thread-32] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.712 [Thread-30] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.722 [Thread-31] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.733 [Thread-29] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.744 [Thread-28] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.755 [Thread-27] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.763 [Thread-26] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.769 [Thread-25] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.778 [Thread-24] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.796 [Thread-23] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.809 [Thread-22] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.817 [Thread-21] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.826 [Thread-20] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.836 [Thread-19] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.850 [Thread-18] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.882 [Thread-17] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.896 [Thread-16] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.911 [Thread-15] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.931 [Thread-14] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.945 [Thread-13] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.951 [Thread-11] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.968 [Thread-10] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.977 [Thread-12] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:40.989 [Thread-9] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:41.000 [Thread-8] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:41.007 [Thread-7] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:41.013 [Thread-6] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:41.033 [Thread-5] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:41.046 [Thread-4] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:41.058 [Thread-2] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+17:13:41.076 [Thread-3] DEBUG com.datastax.driver.core.Cluster - Starting new cluster with contact points [vpc-cass/10.10.1.60]
+[OVERALL], RunTime(ms), 6453.0
+[OVERALL], Throughput(ops/sec), 0.0
+java -cp /home/peng/git/YCSB/dynamodb/conf:/home/peng/git/YCSB/infinispan/src/main/conf:/home/peng/git/YCSB/core/target/core-0.1.4.jar:/home/peng/git/YCSB/voldemort/src/main/conf:/home/peng/git/YCSB/gemfire/src/main/conf:/home/peng/git/YCSB/nosqldb/src/main/conf:/home/peng/git/YCSB/hbase/src/main/conf:/home/peng/git/YCSB/accumulo/src/main/conf:/home/peng/git/YCSB/cassandra/lib/json-simple-1.1.jar:/home/peng/git/YCSB/cassandra/lib/netty-all-4.0.17.Final.jar:/home/peng/git/YCSB/cassandra/lib/compress-lzf-0.8.4.jar:/home/peng/git/YCSB/cassandra/lib/concurrentlinkedhashmap-lru-1.4.jar:/home/peng/git/YCSB/cassandra/lib/airline-0.6.jar:/home/peng/git/YCSB/cassandra/lib/jbcrypt-0.3m.jar:/home/peng/git/YCSB/cassandra/lib/guava-16.0.jar:/home/peng/git/YCSB/cassandra/lib/slf4j-api-1.7.2.jar:/home/peng/git/YCSB/cassandra/lib/logback-classic-1.1.2.jar:/home/peng/git/YCSB/cassandra/lib/maven-ant-tasks-2.1.3.jar:/home/peng/git/YCSB/cassandra/lib/jline-1.0.jar:/home/peng/git/YCSB/cassandra/lib/apache-cassandra-thrift-2.1.0-beta2-SNAPSHOT.jar:/home/peng/git/YCSB/cassandra/lib/jackson-core-asl-1.9.2.jar:/home/peng/git/YCSB/cassandra/lib/commons-lang3-3.1.jar:/home/peng/git/YCSB/cassandra/lib/disruptor-3.0.1.jar:/home/peng/git/YCSB/cassandra/lib/snakeyaml-1.11.jar:/home/peng/git/YCSB/cassandra/lib/thrift-server-0.3.5.jar:/home/peng/git/YCSB/cassandra/lib/high-scale-lib-1.0.6.jar:/home/peng/git/YCSB/cassandra/lib/libthrift-0.9.1.jar:/home/peng/git/YCSB/cassandra/lib/metrics-core-2.2.0.jar:/home/peng/git/YCSB/cassandra/lib/apache-cassandra-clientutil-2.1.0-beta2-SNAPSHOT.jar:/home/peng/git/YCSB/cassandra/lib/lz4-1.2.0.jar:/home/peng/git/YCSB/cassandra/lib/commons-math3-3.2.jar:/home/peng/git/YCSB/cassandra/lib/stream-2.5.2.jar:/home/peng/git/YCSB/cassandra/lib/reporter-config-2.1.0.jar:/home/peng/git/YCSB/cassandra/lib/javax.inject.jar:/home/peng/git/YCSB/cassandra/lib/super-csv-2.1.0.jar:/home/peng/git/YCSB/cassandra/lib/commons-cli-1.1.jar:/home/peng/git/YCSB/cassandra/lib/logback-core-1.1.2.jar:/home/peng/git/YCSB/cassandra/lib/jna-4.0.0.jar:/home/peng/git/YCSB/cassandra/lib/jamm-0.2.6.jar:/home/peng/git/YCSB/cassandra/lib/commons-codec-1.2.jar:/home/peng/git/YCSB/cassandra/lib/jackson-mapper-asl-1.9.2.jar:/home/peng/git/YCSB/cassandra/lib/apache-cassandra-2.1.0-beta2-SNAPSHOT.jar:/home/peng/git/YCSB/cassandra/lib/snappy-java-1.0.5.jar:/home/peng/git/YCSB/cassandra/lib/stringtemplate-4.0.2.jar:/home/peng/git/YCSB/cassandra/lib/antlr-runtime-3.5.2.jar:/home/peng/git/YCSB/cassandra/target/cassandra-binding-0.1.4.jar:/home/peng/git/YCSB/cassandra/target/archive-tmp/cassandra-binding-0.1.4.jar:/home/peng/git/YCSB/jdbc/src/main/conf com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.CassandraCQLClient -P workloads/workloadb -P cassandra.props -threads 50 -s -load
