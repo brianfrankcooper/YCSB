@@ -57,7 +57,8 @@ public class CassandraClient10 extends DB
   public static final String CONNECTION_RETRY_PROPERTY_DEFAULT = "300";
 
   public static final String OPERATION_RETRY_PROPERTY = "cassandra.operationretries";
-  public static final String OPERATION_RETRY_PROPERTY_DEFAULT = "300";
+  //public static final String OPERATION_RETRY_PROPERTY_DEFAULT = "300";
+  public static final String OPERATION_RETRY_PROPERTY_DEFAULT = "1";
 
   public static final String USERNAME_PROPERTY = "cassandra.username";
   public static final String PASSWORD_PROPERTY = "cassandra.password";

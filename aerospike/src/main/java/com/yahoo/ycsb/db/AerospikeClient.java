@@ -9,6 +9,7 @@ import java.util.Vector;
 import com.aerospike.client.AerospikeException;
 import com.aerospike.client.Bin;
 import com.aerospike.client.Key;
+import com.aerospike.client.Record;
 import com.aerospike.client.ResultCode;
 import com.aerospike.client.Value;
 import com.aerospike.client.policy.Policy;
@@ -101,7 +102,8 @@ public class AerospikeClient extends com.yahoo.ycsb.DB{
 			HashMap<String, ByteIterator> result) {
 		try {
 			if(fields != null) {
-				as.get(policy, new Key(NAMESPACE, SET, key), fields.toArray(new String[fields.size()]));
+				Record rec = as.get(policy, new Key(NAMESPACE, SET, key), fields.toArray(new String[fields.size()]));
+//TODO: need a fair test, add a for loop to iterate through all bins and create new objects and put into result map
 				return OK;
 			}
 			else {
