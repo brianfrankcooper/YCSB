@@ -1,0 +1,3 @@
+python2.6 ./bin/ycsb run aerospike -P workloads/workloada -P aerospike.props -threads 50 -s > loaddata-aerospike.results
+
+python2.6 ./bin/ycsb run cassandra-10 -P workloads/workloada -P cassandra.props -threads 50 -s > loaddata-cassandra.results
