@@ -1,6 +1,6 @@
 ## Quick Start
 
-This section describes how to run YCSB on MongoDB. 
+This section describes how to run YCSB on Redis. 
 
 ### 1. Start Redis
 
