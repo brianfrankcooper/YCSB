@@ -1,3 +1,22 @@
-python2.6 ./bin/ycsb run aerospike -P workloads/workloada -P aerospike.props -threads 50 -s > loaddata-aerospike.results
+#!/bin/bash
 
-python2.6 ./bin/ycsb run cassandra-10 -P workloads/workloada -P cassandra.props -threads 50 -s > loaddata-cassandra.results
+R_DIR='/home/peng/results/30ThreadsCass10/' 
+PROPS_FILE='cassandraCQL.props' 
+CASS_CLIENT='cassandra-cql'
+
+mkdir -p ${R_DIR}  &&
+echo "reach here"  &&
+ls ${R_DIR}  &&
+./bin/ycsb load ${CASS_CLIENT} -P workloads/workloada -P ${PROPS_FILE} -threads 30 -s >  ${R_DIR}/loaddata-a-30-cassandra.results &&  
+./bin/ycsb run ${CASS_CLIENT} -P workloads/workloada -P ${PROPS_FILE}  -threads 30 -s > ${R_DIR}/run-a-30-cassandra.results &&
+./bin/ycsb load ${CASS_CLIENT} -P workloads/workloadb -P ${PROPS_FILE}  -threads 30 -s > ${R_DIR}/loaddata-b-30-cassandra.results  &&
+./bin/ycsb run ${CASS_CLIENT} -P workloads/workloadb -P ${PROPS_FILE}  -threads 30 -s > ${R_DIR}/run-b-30-cassandra.results &&
+./bin/ycsb load ${CASS_CLIENT} -P workloads/workloadc -P ${PROPS_FILE}  -threads 30 -s > ${R_DIR}/loaddata-c-30-cassandra.results  &&
+./bin/ycsb run ${CASS_CLIENT} -P workloads/workloadc -P ${PROPS_FILE}  -threads 30 -s > ${R_DIR}/run-c-30-cassandra.results &&
+./bin/ycsb load ${CASS_CLIENT} -P workloads/workloadd -P ${PROPS_FILE}  -threads 30 -s > ${R_DIR}/loaddata-d-30-cassandra.results  &&
+./bin/ycsb run ${CASS_CLIENT} -P workloads/workloadd -P ${PROPS_FILE}  -threads 25 -s > ${R_DIR}/run-d-30-cassandra.results &&
+./bin/ycsb load ${CASS_CLIENT} -P workloads/workloade -P ${PROPS_FILE}  -threads 30 -s > ${R_DIR}/loaddata-e-30-cassandra.results  &&
+./bin/ycsb run ${CASS_CLIENT} -P workloads/workloade -P ${PROPS_FILE}  -threads 30 -s > ${R_DIR}/run-e-30-cassandra.results &&
+./bin/ycsb load ${CASS_CLIENT} -P workloads/workloadf -P ${PROPS_FILE}  -threads 30 -s > ${R_DIR}/loaddata-f-30-cassandra.results  &&
+./bin/ycsb run ${CASS_CLIENT} -P workloads/workloadf -P ${PROPS_FILE}  -threads 30 -s > ${R_DIR}/run-f-30-cassandra.results
+

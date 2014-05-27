@@ -13,7 +13,7 @@
  * implied. See the License for the specific language governing
  * permissions and limitations under the License. See accompanying
  * LICENSE file.
- */
+ *//*
 
 package com.yahoo.ycsb.db;
 
@@ -39,9 +39,9 @@ import org.apache.cassandra.thrift.*;
 
 
 //XXXX if we do replication, fix the consistency levels
-/**
+*//**
  * Cassandra 0.7 client for YCSB framework
- */
+ *//*
 public class CassandraClient7 extends DB
 {
   static Random random = new Random();
@@ -79,10 +79,10 @@ public class CassandraClient7 extends DB
   
   ColumnParent parent;
 
-  /**
+  *//**
    * Initialize any state for this DB. Called once per DB instance; there is one
    * DB instance per client thread.
-   */
+   *//*
   public void init() throws DBException
   {
     String hosts = getProperties().getProperty("hosts");
@@ -156,16 +156,16 @@ public class CassandraClient7 extends DB
     }
   }
 
-  /**
+  *//**
    * Cleanup any state for this DB. Called once per DB instance; there is one DB
    * instance per client thread.
-   */
+   *//*
   public void cleanup() throws DBException
   {
     tr.close();
   }
 
-  /**
+  *//**
    * Read a record from the database. Each field/value pair from the result will
    * be stored in a HashMap.
    * 
@@ -178,7 +178,7 @@ public class CassandraClient7 extends DB
    * @param result
    *          A HashMap of field/value pairs for the result
    * @return Zero on success, a non-zero error code on error
-   */
+   *//*
   public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result)
   {
     if (!_table.equals(table)) {
@@ -264,7 +264,7 @@ public class CassandraClient7 extends DB
 
   }
 
-  /**
+  *//**
    * Perform a range scan for a set of records in the database. Each field/value
    * pair from the result will be stored in a HashMap.
    * 
@@ -280,7 +280,7 @@ public class CassandraClient7 extends DB
    *          A Vector of HashMaps, where each HashMap is a set field/value
    *          pairs for one record
    * @return Zero on success, a non-zero error code on error
-   */
+   *//*
   public int scan(String table, String startkey, int recordcount, Set<String> fields,
       Vector<HashMap<String, ByteIterator>> result)
   {
@@ -373,7 +373,7 @@ public class CassandraClient7 extends DB
     return Error;
   }
 
-  /**
+  *//**
    * Update a record in the database. Any field/value pairs in the specified
    * values HashMap will be written into the record with the specified record
    * key, overwriting any existing values with the same field name.
@@ -385,13 +385,13 @@ public class CassandraClient7 extends DB
    * @param values
    *          A HashMap of field/value pairs to update in the record
    * @return Zero on success, a non-zero error code on error
-   */
+   *//*
   public int update(String table, String key, HashMap<String, ByteIterator> values)
   {
     return insert(table, key, values);
   }
 
-  /**
+  *//**
    * Insert a record in the database. Any field/value pairs in the specified
    * values HashMap will be written into the record with the specified record
    * key.
@@ -403,7 +403,7 @@ public class CassandraClient7 extends DB
    * @param values
    *          A HashMap of field/value pairs to insert in the record
    * @return Zero on success, a non-zero error code on error
-   */
+   *//*
   public int insert(String table, String key, HashMap<String, ByteIterator> values)
   {
     if (!_table.equals(table)) {
@@ -469,7 +469,7 @@ public class CassandraClient7 extends DB
     return Error;
   }
 
-  /**
+  *//**
    * Delete a record from the database.
    * 
    * @param table
@@ -477,7 +477,7 @@ public class CassandraClient7 extends DB
    * @param key
    *          The record key of the record to delete.
    * @return Zero on success, a non-zero error code on error
-   */
+   *//*
   public int delete(String table, String key)
   {
     if (!_table.equals(table)) {
@@ -566,7 +566,7 @@ public class CassandraClient7 extends DB
     System.out.println("Result of delete: " + res);
   }
 
-  /*
+  
    * public static void main(String[] args) throws TException,
    * InvalidRequestException, UnavailableException,
    * UnsupportedEncodingException, NotFoundException {
@@ -611,5 +611,6 @@ public class CassandraClient7 extends DB
    * 
    * 
    * }
-   */
+   
 }
+*/

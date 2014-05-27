@@ -133,6 +133,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB{
 				return OK;
 			}
 		} catch (AerospikeException e){
+			e.printStackTrace();
 			return RESULT_CODE_MAPPER.get(e.getResultCode());
 		}
 	}

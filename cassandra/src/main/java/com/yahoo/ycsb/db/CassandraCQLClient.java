@@ -35,20 +35,22 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Tested with Cassandra 2.0, CQL client for YCSB framework
  * 
  * In CQLSH, create keyspace and table.  Something like:
- * cqlsh> create keyspace ycsb
- *     WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 1 };
- * cqlsh> create table usertable (
- *     y_id varchar primary key,
- *     field0 varchar,
- *     field1 varchar,
- *     field2 varchar,
- *     field3 varchar,
- *     field4 varchar,
- *     field5 varchar,
- *     field6 varchar,
- *     field7 varchar,
- *     field8 varchar,
- *     field9 varchar);
+ * cqlsh> 
+ 
+ create keyspace ycsb
+      WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 1 };
+  cqlsh> create table usertable (
+      y_id varchar primary key,
+      field0 varchar,
+      field1 varchar,
+      field2 varchar,
+      field3 varchar,
+      field4 varchar,
+      field5 varchar,
+      field6 varchar,
+      field7 varchar,
+      field8 varchar,
+      field9 varchar);
  *
  * @author cmatser
  */
@@ -153,8 +155,11 @@ public class CassandraCQLClient extends DB {
                 }
 
                 session = cluster.connect(keyspace);
+                System.out.println("************** session is null? " + session.toString());
 
             } catch (Exception e) {
+            	System.out.println("************* error here: " );
+            	e.printStackTrace();
                 throw new DBException(e);
             }
         }//synchronized
@@ -167,7 +172,7 @@ public class CassandraCQLClient extends DB {
     @Override
     public void cleanup() throws DBException {
         if (initCount.decrementAndGet() <= 0) {
-            cluster.shutdown();
+            cluster.close();//shutdown();
         }
     }
 
