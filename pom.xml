@@ -25,11 +25,12 @@
       <artifactId>jdom</artifactId>
       <version>1.1</version>
     </dependency>
-    <dependency>
-      <groupId>com.google.collections</groupId>
-      <artifactId>google-collections</artifactId>
-      <version>1.0</version>
-    </dependency>
+    <!-- Conflicts with Cassandra cql driver -->
+    <!-- <dependency> -->
+    <!--   <groupId>com.google.collections</groupId> -->
+    <!--   <artifactId>google-collections</artifactId> -->
+    <!--   <version>1.0</version> -->
+    <!-- </dependency> -->
     <!--
     Nail down slf4j version to 1.6 so that it defaults to no-op logger.
     http://www.slf4j.org/codes.html#StaticLoggerBinder
@@ -97,6 +98,25 @@
           <target>1.6</target>
         </configuration>
       </plugin>
+
+      <!-- Cleanup after all modules, even if they are commented out
+           of this pom -->
+      <plugin>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>2.4.1</version>
+        <configuration>
+          <filesets>
+            <fileset>
+              <directory>${basedir}</directory>
+              <includes>
+                <include>**/target/**/*.jar</include>
+              </includes>
+              <followSymlinks>false</followSymlinks>
+            </fileset>
+          </filesets>
+        </configuration>
+      </plugin>
+
     </plugins>
   </build>
 </project>
