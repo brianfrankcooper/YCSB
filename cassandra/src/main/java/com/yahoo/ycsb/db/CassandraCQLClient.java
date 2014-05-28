@@ -35,20 +35,20 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Tested with Cassandra 2.0, CQL client for YCSB framework
  * 
  * In CQLSH, create keyspace and table.  Something like:
- * cqlsh> create keyspace ycsb
- *     WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 1 };
- * cqlsh> create table usertable (
+ *
+ * create keyspace ycsb WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 1 };
+ * create table ycsb.usertable (
  *     y_id varchar primary key,
- *     field0 varchar,
- *     field1 varchar,
- *     field2 varchar,
- *     field3 varchar,
- *     field4 varchar,
- *     field5 varchar,
- *     field6 varchar,
- *     field7 varchar,
- *     field8 varchar,
- *     field9 varchar);
+ *     f0 varchar,
+ *     f1 varchar,
+ *     f2 varchar,
+ *     f3 varchar,
+ *     f4 varchar,
+ *     f5 varchar,
+ *     f6 varchar,
+ *     f7 varchar,
+ *     f8 varchar,
+ *     f9 varchar);
  *
  * @author cmatser
  */
@@ -102,12 +102,11 @@ public class CassandraCQLClient extends DB {
 
                 _debug = Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
 
-                String host = getProperties().getProperty("host");
-                if (host == null) {
-                    throw new DBException("Required property \"host\" missing for CassandraClient");
+                if (getProperties().getProperty("hosts") == null) {
+                    throw new DBException("Required property \"hosts\" missing for CassandraClient");
                 }
-                String hosts[] = host.split(" ");
-                String port = getProperties().getProperty("port", "9160");
+                String hosts[] = getProperties().getProperty("hosts").split(",");
+                String port = getProperties().getProperty("port", "9042");
                 if (port == null) {
                     throw new DBException("Required property \"port\" missing for CassandraClient");
                 }
