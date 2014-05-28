@@ -1,0 +1,3 @@
+recordcount=10000000
+host=localhost
+port=9042

@@ -1,0 +1,23 @@
+#!/bin/bash
+
+NUM_THREADS=30
+CASS_CLIENT='cassandra-cql'
+PROPS_FILE='cassandraCQL.props' 
+R_DIR='/home/peng/results/${NUM_THREADS}Threads${CASS_CLIENT}/' 
+
+mkdir -p ${R_DIR}  &&
+echo "reach here"  &&
+ls ${R_DIR}  &&
+./bin/ycsb load ${CASS_CLIENT} -P workloads/workloada -P ${PROPS_FILE} -threads ${NUM_THREADS} -s >  ${R_DIR}/loaddata-a-${NUM_THREADS}-cassandra.results &&  
+./bin/ycsb run ${CASS_CLIENT} -P workloads/workloada -P ${PROPS_FILE}  -threads ${NUM_THREADS} -s > ${R_DIR}/run-a-${NUM_THREADS}-cassandra.results &&
+./bin/ycsb load ${CASS_CLIENT} -P workloads/workloadb -P ${PROPS_FILE}  -threads ${NUM_THREADS} -s > ${R_DIR}/loaddata-b-${NUM_THREADS}-cassandra.results  &&
+./bin/ycsb run ${CASS_CLIENT} -P workloads/workloadb -P ${PROPS_FILE}  -threads ${NUM_THREADS} -s > ${R_DIR}/run-b-${NUM_THREADS}-cassandra.results &&
+./bin/ycsb load ${CASS_CLIENT} -P workloads/workloadc -P ${PROPS_FILE}  -threads ${NUM_THREADS} -s > ${R_DIR}/loaddata-c-${NUM_THREADS}-cassandra.results  &&
+./bin/ycsb run ${CASS_CLIENT} -P workloads/workloadc -P ${PROPS_FILE}  -threads ${NUM_THREADS} -s > ${R_DIR}/run-c-${NUM_THREADS}-cassandra.results &&
+./bin/ycsb load ${CASS_CLIENT} -P workloads/workloadd -P ${PROPS_FILE}  -threads ${NUM_THREADS} -s > ${R_DIR}/loaddata-d-${NUM_THREADS}-cassandra.results  &&
+./bin/ycsb run ${CASS_CLIENT} -P workloads/workloadd -P ${PROPS_FILE}  -threads ${NUM_THREADS}  -s > ${R_DIR}/run-d-${NUM_THREADS}-cassandra.results &&
+./bin/ycsb load ${CASS_CLIENT} -P workloads/workloade -P ${PROPS_FILE}  -threads ${NUM_THREADS} -s > ${R_DIR}/loaddata-e-${NUM_THREADS}-cassandra.results  &&
+./bin/ycsb run ${CASS_CLIENT} -P workloads/workloade -P ${PROPS_FILE}  -threads ${NUM_THREADS} -s > ${R_DIR}/run-e-${NUM_THREADS}-cassandra.results &&
+./bin/ycsb load ${CASS_CLIENT} -P workloads/workloadf -P ${PROPS_FILE}  -threads ${NUM_THREADS} -s > ${R_DIR}/loaddata-f-${NUM_THREADS}-cassandra.results  &&
+./bin/ycsb run ${CASS_CLIENT} -P workloads/workloadf -P ${PROPS_FILE}  -threads ${NUM_THREADS} -s > ${R_DIR}/run-f-${NUM_THREADS}-cassandra.results
+
