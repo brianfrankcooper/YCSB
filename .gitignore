@@ -1,5 +1,6 @@
 # ignore compiled byte code
 target
+*.pyc
 
 # ignore output files from testing
 output*
