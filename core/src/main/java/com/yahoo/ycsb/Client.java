@@ -102,25 +102,20 @@ class StatusThread extends Thread
 			
 			DecimalFormat d = new DecimalFormat("#.##");
 			String label = _label + format.format(new Date());
-			
-			if (totalops==0)
-			{
-				System.err.println(label+ " " +(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary());
-			}
-			else
-			{
-				System.err.println(label+" " + (interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());
+
+			StringBuilder msg = new StringBuilder(label).append(" ").append(interval/1000).append(" sec: ");
+			msg.append(totalops).append(" operations; ");
+
+			if (totalops != 0) {
+				msg.append(d.format(curthroughput)).append(" current ops/sec; ");
 			}
 
-			if (_standardstatus)
-			{
-			if (totalops==0)
-			{
-				System.out.println(label+" "+(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary());
-			}
-			else
-			{
-				System.out.println(label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());			}
+			msg.append(Measurements.getMeasurements().getSummary());
+
+			System.err.println(msg);
+
+			if (_standardstatus) {
+				System.out.println(msg);
 			}
 
 			try
