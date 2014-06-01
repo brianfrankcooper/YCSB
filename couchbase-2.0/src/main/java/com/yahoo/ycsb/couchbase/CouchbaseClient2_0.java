@@ -36,9 +36,9 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
     public static final String DDOCS_PROPERTY = "couchbase.ddocs";
     public static final String VIEWS_PROPERTY = "couchbase.views";
     public static final String PERSIST_TO_PROPERTY = "couchbase.persistTo";
-    public static final PersistTo PERSIST_TO_PROPERTY_DEFAULT = PersistTo.ONE;
+    public static final PersistTo PERSIST_TO_PROPERTY_DEFAULT = PersistTo.MASTER;
     public static final String REPLICATE_TO_PROPERTY = "couchbase.replicateTo";
-    public static final ReplicateTo REPLICATE_TO_PROPERTY_DEFAULT = ReplicateTo.ONE;
+    public static final ReplicateTo REPLICATE_TO_PROPERTY_DEFAULT = ReplicateTo.ZERO;
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
     protected CouchbaseClient couchbaseClient;
