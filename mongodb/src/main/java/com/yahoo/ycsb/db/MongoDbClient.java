@@ -41,7 +41,9 @@ import com.yahoo.ycsb.DBException;
  *
  * mongodb.url=mongodb://localhost:27017
  * mongodb.database=ycsb
- * mongodb.writeConcern=(none|normal|safe|fsync_safe|replicas_safe)
+ * mongodb.writeConcern=(none|normal|safe|fsync_safe|replicas_safe|custom)
+ *
+ * If custom:
  * mongodb.writeConcern.w=(-1|0|1|2)
  * mongodb.writeConcern.wtimeout=(0|other value in ms)
  * mongodb.writeConcern.fsync=(true|false)
@@ -81,105 +83,65 @@ public class MongoDbClient extends DB {
         Properties props = getProperties();
         String url = props.getProperty("mongodb.url", "mongodb://localhost:27017");
         database = props.getProperty("mongodb.database", "ycsb");
-        String writeConcernType = props.getProperty("mongodb.writeConcern", "safe").toLowerCase();
-        String readPreferenceType = props.getProperty("mongodb.readPreference", "primary").toLowerCase();
+        String writeConcernValue = props.getProperty("mongodb.writeConcern", "FSYNC_SAFE").toUpperCase();
+        String readPreferenceValue = props.getProperty("mongodb.readPreference", "NEAREST").toUpperCase();
 
-        if ("none".equals(writeConcernType)) {
-            writeConcern = WriteConcern.NONE;
-        } else if ("safe".equals(writeConcernType)) {
-            writeConcern = WriteConcern.SAFE;
-        } else if ("normal".equals(writeConcernType)) {
-            writeConcern = WriteConcern.NORMAL;
-        } else if ("fsync_safe".equals(writeConcernType)) {
-            writeConcern = WriteConcern.FSYNC_SAFE;
-        } else if ("replicas_safe".equals(writeConcernType)) {
-            writeConcern = WriteConcern.REPLICAS_SAFE;
-        } else {
-            System.err.println("ERROR: Invalid writeConcern: '" + writeConcernType + "'. " +
-                "Must be [ none | safe | normal | fsync_safe | replicas_safe ]");
-            System.exit(1);
+        if (writeConcernValue.equals("CUSTOM")) {
+            String writeConcernWValue = props.getProperty("mongodb.writeConcern.w", String.valueOf(writeConcern.getW()));
+            String writeConcernWtimeoutValue = props.getProperty("mongodb.writeConcern.wtimeout",
+                                                                 String.valueOf(writeConcern.getWtimeout()));
+            String writeConcernFsyncValue = props.getProperty("mongodb.writeConcern.fsync", String.valueOf(writeConcern.getFsync()));
+            String writeConcernJValue = props.getProperty("mongodb.writeConcern.j", String.valueOf(writeConcern.getJ()));
+            String writeConcernContinueValue = props.getProperty("mongodb.writeConcern.continueOnErrorForInsert",
+                                                                 String.valueOf(writeConcern.getContinueOnErrorForInsert()));
+
+            int writeConcernWInt = Integer.MIN_VALUE;
+            try {
+                writeConcernWInt = Integer.parseInt(writeConcernWValue);
+            } catch (NumberFormatException e) {
+                System.err.println("ERROR: Invalid writeConcern.w: '" + writeConcernWValue + "'. Must be integer");
+                System.exit(1);
+            }
+
+            int writeTimeoutInt = Integer.MIN_VALUE;
+            try {
+                writeTimeoutInt = Integer.parseInt(writeConcernWtimeoutValue);
+            } catch (NumberFormatException e) {
+                System.err.println("ERROR: Invalid writeConcern.wtimeout: '" + writeConcernWtimeoutValue + "'. " +
+                                   "Must be integer");
+                System.exit(1);
+            }
+
+            if (!"true".equalsIgnoreCase(writeConcernFsyncValue) && !"false".equalsIgnoreCase(writeConcernFsyncValue)) {
+                System.err.println("ERROR: Invalid writeConcern.fsync: '" + writeConcernFsyncValue + "'. " +
+                                   "Must be true or false");
+                System.exit(1);
+            };
+
+            if (!"true".equalsIgnoreCase(writeConcernJValue) && !"false".equalsIgnoreCase(writeConcernJValue)) {
+                System.err.println("ERROR: Invalid writeConcern.j: '" + writeConcernJValue + "'. " +
+                                   "Must be true or false");
+                System.exit(1);
+            }
+
+            if (!"true".equalsIgnoreCase(writeConcernContinueValue) && !"false".equalsIgnoreCase(writeConcernContinueValue)) {
+                System.err.println("ERROR: Invalid writeConcern.continueOnErrorForInsert: '" + writeConcernContinueValue + "'. " +
+                                   "Must be true or false");
+                System.exit(1);
+            }
+
+            writeConcern = new WriteConcern(writeConcernWInt,
+                                            writeTimeoutInt,
+                                            Boolean.parseBoolean(writeConcernFsyncValue),
+                                            Boolean.parseBoolean(writeConcernJValue),
+                                            Boolean.parseBoolean(writeConcernContinueValue));
+        }
+        else {
+            writeConcern = WriteConcern.valueOf(writeConcernValue);
         }
 
-        String writeConcernWValue = props.getProperty("mongodb.writeConcern.w", String.valueOf(writeConcern.getW()));
-        String writeConcernWtimeoutValue = props.getProperty("mongodb.writeConcern.wtimeout",
-                String.valueOf(writeConcern.getWtimeout()));
-        String writeConcernFsyncValue = props.getProperty("mongodb.writeConcern.fsync", String.valueOf(writeConcern.getFsync()));
-        String writeConcernJValue = props.getProperty("mongodb.writeConcern.j", String.valueOf(writeConcern.getJ()));
-        String writeConcernContinueValue = props.getProperty("mongodb.writeConcern.continueOnErrorForInsert",
-                String.valueOf(writeConcern.getContinueOnErrorForInsert()));
+        readPreference = ReadPreference.valueOf(readPreferenceValue);
 
-        try {
-            writeConcern = new WriteConcern(Integer.parseInt(writeConcernWValue),
-                    writeConcern.getWtimeout(),
-                    writeConcern.getFsync(),
-                    writeConcern.getJ(),
-                    writeConcern.getContinueOnErrorForInsert());
-        } catch (NumberFormatException e) {
-            System.err.println("ERROR: Invalid writeConcern.w: '" + writeConcernWValue + "'. " +
-                    "Must be integer");
-            System.exit(1);
-        }
-
-        try {
-            writeConcern = new WriteConcern(writeConcern.getW(),
-                Integer.parseInt(writeConcernWtimeoutValue),
-                writeConcern.getFsync(),
-                writeConcern.getJ(),
-                writeConcern.getContinueOnErrorForInsert());
-        } catch (NumberFormatException e) {
-            System.err.println("ERROR: Invalid writeConcern.wtimeout: '" + writeConcernWtimeoutValue + "'. " +
-                    "Must be integer");
-            System.exit(1);
-        }
-
-        if (!"true".equalsIgnoreCase(writeConcernFsyncValue) && !"false".equalsIgnoreCase(writeConcernFsyncValue)) {
-            System.err.println("ERROR: Invalid writeConcern.fsync: '" + writeConcernFsyncValue + "'. " +
-                    "Must be true or false");
-            System.exit(1);
-        }
-        writeConcern = new WriteConcern(writeConcern.getW(),
-                writeConcern.getWtimeout(),
-                Boolean.parseBoolean(writeConcernFsyncValue),
-                writeConcern.getJ(),
-                writeConcern.getContinueOnErrorForInsert());
-
-        if (!"true".equalsIgnoreCase(writeConcernJValue) && !"false".equalsIgnoreCase(writeConcernJValue)) {
-            System.err.println("ERROR: Invalid writeConcern.j: '" + writeConcernJValue + "'. " +
-                    "Must be true or false");
-            System.exit(1);
-        }
-        writeConcern = new WriteConcern(writeConcern.getW(),
-                writeConcern.getWtimeout(),
-                writeConcern.getFsync(),
-                Boolean.parseBoolean(writeConcernJValue),
-                writeConcern.getContinueOnErrorForInsert());
-
-        if (!"true".equalsIgnoreCase(writeConcernContinueValue) && !"false".equalsIgnoreCase(writeConcernContinueValue)) {
-            System.err.println("ERROR: Invalid writeConcern.continueOnErrorForInsert: '" + writeConcernContinueValue + "'. " +
-                    "Must be true or false");
-            System.exit(1);
-        }
-        writeConcern = new WriteConcern(writeConcern.getW(),
-                writeConcern.getWtimeout(),
-                writeConcern.getFsync(),
-                writeConcern.getJ(),
-                Boolean.parseBoolean(writeConcernContinueValue));
-
-        if ("primary".equals(readPreferenceType)) {
-            readPreference = ReadPreference.primary();
-        } else if ("primarypreferred".equals(readPreferenceType)) {
-            readPreference = ReadPreference.primaryPreferred();
-        } else if ("secondary".equals(readPreferenceType)) {
-            readPreference = ReadPreference.secondary();
-        } else if ("secondarypreferred".equals(readPreferenceType)) {
-            readPreference = ReadPreference.secondaryPreferred();
-        } else if ("nearest".equals(readPreferenceType)) {
-            readPreference = ReadPreference.nearest();
-        } else {
-            System.err.println("ERROR: Invalid readPreference: '" + readPreferenceType + "'. " +
-                    "Must be [ primary | primaryPreferred | secondary | secondaryPreferred | nearest ]");
-            System.exit(1);
-        }
         //TODO: support tagset
 
         try {
