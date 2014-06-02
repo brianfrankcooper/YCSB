@@ -35,6 +35,7 @@ import java.util.Vector;
 import com.yahoo.ycsb.measurements.Measurements;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
@@ -47,6 +48,8 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 
 /**
  * HBase client for YCSB framework
+ *
+ * hbase.durability = {async_wal,fsync_wal,skip_wal,sync_wal,use_default}
  */
 public class HBaseClient extends com.yahoo.ycsb.DB
 {
@@ -56,6 +59,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 
     private String _table="";
     private HTable _hTable=null;
+    private Durability durability;
     private String _columnFamily="";
     private byte _columnFamilyBytes[];
 
@@ -70,11 +74,9 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      */
     public void init() throws DBException
     {
-        if ( (getProperties().getProperty("debug")!=null) &&
-                (getProperties().getProperty("debug").compareTo("true")==0) )
-        {
-            _debug=true;
-        }
+        _debug = Boolean.parseBoolean("debug");
+
+        durability = Durability.valueOf(getProperties().getProperty("hbase.durability", "FSYNC_WAL").toUpperCase());
 
         _columnFamily = getProperties().getProperty("columnfamily");
         if (_columnFamily == null)
@@ -83,7 +85,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             throw new DBException("No columnfamily specified");
         }
       _columnFamilyBytes = Bytes.toBytes(_columnFamily);
-
     }
 
     /**

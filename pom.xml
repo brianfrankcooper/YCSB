@@ -45,7 +45,7 @@
   <!-- Properties Management -->
   <properties>
     <maven.assembly.version>2.2.1</maven.assembly.version>
-    <hbase.version>0.92.1</hbase.version>
+    <hbase.version>0.98.2-hadoop1</hbase.version>
     <cassandra.version>2.0.7</cassandra.version>
     <cassandra.cql.version>2.0.2</cassandra.cql.version>
     <accumulo.version>1.6.0</accumulo.version>
