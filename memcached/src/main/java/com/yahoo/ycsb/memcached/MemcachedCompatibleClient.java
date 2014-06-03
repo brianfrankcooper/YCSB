@@ -58,8 +58,8 @@ public abstract class MemcachedCompatibleClient extends DB {
         try {
             client = createMemcachedClient();
             checkOperationStatus = Boolean.parseBoolean(getProperties().getProperty(CHECK_OPERATION_STATUS_PROPERTY, CHECK_OPERATION_STATUS_DEFAULT));
-            objectExpirationTime = Integer.getInteger(getProperties().getProperty(OBJECT_EXPIRATION_TIME_PROPERTY, DEFAULT_OBJECT_EXPIRATION_TIME));
-            shutdownTimeoutMillis = Integer.getInteger(getProperties().getProperty(SHUTDOWN_TIMEOUT_MILLIS_PROPERTY, DEFAULT_SHUTDOWN_TIMEOUT_MILLIS));
+            objectExpirationTime = Integer.parseInt(getProperties().getProperty(OBJECT_EXPIRATION_TIME_PROPERTY, DEFAULT_OBJECT_EXPIRATION_TIME));
+            shutdownTimeoutMillis = Integer.parseInt(getProperties().getProperty(SHUTDOWN_TIMEOUT_MILLIS_PROPERTY, DEFAULT_SHUTDOWN_TIMEOUT_MILLIS));
         } catch (Exception e) {
             throw new DBException(e);
         }
