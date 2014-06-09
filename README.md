@@ -49,3 +49,6 @@ Getting Started
 
   See https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties for 
   the list of available workload properties.
+
+  Alternatively, see fabric/README for Thumbtack's work on parallelizing
+  YCSB clients using Fabric.
