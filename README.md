@@ -1,6 +1,5 @@
 Yahoo! Cloud System Benchmark (YCSB)
 ====================================
-[![Build Status](https://travis-ci.org/brianfrankcooper/YCSB.png?branch=master)](https://travis-ci.org/brianfrankcooper/YCSB)
 
 A note on comparing multiple systems
 ------------------------------------
@@ -13,9 +12,8 @@ NoSQL systems have widely varying defaults for trading off write durability vs p
 
 Cassandra requires a configuration change in conf/cassandra.yaml.  Uncomment these lines:
 
-    ```# commitlog_sync: batch
+    # commitlog_sync: batch
     # commitlog_sync_batch_window_in_ms: 50
-    ```
 
 Links
 -----
