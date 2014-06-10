@@ -93,9 +93,8 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      */
     public void cleanup() throws DBException
     {
-        // Get the measurements instance as this is the only client that should
-        // count clean up time like an update since autoflush is off.
-        Measurements _measurements = Measurements.getMeasurements();
+        if (_hTable == null)
+            return;
         try {
             _hTable.close();
         } catch (IOException e) {
