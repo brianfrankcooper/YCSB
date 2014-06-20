@@ -24,12 +24,15 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.MongoOptions;
+import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
+import com.mongodb.ReadPreference;
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+import java.util.Arrays;
 
 /**
  * MongoDB client for YCSB framework.
@@ -72,9 +75,12 @@ public class MongoDbClient extends DB {
 
             // initialize MongoDb driver
             Properties props = getProperties();
-            String url = props.getProperty("mongodb.url",
-                    "mongodb://localhost:27017");
+            final String host = props.getProperty("mongodb.host", "localhost");
+            final String port = props.getProperty("mongodb.port", "27017");
             database = props.getProperty("mongodb.database", "ycsb");
+            String readPreferenceType = props.getProperty("mongodb.readPreference",
+                    "primary").toLowerCase();
+
             String writeConcernType = props.getProperty("mongodb.writeConcern",
                     "safe").toLowerCase();
             final String maxConnections = props.getProperty(
@@ -105,21 +111,17 @@ public class MongoDbClient extends DB {
             }
 
             try {
-                // strip out prefix since Java driver doesn't currently support
-                // standard connection format URL yet
-                // http://www.mongodb.org/display/DOCS/Connections
-                if (url.startsWith("mongodb://")) {
-                    url = url.substring(10);
-                }
-
                 // need to append db to url.
-                url += "/" + database;
-                System.out.println("new database url = " + url);
+                System.out.println("host: " + host + "port: " + port);
                 MongoOptions options = new MongoOptions();
                 options.connectionsPerHost = Integer.parseInt(maxConnections);
-                mongo = new Mongo(new DBAddress(url), options);
-
-                System.out.println("mongo connection created with " + url);
+                mongo = new Mongo(Arrays.asList(new ServerAddress(host, Integer.parseInt(port))), options);
+                
+                if ("secondary".equals(readPreferenceType)) {    
+                    System.out.println("ReadPreference: secondary");
+                    mongo.setReadPreference(ReadPreference.secondary());
+                }
+                System.out.println("mongo connection created");
             }
             catch (Exception e1) {
                 System.err
