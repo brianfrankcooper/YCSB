@@ -27,6 +27,16 @@ import java.util.Properties;
  */
 public final class OptionsSupport {
 
+    /**
+     * Updates the URL with the appropriate attributes if legacy properties are
+     * set and the URL does not have the property already set.
+     * 
+     * @param url
+     *            The URL to update.
+     * @param props
+     *            The legacy properties.
+     * @return The updated URL.
+     */
     public static String updateUrl(String url, Properties props) {
         String result = url;
 
