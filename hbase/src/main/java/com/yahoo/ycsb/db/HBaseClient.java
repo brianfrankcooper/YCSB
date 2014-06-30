@@ -21,53 +21,52 @@ package com.yahoo.ycsb.db;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.ByteArrayByteIterator;
-import com.yahoo.ycsb.StringByteIterator;
 
 import java.io.IOException;
-import java.util.*;
-//import java.util.HashMap;
-//import java.util.Properties;
-//import java.util.Set;
-//import java.util.Vector;
+import java.util.ConcurrentModificationException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Random;
+import java.util.Set;
+import java.util.Vector;
 
 import com.yahoo.ycsb.measurements.Measurements;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.HTable;
-//import org.apache.hadoop.hbase.client.Scanner;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
-//import org.apache.hadoop.hbase.io.Cell;
-//import org.apache.hadoop.hbase.io.RowResult;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 
 /**
  * HBase client for YCSB framework
+ *
+ * hbase.durability = {async_wal,fsync_wal,skip_wal,sync_wal,use_default}
  */
 public class HBaseClient extends com.yahoo.ycsb.DB
 {
-    // BFC: Change to fix broken build (with HBase 0.20.6)
-    //private static final Configuration config = HBaseConfiguration.create();
-    private static final Configuration config = HBaseConfiguration.create(); //new HBaseConfiguration();
+    private static final Configuration config = HBaseConfiguration.create();
 
-    public boolean _debug=false;
+    private boolean _debug=false;
 
-    public String _table="";
-    public HTable _hTable=null;
-    public String _columnFamily="";
-    public byte _columnFamilyBytes[];
+    private String _table="";
+    private HTable _hTable=null;
+    private Durability durability;
+    private String _columnFamily="";
+    private byte _columnFamilyBytes[];
 
-    public static final int Ok=0;
-    public static final int ServerError=-1;
-    public static final int HttpError=-2;
-    public static final int NoMatchingRecord=-3;
-
-    public static final Object tableLock = new Object();
+    private static final int Ok=0;
+    private static final int ServerError=-1;
+    private static final int HttpError=-2;
+    private static final int NoMatchingRecord=-3;
 
     /**
      * Initialize any state for this DB.
@@ -75,11 +74,9 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      */
     public void init() throws DBException
     {
-        if ( (getProperties().getProperty("debug")!=null) &&
-                (getProperties().getProperty("debug").compareTo("true")==0) )
-        {
-            _debug=true;
-        }
+        _debug = Boolean.parseBoolean("debug");
+
+        durability = Durability.valueOf(getProperties().getProperty("hbase.durability", "FSYNC_WAL").toUpperCase());
 
         _columnFamily = getProperties().getProperty("columnfamily");
         if (_columnFamily == null)
@@ -88,7 +85,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             throw new DBException("No columnfamily specified");
         }
       _columnFamilyBytes = Bytes.toBytes(_columnFamily);
-
     }
 
     /**
@@ -97,31 +93,18 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      */
     public void cleanup() throws DBException
     {
-        // Get the measurements instance as this is the only client that should
-        // count clean up time like an update since autoflush is off.
-        Measurements _measurements = Measurements.getMeasurements();
+        if (_hTable == null)
+            return;
         try {
-            long st=System.nanoTime();
-            if (_hTable != null) {
-                _hTable.flushCommits();
-            }
-            long en=System.nanoTime();
-            _measurements.measure("UPDATE", (int)((en-st)/1000));
+            _hTable.close();
         } catch (IOException e) {
             throw new DBException(e);
         }
     }
 
-    public void getHTable(String table) throws IOException
+    public void initHTable(String table) throws IOException
     {
-        synchronized (tableLock) {
-            _hTable = new HTable(config, table);
-            //2 suggestions from http://ryantwopointoh.blogspot.com/2009/01/performance-of-hbase-importing.html
-            _hTable.setAutoFlush(false);
-            _hTable.setWriteBufferSize(1024*1024*12);
-            //return hTable;
-        }
-
+        _hTable = new HTable(config, table);
     }
 
     /**
@@ -140,7 +123,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             _hTable = null;
             try
             {
-                getHTable(table);
+                initHTable(table);
                 _table = table;
             }
             catch (IOException e)
@@ -208,7 +191,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             _hTable = null;
             try
             {
-                getHTable(table);
+                initHTable(table);
                 _table = table;
             }
             catch (IOException e)
@@ -299,7 +282,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             _hTable = null;
             try
             {
-                getHTable(table);
+                initHTable(table);
                 _table = table;
             }
             catch (IOException e)
@@ -371,7 +354,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             _hTable = null;
             try
             {
-                getHTable(table);
+                initHTable(table);
                 _table = table;
             }
             catch (IOException e)
@@ -439,8 +422,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 
                         cli.init();
 
-                        //HashMap<String,String> result=new HashMap<String,String>();
-
                         long accum=0;
 
                         for (int i=0; i<opcount; i++)
@@ -449,20 +430,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
                             String key="user"+keynum;
                             long st=System.currentTimeMillis();
                             int rescode;
-                            /*
-                            HashMap hm = new HashMap();
-                            hm.put("field1","value1");
-                            hm.put("field2","value2");
-                            hm.put("field3","value3");
-                            rescode=cli.insert("table1",key,hm);
-                            HashSet<String> s = new HashSet();
-                            s.add("field1");
-                            s.add("field2");
-
-                            rescode=cli.read("table1", key, s, result);
-                            //rescode=cli.delete("table1",key);
-                            rescode=cli.read("table1", key, s, result);
-                            */
                             HashSet<String> scanFields = new HashSet<String>();
                             scanFields.add("field1");
                             scanFields.add("field3");
@@ -483,9 +450,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
                                 System.out.println(i+" operations, average latency: "+(((double)accum)/((double)i)));
                             }
                         }
-
-                        //System.out.println("Average latency: "+(((double)accum)/((double)opcount)));
-                        //System.out.println("Average get latency: "+(((double)cli.TotalGetTime)/((double)cli.TotalGetOps)));
                     }
                     catch (Exception e)
                     {

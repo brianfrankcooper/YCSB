@@ -60,7 +60,12 @@ public class JSONMeasurementsExporter implements MeasurementsExporter
     g.writeEndObject();
   }
 
-  public void close() throws IOException
+    @Override
+    public void write(String metric, String measurement, double i, double t) throws IOException {
+        //
+    }
+
+    public void close() throws IOException
   {
     if (g != null)
     {

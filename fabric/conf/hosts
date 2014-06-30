@@ -1,0 +1,17 @@
+192.168.109.180 r1.citrusleaf.local
+192.168.109.189 r2.citrusleaf.local
+192.168.109.185 r3.citrusleaf.local
+192.168.109.178 r4.citrusleaf.local
+192.168.109.184 r5.citrusleaf.local
+
+192.168.109.168 e1.citrusleaf.local
+192.168.109.160 e2.citrusleaf.local
+192.168.109.159 e3.citrusleaf.local
+192.168.109.158 e4.citrusleaf.local
+
+192.168.109.183 c1.citrusleaf.local
+192.168.109.181 c2.citrusleaf.local
+192.168.109.182 c3.citrusleaf.local
+192.168.109.179 c4.citrusleaf.local
+192.168.109.157 c5.citrusleaf.local
+192.168.109.156 c6.citrusleaf.local

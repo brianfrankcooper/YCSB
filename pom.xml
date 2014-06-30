@@ -25,11 +25,12 @@
       <artifactId>jdom</artifactId>
       <version>1.1</version>
     </dependency>
-    <dependency>
-      <groupId>com.google.collections</groupId>
-      <artifactId>google-collections</artifactId>
-      <version>1.0</version>
-    </dependency>
+    <!-- Conflicts with Cassandra cql driver -->
+    <!-- <dependency> -->
+    <!--   <groupId>com.google.collections</groupId> -->
+    <!--   <artifactId>google-collections</artifactId> -->
+    <!--   <version>1.0</version> -->
+    <!-- </dependency> -->
     <!--
     Nail down slf4j version to 1.6 so that it defaults to no-op logger.
     http://www.slf4j.org/codes.html#StaticLoggerBinder
@@ -44,9 +45,10 @@
   <!-- Properties Management -->
   <properties>
     <maven.assembly.version>2.2.1</maven.assembly.version>
-    <hbase.version>0.92.1</hbase.version>
+    <hbase.version>0.98.2-hadoop1</hbase.version>
+    <cassandra.version>2.0.7</cassandra.version>
+    <cassandra.cql.version>2.0.2</cassandra.cql.version>
     <accumulo.version>1.6.0</accumulo.version>
-    <cassandra.version>0.7.0</cassandra.version>
     <infinispan.version>7.1.0.CR1</infinispan.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
     <mapkeeper.version>1.0</mapkeeper.version>
@@ -61,17 +63,22 @@
 
   <modules>
     <!--module>build-tools</module-->
+    <!-- <module>aerospike</module> -->
     <module>cassandra</module>
     <module>core</module>
+    <!--<module>couchbase-1.8</module>-->
+    <module>couchbase-2.0</module>   <!--couchbase-2.0 conflicts with couchbase-1.8, use one of them-->
     <module>hbase</module>
     <module>hypertable</module>
     <module>accumulo</module>
     <module>dynamodb</module>
     <module>elasticsearch</module>
     <!--<module>gemfire</module>-->
-    <module>infinispan</module>
+    <!--<module>infinispan</module>-->
     <module>jdbc</module>
     <module>mapkeeper</module>
+    <!--<module>membase</module>-->
+    <module>memcached</module>
     <module>mongodb</module>
     <module>orientdb</module>
     <!--module>nosqldb</module-->
@@ -91,24 +98,25 @@
           <target>1.6</target>
         </configuration>
       </plugin>
+
+      <!-- Cleanup after all modules, even if they are commented out
+           of this pom -->
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>2.6</version>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>2.4.1</version>
         <configuration>
-          <consoleOutput>true</consoleOutput>
-          <configLocation>checkstyle.xml</configLocation>
+          <filesets>
+            <fileset>
+              <directory>${basedir}</directory>
+              <includes>
+                <include>**/target/**/*.jar</include>
+              </includes>
+              <followSymlinks>false</followSymlinks>
+            </fileset>
+          </filesets>
         </configuration>
-        <executions>
-          <execution>
-          <id>validate</id>
-            <phase>validate</phase>
-            <goals>
-              <goal>checkstyle</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
+
     </plugins>
   </build>
 </project>

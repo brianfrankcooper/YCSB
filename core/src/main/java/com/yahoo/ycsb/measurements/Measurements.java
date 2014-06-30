@@ -136,6 +136,23 @@ public class Measurements
 		}
 		data.get(operation).reportReturnCode(code);
 	}
+
+    /**
+     * Report a retry counts for a single DB operaiton.
+     */
+    public void reportRetryCount(String operation, int retryCount) {
+        if (!data.containsKey(operation))
+        {
+            synchronized(this)
+            {
+                if (!data.containsKey(operation))
+                {
+                    data.put(operation,constructOneMeasurement(operation));
+                }
+            }
+        }
+        data.get(operation).reportRetryCount(retryCount);
+    }
 	
   /**
    * Export the current measurements to a suitable format.
@@ -150,6 +167,21 @@ public class Measurements
       measurement.exportMeasurements(exporter);
     }
   }
+
+    public void exportMeasurementsPart(MeasurementsExporter exporter) throws IOException
+    {
+        for (OneMeasurement measurement : data.values())
+        {
+            measurement.exportMeasurementsPart(exporter);
+        }
+    }
+
+    public void exportMeasurementsFinal(MeasurementsExporter exporter) throws IOException {
+        for (OneMeasurement measurement : data.values())
+        {
+            measurement.exportMeasurementsFinal(exporter);
+        }
+    }
 	
       /**
        * Return a one line summary of the measurements.

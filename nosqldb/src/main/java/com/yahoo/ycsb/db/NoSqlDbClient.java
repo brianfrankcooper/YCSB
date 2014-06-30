@@ -162,7 +162,7 @@ public class NoSqlDbClient extends DB {
 		try {
 			kvResult = store.multiGet(kvKey, null, null);
 		} catch (FaultException e) {
-			System.err.println(e);
+            e.printStackTrace();
 			return ERROR;
 		}
 		
@@ -192,8 +192,8 @@ public class NoSqlDbClient extends DB {
 			try {
 				store.put(kvKey, kvValue);
 			} catch (FaultException e) {
-				System.err.println(e);
-				return ERROR;
+                e.printStackTrace();
+                return ERROR;
 			}
 		}
 		
@@ -211,8 +211,8 @@ public class NoSqlDbClient extends DB {
 		try {
 			store.multiDelete(kvKey, null, null);
 		} catch (FaultException e) {
-			System.err.println(e);
-			return ERROR;
+            e.printStackTrace();
+            return ERROR;
 		}
 		
 		return OK;

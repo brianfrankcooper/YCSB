@@ -13,7 +13,7 @@
   <dependencies>
     <dependency>
       <groupId>org.apache.hbase</groupId>
-      <artifactId>hbase</artifactId>
+      <artifactId>hbase-client</artifactId>
       <version>${hbase.version}</version>
     </dependency>
     <dependency>

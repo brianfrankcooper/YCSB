@@ -123,7 +123,7 @@ public class JdbcDBCreateTable implements JdbcDBClientConstants {
         try {
           myfileprops.load(new FileInputStream(propfile));
         } catch (IOException e) {
-          System.out.println(e.getMessage());
+          e.printStackTrace();
           System.exit(0);
         }
 

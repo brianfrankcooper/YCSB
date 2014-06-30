@@ -1,5 +1,6 @@
 # ignore compiled byte code
 target
+*.pyc
 
 # ignore output files from testing
 output*
@@ -8,3 +9,7 @@ output*
 .project
 .classpath
 .settings
+
+# and intellij
+.idea/
+*.iml

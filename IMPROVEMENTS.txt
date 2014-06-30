@@ -1,0 +1,95 @@
+Here is the list of YCSB improments made by Thumbtack Technology.
+
+Upgrade of MongoDB client
+
+We upgraded the MongoDB driver from version 2.8.0 (appeared before 
+Mongo 2.2 release) to version 2.10.1 and allow the readPreference
+(http://docs.mongodb.org/manual/applications/replication/#read-preference) 
+to be set as a configuration.
+Also, now all the write errors are printed to stderr.
+
+New configuration properties
+  mongodb.readPreference = primary|primaryPreferred|secondary|secondaryPreferred
+
+Improvements of Aerospike client
+
+We added ability to display operations result code in more details: 
+no only success or erroneous, but displaying the actual error type.
+
+Throttling improvements
+
+YCSB allows to limit the throughput, but uses the average throughput for 
+the whole time of the experiment. It causes the throughput peaks after 
+downfalls in failover tests. We modified YCSB to keep the desired throughput 
+on the same level, without peaks, by throttling based on the average throughput 
+on the last 100 ms.
+
+Output improvements
+
+Print current statistics to stderr every 2 secs instead of 10 secs
+Print intermediate statistics (identical to final) to stdout in every 
+configured time interval. To avoid stats loss on YCSB hang or crash
+Print final statistics on YCSB process shutdown
+
+New configuration properties
+  exportmeasurementsinterval: interval time for exporting measurements in out 
+      stream in milliseconds (default: 1000)
+
+Warm-up
+
+Allow to do some number of operations before gathering statistics, to warm-up 
+the database. The length of warm-up can be limited by the number of operations 
+or by the time period.
+
+New configuration properties
+  warmupoperationcount: number of operations in warmup phase, 
+      if zero then don't warmup (default: 0)
+  warmupexecutiontime: execution time of warmup phase in milliseconds, 
+      if zero then don't warmup (default: 0)
+
+Field name
+
+By default YCSB names the database record fields as “field” + a number. 
+The new configuration option allows to replace the “field” prefix with 
+something shorter which affects the data storage size for schema-less databases.
+
+New configuration properties
+  fieldnameprefix: string prefix for the field name (default: “field”)
+
+Retries
+
+Added ability to retry failed operations. The max number of retries is limited. 
+The total number of retries is counted. The retries are done within the same 
+operation, so they doesn’t affect the number of operations, but increases 
+the latency of the operation. The retries can be done with delays between them.
+Original YCSB stops on error on insert, now it’s possible to retry the insert.
+
+New configuration properties
+  readretrycount: number of retries if read fails, 
+      if zero then don't retry (default: 0)
+  updateretrycount: number of retries if update fails, 
+      if zero then don't retry (default: 0)
+  insertretrycount: number of retries if insert fails, 
+      if zero then don't retry (default: 0)
+  retrydelay: delay between retries in milliseconds (default: 0)
+
+Inserts with errors
+
+The new configuration option was added to allow errors on inserts.
+Usually YCSB stops when any operation fails on load phase. But now it’s possible 
+to ignore such errors and continue inserting. This can be useful for MongoDB, 
+for example, to rerun the load phase without clearing the data.
+
+New configuration properties
+  ignoreinserterrors: set to true to activate the new feature
+  
+Upgrade of Couchbase client
+
+We upgraded the Couchbase driver from version 1.1-dp2 to 1.1.0 and Spymemcached
+driver from version 2.8.4 to 2.8.9 and allow the replicateTo
+(http://www.couchbase.com/autodocs/couchbase-java-client-1.1.0/com/couchbase/client/CouchbaseClient.html#replace(java.lang.String, int, java.lang.String, net.spy.memcached.PersistTo, net.spy.memcached.ReplicateTo)) 
+to be set as a configuration.
+
+New configuration properties
+  couchbase.replicateTo = ZERO|ONE|TWO|THREE
+
