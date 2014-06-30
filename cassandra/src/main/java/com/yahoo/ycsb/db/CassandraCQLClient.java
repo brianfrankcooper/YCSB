@@ -74,9 +74,6 @@ public class CassandraCQLClient extends DB {
     public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY = "cassandra.writeconsistencylevel";
     public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
 
-    /** Count the number of times initialized to teardown on the last {@link #cleanup()}. */
-    private static final AtomicInteger initCount = new AtomicInteger(0);
-
     private static boolean _debug = false;
 
     /**
@@ -84,79 +81,70 @@ public class CassandraCQLClient extends DB {
      * one DB instance per client thread.
      */
     @Override
-    public void init() throws DBException {
+    public synchronized void init() throws DBException {
+        //Check if the cluster has already been initialized
+        if (cluster != null) {
+            return;
+        }
 
-        //Keep track of number of calls to init (for later cleanup)
-        initCount.incrementAndGet();
+        try {
 
-        //Synchronized so that we only have a single
-        //  cluster/session instance for all the threads.
-        synchronized (initCount) {
+            _debug = Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
 
-            //Check if the cluster has already been initialized
-            if (cluster != null) {
-                return;
+            if (getProperties().getProperty("hosts") == null) {
+                throw new DBException("Required property \"hosts\" missing for CassandraClient");
+            }
+            String hosts[] = getProperties().getProperty("hosts").split(",");
+            String port = getProperties().getProperty("port", "9042");
+            if (port == null) {
+                throw new DBException("Required property \"port\" missing for CassandraClient");
             }
 
-            try {
+            String username = getProperties().getProperty(USERNAME_PROPERTY);
+            String password = getProperties().getProperty(PASSWORD_PROPERTY);
 
-                _debug = Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
+            String keyspace = getProperties().getProperty(KEYSPACE_PROPERTY, KEYSPACE_PROPERTY_DEFAULT);
 
-                if (getProperties().getProperty("hosts") == null) {
-                    throw new DBException("Required property \"hosts\" missing for CassandraClient");
-                }
-                String hosts[] = getProperties().getProperty("hosts").split(",");
-                String port = getProperties().getProperty("port", "9042");
-                if (port == null) {
-                    throw new DBException("Required property \"port\" missing for CassandraClient");
-                }
+            readConsistencyLevel = ConsistencyLevel.valueOf(getProperties().getProperty(READ_CONSISTENCY_LEVEL_PROPERTY, READ_CONSISTENCY_LEVEL_PROPERTY_DEFAULT));
+            writeConsistencyLevel = ConsistencyLevel.valueOf(getProperties().getProperty(WRITE_CONSISTENCY_LEVEL_PROPERTY, WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT));
 
-                String username = getProperties().getProperty(USERNAME_PROPERTY);
-                String password = getProperties().getProperty(PASSWORD_PROPERTY);
-
-                String keyspace = getProperties().getProperty(KEYSPACE_PROPERTY, KEYSPACE_PROPERTY_DEFAULT);
-
-                readConsistencyLevel = ConsistencyLevel.valueOf(getProperties().getProperty(READ_CONSISTENCY_LEVEL_PROPERTY, READ_CONSISTENCY_LEVEL_PROPERTY_DEFAULT));
-                writeConsistencyLevel = ConsistencyLevel.valueOf(getProperties().getProperty(WRITE_CONSISTENCY_LEVEL_PROPERTY, WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT));
-
-                // public void connect(String node) {}
-                if ((username != null) && !username.isEmpty()) {
-                    cluster = Cluster.builder()
-                        .withCredentials(username, password)
-                        .withPort(Integer.valueOf(port))
-                        .addContactPoints(hosts).build();
-                }
-                else {
-                    cluster = Cluster.builder()
-                        .withPort(Integer.valueOf(port))
-                        .addContactPoints(hosts).build();
-                }
-
-                //Update number of connections based on threads
-                int threadcount = Integer.parseInt(getProperties().getProperty("threadcount","1"));
-                cluster.getConfiguration().getPoolingOptions().setMaxConnectionsPerHost(HostDistance.LOCAL, threadcount);
-
-                //Set connection timeout 3min (default is 5s)
-                cluster.getConfiguration().getSocketOptions().setConnectTimeoutMillis(3*60*1000);
-                //Set read (execute) timeout 3min (default is 12s)
-                cluster.getConfiguration().getSocketOptions().setReadTimeoutMillis(3*60*1000);
-
-                Metadata metadata = cluster.getMetadata();
-                System.out.printf("Connected to cluster: %s\n", metadata.getClusterName());
-
-                for (Host discoveredHost : metadata.getAllHosts()) {
-                    System.out.printf("Datacenter: %s; Host: %s; Rack: %s\n",
-                        discoveredHost.getDatacenter(),
-                        discoveredHost.getAddress(),
-                        discoveredHost.getRack());
-                }
-
-                session = cluster.connect(keyspace);
-
-            } catch (Exception e) {
-                throw new DBException(e);
+            // public void connect(String node) {}
+            if ((username != null) && !username.isEmpty()) {
+                cluster = Cluster.builder()
+                                 .withCredentials(username, password)
+                                 .withPort(Integer.valueOf(port))
+                                 .addContactPoints(hosts).build();
             }
-        }//synchronized
+            else {
+                cluster = Cluster.builder()
+                                 .withPort(Integer.valueOf(port))
+                                 .addContactPoints(hosts).build();
+            }
+
+            //Update number of connections based on threads
+            int threadcount = Integer.parseInt(getProperties().getProperty("threadcount","1"));
+            cluster.getConfiguration().getPoolingOptions().setMaxConnectionsPerHost(HostDistance.LOCAL, threadcount);
+
+            //Set connection timeout 3min (default is 5s)
+            cluster.getConfiguration().getSocketOptions().setConnectTimeoutMillis(3*60*1000);
+            //Set read (execute) timeout 3min (default is 12s)
+            cluster.getConfiguration().getSocketOptions().setReadTimeoutMillis(3*60*1000);
+
+            Metadata metadata = cluster.getMetadata();
+            System.out.printf("Connected to cluster: %s\n", metadata.getClusterName());
+
+            for (Host discoveredHost : metadata.getAllHosts()) {
+                System.out.printf("Datacenter: %s; Host: %s; Rack: %s\n",
+                                  discoveredHost.getDatacenter(),
+                                  discoveredHost.getAddress(),
+                                  discoveredHost.getRack());
+            }
+
+            session = cluster.connect(keyspace);
+
+        } catch (Exception e) {
+            throw new DBException(e);
+        }
     }
 
     /**
@@ -165,9 +153,6 @@ public class CassandraCQLClient extends DB {
      */
     @Override
     public void cleanup() throws DBException {
-        if (initCount.decrementAndGet() <= 0) {
-            cluster.close();
-        }
     }
 
     /**
