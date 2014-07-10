@@ -281,20 +281,13 @@ public class CommandLine
 	       }
 	       else 
 	       {
-		  Set<String> fields=null;
-
-		  if (tokens.length>2)
-		  {
-		     fields=new HashSet<String>();
-		     
-		     for (int i=2; i<tokens.length; i++)
-		     {
-			fields.add(tokens[i]);
-		     }
-		  }
-		  
+		  String field=tokens.length==4?tokens[3]:null;
 		  HashMap<String,ByteIterator> result=new HashMap<String,ByteIterator>();
-		  int ret=db.read(table,tokens[1],fields,result);
+		  int ret;
+		  if (field == null)
+		    ret=db.readOne(table,tokens[1],field,result);
+		  else
+		    ret=db.readAll(table,tokens[1],result);
 		  System.out.println("Return code: "+ret);
 		  for (Map.Entry<String,ByteIterator> ent : result.entrySet())
 		  {
@@ -310,20 +303,13 @@ public class CommandLine
 	       }
 	       else 
 	       {
-		  Set<String> fields=null;
-
-		  if (tokens.length>3)
-		  {
-		     fields=new HashSet<String>();
-		     
-		     for (int i=3; i<tokens.length; i++)
-		     {
-			fields.add(tokens[i]);
-		     }
-		  }
-		  
+		  String field=tokens.length==4?tokens[3]:null;
 		  Vector<HashMap<String,ByteIterator>> results=new Vector<HashMap<String,ByteIterator>>();
-		  int ret=db.scan(table,tokens[1],Integer.parseInt(tokens[2]),fields,results);
+		  int ret;
+		  if (field == null)
+		   ret=db.scanAll(table,tokens[1],Integer.parseInt(tokens[2]),results);
+		  else
+		   ret=db.scanOne(table,tokens[1],Integer.parseInt(tokens[2]),field,results);
 		  System.out.println("Return code: "+ret);
 		  int record=0;
 		  if (results.size()==0)
@@ -361,7 +347,16 @@ public class CommandLine
 		     values.put(nv[0],new StringByteIterator(nv[1]));
 		  }
 
-		  int ret=db.update(table,tokens[1],values);
+		  int ret;
+		  if(values.size() == 1)
+		  {
+		   Map.Entry<String, ByteIterator> value = values.entrySet().iterator().next();
+		   ret = db.updateOne(table, tokens[1], value.getKey(), value.getValue());
+		  }
+		  else
+		  {
+		   ret = db.updateAll(table, tokens[1], values);
+		  }
 		  System.out.println("Return code: "+ret);
 	       }		  
 	    }

@@ -47,7 +47,7 @@
     <maven.assembly.version>2.2.1</maven.assembly.version>
     <hbase.version>0.98.2-hadoop1</hbase.version>
     <cassandra.version>2.0.7</cassandra.version>
-    <cassandra.cql.version>2.0.2</cassandra.cql.version>
+    <cassandra.cql.version>2.0.3</cassandra.cql.version>
     <accumulo.version>1.6.0</accumulo.version>
     <infinispan.version>7.1.0.CR1</infinispan.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
@@ -66,24 +66,25 @@
     <!-- <module>aerospike</module> -->
     <module>cassandra</module>
     <module>core</module>
+    <!-- WIP: default clients will be added in post method signature change -->
     <!--<module>couchbase-1.8</module>-->
-    <module>couchbase-2.0</module>   <!--couchbase-2.0 conflicts with couchbase-1.8, use one of them-->
-    <module>hbase</module>
-    <module>hypertable</module>
-    <module>accumulo</module>
-    <module>dynamodb</module>
-    <module>elasticsearch</module>
+    <!--<module>couchbase-2.0</module>   &lt;!&ndash;couchbase-2.0 conflicts with couchbase-1.8, use one of them&ndash;&gt;-->
+    <!--<module>hbase</module>-->
+    <!--<module>hypertable</module>-->
+    <!--<module>accumulo</module>-->
+    <!--<module>dynamodb</module>-->
+    <!--<module>elasticsearch</module>-->
     <!--<module>gemfire</module>-->
     <!--<module>infinispan</module>-->
-    <module>jdbc</module>
-    <module>mapkeeper</module>
+    <!--<module>jdbc</module>-->
+    <!--<module>mapkeeper</module>-->
     <!--<module>membase</module>-->
-    <module>memcached</module>
-    <module>mongodb</module>
-    <module>orientdb</module>
+    <!--<module>memcached</module>-->
+    <!--<module>mongodb</module>-->
+    <!--<module>orientdb</module>-->
     <!--module>nosqldb</module-->
-    <module>redis</module>
-    <module>voldemort</module>
+    <!--<module>redis</module>-->
+    <!--<module>voldemort</module>-->
     <module>distribution</module>
   </modules>
 

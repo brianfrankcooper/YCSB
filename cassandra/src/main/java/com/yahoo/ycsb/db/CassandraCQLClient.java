@@ -22,6 +22,8 @@ import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 import com.yahoo.ycsb.*;
+import com.yahoo.ycsb.workloads.CoreWorkload;
+
 import java.nio.ByteBuffer;
 
 import java.util.Map;
@@ -33,7 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Tested with Cassandra 2.0, CQL client for YCSB framework
- * 
+ *
  * In CQLSH, create keyspace and table.  Something like:
  *
  * create keyspace ycsb WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 1 };
@@ -122,7 +124,7 @@ public class CassandraCQLClient extends DB {
             }
 
             //Update number of connections based on threads
-            int threadcount = Integer.parseInt(getProperties().getProperty("threadcount","1"));
+            int threadcount = Integer.parseInt(getProperties().getProperty("threadcount","2"));
             cluster.getConfiguration().getPoolingOptions().setMaxConnectionsPerHost(HostDistance.LOCAL, threadcount);
 
             //Set connection timeout 3min (default is 5s)
@@ -156,32 +158,43 @@ public class CassandraCQLClient extends DB {
     }
 
     /**
-     * Read a record from the database. Each field/value pair from the result
-     * will be stored in a HashMap.
+     * Read a record from the database. Each field/value pair from the result will
+     * be stored in a HashMap.
      *
-     * @param table The name of the table
-     * @param key The record key of the record to read.
-     * @param fields The list of fields to read, or null for all of them
+     * @param table  The name of the table
+     * @param key    The record key of the record to read.
      * @param result A HashMap of field/value pairs for the result
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+    public int readAll(String table, String key, HashMap<String, ByteIterator> result)
+    {
+        Select.Builder selectBuilder = QueryBuilder.select().all();
+        return read(table, key, result, selectBuilder);
+    }
+
+    /**
+     * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
+     *
+     * @param table The name of the table
+     * @param key The record key of the record to read.
+     * @param field The field to read
+     * @param result A HashMap of field/value pairs for the result
+     * @return Zero on success, a non-zero error code on error
+     */
+    @Override
+    public int readOne(String table, String key, String field, HashMap<String, ByteIterator> result)
+    {
+        Select.Builder selectBuilder = QueryBuilder.select();
+        ((Select.Selection) selectBuilder).column(field);
+
+        return read(table, key, result, selectBuilder);
+    }
+
+    public int read(String table, String key, HashMap<String, ByteIterator> result, Select.Builder selectBuilder) {
 
         try {
             Statement stmt;
-            Select.Builder selectBuilder;
-
-            if (fields == null) {
-                selectBuilder = QueryBuilder.select().all();
-            }
-            else {
-                selectBuilder = QueryBuilder.select();
-                for (String col : fields) {
-                    ((Select.Selection) selectBuilder).column(col);
-                }
-            }
-
             stmt = selectBuilder.from(table).where(QueryBuilder.eq(YCSB_KEY, key)).limit(1);
             stmt.setConsistencyLevel(readConsistencyLevel);
 
@@ -222,36 +235,54 @@ public class CassandraCQLClient extends DB {
     /**
      * Perform a range scan for a set of records in the database. Each
      * field/value pair from the result will be stored in a HashMap.
-     * 
+     *
      * Cassandra CQL uses "token" method for range scan which doesn't always
      * yield intuitive results.
      *
      * @param table The name of the table
      * @param startkey The record key of the first record to read.
      * @param recordcount The number of records to read
-     * @param fields The list of fields to read, or null for all of them
+     * @param field The field to read
      * @param result A Vector of HashMaps, where each HashMap is a set
      * field/value pairs for one record
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    public int scanOne(String table, String startkey, int recordcount, String field, Vector<HashMap<String, ByteIterator>> result)
+    {
+
+        Select.Builder selectBuilder = QueryBuilder.select();
+        ((Select.Selection) selectBuilder).column(field);
+
+        return scan(table, startkey, recordcount, result, selectBuilder);
+    }
+
+    /**
+     * Perform a range scan for a set of records in the database. Each
+     * field/value pair from the result will be stored in a HashMap.
+     *
+     * Cassandra CQL uses "token" method for range scan which doesn't always
+     * yield intuitive results.
+     *
+     * @param table The name of the table
+     * @param startkey The record key of the first record to read.
+     * @param recordcount The number of records to read
+     * @param result A Vector of HashMaps, where each HashMap is a set
+     * field/value pairs for one record
+     * @return Zero on success, a non-zero error code on error
+     */
+    @Override
+    public int scanAll(String table, String startkey, int recordcount, Vector<HashMap<String, ByteIterator>> result)
+    {
+
+        Select.Builder selectBuilder = QueryBuilder.select().all();
+        return scan(table, startkey, recordcount, result, selectBuilder);
+    }
+
+    public int scan(String table, String startkey, int recordcount, Vector<HashMap<String, ByteIterator>> result, Select.Builder selectBuilder) {
 
         try {
-            Statement stmt;
-            Select.Builder selectBuilder;
-
-            if (fields == null) {
-                selectBuilder = QueryBuilder.select().all();
-            }
-            else {
-                selectBuilder = QueryBuilder.select();
-                for (String col : fields) {
-                    ((Select.Selection) selectBuilder).column(col);
-                }
-            }
-
-            stmt = selectBuilder.from(table);
+            Statement stmt = selectBuilder.from(table);
 
             //The statement builder is not setup right for tokens.
             //  So, we need to build it manually.
@@ -308,18 +339,35 @@ public class CassandraCQLClient extends DB {
     }
 
     /**
-     * Update a record in the database. Any field/value pairs in the specified
-     * values HashMap will be written into the record with the specified record
-     * key, overwriting any existing values with the same field name.
+     * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
+     * record key, overwriting any existing values with the same field name.
+     *
+     * @param table The name of the table
+     * @param key The record key of the record to write.
+     * @param field The field to update
+     * @param value The value to update in the key record
+     * @return Zero on success, a non-zero error code on error.
+     */
+    @Override
+    public int updateOne(String table, String key, String field, ByteIterator value)
+    {
+        HashMap<String, ByteIterator> values = new HashMap<String, ByteIterator>();
+        values.put(field, value);
+        return insert(table, key, values);
+    }
+
+    /**
+     * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
+     * record key, overwriting any existing values with the same field name.
      *
      * @param table The name of the table
      * @param key The record key of the record to write.
      * @param values A HashMap of field/value pairs to update in the record
-     * @return Zero on success, a non-zero error code on error
+     * @return Zero on success, a non-zero error code on error.
      */
     @Override
-    public int update(String table, String key, HashMap<String, ByteIterator> values) {
-        //Insert and updates provide the same functionality
+    public int updateAll(String table, String key, HashMap<String,ByteIterator> values)
+    {
         return insert(table, key, values);
     }
 

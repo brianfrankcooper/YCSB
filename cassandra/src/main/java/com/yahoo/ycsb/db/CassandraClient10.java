@@ -189,11 +189,47 @@ public class CassandraClient10 extends DB
      *
      * @param table  The name of the table
      * @param key    The record key of the record to read.
-     * @param fields The list of fields to read, or null for all of them
      * @param result A HashMap of field/value pairs for the result
      * @return Zero on success, a non-zero error code on error
      */
-    public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result)
+    @Override
+    public int readAll(String table, String key, HashMap<String, ByteIterator> result)
+    {
+        SliceRange range = new SliceRange(emptyByteBuffer, emptyByteBuffer, false, 1000000);
+        SlicePredicate predicate = new SlicePredicate().setSlice_range(range);
+
+        return read(table, key, result, predicate);
+    }
+
+    /**
+     * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
+     *
+     * @param table The name of the table
+     * @param key The record key of the record to read.
+     * @param field The field to read
+     * @param result A HashMap of field/value pairs for the result
+     * @return Zero on success, a non-zero error code on error
+     */
+    @Override
+    public int readOne(String table, String key, String field, HashMap<String, ByteIterator> result)
+    {
+        try
+        {
+            ByteBuffer fieldBuffer = ByteBuffer.wrap(field.getBytes("UTF-8"));
+            SlicePredicate predicate = new SlicePredicate().setColumn_names(Arrays.asList(fieldBuffer));
+
+            return read(table, key, result, predicate);
+        }
+        catch (Exception e)
+        {
+            errorexception = e;
+        }
+
+        errorexception.printStackTrace();
+        return Error;
+    }
+
+    private int read(String table, String key, HashMap<String, ByteIterator> result, SlicePredicate predicate)
     {
         if (!_table.equals(table))
         {
@@ -214,22 +250,6 @@ public class CassandraClient10 extends DB
         {
             try
             {
-                SlicePredicate predicate;
-                if (fields == null)
-                {
-                    predicate = new SlicePredicate().setSlice_range(new SliceRange(emptyByteBuffer, emptyByteBuffer, false, 1000000));
-                }
-                else
-                {
-                    ArrayList<ByteBuffer> fieldlist = new ArrayList<ByteBuffer>(fields.size());
-                    for (String s : fields)
-                    {
-                        fieldlist.add(ByteBuffer.wrap(s.getBytes("UTF-8")));
-                    }
-
-                    predicate = new SlicePredicate().setColumn_names(fieldlist);
-                }
-
                 List<ColumnOrSuperColumn> results = client.get_slice(ByteBuffer.wrap(key.getBytes("UTF-8")), parent, predicate, readConsistencyLevel);
 
                 if (_debug)
@@ -287,13 +307,46 @@ public class CassandraClient10 extends DB
      * @param table       The name of the table
      * @param startkey    The record key of the first record to read.
      * @param recordcount The number of records to read
-     * @param fields      The list of fields to read, or null for all of them
      * @param result      A Vector of HashMaps, where each HashMap is a set field/value
      *                    pairs for one record
      * @return Zero on success, a non-zero error code on error
      */
-    public int scan(String table, String startkey, int recordcount, Set<String> fields,
-                    Vector<HashMap<String, ByteIterator>> result)
+    public int scanAll(String table, String startkey, int recordcount, Vector<HashMap<String, ByteIterator>> result)
+    {
+        SlicePredicate predicate = new SlicePredicate().setSlice_range(new SliceRange(emptyByteBuffer, emptyByteBuffer, false, 1000000));
+        return scan(table, startkey, recordcount, result, predicate);
+    }
+
+    /**
+     * Perform a range scan for a set of records in the database. Each field/value
+     * pair from the result will be stored in a HashMap.
+     *
+     * @param table       The name of the table
+     * @param startkey    The record key of the first record to read.
+     * @param recordcount The number of records to read
+     * @param field       The field to read
+     * @param result      A Vector of HashMaps, where each HashMap is a set field/value pairs
+     *                    for one record
+     * @return Zero on success, a non-zero error code on error
+     */
+    public int scanOne(String table, String startkey, int recordcount, String field, Vector<HashMap<String, ByteIterator>> result)
+    {
+        try
+        {
+            ByteBuffer fieldBuffer = ByteBuffer.wrap(field.getBytes("UTF-8"));
+            SlicePredicate predicate = new SlicePredicate().setColumn_names(Arrays.asList(fieldBuffer));
+            return scan(table, startkey, recordcount, result, predicate);
+        }
+        catch (Exception e)
+        {
+            errorexception = e;
+        }
+        errorexception.printStackTrace();
+        return Error;
+    }
+
+    public int scan(String table, String startkey, int recordcount,
+                    Vector<HashMap<String, ByteIterator>> result, SlicePredicate predicate)
     {
         if (!_table.equals(table))
         {
@@ -314,22 +367,6 @@ public class CassandraClient10 extends DB
         {
             try
             {
-                SlicePredicate predicate;
-                if (fields == null)
-                {
-                    predicate = new SlicePredicate().setSlice_range(new SliceRange(emptyByteBuffer, emptyByteBuffer, false, 1000000));
-                }
-                else
-                {
-                    ArrayList<ByteBuffer> fieldlist = new ArrayList<ByteBuffer>(fields.size());
-                    for (String s : fields)
-                    {
-                        fieldlist.add(ByteBuffer.wrap(s.getBytes("UTF-8")));
-                    }
-
-                    predicate = new SlicePredicate().setColumn_names(fieldlist);
-                }
-
                 KeyRange kr = new KeyRange().setStart_key(startkey.getBytes("UTF-8")).setEnd_key(new byte[]{ }).setCount(recordcount);
 
                 List<KeySlice> results = client.get_range_slices(parent, predicate, kr, scanConsistencyLevel);
@@ -394,9 +431,33 @@ public class CassandraClient10 extends DB
      *
      * @param table  The name of the table
      * @param key    The record key of the record to write.
+     * @param field  The field to be updated
+     * @param value  The value to update in the key record
+     * @return Zero on success, a non-zero error code on error.
+     */
+    @Override
+    public int updateOne(String table, String key, String field, ByteIterator value)
+    {
+        HashMap<String, ByteIterator> values = new HashMap<String, ByteIterator>();
+        values.put(field, value);
+        return insert(table, key, values);
+    }
+
+    /**
+     * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
+     * record key, overwriting any existing values with the same field name.
+     *
+     * @param table The name of the table
+     * @param key The record key of the record to write.
      * @param values A HashMap of field/value pairs to update in the record
      * @return Zero on success, a non-zero error code on error
      */
+    @Override
+    public int updateAll(String table, String key, HashMap<String,ByteIterator> values)
+    {
+        return insert(table, key, values);
+    }
+
     public int update(String table, String key, HashMap<String, ByteIterator> values)
     {
         return insert(table, key, values);
@@ -573,7 +634,7 @@ public class CassandraClient10 extends DB
         fields.add("middlename");
         fields.add("age");
         fields.add("favoritecolor");
-        res = cli.read("usertable", "BrianFrankCooper", null, result);
+        res = cli.readAll("usertable", "BrianFrankCooper", result);
         System.out.println("Result of read: " + res);
         for (String s : result.keySet())
         {

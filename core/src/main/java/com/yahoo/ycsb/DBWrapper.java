@@ -103,11 +103,12 @@ public class DBWrapper extends DB {
      *
      * @param table  The name of the table
      * @param key    The record key of the record to read.
-     * @param fields The list of fields to read, or null for all of them
      * @param result A HashMap of field/value pairs for the result
      * @return Zero on success, a non-zero error code on error
      */
-    public int read(final String table, final String key, final Set<String> fields, final HashMap<String, ByteIterator> result) {
+    @Override
+    public int readAll(final String table, final String key, final HashMap<String, ByteIterator> result)
+    {
         return operation(new DBOperation() {
             @Override
             public String name() {
@@ -121,9 +122,58 @@ public class DBWrapper extends DB {
 
             @Override
             public int go() {
-                return _db.read(table, key, fields, result);
+                return _db.readAll(table, key, result);
             }
         });
+    }
+
+    /**
+     * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
+     *
+     * @param table The name of the table
+     * @param key The record key of the record to read.
+     * @param field The field to read
+     * @param result A HashMap of field/value pairs for the result
+     * @return Zero on success, a non-zero error code on error
+     */
+    @Override
+    public int readOne(final String table, final String key, final String field, final HashMap<String, ByteIterator> result)
+    {
+        return operation(new DBOperation() {
+            @Override
+            public String name() {
+                return "READ";
+            }
+
+            @Override
+            public int maxRetries() {
+                return readRetryCount;
+            }
+
+            @Override
+            public int go() {
+                return _db.readOne(table, key, field, result);
+            }
+        });
+    }
+
+    /**
+     * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a HashMap.
+     *
+     * @param table The name of the table
+     * @param startkey The record key of the first record to read.
+     * @param recordcount The number of records to read
+     * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
+     * @return Zero on success, a non-zero error code on error
+     */
+    public int scanAll(String table, String startkey, int recordcount, Vector<HashMap<String, ByteIterator>> result)
+    {
+        long st = System.nanoTime();
+        int res = _db.scanAll(table, startkey, recordcount, result);
+        long en = System.nanoTime();
+        _measurements.measure("SCAN", (int) ((en - st) / 1000));
+        _measurements.reportReturnCode("SCAN", res);
+        return res;
     }
 
     /**
@@ -132,13 +182,14 @@ public class DBWrapper extends DB {
      * @param table       The name of the table
      * @param startkey    The record key of the first record to read.
      * @param recordcount The number of records to read
-     * @param fields      The list of fields to read, or null for all of them
+     * @param field       The field to read
      * @param result      A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
      * @return Zero on success, a non-zero error code on error
      */
-    public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    public int scanOne(String table, String startkey, int recordcount, String field, Vector<HashMap<String, ByteIterator>> result)
+    {
         long st = System.nanoTime();
-        int res = _db.scan(table, startkey, recordcount, fields, result);
+        int res = _db.scanOne(table, startkey, recordcount, field, result);
         long en = System.nanoTime();
         _measurements.measure("SCAN", (int) ((en - st) / 1000));
         _measurements.reportReturnCode("SCAN", res);
@@ -151,10 +202,10 @@ public class DBWrapper extends DB {
      *
      * @param table  The name of the table
      * @param key    The record key of the record to write.
-     * @param values A HashMap of field/value pairs to update in the record
+     * @param value  The value to update in the key record
      * @return Zero on success, a non-zero error code on error
      */
-    public int update(final String table, final String key, final HashMap<String, ByteIterator> values) {
+    public int updateOne(final String table, final String key, final String field, final ByteIterator value) {
         return operation(new DBOperation() {
             @Override
             public String name() {
@@ -168,7 +219,35 @@ public class DBWrapper extends DB {
 
             @Override
             public int go() {
-                return _db.update(table, key, values);
+                return _db.updateOne(table, key, field, value);
+            }
+        });
+    }
+
+    /**
+     * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
+     * record key, overwriting any existing values with the same field name.
+     *
+     * @param table  The name of the table
+     * @param key    The record key of the record to write.
+     * @param values A HashMap of field/value pairs to update in the record
+     * @return Zero on success, a non-zero error code on error.
+     */
+    public int updateAll(final String table, final String key, final HashMap<String,ByteIterator> values) {
+        return operation(new DBOperation() {
+            @Override
+            public String name() {
+                return "UPDATE";
+            }
+
+            @Override
+            public int maxRetries() {
+                return updateRetryCount;
+            }
+
+            @Override
+            public int go() {
+                return _db.updateAll(table, key, values);
             }
         });
     }

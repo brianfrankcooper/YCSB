@@ -24,8 +24,9 @@ import com.yahoo.ycsb.generator.*;
 import com.yahoo.ycsb.measurements.Measurements;
 
 import java.io.IOException;
+import java.util.AbstractMap;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Map;
 import java.util.Vector;
 
 /**
@@ -428,13 +429,11 @@ public class CoreWorkload extends Workload {
         return values;
     }
 
-    HashMap<String, ByteIterator> buildUpdate() {
+    Map.Entry<String, ByteIterator> buildUpdate() {
         //update a random field
-        HashMap<String, ByteIterator> values = new HashMap<String, ByteIterator>();
         String fieldname = fieldnameprefix + fieldchooser.nextString();
         ByteIterator data = new RandomByteIterator(fieldlengthgenerator.nextInt());
-        values.put(fieldname, data);
-        return values;
+        return new AbstractMap.SimpleEntry(fieldname, data);
     }
 
     /**
@@ -509,52 +508,42 @@ public class CoreWorkload extends Workload {
 
         String keyname = buildKeyName(keynum);
 
-        HashSet<String> fields = null;
-
         if (!readallfields) {
             //read a random field
             String fieldname = fieldnameprefix + fieldchooser.nextString();
-
-            fields = new HashSet<String>();
-            fields.add(fieldname);
+            db.readOne(table, keyname, fieldname, new HashMap<String, ByteIterator>());
+        } else {
+            db.readAll(table, keyname, new HashMap<String, ByteIterator>());
         }
-
-        db.read(table, keyname, fields, new HashMap<String, ByteIterator>());
     }
 
     public void doTransactionReadModifyWrite(DB db) {
         //choose a random key
         int keynum = nextKeynum();
-
         String keyname = buildKeyName(keynum);
 
-        HashSet<String> fields = null;
+        //do the transaction
+        long st = System.nanoTime();
 
         if (!readallfields) {
             //read a random field
             String fieldname = fieldnameprefix + fieldchooser.nextString();
-
-            fields = new HashSet<String>();
-            fields.add(fieldname);
+            // read one field.
+            db.readOne(table, keyname, fieldname, new HashMap<String, ByteIterator>());
         }
-
-        HashMap<String, ByteIterator> values;
+        else {
+            // read all fields
+            db.readAll(table, keyname, new HashMap<String, ByteIterator>());
+        }
 
         if (writeallfields) {
             //new data for all the fields
-            values = buildValues();
+            db.updateAll(table, keyname, buildValues());
         } else {
             //update a random field
-            values = buildUpdate();
+            Map.Entry<String, ByteIterator> val = buildUpdate();
+            db.updateOne(table, keyname, val.getKey(), val.getValue());
         }
-
-        //do the transaction
-
-        long st = System.nanoTime();
-
-        db.read(table, keyname, fields, new HashMap<String, ByteIterator>());
-
-        db.update(table, keyname, values);
 
         long en = System.nanoTime();
 
@@ -570,36 +559,28 @@ public class CoreWorkload extends Workload {
         //choose a random scan length
         int len = scanlength.nextInt();
 
-        HashSet<String> fields = null;
-
         if (!readallfields) {
             //read a random field
             String fieldname = fieldnameprefix + fieldchooser.nextString();
-
-            fields = new HashSet<String>();
-            fields.add(fieldname);
+            db.scanOne(table, startkeyname, recordcount, fieldname, new Vector<HashMap<String, ByteIterator>>());
+        } else {
+            db.scanAll(table,startkeyname, len, new Vector<HashMap<String, ByteIterator>>());
         }
-
-        db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
     }
 
     public void doTransactionUpdate(DB db) {
         //choose a random key
         int keynum = nextKeynum();
-
         String keyname = buildKeyName(keynum);
-
-        HashMap<String, ByteIterator> values;
 
         if (writeallfields) {
             //new data for all the fields
-            values = buildValues();
+            db.updateAll(table, keyname, buildValues());
         } else {
             //update a random field
-            values = buildUpdate();
+            Map.Entry<String, ByteIterator> values = buildUpdate();
+            db.updateOne(table, keyname, values.getKey(), values.getValue());
         }
-
-        db.update(table, keyname, values);
     }
 
     public void doTransactionInsert(DB db) {
