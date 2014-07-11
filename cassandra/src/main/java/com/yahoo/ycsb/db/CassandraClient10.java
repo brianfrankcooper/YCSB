@@ -187,13 +187,14 @@ public class CassandraClient10 extends DB
      * Read a record from the database. Each field/value pair from the result will
      * be stored in a HashMap.
      *
+     *
      * @param table  The name of the table
      * @param key    The record key of the record to read.
      * @param fields The list of fields to read, or null for all of them
      * @param result A HashMap of field/value pairs for the result
      * @return Zero on success, a non-zero error code on error
      */
-    public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result)
+    public int read(String table, String key, Set<String> fields, Map<String, ByteIterator> result)
     {
         if (!_table.equals(table))
         {
@@ -284,6 +285,7 @@ public class CassandraClient10 extends DB
      * Perform a range scan for a set of records in the database. Each field/value
      * pair from the result will be stored in a HashMap.
      *
+     *
      * @param table       The name of the table
      * @param startkey    The record key of the first record to read.
      * @param recordcount The number of records to read
@@ -293,7 +295,7 @@ public class CassandraClient10 extends DB
      * @return Zero on success, a non-zero error code on error
      */
     public int scan(String table, String startkey, int recordcount, Set<String> fields,
-                    Vector<HashMap<String, ByteIterator>> result)
+                    List<Map<String, ByteIterator>> result)
     {
         if (!_table.equals(table))
         {
@@ -392,12 +394,13 @@ public class CassandraClient10 extends DB
      * values HashMap will be written into the record with the specified record
      * key, overwriting any existing values with the same field name.
      *
+     *
      * @param table  The name of the table
      * @param key    The record key of the record to write.
      * @param values A HashMap of field/value pairs to update in the record
      * @return Zero on success, a non-zero error code on error
      */
-    public int update(String table, String key, HashMap<String, ByteIterator> values)
+    public int update(String table, String key, Map<String, ByteIterator> values)
     {
         return insert(table, key, values);
     }
@@ -407,12 +410,13 @@ public class CassandraClient10 extends DB
      * values HashMap will be written into the record with the specified record
      * key.
      *
+     *
      * @param table  The name of the table
      * @param key    The record key of the record to insert.
      * @param values A HashMap of field/value pairs to insert in the record
      * @return Zero on success, a non-zero error code on error
      */
-    public int insert(String table, String key, HashMap<String, ByteIterator> values)
+    public int insert(String table, String key, Map<String, ByteIterator> values)
     {
         if (!_table.equals(table))
         {

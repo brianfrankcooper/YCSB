@@ -16,13 +16,11 @@
 
 package com.yahoo.ycsb.db;
 
-import java.io.FileInputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Set;
-import java.util.Vector;
 import java.io.File;
 
 import org.apache.log4j.Level;
@@ -120,7 +118,7 @@ public class DynamoDBClient extends DB {
 
     @Override
     public int read(String table, String key, Set<String> fields,
-            HashMap<String, ByteIterator> result) {
+            Map<String, ByteIterator> result) {
 
         logger.debug("readkey: " + key + " from table: " + table);
         GetItemRequest req = new GetItemRequest(table, createPrimaryKey(key));
@@ -148,7 +146,7 @@ public class DynamoDBClient extends DB {
 
     @Override
     public int scan(String table, String startkey, int recordcount,
-        Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+        Set<String> fields, List<Map<String, ByteIterator>> result) {
         logger.debug("scan " + recordcount + " records from key: " + startkey + " on table: " + table);
         /*
          * on DynamoDB's scan, startkey is *exclusive* so we need to
@@ -206,7 +204,7 @@ public class DynamoDBClient extends DB {
     }
 
     @Override
-    public int update(String table, String key, HashMap<String, ByteIterator> values) {
+    public int update(String table, String key, Map<String, ByteIterator> values) {
         logger.debug("updatekey: " + key + " from table: " + table);
 
         Map<String, AttributeValueUpdate> attributes = new HashMap<String, AttributeValueUpdate>(
@@ -232,7 +230,7 @@ public class DynamoDBClient extends DB {
     }
 
     @Override
-    public int insert(String table, String key,HashMap<String, ByteIterator> values) {
+    public int insert(String table, String key, Map<String, ByteIterator> values) {
         logger.debug("insertkey: " + primaryKeyName + "-" + key + " from table: " + table);
         Map<String, AttributeValue> attributes = createAttributes(values);
         // adding primary key
@@ -271,7 +269,7 @@ public class DynamoDBClient extends DB {
     }
 
     private static Map<String, AttributeValue> createAttributes(
-            HashMap<String, ByteIterator> values) {
+            Map<String, ByteIterator> values) {
         Map<String, AttributeValue> attributes = new HashMap<String, AttributeValue>(
                 values.size() + 1); //leave space for the PrimaryKey
         for (Entry<String, ByteIterator> val : values.entrySet()) {

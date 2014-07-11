@@ -17,6 +17,8 @@
 
 package com.yahoo.ycsb.workloads;
 
+import java.util.ArrayList;
+import java.util.Map;
 import java.util.Properties;
 
 import com.yahoo.ycsb.*;
@@ -580,7 +582,7 @@ public class CoreWorkload extends Workload {
             fields.add(fieldname);
         }
 
-        db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
+        db.scan(table, startkeyname, len, fields, new ArrayList<Map<String, ByteIterator>>());
     }
 
     public void doTransactionUpdate(DB db) {

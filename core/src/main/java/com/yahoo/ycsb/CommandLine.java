@@ -17,6 +17,8 @@
 
 package com.yahoo.ycsb;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -322,7 +324,7 @@ public class CommandLine
 		     }
 		  }
 		  
-		  Vector<HashMap<String,ByteIterator>> results=new Vector<HashMap<String,ByteIterator>>();
+		  List<Map<String,ByteIterator>> results=new ArrayList<Map<String,ByteIterator>>();
 		  int ret=db.scan(table,tokens[1],Integer.parseInt(tokens[2]),fields,results);
 		  System.out.println("Return code: "+ret);
 		  int record=0;
@@ -334,7 +336,7 @@ public class CommandLine
 		  {
 		     System.out.println("--------------------------------");
 		  }
-		  for (HashMap<String,ByteIterator> result : results)
+		  for (Map<String,ByteIterator> result : results)
 		  {
 		     System.out.println("Record "+(record++));
 		     for (Map.Entry<String,ByteIterator> ent : result.entrySet())

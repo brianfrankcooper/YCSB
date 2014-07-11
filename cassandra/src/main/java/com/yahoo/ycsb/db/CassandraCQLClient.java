@@ -24,11 +24,10 @@ import com.datastax.driver.core.querybuilder.Select;
 import com.yahoo.ycsb.*;
 import java.nio.ByteBuffer;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashMap;
-import java.util.Vector;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
@@ -159,6 +158,7 @@ public class CassandraCQLClient extends DB {
      * Read a record from the database. Each field/value pair from the result
      * will be stored in a HashMap.
      *
+     *
      * @param table The name of the table
      * @param key The record key of the record to read.
      * @param fields The list of fields to read, or null for all of them
@@ -166,7 +166,7 @@ public class CassandraCQLClient extends DB {
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+    public int read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
 
         try {
             Statement stmt;
@@ -226,6 +226,7 @@ public class CassandraCQLClient extends DB {
      * Cassandra CQL uses "token" method for range scan which doesn't always
      * yield intuitive results.
      *
+     *
      * @param table The name of the table
      * @param startkey The record key of the first record to read.
      * @param recordcount The number of records to read
@@ -235,7 +236,7 @@ public class CassandraCQLClient extends DB {
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    public int scan(String table, String startkey, int recordcount, Set<String> fields, List<Map<String, ByteIterator>> result) {
 
         try {
             Statement stmt;
@@ -312,13 +313,14 @@ public class CassandraCQLClient extends DB {
      * values HashMap will be written into the record with the specified record
      * key, overwriting any existing values with the same field name.
      *
+     *
      * @param table The name of the table
      * @param key The record key of the record to write.
      * @param values A HashMap of field/value pairs to update in the record
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int update(String table, String key, HashMap<String, ByteIterator> values) {
+    public int update(String table, String key, Map<String, ByteIterator> values) {
         //Insert and updates provide the same functionality
         return insert(table, key, values);
     }
@@ -328,13 +330,14 @@ public class CassandraCQLClient extends DB {
      * values HashMap will be written into the record with the specified record
      * key.
      *
+     *
      * @param table The name of the table
      * @param key The record key of the record to insert.
      * @param values A HashMap of field/value pairs to insert in the record
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int insert(String table, String key, HashMap<String, ByteIterator> values) {
+    public int insert(String table, String key, Map<String, ByteIterator> values) {
 
         try {
             Insert insertStmt = QueryBuilder.insertInto(table);

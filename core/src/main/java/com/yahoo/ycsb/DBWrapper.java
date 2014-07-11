@@ -17,10 +17,10 @@
 
 package com.yahoo.ycsb;
 
-import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.Vector;
 
 import com.yahoo.ycsb.measurements.Measurements;
 
@@ -101,13 +101,14 @@ public class DBWrapper extends DB {
     /**
      * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
      *
+     *
      * @param table  The name of the table
      * @param key    The record key of the record to read.
      * @param fields The list of fields to read, or null for all of them
      * @param result A HashMap of field/value pairs for the result
      * @return Zero on success, a non-zero error code on error
      */
-    public int read(final String table, final String key, final Set<String> fields, final HashMap<String, ByteIterator> result) {
+    public int read(final String table, final String key, final Set<String> fields, final Map<String, ByteIterator> result) {
         return operation(new DBOperation() {
             @Override
             public String name() {
@@ -129,6 +130,7 @@ public class DBWrapper extends DB {
     /**
      * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a HashMap.
      *
+     *
      * @param table       The name of the table
      * @param startkey    The record key of the first record to read.
      * @param recordcount The number of records to read
@@ -136,7 +138,7 @@ public class DBWrapper extends DB {
      * @param result      A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
      * @return Zero on success, a non-zero error code on error
      */
-    public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    public int scan(String table, String startkey, int recordcount, Set<String> fields, List<Map<String, ByteIterator>> result) {
         long st = System.nanoTime();
         int res = _db.scan(table, startkey, recordcount, fields, result);
         long en = System.nanoTime();
@@ -149,12 +151,13 @@ public class DBWrapper extends DB {
      * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
      * record key, overwriting any existing values with the same field name.
      *
+     *
      * @param table  The name of the table
      * @param key    The record key of the record to write.
      * @param values A HashMap of field/value pairs to update in the record
      * @return Zero on success, a non-zero error code on error
      */
-    public int update(final String table, final String key, final HashMap<String, ByteIterator> values) {
+    public int update(final String table, final String key, final Map<String, ByteIterator> values) {
         return operation(new DBOperation() {
             @Override
             public String name() {
@@ -177,12 +180,13 @@ public class DBWrapper extends DB {
      * Insert a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
      * record key.
      *
+     *
      * @param table  The name of the table
      * @param key    The record key of the record to insert.
      * @param values A HashMap of field/value pairs to insert in the record
      * @return Zero on success, a non-zero error code on error
      */
-    public int insert(final String table, final String key, final HashMap<String, ByteIterator> values) {
+    public int insert(final String table, final String key, final Map<String, ByteIterator> values) {
         return operation(new DBOperation() {
             @Override
             public String name() {

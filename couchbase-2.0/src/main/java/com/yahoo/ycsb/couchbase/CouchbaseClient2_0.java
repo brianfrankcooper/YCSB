@@ -105,7 +105,7 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
     }
 
     @Override
-    public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+    public int read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
         try {
             GetFuture<Object> future = couchbaseClient.asyncGet(createQualifiedKey(table, key));
             Object document = future.get();
@@ -122,7 +122,7 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
     }
 
     @Override
-    public int update(String table, String key, HashMap<String, ByteIterator> values) {
+    public int update(String table, String key, Map<String, ByteIterator> values) {
         key = createQualifiedKey(table, key);
         try {
             OperationFuture<Boolean> future;
@@ -144,7 +144,7 @@ public class CouchbaseClient2_0 extends MemcachedCompatibleClient {
     }
 
     @Override
-    public int insert(String table, String key, HashMap<String, ByteIterator> values) {
+    public int insert(String table, String key, Map<String, ByteIterator> values) {
         key = createQualifiedKey(table, key);
         try {
             OperationFuture<Boolean> future;
