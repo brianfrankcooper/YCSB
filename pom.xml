@@ -58,7 +58,6 @@
     <voldemort.version>0.81</voldemort.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <thrift.version>0.8.0</thrift.version>
-    <hypertable.version>0.9.5.6</hypertable.version>
   </properties>
 
   <modules>
@@ -68,7 +67,6 @@
     <module>core</module>
     <module>couchbase-2.0</module>
     <module>hbase</module>
-    <module>hypertable</module>
     <module>accumulo</module>
     <module>dynamodb</module>
     <module>elasticsearch</module>
