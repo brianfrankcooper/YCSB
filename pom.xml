@@ -69,7 +69,6 @@
     <module>jdbc</module>
     <module>memcached</module>
     <module>mongodb</module>
-    <!--module>nosqldb</module-->
     <module>redis</module>
     <module>voldemort</module>
     <module>distribution</module>
