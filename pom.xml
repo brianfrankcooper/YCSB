@@ -51,7 +51,6 @@
     <accumulo.version>1.6.0</accumulo.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
     <mongodb.version>2.11.2</mongodb.version>
-    <orientdb.version>1.0.1</orientdb.version>
     <redis.version>2.0.0</redis.version>
     <voldemort.version>0.81</voldemort.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -70,7 +69,6 @@
     <module>jdbc</module>
     <module>memcached</module>
     <module>mongodb</module>
-    <module>orientdb</module>
     <!--module>nosqldb</module-->
     <module>redis</module>
     <module>voldemort</module>
