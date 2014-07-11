@@ -68,7 +68,6 @@
     <module>accumulo</module>
     <module>dynamodb</module>
     <module>jdbc</module>
-    <!--<module>membase</module>-->
     <module>memcached</module>
     <module>mongodb</module>
     <module>orientdb</module>
