@@ -66,8 +66,7 @@
     <!-- <module>aerospike</module> -->
     <module>cassandra</module>
     <module>core</module>
-    <!--<module>couchbase-1.8</module>-->
-    <module>couchbase-2.0</module>   <!--couchbase-2.0 conflicts with couchbase-1.8, use one of them-->
+    <module>couchbase-2.0</module>
     <module>hbase</module>
     <module>hypertable</module>
     <module>accumulo</module>
