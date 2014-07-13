@@ -17,6 +17,8 @@
 
 package com.yahoo.ycsb.workloads;
 
+import java.util.ArrayList;
+import java.util.Map;
 import java.util.Properties;
 
 import com.yahoo.ycsb.*;
@@ -26,8 +28,6 @@ import com.yahoo.ycsb.measurements.Measurements;
 import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.Vector;
 
 /**
  * The core benchmark scenario. Represents a set of clients doing simple CRUD operations. The relative
@@ -562,9 +562,9 @@ public class CoreWorkload extends Workload {
         if (!readallfields) {
             //read a random field
             String fieldname = fieldnameprefix + fieldchooser.nextString();
-            db.scanOne(table, startkeyname, recordcount, fieldname, new Vector<HashMap<String, ByteIterator>>());
+            db.scanOne(table, startkeyname, recordcount, fieldname, new ArrayList<Map<String, ByteIterator>>());
         } else {
-            db.scanAll(table,startkeyname, len, new Vector<HashMap<String, ByteIterator>>());
+            db.scanAll(table,startkeyname, len, new ArrayList<Map<String, ByteIterator>>());
         }
     }
 

@@ -17,10 +17,9 @@
 
 package com.yahoo.ycsb;
 
-import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
 
 import com.yahoo.ycsb.measurements.Measurements;
 
@@ -99,16 +98,16 @@ public class DBWrapper extends DB {
     }
 
     /**
-     * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
+     * Read a record from the database. Each field/value pair from the result will be stored in a Map.
+     *
      *
      * @param table  The name of the table
      * @param key    The record key of the record to read.
-     * @param result A HashMap of field/value pairs for the result
+     * @param result A Map of field/value pairs for the result
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int readAll(final String table, final String key, final HashMap<String, ByteIterator> result)
-    {
+    public int readAll(final String table, final String key, final Map<String, ByteIterator> result) {
         return operation(new DBOperation() {
             @Override
             public String name() {
@@ -128,17 +127,16 @@ public class DBWrapper extends DB {
     }
 
     /**
-     * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
+     * Read a record from the database. Each field/value pair from the result will be stored in a Map.
      *
      * @param table The name of the table
      * @param key The record key of the record to read.
      * @param field The field to read
-     * @param result A HashMap of field/value pairs for the result
+     * @param result A Map of field/value pairs for the result
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int readOne(final String table, final String key, final String field, final HashMap<String, ByteIterator> result)
-    {
+    public int readOne(final String table, final String key, final String field, final Map<String, ByteIterator> result) {
         return operation(new DBOperation() {
             @Override
             public String name() {
@@ -158,16 +156,15 @@ public class DBWrapper extends DB {
     }
 
     /**
-     * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a HashMap.
+     * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a Map.
      *
      * @param table The name of the table
      * @param startkey The record key of the first record to read.
      * @param recordcount The number of records to read
-     * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
+     * @param result A List of Maps, where each Map is a set field/value pairs for one record
      * @return Zero on success, a non-zero error code on error
      */
-    public int scanAll(String table, String startkey, int recordcount, Vector<HashMap<String, ByteIterator>> result)
-    {
+    public int scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
         long st = System.nanoTime();
         int res = _db.scanAll(table, startkey, recordcount, result);
         long en = System.nanoTime();
@@ -177,17 +174,17 @@ public class DBWrapper extends DB {
     }
 
     /**
-     * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a HashMap.
+     * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a Map.
+     *
      *
      * @param table       The name of the table
      * @param startkey    The record key of the first record to read.
      * @param recordcount The number of records to read
      * @param field       The field to read
-     * @param result      A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
+     * @param result      A List of Maps, where each Map is a set field/value pairs for one record
      * @return Zero on success, a non-zero error code on error
      */
-    public int scanOne(String table, String startkey, int recordcount, String field, Vector<HashMap<String, ByteIterator>> result)
-    {
+    public int scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result) {
         long st = System.nanoTime();
         int res = _db.scanOne(table, startkey, recordcount, field, result);
         long en = System.nanoTime();
@@ -197,7 +194,7 @@ public class DBWrapper extends DB {
     }
 
     /**
-     * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
+     * Update a record in the database. Any field/value pairs in the specified values Map will be written into the record with the specified
      * record key, overwriting any existing values with the same field name.
      *
      * @param table  The name of the table
@@ -225,15 +222,15 @@ public class DBWrapper extends DB {
     }
 
     /**
-     * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
+     * Update a record in the database. Any field/value pairs in the specified values Map will be written into the record with the specified
      * record key, overwriting any existing values with the same field name.
      *
      * @param table  The name of the table
      * @param key    The record key of the record to write.
-     * @param values A HashMap of field/value pairs to update in the record
+     * @param values A Map of field/value pairs to update in the record
      * @return Zero on success, a non-zero error code on error.
      */
-    public int updateAll(final String table, final String key, final HashMap<String,ByteIterator> values) {
+    public int updateAll(final String table, final String key, final Map<String,ByteIterator> values) {
         return operation(new DBOperation() {
             @Override
             public String name() {
@@ -253,15 +250,16 @@ public class DBWrapper extends DB {
     }
 
     /**
-     * Insert a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
+     * Insert a record in the database. Any field/value pairs in the specified values Map will be written into the record with the specified
      * record key.
+     *
      *
      * @param table  The name of the table
      * @param key    The record key of the record to insert.
-     * @param values A HashMap of field/value pairs to insert in the record
+     * @param values A Map of field/value pairs to insert in the record
      * @return Zero on success, a non-zero error code on error
      */
-    public int insert(final String table, final String key, final HashMap<String, ByteIterator> values) {
+    public int insert(final String table, final String key, final Map<String, ByteIterator> values) {
         return operation(new DBOperation() {
             @Override
             public String name() {

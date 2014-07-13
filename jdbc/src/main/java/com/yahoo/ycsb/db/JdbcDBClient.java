@@ -315,7 +315,7 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
 
 	@Override
 	public int read(String tableName, String key, Set<String> fields,
-			HashMap<String, ByteIterator> result) {
+			Map<String, ByteIterator> result) {
 	  if (tableName == null) {
       return -1;
     }
@@ -350,7 +350,7 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
 
 	@Override
 	public int scan(String tableName, String startKey, int recordcount,
-			Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+			Set<String> fields, List<Map<String, ByteIterator>> result) {
 	  if (tableName == null) {
       return -1;
     }
@@ -384,7 +384,7 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
 	}
 
 	@Override
-	public int update(String tableName, String key, HashMap<String, ByteIterator> values) {
+	public int update(String tableName, String key, Map<String, ByteIterator> values) {
 	  if (tableName == null) {
       return -1;
     }
@@ -413,7 +413,7 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
 	}
 
 	@Override
-	public int insert(String tableName, String key, HashMap<String, ByteIterator> values) {
+	public int insert(String tableName, String key, Map<String, ByteIterator> values) {
 	  if (tableName == null) {
 	    return -1;
 	  }

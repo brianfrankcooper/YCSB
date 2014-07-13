@@ -185,16 +185,16 @@ public class CassandraClient10 extends DB
 
     /**
      * Read a record from the database. Each field/value pair from the result will
-     * be stored in a HashMap.
+     * be stored in a Map.
+     *
      *
      * @param table  The name of the table
      * @param key    The record key of the record to read.
-     * @param result A HashMap of field/value pairs for the result
+     * @param result A Map of field/value pairs for the result
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int readAll(String table, String key, HashMap<String, ByteIterator> result)
-    {
+    public int readAll(String table, String key, Map<String, ByteIterator> result) {
         SliceRange range = new SliceRange(emptyByteBuffer, emptyByteBuffer, false, 1000000);
         SlicePredicate predicate = new SlicePredicate().setSlice_range(range);
 
@@ -202,17 +202,16 @@ public class CassandraClient10 extends DB
     }
 
     /**
-     * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
+     * Read a record from the database. Each field/value pair from the result will be stored in a Map.
      *
      * @param table The name of the table
      * @param key The record key of the record to read.
      * @param field The field to read
-     * @param result A HashMap of field/value pairs for the result
+     * @param result A Map of field/value pairs for the result
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int readOne(String table, String key, String field, HashMap<String, ByteIterator> result)
-    {
+    public int readOne(String table, String key, String field, Map<String, ByteIterator> result) {
         try
         {
             ByteBuffer fieldBuffer = ByteBuffer.wrap(field.getBytes("UTF-8"));
@@ -229,8 +228,7 @@ public class CassandraClient10 extends DB
         return Error;
     }
 
-    private int read(String table, String key, HashMap<String, ByteIterator> result, SlicePredicate predicate)
-    {
+    private int read(String table, String key, Map<String, ByteIterator> result, SlicePredicate predicate) {
         if (!_table.equals(table))
         {
             try
@@ -302,16 +300,17 @@ public class CassandraClient10 extends DB
 
     /**
      * Perform a range scan for a set of records in the database. Each field/value
-     * pair from the result will be stored in a HashMap.
+     * pair from the result will be stored in a Map.
+     *
      *
      * @param table       The name of the table
      * @param startkey    The record key of the first record to read.
      * @param recordcount The number of records to read
-     * @param result      A Vector of HashMaps, where each HashMap is a set field/value
+     * @param result      A List of Maps, where each Map is a set field/value
      *                    pairs for one record
      * @return Zero on success, a non-zero error code on error
      */
-    public int scanAll(String table, String startkey, int recordcount, Vector<HashMap<String, ByteIterator>> result)
+    public int scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result)
     {
         SlicePredicate predicate = new SlicePredicate().setSlice_range(new SliceRange(emptyByteBuffer, emptyByteBuffer, false, 1000000));
         return scan(table, startkey, recordcount, result, predicate);
@@ -319,17 +318,17 @@ public class CassandraClient10 extends DB
 
     /**
      * Perform a range scan for a set of records in the database. Each field/value
-     * pair from the result will be stored in a HashMap.
+     * pair from the result will be stored in a Map.
      *
      * @param table       The name of the table
      * @param startkey    The record key of the first record to read.
      * @param recordcount The number of records to read
      * @param field       The field to read
-     * @param result      A Vector of HashMaps, where each HashMap is a set field/value pairs
+     * @param result      A List of Maps, where each Map is a set field/value pairs
      *                    for one record
      * @return Zero on success, a non-zero error code on error
      */
-    public int scanOne(String table, String startkey, int recordcount, String field, Vector<HashMap<String, ByteIterator>> result)
+    public int scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result)
     {
         try
         {
@@ -346,8 +345,7 @@ public class CassandraClient10 extends DB
     }
 
     public int scan(String table, String startkey, int recordcount,
-                    Vector<HashMap<String, ByteIterator>> result, SlicePredicate predicate)
-    {
+                    List<Map<String, ByteIterator>> result, SlicePredicate predicate) {
         if (!_table.equals(table))
         {
             try
@@ -376,7 +374,7 @@ public class CassandraClient10 extends DB
                     System.out.println("Scanning startkey: " + startkey);
                 }
 
-                HashMap<String, ByteIterator> tuple;
+                Map<String, ByteIterator> tuple;
                 for (KeySlice oneresult : results)
                 {
                     tuple = new HashMap<String, ByteIterator>();
@@ -426,8 +424,9 @@ public class CassandraClient10 extends DB
 
     /**
      * Update a record in the database. Any field/value pairs in the specified
-     * values HashMap will be written into the record with the specified record
+     * values Map will be written into the record with the specified record
      * key, overwriting any existing values with the same field name.
+     *
      *
      * @param table  The name of the table
      * @param key    The record key of the record to write.
@@ -444,36 +443,35 @@ public class CassandraClient10 extends DB
     }
 
     /**
-     * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
+     * Update a record in the database. Any field/value pairs in the specified values Map will be written into the record with the specified
      * record key, overwriting any existing values with the same field name.
      *
      * @param table The name of the table
      * @param key The record key of the record to write.
-     * @param values A HashMap of field/value pairs to update in the record
+     * @param values A Map of field/value pairs to update in the record
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int updateAll(String table, String key, HashMap<String,ByteIterator> values)
-    {
+    public int updateAll(String table, String key, Map<String,ByteIterator> values) {
         return insert(table, key, values);
     }
 
-    public int update(String table, String key, HashMap<String, ByteIterator> values)
-    {
+    public int update(String table, String key, Map<String, ByteIterator> values) {
         return insert(table, key, values);
     }
 
     /**
      * Insert a record in the database. Any field/value pairs in the specified
-     * values HashMap will be written into the record with the specified record
+     * values Map will be written into the record with the specified record
      * key.
+     *
      *
      * @param table  The name of the table
      * @param key    The record key of the record to insert.
-     * @param values A HashMap of field/value pairs to insert in the record
+     * @param values A Map of field/value pairs to insert in the record
      * @return Zero on success, a non-zero error code on error
      */
-    public int insert(String table, String key, HashMap<String, ByteIterator> values)
+    public int insert(String table, String key, Map<String, ByteIterator> values)
     {
         if (!_table.equals(table))
         {

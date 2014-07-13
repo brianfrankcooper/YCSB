@@ -49,16 +49,10 @@
     <cassandra.version>2.0.7</cassandra.version>
     <cassandra.cql.version>2.0.3</cassandra.cql.version>
     <accumulo.version>1.6.0</accumulo.version>
-    <infinispan.version>7.1.0.CR1</infinispan.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
-    <mapkeeper.version>1.0</mapkeeper.version>
     <mongodb.version>2.11.2</mongodb.version>
-    <orientdb.version>1.0.1</orientdb.version>
-    <redis.version>2.0.0</redis.version>
-    <voldemort.version>0.81</voldemort.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <thrift.version>0.8.0</thrift.version>
-    <hypertable.version>0.9.5.6</hypertable.version>
   </properties>
 
   <modules>
@@ -66,25 +60,13 @@
     <!-- <module>aerospike</module> -->
     <module>cassandra</module>
     <module>core</module>
-    <!-- WIP: default clients will be added in post method signature change -->
-    <!--<module>couchbase-1.8</module>-->
-    <!--<module>couchbase-2.0</module>   &lt;!&ndash;couchbase-2.0 conflicts with couchbase-1.8, use one of them&ndash;&gt;-->
+    <!--<module>couchbase-2.0</module>-->
     <!--<module>hbase</module>-->
-    <!--<module>hypertable</module>-->
     <!--<module>accumulo</module>-->
     <!--<module>dynamodb</module>-->
-    <!--<module>elasticsearch</module>-->
-    <!--<module>gemfire</module>-->
-    <!--<module>infinispan</module>-->
     <!--<module>jdbc</module>-->
-    <!--<module>mapkeeper</module>-->
-    <!--<module>membase</module>-->
     <!--<module>memcached</module>-->
     <!--<module>mongodb</module>-->
-    <!--<module>orientdb</module>-->
-    <!--module>nosqldb</module-->
-    <!--<module>redis</module>-->
-    <!--<module>voldemort</module>-->
     <module>distribution</module>
   </modules>
 

@@ -17,11 +17,7 @@
 
 package com.yahoo.ycsb;
 
-import java.util.HashMap;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Enumeration;
-import java.util.Vector;
+import java.util.*;
 
 
 /**
@@ -87,15 +83,14 @@ public class BasicDB extends DB
 	}
 
 	/**
-	 * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
+	 * Read a record from the database. Each field/value pair from the result will be stored in a Map.
 	 *
 	 * @param table The name of the table
 	 * @param key The record key of the record to read.
-	 * @param result A HashMap of field/value pairs for the result
+	 * @param result A Map of field/value pairs for the result
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int readAll(String table, String key, HashMap<String,ByteIterator> result)
-	{
+	public int readAll(String table, String key, Map<String,ByteIterator> result) {
         delay();
 
         if (verbose)
@@ -109,15 +104,15 @@ public class BasicDB extends DB
     }
 
     /**
-     * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
+     * Read a record from the database. Each field/value pair from the result will be stored in a Map.
      *
      * @param table The name of the table
      * @param key The record key of the record to read.
      * @param field The field to read
-     * @param result A HashMap of field/value pairs for the result
+     * @param result A Map of field/value pairs for the result
      * @return Zero on success, a non-zero error code on error
      */
-    public int readOne(String table, String key, String field, HashMap<String,ByteIterator> result)
+    public int readOne(String table, String key, String field, Map<String,ByteIterator> result)
     {
         delay();
 
@@ -136,10 +131,10 @@ public class BasicDB extends DB
 	 * @param table The name of the table
 	 * @param startkey The record key of the first record to read.
 	 * @param recordcount The number of records to read
-	 * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
+	 * @param result A List of Maps, where each Map is a set field/value pairs for one record
 	 * @return Zero on success, a non-zero error code on error
 	 */
-    public int scanAll(String table, String startkey, int recordcount, Vector<HashMap<String, ByteIterator>> result)
+    public int scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result)
     {
         delay();
 
@@ -160,10 +155,10 @@ public class BasicDB extends DB
      * @param startkey The record key of the first record to read.
      * @param recordcount The number of records to read
      * @param field The field to read
-     * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
+     * @param result A List of Maps, where each Map is a set field/value pairs for one record
      * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
      */
-    public int scanOne(String table, String startkey, int recordcount, String field, Vector<HashMap<String, ByteIterator>> result)
+    public int scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result)
     {
         delay();
 
@@ -177,8 +172,7 @@ public class BasicDB extends DB
         return 0;
     }
 
-	public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
-	{
+	public int scan(String table, String startkey, int recordcount, Set<String> fields, List<Map<String,ByteIterator>> result) {
 		delay();
 
 		if (verbose)
@@ -203,7 +197,7 @@ public class BasicDB extends DB
 	}
 
     /**
-     * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
+     * Update a record in the database. Any field/value pairs in the specified values Map will be written into the record with the specified
      * record key, overwriting any existing values with the same field name.
      *
      * @param table The name of the table
@@ -214,28 +208,27 @@ public class BasicDB extends DB
     @Override
     public int updateOne(String table, String key, String field, ByteIterator value)
     {
-        HashMap<String, ByteIterator> values = new HashMap<String, ByteIterator>(1);
+        Map<String, ByteIterator> values = new HashMap<String, ByteIterator>(1);
         values.put(field, value);
         return update(table, key, values);
     }
 
     /**
-     * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
+     * Update a record in the database. Any field/value pairs in the specified values Map will be written into the record with the specified
      * record key, overwriting any existing values with the same field name.
      *
      * @param table The name of the table
      * @param key The record key of the record to write.
-     * @param values A HashMap of field/value pairs to update in the record
+     * @param values A Map of field/value pairs to update in the record
      * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
      */
     @Override
-    public int updateAll(String table, String key, HashMap<String,ByteIterator> values)
+    public int updateAll(String table, String key, Map<String,ByteIterator> values)
     {
         return update(table, key, values);
     }
 
-	private int update(String table, String key, HashMap<String,ByteIterator> values)
-	{
+	private int update(String table, String key, Map<String,ByteIterator> values) {
 		delay();
 
 		if (verbose)
@@ -255,15 +248,16 @@ public class BasicDB extends DB
 	}
 
 	/**
-	 * Insert a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
+	 * Insert a record in the database. Any field/value pairs in the specified values Map will be written into the record with the specified
 	 * record key.
 	 *
-	 * @param table The name of the table
-	 * @param key The record key of the record to insert.
-	 * @param values A HashMap of field/value pairs to insert in the record
-	 * @return Zero on success, a non-zero error code on error
+	 *
+     * @param table The name of the table
+     * @param key The record key of the record to insert.
+     * @param values A Map of field/value pairs to insert in the record
+     * @return Zero on success, a non-zero error code on error
 	 */
-	public int insert(String table, String key, HashMap<String,ByteIterator> values)
+	public int insert(String table, String key, Map<String, ByteIterator> values)
 	{
 		delay();
 

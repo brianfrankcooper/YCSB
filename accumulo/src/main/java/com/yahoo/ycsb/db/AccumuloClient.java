@@ -3,12 +3,12 @@ package com.yahoo.ycsb.db;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.Vector;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -172,7 +172,7 @@ public class AccumuloClient extends DB {
 
 	@Override
 	public int read(String table, String key, Set<String> fields,
-			HashMap<String, ByteIterator> result) {
+			Map<String, ByteIterator> result) {
 
 		try {
 			checkTable(table);
@@ -199,7 +199,7 @@ public class AccumuloClient extends DB {
 
 	@Override
 	public int scan(String table, String startkey, int recordcount,
-			Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+			Set<String> fields, List<Map<String, ByteIterator>> result) {
 		try {
 			checkTable(table);
 		} catch (TableNotFoundException e) {
@@ -262,7 +262,7 @@ public class AccumuloClient extends DB {
 	}
 
 	@Override
-	public int update(String table, String key, HashMap<String, ByteIterator> values) {
+	public int update(String table, String key, Map<String, ByteIterator> values) {
 		try {
 			checkTable(table);
 		} catch (TableNotFoundException e) {
@@ -296,7 +296,7 @@ public class AccumuloClient extends DB {
 	}
 
 	@Override
-	public int insert(String table, String key, HashMap<String, ByteIterator> values) {
+	public int insert(String table, String key, Map<String, ByteIterator> values) {
 		return update(table, key, values);
 	}
 

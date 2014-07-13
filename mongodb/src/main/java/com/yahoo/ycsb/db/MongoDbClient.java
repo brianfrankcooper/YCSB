@@ -12,10 +12,10 @@ package com.yahoo.ycsb.db;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Map;
-import java.util.Vector;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBAddress;
@@ -225,7 +225,7 @@ public class MongoDbClient extends DB {
      * @param values A HashMap of field/value pairs to insert in the record
      * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
      */
-    public int insert(String table, String key, HashMap<String, ByteIterator> values) {
+    public int insert(String table, String key, Map<String, ByteIterator> values) {
         com.mongodb.DB db = null;
         try {
             db = mongo.getDB(database);
@@ -268,7 +268,7 @@ public class MongoDbClient extends DB {
      * @return Zero on success, a non-zero error code on error or "not found".
      */
     public int read(String table, String key, Set<String> fields,
-            HashMap<String, ByteIterator> result) {
+            Map<String, ByteIterator> result) {
         com.mongodb.DB db = null;
         try {
             db = mongo.getDB(database);
@@ -317,7 +317,7 @@ public class MongoDbClient extends DB {
      * @param values A HashMap of field/value pairs to update in the record
      * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
      */
-    public int update(String table, String key, HashMap<String, ByteIterator> values) {
+    public int update(String table, String key, Map<String, ByteIterator> values) {
         com.mongodb.DB db = null;
         try {
             db = mongo.getDB(database);
@@ -366,7 +366,7 @@ public class MongoDbClient extends DB {
      * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
      */
     public int scan(String table, String startkey, int recordcount,
-            Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+            Set<String> fields, List<Map<String, ByteIterator>> result) {
         com.mongodb.DB db=null;
         try {
             db = mongo.getDB(database);

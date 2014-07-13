@@ -17,6 +17,8 @@
 
 package com.yahoo.ycsb;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -304,7 +306,7 @@ public class CommandLine
 	       else 
 	       {
 		  String field=tokens.length==4?tokens[3]:null;
-		  Vector<HashMap<String,ByteIterator>> results=new Vector<HashMap<String,ByteIterator>>();
+		  List<Map<String,ByteIterator>> results=new ArrayList<Map<String, ByteIterator>>();
 		  int ret;
 		  if (field == null)
 		   ret=db.scanAll(table,tokens[1],Integer.parseInt(tokens[2]),results);
@@ -320,7 +322,7 @@ public class CommandLine
 		  {
 		     System.out.println("--------------------------------");
 		  }
-		  for (HashMap<String,ByteIterator> result : results)
+		  for (Map<String,ByteIterator> result : results)
 		  {
 		     System.out.println("Record "+(record++));
 		     for (Map.Entry<String,ByteIterator> ent : result.entrySet())
