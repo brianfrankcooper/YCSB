@@ -28,16 +28,16 @@ import java.util.Vector;
 
 /**
  * OrientDB client for YCSB framework.
- *
+ * 
  * Properties to set:
- *
+ * 
  * orientdb.url=local:C:/temp/databases or remote:localhost:2424 <br>
  * orientdb.database=ycsb <br>
  * orientdb.user=admin <br>
  * orientdb.password=admin <br>
- *
+ * 
  * @author Luca Garulli
- *
+ * 
  */
 public class OrientDBClient extends DB {
 
@@ -52,7 +52,12 @@ public class OrientDBClient extends DB {
     // initialize OrientDB driver
     Properties props = getProperties();
 
-    String url = props.getProperty("orientdb.url", "plocal:C:/temp/databases/ycsb");
+    String url;
+    if (System.getProperty("os.name").toLowerCase().contains("win"))
+      url = props.getProperty("orientdb.url", "plocal:C:/temp/databases/ycsb");
+    else
+      url = props.getProperty("orientdb.url", "plocal:/temp/databases/ycsb");
+
     String user = props.getProperty("orientdb.user", "admin");
     String password = props.getProperty("orientdb.password", "admin");
     Boolean newdb = Boolean.parseBoolean(props.getProperty("orientdb.newdb", "false"));
