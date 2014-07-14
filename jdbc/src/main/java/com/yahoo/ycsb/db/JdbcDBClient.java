@@ -314,6 +314,17 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
   }
 
 	@Override
+	public int readOne(String table, String key, String field, Map<String,ByteIterator> result) {
+
+	  return read(table, key, Collections.singleton(field), result);
+	}
+
+	@Override
+	public int readAll(String table, String key, Map<String,ByteIterator> result) {
+
+	  return read(table, key, null, result);
+	}
+
 	public int read(String tableName, String key, Set<String> fields,
 			Map<String, ByteIterator> result) {
 	  if (tableName == null) {
@@ -349,14 +360,22 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
 	}
 
 	@Override
+	public int scanOne(String table, String startkey, int recordcount, String field,
+                       List<Map<String, ByteIterator>> result) {
+	  return scan(table, startkey, recordcount, Collections.singleton(field), result);
+	}
+
+	@Override
+	public int scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
+
+	  return scan(table, startkey, recordcount, null, result);
+	}
+
 	public int scan(String tableName, String startKey, int recordcount,
 			Set<String> fields, List<Map<String, ByteIterator>> result) {
-	  if (tableName == null) {
+    if (tableName == null || startKey == null)
       return -1;
-    }
-    if (startKey == null) {
-      return -1;
-    }
+
     try {
       StatementType type = new StatementType(StatementType.Type.SCAN, tableName, 1, getShardIndexByKey(startKey));
       PreparedStatement scanStatement = cachedStatements.get(type);
@@ -384,13 +403,22 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
 	}
 
 	@Override
+	public int updateOne(String table, String key, String field, ByteIterator value){
+
+	  return update(table, key, Collections.singletonMap(field, value));
+
+	}
+
+	@Override
+	public int updateAll(String table, String key, Map<String,ByteIterator> values) {
+
+	  return update(table, key, values);
+	}
+
 	public int update(String tableName, String key, Map<String, ByteIterator> values) {
-	  if (tableName == null) {
+	  if (tableName == null || key == null)
       return -1;
-    }
-    if (key == null) {
-      return -1;
-    }
+
     try {
       int numFields = values.size();
       StatementType type = new StatementType(StatementType.Type.UPDATE, tableName, numFields, getShardIndexByKey(key));
