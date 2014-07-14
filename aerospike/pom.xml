@@ -16,7 +16,7 @@
      <dependency>
        <groupId>com.aerospike</groupId>
        <artifactId>aerospike-client</artifactId>
-       <version>2.1.9</version>
+       <version>3.0.23</version>
      </dependency>
 
      <dependency>
