@@ -108,16 +108,41 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     }
 
     /**
-     * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
-     *
+     * Read a record from the database. Each field/value pair from the result will be stored in a Map.
      *
      * @param table The name of the table
      * @param key The record key of the record to read.
-     * @param fields The list of fields to read, or null for all of them
-     * @param result A HashMap of field/value pairs for the result
-     * @return Zero on success, a non-zero error code on error
+     * @param field The field to read
+     * @param result A Map of field/value pairs for the result
+     * @return Zero on success, a non-zero error code on error or "not found".
      */
-    public int read(String table, String key, Set<String> fields, Map<String, ByteIterator> result)
+    @Override
+    public int readOne(String table, String key, String field, Map<String,ByteIterator> result)
+    {
+        Get g = new Get(Bytes.toBytes(key));
+        g.addColumn(_columnFamilyBytes, Bytes.toBytes(field));
+
+        return read(table, key, result, g);
+    }
+
+    /**
+     * Read a record from the database. Each field/value pair from the result will be stored in a Map.
+     *
+     * @param table The name of the table
+     * @param key The record key of the record to read.
+     * @param result A Map of field/value pairs for the result
+     * @return Zero on success, a non-zero error code on error or "not found".
+     */
+    @Override
+    public int readAll(String table, String key, Map<String,ByteIterator> result)
+    {
+        Get g = new Get(Bytes.toBytes(key));
+        g.addFamily(_columnFamilyBytes);
+
+        return read(table, key, result, g);
+    }
+
+    public int read(String table, String key, Map<String, ByteIterator> result, Get g)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
         if (!_table.equals(table)) {
@@ -141,14 +166,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         System.out.println("Doing read from HBase columnfamily "+_columnFamily);
         System.out.println("Doing read for key: "+key);
         }
-            Get g = new Get(Bytes.toBytes(key));
-          if (fields == null) {
-            g.addFamily(_columnFamilyBytes);
-          } else {
-            for (String field : fields) {
-              g.addColumn(_columnFamilyBytes, Bytes.toBytes(field));
-            }
-          }
             r = _hTable.get(g);
         }
         catch (IOException e)
@@ -176,17 +193,48 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     }
 
     /**
-     * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a HashMap.
-     *
+     * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a Map.
      *
      * @param table The name of the table
      * @param startkey The record key of the first record to read.
      * @param recordcount The number of records to read
-     * @param fields The list of fields to read, or null for all of them
-     * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
-     * @return Zero on success, a non-zero error code on error
+     * @param result A List of Maps, where each Map is a set field/value pairs for one record
+     * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
      */
-    public int scan(String table, String startkey, int recordcount, Set<String> fields, List<Map<String, ByteIterator>> result)
+    @Override
+    public int scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result)
+    {
+        Scan s = new Scan(Bytes.toBytes(startkey));
+        //HBase has no record limit.  Here, assume recordcount is small enough to bring back in one call.
+        //We get back recordcount records
+        s.setCaching(recordcount);
+        s.addFamily(_columnFamilyBytes);
+
+        return scan(table, recordcount, result, s);
+    }
+
+    /**
+     * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a Map.
+     *
+     * @param table The name of the table
+     * @param startkey The record key of the first record to read.
+     * @param recordcount The number of records to read
+     * @param field The field to read
+     * @param result A List of Maps, where each Map is a set field/value pairs for one record
+     * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
+     */
+    @Override
+    public int scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result)
+    {
+        Scan s = new Scan(Bytes.toBytes(startkey));
+        s.setCaching(recordcount);
+        s.addFamily(_columnFamilyBytes);
+        s.addColumn(_columnFamilyBytes,Bytes.toBytes(field));
+
+        return scan(table, recordcount, result, s);
+    }
+
+    public int scan(String table, int recordcount, List<Map<String, ByteIterator>> result, Scan s)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
         if (!_table.equals(table)) {
@@ -200,24 +248,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             {
                 System.err.println("Error accessing HBase table: "+e);
                 return ServerError;
-            }
-        }
-
-        Scan s = new Scan(Bytes.toBytes(startkey));
-        //HBase has no record limit.  Here, assume recordcount is small enough to bring back in one call.
-        //We get back recordcount records
-        s.setCaching(recordcount);
-
-        //add specified fields or else all fields
-        if (fields == null)
-        {
-            s.addFamily(_columnFamilyBytes);
-        }
-        else
-        {
-            for (String field : fields)
-            {
-                s.addColumn(_columnFamilyBytes,Bytes.toBytes(field));
             }
         }
 
@@ -269,16 +299,50 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     }
 
     /**
-     * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
+     * Update a record in the database. Any field/value pairs in the specified values Map will be written into the record with the specified
      * record key, overwriting any existing values with the same field name.
      *
+     * @param table The name of the table
+     * @param key The record key of the record to write.
+     * @param value The value to update in the key record
+     * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
+     */
+    public int updateOne(String table, String key, String field, ByteIterator value)
+    {
+        Put p = new Put(Bytes.toBytes(key));
+        if (_debug) {
+            System.out.println("Adding field/value " + field + "/"+ value + " to put request");
+        }
+        p.add(_columnFamilyBytes,Bytes.toBytes(field),value.toArray());
+
+        return update(table, key, p);
+    }
+
+    /**
+     * Update a record in the database. Any field/value pairs in the specified values Map will be written into the record with the specified
+     * record key, overwriting any existing values with the same field name.
      *
      * @param table The name of the table
-     * @param key The record key of the record to write
-     * @param values A HashMap of field/value pairs to update in the record
-     * @return Zero on success, a non-zero error code on error
+     * @param key The record key of the record to write.
+     * @param values A Map of field/value pairs to update in the record
+     * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
      */
-    public int update(String table, String key, Map<String, ByteIterator> values)
+    public int updateAll(String table, String key, Map<String,ByteIterator> values)
+    {
+        Put p = new Put(Bytes.toBytes(key));
+        for (Map.Entry<String, ByteIterator> entry : values.entrySet())
+        {
+            if (_debug) {
+                System.out.println("Adding field/value " + entry.getKey() + "/"+
+                        entry.getValue() + " to put request");
+            }
+            p.add(_columnFamilyBytes,Bytes.toBytes(entry.getKey()),entry.getValue().toArray());
+        }
+
+        return update(table, key, p);
+    }
+
+    public int update(String table, String key, Put p)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
         if (!_table.equals(table)) {
@@ -298,15 +362,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 
         if (_debug) {
             System.out.println("Setting up put for key: "+key);
-        }
-        Put p = new Put(Bytes.toBytes(key));
-        for (Map.Entry<String, ByteIterator> entry : values.entrySet())
-        {
-            if (_debug) {
-                System.out.println("Adding field/value " + entry.getKey() + "/"+
-                  entry.getValue() + " to put request");
-            }
-            p.add(_columnFamilyBytes,Bytes.toBytes(entry.getKey()),entry.getValue().toArray());
         }
 
         try
@@ -339,9 +394,10 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      * @param values A HashMap of field/value pairs to insert in the record
      * @return Zero on success, a non-zero error code on error
      */
+    @Override
     public int insert(String table, String key, Map<String, ByteIterator> values)
     {
-        return update(table,key,values);
+        return updateAll(table,key,values);
     }
 
     /**
@@ -351,6 +407,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      * @param key The record key of the record to delete.
      * @return Zero on success, a non-zero error code on error
      */
+    @Override
     public int delete(String table, String key)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
