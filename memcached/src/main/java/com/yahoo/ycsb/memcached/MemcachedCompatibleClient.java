@@ -67,6 +67,16 @@ public abstract class MemcachedCompatibleClient extends DB {
     protected abstract MemcachedClient createMemcachedClient() throws Exception;
 
     @Override
+    public int readOne(String table, String key, String field, Map<String,ByteIterator> result) {
+
+        return read(table, key, Collections.singleton(field), result);
+    }
+
+    @Override
+    public int readAll(String table, String key, Map<String,ByteIterator> result) {
+        return read(table, key, null, result);
+    }
+
     public int read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
         try {
             GetFuture<Object> future = client.asyncGet(createQualifiedKey(table, key));
@@ -84,12 +94,28 @@ public abstract class MemcachedCompatibleClient extends DB {
     }
 
     @Override
-    public int scan(String table, String startKey, int limit, Set<String> fields, List<Map<String, ByteIterator>> result) {
+    public int scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
         throw new IllegalStateException("Range scan is not supported");
     }
 
     @Override
-    public int update(String table, String key, Map<String, ByteIterator> values) {
+    public int scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result) {
+        throw new IllegalStateException("Range scan is not supported");
+    }
+
+    @Override
+    public int updateOne(String table, String key, String field, ByteIterator value) {
+
+        return update(table, key, Collections.singletonMap(field, value));
+    }
+
+    @Override
+    public int updateAll(String table, String key, Map<String,ByteIterator> values) {
+
+        return update(table, key, values);
+    }
+
+    public int update(String table, String key, Map<String,ByteIterator> values) {
         key = createQualifiedKey(table, key);
         try {
             OperationFuture<Boolean> future = client.replace(key, objectExpirationTime, toJson(values));
