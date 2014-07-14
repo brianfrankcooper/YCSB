@@ -60,7 +60,7 @@
     <!-- <module>aerospike</module> -->
     <module>cassandra</module>
     <module>core</module>
-    <!--<module>couchbase-2.0</module>-->
+    <module>couchbase-2.0</module>
     <!--<module>hbase</module>-->
     <!--<module>accumulo</module>-->
     <module>dynamodb</module>
