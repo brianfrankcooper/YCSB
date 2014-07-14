@@ -62,7 +62,7 @@
     <module>core</module>
     <module>couchbase-2.0</module>
     <!--<module>hbase</module>-->
-    <!--<module>accumulo</module>-->
+    <module>accumulo</module>
     <module>dynamodb</module>
     <module>jdbc</module>
     <module>memcached</module>

@@ -171,8 +171,16 @@ public class AccumuloClient extends DB {
 	}
 
 	@Override
-	public int read(String table, String key, Set<String> fields,
-			Map<String, ByteIterator> result) {
+	public int readOne(String table, String key, String field, Map<String,ByteIterator> result) {
+		return read(table, key, result);
+	}
+
+	@Override
+	public int readAll(String table, String key, Map<String,ByteIterator> result) {
+		return read(table, key, result);
+	}
+
+	public int read(String table, String key, Map<String, ByteIterator> result) {
 
 		try {
 			checkTable(table);
@@ -198,8 +206,26 @@ public class AccumuloClient extends DB {
 	}
 
 	@Override
+	public int scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result) {
+
+		_scanScanner.clearColumns();
+		_scanScanner.setRange(new Range(new Text(startkey), null));
+		_scanScanner.fetchColumn(_colFam, new Text(field));
+
+		return scan(table, startkey, recordcount, result);
+	}
+
+	@Override
+	public int scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
+
+		_scanScanner.clearColumns();
+		_scanScanner.setRange(new Range(new Text(startkey), null));
+
+		return scan(table, startkey, recordcount, result);
+	}
+
 	public int scan(String table, String startkey, int recordcount,
-			Set<String> fields, List<Map<String, ByteIterator>> result) {
+			List<Map<String, ByteIterator>> result) {
 		try {
 			checkTable(table);
 		} catch (TableNotFoundException e) {
@@ -214,19 +240,11 @@ public class AccumuloClient extends DB {
 		_scanScanner.setRange(new Range(new Text(startkey), null));
 
 		// Batch size is how many key/values to try to get per call. Here, I'm
-		// guessing that the number of keys in a row is equal to the number of fields 
+		// guessing that the number of keys in a row is equal to the number of fields
 		// we're interested in.
-		// We try to fetch one more so as to tell when we've run out of fields.
+		// We try to fetch one or more using either ScanOne or scanAll respectively so
+		// as to tell when we've run out of fields.
 
-		if (fields != null) {
-			// And add each of them as fields we want.
-			for(String field:fields)
-			{
-				_scanScanner.fetchColumn(_colFam, new Text(field));
-			}
-		} else {
-			// If no fields are provided, we assume one column/row.
-		}
 
 		String rowKey = "";
 		HashMap<String, ByteIterator> currentHM = null;
@@ -240,15 +258,8 @@ public class AccumuloClient extends DB {
 					break;
 				}
 				rowKey = entry.getKey().getRow().toString();
-				if (fields != null) {
-					// Initial Capacity for all keys.
-					currentHM = new HashMap<String, ByteIterator>(fields.size()); 
-				}
-				else
-				{
-					// An empty result map.
-					currentHM = new HashMap<String, ByteIterator>();
-				}
+                currentHM = new HashMap<String, ByteIterator>();
+
 				result.add(currentHM);
 			}
 			// Now add the key to the hashmap.
@@ -262,19 +273,34 @@ public class AccumuloClient extends DB {
 	}
 
 	@Override
-	public int update(String table, String key, Map<String, ByteIterator> values) {
-		try {
-			checkTable(table);
-		} catch (TableNotFoundException e) {
-			System.err.println("Error trying to connect to Accumulo table." + e);
-			return ServerError;
-		}
+	public int updateOne(String table, String key, String field, ByteIterator value) {
+
+		Mutation mutInsert = new Mutation(new Text(key));
+		mutInsert.put(_colFam, new Text(field), System.currentTimeMillis(),
+				new Value(value.toArray()));
+
+		return update(table, key, mutInsert);
+	}
+
+	@Override
+	public int updateAll(String table, String key, Map<String,ByteIterator> values) {
 
 		Mutation mutInsert = new Mutation(new Text(key));
 		for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
 			mutInsert.put(_colFam, new Text(entry.getKey()), System
 					.currentTimeMillis(),
 					new Value(entry.getValue().toArray()));
+		}
+
+		return update(table, key, mutInsert);
+	}
+
+	public int update(String table, String key, /*Map<String, ByteIterator> values*/Mutation mutInsert) {
+		try {
+			checkTable(table);
+		} catch (TableNotFoundException e) {
+			System.err.println("Error trying to connect to Accumulo table." + e);
+			return ServerError;
 		}
 
 		try {
@@ -297,7 +323,7 @@ public class AccumuloClient extends DB {
 
 	@Override
 	public int insert(String table, String key, Map<String, ByteIterator> values) {
-		return update(table, key, values);
+		return updateAll(table, key, values);
 	}
 
 	@Override
@@ -381,7 +407,7 @@ public class AccumuloClient extends DB {
 						fields.add("field"+j);
 					HashMap<String,ByteIterator> result = new HashMap<String,ByteIterator>();
 
-					int retval = read(table, strKey, fields, result);
+					int retval = read(table, strKey, result);
 					//If the results are empty, the key is enqueued in Zookeeper
 					//and tried again, until the results are found.
 					if (result.size() == 0) { 
