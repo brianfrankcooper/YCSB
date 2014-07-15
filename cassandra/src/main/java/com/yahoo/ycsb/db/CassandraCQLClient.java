@@ -55,8 +55,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author cmatser
  */
-public class CassandraCQLClient extends DB {
-
+public class CassandraCQLClient extends DB
+{
     private static Cluster cluster = null;
     private static Session session = null;
 
@@ -79,7 +79,6 @@ public class CassandraCQLClient extends DB {
 
     private static boolean _debug = false;
     private static boolean readallfields;
-    private static boolean writeallfields;
 
     private static PreparedStatement insertStatement = null;
     private static PreparedStatement selectStatement = null;
@@ -93,24 +92,24 @@ public class CassandraCQLClient extends DB {
      * one DB instance per client thread.
      */
     @Override
-    public synchronized void init() throws DBException {
+    public synchronized void init() throws DBException
+    {
         //Check if the cluster has already been initialized
-        if (cluster != null) {
+        if (cluster != null)
             return;
-        }
 
-        try {
-
+        try
+        {
             _debug = Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
 
-            if (getProperties().getProperty("hosts") == null) {
+            if (getProperties().getProperty("hosts") == null)
                 throw new DBException("Required property \"hosts\" missing for CassandraClient");
-            }
+
             String hosts[] = getProperties().getProperty("hosts").split(",");
             String port = getProperties().getProperty("port", "9042");
-            if (port == null) {
+            if (port == null)
                 throw new DBException("Required property \"port\" missing for CassandraClient");
-            }
+
 
             String username = getProperties().getProperty(USERNAME_PROPERTY);
             String password = getProperties().getProperty(PASSWORD_PROPERTY);
@@ -120,16 +119,17 @@ public class CassandraCQLClient extends DB {
             readConsistencyLevel = ConsistencyLevel.valueOf(getProperties().getProperty(READ_CONSISTENCY_LEVEL_PROPERTY, READ_CONSISTENCY_LEVEL_PROPERTY_DEFAULT));
             writeConsistencyLevel = ConsistencyLevel.valueOf(getProperties().getProperty(WRITE_CONSISTENCY_LEVEL_PROPERTY, WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT));
             readallfields = Boolean.parseBoolean(getProperties().getProperty(CoreWorkload.READ_ALL_FIELDS_PROPERTY, CoreWorkload.READ_ALL_FIELDS_PROPERTY_DEFAULT));
-            writeallfields = Boolean.parseBoolean(getProperties().getProperty(CoreWorkload.WRITE_ALL_FIELDS_PROPERTY, CoreWorkload.WRITE_ALL_FIELDS_PROPERTY_DEFAULT));
 
             // public void connect(String node) {}
-            if ((username != null) && !username.isEmpty()) {
+            if ((username != null) && !username.isEmpty())
+            {
                 cluster = Cluster.builder()
                                  .withCredentials(username, password)
                                  .withPort(Integer.valueOf(port))
                                  .addContactPoints(hosts).build();
             }
-            else {
+            else
+            {
                 cluster = Cluster.builder()
                                  .withPort(Integer.valueOf(port))
                                  .addContactPoints(hosts).build();
@@ -147,7 +147,8 @@ public class CassandraCQLClient extends DB {
             Metadata metadata = cluster.getMetadata();
             System.out.printf("Connected to cluster: %s\n", metadata.getClusterName());
 
-            for (Host discoveredHost : metadata.getAllHosts()) {
+            for (Host discoveredHost : metadata.getAllHosts())
+            {
                 System.out.printf("Datacenter: %s; Host: %s; Rack: %s\n",
                                   discoveredHost.getDatacenter(),
                                   discoveredHost.getAddress(),
@@ -158,13 +159,15 @@ public class CassandraCQLClient extends DB {
 
             // build prepared statements.
             buildStatements();
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             throw new DBException(e);
         }
     }
 
-    private void buildStatements() {
-
+    private void buildStatements()
+    {
         Properties p = getProperties();
         int fieldCount = Integer.parseInt(p.getProperty(CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
         String fieldPrefix = p.getProperty(CoreWorkload.FIELD_NAME_PREFIX, CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
@@ -233,8 +236,7 @@ public class CassandraCQLClient extends DB {
      * DB instance per client thread.
      */
     @Override
-    public void cleanup() throws DBException {
-    }
+    public void cleanup() throws DBException {}
 
     /**
      * Read a record from the database. Each field/value pair from the result will
@@ -263,41 +265,42 @@ public class CassandraCQLClient extends DB {
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int readOne(String table, String key, String field, Map<String, ByteIterator> result) {
+    public int readOne(String table, String key, String field, Map<String, ByteIterator> result)
+    {
         BoundStatement bs = selectStatements.get(field).bind(key);
         return read(key, result, bs);
     }
 
-    public int read(String key, Map<String, ByteIterator> result, BoundStatement bs) {
-
-        try {
-
+    public int read(String key, Map<String, ByteIterator> result, BoundStatement bs)
+    {
+        try
+        {
             if (_debug)
                 System.out.println(bs.preparedStatement().getQueryString());
 
             ResultSet rs = session.execute(bs);
 
             //Should be only 1 row
-            if (!rs.isExhausted()) {
+            if (!rs.isExhausted())
+            {
                 Row row = rs.one();
                 ColumnDefinitions cd = row.getColumnDefinitions();
                 
-                for (ColumnDefinitions.Definition def : cd) {
+                for (ColumnDefinitions.Definition def : cd)
+                {
                     ByteBuffer val = row.getBytesUnsafe(def.getName());
-                    if (val != null) {
-                        result.put(def.getName(),
-                            new ByteArrayByteIterator(val.array()));
-                    }
-                    else {
+                    if (val != null)
+                        result.put(def.getName(), new ByteArrayByteIterator(val.array()));
+                    else
                         result.put(def.getName(), null);
-                    }
                 }
 
             }
 
             return OK;
-
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             e.printStackTrace();
             System.out.println("Error reading key: " + key);
             return ERR;
@@ -349,29 +352,34 @@ public class CassandraCQLClient extends DB {
         return scan(startkey, result, bs);
     }
 
-    public int scan(String startkey, List<Map<String, ByteIterator>> result, BoundStatement bs) {
+    public int scan(String startkey, List<Map<String, ByteIterator>> result, BoundStatement bs)
+    {
 
-        try {
-
+        try
+        {
             if (_debug)
                 System.out.println(bs.preparedStatement().getQueryString());
 
             ResultSet rs = session.execute(bs);
 
             HashMap<String, ByteIterator> tuple;
-            while (!rs.isExhausted()) {
+            while (!rs.isExhausted())
+            {
                 Row row = rs.one();
                 tuple = new HashMap<String, ByteIterator> ();
 
                 ColumnDefinitions cd = row.getColumnDefinitions();
                 
-                for (ColumnDefinitions.Definition def : cd) {
+                for (ColumnDefinitions.Definition def : cd)
+                {
                     ByteBuffer val = row.getBytesUnsafe(def.getName());
-                    if (val != null) {
+                    if (val != null)
+                    {
                         tuple.put(def.getName(),
                             new ByteArrayByteIterator(val.array()));
                     }
-                    else {
+                    else
+                    {
                         tuple.put(def.getName(), null);
                     }
                 }
@@ -380,8 +388,9 @@ public class CassandraCQLClient extends DB {
             }
 
             return OK;
-
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             e.printStackTrace();
             System.out.println("Error scanning with startkey: " + startkey);
             return ERR;
@@ -435,8 +444,8 @@ public class CassandraCQLClient extends DB {
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int insert(String table, String key, Map<String, ByteIterator> values) {
-
+    public int insert(String table, String key, Map<String, ByteIterator> values)
+    {
         try {
 
             List<String> vals = new ArrayList<String>(values.size() + 1);
@@ -450,7 +459,9 @@ public class CassandraCQLClient extends DB {
             session.execute(insertStatement.bind(vals.toArray()));
 
             return OK;
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             e.printStackTrace();
         }
 
@@ -465,16 +476,19 @@ public class CassandraCQLClient extends DB {
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int delete(String table, String key) {
-
-        try {
+    public int delete(String table, String key)
+    {
+        try
+        {
             if (_debug)
                 System.out.println(deleteStatement.getQueryString());
 
             session.execute(deleteStatement.bind(key));
 
             return OK;
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             e.printStackTrace();
             System.out.println("Error deleting key: " + key);
         }
