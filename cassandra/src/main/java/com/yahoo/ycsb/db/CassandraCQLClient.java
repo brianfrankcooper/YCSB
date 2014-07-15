@@ -179,9 +179,11 @@ public class CassandraCQLClient extends DB
         for (int i = 0; i < fieldCount; i++)
             is.value(fieldPrefix + i, QueryBuilder.bindMarker());
         insertStatement = session.prepare(is);
+        insertStatement.setConsistencyLevel(writeConsistencyLevel);
 
         // Delete statement
         deleteStatement = session.prepare(QueryBuilder.delete().from(table).where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())));
+        deleteStatement.setConsistencyLevel(writeConsistencyLevel);
 
         if (!readallfields)
         {
@@ -190,7 +192,9 @@ public class CassandraCQLClient extends DB
             for (int i = 0; i < fieldCount; i++)
             {
                 Select ss = QueryBuilder.select(fieldPrefix + i).from(table).where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).limit(1);
-                selectStatements.put(fieldPrefix + i, session.prepare(ss));
+                PreparedStatement ps = session.prepare(ss);
+                ps.setConsistencyLevel(readConsistencyLevel);
+                selectStatements.put(fieldPrefix + i, ps);
             }
 
             // Scan statements
@@ -199,7 +203,9 @@ public class CassandraCQLClient extends DB
             {
                 String initialStmt = QueryBuilder.select(fieldPrefix + i).from(table).toString();
                 String scanStmt = getScanQueryString().replaceFirst("_", initialStmt.substring(0, initialStmt.length()-1));
-                scanStatements.put(fieldPrefix + i, session.prepare(scanStmt));
+                PreparedStatement ps = session.prepare(scanStmt);
+                ps.setConsistencyLevel(readConsistencyLevel);
+                scanStatements.put(fieldPrefix + i, ps);
             }
         }
         else
