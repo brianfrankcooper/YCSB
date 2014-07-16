@@ -81,11 +81,13 @@ public class CassandraCQLClient extends DB
     private static boolean readallfields;
 
     private static PreparedStatement insertStatement = null;
+    private static PreparedStatement deleteStatement = null;
+
+    // select and scan statements have two variants; one to select all columns, and one for selecting each individual column
     private static PreparedStatement selectStatement = null;
     private static Map<String, PreparedStatement> selectStatements = null;
     private static PreparedStatement scanStatement = null;
     private static Map<String, PreparedStatement> scanStatements = null;
-    private static PreparedStatement deleteStatement = null;
 
     /**
      * Initialize any state for this DB. Called once per DB instance; there is
@@ -157,7 +159,6 @@ public class CassandraCQLClient extends DB
 
             session = cluster.connect(keyspace);
 
-            // build prepared statements.
             buildStatements();
         }
         catch (Exception e)
@@ -185,7 +186,20 @@ public class CassandraCQLClient extends DB
         deleteStatement = session.prepare(QueryBuilder.delete().from(table).where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())));
         deleteStatement.setConsistencyLevel(writeConsistencyLevel);
 
-        if (!readallfields)
+        if (readallfields)
+        {
+            // Select statement
+            Select ss = QueryBuilder.select().all().from(table).where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).limit(1);
+            selectStatement = session.prepare(ss);
+            selectStatement.setConsistencyLevel(readConsistencyLevel);
+
+            // Scan statement
+            String initialStmt = QueryBuilder.select().all().from(table).toString();
+            String scanStmt = getScanQueryString().replaceFirst("_", initialStmt.substring(0, initialStmt.length()-1));
+            scanStatement = session.prepare(scanStmt);
+            scanStatement.setConsistencyLevel(readConsistencyLevel);
+        }
+        else
         {
             // Select statements
             selectStatements = new ConcurrentHashMap<String,PreparedStatement>(fieldCount);
@@ -208,33 +222,11 @@ public class CassandraCQLClient extends DB
                 scanStatements.put(fieldPrefix + i, ps);
             }
         }
-        else
-        {
-            // Select statement
-            Select ss = QueryBuilder.select().all().from(table).where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).limit(1);
-            selectStatement = session.prepare(ss);
-            selectStatement.setConsistencyLevel(readConsistencyLevel);
-
-            // Scan statement
-            String initialStmt = QueryBuilder.select().all().from(table).toString();
-            String scanStmt = getScanQueryString().replaceFirst("_", initialStmt.substring(0, initialStmt.length()-1));
-            scanStatement = session.prepare(scanStmt);
-            scanStatement.setConsistencyLevel(readConsistencyLevel);
-        }
     }
 
     private String getScanQueryString()
     {
-        StringBuilder scanStmt = new StringBuilder();
-        return scanStmt.append("_")
-                       .append(" WHERE ")
-                       .append(QueryBuilder.token(YCSB_KEY))
-                       .append(" >= ")
-                       .append("token(")
-                       .append(QueryBuilder.bindMarker())
-                       .append(")")
-                       .append(" LIMIT ")
-                       .append(QueryBuilder.bindMarker()).toString();
+        return String.format("_ WHERE %s >= token(%s) LIMIT %s", QueryBuilder.token(YCSB_KEY), QueryBuilder.bindMarker(), QueryBuilder.bindMarker());
     }
 
     /**
@@ -286,7 +278,7 @@ public class CassandraCQLClient extends DB
 
             ResultSet rs = session.execute(bs);
 
-            //Should be only 1 row
+            // Should be only 1 row
             if (!rs.isExhausted())
             {
                 Row row = rs.one();
@@ -360,7 +352,6 @@ public class CassandraCQLClient extends DB
 
     public int scan(String startkey, List<Map<String, ByteIterator>> result, BoundStatement bs)
     {
-
         try
         {
             if (_debug)
