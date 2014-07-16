@@ -80,8 +80,6 @@ public class CassandraCQLClient extends DB
     private static boolean _debug = false;
     private static boolean readallfields;
 
-    private static PreparedStatement insertStatement = null;
-    private static Map<String, PreparedStatement> insertStatements = null;
     private static PreparedStatement deleteStatement = null;
 
     // select and scan statements have two variants; one to select all columns, and one for selecting each individual column
@@ -89,6 +87,10 @@ public class CassandraCQLClient extends DB
     private static Map<String, PreparedStatement> selectStatements = null;
     private static PreparedStatement scanStatement = null;
     private static Map<String, PreparedStatement> scanStatements = null;
+
+    // YCSB always inserts a full row, but updates can be either full-row or single-column
+    private static PreparedStatement insertStatement = null;
+    private static Map<String, PreparedStatement> updateStatements = null;
 
     /**
      * Initialize any state for this DB. Called once per DB instance; there is
@@ -184,7 +186,7 @@ public class CassandraCQLClient extends DB
         insertStatement.setConsistencyLevel(writeConsistencyLevel);
 
         // Update statements for updateOne
-        insertStatements = new ConcurrentHashMap<String,PreparedStatement>(fieldCount);
+        updateStatements = new ConcurrentHashMap<String,PreparedStatement>(fieldCount);
         for (int i = 0; i < fieldCount; i++)
         {
             is = QueryBuilder.insertInto(table);
@@ -193,7 +195,7 @@ public class CassandraCQLClient extends DB
 
             PreparedStatement ps = session.prepare(is);
             ps.setConsistencyLevel(writeConsistencyLevel);
-            insertStatements.put(fieldPrefix + i, ps);
+            updateStatements.put(fieldPrefix + i, ps);
         }
 
 
@@ -318,7 +320,6 @@ public class CassandraCQLClient extends DB
             System.out.println("Error reading key: " + key);
             return ERR;
         }
-
     }
 
     /**
@@ -407,7 +408,6 @@ public class CassandraCQLClient extends DB
             System.out.println("Error scanning with startkey: " + startkey);
             return ERR;
         }
-
     }
 
     /**
@@ -466,12 +466,11 @@ public class CassandraCQLClient extends DB
             for (Map.Entry<String, ByteIterator> entry : values.entrySet())
             {
                 field = entry.getKey();
-                System.out.println("field is: " + field);
                 vals.add(entry.getValue().toString());
             }
 
             Object[] valArray = vals.toArray();
-            BoundStatement bs = vals.size() == 2 ? insertStatements.get(field).bind(valArray)
+            BoundStatement bs = vals.size() == 2 ? updateStatements.get(field).bind(valArray)
                                                  : insertStatement.bind(valArray);
             if (_debug)
                 System.out.println(bs.preparedStatement().getQueryString());
@@ -515,5 +514,4 @@ public class CassandraCQLClient extends DB
 
         return ERR;
     }
-
 }
