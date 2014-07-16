@@ -81,6 +81,7 @@ public class CassandraCQLClient extends DB
     private static boolean readallfields;
 
     private static PreparedStatement insertStatement = null;
+    private static Map<String, PreparedStatement> insertStatements = null;
     private static PreparedStatement deleteStatement = null;
 
     // select and scan statements have two variants; one to select all columns, and one for selecting each individual column
@@ -181,6 +182,20 @@ public class CassandraCQLClient extends DB
             is.value(fieldPrefix + i, QueryBuilder.bindMarker());
         insertStatement = session.prepare(is);
         insertStatement.setConsistencyLevel(writeConsistencyLevel);
+
+        // Update statements for updateOne
+        insertStatements = new ConcurrentHashMap<String,PreparedStatement>(fieldCount);
+        for (int i = 0; i < fieldCount; i++)
+        {
+            is = QueryBuilder.insertInto(table);
+            is.value(YCSB_KEY, QueryBuilder.bindMarker());
+            is.value(fieldPrefix + i, QueryBuilder.bindMarker());
+
+            PreparedStatement ps = session.prepare(is);
+            ps.setConsistencyLevel(writeConsistencyLevel);
+            insertStatements.put(fieldPrefix + i, ps);
+        }
+
 
         // Delete statement
         deleteStatement = session.prepare(QueryBuilder.delete().from(table).where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())));
@@ -443,17 +458,25 @@ public class CassandraCQLClient extends DB
     @Override
     public int insert(String table, String key, Map<String, ByteIterator> values)
     {
-        try {
-
+        try
+        {
             List<String> vals = new ArrayList<String>(values.size() + 1);
             vals.add(key);
+            String field = "";
             for (Map.Entry<String, ByteIterator> entry : values.entrySet())
+            {
+                field = entry.getKey();
+                System.out.println("field is: " + field);
                 vals.add(entry.getValue().toString());
+            }
 
+            Object[] valArray = vals.toArray();
+            BoundStatement bs = vals.size() == 2 ? insertStatements.get(field).bind(valArray)
+                                                 : insertStatement.bind(valArray);
             if (_debug)
-                System.out.println(insertStatement.getQueryString());
+                System.out.println(bs.preparedStatement().getQueryString());
 
-            session.execute(insertStatement.bind(vals.toArray()));
+            session.execute(bs);
 
             return OK;
         }
