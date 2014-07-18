@@ -110,7 +110,13 @@ database = sys.argv[2]
 db_classname = DATABASES[database]
 options = sys.argv[3:]
 
-ycsb_command = ["java", "-cp", os.pathsep.join(find_jars(ycsb_home, database)), \
+classpath_additional = []
+if database == "hbase":
+    classpath_additional = ["/home/ubuntu/hbase/hbase-0.98.3-hadoop2/lib/commons-lang-2.6.jar","/home/ubuntu/ycsb/guava-17.0.jar"]
+if database == "cassandra-cql":
+    classpath_additional = ["/home/ubuntu/ycsb/guava-17.0.jar"]
+
+ycsb_command = ["java", "-cp", os.pathsep.join(classpath_additional + find_jars(ycsb_home, database)), \
                 COMMANDS[sys.argv[1]]["main"], "-db", db_classname] + options
 if command:
     ycsb_command.append(command)
