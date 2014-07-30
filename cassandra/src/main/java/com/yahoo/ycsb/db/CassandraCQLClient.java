@@ -27,6 +27,7 @@ import com.yahoo.ycsb.workloads.CoreWorkload;
 import java.nio.ByteBuffer;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -294,22 +295,11 @@ public class CassandraCQLClient extends DB
                 System.out.println(bs.preparedStatement().getQueryString());
 
             ResultSet rs = session.execute(bs);
-
-            // Should be only 1 row
-            if (!rs.isExhausted())
+            Row row = rs.one();
+            for (ColumnDefinitions.Definition def : row.getColumnDefinitions())
             {
-                Row row = rs.one();
-                ColumnDefinitions cd = row.getColumnDefinitions();
-                
-                for (ColumnDefinitions.Definition def : cd)
-                {
-                    ByteBuffer val = row.getBytesUnsafe(def.getName());
-                    if (val != null)
-                        result.put(def.getName(), new ByteArrayByteIterator(val.array()));
-                    else
-                        result.put(def.getName(), null);
-                }
-
+                ByteBuffer val = row.getBytesUnsafe(def.getName());
+                result.put(def.getName(), val == null ? null : new ByteArrayByteIterator(val.array()));
             }
 
             return OK;
@@ -375,25 +365,16 @@ public class CassandraCQLClient extends DB
 
             ResultSet rs = session.execute(bs);
 
-            HashMap<String, ByteIterator> tuple;
-            while (!rs.isExhausted())
+            Iterator<Row> iter = rs.iterator();
+            while (iter.hasNext())
             {
-                Row row = rs.one();
-                tuple = new HashMap<String, ByteIterator> ();
+                Row row = iter.next();
 
-                ColumnDefinitions cd = row.getColumnDefinitions();
-                
-                for (ColumnDefinitions.Definition def : cd)
+                HashMap<String, ByteIterator> tuple = new HashMap<String, ByteIterator>();
+                for (ColumnDefinitions.Definition def : row.getColumnDefinitions())
                 {
                     ByteBuffer val = row.getBytesUnsafe(def.getName());
-                    if (val != null)
-                    {
-                        tuple.put(def.getName(), new ByteArrayByteIterator(val.array()));
-                    }
-                    else
-                    {
-                        tuple.put(def.getName(), null);
-                    }
+                    tuple.put(def.getName(), val == null ? null : new ByteArrayByteIterator(val.array()));
                 }
 
                 result.add(tuple);
