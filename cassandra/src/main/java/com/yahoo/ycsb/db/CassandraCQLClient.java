@@ -42,16 +42,16 @@ import java.util.concurrent.ConcurrentHashMap;
  * create keyspace ycsb WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 1 };
  * create table ycsb.usertable (
  *     y_id varchar primary key,
- *     field0 varchar,
- *     field1 varchar,
- *     field2 varchar,
- *     field3 varchar,
- *     field4 varchar,
- *     field5 varchar,
- *     field6 varchar,
- *     field7 varchar,
- *     field8 varchar,
- *     field9 varchar);
+ *     field0 blob,
+ *     field1 blob,
+ *     field2 blob,
+ *     field3 blob,
+ *     field4 blob,
+ *     field5 blob,
+ *     field6 blob,
+ *     field7 blob,
+ *     field8 blob,
+ *     field9 blob);
  *
  * @author cmatser
  */
@@ -388,8 +388,7 @@ public class CassandraCQLClient extends DB
                     ByteBuffer val = row.getBytesUnsafe(def.getName());
                     if (val != null)
                     {
-                        tuple.put(def.getName(),
-                            new ByteArrayByteIterator(val.array()));
+                        tuple.put(def.getName(), new ByteArrayByteIterator(val.array()));
                     }
                     else
                     {
@@ -460,20 +459,16 @@ public class CassandraCQLClient extends DB
     {
         try
         {
-            List<String> vals = new ArrayList<String>(values.size() + 1);
-            vals.add(key);
-            String field = "";
+            PreparedStatement ps = values.size() == 1 ? updateStatements.get(values.keySet().iterator().next()) : insertStatement;
+            BoundStatement bs = ps.bind(key);
+
             for (Map.Entry<String, ByteIterator> entry : values.entrySet())
             {
-                field = entry.getKey();
-                vals.add(entry.getValue().toString());
+                bs = bs.bind(ByteBuffer.wrap(entry.getValue().toArray()));
             }
 
-            Object[] valArray = vals.toArray();
-            BoundStatement bs = vals.size() == 2 ? updateStatements.get(field).bind(valArray)
-                                                 : insertStatement.bind(valArray);
             if (_debug)
-                System.out.println(bs.preparedStatement().getQueryString());
+                System.out.println(ps.getQueryString());
 
             session.execute(bs);
 
