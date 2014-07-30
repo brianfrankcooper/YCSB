@@ -440,16 +440,18 @@ public class CassandraCQLClient extends DB
     {
         try
         {
-            PreparedStatement ps = values.size() == 1 ? updateStatements.get(values.keySet().iterator().next()) : insertStatement;
-            BoundStatement bs = ps.bind(key);
-
+            Object[] vals = new Object[values.size() + 1];
+            vals[0] = key;
+            int i = 1;
             for (Map.Entry<String, ByteIterator> entry : values.entrySet())
             {
-                bs = bs.bind(ByteBuffer.wrap(entry.getValue().toArray()));
+                vals[i++] = ByteBuffer.wrap(entry.getValue().toArray());
             }
 
+            BoundStatement bs = (values.size() == 1 ? updateStatements.get(values.keySet().iterator().next()) : insertStatement).bind(vals);
+
             if (_debug)
-                System.out.println(ps.getQueryString());
+                System.out.println(bs.preparedStatement().getQueryString());
 
             session.execute(bs);
 
