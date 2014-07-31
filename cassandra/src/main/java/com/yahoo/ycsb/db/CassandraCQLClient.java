@@ -207,7 +207,7 @@ public class CassandraCQLClient extends DB
         if (readallfields)
         {
             // Select statement
-            Select ss = QueryBuilder.select().all().from(table).where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).limit(1);
+            String ss = QueryBuilder.select().all().from(table).where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).getQueryString();
             selectStatement = session.prepare(ss);
             selectStatement.setConsistencyLevel(readConsistencyLevel);
 
