@@ -22,13 +22,15 @@ package com.yahoo.ycsb.generator;
  */
 public class SkewedLatestGenerator extends IntegerGenerator
 {
-	CounterGenerator _basis;
-	ZipfianGenerator _zipfian;
+    KeynumGenerator _basis;
+    ZipfianGenerator _zipfian;
+    private final int _min;
 
-	public SkewedLatestGenerator(CounterGenerator basis)
+	public SkewedLatestGenerator(KeynumGenerator basis)
 	{
 		_basis=basis;
-		_zipfian=new ZipfianGenerator(_basis.lastInt());
+        _min = basis.getKeynumForRead();
+		_zipfian = new ZipfianGenerator(_min);
 		nextInt();
 	}
 
@@ -37,20 +39,22 @@ public class SkewedLatestGenerator extends IntegerGenerator
 	 */
 	public int nextInt()
 	{
-		int max=_basis.lastInt();
-		int nextint=max-_zipfian.nextInt(max);
+        int nextint;
+        do {
+            int max = _basis.getKeynumForRead();
+            nextint = max - _zipfian.nextInt(max);
+        } while (nextint < _min);
 		setLastInt(nextint);
 		return nextint;
 	}
 
 	public static void main(String[] args)
 	{
-		SkewedLatestGenerator gen=new SkewedLatestGenerator(new CounterGenerator(1000));
+		SkewedLatestGenerator gen = new SkewedLatestGenerator(new KeynumGenerator(1000));
 		for (int i=0; i<Integer.parseInt(args[0]); i++)
 		{
 			System.out.println(gen.nextString());
 		}
-
 	}
 
 	@Override

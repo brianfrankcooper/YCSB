@@ -270,15 +270,13 @@ public class CoreWorkload extends Workload {
     public static final String IGNORE_INSERT_ERRORS_DEFAULT = "false";
 
 
-    IntegerGenerator keysequence;
+    KeynumGenerator keynumGenerator;
 
     DiscreteGenerator operationchooser;
 
     IntegerGenerator keychooser;
 
     Generator fieldchooser;
-
-    CounterGenerator transactioninsertkeysequence;
 
     IntegerGenerator scanlength;
 
@@ -342,7 +340,10 @@ public class CoreWorkload extends Workload {
         readallfields = Boolean.parseBoolean(p.getProperty(READ_ALL_FIELDS_PROPERTY, READ_ALL_FIELDS_PROPERTY_DEFAULT));
         writeallfields = Boolean.parseBoolean(p.getProperty(WRITE_ALL_FIELDS_PROPERTY, WRITE_ALL_FIELDS_PROPERTY_DEFAULT));
         orderedinserts = !p.getProperty(INSERT_ORDER_PROPERTY, INSERT_ORDER_PROPERTY_DEFAULT).equals("hashed");
-        keysequence = new CounterGenerator(insertstart);
+        orderedinserts = true;
+
+        keynumGenerator = new KeynumGenerator(insertstart);
+
         operationchooser = new DiscreteGenerator();
         if (readproportion > 0) {
             operationchooser.addValue(readproportion, "READ");
@@ -364,7 +365,6 @@ public class CoreWorkload extends Workload {
             operationchooser.addValue(readmodifywriteproportion, "READMODIFYWRITE");
         }
 
-        transactioninsertkeysequence = new CounterGenerator(recordcount);
         if (requestdistrib.compareTo("uniform") == 0) {
             keychooser = new UniformIntegerGenerator(0, recordcount - 1);
         } else if (requestdistrib.compareTo("uniquerandom") == 0) {
@@ -388,7 +388,7 @@ public class CoreWorkload extends Workload {
 
             keychooser = new ScrambledZipfianGenerator(recordcount + expectednewkeys);
         } else if (requestdistrib.compareTo("latest") == 0) {
-            keychooser = new SkewedLatestGenerator(transactioninsertkeysequence);
+            keychooser = new SkewedLatestGenerator(keynumGenerator);
         } else if (requestdistrib.equals("hotspot")) {
             double hotsetfraction = Double.parseDouble(p.getProperty(
                     HOTSPOT_DATA_FRACTION, HOTSPOT_DATA_FRACTION_DEFAULT));
@@ -443,9 +443,16 @@ public class CoreWorkload extends Workload {
      * effects other than DB operations.
      */
     public boolean doInsert(DB db, Object threadstate) {
-        String dbkey = buildKeyName(keysequence.nextInt());
-        HashMap<String, ByteIterator> values = buildValues();
-        int result = db.insert(table, dbkey, values);
+        int result = -1;
+        int keynum = keynumGenerator.startInsert();
+        try {
+            String dbkey = buildKeyName(keynum);
+            HashMap<String, ByteIterator> values = buildValues();
+            result = db.insert(table, dbkey, values);
+        } finally {
+            keynumGenerator.completeInsert(keynum);
+        }
+
         if (ignoreinserterrors) {
             return true;
         }
@@ -486,25 +493,25 @@ public class CoreWorkload extends Workload {
         return true;
     }
 
-    int nextKeynum() {
+    int nextReadKeynum() {
         int keynum;
         if (keychooser instanceof ExponentialGenerator) {
             do {
-                keynum = transactioninsertkeysequence.lastInt() - keychooser.nextInt();
+                keynum = keynumGenerator.getKeynumForRead() - keychooser.nextInt();
             }
             while (keynum < 0);
         } else {
             do {
                 keynum = keychooser.nextInt();
             }
-            while (keynum > transactioninsertkeysequence.lastInt());
+            while (keynum > keynumGenerator.getKeynumForRead());
         }
         return keynum;
     }
 
     public void doTransactionRead(DB db) {
         //choose a random key
-        int keynum = nextKeynum();
+        int keynum = nextReadKeynum();
 
         String keyname = buildKeyName(keynum);
 
@@ -519,7 +526,7 @@ public class CoreWorkload extends Workload {
 
     public void doTransactionReadModifyWrite(DB db) {
         //choose a random key
-        int keynum = nextKeynum();
+        int keynum = nextReadKeynum();
         String keyname = buildKeyName(keynum);
 
         //do the transaction
@@ -552,7 +559,7 @@ public class CoreWorkload extends Workload {
 
     public void doTransactionScan(DB db) {
         //choose a random key
-        int keynum = nextKeynum();
+        int keynum = nextReadKeynum();
 
         String startkeyname = buildKeyName(keynum);
 
@@ -570,7 +577,7 @@ public class CoreWorkload extends Workload {
 
     public void doTransactionUpdate(DB db) {
         //choose a random key
-        int keynum = nextKeynum();
+        int keynum = nextReadKeynum();
         String keyname = buildKeyName(keynum);
 
         if (writeallfields) {
@@ -585,11 +592,14 @@ public class CoreWorkload extends Workload {
 
     public void doTransactionInsert(DB db) {
         //choose the next key
-        int keynum = transactioninsertkeysequence.nextInt();
+        int keynum = keynumGenerator.startInsert();
+        try {
+            String dbkey = buildKeyName(keynum);
 
-        String dbkey = buildKeyName(keynum);
-
-        HashMap<String, ByteIterator> values = buildValues();
-        db.insert(table, dbkey, values);
+            HashMap<String, ByteIterator> values = buildValues();
+            db.insert(table, dbkey, values);
+        } finally {
+            keynumGenerator.completeInsert(keynum);
+        }
     }
 }
