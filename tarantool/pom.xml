@@ -21,10 +21,12 @@
 
   <dependencies>
     <dependency>
-	  <groupId>org.tarantool</groupId>
-	  <artifactId>connector</artifactId>
-	  <version>${tarantool.version}</version>
-    </dependency> 
+      <groupId>org.tarantool</groupId>
+      <artifactId>connector</artifactId>
+      <version>${tarantool.version}</version>
+      <!--scope>system</scope-->
+      <!--systemPath>/home/bigbes/src/YCSB/tarantool/config/connector-0.1.5-SNAPSHOT.jar</systemPath-->
+    </dependency>
 
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>

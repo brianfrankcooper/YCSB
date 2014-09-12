@@ -56,29 +56,29 @@
     <voldemort.version>0.81</voldemort.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <thrift.version>0.8.0</thrift.version>
-    <tarantool.version>0.1.4-JDK6-SNAPSHOT</tarantool.version>
+    <tarantool.version>0.1.5-SNAPSHOT</tarantool.version>
     <hypertable.version>0.9.5.6</hypertable.version>
   </properties>
 
   <modules>
     <!--module>build-tools</module-->
-    <module>cassandra</module>
+    <!--module>cassandra</module  -->
     <module>core</module>
-    <module>hbase</module>
-    <module>hypertable</module>
-    <module>accumulo</module>
-    <module>dynamodb</module>
-    <module>elasticsearch</module>
+    <!--module>hbase</module>    -->
+    <!--module>hypertable</module-->
+    <!--module>accumulo</module  -->
+    <!--module>dynamodb</module  -->
+    <!--module>elasticsearch</module-->
     <!--<module>gemfire</module>-->
-    <module>infinispan</module>
-    <module>jdbc</module>
-    <module>mapkeeper</module>
+    <!--module>infinispan</module-->
+    <!--module>jdbc</module-->
+    <!--module>mapkeeper</module-->
     <module>mongodb</module>
-    <module>orientdb</module>
+    <!--module>orientdb</module-->
     <!--module>nosqldb</module-->
     <module>redis</module>
     <module>tarantool</module>
-    <module>voldemort</module>
+    <!--module>voldemort</module-->
     <module>distribution</module>
   </modules>
 
@@ -93,7 +93,7 @@
           <target>1.6</target>
         </configuration>
       </plugin>
-      <plugin>
+      <!--plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
         <version>2.6</version>
@@ -110,7 +110,7 @@
             </goals>
           </execution>
         </executions>
-      </plugin>
+      </plugin-->
     </plugins>
   </build>
 </project>
