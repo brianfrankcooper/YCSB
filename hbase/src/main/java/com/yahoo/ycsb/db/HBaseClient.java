@@ -310,6 +310,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     public int updateOne(String table, String key, String field, ByteIterator value)
     {
         Put p = new Put(Bytes.toBytes(key));
+        p.setDurability(durability);
         if (_debug) {
             System.out.println("Adding field/value " + field + "/"+ value + " to put request");
         }
@@ -330,6 +331,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     public int updateAll(String table, String key, Map<String,ByteIterator> values)
     {
         Put p = new Put(Bytes.toBytes(key));
+        p.setDurability(durability);
         for (Map.Entry<String, ByteIterator> entry : values.entrySet())
         {
             if (_debug) {
