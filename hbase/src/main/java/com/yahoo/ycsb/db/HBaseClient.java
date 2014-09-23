@@ -25,13 +25,8 @@ import com.yahoo.ycsb.ByteArrayByteIterator;
 import java.io.IOException;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
-import java.util.Random;
-import java.util.Set;
-import java.util.Vector;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
@@ -55,13 +50,13 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 {
     private static final Configuration config = HBaseConfiguration.create();
 
-    private boolean _debug=false;
+    private boolean debug =false;
 
-    private String _table="";
-    private HTable _hTable=null;
+    private String table ="";
+    private HTable hTable =null;
     private Durability durability;
-    private String _columnFamily="";
-    private byte _columnFamilyBytes[];
+    private String columnFamily ="";
+    private byte columnFamilyBytes[];
 
     private static final int Ok=0;
     private static final int ServerError=-1;
@@ -74,17 +69,17 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      */
     public void init() throws DBException
     {
-        _debug = Boolean.parseBoolean("debug");
+        debug = Boolean.parseBoolean("debug");
 
         durability = Durability.valueOf(getProperties().getProperty("hbase.durability", "FSYNC_WAL").toUpperCase());
 
-        _columnFamily = getProperties().getProperty("columnfamily");
-        if (_columnFamily == null)
+        columnFamily = getProperties().getProperty("columnfamily");
+        if (columnFamily == null)
         {
             System.err.println("Error, must specify a columnfamily for HBase table");
             throw new DBException("No columnfamily specified");
         }
-      _columnFamilyBytes = Bytes.toBytes(_columnFamily);
+      columnFamilyBytes = Bytes.toBytes(columnFamily);
     }
 
     /**
@@ -93,10 +88,10 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      */
     public void cleanup() throws DBException
     {
-        if (_hTable == null)
+        if (hTable == null)
             return;
         try {
-            _hTable.close();
+            hTable.close();
         } catch (IOException e) {
             throw new DBException(e);
         }
@@ -104,7 +99,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 
     public void initHTable(String table) throws IOException
     {
-        _hTable = new HTable(config, table);
+        hTable = new HTable(config, table);
     }
 
     /**
@@ -120,7 +115,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     public int readOne(String table, String key, String field, Map<String,ByteIterator> result)
     {
         Get g = new Get(Bytes.toBytes(key));
-        g.addColumn(_columnFamilyBytes, Bytes.toBytes(field));
+        g.addColumn(columnFamilyBytes, Bytes.toBytes(field));
 
         return read(table, key, result, g);
     }
@@ -137,7 +132,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     public int readAll(String table, String key, Map<String,ByteIterator> result)
     {
         Get g = new Get(Bytes.toBytes(key));
-        g.addFamily(_columnFamilyBytes);
+        g.addFamily(columnFamilyBytes);
 
         return read(table, key, result, g);
     }
@@ -145,12 +140,12 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     public int read(String table, String key, Map<String, ByteIterator> result, Get g)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
-        if (!_table.equals(table)) {
-            _hTable = null;
+        if (!this.table.equals(table)) {
+            hTable = null;
             try
             {
                 initHTable(table);
-                _table = table;
+                this.table = table;
             }
             catch (IOException e)
             {
@@ -162,11 +157,11 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         Result r = null;
         try
         {
-        if (_debug) {
-        System.out.println("Doing read from HBase columnfamily "+_columnFamily);
+        if (debug) {
+        System.out.println("Doing read from HBase columnfamily "+ columnFamily);
         System.out.println("Doing read for key: "+key);
         }
-            r = _hTable.get(g);
+            r = hTable.get(g);
         }
         catch (IOException e)
         {
@@ -183,7 +178,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     result.put(
         Bytes.toString(kv.getQualifier()),
         new ByteArrayByteIterator(kv.getValue()));
-    if (_debug) {
+    if (debug) {
       System.out.println("Result for field: "+Bytes.toString(kv.getQualifier())+
           " is: "+Bytes.toString(kv.getValue()));
     }
@@ -208,7 +203,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         //HBase has no record limit.  Here, assume recordcount is small enough to bring back in one call.
         //We get back recordcount records
         s.setCaching(recordcount);
-        s.addFamily(_columnFamilyBytes);
+        s.addFamily(columnFamilyBytes);
 
         return scan(table, recordcount, result, s);
     }
@@ -228,8 +223,8 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     {
         Scan s = new Scan(Bytes.toBytes(startkey));
         s.setCaching(recordcount);
-        s.addFamily(_columnFamilyBytes);
-        s.addColumn(_columnFamilyBytes,Bytes.toBytes(field));
+        s.addFamily(columnFamilyBytes);
+        s.addColumn(columnFamilyBytes,Bytes.toBytes(field));
 
         return scan(table, recordcount, result, s);
     }
@@ -237,12 +232,12 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     public int scan(String table, int recordcount, List<Map<String, ByteIterator>> result, Scan s)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
-        if (!_table.equals(table)) {
-            _hTable = null;
+        if (!this.table.equals(table)) {
+            hTable = null;
             try
             {
                 initHTable(table);
-                _table = table;
+                this.table = table;
             }
             catch (IOException e)
             {
@@ -254,13 +249,13 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         //get results
         ResultScanner scanner = null;
         try {
-            scanner = _hTable.getScanner(s);
+            scanner = hTable.getScanner(s);
             int numResults = 0;
             for (Result rr = scanner.next(); rr != null; rr = scanner.next())
             {
                 //get row key
                 String key = Bytes.toString(rr.getRow());
-                if (_debug)
+                if (debug)
                 {
                     System.out.println("Got scan result for key: "+key);
                 }
@@ -284,7 +279,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         }
 
         catch (IOException e) {
-            if (_debug)
+            if (debug)
             {
                 System.out.println("Error in getting/parsing scan result: "+e);
             }
@@ -311,10 +306,10 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     {
         Put p = new Put(Bytes.toBytes(key));
         p.setDurability(durability);
-        if (_debug) {
+        if (debug) {
             System.out.println("Adding field/value " + field + "/"+ value + " to put request");
         }
-        p.add(_columnFamilyBytes,Bytes.toBytes(field),value.toArray());
+        p.add(columnFamilyBytes,Bytes.toBytes(field),value.toArray());
 
         return update(table, key, p);
     }
@@ -334,11 +329,11 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         p.setDurability(durability);
         for (Map.Entry<String, ByteIterator> entry : values.entrySet())
         {
-            if (_debug) {
+            if (debug) {
                 System.out.println("Adding field/value " + entry.getKey() + "/"+
                         entry.getValue() + " to put request");
             }
-            p.add(_columnFamilyBytes,Bytes.toBytes(entry.getKey()),entry.getValue().toArray());
+            p.add(columnFamilyBytes,Bytes.toBytes(entry.getKey()),entry.getValue().toArray());
         }
 
         return update(table, key, p);
@@ -347,12 +342,12 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     public int update(String table, String key, Put p)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
-        if (!_table.equals(table)) {
-            _hTable = null;
+        if (!this.table.equals(table)) {
+            hTable = null;
             try
             {
                 initHTable(table);
-                _table = table;
+                this.table = table;
             }
             catch (IOException e)
             {
@@ -362,17 +357,17 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         }
 
 
-        if (_debug) {
+        if (debug) {
             System.out.println("Setting up put for key: "+key);
         }
 
         try
         {
-            _hTable.put(p);
+            hTable.put(p);
         }
         catch (IOException e)
         {
-            if (_debug) {
+            if (debug) {
                 System.err.println("Error doing put: "+e);
             }
             return ServerError;
@@ -413,12 +408,12 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     public int delete(String table, String key)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
-        if (!_table.equals(table)) {
-            _hTable = null;
+        if (!this.table.equals(table)) {
+            hTable = null;
             try
             {
                 initHTable(table);
-                _table = table;
+                this.table = table;
             }
             catch (IOException e)
             {
@@ -427,18 +422,18 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             }
         }
 
-        if (_debug) {
+        if (debug) {
             System.out.println("Doing delete for key: "+key);
         }
 
         Delete d = new Delete(Bytes.toBytes(key));
         try
         {
-            _hTable.delete(d);
+            hTable.delete(d);
         }
         catch (IOException e)
         {
-            if (_debug) {
+            if (debug) {
                 System.err.println("Error doing delete: "+e);
             }
             return ServerError;
