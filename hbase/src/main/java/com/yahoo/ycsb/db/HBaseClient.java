@@ -1,5 +1,4 @@
-/**
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved.
+/*
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -17,22 +16,32 @@
 
 package com.yahoo.ycsb.db;
 
-
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.ByteArrayByteIterator;
+import com.yahoo.ycsb.measurements.Measurements;
 
 import java.io.IOException;
-import java.util.ConcurrentModificationException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+import java.util.Random;
+import java.util.Set;
+import java.util.Vector;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Durability;
-import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Scan;
@@ -43,358 +52,288 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 
 /**
  * HBase client for YCSB framework
- *
- * hbase.durability = {async_wal,fsync_wal,skip_wal,sync_wal,use_default}
  */
 public class HBaseClient extends com.yahoo.ycsb.DB
 {
-    private static final Configuration config = HBaseConfiguration.create();
+    private final Configuration config;
+    private final HConnection connection;
+    private final ThreadPoolExecutor executor;
 
-    private boolean debug =false;
+    public boolean debug = false;
+    public String columnFamily = "";
+    public byte columnFamilyBytes[];
 
-    private String table ="";
-    private HTable hTable =null;
-    private Durability durability;
-    private String columnFamily ="";
-    private byte columnFamilyBytes[];
+    public static final int Ok=0;
+    public static final int ServerError=-1;
+    public static final int HttpError=-2;
+    public static final int NoMatchingRecord=-3;
 
-    private static final int Ok=0;
-    private static final int ServerError=-1;
-    private static final int HttpError=-2;
-    private static final int NoMatchingRecord=-3;
+    public HBaseClient() throws IOException {
+        super();
+        config = HBaseConfiguration.create();
+        // Disable Nagle on the client, hope we've done the same on the server
+        config.setBoolean("hbase.ipc.client.tcpnodelay", true);
+        connection = HConnectionManager.createConnection(config);
+        int coreThreads = Runtime.getRuntime().availableProcessors() * 8;
+        // Maintain a useful minimum of core threads even on wimpy hosts
+        if (coreThreads < 32) {
+            coreThreads = 32;
+        }
+        int maxThreads = coreThreads * 8;
+        this.executor = new ThreadPoolExecutor(
+                                              coreThreads,
+                                              maxThreads,
+                                              // Time out threads after 60 seconds of inactivity
+                                              60, TimeUnit.SECONDS,
+                                              // Queue up to N tasks per worker threads (N=100 by default)
+                                              new LinkedBlockingQueue<Runnable>(maxThreads *
+                                                                                config.getInt(HConstants.HBASE_CLIENT_MAX_TOTAL_TASKS,
+                                                                                              HConstants.DEFAULT_HBASE_CLIENT_MAX_TOTAL_TASKS)),
+                                              // Create daemon threads
+                                              new ThreadFactory() {
+                                                  public Thread newThread(Runnable r) {
+                                                      Thread t = new Thread(r);
+                                                      t.setDaemon(true);
+                                                      return t;
+                                                  }
+                                              });
+        // Allow for the core thread pool to shrink with inactivity
+        this.executor.allowCoreThreadTimeOut(true);
+        // This is YCSB, we should prep for drag racing
+        this.executor.prestartAllCoreThreads();
+    }
 
     /**
      * Initialize any state for this DB.
      * Called once per DB instance; there is one DB instance per client thread.
      */
-    public void init() throws DBException
-    {
-        debug = Boolean.parseBoolean("debug");
-
-        durability = Durability.valueOf(getProperties().getProperty("hbase.durability", "FSYNC_WAL").toUpperCase());
-
+    public void init() throws DBException {
+        if ((getProperties().getProperty("debug")!=null) &&
+            (getProperties().getProperty("debug").compareTo("true")==0)) {
+            debug = true;
+        }
         columnFamily = getProperties().getProperty("columnfamily");
-        if (columnFamily == null)
-        {
+        if (columnFamily == null) {
             System.err.println("Error, must specify a columnfamily for HBase table");
             throw new DBException("No columnfamily specified");
         }
-      columnFamilyBytes = Bytes.toBytes(columnFamily);
+        columnFamilyBytes = Bytes.toBytes(columnFamily);
     }
 
     /**
      * Cleanup any state for this DB.
      * Called once per DB instance; there is one DB instance per client thread.
      */
-    public void cleanup() throws DBException
-    {
-        if (hTable == null)
-            return;
+    public void cleanup() throws DBException {
+        Measurements _measurements = Measurements.getMeasurements();
+        long st = System.nanoTime();
         try {
-            hTable.close();
+            connection.close();
         } catch (IOException e) {
             throw new DBException(e);
+        } finally {
+            long en = System.nanoTime();
+            _measurements.measure("UPDATE", (int)((en-st)/1000));
         }
     }
 
-    public void initHTable(String table) throws IOException
-    {
-        hTable = new HTable(config, table);
+    private HTableInterface getHTable(String table) throws IOException {
+        HTableInterface t = connection.getTable(table, executor);
+        // This is currently a no-op. We will get a new HTI for every DB op
+        // requested by core. This is "lightweight" according to HBase docs
+        // since we are managing our own connections as is the new preferred
+        // way of doing things. The previous HBase YCSB driver implementation
+        // cheated significantly by holding on to one HTable instance per
+        // thread such that writes would go into the write buffer and not be
+        // interleaved with other ops as YCSB expects. YCSB wants to measure
+        // the round trip of every op, not the non-cost of local caching. Now
+        // that we close() the HTI after every operation, triggering a flush,
+        // we act as YCSB intended. We should still set auto flush to false in
+        // case YCSB evolves where writes could be batched.
+        t.setAutoFlushTo(false);
+        return t;
     }
 
-    /**
-     * Read a record from the database. Each field/value pair from the result will be stored in a Map.
-     *
-     * @param table The name of the table
-     * @param key The record key of the record to read.
-     * @param field The field to read
-     * @param result A Map of field/value pairs for the result
-     * @return Zero on success, a non-zero error code on error or "not found".
-     */
-    @Override
-    public int readOne(String table, String key, String field, Map<String,ByteIterator> result)
-    {
-        Get g = new Get(Bytes.toBytes(key));
-        g.addColumn(columnFamilyBytes, Bytes.toBytes(field));
-
-        return read(table, key, result, g);
-    }
-
-    /**
-     * Read a record from the database. Each field/value pair from the result will be stored in a Map.
-     *
-     * @param table The name of the table
-     * @param key The record key of the record to read.
-     * @param result A Map of field/value pairs for the result
-     * @return Zero on success, a non-zero error code on error or "not found".
-     */
-    @Override
-    public int readAll(String table, String key, Map<String,ByteIterator> result)
-    {
-        Get g = new Get(Bytes.toBytes(key));
-        g.addFamily(columnFamilyBytes);
-
-        return read(table, key, result, g);
-    }
-
-    public int read(String table, String key, Map<String, ByteIterator> result, Get g)
-    {
-        //if this is a "new" table, init HTable object.  Else, use existing one
-        if (!this.table.equals(table)) {
-            hTable = null;
-            try
-            {
-                initHTable(table);
-                this.table = table;
-            }
-            catch (IOException e)
-            {
-                System.err.println("Error accessing HBase table: "+e);
-                return ServerError;
-            }
+    private void putHTable(HTableInterface t) {
+        if (t != null) try {
+            t.close();
+        } catch (IOException e) {
+            // ignore
         }
+    }
 
+    /**
+     * Read a record from the database. Each field/value pair from the result will be stored
+     * in a HashMap.
+     *
+     * @param table The name of the table
+     * @param key The record key of the record to read.
+     * @param fields The list of fields to read, or null for all of them
+     * @param result A HashMap of field/value pairs for the result
+     * @return Zero on success, a non-zero error code on error
+     */
+    public int read(String table, String key, Set<String> fields,
+                    HashMap<String,ByteIterator> result) {
+        HTableInterface t = null;
         Result r = null;
-        try
-        {
+        try {
+            if (debug) {
+                System.out.println("Doing read for key " + key);
+            }
+            Get g = new Get(Bytes.toBytes(key));
+            if (fields == null) {
+                g.addFamily(columnFamilyBytes);
+            } else {
+                for (String field : fields) {
+                    g.addColumn(columnFamilyBytes, Bytes.toBytes(field));
+                }
+            }
+            t = getHTable(table);
+            r = t.get(g);
+        } catch (IOException e) {
+            System.err.println("Error doing get: " + e);
+            return ServerError;
+        } finally {
+            putHTable(t);
+        }
+
+        Cell[] cells = r.rawCells();
+        if (cells != null) {
+            for (int i = 0; i < cells.length; i++) {
+                result.put(new String(cells[i].getQualifierArray(), cells[i].getQualifierOffset(),
+                                      cells[i].getQualifierLength()),
+                           new ByteArrayByteIterator(cells[i].getValueArray(), cells[i].getValueOffset(),
+                                                     cells[i].getValueLength()));
+            }
+        }
         if (debug) {
-        System.out.println("Doing read from HBase columnfamily "+ columnFamily);
-        System.out.println("Doing read for key: "+key);
-        }
-            r = hTable.get(g);
-        }
-        catch (IOException e)
-        {
-            System.err.println("Error doing get: "+e);
-            return ServerError;
-        }
-        catch (ConcurrentModificationException e)
-        {
-            //do nothing for now...need to understand HBase concurrency model better
-            return ServerError;
+            System.out.println("Completed read for key " + key + ", " + result.size() +
+                               " cells returned");
         }
 
-  for (KeyValue kv : r.raw()) {
-    result.put(
-        Bytes.toString(kv.getQualifier()),
-        new ByteArrayByteIterator(kv.getValue()));
-    if (debug) {
-      System.out.println("Result for field: "+Bytes.toString(kv.getQualifier())+
-          " is: "+Bytes.toString(kv.getValue()));
-    }
-
-  }
-    return Ok;
+        return result.isEmpty() ? NoMatchingRecord : Ok;
     }
 
     /**
-     * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a Map.
+     * Perform a range scan for a set of records in the database. Each field/value pair from the
+     * result will be stored in a HashMap.
      *
      * @param table The name of the table
      * @param startkey The record key of the first record to read.
      * @param recordcount The number of records to read
-     * @param result A List of Maps, where each Map is a set field/value pairs for one record
-     * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
+     * @param fields The list of fields to read, or null for all of them
+     * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
+     * @return Zero on success, a non-zero error code on error
      */
-    @Override
-    public int scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result)
-    {
+    public int scan(String table, String startkey, int recordcount, Set<String> fields,
+                    Vector<HashMap<String,ByteIterator>> result) {
         Scan s = new Scan(Bytes.toBytes(startkey));
-        //HBase has no record limit.  Here, assume recordcount is small enough to bring back in one call.
-        //We get back recordcount records
+        // Assume recordcount is small enough to bring back in one call
         s.setCaching(recordcount);
-        s.addFamily(columnFamilyBytes);
 
-        return scan(table, recordcount, result, s);
-    }
-
-    /**
-     * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a Map.
-     *
-     * @param table The name of the table
-     * @param startkey The record key of the first record to read.
-     * @param recordcount The number of records to read
-     * @param field The field to read
-     * @param result A List of Maps, where each Map is a set field/value pairs for one record
-     * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
-     */
-    @Override
-    public int scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result)
-    {
-        Scan s = new Scan(Bytes.toBytes(startkey));
-        s.setCaching(recordcount);
-        s.addFamily(columnFamilyBytes);
-        s.addColumn(columnFamilyBytes,Bytes.toBytes(field));
-
-        return scan(table, recordcount, result, s);
-    }
-
-    public int scan(String table, int recordcount, List<Map<String, ByteIterator>> result, Scan s)
-    {
-        //if this is a "new" table, init HTable object.  Else, use existing one
-        if (!this.table.equals(table)) {
-            hTable = null;
-            try
-            {
-                initHTable(table);
-                this.table = table;
-            }
-            catch (IOException e)
-            {
-                System.err.println("Error accessing HBase table: "+e);
-                return ServerError;
+        // Add specified fields or else all fields
+        if (fields == null) {
+            s.addFamily(columnFamilyBytes);
+        } else {
+            for (String field : fields) {
+                s.addColumn(columnFamilyBytes, Bytes.toBytes(field));
             }
         }
 
-        //get results
+        // get results
+        HTableInterface t = null;
         ResultScanner scanner = null;
         try {
-            scanner = hTable.getScanner(s);
+            t = getHTable(table);
+            scanner = t.getScanner(s);
             int numResults = 0;
-            for (Result rr = scanner.next(); rr != null; rr = scanner.next())
-            {
-                //get row key
-                String key = Bytes.toString(rr.getRow());
-                if (debug)
-                {
-                    System.out.println("Got scan result for key: "+key);
+            for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
+                // get row key
+                if (debug) {
+                    String key = Bytes.toString(rr.getRow());
+                    System.out.println("Got scan result for key: " + key);
                 }
-
+                // add rowResult to result vector
                 HashMap<String,ByteIterator> rowResult = new HashMap<String, ByteIterator>();
-
-                for (KeyValue kv : rr.raw()) {
-                  rowResult.put(
-                      Bytes.toString(kv.getQualifier()),
-                      new ByteArrayByteIterator(kv.getValue()));
+                Cell[] cells = rr.rawCells();
+                if (cells != null) {
+                    for (int i = 0; i < cells.length; i++) {
+                        rowResult.put(new String(cells[i].getQualifierArray(),
+                                                 cells[i].getQualifierOffset(), cells[i].getQualifierLength()),
+                                      new ByteArrayByteIterator(cells[i].getValueArray(),
+                                                                cells[i].getValueOffset(), cells[i].getValueLength()));
+                    }
                 }
-                //add rowResult to result vector
                 result.add(rowResult);
                 numResults++;
-                if (numResults >= recordcount) //if hit recordcount, bail out
-                {
+                // if hit recordcount, bail out
+                if (numResults >= recordcount) {
                     break;
                 }
-            } //done with row
-
-        }
-
-        catch (IOException e) {
-            if (debug)
-            {
+            }
+        } catch (IOException e) {
+            if (debug) {
                 System.out.println("Error in getting/parsing scan result: "+e);
             }
             return ServerError;
+        } finally {
+            if (scanner != null) {
+                scanner.close();
+            }
+            putHTable(t);
         }
 
-        finally {
-            scanner.close();
-        }
-
-        return Ok;
+        return result.isEmpty() ? NoMatchingRecord : Ok;
     }
 
     /**
-     * Update a record in the database. Any field/value pairs in the specified values Map will be written into the record with the specified
-     * record key, overwriting any existing values with the same field name.
+     * Update a record in the database. Any field/value pairs in the specified values
+     * HashMap will be written into the record with the specified record key, overwriting
+     * any existing values with the same field name.
      *
      * @param table The name of the table
-     * @param key The record key of the record to write.
-     * @param value The value to update in the key record
-     * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
+     * @param key The record key of the record to write
+     * @param values A HashMap of field/value pairs to update in the record
+     * @return Zero on success, a non-zero error code on error
      */
-    public int updateOne(String table, String key, String field, ByteIterator value)
-    {
-        Put p = new Put(Bytes.toBytes(key));
-        p.setDurability(durability);
-        if (debug) {
-            System.out.println("Adding field/value " + field + "/"+ value + " to put request");
-        }
-        p.add(columnFamilyBytes,Bytes.toBytes(field),value.toArray());
-
-        return update(table, key, p);
-    }
-
-    /**
-     * Update a record in the database. Any field/value pairs in the specified values Map will be written into the record with the specified
-     * record key, overwriting any existing values with the same field name.
-     *
-     * @param table The name of the table
-     * @param key The record key of the record to write.
-     * @param values A Map of field/value pairs to update in the record
-     * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
-     */
-    public int updateAll(String table, String key, Map<String,ByteIterator> values)
-    {
-        Put p = new Put(Bytes.toBytes(key));
-        p.setDurability(durability);
-        for (Map.Entry<String, ByteIterator> entry : values.entrySet())
-        {
-            if (debug) {
-                System.out.println("Adding field/value " + entry.getKey() + "/"+
-                        entry.getValue() + " to put request");
-            }
-            p.add(columnFamilyBytes,Bytes.toBytes(entry.getKey()),entry.getValue().toArray());
-        }
-
-        return update(table, key, p);
-    }
-
-    public int update(String table, String key, Put p)
-    {
-        //if this is a "new" table, init HTable object.  Else, use existing one
-        if (!this.table.equals(table)) {
-            hTable = null;
-            try
-            {
-                initHTable(table);
-                this.table = table;
-            }
-            catch (IOException e)
-            {
-                System.err.println("Error accessing HBase table: "+e);
-                return ServerError;
-            }
-        }
-
-
+    public int update(String table, String key, HashMap<String,ByteIterator> values) {
         if (debug) {
             System.out.println("Setting up put for key: "+key);
         }
-
-        try
-        {
-            hTable.put(p);
-        }
-        catch (IOException e)
-        {
+        Put p = new Put(Bytes.toBytes(key));
+        for (Map.Entry<String, ByteIterator> e : values.entrySet()) {
             if (debug) {
-                System.err.println("Error doing put: "+e);
+                System.out.println("Adding field/value " + e.getKey() + "/" +
+                                   e.getValue() + " to put request");
+            }
+            p.add(columnFamilyBytes, Bytes.toBytes(e.getKey()), e.getValue().toArray());
+        }
+        HTableInterface t = null;
+        try {
+            t = getHTable(table);
+            t.put(p);
+        } catch (IOException e) {
+            if (debug) {
+                System.err.println("Error doing put: " + e);
             }
             return ServerError;
+        } finally {
+            putHTable(t);
         }
-        catch (ConcurrentModificationException e)
-        {
-            //do nothing for now...hope this is rare
-            return ServerError;
-        }
-
         return Ok;
     }
 
     /**
-     * Insert a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
-     * record key.
-     *
+     * Insert a record in the database. Any field/value pairs in the specified values HashMap
+     * will be written into the record with the specified record key.
      *
      * @param table The name of the table
      * @param key The record key of the record to insert.
      * @param values A HashMap of field/value pairs to insert in the record
      * @return Zero on success, a non-zero error code on error
      */
-    @Override
-    public int insert(String table, String key, Map<String, ByteIterator> values)
-    {
-        return updateAll(table,key,values);
+    public int insert(String table, String key, HashMap<String,ByteIterator> values) {
+        return update(table,key,values);
     }
 
     /**
@@ -404,42 +343,89 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      * @param key The record key of the record to delete.
      * @return Zero on success, a non-zero error code on error
      */
-    @Override
-    public int delete(String table, String key)
-    {
-        //if this is a "new" table, init HTable object.  Else, use existing one
-        if (!this.table.equals(table)) {
-            hTable = null;
-            try
-            {
-                initHTable(table);
-                this.table = table;
-            }
-            catch (IOException e)
-            {
-                System.err.println("Error accessing HBase table: "+e);
-                return ServerError;
-            }
-        }
-
+    public int delete(String table, String key) {
         if (debug) {
             System.out.println("Doing delete for key: "+key);
         }
-
-        Delete d = new Delete(Bytes.toBytes(key));
-        try
-        {
-            hTable.delete(d);
-        }
-        catch (IOException e)
-        {
+        HTableInterface t = null;
+        try {
+            t = getHTable(table);
+            t.delete(new Delete(Bytes.toBytes(key)));
+        } catch (IOException e) {
             if (debug) {
                 System.err.println("Error doing delete: "+e);
             }
             return ServerError;
+        } finally {
+            putHTable(t);
+        }
+        return Ok;
+    }
+
+    public static void main(String[] args) {
+        if (args.length != 3) {
+            System.out.println("Please specify a threadcount, columnfamily and operation count");
+            System.exit(0);
         }
 
-        return Ok;
+        final int keyspace = 10000; //120000000;
+        final int threadcount = Integer.parseInt(args[0]);
+        final String columnfamily = args[1];
+        final int opcount = Integer.parseInt(args[2])/threadcount;
+
+        List<Thread> allthreads = new ArrayList<Thread>(threadcount);
+        for (int i = 0; i < threadcount; i++) {
+            final int threadNum = i;
+            allthreads.add(new Thread() {
+                public void run() {
+                    setName(String.format("client-%d", threadNum));
+                    try {
+                        Random random = new Random();
+                        HBaseClient cli = new HBaseClient();
+                        Properties props = new Properties();
+                        props.setProperty("columnfamily", columnfamily);
+                        props.setProperty("debug", "false");
+                        cli.setProperties(props);
+                        cli.init();
+                        long accum = 0;
+                        for (int i = 0; i < opcount; i++) {
+                            int keynum = random.nextInt(keyspace);
+                            String key = "user" + keynum;
+                            long st = System.currentTimeMillis();
+                            Vector<HashMap<String,ByteIterator>> scanResults =
+                            new Vector<HashMap<String,ByteIterator>>();
+                            int rescode = cli.scan("table1", "user2", 20, null, scanResults);
+                            long en = System.currentTimeMillis();
+                            accum += (en-st);
+                            if (rescode != Ok) {
+                                System.out.println("Error " + rescode + " for " + key);
+                            }
+                            if (i % 1 == 0) {
+                                System.out.println(i+" operations, average latency: " +
+                                                   (((double)accum)/((double)i)));
+                            }
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }
+
+        long st = System.currentTimeMillis();
+        for (Thread t: allthreads) {
+            t.start();
+        }
+        for (Thread t: allthreads) {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                System.err.println("Interrupted waiting for " + t + ": " + e);
+            }
+        }
+        long en = System.currentTimeMillis();
+        System.out.println("Throughput: " +
+                           (1000.0 * (((double)(opcount * threadcount)) / ((double)(en - st)))) + " ops/sec");
     }
 }
 
@@ -448,4 +434,3 @@ public class HBaseClient extends com.yahoo.ycsb.DB
  * set si
  * set shiftwidth=4
 */
-
