@@ -22,14 +22,9 @@ import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.measurements.Measurements;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
-import java.util.Random;
-import java.util.Set;
-import java.util.Vector;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
@@ -38,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.Get;
@@ -52,6 +48,8 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 
 /**
  * HBase client for YCSB framework
+ *
+ * hbase.durability = {async_wal,fsync_wal,skip_wal,sync_wal,use_default}
  */
 public class HBaseClient extends com.yahoo.ycsb.DB
 {
@@ -62,6 +60,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     public boolean debug = false;
     public String columnFamily = "";
     public byte columnFamilyBytes[];
+    private Durability durability;
 
     public static final int Ok = 0;
     public static final int ServerError = -1;
@@ -111,11 +110,10 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      */
     public void init() throws DBException
     {
-        if ((getProperties().getProperty("debug") != null) &&
-            (getProperties().getProperty("debug").compareTo("true") == 0))
-        {
-            debug = true;
-        }
+        debug = Boolean.parseBoolean("debug");
+
+        durability = Durability.valueOf(getProperties().getProperty("hbase.durability", "FSYNC_WAL").toUpperCase());
+
         columnFamily = getProperties().getProperty("columnfamily");
         if (columnFamily == null)
         {
@@ -178,17 +176,30 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         }
     }
 
+    public int readOne(String table, String key, String field, Map<String, ByteIterator> result)
+    {
+        Get g = new Get(Bytes.toBytes(key));
+        g.addColumn(columnFamilyBytes, Bytes.toBytes(field));
+        return read(table, key, g, result);
+    }
+
+    public int readAll(String table, String key, Map<String, ByteIterator> result)
+    {
+        Get g = new Get(Bytes.toBytes(key));
+        g.addFamily(columnFamilyBytes);
+        return read(table, key, g, result);
+    }
+
     /**
      * Read a record from the database. Each field/value pair from the result will be stored
      * in a HashMap.
      *
      * @param table  The name of the table
      * @param key    The record key of the record to read.
-     * @param fields The list of fields to read, or null for all of them
      * @param result A HashMap of field/value pairs for the result
      * @return Zero on success, a non-zero error code on error
      */
-    public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result)
+    public int read(String table, String key, Get g, Map<String, ByteIterator> result)
     {
         HTableInterface t = null;
         Result r = null;
@@ -197,18 +208,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             if (debug)
             {
                 System.out.println("Doing read for key " + key);
-            }
-            Get g = new Get(Bytes.toBytes(key));
-            if (fields == null)
-            {
-                g.addFamily(columnFamilyBytes);
-            }
-            else
-            {
-                for (String field : fields)
-                {
-                    g.addColumn(columnFamilyBytes, Bytes.toBytes(field));
-                }
             }
             t = getHTable(table);
             r = t.get(g);
@@ -228,10 +227,8 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         {
             for (int i = 0; i < cells.length; i++)
             {
-                result.put(new String(cells[i].getQualifierArray(), cells[i].getQualifierOffset(),
-                                      cells[i].getQualifierLength()),
-                           new ByteArrayByteIterator(cells[i].getValueArray(), cells[i].getValueOffset(),
-                                                     cells[i].getValueLength()));
+                result.put(new String(cells[i].getQualifierArray(), cells[i].getQualifierOffset(), cells[i].getQualifierLength()),
+                           new ByteArrayByteIterator(cells[i].getValueArray(), cells[i].getValueOffset(), cells[i].getValueLength()));
             }
         }
         if (debug)
@@ -243,35 +240,33 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         return result.isEmpty() ? NoMatchingRecord : Ok;
     }
 
+    public int scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result)
+    {
+        Scan s = new Scan(Bytes.toBytes(startkey));
+        s.addFamily(columnFamilyBytes);
+        return scan(table, recordcount, s, result);
+    }
+
+    public int scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result)
+    {
+        Scan s = new Scan(Bytes.toBytes(startkey));
+        s.addColumn(columnFamilyBytes, Bytes.toBytes(field));
+        return scan(table, recordcount, s, result);
+    }
+
     /**
      * Perform a range scan for a set of records in the database. Each field/value pair from the
      * result will be stored in a HashMap.
      *
      * @param table       The name of the table
-     * @param startkey    The record key of the first record to read.
      * @param recordcount The number of records to read
-     * @param fields      The list of fields to read, or null for all of them
      * @param result      A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
      * @return Zero on success, a non-zero error code on error
      */
-    public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result)
+    public int scan(String table, int recordcount, Scan s, List<Map<String, ByteIterator>> result)
     {
-        Scan s = new Scan(Bytes.toBytes(startkey));
         // Assume recordcount is small enough to bring back in one call
         s.setCaching(recordcount);
-
-        // Add specified fields or else all fields
-        if (fields == null)
-        {
-            s.addFamily(columnFamilyBytes);
-        }
-        else
-        {
-            for (String field : fields)
-            {
-                s.addColumn(columnFamilyBytes, Bytes.toBytes(field));
-            }
-        }
 
         // get results
         HTableInterface t = null;
@@ -313,7 +308,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         {
             if (debug)
             {
-                System.out.println("Error in getting/parsing scan result: " + e);
+                System.err.println("Error in getting/parsing scan result: " + e);
             }
             return ServerError;
         }
@@ -329,6 +324,41 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         return result.isEmpty() ? NoMatchingRecord : Ok;
     }
 
+    public int updateOne(String table, String key, String field, ByteIterator value)
+    {
+        Put p = new Put(Bytes.toBytes(key));
+        if (debug)
+        {
+            System.out.println("Adding field/value " + field + "/"+ value + " to put request");
+        }
+        p.setDurability(durability);
+        p.add(columnFamilyBytes, Bytes.toBytes(field), value.toArray());
+        return update(table, key, p);
+    }
+
+    public int updateAll(String table, String key, Map<String, ByteIterator> values)
+    {
+        Put p = new Put(Bytes.toBytes(key));
+        p.setDurability(durability);
+        for (Map.Entry<String, ByteIterator> entry : values.entrySet())
+        {
+            String field = entry.getKey();
+            ByteIterator value = entry.getValue();
+            if (debug)
+            {
+                System.out.println("Adding field/value " + field + "/" +
+                                   value + " to put request");
+            }
+            p.add(columnFamilyBytes, Bytes.toBytes(field), value.toArray());
+        }
+        return update(table, key, p);
+    }
+
+    public int insert(String table, String key, Map<String, ByteIterator> values)
+    {
+        return updateAll(table, key, values);
+    }
+
     /**
      * Update a record in the database. Any field/value pairs in the specified values
      * HashMap will be written into the record with the specified record key, overwriting
@@ -336,24 +366,13 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      *
      * @param table  The name of the table
      * @param key    The record key of the record to write
-     * @param values A HashMap of field/value pairs to update in the record
      * @return Zero on success, a non-zero error code on error
      */
-    public int update(String table, String key, HashMap<String, ByteIterator> values)
+    public int update(String table, String key, Put p)
     {
         if (debug)
         {
             System.out.println("Setting up put for key: " + key);
-        }
-        Put p = new Put(Bytes.toBytes(key));
-        for (Map.Entry<String, ByteIterator> e : values.entrySet())
-        {
-            if (debug)
-            {
-                System.out.println("Adding field/value " + e.getKey() + "/" +
-                                   e.getValue() + " to put request");
-            }
-            p.add(columnFamilyBytes, Bytes.toBytes(e.getKey()), e.getValue().toArray());
         }
         HTableInterface t = null;
         try
@@ -374,20 +393,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             putHTable(t);
         }
         return Ok;
-    }
-
-    /**
-     * Insert a record in the database. Any field/value pairs in the specified values HashMap
-     * will be written into the record with the specified record key.
-     *
-     * @param table  The name of the table
-     * @param key    The record key of the record to insert.
-     * @param values A HashMap of field/value pairs to insert in the record
-     * @return Zero on success, a non-zero error code on error
-     */
-    public int insert(String table, String key, HashMap<String, ByteIterator> values)
-    {
-        return update(table, key, values);
     }
 
     /**
