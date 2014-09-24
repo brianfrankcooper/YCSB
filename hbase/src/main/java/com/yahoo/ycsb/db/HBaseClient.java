@@ -74,13 +74,8 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         // Disable Nagle on the client, hope we've done the same on the server
         config.setBoolean("hbase.ipc.client.tcpnodelay", true);
         connection = HConnectionManager.createConnection(config);
-        int coreThreads = Runtime.getRuntime().availableProcessors() * 8;
-        // Maintain a useful minimum of core threads even on wimpy hosts
-        if (coreThreads < 32)
-        {
-            coreThreads = 32;
-        }
-        int maxThreads = coreThreads * 8;
+        int coreThreads = Runtime.getRuntime().availableProcessors();
+        int maxThreads = coreThreads * 2;
         this.executor = new ThreadPoolExecutor(coreThreads,
                                                maxThreads,
                                                // Time out threads after 60 seconds of inactivity
