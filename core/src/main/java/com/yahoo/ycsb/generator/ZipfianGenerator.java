@@ -46,17 +46,17 @@ public class ZipfianGenerator extends IntegerGenerator
     /**
      * Number of items.
      */
-    long items;
+    final long items;
 
     /**
      * Min item to generate.
      */
-    long base;
+    final long base;
 
     /**
      * The zipfian constant to use.
      */
-    double zipfianconstant;
+    final double zipfianconstant;
 
     /**
      * Computed parameters for generating the distribution.
@@ -225,58 +225,24 @@ public class ZipfianGenerator extends IntegerGenerator
     /****************************************************************************************/
 
     /**
-     * Generate the next item. this distribution will be skewed toward lower integers; e.g. 0 will
-     * be the most popular, 1 the next most popular, etc.
-     *
-     * @param itemcount The number of items in the distribution.
-     * @return The next item in the sequence.
+     * Return the next value, skewed by the Zipfian distribution. The 0th item will be the most popular, followed by the 1st, followed
+     * by the 2nd, etc. (Or, if min != 0, the min-th item is the most popular, the min+1th item the next most popular, etc.) If you want the
+     * popular items scattered throughout the item space, use ScrambledZipfianGenerator instead.
      */
-    public int nextInt(int itemcount)
+    @Override
+    public int nextInt()
     {
-        return (int) nextLong(itemcount);
+        return (int) nextLong();
     }
 
     /**
-     * Generate the next item as a long.
-     *
-     * @param itemcount The number of items in the distribution.
-     * @return The next item in the sequence.
+     * Return the next value, skewed by the Zipfian distribution. The 0th item will be the most popular, followed by the 1st, followed
+     * by the 2nd, etc. (Or, if min != 0, the min-th item is the most popular, the min+1th item the next most popular, etc.) If you want the
+     * popular items scattered throughout the item space, use ScrambledZipfianGenerator instead.
      */
-    public long nextLong(long itemcount)
+    public long nextLong()
     {
         //from "Quickly Generating Billion-Record Synthetic Databases", Jim Gray et al, SIGMOD 1994
-
-        if (itemcount != countforzeta)
-        {
-
-            //have to recompute zetan and eta, since they depend on itemcount
-            synchronized (this)
-            {
-                if (itemcount > countforzeta)
-                {
-                    //System.err.println("WARNING: Incrementally recomputing Zipfian distribtion. (itemcount="+itemcount+" countforzeta="+countforzeta+")");
-
-                    //we have added more items. can compute zetan incrementally, which is cheaper
-                    zetan = zeta(countforzeta, itemcount, theta, zetan);
-                    eta = (1 - Math.pow(2.0 / items, 1 - theta)) / (1 - zeta2theta / zetan);
-                    countforzeta = itemcount;
-                }
-                else if ((itemcount < countforzeta) && (allowitemcountdecrease))
-                {
-                    //have to start over with zetan
-                    //note : for large itemsets, this is very slow. so don't do it!
-
-                    //TODO: can also have a negative incremental computation, e.g. if you decrease the number of items, then just subtract
-                    //the zeta sequence terms for the items that went away. This would be faster than recomputing from scratch when the number of items
-                    //decreases
-
-                    System.err.println("WARNING: Recomputing Zipfian distribtion. This is slow and should be avoided. (itemcount=" + itemcount + " countforzeta=" + countforzeta + ")");
-
-                    zetan = zeta(itemcount, theta);
-                    eta = (1 - Math.pow(2.0 / items, 1 - theta)) / (1 - zeta2theta / zetan);
-                }
-            }
-        }
 
         double u = Utils.random().nextDouble();
         double uz = u * zetan;
@@ -291,30 +257,9 @@ public class ZipfianGenerator extends IntegerGenerator
             return 1;
         }
 
-        long ret = base + (long) ((itemcount) * Math.pow(eta * u - eta + 1, alpha));
+        long ret = base + (long) ((items) * Math.pow(eta * u - eta + 1, alpha));
         setLastInt((int) ret);
         return ret;
-    }
-
-    /**
-     * Return the next value, skewed by the Zipfian distribution. The 0th item will be the most popular, followed by the 1st, followed
-     * by the 2nd, etc. (Or, if min != 0, the min-th item is the most popular, the min+1th item the next most popular, etc.) If you want the
-     * popular items scattered throughout the item space, use ScrambledZipfianGenerator instead.
-     */
-    @Override
-    public int nextInt()
-    {
-        return (int) nextLong(items);
-    }
-
-    /**
-     * Return the next value, skewed by the Zipfian distribution. The 0th item will be the most popular, followed by the 1st, followed
-     * by the 2nd, etc. (Or, if min != 0, the min-th item is the most popular, the min+1th item the next most popular, etc.) If you want the
-     * popular items scattered throughout the item space, use ScrambledZipfianGenerator instead.
-     */
-    public long nextLong()
-    {
-        return nextLong(items);
     }
 
     public static void main(String[] args)

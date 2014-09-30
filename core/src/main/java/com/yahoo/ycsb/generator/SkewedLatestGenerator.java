@@ -35,15 +35,20 @@ public class SkewedLatestGenerator extends IntegerGenerator
 	}
 
 	/**
-	 * Generate the next string in the distribution, skewed Zipfian favoring the items most recently returned by the basis generator.
+	 * Generate the next item in the distribution, favoring the items most recently returned by the basis generator.
 	 */
 	public int nextInt()
 	{
+        int max = _basis.getKeynumForRead();
+        // build a new zipfian generator if we've inserted enough items to make it worth our while.  this is
+        // expensive, so we define "worth it" as "item count has doubled."
+        if (max - _min > 2 * (_zipfian.base - _min))
+            _zipfian = new ZipfianGenerator(_min, max);
+
         int nextint;
-        do {
-            int max = _basis.getKeynumForRead();
-            nextint = max - _zipfian.nextInt(max);
-        } while (nextint < _min);
+        nextint = max - _zipfian.nextInt();
+
+        assert nextint > _min;
 		setLastInt(nextint);
 		return nextint;
 	}
