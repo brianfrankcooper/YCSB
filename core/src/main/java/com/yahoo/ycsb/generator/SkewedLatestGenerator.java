@@ -30,7 +30,7 @@ public class SkewedLatestGenerator extends IntegerGenerator
 	{
 		_basis=basis;
         _min = basis.getKeynumForRead();
-		_zipfian = new ZipfianGenerator(_min);
+		_zipfian = new ZipfianGenerator(1);
 		nextInt();
 	}
 
@@ -39,11 +39,9 @@ public class SkewedLatestGenerator extends IntegerGenerator
 	 */
 	public int nextInt()
 	{
-        int nextint;
-        do {
-            int max = _basis.getKeynumForRead();
-            nextint = max - _zipfian.nextInt(max);
-        } while (nextint < _min);
+        int max = _basis.getKeynumForRead();
+        int nextint = max - _zipfian.nextInt(1 + max - _min);
+        assert nextint >= _min;
 		setLastInt(nextint);
 		return nextint;
 	}
