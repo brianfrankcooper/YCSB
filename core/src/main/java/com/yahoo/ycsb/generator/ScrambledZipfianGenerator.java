@@ -32,8 +32,7 @@ public class ScrambledZipfianGenerator extends IntegerGenerator
 {
 	public static final double ZETAN=26.46902820178302;
         public static final double USED_ZIPFIAN_CONSTANT=0.99;
-	public static final long ITEM_COUNT=10000000000L;
-	
+
 	ZipfianGenerator gen;
 	long _min,_max,_itemcount;
 	
@@ -84,13 +83,15 @@ public class ScrambledZipfianGenerator extends IntegerGenerator
 		_min=min;
 		_max=max;
 		_itemcount=_max-_min+1;
-		if (_zipfianconstant == USED_ZIPFIAN_CONSTANT) 
-		{
-		    gen=new ZipfianGenerator(0,ITEM_COUNT,_zipfianconstant,ZETAN);
-		} else {
-		    gen=new ZipfianGenerator(0,ITEM_COUNT,_zipfianconstant);
-		}
-	}
+        if (_zipfianconstant == USED_ZIPFIAN_CONSTANT)
+        {
+            gen = new ZipfianGenerator(0, _itemcount, _zipfianconstant, ZETAN);
+        }
+        else
+        {
+            gen = new ZipfianGenerator(0, _itemcount, _zipfianconstant);
+        }
+    }
 	
 	/**************************************************************************************************/
 	
@@ -115,7 +116,7 @@ public class ScrambledZipfianGenerator extends IntegerGenerator
 	
 	public static void main(String[] args)
 	{
-	    double newzetan = ZipfianGenerator.zetastatic(ITEM_COUNT,ZipfianGenerator.ZIPFIAN_CONSTANT);
+	    double newzetan = ZipfianGenerator.zetastatic(1000, ZipfianGenerator.ZIPFIAN_CONSTANT);
 	    System.out.println("zetan: "+newzetan);
 	    System.exit(0);
 

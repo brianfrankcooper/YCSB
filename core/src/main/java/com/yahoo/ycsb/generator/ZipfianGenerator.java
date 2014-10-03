@@ -313,7 +313,7 @@ public class ZipfianGenerator extends IntegerGenerator
 	
 	public static void main(String[] args)
 	{
-		new ZipfianGenerator(ScrambledZipfianGenerator.ITEM_COUNT);
+		new ZipfianGenerator(1000);
 	}
 
 	/**
