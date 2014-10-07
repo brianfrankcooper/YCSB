@@ -48,7 +48,7 @@ public class SkewedLatestGenerator extends IntegerGenerator
 
 	public static void main(String[] args)
 	{
-		SkewedLatestGenerator gen = new SkewedLatestGenerator(new KeynumGenerator(1000));
+		SkewedLatestGenerator gen = new SkewedLatestGenerator(new KeynumGenerator(1000, true));
 		for (int i=0; i<Integer.parseInt(args[0]); i++)
 		{
 			System.out.println(gen.nextString());

@@ -21,7 +21,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * A key number generator that separately tracks keys for writing and reading.  Key numbers for writing use a simple
+ * A key number generator that can separately tracks keys for writing and reading.  Key numbers for writing use a simple
  * incrementing AtomicInteger.  For reads, the highest contiguous key number for which an insert has been completed
  * is used.  For example, if insertions have completed for [0, 1, 2, 5], then 2 should be used as the highest available
  * key number for reads, because writes for 3 and 4 have not completed yet.
@@ -32,6 +32,12 @@ public class KeynumGenerator
      * Tracks the highest key number for which an insert has been started.
      */
     private final AtomicInteger submittedCounter;
+
+    /**
+     * If true, the highest readable key number will be tracked.
+     * If false, it will not, and getKeynumForRead should not be used.
+     */
+    private final boolean trackLatestForReads;
 
     /**
      * Tracks the highest contiguous key number that should be available for reads.
@@ -45,11 +51,16 @@ public class KeynumGenerator
 
     /**
      * @param startAt the first value that should be used for inserts
+     * @param trackLatestForReads if true, the highest readable key will be tracked, which is required for
+     *                            distributions like "latest". If this is not needed, set this to false to avoid
+     *                            the extra locking and overhead.
      */
-    public KeynumGenerator(int startAt)
+    public KeynumGenerator(int startAt, boolean trackLatestForReads)
     {
         submittedCounter = new AtomicInteger(startAt);
-        inProgress = new PriorityBlockingQueue<Integer>();
+        this.trackLatestForReads = trackLatestForReads;
+
+        inProgress = trackLatestForReads ? new PriorityBlockingQueue<Integer>() : null;
 
         // ideally this would be null until the first insert had completed, but that causes problems with workloads
         this.highestContiguousCompleted = startAt;
@@ -62,7 +73,8 @@ public class KeynumGenerator
     public int startInsert()
     {
         int nextKeyNumber = submittedCounter.getAndIncrement();
-        inProgress.add(nextKeyNumber);
+        if (trackLatestForReads)
+            inProgress.add(nextKeyNumber);
         return nextKeyNumber;
     }
 
@@ -73,22 +85,22 @@ public class KeynumGenerator
      */
     public void completeInsert(int keynum)
     {
-        // remove from the in-progress queue before holding the lock
-        boolean didRemove = inProgress.remove(keynum);
-        assert didRemove : "Completed keynum was not in in-progress priority queue";
+        if (trackLatestForReads) {
+            // remove from the in-progress queue before holding the lock
+            boolean didRemove = inProgress.remove(keynum);
+            assert didRemove : "Completed keynum was not in in-progress priority queue";
 
-        synchronized (this)
-        {
-            // while holding the lock, see if we may be the new highest contiguous key number
-            if (keynum > highestContiguousCompleted)
-            {
-                // get the lowest key number from the in-progress heap
-                Integer lowest = inProgress.peek();
+            synchronized (this) {
+                // while holding the lock, see if we may be the new highest contiguous key number
+                if (keynum > highestContiguousCompleted) {
+                    // get the lowest key number from the in-progress heap
+                    Integer lowest = inProgress.peek();
 
-                // if there is nothing in progress, or everything in progress is a higher key number, set the new
-                // highest contiguous key number
-                if (lowest == null || lowest > keynum)
-                    highestContiguousCompleted = keynum;
+                    // if there is nothing in progress, or everything in progress is a higher key number, set the new
+                    // highest contiguous key number
+                    if (lowest == null || lowest > keynum)
+                        highestContiguousCompleted = keynum;
+                }
             }
         }
     }
@@ -98,6 +110,7 @@ public class KeynumGenerator
      */
     public int getKeynumForRead()
     {
+        assert trackLatestForReads : "KeynumGenerator does not have read keynum tracking enabled";
         return highestContiguousCompleted;
     }
 }

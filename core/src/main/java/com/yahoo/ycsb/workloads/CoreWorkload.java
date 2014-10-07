@@ -270,7 +270,12 @@ public class CoreWorkload extends Workload {
     public static final String IGNORE_INSERT_ERRORS_DEFAULT = "false";
 
 
+    /**
+     * Used to track insert keys.
+     * When using the "latest" distribution, this also tracks the highest readable key.
+     **/
     KeynumGenerator keynumGenerator;
+    boolean trackLatestInsertForReads;
 
     DiscreteGenerator operationchooser;
 
@@ -342,7 +347,8 @@ public class CoreWorkload extends Workload {
         orderedinserts = !p.getProperty(INSERT_ORDER_PROPERTY, INSERT_ORDER_PROPERTY_DEFAULT).equals("hashed");
         orderedinserts = true;
 
-        keynumGenerator = new KeynumGenerator(insertstart);
+        trackLatestInsertForReads = requestdistrib.equals("latest") || requestdistrib.equals("exponential");
+        keynumGenerator = new KeynumGenerator(insertstart, trackLatestInsertForReads);
 
         operationchooser = new DiscreteGenerator();
         if (readproportion > 0) {
@@ -495,16 +501,22 @@ public class CoreWorkload extends Workload {
 
     int nextReadKeynum() {
         int keynum;
-        if (keychooser instanceof ExponentialGenerator) {
-            do {
-                keynum = keynumGenerator.getKeynumForRead() - keychooser.nextInt();
+        if (trackLatestInsertForReads) {
+            // we need to make sure we only try to read keys that have already been written
+            if (keychooser instanceof ExponentialGenerator) {
+                do {
+                    keynum = keynumGenerator.getKeynumForRead() - keychooser.nextInt();
+                }
+                while (keynum < 0);
+            } else {
+                // the "latest" distribution
+                do {
+                    keynum = keychooser.nextInt();
+                }
+                while (keynum > keynumGenerator.getKeynumForRead());
             }
-            while (keynum < 0);
         } else {
-            do {
-                keynum = keychooser.nextInt();
-            }
-            while (keynum > keynumGenerator.getKeynumForRead());
+            keynum = keychooser.nextInt();
         }
         return keynum;
     }
