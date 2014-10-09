@@ -126,29 +126,14 @@ public class CassandraCQLClient extends DB
             writeConsistencyLevel = ConsistencyLevel.valueOf(getProperties().getProperty(WRITE_CONSISTENCY_LEVEL_PROPERTY, WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT));
             readallfields = Boolean.parseBoolean(getProperties().getProperty(CoreWorkload.READ_ALL_FIELDS_PROPERTY, CoreWorkload.READ_ALL_FIELDS_PROPERTY_DEFAULT));
 
-            // public void connect(String node) {}
+            Cluster.Builder builder = Cluster.builder()
+                                             .withPort(Integer.valueOf(port))
+                                             .addContactPoints(hosts);
             if ((username != null) && !username.isEmpty())
             {
-                cluster = Cluster.builder()
-                                 .withCredentials(username, password)
-                                 .withPort(Integer.valueOf(port))
-                                 .addContactPoints(hosts).build();
+                builder = builder.withCredentials(username, password);
             }
-            else
-            {
-                cluster = Cluster.builder()
-                                 .withPort(Integer.valueOf(port))
-                                 .addContactPoints(hosts).build();
-            }
-
-            //Update number of connections based on threads
-            int threadcount = Integer.parseInt(getProperties().getProperty("threadcount","2"));
-            cluster.getConfiguration().getPoolingOptions().setMaxConnectionsPerHost(HostDistance.LOCAL, threadcount);
-
-            //Set connection timeout 3min (default is 5s)
-            cluster.getConfiguration().getSocketOptions().setConnectTimeoutMillis(3*60*1000);
-            //Set read (execute) timeout 3min (default is 12s)
-            cluster.getConfiguration().getSocketOptions().setReadTimeoutMillis(3*60*1000);
+            cluster = builder.build();
 
             Metadata metadata = cluster.getMetadata();
             System.out.printf("Connected to cluster: %s\n", metadata.getClusterName());
