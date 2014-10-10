@@ -68,7 +68,7 @@ public class CassandraClient10 extends DB
 
     private boolean _debug = false;
 
-    private String _table = "";
+    private String keyspace = "";
 
     private List<Mutation> mutations = new ArrayList<Mutation>();
 
@@ -194,12 +194,12 @@ public class CassandraClient10 extends DB
     }
 
     private int read(String table, String key, Map<String, ByteIterator> result, SlicePredicate predicate) {
-        if (!_table.equals(table))
+        if (!keyspace.equals(table))
         {
             try
             {
                 client.set_keyspace(table);
-                _table = table;
+                keyspace = table;
             }
             catch (Exception e)
             {
@@ -298,12 +298,12 @@ public class CassandraClient10 extends DB
 
     public int scan(String table, String startkey, int recordcount,
                     List<Map<String, ByteIterator>> result, SlicePredicate predicate) {
-        if (!_table.equals(table))
+        if (!keyspace.equals(table))
         {
             try
             {
                 client.set_keyspace(table);
-                _table = table;
+                keyspace = table;
             }
             catch (Exception e)
             {
@@ -409,12 +409,12 @@ public class CassandraClient10 extends DB
      */
     public int insert(String table, String key, Map<String, ByteIterator> values)
     {
-        if (!_table.equals(table))
+        if (!keyspace.equals(table))
         {
             try
             {
                 client.set_keyspace(table);
-                _table = table;
+                keyspace = table;
             }
             catch (Exception e)
             {
@@ -479,12 +479,12 @@ public class CassandraClient10 extends DB
      */
     public int delete(String table, String key)
     {
-        if (!_table.equals(table))
+        if (!keyspace.equals(table))
         {
             try
             {
                 client.set_keyspace(table);
-                _table = table;
+                keyspace = table;
             }
             catch (Exception e)
             {
