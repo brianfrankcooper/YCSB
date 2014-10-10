@@ -378,7 +378,45 @@ public class CassandraClient10 extends DB
     @Override
     public int updateOne(String table, String key, String field, ByteIterator value)
     {
-        return insert(table, key, Collections.singletonMap(field, value));
+        if (!keyspace.equals(table))
+        {
+            try
+            {
+                client.set_keyspace(table);
+                keyspace = table;
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+                e.printStackTrace(System.out);
+                return Error;
+            }
+        }
+
+        if (_debug)
+        {
+            System.out.println("Updating key: " + key);
+            System.out.println("ConsistencyLevel=" + writeConsistencyLevel.toString());
+        }
+
+        try
+        {
+            ByteBuffer wrappedKey = ByteBuffer.wrap(key.getBytes("UTF-8"));
+
+            Column col = new Column();
+            col.setName(ByteBuffer.wrap(field.getBytes("UTF-8")));
+            col.setValue(ByteBuffer.wrap(value.toArray()));
+            col.setTimestamp(System.currentTimeMillis());
+
+            client.insert(wrappedKey, new ColumnParent(column_family), col, writeConsistencyLevel);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            return Error;
+        }
+
+        return Ok;
     }
 
     /**
