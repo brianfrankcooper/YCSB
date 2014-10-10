@@ -204,7 +204,6 @@ public class CassandraClient10 extends DB
             catch (Exception e)
             {
                 e.printStackTrace();
-                e.printStackTrace(System.out);
                 return Error;
             }
         }
@@ -489,7 +488,6 @@ public class CassandraClient10 extends DB
             catch (Exception e)
             {
                 e.printStackTrace();
-                e.printStackTrace(System.out);
                 return Error;
             }
         }
@@ -557,51 +555,4 @@ public class CassandraClient10 extends DB
         res = cli.delete("usertable", "BrianFrankCooper");
         System.out.println("Result of delete: " + res);
     }
-
-    /*
-    * public static void main(String[] args) throws TException,
-    * InvalidRequestException, UnavailableException,
-    * UnsupportedEncodingException, NotFoundException {
-    *
-    *
-    *
-    * String key_user_id = "1";
-    *
-    *
-    *
-    *
-    * client.insert("Keyspace1", key_user_id, new ColumnPath("Standard1", null,
-    * "age".getBytes("UTF-8")), "24".getBytes("UTF-8"), timestamp,
-    * ConsistencyLevel.ONE);
-    *
-    *
-    * // read single column ColumnPath path = new ColumnPath("Standard1", null,
-    * "name".getBytes("UTF-8"));
-    *
-    * System.out.println(client.get("Keyspace1", key_user_id, path,
-    * ConsistencyLevel.ONE));
-    *
-    *
-    * // read entire row SlicePredicate predicate = new SlicePredicate(null, new
-    * SliceRange(new byte[0], new byte[0], false, 10));
-    *
-    * ColumnParent parent = new ColumnParent("Standard1", null);
-    *
-    * List<ColumnOrSuperColumn> results = client.get_slice("Keyspace1",
-    * key_user_id, parent, predicate, ConsistencyLevel.ONE);
-    *
-    * for (ColumnOrSuperColumn result : results) {
-    *
-    * Column column = result.column;
-    *
-    * System.out.println(new String(column.name, "UTF-8") + " -> " + new
-    * String(column.value, "UTF-8"));
-    *
-    * }
-    *
-    *
-    *
-    *
-    * }
-    */
 }
