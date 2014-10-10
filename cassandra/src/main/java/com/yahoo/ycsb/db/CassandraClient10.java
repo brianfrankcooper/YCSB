@@ -437,9 +437,7 @@ public class CassandraClient10 extends DB
     @Override
     public int updateOne(String table, String key, String field, ByteIterator value)
     {
-        HashMap<String, ByteIterator> values = new HashMap<String, ByteIterator>();
-        values.put(field, value);
-        return insert(table, key, values);
+        return insert(table, key, Collections.singletonMap(field, value));
     }
 
     /**
@@ -453,10 +451,6 @@ public class CassandraClient10 extends DB
      */
     @Override
     public int updateAll(String table, String key, Map<String,ByteIterator> values) {
-        return insert(table, key, values);
-    }
-
-    public int update(String table, String key, Map<String, ByteIterator> values) {
         return insert(table, key, values);
     }
 
@@ -501,12 +495,13 @@ public class CassandraClient10 extends DB
 
                 Column col;
                 ColumnOrSuperColumn column;
+                long ts = System.currentTimeMillis();
                 for (Map.Entry<String, ByteIterator> entry : values.entrySet())
                 {
                     col = new Column();
                     col.setName(ByteBuffer.wrap(entry.getKey().getBytes("UTF-8")));
                     col.setValue(ByteBuffer.wrap(entry.getValue().toArray()));
-                    col.setTimestamp(System.currentTimeMillis());
+                    col.setTimestamp(ts);
 
                     column = new ColumnOrSuperColumn();
                     column.setColumn(col);
