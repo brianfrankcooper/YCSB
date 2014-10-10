@@ -42,15 +42,7 @@ public class CassandraClient10 extends DB
     private static final int Error = -1;
     private static final ByteBuffer emptyByteBuffer = ByteBuffer.wrap(new byte[0]);
 
-    private int ConnectionRetries;
-    private int OperationRetries;
     private String column_family;
-
-    private static final String CONNECTION_RETRY_PROPERTY = "cassandra.connectionretries";
-    private static final String CONNECTION_RETRY_PROPERTY_DEFAULT = "300";
-
-    private static final String OPERATION_RETRY_PROPERTY = "cassandra.operationretries";
-    private static final String OPERATION_RETRY_PROPERTY_DEFAULT = "300";
 
     private static final String USERNAME_PROPERTY = "cassandra.username";
     private static final String PASSWORD_PROPERTY = "cassandra.password";
@@ -77,7 +69,6 @@ public class CassandraClient10 extends DB
     private boolean _debug = false;
 
     private String _table = "";
-    private Exception errorexception = null;
 
     private List<Mutation> mutations = new ArrayList<Mutation>();
 
@@ -104,11 +95,6 @@ public class CassandraClient10 extends DB
         column_family = getProperties().getProperty(COLUMN_FAMILY_PROPERTY, COLUMN_FAMILY_PROPERTY_DEFAULT);
         parent = new ColumnParent(column_family);
 
-        ConnectionRetries = Integer.parseInt(getProperties().getProperty(CONNECTION_RETRY_PROPERTY,
-                                                                         CONNECTION_RETRY_PROPERTY_DEFAULT));
-        OperationRetries = Integer.parseInt(getProperties().getProperty(OPERATION_RETRY_PROPERTY,
-                                                                        OPERATION_RETRY_PROPERTY_DEFAULT));
-
         String username = getProperties().getProperty(USERNAME_PROPERTY);
         String password = getProperties().getProperty(PASSWORD_PROPERTY);
 
@@ -126,34 +112,15 @@ public class CassandraClient10 extends DB
 
         Exception connectexception = null;
 
-        for (int retry = 0; retry < ConnectionRetries; retry++)
+        tr = new TFramedTransport(new TSocket(myhost, 9160));
+        TProtocol proto = new TBinaryProtocol(tr);
+        client = new Cassandra.Client(proto);
+        try
         {
-            tr = new TFramedTransport(new TSocket(myhost, 9160));
-            TProtocol proto = new TBinaryProtocol(tr);
-            client = new Cassandra.Client(proto);
-            try
-            {
-                tr.open();
-                connectexception = null;
-                break;
-            }
-            catch (Exception e)
-            {
-                connectexception = e;
-            }
-            try
-            {
-                System.out.println("Reconnect!");
-                Thread.sleep(100);
-            }
-            catch (InterruptedException e)
-            {
-            }
+            tr.open();
         }
-        if (connectexception != null)
+        catch (Exception e)
         {
-            System.err.println("Unable to connect to " + myhost + " after " + ConnectionRetries
-                               + " tries");
             throw new DBException(connectexception);
         }
 
@@ -221,11 +188,9 @@ public class CassandraClient10 extends DB
         }
         catch (Exception e)
         {
-            errorexception = e;
+            e.printStackTrace();
+            return Error;
         }
-
-        errorexception.printStackTrace();
-        return Error;
     }
 
     private int read(String table, String key, Map<String, ByteIterator> result, SlicePredicate predicate) {
@@ -244,58 +209,46 @@ public class CassandraClient10 extends DB
             }
         }
 
-        for (int i = 0; i < OperationRetries; i++)
+        try
         {
-            try
+            List<ColumnOrSuperColumn> results = client.get_slice(ByteBuffer.wrap(key.getBytes("UTF-8")), parent, predicate, readConsistencyLevel);
+
+            if (_debug)
             {
-                List<ColumnOrSuperColumn> results = client.get_slice(ByteBuffer.wrap(key.getBytes("UTF-8")), parent, predicate, readConsistencyLevel);
+                System.out.print("Reading key: " + key);
+            }
+
+            Column column;
+            String name;
+            ByteIterator value;
+            for (ColumnOrSuperColumn oneresult : results)
+            {
+                column = oneresult.column;
+                name = new String(column.name.array(), column.name.position() + column.name.arrayOffset(), column.name.remaining());
+                value = new ByteArrayByteIterator(column.value.array(), column.value.position() + column.value.arrayOffset(), column.value.remaining());
+
+                result.put(name, value);
 
                 if (_debug)
                 {
-                    System.out.print("Reading key: " + key);
+                    System.out.print("(" + name + "=" + value + ")");
                 }
-
-                Column column;
-                String name;
-                ByteIterator value;
-                for (ColumnOrSuperColumn oneresult : results)
-                {
-                    column = oneresult.column;
-                    name = new String(column.name.array(), column.name.position() + column.name.arrayOffset(), column.name.remaining());
-                    value = new ByteArrayByteIterator(column.value.array(), column.value.position() + column.value.arrayOffset(), column.value.remaining());
-
-                    result.put(name, value);
-
-                    if (_debug)
-                    {
-                        System.out.print("(" + name + "=" + value + ")");
-                    }
-                }
-
-                if (_debug)
-                {
-                    System.out.println();
-                    System.out.println("ConsistencyLevel=" + readConsistencyLevel.toString());
-                }
-
-                return Ok;
             }
-            catch (Exception e)
+
+            if (_debug)
             {
-                errorexception = e;
+                System.out.println();
+                System.out.println("ConsistencyLevel=" + readConsistencyLevel.toString());
             }
 
-            try
-            {
-                Thread.sleep(100);
-            }
-            catch (InterruptedException e)
-            {
-            }
         }
-        errorexception.printStackTrace();
-        return Error;
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            return Error;
+        }
 
+        return Ok;
     }
 
     /**
@@ -338,10 +291,9 @@ public class CassandraClient10 extends DB
         }
         catch (Exception e)
         {
-            errorexception = e;
+            e.printStackTrace();
+            return Error;
         }
-        errorexception.printStackTrace();
-        return Error;
     }
 
     public int scan(String table, String startkey, int recordcount,
@@ -361,65 +313,55 @@ public class CassandraClient10 extends DB
             }
         }
 
-        for (int i = 0; i < OperationRetries; i++)
+        try
         {
-            try
+            KeyRange kr = new KeyRange().setStart_key(startkey.getBytes("UTF-8")).setEnd_key(new byte[]{ }).setCount(recordcount);
+
+            List<KeySlice> results = client.get_range_slices(parent, predicate, kr, scanConsistencyLevel);
+
+            if (_debug)
             {
-                KeyRange kr = new KeyRange().setStart_key(startkey.getBytes("UTF-8")).setEnd_key(new byte[]{ }).setCount(recordcount);
+                System.out.println("Scanning startkey: " + startkey);
+            }
 
-                List<KeySlice> results = client.get_range_slices(parent, predicate, kr, scanConsistencyLevel);
+            Map<String, ByteIterator> tuple;
+            for (KeySlice oneresult : results)
+            {
+                tuple = new HashMap<String, ByteIterator>();
 
-                if (_debug)
+                Column column;
+                String name;
+                ByteIterator value;
+                for (ColumnOrSuperColumn onecol : oneresult.columns)
                 {
-                    System.out.println("Scanning startkey: " + startkey);
-                }
+                    column = onecol.column;
+                    name = new String(column.name.array(), column.name.position() + column.name.arrayOffset(), column.name.remaining());
+                    value = new ByteArrayByteIterator(column.value.array(), column.value.position() + column.value.arrayOffset(), column.value.remaining());
 
-                Map<String, ByteIterator> tuple;
-                for (KeySlice oneresult : results)
-                {
-                    tuple = new HashMap<String, ByteIterator>();
+                    tuple.put(name, value);
 
-                    Column column;
-                    String name;
-                    ByteIterator value;
-                    for (ColumnOrSuperColumn onecol : oneresult.columns)
-                    {
-                        column = onecol.column;
-                        name = new String(column.name.array(), column.name.position() + column.name.arrayOffset(), column.name.remaining());
-                        value = new ByteArrayByteIterator(column.value.array(), column.value.position() + column.value.arrayOffset(), column.value.remaining());
-
-                        tuple.put(name, value);
-
-                        if (_debug)
-                        {
-                            System.out.print("(" + name + "=" + value + ")");
-                        }
-                    }
-
-                    result.add(tuple);
                     if (_debug)
                     {
-                        System.out.println();
-                        System.out.println("ConsistencyLevel=" + scanConsistencyLevel.toString());
+                        System.out.print("(" + name + "=" + value + ")");
                     }
                 }
 
-                return Ok;
+                result.add(tuple);
+                if (_debug)
+                {
+                    System.out.println();
+                    System.out.println("ConsistencyLevel=" + scanConsistencyLevel.toString());
+                }
             }
-            catch (Exception e)
-            {
-                errorexception = e;
-            }
-            try
-            {
-                Thread.sleep(100);
-            }
-            catch (InterruptedException e)
-            {
-            }
+
         }
-        errorexception.printStackTrace();
-        return Error;
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            return Error;
+        }
+
+        return Ok;
     }
 
     /**
@@ -482,61 +424,50 @@ public class CassandraClient10 extends DB
             }
         }
 
-        for (int i = 0; i < OperationRetries; i++)
+        if (_debug)
         {
-            if (_debug)
-            {
-                System.out.println("Inserting key: " + key);
-            }
-
-            try
-            {
-                ByteBuffer wrappedKey = ByteBuffer.wrap(key.getBytes("UTF-8"));
-
-                Column col;
-                ColumnOrSuperColumn column;
-                long ts = System.currentTimeMillis();
-                for (Map.Entry<String, ByteIterator> entry : values.entrySet())
-                {
-                    col = new Column();
-                    col.setName(ByteBuffer.wrap(entry.getKey().getBytes("UTF-8")));
-                    col.setValue(ByteBuffer.wrap(entry.getValue().toArray()));
-                    col.setTimestamp(ts);
-
-                    column = new ColumnOrSuperColumn();
-                    column.setColumn(col);
-
-                    mutations.add(new Mutation().setColumn_or_supercolumn(column));
-                }
-
-                client.batch_mutate(Collections.singletonMap(wrappedKey,
-                                                             Collections.singletonMap(column_family, mutations)),
-                                    writeConsistencyLevel);
-
-                mutations.clear();
-
-                if (_debug)
-                {
-                    System.out.println("ConsistencyLevel=" + writeConsistencyLevel.toString());
-                }
-
-                return Ok;
-            }
-            catch (Exception e)
-            {
-                errorexception = e;
-            }
-            try
-            {
-                Thread.sleep(100);
-            }
-            catch (InterruptedException e)
-            {
-            }
+            System.out.println("Inserting key: " + key);
         }
 
-        errorexception.printStackTrace();
-        return Error;
+        try
+        {
+            ByteBuffer wrappedKey = ByteBuffer.wrap(key.getBytes("UTF-8"));
+
+            Column col;
+            ColumnOrSuperColumn column;
+            long ts = System.currentTimeMillis();
+            for (Map.Entry<String, ByteIterator> entry : values.entrySet())
+            {
+                col = new Column();
+                col.setName(ByteBuffer.wrap(entry.getKey().getBytes("UTF-8")));
+                col.setValue(ByteBuffer.wrap(entry.getValue().toArray()));
+                col.setTimestamp(ts);
+
+                column = new ColumnOrSuperColumn();
+                column.setColumn(col);
+
+                mutations.add(new Mutation().setColumn_or_supercolumn(column));
+            }
+
+            client.batch_mutate(Collections.singletonMap(wrappedKey,
+                                                         Collections.singletonMap(column_family, mutations)),
+                                writeConsistencyLevel);
+
+            mutations.clear();
+
+            if (_debug)
+            {
+                System.out.println("ConsistencyLevel=" + writeConsistencyLevel.toString());
+            }
+
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            return Error;
+        }
+
+        return Ok;
     }
 
     /**
@@ -563,37 +494,26 @@ public class CassandraClient10 extends DB
             }
         }
 
-        for (int i = 0; i < OperationRetries; i++)
+        try
         {
-            try
-            {
-                client.remove(ByteBuffer.wrap(key.getBytes("UTF-8")),
-                              new ColumnPath(column_family),
-                              System.currentTimeMillis(),
-                              deleteConsistencyLevel);
+            client.remove(ByteBuffer.wrap(key.getBytes("UTF-8")),
+                          new ColumnPath(column_family),
+                          System.currentTimeMillis(),
+                          deleteConsistencyLevel);
 
-                if (_debug)
-                {
-                    System.out.println("Delete key: " + key);
-                    System.out.println("ConsistencyLevel=" + deleteConsistencyLevel.toString());
-                }
-
-                return Ok;
-            }
-            catch (Exception e)
+            if (_debug)
             {
-                errorexception = e;
-            }
-            try
-            {
-                Thread.sleep(100);
-            }
-            catch (InterruptedException e)
-            {
+                System.out.println("Delete key: " + key);
+                System.out.println("ConsistencyLevel=" + deleteConsistencyLevel.toString());
             }
         }
-        errorexception.printStackTrace();
-        return Error;
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            return Error;
+        }
+
+        return Ok;
     }
 
     public static void main(String[] args)
