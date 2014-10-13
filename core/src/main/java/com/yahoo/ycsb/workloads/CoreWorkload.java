@@ -581,7 +581,7 @@ public class CoreWorkload extends Workload {
         if (!readallfields) {
             //read a random field
             String fieldname = fieldnameprefix + fieldchooser.nextString();
-            db.scanOne(table, startkeyname, recordcount, fieldname, new ArrayList<Map<String, ByteIterator>>());
+            db.scanOne(table, startkeyname, len, fieldname, new ArrayList<Map<String, ByteIterator>>());
         } else {
             db.scanAll(table,startkeyname, len, new ArrayList<Map<String, ByteIterator>>());
         }

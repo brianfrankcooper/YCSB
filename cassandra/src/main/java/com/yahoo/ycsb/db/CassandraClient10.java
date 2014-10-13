@@ -320,7 +320,7 @@ public class CassandraClient10 extends DB
 
             if (_debug)
             {
-                System.out.println("Scanning startkey: " + startkey);
+                System.out.printf("Scanning %s records beginning with %s: %n", recordcount, startkey);
             }
 
             Map<String, ByteIterator> tuple;
