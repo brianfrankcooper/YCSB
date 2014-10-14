@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import com.basho.riak.client.IRiakObject;
+import com.basho.riak.client.core.query.RiakObject;
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 
@@ -44,11 +44,9 @@ final class RiakUtils {
 
     }
 
-    static void deserializeTable(final IRiakObject aRiakObject,
+    static void deserializeTable(final RiakObject aRiakObject,
             final HashMap<String, ByteIterator> theResult) {
-
-        deserializeTable(aRiakObject.getValue(), theResult);
-
+        deserializeTable(aRiakObject.getValue().getValue(), theResult);
     }
 
     static void deserializeTable(final byte[] aValue,

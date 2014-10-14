@@ -5,23 +5,21 @@ import static com.yahoo.ycsb.db.RiakUtils.*;
 import static com.yahoo.ycsb.db.Constants.*;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.basho.riak.client.IRiakObject;
-import com.basho.riak.client.builders.RiakObjectBuilder;
-import com.basho.riak.client.query.indexes.IntIndex;
-import com.basho.riak.client.raw.RawClient;
-import com.basho.riak.client.raw.RiakResponse;
-import com.basho.riak.client.raw.pbc.PBClientAdapter;
-import com.basho.riak.client.raw.query.indexes.IndexQuery;
-import com.basho.riak.client.raw.query.indexes.IntRangeQuery;
+import com.basho.riak.client.api.commands.kv.DeleteValue;
+import com.basho.riak.client.api.commands.kv.FetchValue;
+import com.basho.riak.client.api.commands.kv.StoreValue;
+import com.basho.riak.client.api.commands.kv.UpdateValue;
+import com.basho.riak.client.core.RiakNode;
+import com.basho.riak.client.api.RiakClient;
+import com.basho.riak.client.core.RiakCluster;
+
+import com.basho.riak.client.core.query.Location;
+import com.basho.riak.client.core.query.Namespace;
+import com.basho.riak.client.core.query.RiakObject;
+import com.basho.riak.client.core.util.BinaryValue;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
@@ -31,7 +29,8 @@ public final class RiakDBClient extends DB {
 
     private static final AtomicLong SCAN_INDEX_SEQUENCE = new AtomicLong();
 
-    private RawClient rawClient;
+    private RiakClient riakClient;
+    private RiakCluster riakCluster;
     private boolean use2i = false;
     private static int connectionNumber = 0;
 
@@ -59,18 +58,17 @@ public final class RiakDBClient extends DB {
     private void setupConnections(Properties props, String[] servers)
             throws IOException {
 
-        final String server = servers[connectionNumber++ % servers.length];
-        final String[] ipAndPort = server.split(":");
-        final String ip = ipAndPort[0].trim();
-        final int port = Integer.parseInt(ipAndPort[1].trim());
-        final com.basho.riak.pbc.RiakClient pbcClient = new com.basho.riak.pbc.RiakClient(ip, port);
-        rawClient = new PBClientAdapter(pbcClient);
+        final RiakNode.Builder builder = new RiakNode.Builder();
+        final List<RiakNode> nodes = RiakNode.Builder.buildNodes(builder, Arrays.asList(servers));
+        riakCluster = new RiakCluster.Builder(nodes).build();
+        riakCluster.start();
+        riakClient = new RiakClient(riakCluster);
     }
 
 
     @Override
     public void cleanup() throws DBException {
-        rawClient.shutdown();
+        riakCluster.shutdown();
     }
 
     @Override
@@ -79,11 +77,12 @@ public final class RiakDBClient extends DB {
 
         try {
 
-            final RiakResponse aResponse = rawClient.fetch(aBucket, aKey);
-            if (aResponse.hasValue()) {
-                final IRiakObject aRiakObject = aResponse.getRiakObjects()[0];
-                deserializeTable(aRiakObject.getValue(), theResult);
-            }
+            final Namespace ns = new Namespace("default", aBucket);
+            final Location location = new Location(ns, aKey);
+            final FetchValue fv = new FetchValue.Builder(location).build();
+            final FetchValue.Response response = riakClient.execute(fv);
+            final RiakObject obj = response.getValue(RiakObject.class);
+            deserializeTable(obj, theResult);
 
             return OK;
 
@@ -97,34 +96,28 @@ public final class RiakDBClient extends DB {
 
     public int scan(String bucket, String startkey, int recordcount,
             Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-        if (use2i) {
-            try {
-                RiakResponse fetchResp = rawClient.fetch(bucket, startkey);
-                Set<Long> idx = fetchResp.getRiakObjects()[0]
-                        .getIntIndexV2(YCSB_INT);
-                if (idx.size() == 0) {
-                    System.err.println("Index not found");
-                    return ERROR;
-                } else {
-                    Long id = idx.iterator().next();
-                    long range = id + recordcount;
-                    IndexQuery iq = new IntRangeQuery(IntIndex.named(YCSB_INT),
-                            bucket, id, range);
-                    List<String> results = rawClient.fetchIndex(iq);
-                    for (String key : results) {
-                        RiakResponse resp = rawClient.fetch(bucket, key);
-                        HashMap<String, ByteIterator> rowResult = new HashMap<String, ByteIterator>();
-                        deserializeTable(resp.getRiakObjects()[0], rowResult);
-                        result.add(rowResult);
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-                return ERROR;
+        return ERROR;
+    }
+
+    private class YCSBUpdate extends UpdateValue.Update<byte[]> {
+
+        private final HashMap<String, ByteIterator> update;
+        public YCSBUpdate(HashMap<String, ByteIterator> updatedColumns) {
+            this.update = updatedColumns;
+        }
+
+        @Override
+        public byte[] apply(byte[] original) {
+            if (original == null) {
+                original = new byte[0];
             }
-            return OK;
-        } else {
-            return ERROR;
+
+            HashMap<String, ByteIterator> table = newHashMap();
+            deserializeTable(original, table);
+            Map<String, ByteIterator> updatedTable = merge(table, update);
+            original = serializeTable(updatedTable);
+
+            return original;
         }
     }
 
@@ -134,25 +127,12 @@ public final class RiakDBClient extends DB {
 
         try {
 
-            final RiakResponse aResponse = rawClient.fetch(aBucket, aKey);
-            if (aResponse.hasValue()) {
+            final Namespace ns = new Namespace("default", aBucket);
+            final Location location = new Location(ns, aKey);
+            final YCSBUpdate update = new YCSBUpdate(theUpdatedColumns);
 
-                final IRiakObject aRiakObject = aResponse.getRiakObjects()[0];
-
-                final Map<String, ByteIterator> aTable = newHashMap();
-                deserializeTable(aRiakObject.getValue(), aTable);
-
-                final Map<String, ByteIterator> anUpdatedTable = merge(aTable,
-                        theUpdatedColumns);
-
-                // The RiakObjectBuilder#from method copies indexes -- ensuring
-                // that the YCSB index is not lost on update ...
-                final RiakObjectBuilder aBuilder = RiakObjectBuilder.from(
-                        aRiakObject).withValue(serializeTable(anUpdatedTable));
-
-                rawClient.store(aBuilder.build());
-
-            }
+            final UpdateValue uv = new UpdateValue.Builder(location).withUpdate(update).build();
+            final UpdateValue.Response response = riakClient.execute(uv);
 
             return OK;
 
@@ -171,14 +151,14 @@ public final class RiakDBClient extends DB {
 
         try {
 
-            final RiakObjectBuilder aBuilder = RiakObjectBuilder.newBuilder(
-                    aBucket, aKey).withValue(serializeTable(theColumns));
-
-            if (use2i) {
-                aBuilder.addIndex(YCSB_INT,
-                        SCAN_INDEX_SEQUENCE.getAndIncrement()).build();
-            }
-            rawClient.store(aBuilder.build());
+            final Namespace ns = new Namespace("default", aBucket);
+            final Location location = new Location(ns, aKey);
+            final RiakObject object = new RiakObject();
+            object.setValue(BinaryValue.create(serializeTable(theColumns)));
+            StoreValue store = new StoreValue.Builder(object)
+                    .withLocation(location)
+                    .build();
+            riakClient.execute(store);
 
             return OK;
 
@@ -193,8 +173,11 @@ public final class RiakDBClient extends DB {
 
     public int delete(String bucket, String key) {
         try {
-            rawClient.delete(bucket, key);
-        } catch (IOException e) {
+            final Namespace ns = new Namespace("default", bucket);
+            final Location location = new Location(ns, key);
+            final DeleteValue dv = new DeleteValue.Builder(location).build();
+            riakClient.execute(dv);
+        } catch (Exception e) {
             e.printStackTrace();
             return ERROR;
         }
