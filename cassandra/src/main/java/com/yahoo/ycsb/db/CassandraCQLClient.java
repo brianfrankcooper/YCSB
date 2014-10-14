@@ -281,6 +281,7 @@ public class CassandraCQLClient extends DB
 
             ResultSet rs = session.execute(bs);
             Row row = rs.one();
+            assert row != null : "Key " + key + " was not found; did you run a load job with the correct parameters?";
             for (ColumnDefinitions.Definition def : row.getColumnDefinitions())
             {
                 ByteBuffer val = row.getBytesUnsafe(def.getName());
