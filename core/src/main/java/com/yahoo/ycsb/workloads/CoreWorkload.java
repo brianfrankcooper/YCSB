@@ -31,6 +31,7 @@ import com.yahoo.ycsb.generator.ScrambledZipfianGenerator;
 import com.yahoo.ycsb.generator.SkewedLatestGenerator;
 import com.yahoo.ycsb.generator.UniformIntegerGenerator;
 import com.yahoo.ycsb.generator.ZipfianGenerator;
+import com.yahoo.ycsb.generator.ExtremeValueGenerator;
 import com.yahoo.ycsb.measurements.Measurements;
 
 import java.io.IOException;
@@ -75,6 +76,27 @@ public class CoreWorkload extends Workload
 
 	public static String table;
 
+	public static final String KEY_LENGTH_DISTRIBUTION_PROPERTY = "keylengthdistribution";
+	/*
+	 * The default key length distribution is no,
+	 * which indicates the original way used in YCSB.
+	 */
+	public static final String KEY_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT = "no";
+	public static final String KEY_LENGTH_PROPERTY = "keylength";
+	/* 
+	 * If the key length distribution is not constant,
+	 * the key length would be in the range (1,KEY_LENGTH_PROPERTY_DEFAULT);
+	 * However, to minimize the modification to the original YCSB,
+	 * these properties are not applied by default.
+	 */
+	public static final String KEY_LENGTH_PROPERTY_DEFAULT = "20";
+	public static final String KEY_LENGTH_HISTOGRAM_FILE_PROPERTY = "keylengthhistogram";
+	public static final String KEY_LENGTH_HISTOGRAM_FILE_PROPERTY_DEFAULT = "keyhist.txt";
+	
+	/**
+	 * Generator object that produces key lengths.  The value of this depends on the properties that start with "KEY_LENGTH_".
+	 */
+	IntegerGenerator keylengthgenerator;
 
 	/**
 	 * The name of the property for the number of fields in a record.
@@ -291,10 +313,45 @@ public class CoreWorkload extends Workload
 			} catch(IOException e) {
 				throw new WorkloadException("Couldn't read field length histogram file: "+fieldlengthhistogram, e);
 			}
-		} else {
+		}else if(fieldlengthdistribution.compareTo("extremevalue") == 0){
+			fieldlengthgenerator = new ExtremeValueGenerator(fieldlength);
+		}else {
 			throw new WorkloadException("Unknown field length distribution \""+fieldlengthdistribution+"\"");
 		}
 		return fieldlengthgenerator;
+	}
+	
+	/* added by Min Fu */
+	protected static IntegerGenerator getKeyLengthGenerator(Properties p) throws WorkloadException{
+		IntegerGenerator keylengthgenerator;
+		String keylengthdistribution = p.getProperty(KEY_LENGTH_DISTRIBUTION_PROPERTY,
+				KEY_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
+		int keylength = Integer.parseInt(p.getProperty(KEY_LENGTH_PROPERTY, KEY_LENGTH_PROPERTY_DEFAULT));
+		String keylengthhistogram = p.getProperty(KEY_LENGTH_HISTOGRAM_FILE_PROPERTY, 
+				KEY_LENGTH_HISTOGRAM_FILE_PROPERTY_DEFAULT);
+		if(keylengthdistribution.compareTo("no") == 0){
+			/* use the original way */
+			return null;
+		}else if(keylengthdistribution.compareTo("constant") == 0){
+			keylengthgenerator = new ConstantIntegerGenerator(keylength);
+		}else if(keylengthdistribution.compareTo("uniform") == 0){
+			keylengthgenerator = new UniformIntegerGenerator(1,keylength);
+		}else if(keylengthdistribution.compareTo("zipfian") == 0){
+			keylengthgenerator = new ZipfianGenerator(1, keylength);
+		}else if(keylengthdistribution.compareTo("histogram") == 0){
+			try {
+				keylengthgenerator = new HistogramGenerator(keylengthhistogram);
+			} catch(IOException e) {
+				throw new WorkloadException("Couldn't read key length histogram file: "+keylengthhistogram, e);
+			}
+		}else if(keylengthdistribution.compareTo("extremevalue") == 0){
+			/* We don't set a upper limit for the key length */
+			keylengthgenerator = new ExtremeValueGenerator();
+		}else {
+			throw new WorkloadException("Unknown key length distribution \""+keylengthdistribution+"\"");
+		}
+		
+		return keylengthgenerator;
 	}
 	
 	/**
@@ -304,6 +361,8 @@ public class CoreWorkload extends Workload
 	public void init(Properties p) throws WorkloadException
 	{
 		table = p.getProperty(TABLENAME_PROPERTY,TABLENAME_PROPERTY_DEFAULT);
+		
+		keylengthgenerator = CoreWorkload.getKeyLengthGenerator(p);
 		
 		fieldcount=Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY,FIELD_COUNT_PROPERTY_DEFAULT));
 		fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
