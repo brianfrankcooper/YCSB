@@ -40,6 +40,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.io.FileOutputStream;
+import java.io.FileInputStream;
 
 /**
  * The core benchmark scenario. Represents a set of clients doing simple CRUD operations. The relative 
@@ -302,6 +305,10 @@ public class CoreWorkload extends Workload
 	
 	boolean orderedinserts;
 
+	/*
+	 *  In the originial YCSB, recordcount is from the workload file.
+	 *  But now, it will be updated if it is inconsistent with the size of keylengths.array.
+	 */
 	int recordcount;
 	
 	int insertstart;
@@ -344,12 +351,13 @@ public class CoreWorkload extends Workload
 			return null;
 		}
 
+		assert(keylength!=0);
 		if(keylengthdistribution.compareTo("constant") == 0){
 			keylengthgenerator = new ConstantIntegerGenerator(keylength);
 		}else if(keylengthdistribution.compareTo("uniform") == 0){
 			keylengthgenerator = new UniformIntegerGenerator(1,keylength);
 		}else if(keylengthdistribution.compareTo("zipfian") == 0){
-			keylengthgenerator = new ZipfianGenerator(1, keylength);
+			keylengthgenerator = new ScrambledZipfianGenerator(1, keylength);
 		}else if(keylengthdistribution.compareTo("histogram") == 0){
 			try {
 				keylengthgenerator = new HistogramGenerator(keylengthhistogram);
@@ -366,6 +374,59 @@ public class CoreWorkload extends Workload
 		return keylengthgenerator;
 	}
 	
+	/*
+	 * called in init().
+	 * In the Load phase, init keylengths array with all zeros.
+	 * In the Run phase, init keylengths array via the keylengths.array file.
+	 */
+	protected int initKeylengths(Properties p){
+		
+		if(p.getProperty("dotransaction","yes").compareTo("yes") == 0){
+			/* in the run phase */
+			int operationnum = Integer.parseInt(p.getProperty(Client.OPERATION_COUNT_PROPERTY));
+			double insertproportion=Double.parseDouble(p.getProperty(INSERT_PROPORTION_PROPERTY,INSERT_PROPORTION_PROPERTY_DEFAULT));
+			try{
+				FileInputStream in = new FileInputStream("keylengths.array");
+				
+				/* size would be the actual number of keys */
+				int size = (int)in.getChannel().size();
+				keylengths = new byte[size+(int)(insertproportion*operationnum)];
+				in.read(keylengths, 0, size);
+				in.close();
+				
+				if(size != recordcount){
+					System.err.println("the recordcount in workload file is obsolete.");
+					recordcount = size;
+				}
+			}catch(IOException e){
+				System.out.println(e.getMessage()+", keylengths.array");
+				System.exit(0);
+			}
+		}else{
+			/* In the load phase */
+			keylengths = new byte[Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY))];
+		}
+		  			
+		int ret = 0;
+
+		return ret;
+	}
+	
+	/* Not all keylengths are required to be persisted since some slots in the end may be empty. 
+	 * recordcount is the number of keys. */
+	protected void persistKeylengths(byte[] keylengths, int recordcount){
+		try{
+			FileOutputStream out = new FileOutputStream("keylengths.array");
+			
+			out.write(keylengths, 0, recordcount);
+			
+			out.close();
+		}catch(IOException e){
+			System.out.println(e.getMessage()+", keylengths.array");
+			System.exit(0);
+		}
+	}
+	
 	/**
 	 * Initialize the scenario. 
 	 * Called once, in the main client thread, before any operations are started.
@@ -374,7 +435,12 @@ public class CoreWorkload extends Workload
 	{
 		table = p.getProperty(TABLENAME_PROPERTY,TABLENAME_PROPERTY_DEFAULT);
 		
-		keylengthgenerator = CoreWorkload.getKeyLengthGenerator(p);
+		recordcount=Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY));
+		if((keylengthgenerator = CoreWorkload.getKeyLengthGenerator(p)) != null){
+			/* Without a keylengthgenerator, we don't need to init keylengths.
+			 * It should be called as early as possible, since it will update the recordcount */
+			initKeylengths(p);
+		}
 		
 		fieldcount=Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY,FIELD_COUNT_PROPERTY_DEFAULT));
 		fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
@@ -384,14 +450,8 @@ public class CoreWorkload extends Workload
 		double insertproportion=Double.parseDouble(p.getProperty(INSERT_PROPORTION_PROPERTY,INSERT_PROPORTION_PROPERTY_DEFAULT));
 		double scanproportion=Double.parseDouble(p.getProperty(SCAN_PROPORTION_PROPERTY,SCAN_PROPORTION_PROPERTY_DEFAULT));
 		double readmodifywriteproportion=Double.parseDouble(p.getProperty(READMODIFYWRITE_PROPORTION_PROPERTY,READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT));
-		recordcount=Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY));
-		if(keylengthgenerator != null){
-			/* Without a keylengthgenerator, we don't need to record keylengths */
-			int operationnum = Integer.parseInt(p.getProperty(Client.OPERATION_COUNT_PROPERTY));
-			keylengths = new byte[recordcount+
-					(int)(insertproportion*operationnum)];
-		}
 		
+
 		String requestdistrib=p.getProperty(REQUEST_DISTRIBUTION_PROPERTY,REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
 		int maxscanlength=Integer.parseInt(p.getProperty(MAX_SCAN_LENGTH_PROPERTY,MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
 		String scanlengthdistrib=p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY,SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
@@ -498,6 +558,16 @@ public class CoreWorkload extends Workload
 		}
 	}
 
+	/* 
+	 * call cleanup() after all operations are done.
+	 * added by Min Fu.
+	 */
+	public void cleanup(){
+		if(keylengthgenerator != null){
+			persistKeylengths(keylengths,transactioninsertkeysequence.lastInt()+1);
+		}
+	}
+	
 	public String buildKeyName(long keynum) {
  		if (!orderedinserts)
  		{
@@ -766,5 +836,7 @@ public class CoreWorkload extends Workload
 
 		HashMap<String, ByteIterator> values = buildValues();
 		db.insert(table,dbkey,values);
+		
+		recordcount++;
 	}
 }

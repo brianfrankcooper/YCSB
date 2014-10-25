@@ -487,11 +487,15 @@ public class Client
 			{
 				dotransactions=false;
 				argindex++;
+				/* added by Min Fu. Let _workload be aware of this. */
+				props.setProperty("dotransaction", "no");
 			}
 			else if (args[argindex].compareTo("-t")==0)
 			{
 				dotransactions=true;
 				argindex++;
+				/* added by Min Fu. Let _workload be aware of this. */
+				props.setProperty("dotransaction", "yes");
 			}
 			else if (args[argindex].compareTo("-s")==0)
 			{
