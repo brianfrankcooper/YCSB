@@ -613,7 +613,7 @@ public class CoreWorkload extends Workload
  		{
  			keynum=Utils.hash(keynum);
  		}
- 		String ret = keynum+"-";
+ 		String ret = keynum+"";
  		if(keylen != -1 && keylen > ret.length()){
  			ret = ret.concat(appendix.substring(0,keylen-ret.length()));
  		}
