@@ -33,6 +33,7 @@ import com.yahoo.ycsb.generator.SkewedLatestGenerator;
 import com.yahoo.ycsb.generator.UniformIntegerGenerator;
 import com.yahoo.ycsb.generator.ZipfianGenerator;
 import com.yahoo.ycsb.generator.ExtremeValueGenerator;
+import com.yahoo.ycsb.generator.FacebookValueGenerator;
 import com.yahoo.ycsb.measurements.Measurements;
 
 import java.io.IOException;
@@ -40,7 +41,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Vector;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.io.FileOutputStream;
 import java.io.FileInputStream;
 
@@ -323,7 +323,7 @@ public class CoreWorkload extends Workload
 		} else if(fieldlengthdistribution.compareTo("uniform") == 0) {
 			fieldlengthgenerator = new UniformIntegerGenerator(1, fieldlength);
 		} else if(fieldlengthdistribution.compareTo("zipfian") == 0) {
-			fieldlengthgenerator = new ZipfianGenerator(1, fieldlength);
+			fieldlengthgenerator = new ScrambledZipfianGenerator(1, fieldlength);
 		} else if(fieldlengthdistribution.compareTo("histogram") == 0) {
 			try {
 				fieldlengthgenerator = new HistogramGenerator(fieldlengthhistogram);
@@ -332,6 +332,8 @@ public class CoreWorkload extends Workload
 			}
 		}else if(fieldlengthdistribution.compareTo("extremevalue") == 0){
 			fieldlengthgenerator = new ExtremeValueGenerator(fieldlength);
+		}else if(fieldlengthdistribution.compareTo("facebook") == 0){
+			fieldlengthgenerator = new FacebookValueGenerator();
 		}else {
 			throw new WorkloadException("Unknown field length distribution \""+fieldlengthdistribution+"\"");
 		}

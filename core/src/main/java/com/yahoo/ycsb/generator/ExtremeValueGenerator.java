@@ -17,9 +17,9 @@ import java.io.PrintStream;
  */
 public class ExtremeValueGenerator extends IntegerGenerator {
 
-	private static final double mu = 30.7984;
-	private static final double sigma = 8.20449;
-	private static final double xi = 0.078688;
+	private static final double mu = 30.7984; // location
+	private static final double sigma = 8.20449; // scale
+	private static final double xi = 0.078688; //shape
 	private long maxlength = 255;
 
 	public ExtremeValueGenerator() {
