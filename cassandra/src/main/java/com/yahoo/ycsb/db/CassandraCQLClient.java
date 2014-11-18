@@ -40,19 +40,19 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * In CQLSH, create keyspace and table.  Something like:
  *
- * create keyspace ycsb WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 1 };
- * create table ycsb.usertable (
- *     y_id varchar primary key,
- *     field0 blob,
- *     field1 blob,
- *     field2 blob,
- *     field3 blob,
- *     field4 blob,
- *     field5 blob,
- *     field6 blob,
- *     field7 blob,
- *     field8 blob,
- *     field9 blob);
+   create keyspace ycsb WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 1 };
+   create table ycsb.usertable (
+        y_id varchar primary key,
+        field0 blob,
+        field1 blob,
+        field2 blob,
+        field3 blob,
+        field4 blob,
+        field5 blob,
+        field6 blob,
+        field7 blob,
+        field8 blob,
+        field9 blob);
  *
  * @author cmatser
  */
