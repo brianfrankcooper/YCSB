@@ -482,11 +482,6 @@ public class Client {
     }
 
     public static boolean checkRequiredProperties(Properties props) {
-        if (props.getProperty(WORKLOAD_PROPERTY) == null) {
-            System.out.println("Missing property: " + WORKLOAD_PROPERTY);
-            return false;
-        }
-
         return true;
     }
 
@@ -719,7 +714,7 @@ public class Client {
         Workload workload = null;
 
         try {
-            Class workloadclass = classLoader.loadClass(props.getProperty(WORKLOAD_PROPERTY));
+            Class workloadclass = classLoader.loadClass(props.getProperty(WORKLOAD_PROPERTY, "com.yahoo.ycsb.workloads.CoreWorkload"));
             workload = (Workload) workloadclass.newInstance();
         } catch (Exception e) {
             e.printStackTrace();
