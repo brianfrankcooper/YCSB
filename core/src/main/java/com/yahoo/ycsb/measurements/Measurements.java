@@ -154,20 +154,6 @@ public class Measurements
         data.get(operation).reportRetryCount(retryCount);
     }
 	
-  /**
-   * Export the current measurements to a suitable format.
-   * 
-   * @param exporter Exporter representing the type of format to write to.
-   * @throws IOException Thrown if the export failed.
-   */
-  public void exportMeasurements(MeasurementsExporter exporter) throws IOException
-  {
-    for (OneMeasurement measurement : data.values())
-    {
-      measurement.exportMeasurements(exporter);
-    }
-  }
-
     public void exportMeasurementsPart(MeasurementsExporter exporter) throws IOException
     {
         for (OneMeasurement measurement : data.values())

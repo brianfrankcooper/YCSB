@@ -509,27 +509,6 @@ public class Client {
         return exporter;
     }
 
-    /**
-     * Exports the measurements to either sysout or a file using the exporter
-     * loaded from conf.
-     *
-     * @throws IOException Either failed to write to output stream or failed to close it.
-     */
-    private static void exportMeasurements(MeasurementsExporter exporter, int opcount, long runtime)
-            throws IOException {
-        try {
-            exporter.write("OVERALL", "RunTime(ms)", runtime);
-            double throughput = 1000.0 * ((double) opcount) / ((double) runtime);
-            exporter.write("OVERALL", "Throughput(ops/sec)", throughput);
-
-            Measurements.getMeasurements().exportMeasurements(exporter);
-        } finally {
-            if (exporter != null) {
-                exporter.close();
-            }
-        }
-    }
-
     @SuppressWarnings("unchecked")
     public static void main(String[] args) throws FileNotFoundException {
         String dbname;
