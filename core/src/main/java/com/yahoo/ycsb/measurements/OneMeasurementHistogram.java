@@ -152,9 +152,12 @@ public class OneMeasurementHistogram extends OneMeasurement {
     @Override
     public void exportMeasurementsFinal(MeasurementsExporter exporter) throws IOException {
         for (int i = 0; i < buckets.get(); i++) {
-            exporter.write(getName(), Integer.toString(i), histogram.get(i));
+            int count = histogram.get(i);
+            if (count > 0)
+                exporter.write(getName(), Integer.toString(i), count);
         }
-        exporter.write(getName(), ">" + buckets.get(), histogramoverflow.get());
+        if (histogramoverflow.get() > 0)
+            exporter.write(getName(), ">" + buckets.get(), histogramoverflow.get());
         exportGeneralMeasurements(exporter);
     }
 
