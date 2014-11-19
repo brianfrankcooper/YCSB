@@ -767,7 +767,11 @@ public class Client {
                 System.out.println("Unknown DB " + dbname);
                 System.exit(0);
             }
-            Thread t = new ClientThread(db, dotransactions, workload, props, opcount / threadcount, targetperthreadperms);
+
+            // spread the ops out across threads evenly, but add the remainder after dividing to thread zero
+            int opsPerThread = opcount / threadcount;
+            int threadOps = threadid == 0 ? opsPerThread + (opcount - opsPerThread * threadcount) : opsPerThread;
+            Thread t = new ClientThread(db, dotransactions, workload, props, threadOps, targetperthreadperms);
             threads.add(t);
         }
 
