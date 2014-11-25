@@ -74,7 +74,7 @@ See the next section for the list of configuration parameters for MongoDB.
 
 - `mongodb.database` default: `ycsb`
 
-- `mongodb.writeConcern` default `acknowledged`
+- `mongodb.writeConcern` default `journaled`
 
  - options are :
   - `errors_ignored`
@@ -85,4 +85,4 @@ See the next section for the list of configuration parameters for MongoDB.
 
 For example:
 
-    ./bin/ycsb load mongodb -s -P workloads/workloada -p mongodb.writeConcern=unacknowledged
+    ./bin/ycsb load mongodb -s -P workloads/workloada -p mongodb.writeConcern=replica_acknowledged

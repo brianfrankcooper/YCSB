@@ -36,7 +36,7 @@ import com.yahoo.ycsb.DBException;
  * Properties to set:
  *
  * mongodb.url=mongodb://localhost:27017 mongodb.database=ycsb
- * mongodb.writeConcern=acknowledged
+ * mongodb.writeConcern=journaled
  *
  * @author ypai
  */
@@ -90,7 +90,7 @@ public class MongoDbClient extends DB {
             final String maxConnections = props.getProperty("threadcount", "100");
 
             // write concern
-            String writeConcernType = props.getProperty("mongodb.writeConcern", "acknowledged").toLowerCase();
+            String writeConcernType = props.getProperty("mongodb.writeConcern", "journaled").toLowerCase();
             if ("errors_ignored".equals(writeConcernType)) {
                 writeConcern = WriteConcern.ERRORS_IGNORED;
             }
