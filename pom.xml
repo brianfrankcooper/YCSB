@@ -50,7 +50,7 @@
     <cassandra.cql.version>2.0.3</cassandra.cql.version>
     <accumulo.version>1.6.0</accumulo.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
-    <mongodb.version>2.11.2</mongodb.version>
+    <mongodb.version>2.12.1</mongodb.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <thrift.version>0.8.0</thrift.version>
   </properties>

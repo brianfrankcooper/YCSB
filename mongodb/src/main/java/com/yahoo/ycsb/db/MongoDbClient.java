@@ -10,12 +10,8 @@
 package com.yahoo.ycsb.db;
 
 import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBAddress;
@@ -39,153 +35,158 @@ import com.yahoo.ycsb.DBException;
  *
  * Properties to set:
  *
- * mongodb.url=mongodb://localhost:27017
- * mongodb.database=ycsb
- * mongodb.writeConcern=(none|normal|safe|fsync_safe|replicas_safe|custom)
+ * mongodb.url=mongodb://localhost:27017 mongodb.database=ycsb
+ * mongodb.writeConcern=acknowledged
  *
- * If custom:
- * mongodb.writeConcern.w=(-1|0|1|2)
- * mongodb.writeConcern.wtimeout=(0|other value in ms)
- * mongodb.writeConcern.fsync=(true|false)
- * mongodb.writeConcern.j=(true|false)
- * mongodb.writeConcern.continueOnInsertError=(true|false)
- * mongodb.readPreference=secondaryPreferred
- *
- * mongodb.writeConcert.X override specific parameters defined by general writeConcern property.
- *
- * Default values:
- *
- * mongodb.url=mongodb://localhost:27017
- * mongodb.database=ycsb
- * mongodb.writeConcern=safe
- * mongodb.readPreference=primary
- *
- * @link http://api.mongodb.org/java/2.10.1/com/mongodb/WriteConcern.html
- * @link http://api.mongodb.org/java/2.10.1/com/mongodb/ReadPreference.html
  * @author ypai
- * @author dnelubin
- *
  */
 public class MongoDbClient extends DB {
 
-    Mongo mongo;
-    WriteConcern writeConcern;
-    ReadPreference readPreference;
-    String database;
+    /** Used to include a field in a response. */
+    protected static final Integer INCLUDE = 1;
 
-    @Override
+    /** A singleton Mongo instance. */
+    private static Mongo[] mongos;
+
+    /** The default write concern for the test. */
+    private static WriteConcern writeConcern;
+
+    /** The default read preference for the test */
+    private static ReadPreference readPreference;
+
+    /** The database to access. */
+    private static String database;
+
+    /** Count the number of times initialized to teardown on the last {@link #cleanup()}. */
+    private static final AtomicInteger initCount = new AtomicInteger(0);
+
+    private static Random random = new Random();
+
+    private static String[] clients = null;
+
     /**
      * Initialize any state for this DB.
      * Called once per DB instance; there is one DB instance per client thread.
      */
+    @Override
     public void init() throws DBException {
-        // initialize MongoDb driver
-        Properties props = getProperties();
-        String url = props.getProperty("mongodb.url", "mongodb://localhost:27017");
-        database = props.getProperty("mongodb.database", "ycsb");
-        String writeConcernValue = props.getProperty("mongodb.writeConcern", "FSYNC_SAFE").toUpperCase();
-        String readPreferenceValue = props.getProperty("mongodb.readPreference", "NEAREST").toUpperCase();
+        initCount.incrementAndGet();
+        synchronized (INCLUDE) {
+            if (mongos != null) {
+                return;
+            }
 
-        if (writeConcernValue.equals("CUSTOM")) {
-            String writeConcernWValue = props.getProperty("mongodb.writeConcern.w", String.valueOf(writeConcern.getW()));
-            String writeConcernWtimeoutValue = props.getProperty("mongodb.writeConcern.wtimeout",
-                                                                 String.valueOf(writeConcern.getWtimeout()));
-            String writeConcernFsyncValue = props.getProperty("mongodb.writeConcern.fsync", String.valueOf(writeConcern.getFsync()));
-            String writeConcernJValue = props.getProperty("mongodb.writeConcern.j", String.valueOf(writeConcern.getJ()));
-            String writeConcernContinueValue = props.getProperty("mongodb.writeConcern.continueOnErrorForInsert",
-                                                                 String.valueOf(writeConcern.getContinueOnErrorForInsert()));
+            // initialize MongoDb driver
+            Properties props = getProperties();
+            String urls = props.getProperty("mongodb.url",
+                    "mongodb://localhost:27017");
 
-            int writeConcernWInt = Integer.MIN_VALUE;
-            try {
-                writeConcernWInt = Integer.parseInt(writeConcernWValue);
-            } catch (NumberFormatException e) {
-                System.err.println("ERROR: Invalid writeConcern.w: '" + writeConcernWValue + "'. Must be integer");
+            clients = urls.split(",");
+            mongos = new Mongo[clients.length];
+
+            database = props.getProperty("mongodb.database", "ycsb");
+
+            // Set connectionpool to size of ycsb thread pool
+            final String maxConnections = props.getProperty("threadcount", "100");
+
+            // write concern
+            String writeConcernType = props.getProperty("mongodb.writeConcern", "acknowledged").toLowerCase();
+            if ("errors_ignored".equals(writeConcernType)) {
+                writeConcern = WriteConcern.ERRORS_IGNORED;
+            }
+            else if ("unacknowledged".equals(writeConcernType)) {
+                writeConcern = WriteConcern.UNACKNOWLEDGED;
+            }
+            else if ("acknowledged".equals(writeConcernType)) {
+                writeConcern = WriteConcern.ACKNOWLEDGED;
+            }
+            else if ("journaled".equals(writeConcernType)) {
+                writeConcern = WriteConcern.JOURNALED;
+            }
+            else if ("replica_acknowledged".equals(writeConcernType)) {
+                writeConcern = WriteConcern.REPLICA_ACKNOWLEDGED;
+            }
+            else {
+                System.err.println("ERROR: Invalid writeConcern: '"
+                        + writeConcernType
+                        + "'. "
+                        + "Must be [ errors_ignored | unacknowledged | acknowledged | journaled | replica_acknowledged ]");
                 System.exit(1);
             }
 
-            int writeTimeoutInt = Integer.MIN_VALUE;
-            try {
-                writeTimeoutInt = Integer.parseInt(writeConcernWtimeoutValue);
-            } catch (NumberFormatException e) {
-                System.err.println("ERROR: Invalid writeConcern.wtimeout: '" + writeConcernWtimeoutValue + "'. " +
-                                   "Must be integer");
+            // readPreference
+            String readPreferenceType = props.getProperty("mongodb.readPreference", "primary").toLowerCase();
+            if ("primary".equals(readPreferenceType)) {
+                readPreference = ReadPreference.primary();
+            }
+            else if ("primary_preferred".equals(readPreferenceType)) {
+                readPreference = ReadPreference.primaryPreferred();
+            }
+            else if ("secondary".equals(readPreferenceType)) {
+                readPreference = ReadPreference.secondary();
+            }
+            else if ("secondary_preferred".equals(readPreferenceType)) {
+                readPreference = ReadPreference.secondaryPreferred();
+            }
+            else if ("nearest".equals(readPreferenceType)) {
+                readPreference = ReadPreference.nearest();
+            }
+            else {
+                System.err.println("ERROR: Invalid readPreference: '"
+                        + readPreferenceType
+                        + "'. Must be [ primary | primary_preferred | secondary | secondary_preferred | nearest ]");
                 System.exit(1);
             }
 
-            if (!"true".equalsIgnoreCase(writeConcernFsyncValue) && !"false".equalsIgnoreCase(writeConcernFsyncValue)) {
-                System.err.println("ERROR: Invalid writeConcern.fsync: '" + writeConcernFsyncValue + "'. " +
-                                   "Must be true or false");
-                System.exit(1);
-            };
+            for( int i=0; i< mongos.length; i++) {
+                try {
+                    // strip out prefix since Java driver doesn't currently support
+                    // standard connection format URL yet
+                    // http://www.mongodb.org/display/DOCS/Connections
+                    String url = clients[i];
+                    if (url.startsWith("mongodb://")) {
+                        url = url.substring(10);
+                    }
 
-            if (!"true".equalsIgnoreCase(writeConcernJValue) && !"false".equalsIgnoreCase(writeConcernJValue)) {
-                System.err.println("ERROR: Invalid writeConcern.j: '" + writeConcernJValue + "'. " +
-                                   "Must be true or false");
-                System.exit(1);
+                    // need to append db to url.
+                    url += "/" + database;
+                    MongoOptions options = new MongoOptions();
+                    options.setCursorFinalizerEnabled(false);
+                    options.connectionsPerHost = Integer.parseInt(maxConnections);
+                    mongos[i] = new Mongo(new DBAddress(url), options);
+
+                    System.out.println("mongo connection created with " + url);
+                } catch (Exception e1) {
+                    System.err
+                            .println("Could not initialize MongoDB connection pool for Loader: "
+                                    + e1.toString());
+                    e1.printStackTrace();
+                    return;
+                }
             }
-
-            if (!"true".equalsIgnoreCase(writeConcernContinueValue) && !"false".equalsIgnoreCase(writeConcernContinueValue)) {
-                System.err.println("ERROR: Invalid writeConcern.continueOnErrorForInsert: '" + writeConcernContinueValue + "'. " +
-                                   "Must be true or false");
-                System.exit(1);
-            }
-
-            writeConcern = new WriteConcern(writeConcernWInt,
-                                            writeTimeoutInt,
-                                            Boolean.parseBoolean(writeConcernFsyncValue),
-                                            Boolean.parseBoolean(writeConcernJValue),
-                                            Boolean.parseBoolean(writeConcernContinueValue));
         }
-        else {
-            writeConcern = WriteConcern.valueOf(writeConcernValue);
-        }
-
-        readPreference = ReadPreference.valueOf(readPreferenceValue);
-
-        //TODO: support tagset
-
-        try {
-            // strip out prefix since Java driver doesn't currently support
-            // standard connection format URL yet
-            // http://www.mongodb.org/display/DOCS/Connections
-            if (url.startsWith("mongodb://")) {
-                url = url.substring(10);
-            }
-
-            // need to append db to url.
-            url += "/"+database;
-            System.out.println("new database url = "+url);
-            mongo = new Mongo(new DBAddress(url));
-            System.out.println("mongo connection created with "+url);
-        } catch (Exception e1) {
-            System.err.println(
-                    "Could not initialize MongoDB connection pool for Loader: "
-                            + e1.toString());
-            e1.printStackTrace();
-            return;
-        }
-
     }
-    
+    /**
+     * Cleanup any state for this DB.
+     * Called once per DB instance; there is one DB instance per client thread.
+     */
     @Override
-	/**
-	 * Cleanup any state for this DB.
-	 * Called once per DB instance; there is one DB instance per client thread.
-	 */
-	public void cleanup() throws DBException
-	{
-        try {
-        	mongo.close();
-        } catch (Exception e1) {
-        	System.err.println(
-                    "Could not close MongoDB connection pool: "
+    public void cleanup() throws DBException {
+        if (initCount.decrementAndGet() <= 0) {
+            for(int i = 0; i < mongos.length; i++) {
+                try {
+                    mongos[i].close();
+                }
+                catch (Exception e1) {
+                    System.err.println("Could not close MongoDB connection pool: "
                             + e1.toString());
-            e1.printStackTrace();
-            return;
+                    e1.printStackTrace();
+                    return;
+                }
+            }
         }
-	}
+    }
 
-    @Override
     /**
      * Delete a record from the database.
      *
@@ -193,23 +194,23 @@ public class MongoDbClient extends DB {
      * @param key The record key of the record to delete.
      * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
      */
+    @Override
     public int delete(String table, String key) {
-        com.mongodb.DB db=null;
+        com.mongodb.DB db = null;
         try {
-            db = mongo.getDB(database);
+            db = mongos[random.nextInt(mongos.length)].getDB(database);
             db.requestStart();
             DBCollection collection = db.getCollection(table);
             DBObject q = new BasicDBObject().append("_id", key);
             WriteResult res = collection.remove(q, writeConcern);
-            return res.getN() == 1 ? 0 : 1;
-        } catch (Exception e) {
-            e.printStackTrace();
+            return 0;
+        }
+        catch (Exception e) {
+            System.err.println(e.toString());
             return 1;
         }
-        finally
-        {
-            if (db!=null)
-            {
+        finally {
+            if (db != null) {
                 db.requestDone();
             }
         }
@@ -228,29 +229,22 @@ public class MongoDbClient extends DB {
     public int insert(String table, String key, Map<String, ByteIterator> values) {
         com.mongodb.DB db = null;
         try {
-            db = mongo.getDB(database);
-
+            db = mongos[random.nextInt(mongos.length)].getDB(database);
             db.requestStart();
-
             DBCollection collection = db.getCollection(table);
             DBObject r = new BasicDBObject().append("_id", key);
-	        for(String k: values.keySet()) {
-		        r.put(k, values.get(k).toArray());
-	        }
-            WriteResult res = collection.insert(r, writeConcern);
-            String error = res.getError();
-            if (error == null) {
-                return 0;
-            } else {
-                System.err.println(error);
-                return 1;
+            for (String k : values.keySet()) {
+                r.put(k, values.get(k).toArray());
             }
-        } catch (Exception e) {
+            WriteResult res = collection.insert(r, writeConcern);
+            return 0;
+        }
+        catch (Exception e) {
             e.printStackTrace();
             return 1;
-        } finally {
-            if (db!=null)
-            {
+        }
+        finally {
+            if (db != null) {
                 db.requestDone();
             }
         }
@@ -270,7 +264,7 @@ public class MongoDbClient extends DB {
     public int readOne(String table, String key, String field, Map<String,ByteIterator> result) {
 
         DBObject fieldsToReturn = new BasicDBObject();
-        fieldsToReturn.put(field, 1);
+        fieldsToReturn.put(field, INCLUDE);
 
         return read(table, key, result, fieldsToReturn);
     }
@@ -286,7 +280,6 @@ public class MongoDbClient extends DB {
      * @return Zero on success, a non-zero error code on error or "not found".
      */
     public int readAll(String table, String key, Map<String,ByteIterator> result) {
-
         return read(table, key, result, null);
     }
 
@@ -295,7 +288,7 @@ public class MongoDbClient extends DB {
             DBObject fieldsToReturn) {
         com.mongodb.DB db = null;
         try {
-            db = mongo.getDB(database);
+            db = mongos[random.nextInt(mongos.length)].getDB(database);
 
             db.requestStart();
 
@@ -308,7 +301,7 @@ public class MongoDbClient extends DB {
             }
             return queryResult != null ? 0 : 1;
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println(e.toString());
             return 1;
         } finally {
             if (db!=null)
@@ -317,7 +310,6 @@ public class MongoDbClient extends DB {
             }
         }
     }
-
 
     @Override
     /**
@@ -361,7 +353,7 @@ public class MongoDbClient extends DB {
     public int update(String table, String key, DBObject fieldsToSet) {
         com.mongodb.DB db = null;
         try {
-            db = mongo.getDB(database);
+            db = mongos[random.nextInt(mongos.length)].getDB(database);
 
             db.requestStart();
 
@@ -372,13 +364,9 @@ public class MongoDbClient extends DB {
             u.put("$set", fieldsToSet);
             WriteResult res = collection.update(q, u, false, false,
                     writeConcern);
-            String error = res.getError();
-            if (error != null) {
-                System.err.println(error);
-            }
-            return res.getN() == 1 ? 0 : 1;
+            return 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println(e.toString());
             return 1;
         } finally {
             if (db!=null)
@@ -423,22 +411,23 @@ public class MongoDbClient extends DB {
 
     public int scan(String table, String startkey, int recordcount,
             List<Map<String, ByteIterator>> result) {
-        com.mongodb.DB db=null;
+        com.mongodb.DB db = null;
+        DBCursor cursor = null;
         try {
-            db = mongo.getDB(database);
+            db = mongos[random.nextInt(mongos.length)].getDB(database);
             db.requestStart();
             DBCollection collection = db.getCollection(table);
             // { "_id":{"$gte":startKey, "$lte":{"appId":key+"\uFFFF"}} }
             DBObject scanRange = new BasicDBObject().append("$gte", startkey);
             DBObject q = new BasicDBObject().append("_id", scanRange);
-            DBCursor cursor = collection.find(q).limit(recordcount);    //TODO: apply readPreference here
+            cursor = collection.find(q).limit(recordcount);    //TODO: apply readPreference here
             while (cursor.hasNext()) {
                 result.add(resultify(cursor.next()));
             }
 
             return 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println(e.toString());
             return 1;
         }
         finally
