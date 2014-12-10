@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<schema name="schedule" version="1.5">
+ <fields>
+   <!-- All of these fields are required by Riak Search -->
+   <field name="_yz_id"   type="_yz_str" indexed="true" stored="true"  multiValued="false" required="true"/>
+   <field name="_yz_ed"   type="_yz_str" indexed="true" stored="false" multiValued="false"/>
+   <field name="_yz_pn"   type="_yz_str" indexed="true" stored="false" multiValued="false"/>
+   <field name="_yz_fpn"  type="_yz_str" indexed="true" stored="false" multiValued="false"/>
+   <field name="_yz_vtag" type="_yz_str" indexed="true" stored="false" multiValued="false"/>
+   <field name="_yz_rk"   type="_yz_str" indexed="true" stored="true"  multiValued="false"/>
+   <field name="_yz_rt"   type="_yz_str" indexed="true" stored="true"  multiValued="false"/>
+   <field name="_yz_rb"   type="_yz_str" indexed="true" stored="true"  multiValued="false"/>
+   <field name="_yz_err"  type="_yz_str" indexed="true" stored="false" multiValued="false"/>
+   <dynamicField name="*" type="ignored"  />
+ </fields>
+ 
+ <uniqueKey>_yz_id</uniqueKey>
+
+ <types>
+    <!-- YZ String: Used for non-analyzed fields -->
+    <fieldType name="_yz_str" class="solr.StrField" sortMissingLast="true" />
+    <fieldtype name="ignored" stored="false" indexed="false" multiValued="true" class="solr.StrField" />
+ </types>
+</schema>
