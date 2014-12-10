@@ -171,8 +171,9 @@ public final class RiakDBClient extends DB {
         	final YCSBUpdate update = new YCSBUpdate(values);
             final UpdateValue uv = new UpdateValue.Builder(location)
             	.withFetchOption(FetchValue.Option.DELETED_VCLOCK, true)
-            	.withUpdate(Update.clobberUpdate(update))
-            	.withStoreOption(Option.W, new Quorum(1))
+            	.withStoreOption(StoreValue.Option.W, new Quorum(1))
+//            	.withUpdate(Update.clobberUpdate(update))
+            	.withUpdate(update)
             	.build();
             riakClient.execute(uv);
             return 0;
