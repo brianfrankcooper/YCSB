@@ -19,7 +19,6 @@ import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -28,15 +27,15 @@ import java.util.Vector;
 import java.util.concurrent.ExecutionException;
 
 import com.basho.riak.client.api.RiakClient;
+import com.basho.riak.client.api.cap.Quorum;
 import com.basho.riak.client.api.commands.kv.DeleteValue;
 import com.basho.riak.client.api.commands.kv.FetchValue;
 import com.basho.riak.client.api.commands.kv.StoreValue;
+import com.basho.riak.client.api.commands.kv.StoreValue.Option;
 import com.basho.riak.client.api.commands.kv.UpdateValue;
-import com.basho.riak.client.api.commands.search.Search;
 import com.basho.riak.client.core.RiakCluster;
 import com.basho.riak.client.core.RiakNode;
 import com.basho.riak.client.core.operations.SearchOperation;
-import com.basho.riak.client.core.operations.SearchOperation.Response;
 import com.basho.riak.client.core.query.Location;
 import com.basho.riak.client.core.query.Namespace;
 import com.basho.riak.client.core.query.RiakObject;
@@ -84,7 +83,9 @@ public final class RiakDBClient extends DB {
 	public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
         try {
         	final Location location = new Location(new Namespace(DEFAULT_BUCKET_TYPE, table), key);
-            final FetchValue fv = new FetchValue.Builder(location).build();
+            final FetchValue fv = new FetchValue.Builder(location)
+            	.withOption(FetchValue.Option.R, new Quorum(1))
+            	.build();
             final FetchValue.Response response = riakClient.execute(fv);
             final RiakObject obj = response.getValue(RiakObject.class);
             deserializeTable(obj, result);
@@ -128,7 +129,9 @@ public final class RiakDBClient extends DB {
 				Map<String, List<String>> doc = results.get(i);
 				String key = doc.get("_yz_rk").get(0);
 				final Location location = new Location(new Namespace(DEFAULT_BUCKET_TYPE, table), key);
-	            final FetchValue fv = new FetchValue.Builder(location).build();
+	            final FetchValue fv = new FetchValue.Builder(location)
+	            	.withOption(FetchValue.Option.R, new Quorum(1))
+	            	.build();
 	            final FetchValue.Response keyResponse = riakClient.execute(fv);
 	            final RiakObject obj = keyResponse.getValue(RiakObject.class);
 	            
@@ -162,7 +165,12 @@ public final class RiakDBClient extends DB {
         try {
         	final Location location = new Location(new Namespace(DEFAULT_BUCKET_TYPE, table), key);
         	final YCSBUpdate update = new YCSBUpdate(values);
-            final UpdateValue uv = new UpdateValue.Builder(location).withUpdate(update).build();
+            final UpdateValue uv = new UpdateValue.Builder(location)
+            	.withFetchOption(FetchValue.Option.DELETED_VCLOCK, true)
+            	.withStoreOption(StoreValue.Option.W, new Quorum(1))
+//            	.withUpdate(Update.clobberUpdate(update))
+            	.withUpdate(update)
+            	.build();
             riakClient.execute(uv);
             return 0;
         } 
@@ -212,6 +220,7 @@ public final class RiakDBClient extends DB {
             object.setValue(BinaryValue.create(serializeTable(values)));
             StoreValue store = new StoreValue.Builder(object)
                     .withLocation(location)
+                    .withOption(Option.W, new Quorum(1))
                     .build();
             riakClient.execute(store);
             return 0;
