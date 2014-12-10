@@ -1,3 +1,18 @@
+/*
+ * Copyright 2014 Basho Technologies, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.yahoo.ycsb.db;
 
 import static com.google.common.base.Preconditions.*;
@@ -16,14 +31,17 @@ import com.basho.riak.client.core.query.RiakObject;
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 
+/**
+ * @author Basho Technologies, Inc.
+ */
 final class RiakUtils {
 
     private RiakUtils() {
         super();
     }
 
-    static byte[] toBytes(final int anInteger) {
 
+    static byte[] toBytes(final int anInteger) {
         byte[] aResult = new byte[4];
 
         aResult[0] = (byte) (anInteger >> 24);
@@ -32,28 +50,23 @@ final class RiakUtils {
         aResult[3] = (byte) (anInteger /* >> 0 */);
 
         return aResult;
-
     }
+
 
     static int fromBytes(final byte[] aByteArray) {
-
         checkArgument(aByteArray.length == 4);
-
         return aByteArray[0] << 24 | (aByteArray[1] & 0xFF) << 16
                 | (aByteArray[2] & 0xFF) << 8 | (aByteArray[3] & 0xFF);
-
     }
 
-    static void deserializeTable(final RiakObject aRiakObject,
-            final HashMap<String, ByteIterator> theResult) {
+    
+    static void deserializeTable(final RiakObject aRiakObject, final HashMap<String, ByteIterator> theResult) {
         deserializeTable(aRiakObject.getValue().getValue(), theResult);
     }
 
-    static void deserializeTable(final byte[] aValue,
-            final Map<String, ByteIterator> theResult) {
 
-        final ByteArrayInputStream anInputStream = new ByteArrayInputStream(
-                aValue);
+    static void deserializeTable(final byte[] aValue, final Map<String, ByteIterator> theResult) {
+        final ByteArrayInputStream anInputStream = new ByteArrayInputStream(aValue);
 
         try {
 
@@ -76,45 +89,36 @@ final class RiakUtils {
                         new ByteArrayByteIterator(aColumnValue));
 
             }
-
         } catch (Exception e) {
-
             throw new IllegalStateException(e);
-
         } finally {
-
             close(anInputStream);
-
         }
-
     }
 
+    
     static void close(final InputStream anInputStream) {
-
         try {
             anInputStream.close();
         } catch (IOException e) {
             // Ignore exception ...
         }
-
     }
 
+    
     static void close(final OutputStream anOutputStream) {
-
         try {
             anOutputStream.close();
         } catch (IOException e) {
             // Ignore exception ...
         }
-
     }
 
+    
     static byte[] serializeTable(Map<String, ByteIterator> aTable) {
-
         final ByteArrayOutputStream anOutputStream = new ByteArrayOutputStream();
 
         try {
-
             final Set<Map.Entry<String, ByteIterator>> theEntries = aTable
                     .entrySet();
             for (final Map.Entry<String, ByteIterator> anEntry : theEntries) {
@@ -128,26 +132,17 @@ final class RiakUtils {
 
                 anOutputStream.write(toBytes(aColumnValue.length));
                 anOutputStream.write(aColumnValue);
-
             }
-
             return anOutputStream.toByteArray();
-
         } catch (IOException e) {
-
             throw new IllegalStateException(e);
-
         } finally {
-
             close(anOutputStream);
-
         }
-
     }
 
-    static <K, V> Map<K, V> merge(final Map<K, V> aMap,
-            final Map<K, V> theUpdatedMap) {
-
+    
+    static <K, V> Map<K, V> merge(final Map<K, V> aMap, final Map<K, V> theUpdatedMap) {
         checkNotNull(aMap);
         checkNotNull(theUpdatedMap);
 
@@ -158,7 +153,6 @@ final class RiakUtils {
         }
 
         return theResult;
-
     }
 
 }
