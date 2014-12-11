@@ -247,8 +247,10 @@ public class MongoDbClient extends DB {
             Iterator<String> keys = values.keySet().iterator();
             while (keys.hasNext()) {
                 String tmpKey = keys.next();
-                fieldsToSet.put(tmpKey, values.get(tmpKey).toArray());
-
+                // MongoDB doesn't allow modifying _id
+                if (!tmpKey.equals("_id")) {
+                    fieldsToSet.put(tmpKey, values.get(tmpKey).toArray());
+                }
             }
             u.put("$set", fieldsToSet);
             WriteResult res = collection.update(q, u, false, false,
