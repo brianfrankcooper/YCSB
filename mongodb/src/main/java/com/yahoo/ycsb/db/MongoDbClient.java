@@ -29,6 +29,7 @@ import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.StringByteIterator;
+import com.yahoo.ycsb.ByteArrayByteIterator;
 
 /**
  * MongoDB client for YCSB framework.
@@ -199,7 +200,15 @@ public class MongoDbClient extends DB {
             }
 
             if (queryResult != null) {
-                result.putAll(queryResult.toMap());
+                Map<String, Object> rows = queryResult.toMap();
+                for (String k : rows.keySet()) {
+                    Object val = rows.get(k);
+                    if (val instanceof byte[]) {
+                        result.put(k, new ByteArrayByteIterator((byte[]) val));
+                    } else {
+                        result.put(k, new StringByteIterator(val.toString()));
+                    }
+                }
             }
             return queryResult != null ? 0 : 1;
         } catch (Exception e) {
