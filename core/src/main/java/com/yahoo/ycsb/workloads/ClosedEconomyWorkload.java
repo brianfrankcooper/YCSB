@@ -624,8 +624,10 @@ public class ClosedEconomyWorkload extends Workload {
 				secondvalues.put("field0",
 						new StringByteIterator(Integer.toString(secondamount)));
 
-				db.update(table, firstkey, firstvalues);
-				db.update(table, secondkey, secondvalues);
+				if (db.update(table, firstkey, firstvalues) != 0 ||
+				    db.update(table, secondkey, secondvalues) != 0) {
+					return false;
+				}
 
 				long en = System.currentTimeMillis();
 
