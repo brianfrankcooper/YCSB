@@ -20,7 +20,6 @@ import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
@@ -28,23 +27,22 @@ import java.util.concurrent.ExecutionException;
 
 import com.basho.riak.client.api.RiakClient;
 import com.basho.riak.client.api.cap.Quorum;
+import com.basho.riak.client.api.commands.indexes.IntIndexQuery;
 import com.basho.riak.client.api.commands.kv.DeleteValue;
 import com.basho.riak.client.api.commands.kv.FetchValue;
 import com.basho.riak.client.api.commands.kv.StoreValue;
 import com.basho.riak.client.api.commands.kv.StoreValue.Option;
-import com.basho.riak.client.api.commands.kv.UpdateValue;
 import com.basho.riak.client.core.RiakCluster;
 import com.basho.riak.client.core.RiakNode;
-import com.basho.riak.client.core.operations.SearchOperation;
 import com.basho.riak.client.core.query.Location;
 import com.basho.riak.client.core.query.Namespace;
 import com.basho.riak.client.core.query.RiakObject;
+import com.basho.riak.client.core.query.indexes.LongIntIndex;
 import com.basho.riak.client.core.util.BinaryValue;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 
-import static com.google.common.collect.Maps.newHashMap;
 import static com.yahoo.ycsb.db.RiakUtils.*;
 
 /**
@@ -54,21 +52,21 @@ public final class RiakDBClient extends DB {
 
 	// Edit NODES_ARRAY:
 	// Array of nodes in the Riak cluster or load balancer in front of the cluster, 
-	// IP Addresses or Fully Qualified Domain Names
+	// IP Addresses or Fully Qualified Domain Names (FQDNs)
 	// e.g.: {"127.0.0.1","127.0.0.2","127.0.0.3","127.0.0.4","127.0.0.5"} or
 	// {"riak1.mydomain.com","riak2.mydomain.com","riak3.mydomain.com","riak4.mydomain.com","riak5.mydomain.com"}
 	private static final String[] NODES_ARRAY = {"127.0.0.1"};
 
-	// Note: DEFAULT_BUCKET_TYPE and SEARCH_INDEX values are set when configuring
+	// Note: DEFAULT_BUCKET_TYPE value is set when configuring
 	// the Riak cluster as described in the project README.md
 	private static final String DEFAULT_BUCKET_TYPE = "ycsb";
-	private static final String SEARCH_INDEX = "ycsb";
 	
 	public static final String VERBOSE = "basicdb.verbose";
 	public static final String VERBOSE_DEFAULT = "true";
 	private boolean verbose;
 	private RiakClient riakClient;
 	private RiakCluster riakCluster;
+	
 	
 	/**
 	 * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
@@ -97,12 +95,11 @@ public final class RiakDBClient extends DB {
         }
 	}
 	
-
+	
 	/**
 	 * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a HashMap.
 	 *
-	 * Note: Riak's Solr integration (http://docs.basho.com/riak/latest/intro-v20/#Riak-Search-2-0-codename-Yokozuna-)
-	 * is used to implement the scan operation as Riak does not have a native scan operation.
+	 * Note: The scan operation requires the use of secondary indexes (2i) and LevelDB. 
 	 *
 	 * @param table The name of the table (Riak bucket)
 	 * @param startkey The record key of the first record to read.
@@ -113,31 +110,34 @@ public final class RiakDBClient extends DB {
 	 */
 	@Override
 	public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-		String query = "_yz_rk:[" + startkey + " TO *]";
-		SearchOperation searchOp = new SearchOperation
-			.Builder(BinaryValue.create(SEARCH_INDEX), query)
-			.withStart(0)
-        	.withNumRows(recordcount)
-        	.build();
-		
 		try {
-			riakCluster.execute(searchOp);
-			SearchOperation.Response response = searchOp.get();
-			List<Map<String, List<String>>> results = response.getAllResults();
+			Namespace ns = new Namespace(DEFAULT_BUCKET_TYPE, table);
+			IntIndexQuery iiq = new IntIndexQuery
+				.Builder(ns, "key", getKeyAsLong(startkey), 999999999999999999L)
+				.withMaxResults(recordcount)
+				.withPaginationSort(true)
+	        	.build();
 			
-			for (int i = 0; i < results.size(); i++ ) {
-				Map<String, List<String>> doc = results.get(i);
-				String key = doc.get("_yz_rk").get(0);
-				final Location location = new Location(new Namespace(DEFAULT_BUCKET_TYPE, table), key);
-	            final FetchValue fv = new FetchValue.Builder(location)
+			IntIndexQuery.Response response = riakClient.execute(iiq);
+			List<IntIndexQuery.Response.Entry> entries = response.getEntries();
+			
+			for (int i = 0; i < entries.size(); i++ ) {
+				final Location location = entries.get(i).getRiakObjectLocation();
+				final FetchValue fv = new FetchValue.Builder(location)
 	            	.withOption(FetchValue.Option.R, new Quorum(1))
 	            	.build();
 	            final FetchValue.Response keyResponse = riakClient.execute(fv);
 	            final RiakObject obj = keyResponse.getValue(RiakObject.class);
 	            
 	            HashMap<String, ByteIterator> readresult = new HashMap<String, ByteIterator>();
-	            deserializeTable(obj, readresult);
-	            result.add(readresult);
+	            try
+	            {
+	            	deserializeTable(obj, readresult);
+	            	result.add(readresult);
+	            }
+	            catch (Exception e) {
+	            	return 1;
+	            }
 			}
 			
 			return 0;
@@ -149,63 +149,13 @@ public final class RiakDBClient extends DB {
 		
 		return 1;
 	}
-	
+
 
 	/**
-	 * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
-	 * record key, overwriting any existing values with the same field name.
-	 *
-	 * @param table The name of the table (Riak bucket)
-	 * @param key The record key of the record to write.
-	 * @param values A HashMap of field/value pairs to update in the record
-	 * @return Zero on success, a non-zero error code on error
-	 */
-	@Override
-	public int update(String table, String key, HashMap<String, ByteIterator> values) {
-        try {
-        	final Location location = new Location(new Namespace(DEFAULT_BUCKET_TYPE, table), key);
-        	final YCSBUpdate update = new YCSBUpdate(values);
-            final UpdateValue uv = new UpdateValue.Builder(location)
-            	.withFetchOption(FetchValue.Option.DELETED_VCLOCK, true)
-            	.withStoreOption(StoreValue.Option.W, new Quorum(1))
-//            	.withUpdate(Update.clobberUpdate(update))
-            	.withUpdate(update)
-            	.build();
-            riakClient.execute(uv);
-            return 0;
-        } 
-        catch (Exception e) {
-            e.printStackTrace();
-            return 1;
-        }
-	}
-	
-	
-    private class YCSBUpdate extends UpdateValue.Update<byte[]> {
-        private final HashMap<String, ByteIterator> update;
-        public YCSBUpdate(HashMap<String, ByteIterator> updatedColumns) {
-            this.update = updatedColumns;
-        }
-
-        @Override
-        public byte[] apply(byte[] original) {
-            if (original == null) {
-                original = new byte[0];
-            }
-
-            HashMap<String, ByteIterator> table = newHashMap();
-            deserializeTable(original, table);
-            Map<String, ByteIterator> updatedTable = merge(table, update);
-            original = serializeTable(updatedTable);
-
-            return original;
-        }
-    }
-	
-
-	/**
-	 * Insert a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
-	 * record key.
+	 * Insert a record in the database. Any field/value pairs in the specified values HashMap 
+	 * will be written into the record with the specified record key. Also creates a
+	 * secondary index (2i) for each record consisting of the key converted to long to be used
+	 * for the scan operation
 	 *
 	 * @param table The name of the table (Riak bucket)
 	 * @param key The record key of the record to insert.
@@ -218,10 +168,11 @@ public final class RiakDBClient extends DB {
         	final Location location = new Location(new Namespace(DEFAULT_BUCKET_TYPE, table), key);
             final RiakObject object = new RiakObject();
             object.setValue(BinaryValue.create(serializeTable(values)));
+            object.getIndexes().getIndex(LongIntIndex.named("key_int")).add(getKeyAsLong(key));
             StoreValue store = new StoreValue.Builder(object)
-                    .withLocation(location)
-                    .withOption(Option.W, new Quorum(1))
-                    .build();
+            	.withLocation(location)
+                .withOption(Option.W, new Quorum(1))
+                .build();
             riakClient.execute(store);
             return 0;
         } 
@@ -231,6 +182,22 @@ public final class RiakDBClient extends DB {
         }
 	}
 	
+	
+	/**
+	 * Update a record in the database. Any field/value pairs in the specified values 
+	 * HashMap will be written into the record with the specified
+	 * record key, overwriting any existing values with the same field name.
+	 *
+	 * @param table The name of the table (Riak bucket)
+	 * @param key The record key of the record to write.
+	 * @param values A HashMap of field/value pairs to update in the record
+	 * @return Zero on success, a non-zero error code on error
+	 */
+	@Override
+	public int update(String table, String key, HashMap<String, ByteIterator> values) {
+        return insert(table, key, values);
+	}
+		
 
 	/**
 	 * Delete a record from the database. 
@@ -251,6 +218,9 @@ public final class RiakDBClient extends DB {
         }
         return 0;
 	}
+	
+	
+	
 	
 
 	public void init() throws DBException {
