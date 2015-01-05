@@ -3,8 +3,6 @@ Riak Client for Yahoo! Cloud System Benchmark (YCSB)
 
 The Riak YCSB client is designed to work with the Yahoo! Cloud System Benchmark (YCSB) project (https://github.com/brianfrankcooper/YCSB) to support performance testing for the 2.0.X line of the Riak database.
 
-<b>Note</b>: In order to support YCSB's scan operation you must enable Riak Search on every node within your cluster. For instructions on enabling Search see: http://docs.basho.com/riak/latest/ops/advanced/configs/search/
-
 How to Implement the Riak Client
 ----------------------------
 The following directions will help you get started with benchmarking Riak using the YCCB project and Riak client.
@@ -43,29 +41,19 @@ DATABASES = {
 * Perform the following operations on your Riak cluster to configure Riak for the benchmarks:
 
 <blockquote>
-Upload the Solr search schema used to support YCSB's scan operation to one of the nodes in your cluster. (<b>Note</b>: update the URL and file path to match your environment.)
+Set the default backend for Riak to LevelDB in riak.conf (required to support secondary indexes used for the "scan" workloads)*:
 </blockquote>
 
 ```
-curl -XPUT "http://localhost:8098/search/schema/ycsb" \
-  -H'content-type:application/xml' \
-  --data-binary @/Users/user/git/YCSB-Riak-Binding/riak/yz_schema/yscb-schema.xml
-```
-
-<blockquote>Create the "ycsb" search index that uses the schema that we just uploaded to Riak.</blockquote>
-
-```
-curl -i -XPUT http://localhost:8098/search/index/ycsb \
-  -H 'content-type: application/json' \
-  -d '{"schema":"ycsb"}'
+storage_backend = leveldb
 ```
 
 <blockquote>
-Create the "ycsb" bucket type and assign the ycsb search index to the bucket type by logging into one of the nodes in your cluster and run the following riak-admin commands:
+Create the "ycsb" bucket type by logging into one of the nodes in your cluster and run the following riak-admin commands:
 </blockquote>
 
 ```
-riak-admin bucket-type create ycsb '{"props":{"search_index":"ycsb","allow_mult":"false"}}'
+riak-admin bucket-type create ycsb '{"props":{"allow_mult":"false"}}'
 riak-admin bucket-type activate ycsb
 ```  
 
