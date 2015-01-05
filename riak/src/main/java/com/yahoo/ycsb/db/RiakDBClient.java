@@ -82,11 +82,16 @@ public final class RiakDBClient extends DB {
         try {
         	final Location location = new Location(new Namespace(DEFAULT_BUCKET_TYPE, table), key);
             final FetchValue fv = new FetchValue.Builder(location)
-            	.withOption(FetchValue.Option.R, new Quorum(1))
+            	.withOption(FetchValue.Option.R, new Quorum(2))
             	.build();
             final FetchValue.Response response = riakClient.execute(fv);
             final RiakObject obj = response.getValue(RiakObject.class);
-            deserializeTable(obj, result);
+            if (obj != null) {
+            	deserializeTable(obj, result);
+            }
+            else {
+            	return 1;
+            }
             return 0;
         } 
         catch (Exception e) {
