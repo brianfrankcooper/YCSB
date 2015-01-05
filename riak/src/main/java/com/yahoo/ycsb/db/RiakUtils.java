@@ -154,5 +154,11 @@ final class RiakUtils {
 
         return theResult;
     }
+    
+	
+	static Long getKeyAsLong(String key) {
+		String key_string = key.replace("user", "").replaceFirst("^0*", "");
+    	return Long.parseLong( key_string );
+	}
 
 }
