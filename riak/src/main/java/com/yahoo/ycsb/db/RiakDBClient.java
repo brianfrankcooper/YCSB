@@ -15,9 +15,13 @@
  */
 package com.yahoo.ycsb.db;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URL;
+import java.net.URLDecoder;
 import java.net.UnknownHostException;
 import java.util.Arrays;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
@@ -55,15 +59,16 @@ public final class RiakDBClient extends DB {
 	// IP Addresses or Fully Qualified Domain Names (FQDNs)
 	// e.g.: {"127.0.0.1","127.0.0.2","127.0.0.3","127.0.0.4","127.0.0.5"} or
 	// {"riak1.mydomain.com","riak2.mydomain.com","riak3.mydomain.com","riak4.mydomain.com","riak5.mydomain.com"}
-	private static final String[] NODES_ARRAY = {"127.0.0.1"};
-
+	private String[] NODES_ARRAY = {"127.0.0.1"};
+	
 	// Note: DEFAULT_BUCKET_TYPE value is set when configuring
 	// the Riak cluster as described in the project README.md
-	private static final String DEFAULT_BUCKET_TYPE = "ycsb";
+	private String DEFAULT_BUCKET_TYPE = "ycsb";
 	
-	public static final String VERBOSE = "basicdb.verbose";
-	public static final String VERBOSE_DEFAULT = "true";
-	private boolean verbose;
+	private int R_VALUE = 2;
+	private int W_VALUE = 2;
+	private int READ_RETRY_COUNT = 5;
+	
 	private RiakClient riakClient;
 	private RiakCluster riakCluster;
 	
@@ -82,15 +87,15 @@ public final class RiakDBClient extends DB {
         try {
         	final Location location = new Location(new Namespace(DEFAULT_BUCKET_TYPE, table), key);
             final FetchValue fv = new FetchValue.Builder(location)
-            	.withOption(FetchValue.Option.R, new Quorum(2))
+            	.withOption(FetchValue.Option.R, new Quorum(R_VALUE))
             	.build();
-            final FetchValue.Response response = riakClient.execute(fv);
-            final RiakObject obj = response.getValue(RiakObject.class);
-            if (obj != null) {
-            	deserializeTable(obj, result);
+            final FetchValue.Response response = fetch(fv);
+            if (response.isNotFound()) {
+            	return 1;
             }
             else {
-            	return 1;
+            	final RiakObject obj = response.getValue(RiakObject.class);
+            	deserializeTable(obj, result);
             }
             return 0;
         } 
@@ -122,37 +127,56 @@ public final class RiakDBClient extends DB {
 				.withMaxResults(recordcount)
 				.withPaginationSort(true)
 	        	.build();
-			
 			IntIndexQuery.Response response = riakClient.execute(iiq);
 			List<IntIndexQuery.Response.Entry> entries = response.getEntries();
 			
 			for (int i = 0; i < entries.size(); i++ ) {
 				final Location location = entries.get(i).getRiakObjectLocation();
 				final FetchValue fv = new FetchValue.Builder(location)
-	            	.withOption(FetchValue.Option.R, new Quorum(1))
+	            	.withOption(FetchValue.Option.R, new Quorum(R_VALUE))
 	            	.build();
-	            final FetchValue.Response keyResponse = riakClient.execute(fv);
-	            final RiakObject obj = keyResponse.getValue(RiakObject.class);
-	            
-	            HashMap<String, ByteIterator> readresult = new HashMap<String, ByteIterator>();
-	            try
-	            {
-	            	deserializeTable(obj, readresult);
-	            	result.add(readresult);
-	            }
-	            catch (Exception e) {
+				
+	            final FetchValue.Response keyResponse = fetch(fv);
+	            if (keyResponse.isNotFound()) {
 	            	return 1;
 	            }
+	            else {
+	            	final RiakObject obj = keyResponse.getValue(RiakObject.class);
+		            HashMap<String, ByteIterator> readresult = new HashMap<String, ByteIterator>();
+		            try
+		            {
+		            	deserializeTable(obj, readresult);
+		            	result.add(readresult);
+		            }
+		            catch (Exception e) {
+		            	return 1;
+		            }
+	            }
 			}
-			
 			return 0;
 		} catch (ExecutionException e) {
 			e.printStackTrace();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		
 		return 1;
+	}
+	
+	
+	private FetchValue.Response fetch(FetchValue fv) {
+		try {
+			FetchValue.Response response = null;
+			for (int i = 0; i < READ_RETRY_COUNT; i++) {
+				response = riakClient.execute(fv);
+				if (response.isNotFound() == false) break;
+			}
+			return response;
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 
@@ -176,7 +200,7 @@ public final class RiakDBClient extends DB {
             object.getIndexes().getIndex(LongIntIndex.named("key_int")).add(getKeyAsLong(key));
             StoreValue store = new StoreValue.Builder(object)
             	.withLocation(location)
-                .withOption(Option.W, new Quorum(1))
+                .withOption(Option.W, new Quorum(W_VALUE))
                 .build();
             riakClient.execute(store);
             return 0;
@@ -223,28 +247,12 @@ public final class RiakDBClient extends DB {
         }
         return 0;
 	}
-	
-	
+
 	
 	
 
 	public void init() throws DBException {
-		verbose = Boolean.parseBoolean(getProperties().getProperty(VERBOSE, VERBOSE_DEFAULT));
-		if (verbose)
-		{
-			System.out.println("***************** YCSB Test Properties *****************");
-			Properties p=getProperties();
-			if (p!=null)
-			{
-				for (Enumeration e=p.propertyNames(); e.hasMoreElements(); )
-				{
-					String k=(String)e.nextElement();
-					System.out.println("\""+k+"\"=\""+p.getProperty(k)+"\"");
-				}
-			}
-			System.out.println("********************************************************");
-		}
-		
+		loadProperties();
 		final RiakNode.Builder builder = new RiakNode.Builder();
         List<RiakNode> nodes;
 		try {
@@ -254,6 +262,57 @@ public final class RiakDBClient extends DB {
 	        riakClient = new RiakClient(riakCluster);
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
+		}
+	}
+	
+	private boolean loadProperties() {
+		Properties defaultProps = new Properties();
+		try
+		{
+			File f = getPropertiesFile();
+			//System.out.println("Properties file: " + f.getAbsolutePath() );
+			if(f.exists() && !f.isDirectory()) {
+				FileInputStream propertyFile = new FileInputStream(f);
+				defaultProps.load(propertyFile);
+				propertyFile.close();
+				
+				NODES_ARRAY = defaultProps.getProperty("NODES", "127.0.0.1").split(",");
+				DEFAULT_BUCKET_TYPE = defaultProps.getProperty("DEFAULT_BUCKET_TYPE","ycsb");
+				R_VALUE = Integer.parseInt( defaultProps.getProperty("R_VALUE", "2") );
+				W_VALUE = Integer.parseInt( defaultProps.getProperty("W_VALUE", "2") );
+				READ_RETRY_COUNT = Integer.parseInt( defaultProps.getProperty("READ_RETRY_COUNT", "5") );
+				//System.out.println("R_VALUE: " + R_VALUE + " W_VALUE: " + W_VALUE + " READ_RETRY_COUNT " + READ_RETRY_COUNT);			
+			}
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
+	
+	private File getPropertiesFile() {
+		File f = new File("riak-binding/lib/riak.properties");
+		if(f.exists() && !f.isDirectory()) {
+			return f;
+		}
+		else {
+			f = new File("riak/target/riak.properties");
+			if(f.exists() && !f.isDirectory()) {
+				return f;
+			}
+			else {
+				URL url = RiakDBClient.class.getProtectionDomain().getCodeSource().getLocation();
+				String jarPath = null;
+				try {
+					jarPath = URLDecoder.decode(url.getFile(), "UTF-8");
+				} catch (UnsupportedEncodingException e) {
+					e.printStackTrace();
+					return null;
+				}
+				f = new File(jarPath + "riak.properties");
+				return f;
+			}
 		}
 	}
 
@@ -266,5 +325,4 @@ public final class RiakDBClient extends DB {
 			e.printStackTrace();
 		}
 	}
-
 }
