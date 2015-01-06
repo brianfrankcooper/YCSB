@@ -15,7 +15,11 @@
  */
 package com.yahoo.ycsb.db;
 
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URL;
+import java.net.URLDecoder;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -56,13 +60,13 @@ public final class RiakDBClient extends DB {
 	// e.g.: {"127.0.0.1","127.0.0.2","127.0.0.3","127.0.0.4","127.0.0.5"} or
 	// {"riak1.mydomain.com","riak2.mydomain.com","riak3.mydomain.com","riak4.mydomain.com","riak5.mydomain.com"}
 	private String[] NODES_ARRAY = {"127.0.0.1"};
-
+	
 	// Note: DEFAULT_BUCKET_TYPE value is set when configuring
 	// the Riak cluster as described in the project README.md
 	private String DEFAULT_BUCKET_TYPE = "ycsb";
 	
-	private int R_VALUE = 1;
-	private int W_VALUE = 3;
+	private int R_VALUE = 2;
+	private int W_VALUE = 2;
 	private int READ_RETRY_COUNT = 5;
 	
 	private RiakClient riakClient;
@@ -248,8 +252,7 @@ public final class RiakDBClient extends DB {
 	
 
 	public void init() throws DBException {
-		if (loadProperties()) System.out.println("Using non-default properties from riak.properties.");
-			
+		loadProperties();
 		final RiakNode.Builder builder = new RiakNode.Builder();
         List<RiakNode> nodes;
 		try {
@@ -265,22 +268,52 @@ public final class RiakDBClient extends DB {
 	private boolean loadProperties() {
 		Properties defaultProps = new Properties();
 		try
-		{    
-			FileInputStream in = new FileInputStream("riak.properties");
-			defaultProps.load(in);
-			in.close();
-			
-			NODES_ARRAY = defaultProps.getProperty("NODES", "127.0.0.1").split(",");
-			DEFAULT_BUCKET_TYPE = defaultProps.getProperty("DEFAULT_BUCKET_TYPE","ycsb");
-			R_VALUE = Integer.parseInt( defaultProps.getProperty("R_VALUE", "1") );
-			W_VALUE = Integer.parseInt( defaultProps.getProperty("W_VALUE", "3") );
-			READ_RETRY_COUNT = Integer.parseInt( defaultProps.getProperty("READ_RETRY_COUNT", "5") );
+		{
+			File f = getPropertiesFile();
+			//System.out.println("Properties file: " + f.getAbsolutePath() );
+			if(f.exists() && !f.isDirectory()) {
+				FileInputStream propertyFile = new FileInputStream(f);
+				defaultProps.load(propertyFile);
+				propertyFile.close();
+				
+				NODES_ARRAY = defaultProps.getProperty("NODES", "127.0.0.1").split(",");
+				DEFAULT_BUCKET_TYPE = defaultProps.getProperty("DEFAULT_BUCKET_TYPE","ycsb");
+				R_VALUE = Integer.parseInt( defaultProps.getProperty("R_VALUE", "2") );
+				W_VALUE = Integer.parseInt( defaultProps.getProperty("W_VALUE", "2") );
+				READ_RETRY_COUNT = Integer.parseInt( defaultProps.getProperty("READ_RETRY_COUNT", "5") );
+				//System.out.println("R_VALUE: " + R_VALUE + " W_VALUE: " + W_VALUE + " READ_RETRY_COUNT " + READ_RETRY_COUNT);			
+			}
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 			return false;
 		}
 		return true;
+	}
+	
+	private File getPropertiesFile() {
+		File f = new File("riak-binding/lib/riak.properties");
+		if(f.exists() && !f.isDirectory()) {
+			return f;
+		}
+		else {
+			f = new File("riak/target/riak.properties");
+			if(f.exists() && !f.isDirectory()) {
+				return f;
+			}
+			else {
+				URL url = RiakDBClient.class.getProtectionDomain().getCodeSource().getLocation();
+				String jarPath = null;
+				try {
+					jarPath = URLDecoder.decode(url.getFile(), "UTF-8");
+				} catch (UnsupportedEncodingException e) {
+					e.printStackTrace();
+					return null;
+				}
+				f = new File(jarPath + "riak.properties");
+				return f;
+			}
+		}
 	}
 
 	public void cleanup() throws DBException
