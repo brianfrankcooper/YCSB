@@ -23,7 +23,7 @@ import com.yahoo.ycsb.Utils;
 
 /**
  * A generator of an exponential distribution. It produces a sequence
- * of time intervals (integers) according to an exponential
+ * of time intervals (longs) according to an exponential
  * distribution.  Smaller intervals are more frequent than larger
  * ones, and there is no bound on the length of an interval.  When you
  * construct an instance of this class, you specify a parameter gamma,
@@ -69,9 +69,9 @@ public class ExponentialGenerator extends IntegerGenerator
 	 * @return The next item in the sequence.
 	 */
 	@Override
-	public int nextInt()
+	public long nextInt()
 	{
-		return (int)nextLong();
+		return (long)nextLong();
 	}
 
 	/**

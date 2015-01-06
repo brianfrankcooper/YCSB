@@ -82,12 +82,12 @@ public class DiscreteGenerator extends Generator
 	}
 
 	/**
-	 * If the generator returns numeric (integer) values, return the next value as an int. Default is to return -1, which
+	 * If the generator returns numeric (long) values, return the next value as a long. Default is to return -1, which
 	 * is appropriate for generators that do not return numeric values.
 	 * 
 	 * @throws WorkloadException if this generator does not support integer values
 	 */
-	public int nextInt() throws WorkloadException
+	public long nextInt() throws WorkloadException
 	{
 		throw new WorkloadException("DiscreteGenerator does not support nextInt()");
 	}

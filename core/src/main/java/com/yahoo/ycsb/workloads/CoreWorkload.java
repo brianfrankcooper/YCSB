@@ -287,7 +287,7 @@ public class CoreWorkload extends Workload {
 
     boolean orderedinserts;
 
-    int recordcount;
+    long recordcount;
 
     String fieldnameprefix;
 
@@ -335,12 +335,12 @@ public class CoreWorkload extends Workload {
         double insertproportion = Double.parseDouble(p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
         double scanproportion = Double.parseDouble(p.getProperty(SCAN_PROPORTION_PROPERTY, SCAN_PROPORTION_PROPERTY_DEFAULT));
         double readmodifywriteproportion = Double.parseDouble(p.getProperty(READMODIFYWRITE_PROPORTION_PROPERTY, READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT));
-        recordcount = Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY));
+        recordcount = Long.parseLong(p.getProperty(Client.RECORD_COUNT_PROPERTY));
         String requestdistrib = p.getProperty(REQUEST_DISTRIBUTION_PROPERTY, REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
         int maxscanlength = Integer.parseInt(p.getProperty(MAX_SCAN_LENGTH_PROPERTY, MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
         String scanlengthdistrib = p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY, SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
 
-        int insertstart = Integer.parseInt(p.getProperty(INSERT_START_PROPERTY, INSERT_START_PROPERTY_DEFAULT));
+        long insertstart = Long.parseLong(p.getProperty(INSERT_START_PROPERTY, INSERT_START_PROPERTY_DEFAULT));
 
         readallfields = Boolean.parseBoolean(p.getProperty(READ_ALL_FIELDS_PROPERTY, READ_ALL_FIELDS_PROPERTY_DEFAULT));
         writeallfields = Boolean.parseBoolean(p.getProperty(WRITE_ALL_FIELDS_PROPERTY, WRITE_ALL_FIELDS_PROPERTY_DEFAULT));
@@ -450,7 +450,7 @@ public class CoreWorkload extends Workload {
      */
     public boolean doInsert(DB db, Object threadstate) {
         int result = -1;
-        int keynum = keynumGenerator.startInsert();
+        long keynum = keynumGenerator.startInsert();
         try {
             String dbkey = buildKeyName(keynum);
             HashMap<String, ByteIterator> values = buildValues();
@@ -499,8 +499,8 @@ public class CoreWorkload extends Workload {
         return true;
     }
 
-    int nextReadKeynum() {
-        int keynum;
+    long nextReadKeynum() {
+        long keynum;
         if (trackLatestInsertForReads) {
             // we need to make sure we only try to read keys that have already been written
             if (keychooser instanceof ExponentialGenerator) {
@@ -523,7 +523,7 @@ public class CoreWorkload extends Workload {
 
     public void doTransactionRead(DB db) {
         //choose a random key
-        int keynum = nextReadKeynum();
+        long keynum = nextReadKeynum();
 
         String keyname = buildKeyName(keynum);
 
@@ -538,7 +538,7 @@ public class CoreWorkload extends Workload {
 
     public void doTransactionReadModifyWrite(DB db) {
         //choose a random key
-        int keynum = nextReadKeynum();
+        long keynum = nextReadKeynum();
         String keyname = buildKeyName(keynum);
 
         //do the transaction
@@ -571,25 +571,25 @@ public class CoreWorkload extends Workload {
 
     public void doTransactionScan(DB db) {
         //choose a random key
-        int keynum = nextReadKeynum();
+        long keynum = nextReadKeynum();
 
         String startkeyname = buildKeyName(keynum);
 
         //choose a random scan length
-        int len = scanlength.nextInt();
+        int len = (int) scanlength.nextInt();
 
         if (!readallfields) {
             //read a random field
             String fieldname = fieldnameprefix + fieldchooser.nextString();
             db.scanOne(table, startkeyname, len, fieldname, new ArrayList<Map<String, ByteIterator>>());
         } else {
-            db.scanAll(table,startkeyname, len, new ArrayList<Map<String, ByteIterator>>());
+            db.scanAll(table, startkeyname, len, new ArrayList<Map<String, ByteIterator>>());
         }
     }
 
     public void doTransactionUpdate(DB db) {
         //choose a random key
-        int keynum = nextReadKeynum();
+        long keynum = nextReadKeynum();
         String keyname = buildKeyName(keynum);
 
         if (writeallfields) {
@@ -604,7 +604,7 @@ public class CoreWorkload extends Workload {
 
     public void doTransactionInsert(DB db) {
         //choose the next key
-        int keynum = keynumGenerator.startInsert();
+        long keynum = keynumGenerator.startInsert();
         try {
             String dbkey = buildKeyName(keynum);
 

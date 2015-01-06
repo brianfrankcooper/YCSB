@@ -7,27 +7,27 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class UniqueRandomGenerator extends IntegerGenerator
 {
 	private ArrayList<Integer> items;
-    private AtomicInteger counter;
-    private int size;
+	private AtomicInteger counter;
+	private int size; // XXX: ArrayList doesn't get() long's, will this cause problems?
 
-	public UniqueRandomGenerator(int count)
+	public UniqueRandomGenerator(long count)
 	{
-        this.size = count;
-		items = new ArrayList<Integer>(count);
-        for(int i = 0; i < count; i++) {
-            items.add(i);
-        }
-        Collections.shuffle(items);
-        counter = new AtomicInteger(0);
+		this.size = (int)count;
+		items = new ArrayList<Integer>(this.size);
+		for(int i = 0; i < this.size; i++) {
+		    items.add(i);
+		}
+		Collections.shuffle(items);
+		counter = new AtomicInteger(0);
 	}
 
-    @Override
-    public int nextInt()
-    {
-        int c = counter.getAndIncrement();
-        setLastInt(c);
-        return items.get(c % size);
-    }
+	@Override
+	public long nextInt()
+	{
+		int c = counter.getAndIncrement();
+		setLastInt(c);
+		return items.get(c % size);
+	}
 
 	@Override
 	public double mean() {

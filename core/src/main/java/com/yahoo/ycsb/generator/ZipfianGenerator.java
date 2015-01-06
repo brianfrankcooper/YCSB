@@ -225,9 +225,9 @@ public class ZipfianGenerator extends IntegerGenerator
 	 * @param itemcount The number of items in the distribution.
 	 * @return The next item in the sequence.
 	 */
-	public int nextInt(int itemcount)
+	public long nextInt(long itemcount)
 	{
-		return (int)nextLong(itemcount);
+		return nextLong(itemcount);
 	}
 
 	/**
@@ -286,7 +286,7 @@ public class ZipfianGenerator extends IntegerGenerator
 		}
 
 		long ret=base+(long)((itemcount) * Math.pow(eta*u - eta + 1, alpha));
-		setLastInt((int)ret);
+		setLastInt(ret);
 		return ret;
 	}
 
@@ -296,9 +296,9 @@ public class ZipfianGenerator extends IntegerGenerator
 	 * popular items scattered throughout the item space, use ScrambledZipfianGenerator instead.
 	 */
 	@Override
-	public int nextInt() 
+	public long nextInt() 
 	{
-		return (int)nextLong(items);
+		return nextLong(items);
 	}
 
 	/**

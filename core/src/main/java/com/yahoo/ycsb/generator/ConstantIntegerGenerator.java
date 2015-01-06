@@ -23,16 +23,16 @@ package com.yahoo.ycsb.generator;
  *
  */
 public class ConstantIntegerGenerator extends IntegerGenerator {
-	private final int i;
+	private final long i;
 	/**
 	 * @param i The integer that this generator will always return.
 	 */
-	public ConstantIntegerGenerator(int i) {
+	public ConstantIntegerGenerator(long i) {
 		this.i = i;
 	}
 
 	@Override
-	public int nextInt() {
+	public long nextInt() {
 		return i;
 	}
 

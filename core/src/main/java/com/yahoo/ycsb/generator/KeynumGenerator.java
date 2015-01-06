@@ -18,11 +18,11 @@
 package com.yahoo.ycsb.generator;
 
 import java.util.concurrent.PriorityBlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * A key number generator that can separately tracks keys for writing and reading.  Key numbers for writing use a simple
- * incrementing AtomicInteger.  For reads, the highest contiguous key number for which an insert has been completed
+ * incrementing AtomicLong.  For reads, the highest contiguous key number for which an insert has been completed
  * is used.  For example, if insertions have completed for [0, 1, 2, 5], then 2 should be used as the highest available
  * key number for reads, because writes for 3 and 4 have not completed yet.
  */
@@ -31,7 +31,7 @@ public class KeynumGenerator
     /**
      * Tracks the highest key number for which an insert has been started.
      */
-    private final AtomicInteger submittedCounter;
+    private final AtomicLong submittedCounter;
 
     /**
      * If true, the highest readable key number will be tracked.
@@ -42,12 +42,12 @@ public class KeynumGenerator
     /**
      * Tracks the highest contiguous key number that should be available for reads.
      */
-    private int highestContiguousCompleted;
+    private long highestContiguousCompleted;
 
     /**
      * A min-heap priority queue for tracking inserts that are in progress.
      */
-    private final PriorityBlockingQueue<Integer> inProgress;
+    private final PriorityBlockingQueue<Long> inProgress;
 
     /**
      * @param startAt the first value that should be used for inserts
@@ -55,12 +55,12 @@ public class KeynumGenerator
      *                            distributions like "latest". If this is not needed, set this to false to avoid
      *                            the extra locking and overhead.
      */
-    public KeynumGenerator(int startAt, boolean trackLatestForReads)
+    public KeynumGenerator(long startAt, boolean trackLatestForReads)
     {
-        submittedCounter = new AtomicInteger(startAt);
+        submittedCounter = new AtomicLong(startAt);
         this.trackLatestForReads = trackLatestForReads;
 
-        inProgress = trackLatestForReads ? new PriorityBlockingQueue<Integer>() : null;
+        inProgress = trackLatestForReads ? new PriorityBlockingQueue<Long>() : null;
 
         // ideally this would be null until the first insert had completed, but that causes problems with workloads
         this.highestContiguousCompleted = startAt;
@@ -70,9 +70,9 @@ public class KeynumGenerator
      * Start an insert.  Once called, completeInsert() must always be called with the return value of this method.
      * @return the next key number that should be used for inserts.
      */
-    public int startInsert()
+    public long startInsert()
     {
-        int nextKeyNumber = submittedCounter.getAndIncrement();
+        long nextKeyNumber = submittedCounter.getAndIncrement();
         if (trackLatestForReads)
             inProgress.add(nextKeyNumber);
         return nextKeyNumber;
@@ -83,7 +83,7 @@ public class KeynumGenerator
      * incremented.
      * @param keynum the key number that was inserted
      */
-    public void completeInsert(int keynum)
+    public void completeInsert(long keynum)
     {
         if (trackLatestForReads) {
             // remove from the in-progress queue before holding the lock
@@ -94,7 +94,7 @@ public class KeynumGenerator
                 // while holding the lock, see if we may be the new highest contiguous key number
                 if (keynum > highestContiguousCompleted) {
                     // get the lowest key number from the in-progress heap
-                    Integer lowest = inProgress.peek();
+                    Long lowest = inProgress.peek();
 
                     // if there is nothing in progress, or everything in progress is a higher key number, set the new
                     // highest contiguous key number
@@ -108,7 +108,7 @@ public class KeynumGenerator
     /**
      * @return the highest key number available for reads.
      */
-    public int getKeynumForRead()
+    public long getKeynumForRead()
     {
         assert trackLatestForReads : "KeynumGenerator does not have read keynum tracking enabled";
         return highestContiguousCompleted;

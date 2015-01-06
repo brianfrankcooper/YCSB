@@ -24,7 +24,7 @@ public class SkewedLatestGenerator extends IntegerGenerator
 {
     KeynumGenerator _basis;
     ZipfianGenerator _zipfian;
-    private final int _min;
+    private final long _min;
 
 	public SkewedLatestGenerator(KeynumGenerator basis)
 	{
@@ -37,10 +37,10 @@ public class SkewedLatestGenerator extends IntegerGenerator
 	/**
 	 * Generate the next string in the distribution, skewed Zipfian favoring the items most recently returned by the basis generator.
 	 */
-	public int nextInt()
+	public long nextInt()
 	{
-        int max = _basis.getKeynumForRead();
-        int nextint = max - _zipfian.nextInt(1 + max - _min);
+        long max = _basis.getKeynumForRead();
+        long nextint = max - _zipfian.nextInt(1 + max - _min);
         assert nextint >= _min;
 		setLastInt(nextint);
 		return nextint;

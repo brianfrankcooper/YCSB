@@ -20,7 +20,7 @@ package com.yahoo.ycsb.generator;
 import java.util.Vector;
 
 /**
- * An expression that generates a random integer in the specified range
+ * An expression that generates a random long in the specified range
  */
 public class UniformGenerator extends Generator
 {
@@ -46,7 +46,8 @@ public class UniformGenerator extends Generator
 	 */
 	public String nextString()
 	{
-		_laststring=_values.elementAt(_gen.nextInt());
+		//XXX: Could this cause problems?
+		_laststring=_values.elementAt((int)_gen.nextInt());
 		return _laststring;
 	}
 	

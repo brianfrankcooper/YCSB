@@ -25,7 +25,7 @@ import com.yahoo.ycsb.Utils;
 import com.yahoo.ycsb.generator.IntegerGenerator;
 
 /**
- * Generate integers according to a histogram distribution.  The histogram
+ * Generate longs according to a histogram distribution.  The histogram
  * buckets are of width one, but the values are multiplied by a block size.
  * Therefore, instead of drawing sizes uniformly at random within each
  * bucket, we always draw the largest value in the current bucket, so the value
@@ -93,18 +93,18 @@ public class HistogramGenerator extends IntegerGenerator {
 	}
 
 	@Override
-	public int nextInt() {
-		int number = Utils.random().nextInt((int)area);
+	public long nextInt() {
+		long number = Utils.random().nextInt((int)area);
 		int i;
 		
 		for(i = 0; i < (buckets.length - 1); i++){
 			number -= buckets[i];
 			if(number <= 0){
-				return (int)((i+1)*block_size);
+				return (long)((i+1)*block_size);
 			}
 		}
 		
-		return (int)(i * block_size);
+		return (long)(i * block_size);
 	}
 
 	@Override

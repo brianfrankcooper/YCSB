@@ -96,11 +96,11 @@ public class ScrambledZipfianGenerator extends IntegerGenerator
 	/**************************************************************************************************/
 	
 	/**
-	 * Return the next int in the sequence.
+	 * Return the next long in the sequence.
 	 */
 	@Override
-	public int nextInt() {
-		return (int)nextLong();
+	public long nextInt() {
+		return nextLong();
 	}
 
 	/**
@@ -110,7 +110,7 @@ public class ScrambledZipfianGenerator extends IntegerGenerator
 	{
 		long ret=gen.nextLong();
 		ret=_min+Utils.FNVhash64(ret)%_itemcount;
-		setLastInt((int)ret);
+		setLastInt(ret);
 		return ret;
 	}
 	
