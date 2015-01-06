@@ -65,6 +65,12 @@
                 </executions>
             </plugin>
         </plugins>
+        <resources>
+        	<resource>
+            	<directory>src/main/resources</directory>
+            	<targetPath>${basedir}/target</targetPath>
+        	</resource>
+    	</resources>
     </build>
 
     <organization>
