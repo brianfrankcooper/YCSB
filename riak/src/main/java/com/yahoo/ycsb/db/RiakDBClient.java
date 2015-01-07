@@ -54,20 +54,19 @@ import static com.yahoo.ycsb.db.RiakUtils.*;
  */
 public final class RiakDBClient extends DB {
 
-	// Edit NODES_ARRAY:
 	// Array of nodes in the Riak cluster or load balancer in front of the cluster, 
 	// IP Addresses or Fully Qualified Domain Names (FQDNs)
 	// e.g.: {"127.0.0.1","127.0.0.2","127.0.0.3","127.0.0.4","127.0.0.5"} or
 	// {"riak1.mydomain.com","riak2.mydomain.com","riak3.mydomain.com","riak4.mydomain.com","riak5.mydomain.com"}
-	private String[] NODES_ARRAY = {"127.0.0.1"};
+	private String[] nodesArray = {"127.0.0.1"};
 	
 	// Note: DEFAULT_BUCKET_TYPE value is set when configuring
 	// the Riak cluster as described in the project README.md
-	private String DEFAULT_BUCKET_TYPE = "ycsb";
+	private String bucketType = "ycsb";
 	
-	private int R_VALUE = 2;
-	private int W_VALUE = 2;
-	private int READ_RETRY_COUNT = 5;
+	private int rvalue = 2;
+	private int wvalue = 2;
+	private int readRetryCount = 5;
 	
 	private RiakClient riakClient;
 	private RiakCluster riakCluster;
@@ -85,17 +84,13 @@ public final class RiakDBClient extends DB {
 	@Override
 	public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
         try {
-        	final Location location = new Location(new Namespace(DEFAULT_BUCKET_TYPE, table), key);
+        	final Location location = new Location(new Namespace(bucketType, table), key);
             final FetchValue fv = new FetchValue.Builder(location)
-            	.withOption(FetchValue.Option.R, new Quorum(R_VALUE))
+            	.withOption(FetchValue.Option.R, new Quorum(rvalue))
             	.build();
             final FetchValue.Response response = fetch(fv);
             if (response.isNotFound()) {
             	return 1;
-            }
-            else {
-            	final RiakObject obj = response.getValue(RiakObject.class);
-            	deserializeTable(obj, result);
             }
             return 0;
         } 
@@ -121,7 +116,7 @@ public final class RiakDBClient extends DB {
 	@Override
 	public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
 		try {
-			Namespace ns = new Namespace(DEFAULT_BUCKET_TYPE, table);
+			Namespace ns = new Namespace(bucketType, table);
 			IntIndexQuery iiq = new IntIndexQuery
 				.Builder(ns, "key", getKeyAsLong(startkey), 999999999999999999L)
 				.withMaxResults(recordcount)
@@ -133,24 +128,12 @@ public final class RiakDBClient extends DB {
 			for (int i = 0; i < entries.size(); i++ ) {
 				final Location location = entries.get(i).getRiakObjectLocation();
 				final FetchValue fv = new FetchValue.Builder(location)
-	            	.withOption(FetchValue.Option.R, new Quorum(R_VALUE))
+	            	.withOption(FetchValue.Option.R, new Quorum(rvalue))
 	            	.build();
 				
 	            final FetchValue.Response keyResponse = fetch(fv);
 	            if (keyResponse.isNotFound()) {
 	            	return 1;
-	            }
-	            else {
-	            	final RiakObject obj = keyResponse.getValue(RiakObject.class);
-		            HashMap<String, ByteIterator> readresult = new HashMap<String, ByteIterator>();
-		            try
-		            {
-		            	deserializeTable(obj, readresult);
-		            	result.add(readresult);
-		            }
-		            catch (Exception e) {
-		            	return 1;
-		            }
 	            }
 			}
 			return 0;
@@ -166,7 +149,7 @@ public final class RiakDBClient extends DB {
 	private FetchValue.Response fetch(FetchValue fv) {
 		try {
 			FetchValue.Response response = null;
-			for (int i = 0; i < READ_RETRY_COUNT; i++) {
+			for (int i = 0; i < readRetryCount; i++) {
 				response = riakClient.execute(fv);
 				if (response.isNotFound() == false) break;
 			}
@@ -194,13 +177,13 @@ public final class RiakDBClient extends DB {
 	@Override
 	public int insert(String table, String key, HashMap<String, ByteIterator> values) {
         try {
-        	final Location location = new Location(new Namespace(DEFAULT_BUCKET_TYPE, table), key);
+        	final Location location = new Location(new Namespace(bucketType, table), key);
             final RiakObject object = new RiakObject();
             object.setValue(BinaryValue.create(serializeTable(values)));
             object.getIndexes().getIndex(LongIntIndex.named("key_int")).add(getKeyAsLong(key));
             StoreValue store = new StoreValue.Builder(object)
             	.withLocation(location)
-                .withOption(Option.W, new Quorum(W_VALUE))
+                .withOption(Option.W, new Quorum(wvalue))
                 .build();
             riakClient.execute(store);
             return 0;
@@ -238,7 +221,7 @@ public final class RiakDBClient extends DB {
 	@Override
 	public int delete(String table, String key) {
         try {
-        	final Location location = new Location(new Namespace(DEFAULT_BUCKET_TYPE, table), key);
+        	final Location location = new Location(new Namespace(bucketType, table), key);
             final DeleteValue dv = new DeleteValue.Builder(location).build();
             riakClient.execute(dv);
         } catch (Exception e) {
@@ -256,7 +239,7 @@ public final class RiakDBClient extends DB {
 		final RiakNode.Builder builder = new RiakNode.Builder();
         List<RiakNode> nodes;
 		try {
-			nodes = RiakNode.Builder.buildNodes(builder, Arrays.asList(NODES_ARRAY));
+			nodes = RiakNode.Builder.buildNodes(builder, Arrays.asList(nodesArray));
 			riakCluster = new RiakCluster.Builder(nodes).build();
 	        riakCluster.start();
 	        riakClient = new RiakClient(riakCluster);
@@ -270,18 +253,16 @@ public final class RiakDBClient extends DB {
 		try
 		{
 			File f = getPropertiesFile();
-			//System.out.println("Properties file: " + f.getAbsolutePath() );
 			if(f.exists() && !f.isDirectory()) {
 				FileInputStream propertyFile = new FileInputStream(f);
 				defaultProps.load(propertyFile);
 				propertyFile.close();
 				
-				NODES_ARRAY = defaultProps.getProperty("NODES", "127.0.0.1").split(",");
-				DEFAULT_BUCKET_TYPE = defaultProps.getProperty("DEFAULT_BUCKET_TYPE","ycsb");
-				R_VALUE = Integer.parseInt( defaultProps.getProperty("R_VALUE", "2") );
-				W_VALUE = Integer.parseInt( defaultProps.getProperty("W_VALUE", "2") );
-				READ_RETRY_COUNT = Integer.parseInt( defaultProps.getProperty("READ_RETRY_COUNT", "5") );
-				//System.out.println("R_VALUE: " + R_VALUE + " W_VALUE: " + W_VALUE + " READ_RETRY_COUNT " + READ_RETRY_COUNT);			
+				nodesArray = defaultProps.getProperty("NODES", "127.0.0.1").split(",");
+				bucketType = defaultProps.getProperty("DEFAULT_BUCKET_TYPE","ycsb");
+				rvalue = Integer.parseInt( defaultProps.getProperty("R_VALUE", "2") );
+				wvalue = Integer.parseInt( defaultProps.getProperty("W_VALUE", "2") );
+				readRetryCount = Integer.parseInt( defaultProps.getProperty("READ_RETRY_COUNT", "5") );			
 			}
 		}
 		catch (Exception e) {
