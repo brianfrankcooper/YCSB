@@ -18,10 +18,6 @@
 package com.yahoo.ycsb;
 
 
-import com.yahoo.ycsb.measurements.Measurements;
-import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
-import com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter;
-
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -32,6 +28,10 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Vector;
+
+import com.yahoo.ycsb.measurements.Measurements;
+import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
+import com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter;
 
 //import org.apache.log4j.BasicConfigurator;
 
@@ -245,26 +245,7 @@ class ClientThread extends Thread
 
 					_opsdone++;
 
-					//throttle the operations
-					if (_target>0)
-					{
-						//this is more accurate than other throttling approaches we have tried,
-						//like sleeping for (1/target throughput)-operation latency,
-						//because it smooths timing inaccuracies (from sleep() taking an int, 
-						//current time in millis) over many operations
-						while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
-						{
-							try
-							{
-								sleep(1);
-							}
-							catch (InterruptedException e)
-							{
-							  // do nothing.
-							}
-
-						}
-					}
+					throttle(st);
 				}
 			}
 			else
@@ -281,25 +262,7 @@ class ClientThread extends Thread
 
 					_opsdone++;
 
-					//throttle the operations
-					if (_target>0)
-					{
-						//this is more accurate than other throttling approaches we have tried,
-						//like sleeping for (1/target throughput)-operation latency,
-						//because it smooths timing inaccuracies (from sleep() taking an int, 
-						//current time in millis) over many operations
-						while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
-						{
-							try 
-							{
-								sleep(1);
-							}
-							catch (InterruptedException e)
-							{
-							  // do nothing.
-							}
-						}
-					}
+					throttle(st);
 				}
 			}
 		}
@@ -321,6 +284,29 @@ class ClientThread extends Thread
 			return;
 		}
 	}
+
+    private void throttle(long currTimeMillis) {
+        //throttle the operations
+        if (_target>0)
+        {
+        	//this is more accurate than other throttling approaches we have tried,
+        	//like sleeping for (1/target throughput)-operation latency,
+        	//because it smooths timing inaccuracies (from sleep() taking an int, 
+        	//current time in millis) over many operations
+        	while (System.currentTimeMillis()-currTimeMillis<((double)_opsdone)/_target)
+        	{
+        		try
+        		{
+        			sleep(1);
+        		}
+        		catch (InterruptedException e)
+        		{
+        		  // do nothing.
+        		}
+
+        	}
+        }
+    }
 }
 
 /**
@@ -329,7 +315,9 @@ class ClientThread extends Thread
 public class Client
 {
 
-	public static final String OPERATION_COUNT_PROPERTY="operationcount";
+	public static final String DEFAULT_RECORD_COUNT = "0";
+
+    public static final String OPERATION_COUNT_PROPERTY="operationcount";
 
 	public static final String RECORD_COUNT_PROPERTY="recordcount";
 
@@ -707,7 +695,7 @@ public class Client
 			}
 			else
 			{
-				opcount=Integer.parseInt(props.getProperty(RECORD_COUNT_PROPERTY,"0"));
+				opcount=Integer.parseInt(props.getProperty(RECORD_COUNT_PROPERTY, DEFAULT_RECORD_COUNT));
 			}
 		}
 
