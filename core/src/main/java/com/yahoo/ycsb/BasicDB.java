@@ -22,6 +22,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Enumeration;
 import java.util.Vector;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 
 
 /**
@@ -32,11 +34,15 @@ public class BasicDB extends DB
 	public static final String VERBOSE="basicdb.verbose";
 	public static final String VERBOSE_DEFAULT="true";
 	
-	public static final String SIMULATE_DELAY="basicdb.simulatedelay";
-	public static final String SIMULATE_DELAY_DEFAULT="0";
+    public static final String SIMULATE_DELAY="basicdb.simulatedelay";
+    public static final String SIMULATE_DELAY_DEFAULT="0";
+    
+    public static final String RANDOMIZE_DELAY="basicdb.ranomizedelay";
+    public static final String RANDOMIZE_DELAY_DEFAULT="true";
+    
 	
-	
-	boolean verbose;
+    boolean verbose;
+    boolean randomizedelay;
 	int todelay;
 
 	public BasicDB()
@@ -49,14 +55,21 @@ public class BasicDB extends DB
 	{
 		if (todelay>0)
 		{
-			try
-			{
-				Thread.sleep((long)Utils.random().nextInt(todelay));
-			}
-			catch (InterruptedException e)
-			{
-				//do nothing
-			}
+		    long delayNs;
+		    if (randomizedelay) {
+		        delayNs = TimeUnit.MILLISECONDS.toNanos(Utils.random().nextInt(todelay));
+		        if (delayNs == 0) {
+		            return;
+		        }
+		    }
+		    else {
+		        delayNs = TimeUnit.MILLISECONDS.toNanos(todelay);
+		    }
+		    
+			long deadline = System.nanoTime() + delayNs;
+			do {
+			    LockSupport.parkNanos(delayNs);
+			} while (System.nanoTime() < deadline && !Thread.interrupted());
 		}
 	}
 
@@ -69,7 +82,7 @@ public class BasicDB extends DB
 	{
 		verbose=Boolean.parseBoolean(getProperties().getProperty(VERBOSE, VERBOSE_DEFAULT));
 		todelay=Integer.parseInt(getProperties().getProperty(SIMULATE_DELAY, SIMULATE_DELAY_DEFAULT));
-		
+		randomizedelay=Boolean.parseBoolean(getProperties().getProperty(RANDOMIZE_DELAY, RANDOMIZE_DELAY_DEFAULT));
 		if (verbose)
 		{
 			System.out.println("***************** properties *****************");
