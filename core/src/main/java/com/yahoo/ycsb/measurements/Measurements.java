@@ -100,6 +100,28 @@ public class Measurements
         }
     }
 
+    static class StartTimeHolder{
+        long time;
+        long startTime(){
+            if(time == 0) {
+                return System.nanoTime();
+            }
+            else {
+                return time;
+            }
+        }
+    }
+    ThreadLocal<StartTimeHolder> tls = new ThreadLocal<Measurements.StartTimeHolder>(){
+      protected StartTimeHolder initialValue() {
+          return new StartTimeHolder();
+      };  
+    };
+    public void setStartTimeNs(long time){
+        tls.get().time=time;
+    }
+    public long startTimeNs(){
+        return tls.get().startTime();
+    }
       /**
        * Report a single value of a single metric. E.g. for read latency, operation="READ" and latency is the measured value.
        */

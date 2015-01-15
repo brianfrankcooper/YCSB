@@ -305,6 +305,8 @@ public class CoreWorkload extends Workload
 	boolean orderedinserts;
 
 	int recordcount;
+
+    private Measurements _measurements = Measurements.getMeasurements();
 	
 	protected static IntegerGenerator getFieldLengthGenerator(Properties p) throws WorkloadException{
 		IntegerGenerator fieldlengthgenerator;
@@ -685,7 +687,7 @@ public class CoreWorkload extends Workload
 		HashMap<String,ByteIterator> cells =
 		    new HashMap<String,ByteIterator>();
 
-		long st=System.nanoTime();
+		long st=_measurements.startTimeNs();
 
 		db.read(table,keyname,fields,cells);
 		
@@ -697,7 +699,7 @@ public class CoreWorkload extends Workload
       verifyRow(keyname, cells);
     }
 
-		Measurements.getMeasurements().measure("READ-MODIFY-WRITE", (int)((en-st)/1000));
+		_measurements .measure("READ-MODIFY-WRITE", (int)((en-st)/1000));
 	}
 	
 	public void doTransactionScan(DB db)
