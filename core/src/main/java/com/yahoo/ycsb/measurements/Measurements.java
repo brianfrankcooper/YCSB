@@ -20,6 +20,7 @@ package com.yahoo.ycsb.measurements;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 
@@ -56,8 +57,8 @@ public class Measurements
 		return singleton;
 	}
 
-	HashMap<String,OneMeasurement> data;
-	boolean histogram=true;
+	final ConcurrentHashMap<String,OneMeasurement> data;
+	int measurementType=0;
 
 	private Properties _props;
 	
@@ -66,50 +67,57 @@ public class Measurements
        */
 	public Measurements(Properties props)
 	{
-		data=new HashMap<String,OneMeasurement>();
+		data=new ConcurrentHashMap<String,OneMeasurement>();
 		
 		_props=props;
 		
-		if (_props.getProperty(MEASUREMENT_TYPE_PROPERTY, MEASUREMENT_TYPE_PROPERTY_DEFAULT).compareTo("histogram")==0)
+		String mTypeString = _props.getProperty(MEASUREMENT_TYPE_PROPERTY, MEASUREMENT_TYPE_PROPERTY_DEFAULT);
+        if (mTypeString.equals("histogram"))
 		{
-			histogram=true;
+		    measurementType=0;
 		}
+		else if (mTypeString.equals("hdrhistogram"))
+		{
+            measurementType=1;
+        }
 		else
 		{
-			histogram=false;
+		    measurementType=2;
 		}
 	}
 	
-	OneMeasurement constructOneMeasurement(String name)
-	{
-		if (histogram)
-		{
-			return new OneMeasurementHistogram(name,_props);
-		}
-		else
-		{
-			return new OneMeasurementTimeSeries(name,_props);
-		}
-	}
+    OneMeasurement constructOneMeasurement(String name)
+    {
+        switch (measurementType)
+        {
+        case 0:
+            return new OneMeasurementHistogram(name, _props);
+        case 1:
+            return new OneMeasurementHdrHistogram(name, _props);
+
+        default:
+            return new OneMeasurementTimeSeries(name, _props);
+        }
+    }
 
       /**
        * Report a single value of a single metric. E.g. for read latency, operation="READ" and latency is the measured value.
        */
-	public synchronized void measure(String operation, int latency)
+	public void measure(String operation, int latency)
 	{
-		if (!data.containsKey(operation))
-		{
-			synchronized(this)
-			{
-				if (!data.containsKey(operation))
-				{
-					data.put(operation,constructOneMeasurement(operation));
-				}
-			}
-		}
+		
 		try
 		{
-			data.get(operation).measure(latency);
+			OneMeasurement m = data.get(operation);
+			if(m == null) {
+			    m = constructOneMeasurement(operation);
+			    OneMeasurement oldM = data.putIfAbsent(operation, m);
+			    if(oldM != null)
+			    {
+			        m = oldM;
+			    }
+			}
+            m.measure(latency);
 		}
 		catch (java.lang.ArrayIndexOutOfBoundsException e)
 		{
