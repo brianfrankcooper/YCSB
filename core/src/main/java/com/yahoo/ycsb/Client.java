@@ -769,7 +769,13 @@ public class Client
 
 		if (status)
 		{
-			statusthread.interrupt();
+		    // wake up status thread if it's asleep
+		    statusthread.interrupt();
+		    // at this point we assume all the monitored threads are already gone as per above join loop.
+			try {
+                statusthread.join();
+            } catch (InterruptedException e) {
+            }
 		}
 
 		try
