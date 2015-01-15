@@ -157,7 +157,9 @@ class ClientThread extends Thread
 	int _threadcount;
 	Object _workloadstate;
 	Properties _props;
-    private long _targetOpsTickNs;
+    long _targetOpsTickNs;
+    final Measurements _measurements;
+    final boolean _measureFromIntendedDeadline;
 
 
 	/**
@@ -172,7 +174,7 @@ class ClientThread extends Thread
 	 * @param opcount the number of operations (transactions or inserts) to do
 	 * @param targetperthreadperms target number of operations per thread per ms
 	 */
-	public ClientThread(DB db, boolean dotransactions, Workload workload, int threadid, int threadcount, Properties props, int opcount, double targetperthreadperms)
+	public ClientThread(DB db, boolean dotransactions, Workload workload, int threadid, int threadcount, Properties props, int opcount, double targetperthreadperms, boolean measureFromIntendedDeadline)
 	{
 		//TODO: consider removing threadcount and threadid
 		_db=db;
@@ -187,7 +189,9 @@ class ClientThread extends Thread
 		_threadid=threadid;
 		_threadcount=threadcount;
 		_props=props;
+		_measurements = Measurements.getMeasurements();
 		//System.out.println("Interval = "+interval);
+		_measureFromIntendedDeadline = false;
 	}
 
 	public int getOpsDone()
@@ -276,6 +280,7 @@ class ClientThread extends Thread
 
 		try
 		{
+		    _measurements.setStartTimeNs(0);
 			_db.cleanup();
 		}
 		catch (DBException e)
@@ -292,17 +297,18 @@ class ClientThread extends Thread
             LockSupport.parkNanos(deadline - now);
         }
     }
-    private long throttleNanos(long startTimeNanos) {
+    private void throttleNanos(long startTimeNanos) {
         //throttle the operations
         if (_targetOpsPerMs > 0)
         {
             // delay until next tick
             long deadline = startTimeNanos + _opsdone*_targetOpsTickNs;
             sleepUntil(deadline);
-            return deadline;
+            if(_measureFromIntendedDeadline)
+                _measurements.setStartTimeNs(deadline);
         }
-        return -1;
     }
+    
 }
 
 /**
@@ -330,6 +336,10 @@ public class Client
    * The maximum amount of time (in seconds) for which the benchmark will be run.
    */
   public static final String MAX_EXECUTION_TIME = "maxexecutiontime";
+
+    private static final String CO_CORRECT_PROPERTY = "co.correct";
+
+    private static final String DEFAULT_CO_CORRECT = "true";
 
 	public static void usageMessage()
 	{
@@ -694,7 +704,7 @@ public class Client
 				opcount=Integer.parseInt(props.getProperty(RECORD_COUNT_PROPERTY, DEFAULT_RECORD_COUNT));
 			}
 		}
-
+		boolean measureFromIntendedDeadline = Boolean.parseBoolean(props.getProperty(CO_CORRECT_PROPERTY, DEFAULT_CO_CORRECT));
 		Vector<Thread> threads=new Vector<Thread>();
 
 		for (int threadid=0; threadid<threadcount; threadid++)
@@ -710,7 +720,8 @@ public class Client
 				System.exit(0);
 			}
 
-			Thread t=new ClientThread(db,dotransactions,workload,threadid,threadcount,props,opcount/threadcount,targetperthreadperms);
+			
+            Thread t=new ClientThread(db,dotransactions,workload,threadid,threadcount,props,opcount/threadcount,targetperthreadperms, measureFromIntendedDeadline);
 
 			threads.add(t);
 			//t.start();
