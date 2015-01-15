@@ -28,6 +28,7 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Vector;
+import java.util.concurrent.locks.LockSupport;
 
 import com.yahoo.ycsb.measurements.Measurements;
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
@@ -149,13 +150,14 @@ class ClientThread extends Thread
 	boolean _dotransactions;
 	Workload _workload;
 	int _opcount;
-	double _target;
+	double _targetOpsPerMs;
 
 	int _opsdone;
 	int _threadid;
 	int _threadcount;
 	Object _workloadstate;
 	Properties _props;
+    private long _targetOpsTickNs;
 
 
 	/**
@@ -178,7 +180,10 @@ class ClientThread extends Thread
 		_workload=workload;
 		_opcount=opcount;
 		_opsdone=0;
-		_target=targetperthreadperms;
+		if(targetperthreadperms > 0){
+		_targetOpsPerMs=targetperthreadperms;
+		_targetOpsTickNs=(long)(1000000/_targetOpsPerMs);
+		}
 		_threadid=threadid;
 		_threadcount=threadcount;
 		_props=props;
@@ -214,26 +219,22 @@ class ClientThread extends Thread
 			return;
 		}
 
-		//spread the thread operations out so they don't all hit the DB at the same time
-		try
-		{
-		   //GH issue 4 - throws exception if _target>1 because random.nextInt argument must be >0
-		   //and the sleep() doesn't make sense for granularities < 1 ms anyway
-		   if ( (_target>0) && (_target<=1.0) ) 
-		   {
-		      sleep(Utils.random().nextInt((int)(1.0/_target)));
-		   }
-		}
-		catch (InterruptedException e)
-		{
-		  // do nothing.
-		}
+		//NOTE: Switching to using nanoTime and parkNanos for time management here such that the measurements
+		// and the client thread have the same view on time.
 		
+		//spread the thread operations out so they don't all hit the DB at the same time
+		// GH issue 4 - throws exception if _target>1 because random.nextInt argument must be >0
+        // and the sleep() doesn't make sense for granularities < 1 ms anyway
+        if ((_targetOpsPerMs > 0) && (_targetOpsPerMs <= 1.0))
+        {
+            long randomMinorDelay = Utils.random().nextInt((int) _targetOpsTickNs);
+            sleepUntil(System.nanoTime() + randomMinorDelay);
+        }
 		try
 		{
 			if (_dotransactions)
 			{
-				long st=System.currentTimeMillis();
+			    long startTimeNanos = System.nanoTime();
 
 				while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
 				{
@@ -245,13 +246,13 @@ class ClientThread extends Thread
 
 					_opsdone++;
 
-					throttle(st);
+					throttleNanos(startTimeNanos);
 				}
 			}
 			else
 			{
-				long st=System.currentTimeMillis();
-
+			    long startTimeNanos = System.nanoTime();
+		        
 				while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
 				{
 
@@ -262,7 +263,7 @@ class ClientThread extends Thread
 
 					_opsdone++;
 
-					throttle(st);
+					throttleNanos(startTimeNanos);
 				}
 			}
 		}
@@ -285,27 +286,22 @@ class ClientThread extends Thread
 		}
 	}
 
-    private void throttle(long currTimeMillis) {
-        //throttle the operations
-        if (_target>0)
-        {
-        	//this is more accurate than other throttling approaches we have tried,
-        	//like sleeping for (1/target throughput)-operation latency,
-        	//because it smooths timing inaccuracies (from sleep() taking an int, 
-        	//current time in millis) over many operations
-        	while (System.currentTimeMillis()-currTimeMillis<((double)_opsdone)/_target)
-        	{
-        		try
-        		{
-        			sleep(1);
-        		}
-        		catch (InterruptedException e)
-        		{
-        		  // do nothing.
-        		}
-
-        	}
+    private void sleepUntil(long deadline) {
+        long now = System.nanoTime();
+        while((now = System.nanoTime()) < deadline) {
+            LockSupport.parkNanos(deadline - now);
         }
+    }
+    private long throttleNanos(long startTimeNanos) {
+        //throttle the operations
+        if (_targetOpsPerMs > 0)
+        {
+            // delay until next tick
+            long deadline = startTimeNanos + _opsdone*_targetOpsTickNs;
+            sleepUntil(deadline);
+            return deadline;
+        }
+        return -1;
     }
 }
 
