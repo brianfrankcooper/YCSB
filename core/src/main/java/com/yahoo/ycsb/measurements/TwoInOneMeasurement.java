@@ -24,7 +24,7 @@ import org.HdrHistogram.Recorder;
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 
 /**
- * delegates to 2 measuremement instances.
+ * delegates to 2 measurement instances.
  * @author nitsanw
  *
  */
