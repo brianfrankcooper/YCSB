@@ -275,7 +275,7 @@ class ClientThread extends Thread
 
 		try
 		{
-		    _measurements.setStartTimeNs(0);
+		    _measurements.setIntendedStartTimeNs(0);
 			_db.cleanup();
 		}
 		catch (DBException e)
@@ -300,7 +300,7 @@ class ClientThread extends Thread
             long deadline = startTimeNanos + _opsdone*_targetOpsTickNs;
             sleepUntil(deadline);
             if(_measureFromIntendedDeadline)
-                _measurements.setStartTimeNs(deadline);
+                _measurements.setIntendedStartTimeNs(deadline);
         }
     }
     
