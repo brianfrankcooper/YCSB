@@ -18,34 +18,22 @@
 package com.yahoo.ycsb.measurements;
 
 import java.io.IOException;
-import java.text.DecimalFormat;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import org.HdrHistogram.Histogram;
 import org.HdrHistogram.Recorder;
 
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 
 /**
- * Take measurements and maintain a HdrHistogram of a given metric, such as READ LATENCY.
- * 
+ * delegates to 2 measuremement instances.
  * @author nitsanw
  *
  */
-public class OneMeasurementHdrHistogram extends OneMeasurement {
-
-    Recorder histogram = new Recorder(3);
-    
-    final ConcurrentHashMap<Integer, AtomicInteger> returncodes;
-
-    Histogram totalHistogram;
-
-    public OneMeasurementHdrHistogram(String name, Properties props) {
+public class TwoInOneMeasurement extends OneMeasurement {
+    final OneMeasurement thing1,thing2;
+    public TwoInOneMeasurement(String name, OneMeasurement thing1,OneMeasurement thing2) {
         super(name);
-        returncodes = new ConcurrentHashMap<Integer, AtomicInteger>();
+        this.thing1 = thing1;
+        this.thing2 = thing2;
     }
 
     /**
@@ -54,16 +42,7 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
      * @see com.yahoo.ycsb.OneMeasurement#reportReturnCode(int)
      */
     public void reportReturnCode(int code) {
-        Integer Icode = code;
-        AtomicInteger counter = returncodes.get(Icode);
-        if (counter == null) {
-            AtomicInteger other = returncodes.putIfAbsent(Icode, counter = new AtomicInteger());
-            if (other != null) {
-                counter = other;
-            }
-        }
-
-        counter.incrementAndGet();
+        thing1.reportReturnCode(code);
     }
 
     /**
@@ -73,7 +52,8 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
      * @see com.yahoo.ycsb.OneMeasurement#measure(int)
      */
     public void measure(int latencyInMicros) {
-        histogram.recordValue(latencyInMicros);
+        thing1.measure(latencyInMicros);
+        thing2.measure(latencyInMicros);
     }
 
     /**
@@ -83,19 +63,8 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
      */
     @Override
     public void exportMeasurements(MeasurementsExporter exporter) throws IOException {
-        // accumulate the last interval which was not caught by status thread
-        getIntervalHistogramAndAccumulate();
-        exporter.write(getName(), "Operations", totalHistogram.getTotalCount());
-        exporter.write(getName(), "AverageLatency(us)", totalHistogram.getMean());
-        exporter.write(getName(), "MinLatency(us)", totalHistogram.getMinValue());
-        exporter.write(getName(), "MaxLatency(us)", totalHistogram.getMaxValue());
-        exporter.write(getName(), "95thPercentileLatency(ms)", totalHistogram.getValueAtPercentile(90)/1000);
-        exporter.write(getName(), "99thPercentileLatency(ms)", totalHistogram.getValueAtPercentile(99)/1000);
-
-        for (Map.Entry<Integer, AtomicInteger> entry : returncodes.entrySet()) {
-            exporter.write(getName(), "Return=" + entry.getKey(), entry.getValue().get());
-        }
-
+        thing1.exportMeasurements(exporter);
+        thing2.exportMeasurements(exporter);
     }
 
     /**
@@ -105,29 +74,6 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
      */
     @Override
     public String getSummary() {
-        Histogram intervalHistogram = getIntervalHistogramAndAccumulate();
-        DecimalFormat d = new DecimalFormat("#.##");
-        return "[" + getName() + 
-                ": Count=" + intervalHistogram.getTotalCount() + 
-                ", Max=" + intervalHistogram.getMaxValue() + 
-                ", Min=" + intervalHistogram.getMinValue() +
-                ", Avg=" + d.format(intervalHistogram.getMean()) +
-                ", 90=" + d.format(intervalHistogram.getValueAtPercentile(90)) +
-                ", 99=" + d.format(intervalHistogram.getValueAtPercentile(99)) +
-                ", 99.9=" + d.format(intervalHistogram.getValueAtPercentile(99.9)) +
-                ", 99.99=" + d.format(intervalHistogram.getValueAtPercentile(99.99)) +"]";
+        return thing1.getSummary() + "\n" + thing2.getSummary();
     }
-
-    private Histogram getIntervalHistogramAndAccumulate() {
-        Histogram intervalHistogram = histogram.getIntervalHistogram();
-        // add this to the total time histogram.
-        if (totalHistogram == null) {
-            totalHistogram = intervalHistogram; 
-        }
-        else {
-            totalHistogram.add(intervalHistogram);
-        }
-        return intervalHistogram;
-    }
-
 }

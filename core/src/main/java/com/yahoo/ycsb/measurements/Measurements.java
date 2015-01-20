@@ -18,7 +18,6 @@
 package com.yahoo.ycsb.measurements;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -57,8 +56,9 @@ public class Measurements
 		return singleton;
 	}
 
-	final ConcurrentHashMap<String,OneMeasurement> data;
-	int measurementType=0;
+    final ConcurrentHashMap<String,OneMeasurement> opToMesurementMap;
+    final ConcurrentHashMap<String,OneMeasurement> opToIntendedMesurementMap;
+	final int measurementType;
 
 	private Properties _props;
 	
@@ -67,7 +67,8 @@ public class Measurements
        */
 	public Measurements(Properties props)
 	{
-		data=new ConcurrentHashMap<String,OneMeasurement>();
+        opToMesurementMap=new ConcurrentHashMap<String,OneMeasurement>();
+        opToIntendedMesurementMap=new ConcurrentHashMap<String,OneMeasurement>();
 		
 		_props=props;
 		
@@ -80,9 +81,13 @@ public class Measurements
 		{
             measurementType=1;
         }
+		else if (mTypeString.equals("hdrhistogram+buckethistogram"))
+        {
+            measurementType=2;
+        }
 		else
 		{
-		    measurementType=2;
+		    measurementType=3;
 		}
 	}
 	
@@ -94,7 +99,10 @@ public class Measurements
             return new OneMeasurementHistogram(name, _props);
         case 1:
             return new OneMeasurementHdrHistogram(name, _props);
-
+        case 2:
+            return new TwoInOneMeasurement(name, 
+                    new OneMeasurementHdrHistogram("Hdr"+name, _props), 
+                    new OneMeasurementHistogram("Bucket"+name, _props));
         default:
             return new OneMeasurementTimeSeries(name, _props);
         }
@@ -116,31 +124,26 @@ public class Measurements
           return new StartTimeHolder();
       };  
     };
-    public void setStartTimeNs(long time){
+    public void setIntendedStartTimeNs(long time){
         tls.get().time=time;
     }
-    public long startTimeNs(){
+    
+    public long getIntendedtartTimeNs(){
         return tls.get().startTime();
     }
-      /**
-       * Report a single value of a single metric. E.g. for read latency, operation="READ" and latency is the measured value.
-       */
+
+    /**
+     * Report a single value of a single metric. E.g. for read latency, operation="READ" and latency is the measured
+     * value.
+     */
 	public void measure(String operation, int latency)
 	{
-		
 		try
 		{
-			OneMeasurement m = data.get(operation);
-			if(m == null) {
-			    m = constructOneMeasurement(operation);
-			    OneMeasurement oldM = data.putIfAbsent(operation, m);
-			    if(oldM != null)
-			    {
-			        m = oldM;
-			    }
-			}
+			OneMeasurement m = getOpMeasurement(operation);
             m.measure(latency);
 		}
+		// This seems like a terribly hacky way to cover up for a bug in the measurement code
 		catch (java.lang.ArrayIndexOutOfBoundsException e)
 		{
 			System.out.println("ERROR: java.lang.ArrayIndexOutOfBoundsException - ignoring and continuing");
@@ -148,23 +151,59 @@ public class Measurements
 			e.printStackTrace(System.out);
 		}
 	}
+    /**
+     * Report a single value of a single metric. E.g. for read latency, operation="READ" and latency is the measured
+     * value.
+     */
+    public void measureIntended(String operation, int latency)
+    {
+        try
+        {
+            OneMeasurement m = getOpIntendedMeasurement(operation);
+            m.measure(latency);
+        }
+        // This seems like a terribly hacky way to cover up for a bug in the measurement code
+        catch (java.lang.ArrayIndexOutOfBoundsException e)
+        {
+            System.out.println("ERROR: java.lang.ArrayIndexOutOfBoundsException - ignoring and continuing");
+            e.printStackTrace();
+            e.printStackTrace(System.out);
+        }
+    }
 
+    private OneMeasurement getOpMeasurement(String operation) {
+        OneMeasurement m = opToMesurementMap.get(operation);
+        if(m == null)
+        {
+            m = constructOneMeasurement(operation);
+            OneMeasurement oldM = opToMesurementMap.putIfAbsent(operation, m);
+            if(oldM != null)
+            {
+                m = oldM;
+            }
+        }
+        return m;
+    }
+    private OneMeasurement getOpIntendedMeasurement(String operation) {
+        OneMeasurement m = opToIntendedMesurementMap.get(operation);
+        if(m == null)
+        {
+            m = constructOneMeasurement("Intended-"+operation);
+            OneMeasurement oldM = opToIntendedMesurementMap.putIfAbsent(operation, m);
+            if(oldM != null)
+            {
+                m = oldM;
+            }
+        }
+        return m;
+    }
       /**
        * Report a return code for a single DB operaiton.
        */
 	public void reportReturnCode(String operation, int code)
 	{
-		if (!data.containsKey(operation))
-		{
-			synchronized(this)
-			{
-				if (!data.containsKey(operation))
-				{
-					data.put(operation,constructOneMeasurement(operation));
-				}
-			}
-		}
-		data.get(operation).reportReturnCode(code);
+	    OneMeasurement m = getOpMeasurement(operation);
+		m.reportReturnCode(code);
 	}
 	
   /**
@@ -175,10 +214,14 @@ public class Measurements
    */
   public void exportMeasurements(MeasurementsExporter exporter) throws IOException
   {
-    for (OneMeasurement measurement : data.values())
-    {
-      measurement.exportMeasurements(exporter);
-    }
+      for (OneMeasurement measurement : opToMesurementMap.values())
+      {
+        measurement.exportMeasurements(exporter);
+      }
+      for (OneMeasurement measurement : opToIntendedMesurementMap.values())
+      {
+        measurement.exportMeasurements(exporter);
+      }
   }
 	
       /**
@@ -187,11 +230,14 @@ public class Measurements
 	public String getSummary()
 	{
 		String ret="";
-		for (OneMeasurement m : data.values())
+		for (OneMeasurement m : opToMesurementMap.values())
 		{
 			ret+=m.getSummary()+" ";
 		}
-		
+		for (OneMeasurement m : opToIntendedMesurementMap.values())
+        {
+            ret+=m.getSummary()+" ";
+        }
 		return ret;
 	}
 }

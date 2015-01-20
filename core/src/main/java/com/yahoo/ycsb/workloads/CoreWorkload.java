@@ -18,6 +18,7 @@
 package com.yahoo.ycsb.workloads;
 
 import java.util.Properties;
+
 import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.generator.CounterGenerator;
 import com.yahoo.ycsb.generator.DiscreteGenerator;
@@ -572,8 +573,8 @@ public class CoreWorkload extends Workload
 
 		//do the transaction
 		
-		long st=_measurements.startTimeNs();
-
+		long ist=_measurements.getIntendedtartTimeNs();
+	    long st = System.nanoTime();
 		db.read(table,keyname,fields,new HashMap<String,ByteIterator>());
 		
 		db.update(table,keyname,values);
@@ -581,6 +582,7 @@ public class CoreWorkload extends Workload
 		long en=System.nanoTime();
 		
 		_measurements .measure("READ-MODIFY-WRITE", (int)((en-st)/1000));
+		_measurements .measureIntended("READ-MODIFY-WRITE", (int)((en-ist)/1000));
 	}
 	
 	public void doTransactionScan(DB db)
