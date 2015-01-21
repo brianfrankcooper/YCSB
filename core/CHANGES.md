@@ -45,8 +45,15 @@ This new option will enable periodical writes of the interval histogram into an 
 Example parameters:
 -target 1000 -s -p workload=com.yahoo.ycsb.workloads.CoreWorkload -p basicdb.verbose=false -p basicdb.simulatedelay=4 -p measurement.interval=both -p measurementtype=hdrhistogram -p hdrhistogram.fileoutput=true -p maxexecutiontime=60
 
+Further changes made:
 
-Further correction suggestions:
+* -p status.interval=<number of seconds> (default=10)
+Controls the number of seconds between status reports and therefore between HdrHistogram snapshots reported.
+
+* -p basicdb.ranomizedelay=[true|false] (default=true)
+Controls weather the delay simulated by the mock DB is uniformly random or not.
+
+Further suggestions:
 
 1. Correction load control: currently after a pause the load generator will do
 operations back to back to catchup, this leads to a flat out throughput mode
