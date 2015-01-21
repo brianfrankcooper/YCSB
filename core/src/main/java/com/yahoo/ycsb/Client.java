@@ -28,6 +28,7 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Vector;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
 import com.yahoo.ycsb.measurements.Measurements;
@@ -51,13 +52,14 @@ class StatusThread extends Thread
 	/**
 	 * The interval for reporting status.
 	 */
-	public static final long sleeptime=10000;
+	long _sleeptimeNs;
 
-	public StatusThread(Vector<Thread> threads, String label, boolean standardstatus)
+	public StatusThread(Vector<Thread> threads, String label, boolean standardstatus, int statusIntervalSeconds)
 	{
 		_threads=threads;
 		_label=label;
 		_standardstatus=standardstatus;
+		_sleeptimeNs=TimeUnit.SECONDS.toNanos(statusIntervalSeconds);
 	}
 
 	/**
@@ -65,8 +67,9 @@ class StatusThread extends Thread
 	 */
 	public void run()
 	{
-		long st=System.currentTimeMillis();
-
+		final long st=System.currentTimeMillis();
+		final long startTimeNanos = System.nanoTime();
+		long deadline = startTimeNanos + _sleeptimeNs;
 		long lasten=st;
 		long lasttotalops=0;
 		
@@ -119,15 +122,8 @@ class StatusThread extends Thread
 				System.out.println(msg);
 			}
 
-			try
-			{
-				sleep(sleeptime);
-			}
-			catch (InterruptedException e)
-			{
-				//do nothing
-			}
-
+			ClientThread.sleepUntil(deadline);
+			deadline+=_sleeptimeNs;
 		}
 		while (!alldone);
 	}
@@ -282,7 +278,7 @@ class ClientThread extends Thread
 		}
 	}
 
-    private void sleepUntil(long deadline) {
+    static void sleepUntil(long deadline) {
         long now = System.nanoTime();
         while((now = System.nanoTime()) < deadline) {
             LockSupport.parkNanos(deadline - now);
@@ -754,11 +750,12 @@ public class Client
 		if (status)
 		{
 			boolean standardstatus=false;
-			if (props.getProperty(Measurements.MEASUREMENT_TYPE_PROPERTY,"").compareTo("timeseries")==0)
+			if (props.getProperty(Measurements.MEASUREMENT_TYPE_PROPERTY,"").compareTo("timeseries")==0) 
 			{
 				standardstatus=true;
-			}	
-			statusthread=new StatusThread(threads,label,standardstatus);
+			}
+			int statusIntervalSeconds = Integer.parseInt(props.getProperty("status.interval","10"));
+			statusthread=new StatusThread(threads,label,standardstatus,statusIntervalSeconds);
 			statusthread.start();
 		}
 
