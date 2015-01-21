@@ -154,8 +154,6 @@ class ClientThread extends Thread
 	Properties _props;
     long _targetOpsTickNs;
     final Measurements _measurements;
-    final boolean _measureFromIntendedDeadline;
-
 
 	/**
 	 * Constructor.
@@ -169,7 +167,7 @@ class ClientThread extends Thread
 	 * @param opcount the number of operations (transactions or inserts) to do
 	 * @param targetperthreadperms target number of operations per thread per ms
 	 */
-	public ClientThread(DB db, boolean dotransactions, Workload workload, int threadid, int threadcount, Properties props, int opcount, double targetperthreadperms, boolean measureFromIntendedDeadline)
+	public ClientThread(DB db, boolean dotransactions, Workload workload, int threadid, int threadcount, Properties props, int opcount, double targetperthreadperms)
 	{
 		//TODO: consider removing threadcount and threadid
 		_db=db;
@@ -185,8 +183,6 @@ class ClientThread extends Thread
 		_threadcount=threadcount;
 		_props=props;
 		_measurements = Measurements.getMeasurements();
-		//System.out.println("Interval = "+interval);
-		_measureFromIntendedDeadline = false;
 	}
 
 	public int getOpsDone()
@@ -299,8 +295,7 @@ class ClientThread extends Thread
             // delay until next tick
             long deadline = startTimeNanos + _opsdone*_targetOpsTickNs;
             sleepUntil(deadline);
-            if(_measureFromIntendedDeadline)
-                _measurements.setIntendedStartTimeNs(deadline);
+            _measurements.setIntendedStartTimeNs(deadline);
         }
     }
     
@@ -368,9 +363,6 @@ public class Client
    */
   public static final String MAX_EXECUTION_TIME = "maxexecutiontime";
 
-    private static final String CO_CORRECT_PROPERTY = "co.correct";
-
-    private static final String DEFAULT_CO_CORRECT = "true";
 
 	public static void usageMessage()
 	{
@@ -735,7 +727,6 @@ public class Client
 				opcount=Integer.parseInt(props.getProperty(RECORD_COUNT_PROPERTY, DEFAULT_RECORD_COUNT));
 			}
 		}
-		boolean measureFromIntendedDeadline = Boolean.parseBoolean(props.getProperty(CO_CORRECT_PROPERTY, DEFAULT_CO_CORRECT));
 		Vector<Thread> threads=new Vector<Thread>();
 
 		for (int threadid=0; threadid<threadcount; threadid++)
@@ -752,7 +743,7 @@ public class Client
 			}
 
 			
-            Thread t=new ClientThread(db,dotransactions,workload,threadid,threadcount,props,opcount/threadcount,targetperthreadperms, measureFromIntendedDeadline);
+            Thread t=new ClientThread(db,dotransactions,workload,threadid,threadcount,props,opcount/threadcount, targetperthreadperms);
 
 			threads.add(t);
 			//t.start();

@@ -17,7 +17,11 @@
 
 package com.yahoo.ycsb.measurements;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.text.DecimalFormat;
 import java.util.Map;
 import java.util.Properties;
@@ -25,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.HdrHistogram.Histogram;
+import org.HdrHistogram.HistogramLogWriter;
 import org.HdrHistogram.Recorder;
 
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
@@ -36,9 +41,11 @@ import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
  *
  */
 public class OneMeasurementHdrHistogram extends OneMeasurement {
-
-    Recorder histogram = new Recorder(3);
+    // we need one log per measurement histogram
+    final PrintStream log;
+    final HistogramLogWriter histogramLogWriter;
     
+    final Recorder histogram = new Recorder(3);
     final ConcurrentHashMap<Integer, AtomicInteger> returncodes;
 
     Histogram totalHistogram;
@@ -46,6 +53,23 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
     public OneMeasurementHdrHistogram(String name, Properties props) {
         super(name);
         returncodes = new ConcurrentHashMap<Integer, AtomicInteger>();
+        boolean shouldLog = Boolean.parseBoolean(props.getProperty("hdrhistogram.fileoutput", "false"));
+        if (!shouldLog) {
+            log = null;
+            histogramLogWriter = null;
+            return;
+        }
+        try {
+            final String hdrOutputFilename = props.getProperty("hdrhistogram.output.path", "") +name+".hdr";
+            log = new PrintStream(new FileOutputStream(hdrOutputFilename), false);
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException("Failed to open hdr histogram output file",e);
+        }
+        histogramLogWriter = new HistogramLogWriter(log);
+        histogramLogWriter.outputComment("[Logging for: " + name + "]");
+        histogramLogWriter.outputLogFormatVersion();
+        histogramLogWriter.outputStartTime(System.currentTimeMillis());
+        histogramLogWriter.outputLegend();
     }
 
     /**
@@ -84,7 +108,12 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
     @Override
     public void exportMeasurements(MeasurementsExporter exporter) throws IOException {
         // accumulate the last interval which was not caught by status thread
-        getIntervalHistogramAndAccumulate();
+        Histogram intervalHistogram = getIntervalHistogramAndAccumulate();
+        if(histogramLogWriter != null) {
+            histogramLogWriter.outputIntervalHistogram(intervalHistogram);
+            // we can close now
+            log.close();
+        }
         exporter.write(getName(), "Operations", totalHistogram.getTotalCount());
         exporter.write(getName(), "AverageLatency(us)", totalHistogram.getMean());
         exporter.write(getName(), "MinLatency(us)", totalHistogram.getMinValue());
@@ -95,7 +124,6 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
         for (Map.Entry<Integer, AtomicInteger> entry : returncodes.entrySet()) {
             exporter.write(getName(), "Return=" + entry.getKey(), entry.getValue().get());
         }
-
     }
 
     /**
@@ -106,6 +134,11 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
     @Override
     public String getSummary() {
         Histogram intervalHistogram = getIntervalHistogramAndAccumulate();
+        // we use the summary interval as the histogram file interval.
+        if(histogramLogWriter != null) {
+            histogramLogWriter.outputIntervalHistogram(intervalHistogram);
+        }
+        
         DecimalFormat d = new DecimalFormat("#.##");
         return "[" + getName() + 
                 ": Count=" + intervalHistogram.getTotalCount() + 

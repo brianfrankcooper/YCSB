@@ -34,6 +34,8 @@ public class Measurements
 	public static final String MEASUREMENT_TYPE_PROPERTY = "measurementtype";
 
 	private static final String MEASUREMENT_TYPE_PROPERTY_DEFAULT = "histogram";
+    private static final String MEASUREMENT_INTERVAL = "measurement.interval";
+    private static final String MEASUREMENT_INTERVAL_DEFAULT = "op";
 
 	static Measurements singleton=null;
 	
@@ -56,10 +58,10 @@ public class Measurements
 		return singleton;
 	}
 
-    final ConcurrentHashMap<String,OneMeasurement> opToMesurementMap;
-    final ConcurrentHashMap<String,OneMeasurement> opToIntendedMesurementMap;
-	final int measurementType;
-
+    final ConcurrentHashMap<String,OneMeasurement> _opToMesurementMap;
+    final ConcurrentHashMap<String,OneMeasurement> _opToIntendedMesurementMap;
+	final int _measurementType;
+	final int _measurementInterval;
 	private Properties _props;
 	
       /**
@@ -67,33 +69,54 @@ public class Measurements
        */
 	public Measurements(Properties props)
 	{
-        opToMesurementMap=new ConcurrentHashMap<String,OneMeasurement>();
-        opToIntendedMesurementMap=new ConcurrentHashMap<String,OneMeasurement>();
+        _opToMesurementMap=new ConcurrentHashMap<String,OneMeasurement>();
+        _opToIntendedMesurementMap=new ConcurrentHashMap<String,OneMeasurement>();
 		
 		_props=props;
 		
 		String mTypeString = _props.getProperty(MEASUREMENT_TYPE_PROPERTY, MEASUREMENT_TYPE_PROPERTY_DEFAULT);
         if (mTypeString.equals("histogram"))
 		{
-		    measurementType=0;
+		    _measurementType = 0;
 		}
 		else if (mTypeString.equals("hdrhistogram"))
 		{
-            measurementType=1;
+            _measurementType = 1;
         }
-		else if (mTypeString.equals("hdrhistogram+buckethistogram"))
+		else if (mTypeString.equals("hdrhistogram+histogram"))
         {
-            measurementType=2;
+            _measurementType = 2;
         }
-		else
+		else if (mTypeString.equals("timeseries"))
 		{
-		    measurementType=3;
+		    _measurementType = 3;
 		}
+		else {
+		    throw new IllegalArgumentException("unknown "+MEASUREMENT_TYPE_PROPERTY+"="+mTypeString);
+		}
+        
+        String mIntervalString = _props.getProperty(MEASUREMENT_INTERVAL, MEASUREMENT_INTERVAL_DEFAULT);
+        if (mIntervalString.equals("op"))
+        {
+            _measurementInterval = 0;
+        }
+        else if (mIntervalString.equals("intended"))
+        {
+            _measurementInterval = 1;
+        }
+        else if (mIntervalString.equals("both"))
+        {
+            _measurementInterval = 2;
+        }
+        else {
+            throw new IllegalArgumentException("unknown "+MEASUREMENT_INTERVAL+"="+mIntervalString);
+        }
+        
 	}
 	
     OneMeasurement constructOneMeasurement(String name)
     {
-        switch (measurementType)
+        switch (_measurementType)
         {
         case 0:
             return new OneMeasurementHistogram(name, _props);
@@ -119,17 +142,21 @@ public class Measurements
             }
         }
     }
-    ThreadLocal<StartTimeHolder> tls = new ThreadLocal<Measurements.StartTimeHolder>(){
+    ThreadLocal<StartTimeHolder> tlIntendedStartTime = new ThreadLocal<Measurements.StartTimeHolder>(){
       protected StartTimeHolder initialValue() {
           return new StartTimeHolder();
-      };  
+      };
     };
     public void setIntendedStartTimeNs(long time){
-        tls.get().time=time;
+        if(_measurementInterval==0)
+            return;
+        tlIntendedStartTime.get().time=time;
     }
     
     public long getIntendedtartTimeNs(){
-        return tls.get().startTime();
+        if(_measurementInterval==0)
+            return 0L;
+        return tlIntendedStartTime.get().startTime();
     }
 
     /**
@@ -138,6 +165,8 @@ public class Measurements
      */
 	public void measure(String operation, int latency)
 	{
+	    if(_measurementInterval==1)
+	        return;
 		try
 		{
 			OneMeasurement m = getOpMeasurement(operation);
@@ -157,6 +186,8 @@ public class Measurements
      */
     public void measureIntended(String operation, int latency)
     {
+        if(_measurementInterval==0)
+            return;
         try
         {
             OneMeasurement m = getOpIntendedMeasurement(operation);
@@ -172,11 +203,11 @@ public class Measurements
     }
 
     private OneMeasurement getOpMeasurement(String operation) {
-        OneMeasurement m = opToMesurementMap.get(operation);
+        OneMeasurement m = _opToMesurementMap.get(operation);
         if(m == null)
         {
             m = constructOneMeasurement(operation);
-            OneMeasurement oldM = opToMesurementMap.putIfAbsent(operation, m);
+            OneMeasurement oldM = _opToMesurementMap.putIfAbsent(operation, m);
             if(oldM != null)
             {
                 m = oldM;
@@ -185,11 +216,12 @@ public class Measurements
         return m;
     }
     private OneMeasurement getOpIntendedMeasurement(String operation) {
-        OneMeasurement m = opToIntendedMesurementMap.get(operation);
+        OneMeasurement m = _opToIntendedMesurementMap.get(operation);
         if(m == null)
         {
-            m = constructOneMeasurement("Intended-"+operation);
-            OneMeasurement oldM = opToIntendedMesurementMap.putIfAbsent(operation, m);
+            final String name = _measurementInterval==1 ? operation : "Intended-" + operation;
+            m = constructOneMeasurement(name);
+            OneMeasurement oldM = _opToIntendedMesurementMap.putIfAbsent(operation, m);
             if(oldM != null)
             {
                 m = oldM;
@@ -198,11 +230,13 @@ public class Measurements
         return m;
     }
       /**
-       * Report a return code for a single DB operaiton.
+       * Report a return code for a single DB operation.
        */
 	public void reportReturnCode(String operation, int code)
 	{
-	    OneMeasurement m = getOpMeasurement(operation);
+	    OneMeasurement m = _measurementInterval==1 ? 
+	            getOpIntendedMeasurement(operation) : 
+	            getOpMeasurement(operation);
 		m.reportReturnCode(code);
 	}
 	
@@ -214,11 +248,11 @@ public class Measurements
    */
   public void exportMeasurements(MeasurementsExporter exporter) throws IOException
   {
-      for (OneMeasurement measurement : opToMesurementMap.values())
+      for (OneMeasurement measurement : _opToMesurementMap.values())
       {
         measurement.exportMeasurements(exporter);
       }
-      for (OneMeasurement measurement : opToIntendedMesurementMap.values())
+      for (OneMeasurement measurement : _opToIntendedMesurementMap.values())
       {
         measurement.exportMeasurements(exporter);
       }
@@ -230,11 +264,11 @@ public class Measurements
 	public synchronized String getSummary()
 	{
 		String ret="";
-		for (OneMeasurement m : opToMesurementMap.values())
+		for (OneMeasurement m : _opToMesurementMap.values())
 		{
 			ret+=m.getSummary()+" ";
 		}
-		for (OneMeasurement m : opToIntendedMesurementMap.values())
+		for (OneMeasurement m : _opToIntendedMesurementMap.values())
         {
             ret+=m.getSummary()+" ";
         }
