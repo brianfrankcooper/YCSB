@@ -69,11 +69,11 @@ public class DBWrapper extends DB
 	 */
 	public void cleanup() throws DBException
 	{
-    long ist=_measurements.getIntendedtartTimeNs();
-    long st = System.nanoTime();
+        long ist=_measurements.getIntendedtartTimeNs();
+        long st = System.nanoTime();
 		_db.cleanup();
-    long en=System.nanoTime();
-    measure(ist, st, en);
+        long en=System.nanoTime();
+        measure("CLEANUP",ist, st, en);
 	}
 
 	/**
@@ -91,7 +91,7 @@ public class DBWrapper extends DB
 	    long st = System.nanoTime();
 	    int res=_db.read(table,key,fields,result);
 		long en=System.nanoTime();
-		measure(ist, st, en);
+		measure("READ",ist, st, en);
 	    _measurements.reportReturnCode("READ",res);
 		return res;
 	}
@@ -112,14 +112,14 @@ public class DBWrapper extends DB
 	    long st = System.nanoTime();
 	    int res=_db.scan(table,startkey,recordcount,fields,result);
 		long en=System.nanoTime();
-		measure(ist, st, en);
+		measure("SCAN",ist, st, en);
 	    _measurements.reportReturnCode("SCAN",res);
 		return res;
 	}
 
-    private void measure(long intendedStartTimeNanos, long startTimeNanos, long endTimeNanos) {
-        _measurements.measure("CLEANUP", (int)((endTimeNanos-startTimeNanos)/1000));
-	    _measurements.measureIntended("CLEANUP", (int)((endTimeNanos-intendedStartTimeNanos)/1000));
+    private void measure(String op, long intendedStartTimeNanos, long startTimeNanos, long endTimeNanos) {
+        _measurements.measure(op, (int)((endTimeNanos-startTimeNanos)/1000));
+	    _measurements.measureIntended(op, (int)((endTimeNanos-intendedStartTimeNanos)/1000));
     }
 	
 	/**
@@ -137,7 +137,7 @@ public class DBWrapper extends DB
 	    long st = System.nanoTime();
 		int res=_db.update(table,key,values);
 		long en=System.nanoTime();
-		measure(ist, st, en);
+		measure("UPDATE",ist, st, en);
 		_measurements.reportReturnCode("UPDATE",res);
 		return res;
 	}
@@ -157,7 +157,7 @@ public class DBWrapper extends DB
 	    long st = System.nanoTime();
 		int res=_db.insert(table,key,values);
 		long en=System.nanoTime();
-		measure(ist, st, en);
+		measure("INSERT",ist, st, en);
 		_measurements.reportReturnCode("INSERT",res);
 		return res;
 	}
@@ -175,7 +175,7 @@ public class DBWrapper extends DB
 	    long st = System.nanoTime();
 		int res=_db.delete(table,key);
 		long en=System.nanoTime();
-		measure(ist, st, en);
+		measure("DELETE",ist, st, en);
 		_measurements.reportReturnCode("DELETE",res);
 		return res;
 	}
