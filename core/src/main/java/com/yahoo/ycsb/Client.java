@@ -28,6 +28,7 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Vector;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
 import com.yahoo.ycsb.measurements.Measurements;
@@ -51,13 +52,14 @@ class StatusThread extends Thread
 	/**
 	 * The interval for reporting status.
 	 */
-	public static final long sleeptime=10000;
+	long _sleeptimeNs;
 
-	public StatusThread(Vector<Thread> threads, String label, boolean standardstatus)
+	public StatusThread(Vector<Thread> threads, String label, boolean standardstatus, int statusIntervalSeconds)
 	{
 		_threads=threads;
 		_label=label;
 		_standardstatus=standardstatus;
+		_sleeptimeNs=TimeUnit.SECONDS.toNanos(statusIntervalSeconds);
 	}
 
 	/**
@@ -65,8 +67,9 @@ class StatusThread extends Thread
 	 */
 	public void run()
 	{
-		long st=System.currentTimeMillis();
-
+		final long st=System.currentTimeMillis();
+		final long startTimeNanos = System.nanoTime();
+		long deadline = startTimeNanos + _sleeptimeNs;
 		long lasten=st;
 		long lasttotalops=0;
 		
@@ -113,26 +116,21 @@ class StatusThread extends Thread
 				System.err.println(label+" " + (interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());
 			}
 
-			if (_standardstatus)
-			{
-			if (totalops==0)
-			{
-				System.out.println(label+" "+(interval/1000)+" sec: "+totalops+" operations; "+Measurements.getMeasurements().getSummary());
-			}
-			else
-			{
-				System.out.println(label+" "+(interval/1000)+" sec: "+totalops+" operations; "+d.format(curthroughput)+" current ops/sec; "+Measurements.getMeasurements().getSummary());			}
-			}
-
-			try
-			{
-				sleep(sleeptime);
-			}
-			catch (InterruptedException e)
-			{
-				//do nothing
-			}
-
+            if (_standardstatus)
+            {
+                if (totalops == 0)
+                {
+                    System.out.println(label + " " + (interval / 1000) + " sec: " + totalops + " operations; "
+                            + Measurements.getMeasurements().getSummary());
+                }
+                else {
+                    System.out.println(label + " " + (interval / 1000) + " sec: " + totalops + " operations; "
+                            + d.format(curthroughput) + " current ops/sec; "
+                            + Measurements.getMeasurements().getSummary());
+                }
+            }
+			ClientThread.sleepUntil(deadline);
+			deadline+=_sleeptimeNs;
 		}
 		while (!alldone);
 	}
@@ -287,7 +285,7 @@ class ClientThread extends Thread
 		}
 	}
 
-    private void sleepUntil(long deadline) {
+    static void sleepUntil(long deadline) {
         long now = System.nanoTime();
         while((now = System.nanoTime()) < deadline) {
             LockSupport.parkNanos(deadline - now);
@@ -723,11 +721,12 @@ public class Client
 		if (status)
 		{
 			boolean standardstatus=false;
-			if (props.getProperty("measurementtype","").compareTo("timeseries")==0) 
+			if (props.getProperty(Measurements.MEASUREMENT_TYPE,"").compareTo("timeseries")==0) 
 			{
 				standardstatus=true;
-			}	
-			statusthread=new StatusThread(threads,label,standardstatus);
+			}
+			int statusIntervalSeconds = Integer.parseInt(props.getProperty("status.interval","10"));
+			statusthread=new StatusThread(threads,label,standardstatus,statusIntervalSeconds);
 			statusthread.start();
 		}
 

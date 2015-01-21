@@ -31,10 +31,9 @@ import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
  */
 public class Measurements
 {
-    private static final String MEASUREMENT_TYPE = "measurementtype";
-
+    public static final String MEASUREMENT_TYPE = "measurementtype";
     private static final String MEASUREMENT_TYPE_DEFAULT = "histogram";
-    private static final String MEASUREMENT_INTERVAL = "measurement.interval";
+    public static final String MEASUREMENT_INTERVAL = "measurement.interval";
     private static final String MEASUREMENT_INTERVAL_DEFAULT = "op";
 
 	static Measurements singleton=null;
