@@ -61,6 +61,7 @@
 
   <modules>
     <!--module>build-tools</module-->
+    <module>vitess</module>
     <module>cassandra</module>
     <module>core</module>
     <module>hbase</module>
