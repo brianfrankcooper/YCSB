@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.Vector;
 
+import com.yahoo.ycsb.Client;
 import com.yahoo.ycsb.workloads.*;
 
 /**
@@ -89,7 +90,7 @@ public class CommandLine
 		  usageMessage();
 		  System.exit(0);
 	       }
-	       props.setProperty("db",args[argindex]);
+	       props.setProperty(Client.DB_PROPERTY, args[argindex]);
 	       argindex++;
 	    }
 	    else if (args[argindex].compareTo("-P")==0)
