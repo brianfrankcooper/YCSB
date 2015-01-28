@@ -1,7 +1,7 @@
 Vitess YCSB Driver
 ==================
 
-Test using the command line tool.
+Test using the command line unit test tool.
   ```sh
   mvn clean package
   java -cp vitess/target/vitess-binding-0.1.4.jar com.yahoo.ycsb.CommandLine \
