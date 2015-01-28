@@ -378,8 +378,6 @@ public class Client
      */
     public static final String TARGET_PROPERTY="target";
 
-    public static final String MEASUREMENT_TYPE_PROPERTY="measurementtype";
-
     /**
    * The maximum amount of time (in seconds) for which the benchmark will be run.
    */
@@ -775,7 +773,7 @@ public class Client
 		if (status)
 		{
 			boolean standardstatus=false;
-			if (props.getProperty(MEASUREMENT_TYPE_PROPERTY,"").compareTo("timeseries")==0)
+			if (props.getProperty(Measurements.MEASUREMENT_TYPE_PROPERTY,"").compareTo("timeseries")==0)
 			{
 				standardstatus=true;
 			}	
