@@ -188,7 +188,7 @@ public class CommandLine
 	 System.out.println("Start with \"-help\" for usage info");
 
 	 //create a DB
-	 String dbname=props.getProperty("db",DEFAULT_DB);
+	 String dbname=props.getProperty(Client.DB_PROPERTY, DEFAULT_DB);
 
 	 ClassLoader classLoader = CommandLine.class.getClassLoader();
 
