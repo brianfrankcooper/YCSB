@@ -31,7 +31,7 @@ import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
  */
 public class Measurements
 {
-	private static final String MEASUREMENT_TYPE_PROPERTY = "measurementtype";
+	public static final String MEASUREMENT_TYPE_PROPERTY = "measurementtype";
 
 	private static final String MEASUREMENT_TYPE_PROPERTY_DEFAULT = "histogram";
 
