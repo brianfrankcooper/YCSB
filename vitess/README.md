@@ -1,7 +1,8 @@
 Vitess YCSB Driver
 ==================
 
-Test using the command line unit test tool.
+# Test using the command line unit test tool.
+
   ```sh
   mvn clean package
   java -cp vitess/target/vitess-binding-0.1.4.jar com.yahoo.ycsb.CommandLine \
@@ -13,3 +14,11 @@ Test using the command line unit test tool.
   insert brianfrankcooper first=brian last=cooper
   read brianfrankcooper
   ```
+# Executing Workload
+
+  ```sh
+  bin/ycsb run vitess -P workloads/workloada -p hosts=localhost:15007 -p keyspace=test_keyspace -p measurementtype=timeseries -p timeseries.granularity=2000
+  ```
+  Use -p debug=true to print the sql statements
+
+

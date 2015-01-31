@@ -1,8 +1,12 @@
-package com.yahoo.ycsb;
+package com.yahoo.ycsb.db;
 
 import com.google.common.base.Joiner;
 import com.google.common.primitives.UnsignedLong;
 
+import com.yahoo.ycsb.ByteArrayByteIterator;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.DB;
+import com.yahoo.ycsb.DBException;
 import com.youtube.vitess.vtgate.BindVariable;
 import com.youtube.vitess.vtgate.Exceptions.ConnectionException;
 import com.youtube.vitess.vtgate.KeyRange;
@@ -24,8 +28,15 @@ public class VitessClient extends DB {
   private VtGate vtgate;
   private String keyspace;
   private String tabletType;
+  private boolean debugMode;
 
   private static final String PRIMARY_KEY_COL = "pri_key";
+  private static final String DEFAULT_CREATE_TABLE =
+      "CREATE TABLE usertable(pri_key VARCHAR (255) PRIMARY KEY, "
+      + "field0 TEXT, field1 TEXT, field2 TEXT, field3 TEXT, field4 TEXT, "
+      + "field5 TEXT, field6 TEXT, field7 TEXT, field8 TEXT, field9 TEXT, "
+      + "keyspace_id BIGINT NOT NULL) Engine=InnoDB";
+  private static final String DEFAULT_DROP_TABLE = "drop table if exists usertable";
 
   @Override
   public void init() throws DBException {
@@ -33,19 +44,23 @@ public class VitessClient extends DB {
     int timeoutMs = Integer.parseInt(getProperties().getProperty("connectionTimeoutMs", "0"));
     keyspace = getProperties().getProperty("keyspace", "ycsb");
     tabletType = getProperties().getProperty("tabletType", "master");
-    String createTable = getProperties().getProperty("createTable", null);
-    String dropTable = getProperties().getProperty("dropTable", null);
+    debugMode = getProperties().getProperty("debug") != null;
+
+    String createTable = getProperties().getProperty("createTable", DEFAULT_CREATE_TABLE);
+    String dropTable = getProperties().getProperty("dropTable", DEFAULT_DROP_TABLE);
     try {
       vtgate = VtGate.connect(hosts, timeoutMs);
       vtgate.begin();
-      if (dropTable != null) {
-        vtgate.execute(
-            new QueryBuilder(dropTable, keyspace, "master").addKeyRange(KeyRange.ALL).build());
+      if (debugMode) {
+        System.out.println(dropTable);
       }
-      if (createTable != null) {
-        vtgate.execute(
-            new QueryBuilder(createTable, keyspace, "master").addKeyRange(KeyRange.ALL).build());
+      vtgate.execute(
+          new QueryBuilder(dropTable, keyspace, "master").addKeyRange(KeyRange.ALL).build());
+      if (debugMode) {
+        System.out.println(createTable);
       }
+      vtgate.execute(
+          new QueryBuilder(createTable, keyspace, "master").addKeyRange(KeyRange.ALL).build());
       vtgate.commit();
     } catch (Exception e) {
       throw new DBException(e);
@@ -65,7 +80,9 @@ public class VitessClient extends DB {
     sql.append(" from ");
     sql.append(table);
     sql.append(" where pri_key = :pri_key");
-    System.out.println(sql);
+    if (debugMode) {
+      System.out.println(sql);
+    }
     Query query = new Query.QueryBuilder(sql.toString(), keyspace, tabletType)
         .addKeyspaceId(KeyspaceId.valueOf(getKeyspaceId(key)))
         .addBindVar(BindVariable.forString(PRIMARY_KEY_COL, key)).build();
@@ -117,8 +134,11 @@ public class VitessClient extends DB {
     if (updateCols != null) {
       sql.append(updateCols.toString());
     }
-    sql.append("where pri_key = ':pri_key'");
+    sql.append(" where pri_key = ':pri_key'");
 
+    if (debugMode) {
+      System.out.println(sql);
+    }
     Query query = new Query.QueryBuilder(sql.toString(), keyspace, "master")
         .addKeyspaceId(KeyspaceId.valueOf(getKeyspaceId(key))).setBindVars(bindVars).build();
     try {
@@ -154,7 +174,10 @@ public class VitessClient extends DB {
     sql.append(Joiner.on(", :").join(colNames));
     sql.append(" )");
 
-    System.out.println(sql);
+    if (debugMode) {
+      System.out.println(sql);
+    }
+
     Query query = new Query.QueryBuilder(sql.toString(), keyspace, "master")
         .addKeyspaceId(KeyspaceId.valueOf(getKeyspaceId(key))).setBindVars(bindVars).build();
     try {
@@ -174,6 +197,9 @@ public class VitessClient extends DB {
     sql.append("delete from ");
     sql.append(table);
     sql.append(" where pri_key = :pri_key");
+    if (debugMode) {
+      System.out.println(sql);
+    }
     Query query = new Query.QueryBuilder(sql.toString(), keyspace, "master")
         .addKeyspaceId(KeyspaceId.valueOf(getKeyspaceId(key)))
         .addBindVar(BindVariable.forString(PRIMARY_KEY_COL, key)).build();
@@ -198,7 +224,7 @@ public class VitessClient extends DB {
   }
 
   private UnsignedLong getKeyspaceId(String key) {
-    int hashCode = key.hashCode();
+    int hashCode = Math.abs(key.hashCode());
     return UnsignedLong.valueOf("" + hashCode);
   }
 }
