@@ -7,11 +7,15 @@
     <artifactId>root</artifactId>
     <version>0.1.4</version>
   </parent>
-
   <artifactId>vitess-binding</artifactId>
   <name>Vitess DB Binding</name>
   <packaging>jar</packaging>
-
+  <repositories>
+    <repository>
+      <id>youtube-snapshots</id>
+      <url>https://github.com/youtube/mvn-repo/raw/master/snapshots</url>
+    </repository>
+  </repositories>
   <dependencies>
     <dependency>
       <groupId>com.youtube.vitess</groupId>
