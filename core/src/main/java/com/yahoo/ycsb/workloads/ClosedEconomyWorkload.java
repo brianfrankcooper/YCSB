@@ -582,10 +582,14 @@ public class ClosedEconomyWorkload extends Workload {
 		while (second == first) {
 			second = nextKeynum();
 		}
+        // We want to move money in one direction only, to ensure transactions
+        // don't 'cancel' one-another out, i.e. T1: A -> B, and concurrently
+        // T2: B -> A. Hence, we only transfer from higher accounts to lower
+        // accounts.
 		if (first < second) {
 			int temp = first;
 			first = second;
-			first = temp;
+            second = temp;
 		}
 
 		String firstkey = buildKeyName(first);
