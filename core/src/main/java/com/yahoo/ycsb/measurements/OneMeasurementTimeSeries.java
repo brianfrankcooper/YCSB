@@ -103,7 +103,7 @@ public class OneMeasurementTimeSeries extends OneMeasurement
 	}
 	
 	@Override
-	public void measure(int latency) 
+	public synchronized void measure(int latency) 
 	{
 		checkEndOfUnit(false);
 		
@@ -151,7 +151,7 @@ public class OneMeasurementTimeSeries extends OneMeasurement
   }
 	
 	@Override
-	public void reportReturnCode(int code) {
+	public synchronized void reportReturnCode(int code) {
 		Integer Icode=code;
 		if (!returncodes.containsKey(Icode))
 		{
