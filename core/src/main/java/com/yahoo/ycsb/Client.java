@@ -137,7 +137,8 @@ class StatusThread extends Thread
  */
 class ClientThread extends Thread
 {
-	DB _db;
+	private static boolean _spinSleep;
+    DB _db;
 	boolean _dotransactions;
 	Workload _workload;
 	int _opcount;
@@ -179,6 +180,7 @@ class ClientThread extends Thread
 		_threadcount=threadcount;
 		_props=props;
 		_measurements = Measurements.getMeasurements();
+		_spinSleep = Boolean.valueOf(_props.getProperty("spin.sleep", "false"));
 	}
 
 	public int getOpsDone()
@@ -281,7 +283,9 @@ class ClientThread extends Thread
     static void sleepUntil(long deadline) {
         long now = System.nanoTime();
         while((now = System.nanoTime()) < deadline) {
-            LockSupport.parkNanos(deadline - now);
+            if (!_spinSleep) {
+                LockSupport.parkNanos(deadline - now);
+            }
         }
     }
     private void throttleNanos(long startTimeNanos) {
