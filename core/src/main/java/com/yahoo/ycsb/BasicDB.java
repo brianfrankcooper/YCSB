@@ -37,7 +37,7 @@ public class BasicDB extends DB
     public static final String SIMULATE_DELAY="basicdb.simulatedelay";
     public static final String SIMULATE_DELAY_DEFAULT="0";
     
-    public static final String RANDOMIZE_DELAY="basicdb.ranomizedelay";
+    public static final String RANDOMIZE_DELAY="basicdb.randomizedelay";
     public static final String RANDOMIZE_DELAY_DEFAULT="true";
     
 	
