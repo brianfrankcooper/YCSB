@@ -50,7 +50,7 @@ Further changes made:
 * -p status.interval=<number of seconds> (default=10)
 Controls the number of seconds between status reports and therefore between HdrHistogram snapshots reported.
 
-* -p basicdb.ranomizedelay=[true|false] (default=true)
+* -p basicdb.randomizedelay=[true|false] (default=true)
 Controls weather the delay simulated by the mock DB is uniformly random or not.
 
 Further suggestions:
