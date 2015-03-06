@@ -66,10 +66,11 @@ public class BasicDB extends DB
 		        delayNs = TimeUnit.MILLISECONDS.toNanos(todelay);
 		    }
 		    
-			long deadline = System.nanoTime() + delayNs;
-			do {
-			    LockSupport.parkNanos(delayNs);
-			} while (System.nanoTime() < deadline && !Thread.interrupted());
+		    long now = System.nanoTime();
+            final long deadline = now + delayNs;
+            do {
+                LockSupport.parkNanos(deadline - now);
+            } while ((now = System.nanoTime()) < deadline && !Thread.interrupted());
 		}
 	}
 
