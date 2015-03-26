@@ -10,9 +10,10 @@ import java.util.logging.Logger;
 import java.util.HashMap;
 import java.util.Properties;
 
-import org.tarantool.msgpack.TarantoolConnection16Impl;
-import org.tarantool.core.exception.TarantoolException;
-import org.tarantool.core.exception.CommunicationException;
+import org.tarantool.TarantoolConnection16;
+import org.tarantool.TarantoolConnection16Impl;
+import org.tarantool.TarantoolException;
+import org.tarantool.CommunicationException;
 
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
@@ -30,7 +31,7 @@ public class Tarantool16Client extends DB{
 	private static final String USER_NAME_PROPERTY  = "tnt.user.name";
 	private static final String USER_PASS_PROPERTY  = "tnt.user.pass";
 
-	private static final String DEFAULT_HOST        = "localhost";
+	private static final String DEFAULT_HOST        = "build.tarantool.org";
 	private static final String DEFAULT_PORT        = "3301";
 	private static final String DEFAULT_CALL        = "false";
 	private static final String DEFAULT_SPACE_NO    = "1024";
@@ -51,15 +52,27 @@ public class Tarantool16Client extends DB{
 	public void init() throws CommunicationException {
 
 		Properties props = getProperties();
-		this.host      = props.getProperty(HOST_PROPERTY, DEFAULT_HOST);
-		this.port      = Integer.parseInt(props.getProperty(PORT_PROPERTY, DEFAULT_PORT));
-		this.spaceNo   = Integer.parseInt(props.getProperty(SPACE_NO_PROPERTY, DEFAULT_SPACE_NO));
-		this.spaceName = props.getProperty(SPACE_NAME_PROPERTY, DEFAULT_SPACE_NAME);
+		this.host      = props.getProperty(HOST_PROPERTY);
+		if (this.host == null) {
+			this.host = DEFAULT_HOST;
+		}
+		String port = props.getProperty(PORT_PROPERTY);
+		if (port == null) {
+			port = DEFAULT_PORT;
+		}
+		this.port = Integer.parseInt(port);
+		String spaceNo = props.getProperty(SPACE_NO_PROPERTY);
+		if (spaceNo == null) {
+			spaceNo = DEFAULT_SPACE_NO;
+		}
+		this.spaceNo = Integer.parseInt(spaceNo);
+		this.spaceName      = props.getProperty(SPACE_NAME_PROPERTY);
+		if (this.spaceName == null) {
+			this.spaceName = DEFAULT_SPACE_NAME;
+		}
 		this.user      = props.getProperty(USER_NAME_PROPERTY, DEFAULT_USER_NAME);
 		this.passwd    = props.getProperty(USER_PASS_PROPERTY, DEFAULT_USER_PASS);
 		this.call      = Boolean.parseBoolean(props.getProperty(CALL_PROPERTY, DEFAULT_CALL));
-		System.err.println(this.host + " " + this.port + " " + this.spaceNo + " " +
-				this.spaceName + " " + this.user + " " +  this.passwd + " " + this.call);
 
 		try {
 			this.connection = new TarantoolConnection16Impl(this.host, this.port);
@@ -115,11 +128,10 @@ public class Tarantool16Client extends DB{
 		try {
 			String[][] response;
 			if (this.call) {
-				response = this.connection.call(String[][].class,
-						"box.space."+this.spaceName+":select",
+				response = this.connection.call("box.space."+this.spaceName+":select",
 						Arrays.asList(key));
 			} else {
-				response = this.connection.select(String[][].class, this.spaceNo, 0, Arrays.asList(key), 0, 1, 0);
+				response = this.connection.select(this.spaceNo, 0, Arrays.asList(key), 0, 1, 0);
 			}
 			result = tuple_convert_filter(response[0], fields);
 			return 0;
@@ -137,8 +149,7 @@ public class Tarantool16Client extends DB{
 			Vector<HashMap<String, ByteIterator>> result) {
 		String[][] response;
 		try {
-			response = this.connection.call(String[][].class, "select_range",
-					this.spaceNo, 0,
+			response = this.connection.call("select_range", this.spaceNo, 0,
 					Arrays.asList(startkey), recordcount);
 		} catch (TarantoolException e) {
 			e.printStackTrace();
@@ -157,7 +168,7 @@ public class Tarantool16Client extends DB{
 	public int delete(String table, String key) {
 		try {
 			if (this.call) {
-				this.connection.call(String[][].class, "box.space."+this.spaceName+":delete", key);
+				this.connection.call("box.space."+this.spaceName+":delete", key);
 			} else {
 				this.connection.delete(this.spaceNo, Arrays.asList(key));
 			}
