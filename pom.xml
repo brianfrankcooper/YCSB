@@ -40,11 +40,11 @@
       <version>1.6.4</version>
     </dependency>
   </dependencies>
- 
+
   <!-- Properties Management -->
   <properties>
     <maven.assembly.version>2.2.1</maven.assembly.version>
-    <hbase.version>0.92.1</hbase.version>
+    <hbase.version>1.0.0</hbase.version>
     <accumulo.version>1.6.0</accumulo.version>
     <cassandra.version>0.7.0</cassandra.version>
     <infinispan.version>7.1.0.CR1</infinispan.version>
