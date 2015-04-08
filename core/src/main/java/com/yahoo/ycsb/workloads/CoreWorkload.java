@@ -18,6 +18,7 @@
 package com.yahoo.ycsb.workloads;
 
 import java.util.Properties;
+
 import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.generator.CounterGenerator;
 import com.yahoo.ycsb.generator.DiscreteGenerator;
@@ -273,6 +274,8 @@ public class CoreWorkload extends Workload
 	boolean orderedinserts;
 
 	int recordcount;
+
+    private Measurements _measurements = Measurements.getMeasurements();
 	
 	protected static IntegerGenerator getFieldLengthGenerator(Properties p) throws WorkloadException{
 		IntegerGenerator fieldlengthgenerator;
@@ -313,7 +316,9 @@ public class CoreWorkload extends Workload
 		double insertproportion=Double.parseDouble(p.getProperty(INSERT_PROPORTION_PROPERTY,INSERT_PROPORTION_PROPERTY_DEFAULT));
 		double scanproportion=Double.parseDouble(p.getProperty(SCAN_PROPORTION_PROPERTY,SCAN_PROPORTION_PROPERTY_DEFAULT));
 		double readmodifywriteproportion=Double.parseDouble(p.getProperty(READMODIFYWRITE_PROPORTION_PROPERTY,READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT));
-		recordcount=Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY));
+		recordcount=Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
+		if(recordcount == 0)
+		    recordcount = Integer.MAX_VALUE;
 		String requestdistrib=p.getProperty(REQUEST_DISTRIBUTION_PROPERTY,REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
 		int maxscanlength=Integer.parseInt(p.getProperty(MAX_SCAN_LENGTH_PROPERTY,MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
 		String scanlengthdistrib=p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY,SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
@@ -570,15 +575,16 @@ public class CoreWorkload extends Workload
 
 		//do the transaction
 		
-		long st=System.nanoTime();
-
+		long ist=_measurements.getIntendedtartTimeNs();
+	    long st = System.nanoTime();
 		db.read(table,keyname,fields,new HashMap<String,ByteIterator>());
 		
 		db.update(table,keyname,values);
 
 		long en=System.nanoTime();
 		
-		Measurements.getMeasurements().measure("READ-MODIFY-WRITE", (int)((en-st)/1000));
+		_measurements .measure("READ-MODIFY-WRITE", (int)((en-st)/1000));
+		_measurements .measureIntended("READ-MODIFY-WRITE", (int)((en-ist)/1000));
 	}
 	
 	public void doTransactionScan(DB db)
