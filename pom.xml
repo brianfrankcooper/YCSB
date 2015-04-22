@@ -58,7 +58,7 @@
     <cassandra.version>1.2.9</cassandra.version>
     <cassandra.cql.version>1.0.3</cassandra.cql.version>
     <gemfire.version>8.1.0</gemfire.version>
-    <infinispan.version>7.1.0.CR1</infinispan.version>
+    <infinispan.version>7.2.0.CR1</infinispan.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
     <!--<mapkeeper.version>1.0</mapkeeper.version>-->
     <mongodb.version>3.0.2</mongodb.version>
