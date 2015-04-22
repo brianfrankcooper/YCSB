@@ -9,27 +9,14 @@
 
 package com.yahoo.ycsb.db;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBAddress;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
-import com.mongodb.Mongo;
-import com.mongodb.MongoOptions;
-import com.mongodb.WriteConcern;
-import com.mongodb.WriteResult;
+import com.mongodb.*;
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * MongoDB client for YCSB framework.
@@ -74,6 +61,15 @@ public class MongoDbClient extends DB {
             Properties props = getProperties();
             String url = props.getProperty("mongodb.url",
                     "mongodb://localhost:27017");
+
+            if (url.contains(",")) {
+                //pick one and random
+                String[] urls = url.split(",");
+                int index = new Random().nextInt(urls.length);
+                url = urls[index];
+                System.out.printf("Using Mongo URL: %s\n", url);
+            }
+
             database = props.getProperty("mongodb.database", "ycsb");
             String writeConcernType = props.getProperty("mongodb.writeConcern",
                     "safe").toLowerCase();
