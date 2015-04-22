@@ -9,3 +9,5 @@ output*
 .classpath
 .settings
 .checkstyle
+
+.DS_Store
