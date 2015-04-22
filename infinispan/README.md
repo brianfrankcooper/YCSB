@@ -28,7 +28,7 @@ Run the workload test:
     
 1. start infinispan server
 
-2. read [RemoteCacheManager](http://docs.jboss.org/infinispan/7.2/apidocs/org/infinispan/client/hotrod/RemoteCacheManager.html) doc and customize hotrod client properties in infinispan-bindinf/conf/remote-cache.properties
+2. read [RemoteCacheManager](http://docs.jboss.org/infinispan/7.2/apidocs/org/infinispan/client/hotrod/RemoteCacheManager.html) doc and customize hotrod client properties in infinispan-binding/conf/remote-cache.properties
 
 3. Load the data with specified cache:
   ```
