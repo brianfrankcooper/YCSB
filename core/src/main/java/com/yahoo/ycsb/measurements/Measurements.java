@@ -154,7 +154,7 @@ public class Measurements
       /**
        * Return a one line summary of the measurements.
        */
-	public String getSummary()
+	public synchronized String getSummary()
 	{
 		String ret="";
 		for (OneMeasurement m : data.values())
