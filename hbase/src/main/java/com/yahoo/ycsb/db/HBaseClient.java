@@ -316,11 +316,12 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         Put p = new Put(Bytes.toBytes(key));
         for (Map.Entry<String, ByteIterator> entry : values.entrySet())
         {
+            byte[] value = entry.getValue().toArray();
             if (_debug) {
                 System.out.println("Adding field/value " + entry.getKey() + "/"+
-                  entry.getValue() + " to put request");
+                  Bytes.toStringBinary(value) + " to put request");
             }
-            p.add(_columnFamilyBytes,Bytes.toBytes(entry.getKey()),entry.getValue().toArray());
+            p.add(_columnFamilyBytes,Bytes.toBytes(entry.getKey()), value);
         }
 
         try
