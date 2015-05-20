@@ -61,6 +61,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     public HTable _hTable=null;
     public String _columnFamily="";
     public byte _columnFamilyBytes[];
+    public boolean _autoflush = false;
 
     public static final int Ok=0;
     public static final int ServerError=-1;
@@ -79,6 +80,11 @@ public class HBaseClient extends com.yahoo.ycsb.DB
                 (getProperties().getProperty("debug").compareTo("true")==0) )
         {
             _debug=true;
+        }
+
+        if (getProperties().containsKey("autoflush"))
+        {
+            _autoflush = Boolean.parseBoolean(getProperties().getProperty("autoflush"));
         }
 
         _columnFamily = getProperties().getProperty("columnfamily");
@@ -117,7 +123,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         synchronized (tableLock) {
             _hTable = new HTable(config, table);
             //2 suggestions from http://ryantwopointoh.blogspot.com/2009/01/performance-of-hbase-importing.html
-            _hTable.setAutoFlush(false, true);
+            _hTable.setAutoFlush(_autoflush, true);
             _hTable.setWriteBufferSize(1024*1024*12);
             //return hTable;
         }
