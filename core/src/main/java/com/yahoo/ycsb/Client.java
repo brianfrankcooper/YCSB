@@ -329,12 +329,43 @@ class ClientThread extends Thread
 public class Client
 {
 
+    /**
+     * The target number of operations to perform.
+     */
 	public static final String OPERATION_COUNT_PROPERTY="operationcount";
 
+    /**
+     * The number of records to load into the database initially.
+     */
 	public static final String RECORD_COUNT_PROPERTY="recordcount";
 
+    /**
+     * The workload class to be loaded.
+     */
 	public static final String WORKLOAD_PROPERTY="workload";
 	
+	/**
+     * The database class to be used.
+     */
+    public static final String DB_PROPERTY="db";
+
+    /**
+     * The exporter class to be used. The default is
+     * com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter.
+     */
+    public static final String EXPORTER_PROPERTY="exporter";
+
+    /**
+     * If set to the path of a file, YCSB will write all output to this file
+     * instead of STDOUT.
+     */
+    public static final String EXPORT_FILE_PROPERTY="exportfile";
+
+    /**
+     * The number of YCSB client threads to run.
+     */
+    public static final String THREAD_COUNT_PROPERTY="threadcount";
+
 	/**
 	 * Indicates how many inserts to do, if less than recordcount. Useful for partitioning
 	 * the load among multiple servers, if the client is the bottleneck. Additionally, workloads
@@ -343,6 +374,11 @@ public class Client
 	public static final String INSERT_COUNT_PROPERTY="insertcount";
 	
 	/**
+     * Target number of operations per second
+     */
+    public static final String TARGET_PROPERTY="target";
+
+    /**
    * The maximum amount of time (in seconds) for which the benchmark will be run.
    */
   public static final String MAX_EXECUTION_TIME = "maxexecutiontime";
@@ -400,7 +436,7 @@ public class Client
 		{
 			// if no destination file is provided the results will be written to stdout
 			OutputStream out;
-			String exportFile = props.getProperty("exportfile");
+			String exportFile = props.getProperty(EXPORT_FILE_PROPERTY);
 			if (exportFile == null)
 			{
 				out = System.out;
@@ -410,7 +446,7 @@ public class Client
 			}
 
 			// if no exporter is provided the default text one will be used
-			String exporterStr = props.getProperty("exporter", "com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter");
+			String exporterStr = props.getProperty(EXPORTER_PROPERTY, "com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter");
 			try
 			{
 				exporter = (MeasurementsExporter) Class.forName(exporterStr).getConstructor(OutputStream.class).newInstance(out);
@@ -468,7 +504,7 @@ public class Client
 					System.exit(0);
 				}
 				int tcount=Integer.parseInt(args[argindex]);
-				props.setProperty("threadcount", tcount+"");
+				props.setProperty(THREAD_COUNT_PROPERTY, tcount+"");
 				argindex++;
 			}
 			else if (args[argindex].compareTo("-target")==0)
@@ -480,7 +516,7 @@ public class Client
 					System.exit(0);
 				}
 				int ttarget=Integer.parseInt(args[argindex]);
-				props.setProperty("target", ttarget+"");
+				props.setProperty(TARGET_PROPERTY, ttarget+"");
 				argindex++;
 			}
 			else if (args[argindex].compareTo("-load")==0)
@@ -506,7 +542,7 @@ public class Client
 					usageMessage();
 					System.exit(0);
 				}
-				props.setProperty("db",args[argindex]);
+				props.setProperty(DB_PROPERTY,args[argindex]);
 				argindex++;
 			}
 			else if (args[argindex].compareTo("-l")==0)
@@ -614,9 +650,9 @@ public class Client
 		long maxExecutionTime = Integer.parseInt(props.getProperty(MAX_EXECUTION_TIME, "0"));
 
 		//get number of threads, target and db
-		threadcount=Integer.parseInt(props.getProperty("threadcount","1"));
-		dbname=props.getProperty("db","com.yahoo.ycsb.BasicDB");
-		target=Integer.parseInt(props.getProperty("target","0"));
+		threadcount=Integer.parseInt(props.getProperty(THREAD_COUNT_PROPERTY,"1"));
+		dbname=props.getProperty(DB_PROPERTY,"com.yahoo.ycsb.BasicDB");
+		target=Integer.parseInt(props.getProperty(TARGET_PROPERTY,"0"));
 		
 		//compute the target throughput
 		double targetperthreadperms=-1;
@@ -737,7 +773,7 @@ public class Client
 		if (status)
 		{
 			boolean standardstatus=false;
-			if (props.getProperty("measurementtype","").compareTo("timeseries")==0) 
+			if (props.getProperty(Measurements.MEASUREMENT_TYPE_PROPERTY,"").compareTo("timeseries")==0)
 			{
 				standardstatus=true;
 			}	

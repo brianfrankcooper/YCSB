@@ -31,9 +31,9 @@ import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
  */
 public class Measurements
 {
-	private static final String MEASUREMENT_TYPE = "measurementtype";
+	public static final String MEASUREMENT_TYPE_PROPERTY = "measurementtype";
 
-	private static final String MEASUREMENT_TYPE_DEFAULT = "histogram";
+	private static final String MEASUREMENT_TYPE_PROPERTY_DEFAULT = "histogram";
 
 	static Measurements singleton=null;
 	
@@ -70,7 +70,7 @@ public class Measurements
 		
 		_props=props;
 		
-		if (_props.getProperty(MEASUREMENT_TYPE, MEASUREMENT_TYPE_DEFAULT).compareTo("histogram")==0)
+		if (_props.getProperty(MEASUREMENT_TYPE_PROPERTY, MEASUREMENT_TYPE_PROPERTY_DEFAULT).compareTo("histogram")==0)
 		{
 			histogram=true;
 		}
