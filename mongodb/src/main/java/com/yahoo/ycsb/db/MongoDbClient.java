@@ -3,14 +3,16 @@
  *
  * Submitted by Yen Pai on 5/11/2010.
  *
- * https://gist.github.com/000a66b8db2caf42467b#file_mongo_db.java
+ * https://gist.github.com/000a66b8db2caf42467b#file_mongo_database.java
  *
  */
 
 package com.yahoo.ycsb.db;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -23,11 +25,16 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
+import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.BulkWriteOptions;
+import com.mongodb.client.model.InsertOneModel;
 import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.DeleteResult;
+import com.mongodb.client.result.UpdateResult;
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
@@ -38,18 +45,25 @@ import com.yahoo.ycsb.DBException;
  * 
  * Properties to set:
  * 
- * mongodb.url=mongodb://localhost:27017 mongodb.database=ycsb
- * mongodb.writeConcern=acknowledged
+ * mongodatabase.url=mongodb://localhost:27017 mongodatabase.database=ycsb
+ * mongodatabase.writeConcern=acknowledged
  * 
  * @author ypai
  */
 public class MongoDbClient extends DB {
 
+    /** Update options to do an upsert. */
+    private static final UpdateOptions UPSERT = new UpdateOptions()
+            .upsert(true);
+
     /** Used to include a field in a response. */
     protected static final Integer INCLUDE = Integer.valueOf(1);
 
-    /** The database to access. */
-    private static String database;
+    /** The database name to access. */
+    private static String databaseName;
+
+    /** The database name to access. */
+    private static MongoDatabase database;
 
     /**
      * Count the number of times initialized to teardown on the last
@@ -58,7 +72,7 @@ public class MongoDbClient extends DB {
     private static final AtomicInteger initCount = new AtomicInteger(0);
 
     /** A singleton Mongo instance. */
-    private static MongoClient mongo;
+    private static MongoClient mongoClient;
 
     /** The default read preference for the test */
     private static ReadPreference readPreference;
@@ -66,21 +80,31 @@ public class MongoDbClient extends DB {
     /** The default write concern for the test. */
     private static WriteConcern writeConcern;
 
+    /** The batch size to use for inserts. */
+    private static int batchSize;
+
+    /** The bulk inserts pending for the thread. */
+    private final List<InsertOneModel<Document>> bulkInserts = new ArrayList<InsertOneModel<Document>>();
+
     /**
      * Cleanup any state for this DB. Called once per DB instance; there is one
      * DB instance per client thread.
      */
     @Override
     public void cleanup() throws DBException {
-        if (initCount.decrementAndGet() <= 0) {
+        if (initCount.decrementAndGet() == 0) {
             try {
-                mongo.close();
+                mongoClient.close();
             }
             catch (Exception e1) {
                 System.err.println("Could not close MongoDB connection pool: "
                         + e1.toString());
                 e1.printStackTrace();
                 return;
+            }
+            finally {
+                database = null;
+                mongoClient = null;
             }
         }
     }
@@ -92,19 +116,22 @@ public class MongoDbClient extends DB {
      *            The name of the table
      * @param key
      *            The record key of the record to delete.
-     * @return Zero on success, a non-zero error code on error. See this class's
-     *         description for a discussion of error codes.
+     * @return Zero on success, a non-zero error code on error. See the
+     *         {@link DB} class's description for a discussion of error codes.
      */
     @Override
     public int delete(String table, String key) {
-        MongoDatabase db = null;
         try {
-            db = mongo.getDatabase(database);
-            MongoCollection<Document> collection = db.getCollection(table);
+            MongoCollection<Document> collection = database
+                    .getCollection(table);
 
-            Document q = new Document("_id", key);
-            collection.withWriteConcern(writeConcern).deleteOne(q);
-
+            Document query = new Document("_id", key);
+            DeleteResult result = collection.withWriteConcern(writeConcern)
+                    .deleteOne(query);
+            if (result.getDeletedCount() == 0) {
+                System.err.println("Nothing deleted for key " + key);
+                return 1;
+            }
             return 0;
         }
         catch (Exception e) {
@@ -121,16 +148,21 @@ public class MongoDbClient extends DB {
     public void init() throws DBException {
         initCount.incrementAndGet();
         synchronized (INCLUDE) {
-            if (mongo != null) {
+            if (mongoClient != null) {
                 return;
             }
 
+            Properties props = getProperties();
+
+            // Set insert batchsize, default 1 - to be YCSB-original equivalent
+            batchSize = Integer.parseInt(props.getProperty("batchsize", "1"));
+
             // Just use the standard connection format URL
-            // http://docs.mongodb.org/manual/reference/connection-string/
+            // http://docs.mongodatabase.org/manual/reference/connection-string/
+            // to configure the client.
             //
             // Support legacy options by updating the URL as appropriate.
-            Properties props = getProperties();
-            String url = props.getProperty("mongodb.url", null);
+            String url = props.getProperty("mongodatabase.url", null);
             boolean defaultedUrl = false;
             if (url == null) {
                 defaultedUrl = true;
@@ -145,7 +177,7 @@ public class MongoDbClient extends DB {
                                 + url
                                 + "'. Must be of the form "
                                 + "'mongodb://<host1>:<port1>,<host2>:<port2>/database?options'. "
-                                + "See http://docs.mongodb.org/manual/reference/connection-string/.");
+                                + "See http://docs.mongodatabase.org/manual/reference/connection-string/.");
                 System.exit(1);
             }
 
@@ -155,13 +187,14 @@ public class MongoDbClient extends DB {
                 String uriDb = uri.getDatabase();
                 if (!defaultedUrl && (uriDb != null) && !uriDb.isEmpty()
                         && !"admin".equals(uriDb)) {
-                    database = uriDb;
+                    databaseName = uriDb;
                 }
                 else {
-                    database = props.getProperty("mongodb.database", "ycsb");
+                    databaseName = props.getProperty("mongodatabase.database",
+                            "ycsb");
                 }
 
-                if ((database == null) || database.isEmpty()) {
+                if ((databaseName == null) || databaseName.isEmpty()) {
                     System.err
                             .println("ERROR: Invalid URL: '"
                                     + url
@@ -173,9 +206,11 @@ public class MongoDbClient extends DB {
                 readPreference = uri.getOptions().getReadPreference();
                 writeConcern = uri.getOptions().getWriteConcern();
 
-                mongo = new MongoClient(uri);
+                mongoClient = new MongoClient(uri);
+                database = mongoClient.getDatabase(databaseName);
 
-                System.out.println("mongo connection created with " + url);
+                System.out.println("mongo client connection created with "
+                        + url);
             }
             catch (Exception e1) {
                 System.err
@@ -198,32 +233,67 @@ public class MongoDbClient extends DB {
      *            The record key of the record to insert.
      * @param values
      *            A HashMap of field/value pairs to insert in the record
-     * @return Zero on success, a non-zero error code on error. See this class's
-     *         description for a discussion of error codes.
+     * @return Zero on success, a non-zero error code on error. See the
+     *         {@link DB} class's description for a discussion of error codes.
      */
     @Override
     public int insert(String table, String key,
             HashMap<String, ByteIterator> values) {
-        MongoDatabase db = null;
         try {
-            db = mongo.getDatabase(database);
-
-            MongoCollection<Document> collection = db.getCollection(table);
+            MongoCollection<Document> collection = database
+                    .getCollection(table);
             Document criteria = new Document("_id", key);
             Document toInsert = new Document("_id", key);
             for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
                 toInsert.put(entry.getKey(), entry.getValue().toArray());
             }
 
-            collection.withWriteConcern(writeConcern).updateOne(criteria,
-                    toInsert, new UpdateOptions().upsert(true));
+            // Do a single upsert.
+            if (batchSize <= 1) {
+                UpdateResult result = collection.withWriteConcern(writeConcern)
+                        .updateOne(criteria, toInsert, UPSERT);
+                if (result.getMatchedCount() > 0
+                        || result.getModifiedCount() > 0) {
+                    return 0;
+                }
+                System.err.println("Nothing inserted for key " + key);
+                return 1;
+            }
 
-            return 0;
+            // Use a bulk insert.
+            try {
+                bulkInserts.add(new InsertOneModel<Document>(toInsert));
+                if (bulkInserts.size() < batchSize) {
+                    return 0;
+                }
+
+                BulkWriteResult result = collection.withWriteConcern(
+                        writeConcern).bulkWrite(bulkInserts,
+                        new BulkWriteOptions().ordered(false));
+                if (result.getInsertedCount() == bulkInserts.size()) {
+                    bulkInserts.clear();
+                    return 0;
+                }
+
+                System.err
+                        .println("Number of inserted documents doesn't match the number sent, "
+                                + result.getInsertedCount()
+                                + " inserted, sent " + bulkInserts.size());
+                bulkInserts.clear();
+                return 1;
+            }
+            catch (Exception e) {
+                System.err.println("Exception while trying bulk insert with "
+                        + bulkInserts.size());
+                e.printStackTrace();
+                return 1;
+            }
         }
         catch (Exception e) {
             e.printStackTrace();
             return 1;
         }
+
     }
 
     /**
@@ -243,12 +313,10 @@ public class MongoDbClient extends DB {
     @Override
     public int read(String table, String key, Set<String> fields,
             HashMap<String, ByteIterator> result) {
-        MongoDatabase db = null;
         try {
-            db = mongo.getDatabase(database);
-
-            MongoCollection<Document> collection = db.getCollection(table);
-            Document q = new Document("_id", key);
+            MongoCollection<Document> collection = database
+                    .getCollection(table);
+            Document query = new Document("_id", key);
             Document fieldsToReturn = new Document();
 
             Document queryResult = null;
@@ -258,11 +326,11 @@ public class MongoDbClient extends DB {
                     fieldsToReturn.put(iter.next(), INCLUDE);
                 }
                 queryResult = collection.withReadPreference(readPreference)
-                        .find(q).projection(fieldsToReturn).first();
+                        .find(query).projection(fieldsToReturn).first();
             }
             else {
                 queryResult = collection.withReadPreference(readPreference)
-                        .find(q).first();
+                        .find(query).first();
             }
 
             if (queryResult != null) {
@@ -291,30 +359,39 @@ public class MongoDbClient extends DB {
      * @param result
      *            A Vector of HashMaps, where each HashMap is a set field/value
      *            pairs for one record
-     * @return Zero on success, a non-zero error code on error. See this class's
-     *         description for a discussion of error codes.
+     * @return Zero on success, a non-zero error code on error. See the
+     *         {@link DB} class's description for a discussion of error codes.
      */
     @Override
     public int scan(String table, String startkey, int recordcount,
             Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-        MongoDatabase db = null;
         FindIterable<Document> cursor = null;
         MongoCursor<Document> iter = null;
         try {
-            db = mongo.getDatabase(database);
+            MongoCollection<Document> collection = database
+                    .getCollection(table);
 
-            MongoCollection<Document> collection = db.getCollection(table);
-
-            // { "_id":{"$gte":startKey, "$lte":{"appId":key+"\uFFFF"}} }
             Document scanRange = new Document("$gte", startkey);
-            Document q = new Document("_id", scanRange);
-            cursor = collection.withReadPreference(readPreference).find(q)
-                    .limit(recordcount);
+            Document query = new Document("_id", scanRange);
+            Document sort = new Document("_id", INCLUDE);
+            Document projection = null;
+            if (fields != null) {
+                projection = new Document();
+                for (String fieldName : fields) {
+                    projection.put(fieldName, INCLUDE);
+                }
+            }
 
+            cursor = collection.withReadPreference(readPreference).find(query)
+                    .projection(projection).sort(sort).limit(recordcount);
+
+            // Do the query.
             iter = cursor.iterator();
+            if (!iter.hasNext()) {
+                System.err.println("Nothing found in scan for key " + startkey);
+                return 1;
+            }
             while (iter.hasNext()) {
-                // toMap() returns a Map, but result.add() expects a
-                // Map<String,String>. Hence, the suppress warnings.
                 HashMap<String, ByteIterator> resultMap = new HashMap<String, ByteIterator>();
 
                 Document obj = iter.next();
@@ -353,22 +430,23 @@ public class MongoDbClient extends DB {
     @Override
     public int update(String table, String key,
             HashMap<String, ByteIterator> values) {
-        MongoDatabase db = null;
         try {
-            db = mongo.getDatabase(database);
+            MongoCollection<Document> collection = database
+                    .getCollection(table);
 
-            MongoCollection<Document> collection = db.getCollection(table);
-            Document q = new Document("_id", key);
-
+            Document query = new Document("_id", key);
             Document fieldsToSet = new Document();
-            Iterator<String> keys = values.keySet().iterator();
-            while (keys.hasNext()) {
-                String tmpKey = keys.next();
-                fieldsToSet.put(tmpKey, values.get(tmpKey).toArray());
+            for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+                fieldsToSet.put(entry.getKey(), entry.getValue().toArray());
             }
-            Document u = new Document("$set", fieldsToSet);
+            Document update = new Document("$set", fieldsToSet);
 
-            collection.withWriteConcern(writeConcern).updateOne(q, u);
+            UpdateResult result = collection.withWriteConcern(writeConcern)
+                    .updateOne(query, update);
+            if (result.getMatchedCount() == 0) {
+                System.err.println("Nothing updated for key " + key);
+                return 1;
+            }
             return 0;
         }
         catch (Exception e) {

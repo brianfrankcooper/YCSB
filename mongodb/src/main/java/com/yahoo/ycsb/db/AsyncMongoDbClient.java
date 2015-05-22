@@ -42,7 +42,10 @@ import com.allanbank.mongodb.bson.ElementType;
 import com.allanbank.mongodb.bson.builder.BuilderFactory;
 import com.allanbank.mongodb.bson.builder.DocumentBuilder;
 import com.allanbank.mongodb.bson.element.BinaryElement;
+import com.allanbank.mongodb.builder.BatchedWrite;
+import com.allanbank.mongodb.builder.BatchedWriteMode;
 import com.allanbank.mongodb.builder.Find;
+import com.allanbank.mongodb.builder.Sort;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
@@ -59,8 +62,11 @@ import com.yahoo.ycsb.DBException;
  */
 public class AsyncMongoDbClient extends DB {
 
+    /** Used to include a field in a response. */
+    protected static final int INCLUDE = 1;
+
     /** The database to use. */
-    private static String database;
+    private static String databaseName;
 
     /** Thread local document builder. */
     private static final ThreadLocal<DocumentBuilder> DOCUMENT_BUILDER = new ThreadLocal<DocumentBuilder>() {
@@ -74,7 +80,7 @@ public class AsyncMongoDbClient extends DB {
     private static final AtomicInteger initCount = new AtomicInteger(0);
 
     /** The connection to MongoDB. */
-    private static MongoClient mongo;
+    private static MongoClient mongoClient;
 
     /** The write concern for the requests. */
     private static Durability writeConcern;
@@ -83,7 +89,17 @@ public class AsyncMongoDbClient extends DB {
     private static ReadPreference readPreference;
 
     /** The database to MongoDB. */
-    private MongoDatabase db;
+    private MongoDatabase database;
+
+    /** The batch size to use for inserts. */
+    private static int batchSize;
+
+    /** The bulk inserts pending for the thread. */
+    private final BatchedWrite.Builder batchedWrite = BatchedWrite.builder()
+            .mode(BatchedWriteMode.REORDERED);
+
+    /** The number of writes in the batchedWrite. */
+    private int batchedWriteCount = 0;
 
     /**
      * Cleanup any state for this DB. Called once per DB instance; there is one
@@ -91,15 +107,19 @@ public class AsyncMongoDbClient extends DB {
      */
     @Override
     public final void cleanup() throws DBException {
-        if (initCount.decrementAndGet() <= 0) {
+        if (initCount.decrementAndGet() == 0) {
             try {
-                mongo.close();
+                mongoClient.close();
             }
             catch (final Exception e1) {
                 System.err.println("Could not close MongoDB connection pool: "
                         + e1.toString());
                 e1.printStackTrace();
                 return;
+            }
+            finally {
+                mongoClient = null;
+                database = null;
             }
         }
     }
@@ -117,10 +137,14 @@ public class AsyncMongoDbClient extends DB {
     @Override
     public final int delete(final String table, final String key) {
         try {
-            final MongoCollection collection = db.getCollection(table);
+            final MongoCollection collection = database.getCollection(table);
             final Document q = BuilderFactory.start().add("_id", key).build();
             final long res = collection.delete(q, writeConcern);
-            return res == 1 ? 0 : 1;
+            if (res == 0) {
+                System.err.println("Nothing deleted for key " + key);
+                return 1;
+            }
+            return 0;
         }
         catch (final Exception e) {
             System.err.println(e.toString());
@@ -137,22 +161,27 @@ public class AsyncMongoDbClient extends DB {
         final int count = initCount.incrementAndGet();
 
         synchronized (AsyncMongoDbClient.class) {
-            if (mongo != null) {
-                db = mongo.getDatabase(database);
+            final Properties props = getProperties();
+
+            if (mongoClient != null) {
+                database = mongoClient.getDatabase(databaseName);
 
                 // If there are more threads (count) than connections then the
                 // Low latency spin lock is not really needed as we will keep
                 // the connections occupied.
-                if (count > mongo.getConfig().getMaxConnectionCount()) {
-                    mongo.getConfig().setLockType(LockType.MUTEX);
+                if (count > mongoClient.getConfig().getMaxConnectionCount()) {
+                    mongoClient.getConfig().setLockType(LockType.MUTEX);
                 }
 
                 return;
             }
 
+            // Set insert batchsize, default 1 - to be YCSB-original equivalent
+            batchSize = Integer.parseInt(props.getProperty("mongodb.batchsize", "1"));
+
             // Just use the standard connection format URL
-            // http://docs.mongodb.org/manual/reference/connection-string/
-            final Properties props = getProperties();
+            // http://docs.mongodatabase.org/manual/reference/connection-string/
+            // to configure the client.
             String url = props.getProperty("mongodb.url",
                     "mongodb://localhost:27017/ycsb?w=1");
             if (!url.startsWith("mongodb://")) {
@@ -168,8 +197,8 @@ public class AsyncMongoDbClient extends DB {
             MongoDbUri uri = new MongoDbUri(url);
 
             try {
-                database = uri.getDatabase();
-                if ((database == null) || database.isEmpty()) {
+                databaseName = uri.getDatabase();
+                if ((databaseName == null) || databaseName.isEmpty()) {
                     System.err
                             .println("ERROR: Invalid URL: '"
                                     + url
@@ -178,9 +207,9 @@ public class AsyncMongoDbClient extends DB {
                     System.exit(1);
                 }
 
-                mongo = MongoFactory.createClient(uri);
+                mongoClient = MongoFactory.createClient(uri);
 
-                MongoClientConfiguration config = mongo.getConfig();
+                MongoClientConfiguration config = mongoClient.getConfig();
                 if (!url.toLowerCase().contains("locktype=")) {
                     config.setLockType(LockType.LOW_LATENCY_SPIN); // assumed...
                 }
@@ -188,7 +217,7 @@ public class AsyncMongoDbClient extends DB {
                 readPreference = config.getDefaultReadPreference();
                 writeConcern = config.getDefaultDurability();
 
-                db = mongo.getDatabase(database);
+                database = mongoClient.getDatabase(databaseName);
 
                 System.out.println("mongo connection created with " + url);
             }
@@ -213,27 +242,61 @@ public class AsyncMongoDbClient extends DB {
      *            The record key of the record to insert.
      * @param values
      *            A HashMap of field/value pairs to insert in the record
-     * @return Zero on success, a non-zero error code on error. See this class's
-     *         description for a discussion of error codes.
+     * @return Zero on success, a non-zero error code on error. See the
+     *         {@link DB} class's description for a discussion of error codes.
      */
     @Override
     public final int insert(final String table, final String key,
             final HashMap<String, ByteIterator> values) {
         try {
-            final MongoCollection collection = db.getCollection(table);
-            final DocumentBuilder r = DOCUMENT_BUILDER.get().reset()
+            final MongoCollection collection = database.getCollection(table);
+            final DocumentBuilder toInsert = DOCUMENT_BUILDER.get().reset()
                     .add("_id", key);
-            final Document q = r.build();
+            final Document query = toInsert.build();
             for (final Map.Entry<String, ByteIterator> entry : values
                     .entrySet()) {
-                r.add(entry.getKey(), entry.getValue().toArray());
+                toInsert.add(entry.getKey(), entry.getValue().toArray());
             }
-            collection.insert(writeConcern, r);
 
-            collection.update(q, r, /* multi= */false, /* upsert= */true,
-                    writeConcern);
+            // Do an upsert.
+            if (batchSize <= 1) {
+                long result = collection.update(query, toInsert,
+                /* multi= */false, /* upsert= */true, writeConcern);
 
-            return 0;
+                return result == 1 ? 0 : 1;
+            }
+
+            // Use a bulk insert.
+            try {
+                batchedWrite.insert(toInsert);
+                batchedWriteCount += 1;
+
+                if (batchedWriteCount < batchSize) {
+                    return 0;
+                }
+
+                long count = collection.write(batchedWrite);
+                if (count == batchedWriteCount) {
+                    batchedWrite.reset().mode(BatchedWriteMode.REORDERED);
+                    batchedWriteCount = 0;
+                    return 0;
+                }
+
+                System.err
+                        .println("Number of inserted documents doesn't match the number sent, "
+                                + count
+                                + " inserted, sent "
+                                + batchedWriteCount);
+                batchedWrite.reset().mode(BatchedWriteMode.REORDERED);
+                batchedWriteCount = 0;
+                return 1;
+            }
+            catch (Exception e) {
+                System.err.println("Exception while trying bulk insert with "
+                        + batchedWriteCount);
+                e.printStackTrace();
+                return 1;
+            }
         }
         catch (final Exception e) {
             e.printStackTrace();
@@ -259,18 +322,19 @@ public class AsyncMongoDbClient extends DB {
     public final int read(final String table, final String key,
             final Set<String> fields, final HashMap<String, ByteIterator> result) {
         try {
-            final MongoCollection collection = db.getCollection(table);
-            final DocumentBuilder q = BuilderFactory.start().add("_id", key);
-            final DocumentBuilder fieldsToReturn = BuilderFactory.start();
+            final MongoCollection collection = database.getCollection(table);
+            final DocumentBuilder query = DOCUMENT_BUILDER.get().reset()
+                    .add("_id", key);
 
             Document queryResult = null;
             if (fields != null) {
+                final DocumentBuilder fieldsToReturn = BuilderFactory.start();
                 final Iterator<String> iter = fields.iterator();
                 while (iter.hasNext()) {
                     fieldsToReturn.add(iter.next(), 1);
                 }
 
-                final Find.Builder fb = new Find.Builder(q);
+                final Find.Builder fb = new Find.Builder(query);
                 fb.projection(fieldsToReturn);
                 fb.setLimit(1);
                 fb.setBatchSize(1);
@@ -283,7 +347,7 @@ public class AsyncMongoDbClient extends DB {
                 }
             }
             else {
-                queryResult = collection.findOne(q);
+                queryResult = collection.findOne(query);
             }
 
             if (queryResult != null) {
@@ -313,33 +377,37 @@ public class AsyncMongoDbClient extends DB {
      * @param result
      *            A Vector of HashMaps, where each HashMap is a set field/value
      *            pairs for one record
-     * @return Zero on success, a non-zero error code on error. See this class's
-     *         description for a discussion of error codes.
+     * @return Zero on success, a non-zero error code on error. See the
+     *         {@link DB} class's description for a discussion of error codes.
      */
     @Override
     public final int scan(final String table, final String startkey,
             final int recordcount, final Set<String> fields,
             final Vector<HashMap<String, ByteIterator>> result) {
         try {
-            final MongoCollection collection = db.getCollection(table);
+            final MongoCollection collection = database.getCollection(table);
 
-            // { "_id":{"$gte":startKey}} }
-            final Find.Builder fb = new Find.Builder();
-            fb.setQuery(where("_id").greaterThanOrEqualTo(startkey));
-            fb.setLimit(recordcount);
-            fb.setBatchSize(recordcount);
-            fb.readPreference(readPreference);
+            final Find.Builder find = Find.builder()
+                    .query(where("_id").greaterThanOrEqualTo(startkey))
+                    .limit(recordcount).batchSize(recordcount)
+                    .sort(Sort.asc("_id")).readPreference(readPreference);
+
             if (fields != null) {
                 final DocumentBuilder fieldsDoc = BuilderFactory.start();
                 for (final String field : fields) {
-                    fieldsDoc.add(field, 1);
+                    fieldsDoc.add(field, INCLUDE);
                 }
 
-                fb.projection(fieldsDoc);
+                find.projection(fieldsDoc);
             }
 
             result.ensureCapacity(recordcount);
-            final MongoIterator<Document> cursor = collection.find(fb.build());
+
+            final MongoIterator<Document> cursor = collection.find(find);
+            if (!cursor.hasNext()) {
+                System.err.println("Nothing found in scan for key " + startkey);
+                return 1;
+            }
             while (cursor.hasNext()) {
                 // toMap() returns a Map but result.add() expects a
                 // Map<String,String>. Hence, the suppress warnings.
@@ -370,23 +438,25 @@ public class AsyncMongoDbClient extends DB {
      *            The record key of the record to write.
      * @param values
      *            A HashMap of field/value pairs to update in the record
-     * @return Zero on success, a non-zero error code on error. See this class's
-     *         description for a discussion of error codes.
+     * @return Zero on success, a non-zero error code on error. See the
+     *         {@link DB} class's description for a discussion of error codes.
      */
     @Override
     public final int update(final String table, final String key,
             final HashMap<String, ByteIterator> values) {
         try {
-            final MongoCollection collection = db.getCollection(table);
-            final DocumentBuilder q = BuilderFactory.start().add("_id", key);
-            final DocumentBuilder u = BuilderFactory.start();
-            final DocumentBuilder fieldsToSet = u.push("$set");
+            final MongoCollection collection = database.getCollection(table);
+            final DocumentBuilder query = BuilderFactory.start()
+                    .add("_id", key);
+            final DocumentBuilder update = BuilderFactory.start();
+            final DocumentBuilder fieldsToSet = update.push("$set");
+
             for (final Map.Entry<String, ByteIterator> entry : values
                     .entrySet()) {
                 fieldsToSet.add(entry.getKey(), entry.getValue().toArray());
             }
-            final long res = collection
-                    .update(q, u, false, false, writeConcern);
+            final long res = collection.update(query, update, false, false,
+                    writeConcern);
             return res == 1 ? 0 : 1;
         }
         catch (final Exception e) {

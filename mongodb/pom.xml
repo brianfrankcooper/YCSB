@@ -9,7 +9,7 @@
 	</parent>
 
 	<artifactId>mongodb-binding</artifactId>
-	<name>Mongo DB Binding</name>
+	<name>MongoDB Binding</name>
 	<packaging>jar</packaging>
 
 	<dependencies>
@@ -32,6 +32,13 @@
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
 			<version>1.1.2</version>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.12</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 

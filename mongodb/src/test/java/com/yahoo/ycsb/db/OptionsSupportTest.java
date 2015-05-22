@@ -115,6 +115,10 @@ public class OptionsSupportTest {
                 updateUrl("mongodb://locahost:27017/?foo=bar",
                         props("mongodb.writeConcern", "replica_acknowledged")),
                 is("mongodb://locahost:27017/?foo=bar&w=2"));
+        assertThat(
+                updateUrl("mongodb://locahost:27017/?foo=bar",
+                        props("mongodb.writeConcern", "majority")),
+                is("mongodb://locahost:27017/?foo=bar&w=majority"));
 
         // w already exists.
         assertThat(

@@ -77,14 +77,47 @@ See the next section for the list of configuration parameters for MongoDB.
 
 ## MongoDB Configuration Parameters
 
-- `mongodb.url` default: `mongodb://localhost:27017/ycsb?w=1`
+- `mongodb.url`
   - This should be a MongoDB URI or connection string. 
     - See http://docs.mongodb.org/manual/reference/connection-string/ for the standard options.
     - For the complete set of options for the asynchronous driver see: 
       - http://www.allanbank.com/mongodb-async-driver/apidocs/index.html?com/allanbank/mongodb/MongoDbUri.html
     - For the complete set of options for the synchronous driver see:
       - http://api.mongodb.org/java/current/index.html?com/mongodb/MongoClientURI.html
+  - Default value is `mongodb://localhost:27017/ycsb?w=1`
 
+- `mongodb.batchsize`
+  - Useful for the insert workload as it will submit the inserts in batches inproving throughput.
+  - Default value is `1`.
+
+- `mongodb.writeConcern`
+  - **Deprecated** - Use the `w` and `journal` options on the MongoDB URI provided by the `mongodb.uri`.
+  - Allowed values are :
+    - `errors_ignored`
+    - `unacknowledged`
+    - `acknowledged`
+    - `journaled`
+    - `replica_acknowledged`
+    - `majority`
+  - Default value is `acknowledged`.
+ 
+- `mongodb.readPreference`
+  - **Deprecated** - Use the `readPreference` options on the MongoDB URI provided by the `mongodb.uri`.
+  - Allowed values are :
+    - `primary`
+    - `primary_preferred`
+    - `secondary`
+    - `secondary_preferred`
+    - `nearest`
+  - Default value is `primary`.
+ 
+- `mongodb.maxconnections`
+  - **Deprecated** - Use the `maxPoolSize` options on the MongoDB URI provided by the `mongodb.uri`.
+  - Default value is `100`.
+
+- `mongodb.threadsAllowedToBlockForConnectionMultiplier`
+  - **Deprecated** - Use the `waitQueueMultiple` options on the MongoDB URI provided by the `mongodb.uri`.
+  - Default value is `5`.
 
 For example:
 

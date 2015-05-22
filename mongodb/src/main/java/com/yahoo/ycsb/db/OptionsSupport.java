@@ -81,9 +81,14 @@ public final class OptionsSupport {
             else if ("replica_acknowledged".equals(writeConcernType)) {
                 result = addUrlOption(result, "w", "2");
             }
+            else if ("majority".equals(writeConcernType)) {
+                result = addUrlOption(result, "w", "majority");
+            }
             else {
                 System.err.println("WARNING: Invalid writeConcern: '"
-                        + writeConcernType + "' will be ignored.");
+                        + writeConcernType + "' will be ignored. "
+                        + "Must be one of [ unacknowledged | acknowledged | "
+                        + "journaled | replica_acknowledged | majority ]");
             }
         }
 
@@ -110,7 +115,9 @@ public final class OptionsSupport {
             }
             else {
                 System.err.println("WARNING: Invalid readPreference: '"
-                        + readPreferenceType + "' will be ignored.");
+                        + readPreferenceType + "' will be ignored. "
+                        + "Must be one of [ primary | primary_preferred | "
+                        + "secondary | secondary_preferred | nearest ]");
             }
         }
 
