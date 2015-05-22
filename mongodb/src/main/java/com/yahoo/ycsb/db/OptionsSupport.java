@@ -24,8 +24,13 @@ import java.util.Properties;
 
 /**
  * OptionsSupport provides methods for handling legacy options.
+ * 
+ * @author rjm
  */
 public final class OptionsSupport {
+
+    /** Value for an unavailable property. */
+    protected static final String UNAVAILABLE = "n/a";
 
     /**
      * Updates the URL with the appropriate attributes if legacy properties are
@@ -42,8 +47,8 @@ public final class OptionsSupport {
 
         // max connections.
         final String maxConnections = props.getProperty(
-                "mongodb.maxconnections", "N/A");
-        if (!"N/A".equals(maxConnections)) {
+                "mongodb.maxconnections", UNAVAILABLE).toLowerCase();
+        if (!UNAVAILABLE.equals(maxConnections)) {
             result = addUrlOption(result, "maxPoolSize", maxConnections);
         }
 
@@ -51,16 +56,16 @@ public final class OptionsSupport {
         final String threadsAllowedToBlockForConnectionMultiplier = props
                 .getProperty(
                         "mongodb.threadsAllowedToBlockForConnectionMultiplier",
-                        "N/A");
-        if (!"N/A".equals(threadsAllowedToBlockForConnectionMultiplier)) {
+                        UNAVAILABLE).toLowerCase();
+        if (!UNAVAILABLE.equals(threadsAllowedToBlockForConnectionMultiplier)) {
             result = addUrlOption(result, "waitQueueMultiple",
                     threadsAllowedToBlockForConnectionMultiplier);
         }
 
         // write concern
         String writeConcernType = props.getProperty("mongodb.writeConcern",
-                "N/A").toLowerCase();
-        if (!"N/A".equals(writeConcernType)) {
+                UNAVAILABLE).toLowerCase();
+        if (!UNAVAILABLE.equals(writeConcernType)) {
             if ("errors_ignored".equals(writeConcernType)) {
                 result = addUrlOption(result, "w", "0");
             }
@@ -83,9 +88,9 @@ public final class OptionsSupport {
         }
 
         // read preference
-        String readPreferenceType = props.getProperty("mongodb.writeConcern",
-                "N/A").toLowerCase();
-        if (!"N/A".equals(readPreferenceType)) {
+        String readPreferenceType = props.getProperty("mongodb.readPreference",
+                UNAVAILABLE).toLowerCase();
+        if (!UNAVAILABLE.equals(readPreferenceType)) {
             if ("primary".equals(readPreferenceType)) {
                 result = addUrlOption(result, "readPreference", "primary");
             }
