@@ -17,7 +17,9 @@ package com.yahoo.ycsb.db;
 
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
@@ -49,6 +51,18 @@ public class HypertableClient extends com.yahoo.ycsb.DB
     private long ns;
 
     private String _columnFamily = "";
+
+    private HashMap<String, String> mFieldMap= new HashMap<String, String>();
+
+    private ScanSpec mSpec = new ScanSpec();
+
+    private RowInterval mRowInterval = new RowInterval();
+
+    private List<String> mColumns = new ArrayList<String>();
+
+    private SerializedCellsReader mReader = new SerializedCellsReader(null);
+
+    private Cell mDeleteCell = new Cell();
 
     public static final int OK = 0;
     public static final int SERVERERROR = -1;
@@ -93,6 +107,13 @@ public class HypertableClient extends com.yahoo.ycsb.DB
             		"columnfamily for Hypertable table");
             throw new DBException("No columnfamily specified");
         }
+
+        List<RowInterval> rowIntervals = new ArrayList<RowInterval>();
+        rowIntervals.add(mRowInterval);
+        mSpec.setRow_intervals(rowIntervals);
+        mSpec.setVersions(1);
+
+        mDeleteCell.key = new Key();
     }
 
     /**
@@ -136,20 +157,33 @@ public class HypertableClient extends com.yahoo.ycsb.DB
         
         try {
             if (null != fields) {
-                Vector<HashMap<String, ByteIterator>> resMap = 
-                        new Vector<HashMap<String, ByteIterator>>();
-                if (0 != scan(table, key, 1, fields, resMap)) {
-                    return SERVERERROR;
+
+              // Set the start row and end row to key
+              mRowInterval.setStart_row(key);
+              mRowInterval.setEnd_row(key);
+
+              String qualifiedColumn;
+              mColumns.clear();
+              for (String field : fields) {
+                qualifiedColumn = mFieldMap.get(field);
+                if (qualifiedColumn == null) {
+                  qualifiedColumn = _columnFamily + ":" + field;
+                  mFieldMap.put(field, qualifiedColumn);
                 }
-                if (!resMap.isEmpty())
-                    result.putAll(resMap.firstElement());
-            } else {
-                SerializedCellsReader reader = new SerializedCellsReader(null);
-                reader.reset(connection.get_row_serialized(ns, table, key));
-                while (reader.next()) {
-                    result.put(new String(reader.get_column_qualifier()), 
-                            new ByteArrayByteIterator(reader.get_value()));
-                }
+                mColumns.add(qualifiedColumn);
+              }
+              mSpec.setColumns(mColumns);
+
+              mSpec.unsetRow_limit();
+
+              mReader.reset(connection.get_cells_serialized(ns, table, mSpec));
+            }
+            else {
+              mReader.reset(connection.get_row_serialized(ns, table, key));
+            }
+            while (mReader.next()) {
+              result.put(new String(mReader.get_column_qualifier()), 
+                         new ByteArrayByteIterator(mReader.get_value()));
             }
         } catch (ClientException e) {
             if (_debug) {
@@ -184,41 +218,50 @@ public class HypertableClient extends com.yahoo.ycsb.DB
     {
         //SELECT _columnFamily:fields FROM table WHERE (ROW >= startkey) 
         //    LIMIT recordcount MAX_VERSIONS 1;
-        
-        ScanSpec spec = new ScanSpec();
-        RowInterval elem = new RowInterval();
-        elem.setStart_inclusive(true);
-        elem.setStart_row(startkey);
-        spec.addToRow_intervals(elem);
-        if (null != fields) {
-            for (String field : fields) {
-                spec.addToColumns(_columnFamily + ":" + field);
-            }
-        }
-        spec.setVersions(1);
-        spec.setRow_limit(recordcount);
 
-        SerializedCellsReader reader = new SerializedCellsReader(null);
+        // Set the start row to startkey and clear the end row
+        mRowInterval.setStart_row(startkey);
+        mRowInterval.setEnd_row(null);
+
+        // Set the column list (null for all columns)
+        if (fields == null) {
+          mSpec.unsetColumns();
+        }
+        else {
+          String qualifiedColumn;
+          mColumns.clear();
+          for (String field : fields) {
+            qualifiedColumn = mFieldMap.get(field);
+            if (qualifiedColumn == null) {
+              qualifiedColumn = _columnFamily + ":" + field;
+              mFieldMap.put(field, qualifiedColumn);
+            }
+            mColumns.add(qualifiedColumn);
+          }
+          mSpec.setColumns(mColumns);
+        }
+
+        // Set the LIMIT
+        mSpec.setRow_limit(recordcount);
 
         try {
-            long sc = connection.scanner_open(ns, table, spec);
+            long sc = connection.scanner_open(ns, table, mSpec);
                         
             String lastRow = null;
             boolean eos = false;
             while (!eos) {
-                reader.reset(connection.scanner_get_cells_serialized(sc));
-                while (reader.next()) {
-                    String currentRow = new String(reader.get_row());
+                mReader.reset(connection.scanner_get_cells_serialized(sc));
+                while (mReader.next()) {
+                    String currentRow = new String(mReader.get_row());
                     if (!currentRow.equals(lastRow)) {
                         result.add(new HashMap<String, ByteIterator>());
                         lastRow = currentRow;
                     }
                     result.lastElement().put(
-                            new String(reader.get_column_qualifier()), 
-                            new ByteArrayByteIterator(reader.get_value()));
+                            new String(mReader.get_column_qualifier()), 
+                            new ByteArrayByteIterator(mReader.get_value()));
                 }
-                eos = reader.eos();
-                
+                eos = mReader.eos();
 
                 if (_debug) {
                     System.out.println("Number of rows retrieved so far: " + 
@@ -279,17 +322,14 @@ public class HypertableClient extends com.yahoo.ycsb.DB
         }
         
         try {
-            long mutator = connection.mutator_open(ns, table, 0, 0);
             SerializedCellsWriter writer = 
                     new SerializedCellsWriter(BUFFER_SIZE*values.size(), true);
             for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-                writer.add(key, _columnFamily, entry.getKey(), 
-                        SerializedCellsFlag.AUTO_ASSIGN, 
-                        ByteBuffer.wrap(entry.getValue().toArray()));            
+                writer.add(key, _columnFamily, entry.getKey(),
+                        SerializedCellsFlag.AUTO_ASSIGN,
+                        ByteBuffer.wrap(entry.getValue().toArray()));
             }
-            connection.mutator_set_cells_serialized(mutator, 
-                    writer.buffer(), true);
-            connection.mutator_close(mutator);
+            connection.set_cells_serialized(ns, table, writer.buffer());
         } catch (ClientException e) {
             if (_debug) {
                 System.err.println("Error doing set: " + e.message);
@@ -320,13 +360,11 @@ public class HypertableClient extends com.yahoo.ycsb.DB
             System.out.println("Doing delete for key: "+key);
         }
         
-        Cell entry = new Cell();
-        entry.key = new Key();
-        entry.key.row = key;
-        entry.key.flag = KeyFlag.DELETE_ROW;
-        
+        mDeleteCell.key.row = key;
+        mDeleteCell.key.flag = KeyFlag.DELETE_ROW;
+
         try {
-            connection.set_cell(ns, table, entry);
+            connection.set_cell(ns, table, mDeleteCell);
         } catch (ClientException e) {
             if (_debug) {
                 System.err.println("Error doing delete: " + e.message);
