@@ -137,6 +137,52 @@ class StatusThread extends Thread
 	}
 }
 
+class WarmupThread extends ClientThread
+{
+    long _exectime;
+    long _curexec;
+
+    public WarmupThread(DB db, boolean dotransactions, Workload workload, int threadid, int threadcount, Properties props, int opcount, double targetperthreadperms, long exectime)
+    {
+        super(db, dotransactions, workload, threadid, threadcount, props, opcount, targetperthreadperms);
+        this._exectime = exectime;
+        this._curexec = 0;
+    }
+
+    protected void doOperation(OperationHandler handler)
+    {
+        long startexec = System.currentTimeMillis();
+        while (isContinue())
+        {
+            if (!_workload.doRead(_db, _workloadstate))
+            {
+                break;
+            }
+            _opsdone++;
+            _curexec = System.currentTimeMillis() - startexec;
+        }
+        System.out.println("Warmup execution time: " + _curexec);
+        System.out.println("Warmup operations: " + _opsdone);
+    }
+
+    private boolean isContinue()
+    {
+        if(_exectime > 0 && _opcount > 0)
+        {
+            return _curexec < _exectime && _opsdone < _opcount;
+        }
+        if(_exectime > 0)
+        {
+            return _curexec < _exectime;
+        }
+        if(_opcount > 0)
+        {
+            return _opsdone < _opcount;
+        }
+        return false;
+    }
+}
+
 /**
  * A thread for executing transactions or data inserts to the database.
  * 
@@ -145,182 +191,169 @@ class StatusThread extends Thread
  */
 class ClientThread extends Thread
 {
-	DB _db;
-	boolean _dotransactions;
-	Workload _workload;
-	int _opcount;
-	double _target;
+    DB _db;
+    boolean _dotransactions;
+    Workload _workload;
+    int _opcount;
+    double _target;
 
-	int _opsdone;
-	int _threadid;
-	int _threadcount;
-	Object _workloadstate;
-	Properties _props;
+    int _opsdone;
+    int _threadid;
+    int _threadcount;
+    Object _workloadstate;
+    Properties _props;
 
+    protected interface OperationHandler {
+        boolean handle(DB _db, Object _workloadstate);
+    }
 
-	/**
-	 * Constructor.
-	 * 
-	 * @param db the DB implementation to use
-	 * @param dotransactions true to do transactions, false to insert data
-	 * @param workload the workload to use
-	 * @param threadid the id of this thread 
-	 * @param threadcount the total number of threads 
-	 * @param props the properties defining the experiment
-	 * @param opcount the number of operations (transactions or inserts) to do
-	 * @param targetperthreadperms target number of operations per thread per ms
-	 */
-	public ClientThread(DB db, boolean dotransactions, Workload workload, int threadid, int threadcount, Properties props, int opcount, double targetperthreadperms)
-	{
-		//TODO: consider removing threadcount and threadid
-		_db=db;
-		_dotransactions=dotransactions;
-		_workload=workload;
-		_opcount=opcount;
-		_opsdone=0;
-		_target=targetperthreadperms;
-		_threadid=threadid;
-		_threadcount=threadcount;
-		_props=props;
-		//System.out.println("Interval = "+interval);
-	}
+    /**
+     * Constructor.
+     *
+     * @param db the DB implementation to use
+     * @param dotransactions true to do transactions, false to insert data
+     * @param workload the workload to use
+     * @param threadid the id of this thread
+     * @param threadcount the total number of threads
+     * @param props the properties defining the experiment
+     * @param opcount the number of operations (transactions or inserts) to do
+     * @param targetperthreadperms target number of operations per thread per ms
+     */
+    public ClientThread(DB db, boolean dotransactions, Workload workload, int threadid, int threadcount, Properties props, int opcount, double targetperthreadperms)
+    {
+        //TODO: consider removing threadcount and threadid
+        _db=db;
+        _dotransactions=dotransactions;
+        _workload=workload;
+        _opcount=opcount;
+        _opsdone=0;
+        _target=targetperthreadperms;
+        _threadid=threadid;
+        _threadcount=threadcount;
+        _props=props;
+        //System.out.println("Interval = "+interval);
+    }
 
-	public int getOpsDone()
-	{
-		return _opsdone;
-	}
+    public int getOpsDone()
+    {
+        return _opsdone;
+    }
 
-	public void run()
-	{
-		try
-		{
-			_db.init();
-		}
-		catch (DBException e)
-		{
-			e.printStackTrace();
-			e.printStackTrace(System.out);
-			return;
-		}
+    protected void doOperation(OperationHandler handler)
+    {
+        long st=System.currentTimeMillis();
 
-		try
-		{
-			_workloadstate=_workload.initThread(_props,_threadid,_threadcount);
-		}
-		catch (WorkloadException e)
-		{
-			e.printStackTrace();
-			e.printStackTrace(System.out);
-			return;
-		}
+        while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
+        {
+            if (!handler.handle(_db, _workloadstate))
+            {
+                break;
+            }
 
-		//spread the thread operations out so they don't all hit the DB at the same time
-		try
-		{
-		   //GH issue 4 - throws exception if _target>1 because random.nextInt argument must be >0
-		   //and the sleep() doesn't make sense for granularities < 1 ms anyway
-		   if ( (_target>0) && (_target<=1.0) ) 
-		   {
-		      sleep(Utils.random().nextInt((int)(1.0/_target)));
-		   }
-		}
-		catch (InterruptedException e)
-		{
-		  // do nothing.
-		}
-		
-		try
-		{
-			if (_dotransactions)
-			{
-				long st=System.currentTimeMillis();
+            _opsdone++;
 
-				while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
-				{
+            //throttle the operations
+            if (_target>0)
+            {
+                //this is more accurate than other throttling approaches we have tried,
+                //like sleeping for (1/target throughput)-operation latency,
+                //because it smooths timing inaccuracies (from sleep() taking an int,
+                //current time in millis) over many operations
+                while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
+                {
+                    try
+                    {
+                        sleep(1);
+                    }
+                    catch (InterruptedException e)
+                    {
+                        // do nothing.
+                    }
+                }
+            }
+        }
+    }
 
-					if (!_workload.doTransaction(_db,_workloadstate))
-					{
-						break;
-					}
+    public void run()
+    {
+        try
+        {
+            _db.init();
+        }
+        catch (DBException e)
+        {
+            e.printStackTrace();
+            e.printStackTrace(System.out);
+            return;
+        }
 
-					_opsdone++;
+        try
+        {
+            _workloadstate=_workload.initThread(_props,_threadid,_threadcount);
+        }
+        catch (WorkloadException e)
+        {
+            e.printStackTrace();
+            e.printStackTrace(System.out);
+            return;
+        }
 
-					//throttle the operations
-					if (_target>0)
-					{
-						//this is more accurate than other throttling approaches we have tried,
-						//like sleeping for (1/target throughput)-operation latency,
-						//because it smooths timing inaccuracies (from sleep() taking an int, 
-						//current time in millis) over many operations
-						while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
-						{
-							try
-							{
-								sleep(1);
-							}
-							catch (InterruptedException e)
-							{
-							  // do nothing.
-							}
+        //spread the thread operations out so they don't all hit the DB at the same time
+        try
+        {
+            //GH issue 4 - throws exception if _target>1 because random.nextInt argument must be >0
+            //and the sleep() doesn't make sense for granularities < 1 ms anyway
+            if ( (_target>0) && (_target<=1.0) )
+            {
+                sleep(Utils.random().nextInt((int)(1.0/_target)));
+            }
+        }
+        catch (InterruptedException e)
+        {
+            // do nothing.
+        }
 
-						}
-					}
-				}
-			}
-			else
-			{
-				long st=System.currentTimeMillis();
+        try
+        {
+            if (_dotransactions)
+            {
+                doOperation(new OperationHandler()
+                {
+                    public boolean handle(DB _db, Object _workloadstate)
+                    {
+                        return _workload.doTransaction(_db, _workloadstate);
+                    }
+                });
+            }
+            else
+            {
+                doOperation(new OperationHandler()
+                {
+                    public boolean handle(DB _db, Object _workloadstate)
+                    {
+                        return _workload.doInsert(_db, _workloadstate);
+                    }
+                });
+            }
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            e.printStackTrace(System.out);
+            System.exit(0);
+        }
 
-				while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
-				{
-
-					if (!_workload.doInsert(_db,_workloadstate))
-					{
-						break;
-					}
-
-					_opsdone++;
-
-					//throttle the operations
-					if (_target>0)
-					{
-						//this is more accurate than other throttling approaches we have tried,
-						//like sleeping for (1/target throughput)-operation latency,
-						//because it smooths timing inaccuracies (from sleep() taking an int, 
-						//current time in millis) over many operations
-						while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
-						{
-							try 
-							{
-								sleep(1);
-							}
-							catch (InterruptedException e)
-							{
-							  // do nothing.
-							}
-						}
-					}
-				}
-			}
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-			e.printStackTrace(System.out);
-			System.exit(0);
-		}
-
-		try
-		{
-			_db.cleanup();
-		}
-		catch (DBException e)
-		{
-			e.printStackTrace();
-			e.printStackTrace(System.out);
-			return;
-		}
-	}
+        try
+        {
+            _db.cleanup();
+        }
+        catch (DBException e)
+        {
+            e.printStackTrace();
+            e.printStackTrace(System.out);
+            return;
+        }
+    }
 }
 
 /**
@@ -328,6 +361,9 @@ class ClientThread extends Thread
  */
 public class Client
 {
+    public static final String WARMUP_OPERATION_COUNT_PROPERTY = "warmupoperationcount";
+
+    public static final String WARMUP_EXECUTION_TIME = "warmupexecutiontime";
 
     /**
      * The target number of operations to perform.
@@ -746,6 +782,48 @@ public class Client
 				opcount=Integer.parseInt(props.getProperty(RECORD_COUNT_PROPERTY,"0"));
 			}
 		}
+
+        int warmupopcount = Integer.parseInt(props.getProperty(WARMUP_OPERATION_COUNT_PROPERTY, "0"));
+        int warmupexectime = Integer.parseInt(props.getProperty(WARMUP_EXECUTION_TIME, "0"));
+
+        if (dotransactions && (warmupopcount > 0 || warmupexectime > 0))
+        {
+            System.out.println("Starting warmup...");
+            Vector<Thread> warmupThreads = new Vector<Thread>();
+            for (int threadid = 0; threadid < threadcount; threadid++)
+            {
+                DB db = null;
+                try
+                {
+                    db = DBFactory.rawDB(dbname, props);
+                }
+                catch (UnknownDBException e)
+                {
+                    System.out.println("Unknown DB " + dbname);
+                    System.exit(0);
+                }
+                Thread t = new WarmupThread(db, dotransactions, workload, threadid, threadcount, props,
+                        warmupopcount / threadcount, targetperthreadperms, warmupexectime);
+                warmupThreads.add(t);
+            }
+
+            for (Thread t : warmupThreads)
+            {
+                t.start();
+            }
+
+            for (Thread t : warmupThreads)
+            {
+                try
+                {
+                    t.join();
+                }
+                catch (InterruptedException e)
+                {
+                    //do nothing
+                }
+            }
+        }
 
 		Vector<Thread> threads=new Vector<Thread>();
 
