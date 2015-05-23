@@ -60,7 +60,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     public HTable _hTable=null;
     public String _columnFamily="";
     public byte _columnFamilyBytes[];
-    public boolean _clientSideBuffering = true;
+    public boolean _clientSideBuffering = false;
 
     public static final int Ok=0;
     public static final int ServerError=-1;

@@ -88,7 +88,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
      * This is the default behavior for HBaseClient. For measuring
      * insert/update/delete latencies, client side buffering should be disabled.
      */
-    public boolean _clientSideBuffering = true;
+    public boolean _clientSideBuffering = false;
 
     public static final int Ok=0;
     public static final int ServerError=-1;
@@ -102,8 +102,8 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
     @Override
     public void init() throws DBException
     {
-        if ("false".equals(getProperties().getProperty("clientbuffering", "true"))) {
-            this._clientSideBuffering = false;
+        if ("true".equals(getProperties().getProperty("clientbuffering", "false"))) {
+            this._clientSideBuffering = true;
         }
 
         if (getProperties().getProperty("durability") != null) {
