@@ -29,3 +29,35 @@ Maven repository for it. To build the binding:
         -Dpackaging=jar
 
 3. Uncomment `<module>nosqldb</module>` and run `mvn clean package`.
+
+# Mapkeeper 
+
+Mapkeeper binding doesn't get built by default because there is no
+Maven repository for it. To build the binding:
+
+1. follow "https://github.com/m1ch1/mapkeeper/wiki/Getting-Started" to Generate Thrift MapKeeper Binding
+   a.  install libevent
+   b.  install boost
+   c.  install thrift
+   d.  generate mapkeeper binding
+
+2. After generating mapkeeper binding, go the "mapkeeper/thrift/gen-java/target", and 
+   cp mapkeeper-1.1-SNAPSHOT.jar mapkeeper-1.0.jar 
+   mvn install:install-file -Dfile=mapkeeper-1.0.jar -DgroupId=com.yahoo.mapkeeper -DartifactId=mapkeeper -Dversion=1.0 -Dpackaging=jar
+
+3. Modify "YCSB/mapkeeper/pom.xml" as follows:
+    <dependency>
+           <groupId>com.yahoo.mapkeeper</groupId>
+           <artifactId>mapkeeper</artifactId>
+           <version>1.0</version>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.thrift</groupId>
+        <artifactId>libthrift</artifactId>
+        <version>0.8.0</version>
+    </dependency>
+
+
+4. Uncomment "<module>mapkeeper</module>" and "<mapkeeper.version>1.0</mapkeeper.version>" in "YCSB/pom.xml"
+
+4. mvn clean package
