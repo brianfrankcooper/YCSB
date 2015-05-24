@@ -3,119 +3,214 @@
  *
  * Submitted by Yen Pai on 5/11/2010.
  *
- * https://gist.github.com/000a66b8db2caf42467b#file_mongo_db.java
+ * https://gist.github.com/000a66b8db2caf42467b#file_mongo_database.java
  *
  */
 
 package com.yahoo.ycsb.db;
 
-import com.mongodb.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.Vector;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.bson.Document;
+
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
+import com.mongodb.ReadPreference;
+import com.mongodb.WriteConcern;
+import com.mongodb.bulk.BulkWriteResult;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.BulkWriteOptions;
+import com.mongodb.client.model.InsertOneModel;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.DeleteResult;
+import com.mongodb.client.result.UpdateResult;
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
-
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * MongoDB client for YCSB framework.
  * 
  * Properties to set:
  * 
- * mongodb.url=mongodb://localhost:27017 mongodb.database=ycsb
- * mongodb.writeConcern=normal
+ * mongodatabase.url=mongodb://localhost:27017 mongodatabase.database=ycsb
+ * mongodatabase.writeConcern=acknowledged
  * 
  * @author ypai
  */
 public class MongoDbClient extends DB {
 
+    /** Update options to do an upsert. */
+    private static final UpdateOptions UPSERT = new UpdateOptions()
+            .upsert(true);
+
     /** Used to include a field in a response. */
     protected static final Integer INCLUDE = Integer.valueOf(1);
 
+    /** The database name to access. */
+    private static String databaseName;
+
+    /** The database name to access. */
+    private static MongoDatabase database;
+
+    /**
+     * Count the number of times initialized to teardown on the last
+     * {@link #cleanup()}.
+     */
+    private static final AtomicInteger initCount = new AtomicInteger(0);
+
     /** A singleton Mongo instance. */
-    private static Mongo mongo;
+    private static MongoClient mongoClient;
+
+    /** The default read preference for the test */
+    private static ReadPreference readPreference;
 
     /** The default write concern for the test. */
     private static WriteConcern writeConcern;
 
-    /** The database to access. */
-    private static String database;
+    /** The batch size to use for inserts. */
+    private static int batchSize;
 
-    /** Count the number of times initialized to teardown on the last {@link #cleanup()}. */
-    private static final AtomicInteger initCount = new AtomicInteger(0);
+    /** The bulk inserts pending for the thread. */
+    private final List<InsertOneModel<Document>> bulkInserts = new ArrayList<InsertOneModel<Document>>();
 
     /**
-     * Initialize any state for this DB.
-     * Called once per DB instance; there is one DB instance per client thread.
+     * Cleanup any state for this DB. Called once per DB instance; there is one
+     * DB instance per client thread.
+     */
+    @Override
+    public void cleanup() throws DBException {
+        if (initCount.decrementAndGet() == 0) {
+            try {
+                mongoClient.close();
+            }
+            catch (Exception e1) {
+                System.err.println("Could not close MongoDB connection pool: "
+                        + e1.toString());
+                e1.printStackTrace();
+                return;
+            }
+            finally {
+                database = null;
+                mongoClient = null;
+            }
+        }
+    }
+
+    /**
+     * Delete a record from the database.
+     * 
+     * @param table
+     *            The name of the table
+     * @param key
+     *            The record key of the record to delete.
+     * @return Zero on success, a non-zero error code on error. See the
+     *         {@link DB} class's description for a discussion of error codes.
+     */
+    @Override
+    public int delete(String table, String key) {
+        try {
+            MongoCollection<Document> collection = database
+                    .getCollection(table);
+
+            Document query = new Document("_id", key);
+            DeleteResult result = collection.withWriteConcern(writeConcern)
+                    .deleteOne(query);
+            if (result.getDeletedCount() == 0) {
+                System.err.println("Nothing deleted for key " + key);
+                return 1;
+            }
+            return 0;
+        }
+        catch (Exception e) {
+            System.err.println(e.toString());
+            return 1;
+        }
+    }
+
+    /**
+     * Initialize any state for this DB. Called once per DB instance; there is
+     * one DB instance per client thread.
      */
     @Override
     public void init() throws DBException {
         initCount.incrementAndGet();
         synchronized (INCLUDE) {
-            if (mongo != null) {
+            if (mongoClient != null) {
                 return;
             }
 
-            // initialize MongoDb driver
             Properties props = getProperties();
-            String url = props.getProperty("mongodb.url",
-                    "mongodb://localhost:27017");
 
-            if (url.contains(",")) {
-                //pick one and random
-                String[] urls = url.split(",");
-                int index = new Random().nextInt(urls.length);
-                url = urls[index];
-                System.out.printf("Using Mongo URL: %s\n", url);
+            // Set insert batchsize, default 1 - to be YCSB-original equivalent
+            batchSize = Integer.parseInt(props.getProperty("batchsize", "1"));
+
+            // Just use the standard connection format URL
+            // http://docs.mongodatabase.org/manual/reference/connection-string/
+            // to configure the client.
+            //
+            // Support legacy options by updating the URL as appropriate.
+            String url = props.getProperty("mongodatabase.url", null);
+            boolean defaultedUrl = false;
+            if (url == null) {
+                defaultedUrl = true;
+                url = "mongodb://localhost:27017/ycsb?w=1";
             }
 
-            database = props.getProperty("mongodb.database", "ycsb");
-            String writeConcernType = props.getProperty("mongodb.writeConcern",
-                    "safe").toLowerCase();
-            final String maxConnections = props.getProperty(
-                    "mongodb.maxconnections", "10");
+            url = OptionsSupport.updateUrl(url, props);
 
-            if ("none".equals(writeConcernType)) {
-                writeConcern = WriteConcern.NONE;
-            }
-            else if ("safe".equals(writeConcernType)) {
-                writeConcern = WriteConcern.SAFE;
-            }
-            else if ("normal".equals(writeConcernType)) {
-                writeConcern = WriteConcern.NORMAL;
-            }
-            else if ("fsync_safe".equals(writeConcernType)) {
-                writeConcern = WriteConcern.FSYNC_SAFE;
-            }
-            else if ("replicas_safe".equals(writeConcernType)) {
-                writeConcern = WriteConcern.REPLICAS_SAFE;
-            }
-            else {
+            if (!url.startsWith("mongodb://")) {
                 System.err
-                        .println("ERROR: Invalid writeConcern: '"
-                                + writeConcernType
-                                + "'. "
-                                + "Must be [ none | safe | normal | fsync_safe | replicas_safe ]");
+                        .println("ERROR: Invalid URL: '"
+                                + url
+                                + "'. Must be of the form "
+                                + "'mongodb://<host1>:<port1>,<host2>:<port2>/database?options'. "
+                                + "See http://docs.mongodatabase.org/manual/reference/connection-string/.");
                 System.exit(1);
             }
 
             try {
-                // strip out prefix since Java driver doesn't currently support
-                // standard connection format URL yet
-                // http://www.mongodb.org/display/DOCS/Connections
-                if (url.startsWith("mongodb://")) {
-                    url = url.substring(10);
+                MongoClientURI uri = new MongoClientURI(url);
+
+                String uriDb = uri.getDatabase();
+                if (!defaultedUrl && (uriDb != null) && !uriDb.isEmpty()
+                        && !"admin".equals(uriDb)) {
+                    databaseName = uriDb;
+                }
+                else {
+                    databaseName = props.getProperty("mongodatabase.database",
+                            "ycsb");
                 }
 
-                // need to append db to url.
-                url += "/" + database;
-                System.out.println("new database url = " + url);
-                MongoOptions options = new MongoOptions();
-                options.connectionsPerHost = Integer.parseInt(maxConnections);
-                mongo = new Mongo(new DBAddress(url), options);
+                if ((databaseName == null) || databaseName.isEmpty()) {
+                    System.err
+                            .println("ERROR: Invalid URL: '"
+                                    + url
+                                    + "'. Must provide a database name with the URI. "
+                                    + "'mongodb://<host1>:<port1>,<host2>:<port2>/database");
+                    System.exit(1);
+                }
 
-                System.out.println("mongo connection created with " + url);
+                readPreference = uri.getOptions().getReadPreference();
+                writeConcern = uri.getOptions().getWriteConcern();
+
+                mongoClient = new MongoClient(uri);
+                database = mongoClient.getDatabase(databaseName);
+
+                System.out.println("mongo client connection created with "
+                        + url);
             }
             catch (Exception e1) {
                 System.err
@@ -128,127 +223,118 @@ public class MongoDbClient extends DB {
     }
 
     /**
-     * Cleanup any state for this DB.
-     * Called once per DB instance; there is one DB instance per client thread.
-     */
-    @Override
-    public void cleanup() throws DBException {
-        if (initCount.decrementAndGet() <= 0) {
-            try {
-                mongo.close();
-            }
-            catch (Exception e1) {
-                System.err.println("Could not close MongoDB connection pool: "
-                        + e1.toString());
-                e1.printStackTrace();
-                return;
-            }
-        }
-    }
-
-    /**
-     * Delete a record from the database.
-     *
-     * @param table The name of the table
-     * @param key The record key of the record to delete.
-     * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
-     */
-    @Override
-    public int delete(String table, String key) {
-        com.mongodb.DB db = null;
-        try {
-            db = mongo.getDB(database);
-            db.requestStart();
-            DBCollection collection = db.getCollection(table);
-            DBObject q = new BasicDBObject().append("_id", key);
-            WriteResult res = collection.remove(q, writeConcern);
-            return res.getN() == 1 ? 0 : 1;
-        }
-        catch (Exception e) {
-            System.err.println(e.toString());
-            return 1;
-        }
-        finally {
-            if (db != null) {
-                db.requestDone();
-            }
-        }
-    }
-
-    /**
-     * Insert a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
-     * record key.
-     *
-     * @param table The name of the table
-     * @param key The record key of the record to insert.
-     * @param values A HashMap of field/value pairs to insert in the record
-     * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
+     * Insert a record in the database. Any field/value pairs in the specified
+     * values HashMap will be written into the record with the specified record
+     * key.
+     * 
+     * @param table
+     *            The name of the table
+     * @param key
+     *            The record key of the record to insert.
+     * @param values
+     *            A HashMap of field/value pairs to insert in the record
+     * @return Zero on success, a non-zero error code on error. See the
+     *         {@link DB} class's description for a discussion of error codes.
      */
     @Override
     public int insert(String table, String key,
             HashMap<String, ByteIterator> values) {
-        com.mongodb.DB db = null;
         try {
-            db = mongo.getDB(database);
-
-            db.requestStart();
-
-            DBCollection collection = db.getCollection(table);
-            DBObject r = new BasicDBObject().append("_id", key);
-            for (String k : values.keySet()) {
-                r.put(k, values.get(k).toArray());
+            MongoCollection<Document> collection = database
+                    .getCollection(table);
+            Document criteria = new Document("_id", key);
+            Document toInsert = new Document("_id", key);
+            for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+                toInsert.put(entry.getKey(), entry.getValue().toArray());
             }
-            WriteResult res = collection.insert(r, writeConcern);
-            return res.getError() == null ? 0 : 1;
+
+            // Do a single upsert.
+            if (batchSize <= 1) {
+                UpdateResult result = collection.withWriteConcern(writeConcern)
+                        .updateOne(criteria, toInsert, UPSERT);
+                if (result.getMatchedCount() > 0
+                        || result.getModifiedCount() > 0) {
+                    return 0;
+                }
+                System.err.println("Nothing inserted for key " + key);
+                return 1;
+            }
+
+            // Use a bulk insert.
+            try {
+                bulkInserts.add(new InsertOneModel<Document>(toInsert));
+                if (bulkInserts.size() < batchSize) {
+                    return 0;
+                }
+
+                BulkWriteResult result = collection.withWriteConcern(
+                        writeConcern).bulkWrite(bulkInserts,
+                        new BulkWriteOptions().ordered(false));
+                if (result.getInsertedCount() == bulkInserts.size()) {
+                    bulkInserts.clear();
+                    return 0;
+                }
+
+                System.err
+                        .println("Number of inserted documents doesn't match the number sent, "
+                                + result.getInsertedCount()
+                                + " inserted, sent " + bulkInserts.size());
+                bulkInserts.clear();
+                return 1;
+            }
+            catch (Exception e) {
+                System.err.println("Exception while trying bulk insert with "
+                        + bulkInserts.size());
+                e.printStackTrace();
+                return 1;
+            }
         }
         catch (Exception e) {
             e.printStackTrace();
             return 1;
         }
-        finally {
-            if (db != null) {
-                db.requestDone();
-            }
-        }
+
     }
 
     /**
-     * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
-     *
-     * @param table The name of the table
-     * @param key The record key of the record to read.
-     * @param fields The list of fields to read, or null for all of them
-     * @param result A HashMap of field/value pairs for the result
+     * Read a record from the database. Each field/value pair from the result
+     * will be stored in a HashMap.
+     * 
+     * @param table
+     *            The name of the table
+     * @param key
+     *            The record key of the record to read.
+     * @param fields
+     *            The list of fields to read, or null for all of them
+     * @param result
+     *            A HashMap of field/value pairs for the result
      * @return Zero on success, a non-zero error code on error or "not found".
      */
     @Override
-    @SuppressWarnings("unchecked")
     public int read(String table, String key, Set<String> fields,
             HashMap<String, ByteIterator> result) {
-        com.mongodb.DB db = null;
         try {
-            db = mongo.getDB(database);
+            MongoCollection<Document> collection = database
+                    .getCollection(table);
+            Document query = new Document("_id", key);
+            Document fieldsToReturn = new Document();
 
-            db.requestStart();
-
-            DBCollection collection = db.getCollection(table);
-            DBObject q = new BasicDBObject().append("_id", key);
-            DBObject fieldsToReturn = new BasicDBObject();
-
-            DBObject queryResult = null;
+            Document queryResult = null;
             if (fields != null) {
                 Iterator<String> iter = fields.iterator();
                 while (iter.hasNext()) {
                     fieldsToReturn.put(iter.next(), INCLUDE);
                 }
-                queryResult = collection.findOne(q, fieldsToReturn);
+                queryResult = collection.withReadPreference(readPreference)
+                        .find(query).projection(fieldsToReturn).first();
             }
             else {
-                queryResult = collection.findOne(q);
+                queryResult = collection.withReadPreference(readPreference)
+                        .find(query).first();
             }
 
             if (queryResult != null) {
-                result.putAll(queryResult.toMap());
+                fillMap(result, queryResult);
             }
             return queryResult != null ? 0 : 1;
         }
@@ -256,85 +342,59 @@ public class MongoDbClient extends DB {
             System.err.println(e.toString());
             return 1;
         }
-        finally {
-            if (db != null) {
-                db.requestDone();
-            }
-        }
     }
 
     /**
-     * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
-     * record key, overwriting any existing values with the same field name.
-     *
-     * @param table The name of the table
-     * @param key The record key of the record to write.
-     * @param values A HashMap of field/value pairs to update in the record
-     * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
-     */
-    @Override
-    public int update(String table, String key,
-            HashMap<String, ByteIterator> values) {
-        com.mongodb.DB db = null;
-        try {
-            db = mongo.getDB(database);
-
-            db.requestStart();
-
-            DBCollection collection = db.getCollection(table);
-            DBObject q = new BasicDBObject().append("_id", key);
-            DBObject u = new BasicDBObject();
-            DBObject fieldsToSet = new BasicDBObject();
-            Iterator<String> keys = values.keySet().iterator();
-            while (keys.hasNext()) {
-                String tmpKey = keys.next();
-                fieldsToSet.put(tmpKey, values.get(tmpKey).toArray());
-
-            }
-            u.put("$set", fieldsToSet);
-            WriteResult res = collection.update(q, u, false, false,
-                    writeConcern);
-            return res.getN() == 1 ? 0 : 1;
-        }
-        catch (Exception e) {
-            System.err.println(e.toString());
-            return 1;
-        }
-        finally {
-            if (db != null) {
-                db.requestDone();
-            }
-        }
-    }
-
-    /**
-     * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a HashMap.
-     *
-     * @param table The name of the table
-     * @param startkey The record key of the first record to read.
-     * @param recordcount The number of records to read
-     * @param fields The list of fields to read, or null for all of them
-     * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
-     * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
+     * Perform a range scan for a set of records in the database. Each
+     * field/value pair from the result will be stored in a HashMap.
+     * 
+     * @param table
+     *            The name of the table
+     * @param startkey
+     *            The record key of the first record to read.
+     * @param recordcount
+     *            The number of records to read
+     * @param fields
+     *            The list of fields to read, or null for all of them
+     * @param result
+     *            A Vector of HashMaps, where each HashMap is a set field/value
+     *            pairs for one record
+     * @return Zero on success, a non-zero error code on error. See the
+     *         {@link DB} class's description for a discussion of error codes.
      */
     @Override
     public int scan(String table, String startkey, int recordcount,
             Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-        com.mongodb.DB db = null;
+        FindIterable<Document> cursor = null;
+        MongoCursor<Document> iter = null;
         try {
-            db = mongo.getDB(database);
-            db.requestStart();
-            DBCollection collection = db.getCollection(table);
-            // { "_id":{"$gte":startKey, "$lte":{"appId":key+"\uFFFF"}} }
-            DBObject scanRange = new BasicDBObject().append("$gte", startkey);
-            DBObject q = new BasicDBObject().append("_id", scanRange);
-            DBCursor cursor = collection.find(q).limit(recordcount);
-            while (cursor.hasNext()) {
-                // toMap() returns a Map, but result.add() expects a
-                // Map<String,String>. Hence, the suppress warnings.
+            MongoCollection<Document> collection = database
+                    .getCollection(table);
+
+            Document scanRange = new Document("$gte", startkey);
+            Document query = new Document("_id", scanRange);
+            Document sort = new Document("_id", INCLUDE);
+            Document projection = null;
+            if (fields != null) {
+                projection = new Document();
+                for (String fieldName : fields) {
+                    projection.put(fieldName, INCLUDE);
+                }
+            }
+
+            cursor = collection.withReadPreference(readPreference).find(query)
+                    .projection(projection).sort(sort).limit(recordcount);
+
+            // Do the query.
+            iter = cursor.iterator();
+            if (!iter.hasNext()) {
+                System.err.println("Nothing found in scan for key " + startkey);
+                return 1;
+            }
+            while (iter.hasNext()) {
                 HashMap<String, ByteIterator> resultMap = new HashMap<String, ByteIterator>();
 
-                DBObject obj = cursor.next();
+                Document obj = iter.next();
                 fillMap(resultMap, obj);
 
                 result.add(resultMap);
@@ -347,23 +407,64 @@ public class MongoDbClient extends DB {
             return 1;
         }
         finally {
-            if (db != null) {
-                db.requestDone();
+            if (iter != null) {
+                iter.close();
             }
         }
-
     }
 
     /**
-     * TODO - Finish
+     * Update a record in the database. Any field/value pairs in the specified
+     * values HashMap will be written into the record with the specified record
+     * key, overwriting any existing values with the same field name.
+     * 
+     * @param table
+     *            The name of the table
+     * @param key
+     *            The record key of the record to write.
+     * @param values
+     *            A HashMap of field/value pairs to update in the record
+     * @return Zero on success, a non-zero error code on error. See this class's
+     *         description for a discussion of error codes.
+     */
+    @Override
+    public int update(String table, String key,
+            HashMap<String, ByteIterator> values) {
+        try {
+            MongoCollection<Document> collection = database
+                    .getCollection(table);
+
+            Document query = new Document("_id", key);
+            Document fieldsToSet = new Document();
+            for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+                fieldsToSet.put(entry.getKey(), entry.getValue().toArray());
+            }
+            Document update = new Document("$set", fieldsToSet);
+
+            UpdateResult result = collection.withWriteConcern(writeConcern)
+                    .updateOne(query, update);
+            if (result.getMatchedCount() == 0) {
+                System.err.println("Nothing updated for key " + key);
+                return 1;
+            }
+            return 0;
+        }
+        catch (Exception e) {
+            System.err.println(e.toString());
+            return 1;
+        }
+    }
+
+    /**
+     * Fills the map with the values from the DBObject.
      * 
      * @param resultMap
+     *            The map to fill/
      * @param obj
+     *            The object to copy values from.
      */
-    @SuppressWarnings("unchecked")
-    protected void fillMap(HashMap<String, ByteIterator> resultMap, DBObject obj) {
-        Map<String, Object> objMap = obj.toMap();
-        for (Map.Entry<String, Object> entry : objMap.entrySet()) {
+    protected void fillMap(HashMap<String, ByteIterator> resultMap, Document obj) {
+        for (Map.Entry<String, Object> entry : obj.entrySet()) {
             if (entry.getValue() instanceof byte[]) {
                 resultMap.put(entry.getKey(), new ByteArrayByteIterator(
                         (byte[]) entry.getValue()));

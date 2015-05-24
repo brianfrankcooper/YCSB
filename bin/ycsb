@@ -39,6 +39,7 @@ DATABASES = {
     "jdbc"         : "com.yahoo.ycsb.db.JdbcDBClient",
     "mapkeeper"    : "com.yahoo.ycsb.db.MapKeeperClient",
     "mongodb"      : "com.yahoo.ycsb.db.MongoDbClient",
+    "mongodb-async": "com.yahoo.ycsb.db.AsyncMongoDbClient",
     "nosqldb"      : "com.yahoo.ycsb.db.NoSqlDbClient",
     "orientdb"     : "com.yahoo.ycsb.db.OrientDBClient",
     "redis"        : "com.yahoo.ycsb.db.RedisClient", 
@@ -108,9 +109,15 @@ command = COMMANDS[sys.argv[1]]["command"]
 database = sys.argv[2]
 db_classname = DATABASES[database]
 options = sys.argv[3:]
+java_home = os.environ["JAVA_HOME"]
 
-ycsb_command = ["java", "-cp", os.pathsep.join(find_jars(ycsb_home, database)), \
+if java_home: 
+    ycsb_command = [java_home + "/bin/java", "-cp", os.pathsep.join(find_jars(ycsb_home, database)), \
                 COMMANDS[sys.argv[1]]["main"], "-db", db_classname] + options
+else: 
+    ycsb_command = ["java", "-cp", os.pathsep.join(find_jars(ycsb_home, database)), \
+                COMMANDS[sys.argv[1]]["main"], "-db", db_classname] + options
+
 if command:
     ycsb_command.append(command)
 print " ".join(ycsb_command)

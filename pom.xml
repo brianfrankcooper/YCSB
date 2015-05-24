@@ -50,7 +50,8 @@
     <infinispan.version>7.1.0.CR1</infinispan.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
     <!--<mapkeeper.version>1.0</mapkeeper.version>-->
-    <mongodb.version>2.13.1</mongodb.version>
+    <mongodb.version>3.0.1</mongodb.version>
+    <mongodb.async.version>2.0.1</mongodb.async.version>
     <orientdb.version>1.0.1</orientdb.version>
     <redis.version>2.0.0</redis.version>
     <voldemort.version>0.81</voldemort.version>
