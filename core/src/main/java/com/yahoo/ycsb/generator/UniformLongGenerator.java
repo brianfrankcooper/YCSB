@@ -14,36 +14,42 @@
  * permissions and limitations under the License. See accompanying                                                                                                                 
  * LICENSE file.                                                                                                                                                                   
  */
-package com.yahoo.ycsb.measurements.exporter;
 
-import java.io.Closeable;
-import java.io.IOException;
+package com.yahoo.ycsb.generator;
+
+import com.yahoo.ycsb.Utils;
 
 /**
- * Used to export the collected measurements into a useful format, for example
- * human readable text or machine readable JSON.
+ * Generates integers randomly uniform from an interval.
  */
-public interface MeasurementsExporter extends Closeable
+public class UniformLongGenerator extends LongGenerator
 {
+	long _lb,_ub,_interval;
 
-  /**
-   * Write a measurement to the exported format.
-   * 
-   * @param metric Metric name, for example "READ LATENCY".
-   * @param measurement Measurement name, for example "Average latency".
-   * @param l Measurement to write.
-   * @throws IOException if writing failed
-   */
-  public void write(String metric, String measurement, long l) throws IOException;
+	/**
+	 * Creates a generator that will return integers uniformly randomly from the interval [lb,ub] inclusive (that is, lb and ub are possible values)
+	 *
+	 * @param lb the lower bound (inclusive) of generated values
+	 * @param ub the upper bound (inclusive) of generated values
+	 */
+	public UniformLongGenerator(long lb, long ub)
+	{
+		_lb=lb;
+		_ub=ub;
+		_interval=_ub-_lb+1;
+	}
+	
+	@Override
+	public long nextLong()
+	{
+        long ret=Utils.random().nextLong() % _interval +1;
+		setLastLong(ret);
+		
+		return ret;
+	}
 
-  /**
-   * Write a measurement to the exported format.
-   * 
-   * @param metric Metric name, for example "READ LATENCY".
-   * @param measurement Measurement name, for example "Average latency".
-   * @param d Measurement to write.
-   * @throws IOException if writing failed
-   */
-  public void write(String metric, String measurement, double d) throws IOException;
-
+	@Override
+	public double mean() {
+		return ((double)((long)(_lb + (long)_ub))) / 2.0;
+	}
 }

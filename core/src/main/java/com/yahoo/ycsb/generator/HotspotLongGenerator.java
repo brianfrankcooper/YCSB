@@ -16,9 +16,9 @@
  */
 package com.yahoo.ycsb.generator;
 
-import java.util.Random;
-
 import com.yahoo.ycsb.Utils;
+
+import java.util.Random;
 
 /**
  * Generate integers resembling a hotspot distribution where x% of operations
@@ -31,25 +31,25 @@ import com.yahoo.ycsb.Utils;
  * @author sudipto
  *
  */
-public class HotspotIntegerGenerator extends IntegerGenerator {
+public class HotspotLongGenerator extends LongGenerator {
 
-  private final int lowerBound;
-  private final int upperBound;
-  private final int hotInterval;
-  private final int coldInterval;
+  private final long lowerBound;
+  private final long upperBound;
+  private final long hotInterval;
+  private final long coldInterval;
   private final double hotsetFraction;
   private final double hotOpnFraction;
-  
+
   /**
    * Create a generator for Hotspot distributions.
-   * 
+   *
    * @param lowerBound lower bound of the distribution.
    * @param upperBound upper bound of the distribution.
    * @param hotsetFraction percentage of data item
    * @param hotOpnFraction percentage of operations accessing the hot set.
    */
-  public HotspotIntegerGenerator(int lowerBound, int upperBound, 
-      double hotsetFraction, double hotOpnFraction) {
+  public HotspotLongGenerator(long lowerBound, long upperBound,
+                              double hotsetFraction, double hotOpnFraction) {
     if (hotsetFraction < 0.0 || hotsetFraction > 1.0) {
       System.err.println("Hotset fraction out of range. Setting to 0.0");
       hotsetFraction = 0.0;
@@ -61,49 +61,45 @@ public class HotspotIntegerGenerator extends IntegerGenerator {
     if (lowerBound > upperBound) {
       System.err.println("Upper bound of Hotspot generator smaller than the lower bound. " +
       		"Swapping the values.");
-      int temp = lowerBound;
+      long temp = lowerBound;
       lowerBound = upperBound;
       upperBound = temp;
     }
     this.lowerBound = lowerBound;
     this.upperBound = upperBound;
     this.hotsetFraction = hotsetFraction;
-    int interval = upperBound - lowerBound + 1;
+    long interval = upperBound - lowerBound + 1;
     this.hotInterval = (int)(interval * hotsetFraction);
     this.coldInterval = interval - hotInterval;
     this.hotOpnFraction = hotOpnFraction;
   }
   
   @Override
-  public int nextInt() {
-    int value = 0;
+  public long nextLong() {
+    long value = 0;
     Random random = Utils.random();
     if (random.nextDouble() < hotOpnFraction) {
       // Choose a value from the hot set.
-      value = lowerBound + random.nextInt(hotInterval);
+      value = lowerBound + random.nextLong() % hotInterval+1 ;
     } else {
       // Choose a value from the cold set.
-      value = lowerBound + hotInterval + random.nextInt(coldInterval);
+      value = lowerBound + hotInterval + random.nextLong() % coldInterval+1 ;
     }
-    setLastInt(value);
+    setLastLong(value);
     return value;
   }
 
-  public long nextLong() {
-        return (long) nextInt();
-  }
-
-    /**
+  /**
    * @return the lowerBound
    */
-  public int getLowerBound() {
+  public long getLowerBound() {
     return lowerBound;
   }
 
   /**
    * @return the upperBound
    */
-  public int getUpperBound() {
+  public long getUpperBound() {
     return upperBound;
   }
 

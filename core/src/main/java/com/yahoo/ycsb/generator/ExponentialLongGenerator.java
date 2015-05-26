@@ -1,5 +1,5 @@
 /**                                                                                                                                                                                
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved.                                                                                                                             
+ * Copyright (c) 2011 Yahoo! Inc. All rights reserved.                                                                                                                             
  *                                                                                                                                                                                 
  * Licensed under the Apache License, Version 2.0 (the "License"); you                                                                                                             
  * may not use this file except in compliance with the License. You                                                                                                                
@@ -17,45 +17,82 @@
 
 package com.yahoo.ycsb.generator;
 
-/**
- * Generate a popularity distribution of items, skewed to favor recent items significantly more than older items.
- */
-public class SkewedLatestGenerator extends LongGenerator
-{
-	LongCounterGenerator _basis;
-	ZipfianGenerator _zipfian;
+import com.yahoo.ycsb.Utils;
 
-	public SkewedLatestGenerator(LongCounterGenerator basis)
+/**
+ * A generator of an exponential distribution. It produces a sequence
+ * of time intervals (integers) according to an exponential
+ * distribution.  Smaller intervals are more frequent than larger
+ * ones, and there is no bound on the length of an interval.  When you
+ * construct an instance of this class, you specify a parameter gamma,
+ * which corresponds to the rate at which events occur.
+ * Alternatively, 1/gamma is the average length of an interval.
+ */
+public class ExponentialLongGenerator extends LongGenerator
+{
+    // What percentage of the readings should be within the most recent exponential.frac portion of the dataset?
+    public static final String EXPONENTIAL_PERCENTILE_PROPERTY="exponential.percentile";
+    public static final String EXPONENTIAL_PERCENTILE_DEFAULT="95";
+
+    // What fraction of the dataset should be accessed exponential.percentile of the time?
+    public static final String EXPONENTIAL_FRAC_PROPERTY = "exponential.frac";
+    public static final String EXPONENTIAL_FRAC_DEFAULT  = "0.8571428571";  // 1/7
+
+	/**
+	 * The exponential constant to use.
+	 */
+	double _gamma;
+
+	/******************************* Constructors **************************************/
+
+	/**
+	 * Create an exponential generator with a mean arrival rate of
+	 * gamma.  (And half life of 1/gamma).
+	 */
+	public ExponentialLongGenerator(double mean)
 	{
-		_basis=basis;
-		_zipfian=new ZipfianGenerator(_basis.lastLong());
-		nextLong();
+		_gamma = 1.0/mean;
+	}
+	public ExponentialLongGenerator(double percentile, double range)
+	{
+		_gamma = -Math.log(1.0-percentile/100.0) / range;  //1.0/mean;
+	}
+
+	/****************************************************************************************/
+	
+	/** 
+	 * Generate the next item. this distribution will be skewed toward lower integers; e.g. 0 will
+	 * be the most popular, 1 the next most popular, etc.
+	 * @return The next item in the sequence.
+	 */
+	public int nextInt()
+	{
+		return (int)nextLong();
 	}
 
 	/**
-	 * Generate the next string in the distribution, skewed Zipfian favoring the items most recently returned by the basis generator.
+	 * Generate the next item as a long.
+	 * 
+	 * @return The next item in the sequence.
 	 */
+    @Override
 	public long nextLong()
 	{
-        long max=_basis.lastLong();
-        long nextlong=max-_zipfian.nextInt((int)max);
-		setLastLong(nextlong);
-		return nextlong;
-	}
-
-	public static void main(String[] args)
-	{
-		SkewedLatestGenerator gen=new SkewedLatestGenerator(new LongCounterGenerator(1000));
-		for (int i=0; i<Integer.parseInt(args[0]); i++)
-		{
-			System.out.println(gen.nextString());
-		}
-
+		return (long) (-Math.log(Utils.random().nextDouble()) / _gamma);
 	}
 
 	@Override
 	public double mean() {
-		throw new UnsupportedOperationException("Can't compute mean of non-stationary distribution!");
+		return 1.0/_gamma;
 	}
-
+    public static void main(String args[]) {
+        ExponentialLongGenerator e = new ExponentialLongGenerator(90, 100);
+        int j = 0;
+        for(int i = 0; i < 1000; i++) {
+            if(e.nextInt() < 100) {
+                j++;
+            }
+        }
+        System.out.println("Got " + j + " hits.  Expect 900");
+    }
 }
