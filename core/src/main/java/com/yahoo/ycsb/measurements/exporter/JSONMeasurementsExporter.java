@@ -51,7 +51,6 @@ public class JSONMeasurementsExporter implements MeasurementsExporter
     g.writeEndObject();
   }
 
-    @Override
     public void write(String metric, String measurement, long l) throws IOException {
         g.writeStartObject();
         g.writeStringField("metric", metric);
