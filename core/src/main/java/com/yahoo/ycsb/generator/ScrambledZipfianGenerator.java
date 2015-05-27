@@ -28,7 +28,7 @@ import com.yahoo.ycsb.Utils;
  * Unlike @ZipfianGenerator, this class scatters the "popular" items across the itemspace. Use this, instead of @ZipfianGenerator, if you
  * don't want the head of the distribution (the popular items) clustered together.
  */
-public class ScrambledZipfianGenerator extends IntegerGenerator 
+public class ScrambledZipfianGenerator extends LongGenerator
 {
 	public static final double ZETAN=26.46902820178302;
         public static final double USED_ZIPFIAN_CONSTANT=0.99;
@@ -97,7 +97,6 @@ public class ScrambledZipfianGenerator extends IntegerGenerator
 	/**
 	 * Return the next int in the sequence.
 	 */
-	@Override
 	public int nextInt() {
 		return (int)nextLong();
 	}
@@ -105,11 +104,12 @@ public class ScrambledZipfianGenerator extends IntegerGenerator
 	/**
 	 * Return the next long in the sequence.
 	 */
+    @Override
 	public long nextLong()
 	{
 		long ret=gen.nextLong();
 		ret=_min+Utils.FNVhash64(ret)%_itemcount;
-		setLastInt((int)ret);
+		setLastLong((int)ret);
 		return ret;
 	}
 	
