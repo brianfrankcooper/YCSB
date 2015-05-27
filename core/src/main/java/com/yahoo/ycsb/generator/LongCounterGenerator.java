@@ -1,5 +1,5 @@
 /**                                                                                                                                                                                
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved.                                                                                                                             
+ * Copyright (c) 2013 Yahoo! Inc. All rights reserved.
  *                                                                                                                                                                                 
  * Licensed under the Apache License, Version 2.0 (the "License"); you                                                                                                             
  * may not use this file except in compliance with the License. You                                                                                                                
@@ -17,45 +17,42 @@
 
 package com.yahoo.ycsb.generator;
 
-/**
- * Generate a popularity distribution of items, skewed to favor recent items significantly more than older items.
- */
-public class SkewedLatestGenerator extends LongGenerator
-{
-	LongCounterGenerator _basis;
-	ZipfianGenerator _zipfian;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
-	public SkewedLatestGenerator(LongCounterGenerator basis)
-	{
-		_basis=basis;
-		_zipfian=new ZipfianGenerator(_basis.lastLong());
-		nextLong();
-	}
+/**
+ * Generates a sequence of integers 0, 1, ...
+ */
+public class LongCounterGenerator extends LongGenerator
+{
+	final AtomicLong counter;
 
 	/**
-	 * Generate the next string in the distribution, skewed Zipfian favoring the items most recently returned by the basis generator.
+	 * Create a counter that starts at countstart
+	 */
+	public LongCounterGenerator(long countstart)
+	{
+		counter=new AtomicLong(countstart);
+		setLastLong(counter.get() - 1);
+	}
+	
+	/**
+	 * If the generator returns numeric (integer) values, return the next value as an int. Default is to return -1, which
+	 * is appropriate for generators that do not return numeric values.
 	 */
 	public long nextLong()
 	{
-        long max=_basis.lastLong();
-        long nextlong=max-_zipfian.nextInt((int)max);
-		setLastLong(nextlong);
-		return nextlong;
+		long ret = counter.getAndIncrement();
+		setLastLong(ret);
+		return ret;
 	}
-
-	public static void main(String[] args)
+	@Override
+	public long lastLong()
 	{
-		SkewedLatestGenerator gen=new SkewedLatestGenerator(new LongCounterGenerator(1000));
-		for (int i=0; i<Integer.parseInt(args[0]); i++)
-		{
-			System.out.println(gen.nextString());
-		}
-
+	                return counter.get() - 1;
 	}
-
 	@Override
 	public double mean() {
 		throw new UnsupportedOperationException("Can't compute mean of non-stationary distribution!");
 	}
-
 }

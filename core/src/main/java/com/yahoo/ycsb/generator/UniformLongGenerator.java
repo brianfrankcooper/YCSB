@@ -1,5 +1,5 @@
 /**                                                                                                                                                                                
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved.                                                                                                                             
+ * Copyright (c) 2013 Yahoo! Inc. All rights reserved.
  *                                                                                                                                                                                 
  * Licensed under the Apache License, Version 2.0 (the "License"); you                                                                                                             
  * may not use this file except in compliance with the License. You                                                                                                                
@@ -17,45 +17,39 @@
 
 package com.yahoo.ycsb.generator;
 
-/**
- * Generate a popularity distribution of items, skewed to favor recent items significantly more than older items.
- */
-public class SkewedLatestGenerator extends LongGenerator
-{
-	LongCounterGenerator _basis;
-	ZipfianGenerator _zipfian;
+import com.yahoo.ycsb.Utils;
 
-	public SkewedLatestGenerator(LongCounterGenerator basis)
-	{
-		_basis=basis;
-		_zipfian=new ZipfianGenerator(_basis.lastLong());
-		nextLong();
-	}
+/**
+ * Generates integers randomly uniform from an interval.
+ */
+public class UniformLongGenerator extends LongGenerator
+{
+	long _lb,_ub,_interval;
 
 	/**
-	 * Generate the next string in the distribution, skewed Zipfian favoring the items most recently returned by the basis generator.
+	 * Creates a generator that will return integers uniformly randomly from the interval [lb,ub] inclusive (that is, lb and ub are possible values)
+	 *
+	 * @param lb the lower bound (inclusive) of generated values
+	 * @param ub the upper bound (inclusive) of generated values
 	 */
+	public UniformLongGenerator(long lb, long ub)
+	{
+		_lb=lb;
+		_ub=ub;
+		_interval=_ub-_lb+1;
+	}
+	
+	@Override
 	public long nextLong()
 	{
-        long max=_basis.lastLong();
-        long nextlong=max-_zipfian.nextInt((int)max);
-		setLastLong(nextlong);
-		return nextlong;
-	}
-
-	public static void main(String[] args)
-	{
-		SkewedLatestGenerator gen=new SkewedLatestGenerator(new LongCounterGenerator(1000));
-		for (int i=0; i<Integer.parseInt(args[0]); i++)
-		{
-			System.out.println(gen.nextString());
-		}
-
+        long ret=Utils.random().nextLong() % _interval +1;
+		setLastLong(ret);
+		
+		return ret;
 	}
 
 	@Override
 	public double mean() {
-		throw new UnsupportedOperationException("Can't compute mean of non-stationary distribution!");
+		return ((double)((long)(_lb + (long)_ub))) / 2.0;
 	}
-
 }

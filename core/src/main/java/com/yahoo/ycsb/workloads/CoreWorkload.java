@@ -19,17 +19,19 @@ package com.yahoo.ycsb.workloads;
 
 import java.util.Properties;
 import com.yahoo.ycsb.*;
-import com.yahoo.ycsb.generator.CounterGenerator;
+import com.yahoo.ycsb.generator.LongCounterGenerator;
 import com.yahoo.ycsb.generator.DiscreteGenerator;
-import com.yahoo.ycsb.generator.ExponentialGenerator;
+import com.yahoo.ycsb.generator.ExponentialLongGenerator;
 import com.yahoo.ycsb.generator.Generator;
 import com.yahoo.ycsb.generator.ConstantIntegerGenerator;
-import com.yahoo.ycsb.generator.HotspotIntegerGenerator;
+import com.yahoo.ycsb.generator.HotspotLongGenerator;
 import com.yahoo.ycsb.generator.HistogramGenerator;
 import com.yahoo.ycsb.generator.IntegerGenerator;
+import com.yahoo.ycsb.generator.LongGenerator;
 import com.yahoo.ycsb.generator.ScrambledZipfianGenerator;
 import com.yahoo.ycsb.generator.SkewedLatestGenerator;
 import com.yahoo.ycsb.generator.UniformIntegerGenerator;
+import com.yahoo.ycsb.generator.UniformLongGenerator;
 import com.yahoo.ycsb.generator.ZipfianGenerator;
 import com.yahoo.ycsb.measurements.Measurements;
 
@@ -258,21 +260,21 @@ public class CoreWorkload extends Workload
    */
   public static final String HOTSPOT_OPN_FRACTION_DEFAULT = "0.8";
 	
-	IntegerGenerator keysequence;
+	LongGenerator keysequence;
 
 	DiscreteGenerator operationchooser;
 
-	IntegerGenerator keychooser;
+	LongGenerator keychooser;
 
 	Generator fieldchooser;
 
-	CounterGenerator transactioninsertkeysequence;
+	LongCounterGenerator transactioninsertkeysequence;
 	
 	IntegerGenerator scanlength;
 	
 	boolean orderedinserts;
 
-	int recordcount;
+	long recordcount;
 	
 	protected static IntegerGenerator getFieldLengthGenerator(Properties p) throws WorkloadException{
 		IntegerGenerator fieldlengthgenerator;
@@ -313,12 +315,12 @@ public class CoreWorkload extends Workload
 		double insertproportion=Double.parseDouble(p.getProperty(INSERT_PROPORTION_PROPERTY,INSERT_PROPORTION_PROPERTY_DEFAULT));
 		double scanproportion=Double.parseDouble(p.getProperty(SCAN_PROPORTION_PROPERTY,SCAN_PROPORTION_PROPERTY_DEFAULT));
 		double readmodifywriteproportion=Double.parseDouble(p.getProperty(READMODIFYWRITE_PROPORTION_PROPERTY,READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT));
-		recordcount=Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY));
+		recordcount=Long.parseLong(p.getProperty(Client.RECORD_COUNT_PROPERTY));
 		String requestdistrib=p.getProperty(REQUEST_DISTRIBUTION_PROPERTY,REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
 		int maxscanlength=Integer.parseInt(p.getProperty(MAX_SCAN_LENGTH_PROPERTY,MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
 		String scanlengthdistrib=p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY,SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
 		
-		int insertstart=Integer.parseInt(p.getProperty(INSERT_START_PROPERTY,INSERT_START_PROPERTY_DEFAULT));
+		long insertstart=Long.parseLong(p.getProperty(INSERT_START_PROPERTY,INSERT_START_PROPERTY_DEFAULT));
 		
 		readallfields=Boolean.parseBoolean(p.getProperty(READ_ALL_FIELDS_PROPERTY,READ_ALL_FIELDS_PROPERTY_DEFAULT));
 		writeallfields=Boolean.parseBoolean(p.getProperty(WRITE_ALL_FIELDS_PROPERTY,WRITE_ALL_FIELDS_PROPERTY_DEFAULT));
@@ -329,18 +331,18 @@ public class CoreWorkload extends Workload
 		}
 		else if (requestdistrib.compareTo("exponential")==0)
 		{
-                    double percentile = Double.parseDouble(p.getProperty(ExponentialGenerator.EXPONENTIAL_PERCENTILE_PROPERTY,
-                                                                         ExponentialGenerator.EXPONENTIAL_PERCENTILE_DEFAULT));
-                    double frac       = Double.parseDouble(p.getProperty(ExponentialGenerator.EXPONENTIAL_FRAC_PROPERTY,
-                                                                         ExponentialGenerator.EXPONENTIAL_FRAC_DEFAULT));
-                    keychooser = new ExponentialGenerator(percentile, recordcount*frac);
+                    double percentile = Double.parseDouble(p.getProperty(ExponentialLongGenerator.EXPONENTIAL_PERCENTILE_PROPERTY,
+                            ExponentialLongGenerator.EXPONENTIAL_PERCENTILE_DEFAULT));
+                    double frac       = Double.parseDouble(p.getProperty(ExponentialLongGenerator.EXPONENTIAL_FRAC_PROPERTY,
+                            ExponentialLongGenerator.EXPONENTIAL_FRAC_DEFAULT));
+                    keychooser = new ExponentialLongGenerator(percentile, recordcount*frac);
 		}
 		else
 		{
 			orderedinserts=true;
 		}
 
-		keysequence=new CounterGenerator(insertstart);
+		keysequence=new LongCounterGenerator(insertstart);
 		operationchooser=new DiscreteGenerator();
 		if (readproportion>0)
 		{
@@ -367,10 +369,10 @@ public class CoreWorkload extends Workload
 			operationchooser.addValue(readmodifywriteproportion,"READMODIFYWRITE");
 		}
 
-		transactioninsertkeysequence=new CounterGenerator(recordcount);
+		transactioninsertkeysequence=new LongCounterGenerator(recordcount);
 		if (requestdistrib.compareTo("uniform")==0)
 		{
-			keychooser=new UniformIntegerGenerator(0,recordcount-1);
+			keychooser=new UniformLongGenerator(0,recordcount-1);
 		}
 		else if (requestdistrib.compareTo("zipfian")==0)
 		{
@@ -396,7 +398,7 @@ public class CoreWorkload extends Workload
           HOTSPOT_DATA_FRACTION, HOTSPOT_DATA_FRACTION_DEFAULT));
       double hotopnfraction = Double.parseDouble(p.getProperty(
           HOTSPOT_OPN_FRACTION, HOTSPOT_OPN_FRACTION_DEFAULT));
-      keychooser = new HotspotIntegerGenerator(0, recordcount - 1, 
+      keychooser = new HotspotLongGenerator(0, recordcount - 1,
           hotsetfraction, hotopnfraction);
     }
 		else
@@ -455,7 +457,7 @@ public class CoreWorkload extends Workload
 	 */
 	public boolean doInsert(DB db, Object threadstate)
 	{
-		int keynum=keysequence.nextInt();
+		long keynum=keysequence.nextLong();
 		String dbkey = buildKeyName(keynum);
 		HashMap<String, ByteIterator> values = buildValues();
 		if (db.insert(table,dbkey,values) == 0)
@@ -498,28 +500,35 @@ public class CoreWorkload extends Workload
 		return true;
 	}
 
-    int nextKeynum() {
-        int keynum;
-        if(keychooser instanceof ExponentialGenerator) {
+    long nextKeynum() {
+        long keynum=-1;
+
+        if(keychooser instanceof ExponentialLongGenerator) {
             do
                 {
-                    keynum=transactioninsertkeysequence.lastInt() - keychooser.nextInt();
+                    //keynum=transactioninsertkeysequence.lastLong() - keychooser.nextInt();
                 }
             while(keynum < 0);
         } else {
             do
                 {
-                    keynum=keychooser.nextInt();
+                    keynum=keychooser.nextLong();
                 }
-            while (keynum > transactioninsertkeysequence.lastInt());
+            while (keynum > transactioninsertkeysequence.lastLong());
         }
+
+        do
+        {
+            keynum=keychooser.nextLong();
+        }
+        while (keynum > transactioninsertkeysequence.lastLong());
         return keynum;
     }
 
 	public void doTransactionRead(DB db)
 	{
 		//choose a random key
-		int keynum = nextKeynum();
+		long keynum = nextKeynum();
 		
 		String keyname = buildKeyName(keynum);
 		
@@ -540,7 +549,7 @@ public class CoreWorkload extends Workload
 	public void doTransactionReadModifyWrite(DB db)
 	{
 		//choose a random key
-		int keynum = nextKeynum();
+		long keynum = nextKeynum();
 
 		String keyname = buildKeyName(keynum);
 
@@ -584,7 +593,7 @@ public class CoreWorkload extends Workload
 	public void doTransactionScan(DB db)
 	{
 		//choose a random key
-		int keynum = nextKeynum();
+		long keynum = nextKeynum();
 
 		String startkeyname = buildKeyName(keynum);
 		
@@ -608,7 +617,7 @@ public class CoreWorkload extends Workload
 	public void doTransactionUpdate(DB db)
 	{
 		//choose a random key
-		int keynum = nextKeynum();
+		long keynum = nextKeynum();
 
 		String keyname=buildKeyName(keynum);
 
@@ -631,7 +640,7 @@ public class CoreWorkload extends Workload
 	public void doTransactionInsert(DB db)
 	{
 		//choose the next key
-		int keynum=transactioninsertkeysequence.nextInt();
+		long keynum=transactioninsertkeysequence.nextLong();
 
 		String dbkey = buildKeyName(keynum);
 
