@@ -34,3 +34,6 @@ scanproportion=0
 insertproportion=0
 
 requestdistribution=zipfian
+
+keylengthdistribution=extremevalue
+insertorder=sequential

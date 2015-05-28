@@ -18,6 +18,7 @@
 package com.yahoo.ycsb.workloads;
 
 import java.util.Properties;
+
 import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.generator.CounterGenerator;
 import com.yahoo.ycsb.generator.DiscreteGenerator;
@@ -31,12 +32,17 @@ import com.yahoo.ycsb.generator.ScrambledZipfianGenerator;
 import com.yahoo.ycsb.generator.SkewedLatestGenerator;
 import com.yahoo.ycsb.generator.UniformIntegerGenerator;
 import com.yahoo.ycsb.generator.ZipfianGenerator;
+import com.yahoo.ycsb.generator.ExtremeValueGenerator;
+import com.yahoo.ycsb.generator.FacebookValueGenerator;
 import com.yahoo.ycsb.measurements.Measurements;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Vector;
+import java.io.FileOutputStream;
+import java.io.FileInputStream;
 
 /**
  * The core benchmark scenario. Represents a set of clients doing simple CRUD operations. The relative 
@@ -75,6 +81,33 @@ public class CoreWorkload extends Workload
 
 	public static String table;
 
+	public static final String KEY_LENGTH_DISTRIBUTION_PROPERTY = "keylengthdistribution";
+	/*
+	 * The default key length distribution is no,
+	 * which indicates the original way used in YCSB.
+	 */
+	public static final String KEY_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT = "no";
+	public static final String KEY_LENGTH_PROPERTY = "keylength";
+	/* 
+	 * If the key length distribution is not constant,
+	 * the key length would be in the range (1,KEY_LENGTH_PROPERTY_DEFAULT);
+	 * However, to minimize the modification to the original YCSB,
+	 * these properties are not applied by default.
+	 */
+	public static final String KEY_LENGTH_PROPERTY_DEFAULT = "255";
+	public static final String KEY_LENGTH_HISTOGRAM_FILE_PROPERTY = "keylengthhistogram";
+	public static final String KEY_LENGTH_HISTOGRAM_FILE_PROPERTY_DEFAULT = "keyhist.txt";
+	
+	/**
+	 * Generator object that produces key lengths.  The value of this depends on the properties that start with "KEY_LENGTH_".
+	 */
+	IntegerGenerator keylengthgenerator = null;
+	byte[] keylengths = null;
+	String appendix = ""+
+			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"+
+			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"+
+			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"+
+			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 	/**
 	 * The name of the property for the number of fields in a record.
@@ -272,7 +305,13 @@ public class CoreWorkload extends Workload
 	
 	boolean orderedinserts;
 
+	/*
+	 *  In the originial YCSB, recordcount is from the workload file.
+	 *  But now, it will be updated if it is inconsistent with the size of keylengths.array.
+	 */
 	int recordcount;
+	
+	int insertstart;
 	
 	protected static IntegerGenerator getFieldLengthGenerator(Properties p) throws WorkloadException{
 		IntegerGenerator fieldlengthgenerator;
@@ -284,17 +323,110 @@ public class CoreWorkload extends Workload
 		} else if(fieldlengthdistribution.compareTo("uniform") == 0) {
 			fieldlengthgenerator = new UniformIntegerGenerator(1, fieldlength);
 		} else if(fieldlengthdistribution.compareTo("zipfian") == 0) {
-			fieldlengthgenerator = new ZipfianGenerator(1, fieldlength);
+			fieldlengthgenerator = new ScrambledZipfianGenerator(1, fieldlength);
 		} else if(fieldlengthdistribution.compareTo("histogram") == 0) {
 			try {
 				fieldlengthgenerator = new HistogramGenerator(fieldlengthhistogram);
 			} catch(IOException e) {
 				throw new WorkloadException("Couldn't read field length histogram file: "+fieldlengthhistogram, e);
 			}
-		} else {
+		}else if(fieldlengthdistribution.compareTo("extremevalue") == 0){
+			fieldlengthgenerator = new ExtremeValueGenerator(fieldlength);
+		}else if(fieldlengthdistribution.compareTo("facebook") == 0){
+			fieldlengthgenerator = new FacebookValueGenerator();
+		}else {
 			throw new WorkloadException("Unknown field length distribution \""+fieldlengthdistribution+"\"");
 		}
 		return fieldlengthgenerator;
+	}
+	
+	/* added by Min Fu */
+	protected static IntegerGenerator getKeyLengthGenerator(Properties p) throws WorkloadException{
+		IntegerGenerator keylengthgenerator;
+		String keylengthdistribution = p.getProperty(KEY_LENGTH_DISTRIBUTION_PROPERTY,
+				KEY_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
+		int keylength = Integer.parseInt(p.getProperty(KEY_LENGTH_PROPERTY, KEY_LENGTH_PROPERTY_DEFAULT));
+		String keylengthhistogram = p.getProperty(KEY_LENGTH_HISTOGRAM_FILE_PROPERTY, 
+				KEY_LENGTH_HISTOGRAM_FILE_PROPERTY_DEFAULT);
+		if(keylengthdistribution.compareTo("no") == 0){
+			/* use the original way */
+			return null;
+		}
+
+		assert(keylength!=0);
+		if(keylengthdistribution.compareTo("constant") == 0){
+			keylengthgenerator = new ConstantIntegerGenerator(keylength);
+		}else if(keylengthdistribution.compareTo("uniform") == 0){
+			keylengthgenerator = new UniformIntegerGenerator(1,keylength);
+		}else if(keylengthdistribution.compareTo("zipfian") == 0){
+			keylengthgenerator = new ScrambledZipfianGenerator(1, keylength);
+		}else if(keylengthdistribution.compareTo("histogram") == 0){
+			try {
+				keylengthgenerator = new HistogramGenerator(keylengthhistogram);
+			} catch(IOException e) {
+				throw new WorkloadException("Couldn't read key length histogram file: "+keylengthhistogram, e);
+			}
+		}else if(keylengthdistribution.compareTo("extremevalue") == 0){
+			/* We don't set a upper limit for the key length */
+			keylengthgenerator = new ExtremeValueGenerator();
+		}else {
+			throw new WorkloadException("Unknown key length distribution \""+keylengthdistribution+"\"");
+		}
+		
+		return keylengthgenerator;
+	}
+	
+	/*
+	 * called in init().
+	 * In the Load phase, init keylengths array with all zeros.
+	 * In the Run phase, init keylengths array via the keylengths.array file.
+	 */
+	protected int initKeylengths(Properties p){
+		
+		if(p.getProperty("dotransaction","yes").compareTo("yes") == 0){
+			/* in the run phase */
+			int operationnum = Integer.parseInt(p.getProperty(Client.OPERATION_COUNT_PROPERTY));
+			double insertproportion=Double.parseDouble(p.getProperty(INSERT_PROPORTION_PROPERTY,INSERT_PROPORTION_PROPERTY_DEFAULT));
+			try{
+				FileInputStream in = new FileInputStream("keylengths.array");
+				
+				/* size would be the actual number of keys */
+				int size = (int)in.getChannel().size();
+				keylengths = new byte[size+(int)(insertproportion*operationnum)];
+				in.read(keylengths, 0, size);
+				in.close();
+				
+				if(size != recordcount){
+					System.err.println("the recordcount in workload file is obsolete.");
+					recordcount = size;
+				}
+			}catch(IOException e){
+				System.out.println(e.getMessage()+", keylengths.array");
+				System.exit(0);
+			}
+		}else{
+			/* In the load phase */
+			keylengths = new byte[Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY))];
+		}
+		  			
+		int ret = 0;
+
+		return ret;
+	}
+	
+	/* Not all keylengths are required to be persisted since some slots in the end may be empty. 
+	 * recordcount is the number of keys. */
+	protected void persistKeylengths(byte[] keylengths, int recordcount){
+		try{
+			FileOutputStream out = new FileOutputStream("keylengths.array");
+			
+			out.write(keylengths, 0, recordcount);
+			
+			out.close();
+		}catch(IOException e){
+			System.out.println(e.getMessage()+", keylengths.array");
+			System.exit(0);
+		}
 	}
 	
 	/**
@@ -305,6 +437,13 @@ public class CoreWorkload extends Workload
 	{
 		table = p.getProperty(TABLENAME_PROPERTY,TABLENAME_PROPERTY_DEFAULT);
 		
+		recordcount=Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY));
+		if((keylengthgenerator = CoreWorkload.getKeyLengthGenerator(p)) != null){
+			/* Without a keylengthgenerator, we don't need to init keylengths.
+			 * It should be called as early as possible, since it will update the recordcount */
+			initKeylengths(p);
+		}
+		
 		fieldcount=Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY,FIELD_COUNT_PROPERTY_DEFAULT));
 		fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
 		
@@ -313,12 +452,13 @@ public class CoreWorkload extends Workload
 		double insertproportion=Double.parseDouble(p.getProperty(INSERT_PROPORTION_PROPERTY,INSERT_PROPORTION_PROPERTY_DEFAULT));
 		double scanproportion=Double.parseDouble(p.getProperty(SCAN_PROPORTION_PROPERTY,SCAN_PROPORTION_PROPERTY_DEFAULT));
 		double readmodifywriteproportion=Double.parseDouble(p.getProperty(READMODIFYWRITE_PROPORTION_PROPERTY,READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT));
-		recordcount=Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY));
+		
+
 		String requestdistrib=p.getProperty(REQUEST_DISTRIBUTION_PROPERTY,REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
 		int maxscanlength=Integer.parseInt(p.getProperty(MAX_SCAN_LENGTH_PROPERTY,MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
 		String scanlengthdistrib=p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY,SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
 		
-		int insertstart=Integer.parseInt(p.getProperty(INSERT_START_PROPERTY,INSERT_START_PROPERTY_DEFAULT));
+		insertstart=Integer.parseInt(p.getProperty(INSERT_START_PROPERTY,INSERT_START_PROPERTY_DEFAULT));
 		
 		readallfields=Boolean.parseBoolean(p.getProperty(READ_ALL_FIELDS_PROPERTY,READ_ALL_FIELDS_PROPERTY_DEFAULT));
 		writeallfields=Boolean.parseBoolean(p.getProperty(WRITE_ALL_FIELDS_PROPERTY,WRITE_ALL_FIELDS_PROPERTY_DEFAULT));
@@ -420,6 +560,16 @@ public class CoreWorkload extends Workload
 		}
 	}
 
+	/* 
+	 * call cleanup() after all operations are done.
+	 * added by Min Fu.
+	 */
+	public void cleanup(){
+		if(keylengthgenerator != null){
+			persistKeylengths(keylengths,transactioninsertkeysequence.lastInt()+1);
+		}
+	}
+	
 	public String buildKeyName(long keynum) {
  		if (!orderedinserts)
  		{
@@ -427,6 +577,51 @@ public class CoreWorkload extends Workload
  		}
 		return "user"+keynum;
 	}
+	
+	/* added by Min Fu */
+	public String buildVariableKeyNameFirstTime(long keynum){
+		int keylen = -1;
+		if(keylengthgenerator != null){
+			int index = (int)keynum - insertstart;
+			keylen = keylengthgenerator.nextInt();
+			if(index >= keylengths.length){
+				/* enlarge the array */
+				keylengths = Arrays.copyOf(keylengths, (int)(keylengths.length * 1.1));
+			}
+			keylengths[index] = (byte)(keylen & 0xff);
+			
+		}
+ 		if (!orderedinserts)
+ 		{
+ 			keynum=Utils.hash(keynum);
+ 		}
+ 		String ret = keynum+"";
+ 		if(keylen != -1 && keylen > ret.length()){
+ 			ret = ret.concat(appendix.substring(0,keylen-ret.length()));
+ 		}
+ 		return ret;
+	}
+	
+	/* added by Min Fu */
+	public String buildVariableKeyName(long keynum){
+		int keylen = -1;
+		if(keylengthgenerator != null){
+			int index = (int)keynum - insertstart;
+			/* it could be safe even if the byte is negative */
+			keylen = keylengths[index] & 0xff;
+			assert(keylen > 0);
+		}
+ 		if (!orderedinserts)
+ 		{
+ 			keynum=Utils.hash(keynum);
+ 		}
+ 		String ret = keynum+"";
+ 		if(keylen != -1 && keylen > ret.length()){
+ 			ret = ret.concat(appendix.substring(0,keylen-ret.length()));
+ 		}
+ 		return ret;
+	}
+	
 	HashMap<String, ByteIterator> buildValues() {
  		HashMap<String,ByteIterator> values=new HashMap<String,ByteIterator>();
 
@@ -456,7 +651,8 @@ public class CoreWorkload extends Workload
 	public boolean doInsert(DB db, Object threadstate)
 	{
 		int keynum=keysequence.nextInt();
-		String dbkey = buildKeyName(keynum);
+		//String dbkey = buildKeyName(keynum);
+		String dbkey = buildVariableKeyNameFirstTime(keynum);
 		HashMap<String, ByteIterator> values = buildValues();
 		if (db.insert(table,dbkey,values) == 0)
 			return true;
@@ -521,7 +717,8 @@ public class CoreWorkload extends Workload
 		//choose a random key
 		int keynum = nextKeynum();
 		
-		String keyname = buildKeyName(keynum);
+		//String keyname = buildKeyName(keynum);
+		String keyname = buildVariableKeyName(keynum);
 		
 		HashSet<String> fields=null;
 
@@ -542,7 +739,8 @@ public class CoreWorkload extends Workload
 		//choose a random key
 		int keynum = nextKeynum();
 
-		String keyname = buildKeyName(keynum);
+		//String keyname = buildKeyName(keynum);
+		String keyname = buildVariableKeyName(keynum);
 
 		HashSet<String> fields=null;
 
@@ -586,7 +784,8 @@ public class CoreWorkload extends Workload
 		//choose a random key
 		int keynum = nextKeynum();
 
-		String startkeyname = buildKeyName(keynum);
+		//String startkeyname = buildKeyName(keynum);
+		String startkeyname = buildVariableKeyName(keynum);
 		
 		//choose a random scan length
 		int len=scanlength.nextInt();
@@ -610,7 +809,8 @@ public class CoreWorkload extends Workload
 		//choose a random key
 		int keynum = nextKeynum();
 
-		String keyname=buildKeyName(keynum);
+		//String keyname = buildKeyName(keynum);
+		String keyname = buildVariableKeyName(keynum);
 
 		HashMap<String,ByteIterator> values;
 
@@ -633,9 +833,12 @@ public class CoreWorkload extends Workload
 		//choose the next key
 		int keynum=transactioninsertkeysequence.nextInt();
 
-		String dbkey = buildKeyName(keynum);
+		//String dbkey = buildKeyName(keynum);
+		String dbkey = buildVariableKeyNameFirstTime(keynum);
 
 		HashMap<String, ByteIterator> values = buildValues();
 		db.insert(table,dbkey,values);
+		
+		recordcount++;
 	}
 }
