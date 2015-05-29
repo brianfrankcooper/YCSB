@@ -81,6 +81,7 @@
     <module>orientdb</module>
     <module>redis</module>
     <module>voldemort</module>
+    <module>aerospike</module>
     <module>distribution</module>
     <!--<module>mapkeeper</module>-->
     <!--module>nosqldb</module-->
