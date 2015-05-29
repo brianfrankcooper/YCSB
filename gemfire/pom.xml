@@ -15,7 +15,7 @@
     <dependency>
       <groupId>com.gemstone.gemfire</groupId>
       <artifactId>gemfire</artifactId>
-      <version>7.0.2</version>
+      <version>${gemfire.version}</version>
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
