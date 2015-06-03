@@ -89,6 +89,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
      * insert/update/delete latencies, client side buffering should be disabled.
      */
     public boolean _clientSideBuffering = false;
+    public long _writeBufferSize = 1024 * 1024 * 12;
 
     public static final int Ok=0;
     public static final int ServerError=-1;
@@ -104,6 +105,9 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
     {
         if ("true".equals(getProperties().getProperty("clientbuffering", "false"))) {
             this._clientSideBuffering = true;
+        }
+        if (getProperties().containsKey("writebuffersize")) {
+            _writeBufferSize = Long.parseLong(getProperties().getProperty("writebuffersize"));
         }
 
         if (getProperties().getProperty("durability") != null) {
@@ -166,7 +170,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
         //suggestions from http://ryantwopointoh.blogspot.com/2009/01/performance-of-hbase-importing.html
         if (_clientSideBuffering) {
             final BufferedMutatorParams p = new BufferedMutatorParams(tableName);
-            p.writeBufferSize(1024*1024*12);
+            p.writeBufferSize(_writeBufferSize);
             this._bufferedMutator = this._connection.getBufferedMutator(p);
         }
     }

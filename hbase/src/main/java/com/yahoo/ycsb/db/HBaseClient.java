@@ -61,6 +61,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     public String _columnFamily="";
     public byte _columnFamilyBytes[];
     public boolean _clientSideBuffering = false;
+    public long _writeBufferSize = 1024 * 1024 * 12;
 
     public static final int Ok=0;
     public static final int ServerError=-1;
@@ -84,6 +85,10 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         if (getProperties().containsKey("clientbuffering"))
         {
             _clientSideBuffering = Boolean.parseBoolean(getProperties().getProperty("clientbuffering"));
+        }
+        if (getProperties().containsKey("writebuffersize"))
+        {
+            _writeBufferSize = Long.parseLong(getProperties().getProperty("writebuffersize"));
         }
 
         _columnFamily = getProperties().getProperty("columnfamily");
@@ -123,7 +128,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             _hTable = new HTable(config, table);
             //2 suggestions from http://ryantwopointoh.blogspot.com/2009/01/performance-of-hbase-importing.html
             _hTable.setAutoFlush(!_clientSideBuffering, true);
-            _hTable.setWriteBufferSize(1024*1024*12);
+            _hTable.setWriteBufferSize(_writeBufferSize);
             //return hTable;
         }
 
