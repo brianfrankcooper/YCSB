@@ -20,6 +20,7 @@ import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bson.Document;
+import org.bson.types.Binary;
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
@@ -251,9 +252,10 @@ public class MongoDbClient extends DB {
             // Do a single upsert.
             if (batchSize <= 1) {
                 UpdateResult result = collection.withWriteConcern(writeConcern)
-                        .updateOne(criteria, toInsert, UPSERT);
+                        .replaceOne(criteria, toInsert, UPSERT);
                 if (result.getMatchedCount() > 0
-                        || result.getModifiedCount() > 0) {
+                        || result.getModifiedCount() > 0
+                        || result.getUpsertedId() != null) {
                     return 0;
                 }
                 System.err.println("Nothing inserted for key " + key);
@@ -465,9 +467,9 @@ public class MongoDbClient extends DB {
      */
     protected void fillMap(HashMap<String, ByteIterator> resultMap, Document obj) {
         for (Map.Entry<String, Object> entry : obj.entrySet()) {
-            if (entry.getValue() instanceof byte[]) {
+            if (entry.getValue() instanceof Binary) {
                 resultMap.put(entry.getKey(), new ByteArrayByteIterator(
-                        (byte[]) entry.getValue()));
+                        ((Binary) entry.getValue()).getData()));
             }
         }
     }
