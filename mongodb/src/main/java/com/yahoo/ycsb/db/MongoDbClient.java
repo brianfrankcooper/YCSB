@@ -129,7 +129,7 @@ public class MongoDbClient extends DB {
             Document query = new Document("_id", key);
             DeleteResult result = collection.withWriteConcern(writeConcern)
                     .deleteOne(query);
-            if (result.getDeletedCount() == 0) {
+            if (result.wasAcknowledged() && result.getDeletedCount() == 0) {
                 System.err.println("Nothing deleted for key " + key);
                 return 1;
             }
@@ -253,11 +253,14 @@ public class MongoDbClient extends DB {
             if (batchSize <= 1) {
                 UpdateResult result = collection.withWriteConcern(writeConcern)
                         .replaceOne(criteria, toInsert, UPSERT);
-                if (result.getMatchedCount() > 0
-                        || result.getModifiedCount() > 0
+                if (!result.wasAcknowledged()
+                        || result.getMatchedCount() > 0
+                        || (result.isModifiedCountAvailable() && (result
+                                .getModifiedCount() > 0))
                         || result.getUpsertedId() != null) {
                     return 0;
                 }
+
                 System.err.println("Nothing inserted for key " + key);
                 return 1;
             }
@@ -272,7 +275,8 @@ public class MongoDbClient extends DB {
                 BulkWriteResult result = collection.withWriteConcern(
                         writeConcern).bulkWrite(bulkInserts,
                         new BulkWriteOptions().ordered(false));
-                if (result.getInsertedCount() == bulkInserts.size()) {
+                if (!result.wasAcknowledged()
+                        || result.getInsertedCount() == bulkInserts.size()) {
                     bulkInserts.clear();
                     return 0;
                 }
@@ -445,7 +449,7 @@ public class MongoDbClient extends DB {
 
             UpdateResult result = collection.withWriteConcern(writeConcern)
                     .updateOne(query, update);
-            if (result.getMatchedCount() == 0) {
+            if (result.wasAcknowledged() && result.getMatchedCount() == 0) {
                 System.err.println("Nothing updated for key " + key);
                 return 1;
             }
