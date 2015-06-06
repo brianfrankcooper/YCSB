@@ -10,3 +10,7 @@ jdk:
 install: mvn install -q -DskipTests=true
 
 script: mvn test -q
+
+# Services to start for tests.
+services:
+  - mongodb

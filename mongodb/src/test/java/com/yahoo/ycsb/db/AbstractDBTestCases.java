@@ -17,20 +17,21 @@
 package com.yahoo.ycsb.db;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeNoException;
 
-import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.Socket;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.Vector;
 
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -38,79 +39,47 @@ import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 
-import de.flapdoodle.embed.mongo.Command;
-import de.flapdoodle.embed.mongo.MongodExecutable;
-import de.flapdoodle.embed.mongo.MongodProcess;
-import de.flapdoodle.embed.mongo.MongodStarter;
-import de.flapdoodle.embed.mongo.config.ArtifactStoreBuilder;
-import de.flapdoodle.embed.mongo.config.IMongodConfig;
-import de.flapdoodle.embed.mongo.config.MongodConfigBuilder;
-import de.flapdoodle.embed.mongo.config.Net;
-import de.flapdoodle.embed.mongo.config.RuntimeConfigBuilder;
-import de.flapdoodle.embed.mongo.distribution.Version;
-import de.flapdoodle.embed.process.io.directories.FixedPath;
-import de.flapdoodle.embed.process.runtime.Network;
-
 /**
  * MongoDbClientTest provides runs the basic DB test cases.
+ * <p>
+ * The tests will be skipped if MongoDB is not running on port 27017 on the
+ * local machine. See the README.md for how to get MongoDB running.
+ * </p>
  */
 @SuppressWarnings("boxing")
 public abstract class AbstractDBTestCases {
 
-    /** The running Mongodb process. */
-    private static MongodProcess ourMongod = null;
-
-    /** The handle to the running server. */
-    private static MongodExecutable ourMongodExecutable = null;
-
-    /** The directory to download the MongoDB executables to. */
-    private static final File TMP_DIR = new File("target/mongodb");
+    /** The default port for MongoDB. */
+    private static final int MONGODB_DEFAULT_PORT = 27017;
 
     /**
-     * Start a test mongd instance.
+     * Verifies the mongod process (or some process) is running on port 27017,
+     * if not the tests are skipped.
      */
     @BeforeClass
     public static void setUpBeforeClass() {
-        TMP_DIR.mkdirs();
-
-        MongodStarter starter = MongodStarter
-                .getInstance(new RuntimeConfigBuilder()
-                        .defaults(Command.MongoD)
-                        .artifactStore(
-                                new ArtifactStoreBuilder()
-                                        .defaults(Command.MongoD)
-                                        .useCache(false)
-                                        .tempDir(
-                                                new FixedPath(TMP_DIR
-                                                        .getAbsolutePath())))
-                        .build());
-        int port = 27017;
-
+        // Test if we can connect.
+        Socket socket = null;
         try {
-            IMongodConfig mongodConfig = new MongodConfigBuilder()
-                    .version(Version.Main.PRODUCTION)
-                    .net(new Net(port, Network.localhostIsIPv6())).build();
-
-            ourMongodExecutable = starter.prepare(mongodConfig);
-            ourMongod = ourMongodExecutable.start();
+            // Connect
+            socket = new Socket(InetAddress.getLocalHost(),
+                    MONGODB_DEFAULT_PORT);
+            assertThat("Socket is not bound.", socket.getLocalPort(), not(-1));
         }
-        catch (IOException error) {
-            assumeNoException(error);
+        catch (IOException connectFailed) {
+            assumeNoException("MongoDB is not running. Skipping tests.",
+                    connectFailed);
         }
-    }
-
-    /**
-     * Stops the test server.
-     */
-    @AfterClass
-    public static void tearDownAfterClass() {
-        if (ourMongod != null) {
-            ourMongod.stop();
-            ourMongod = null;
-        }
-        if (ourMongodExecutable != null) {
-            ourMongodExecutable.stop();
-            ourMongodExecutable = null;
+        finally {
+            if (socket != null) {
+                try {
+                    socket.close();
+                }
+                catch (IOException ignore) {
+                    // Ignore.
+                }
+            }
+            socket = null;
         }
     }
 
