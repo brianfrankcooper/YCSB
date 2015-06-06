@@ -57,11 +57,11 @@ import de.flapdoodle.embed.process.runtime.Network;
 @SuppressWarnings("boxing")
 public abstract class AbstractDBTestCases {
 
-    /** The handle to the running server. */
-    private static MongodExecutable ourMongodExecutable = null;
-
     /** The running Mongodb process. */
     private static MongodProcess ourMongod = null;
+
+    /** The handle to the running server. */
+    private static MongodExecutable ourMongodExecutable = null;
 
     /** The directory to download the MongoDB executables to. */
     private static final File TMP_DIR = new File("target/mongodb");
@@ -115,8 +115,8 @@ public abstract class AbstractDBTestCases {
     }
 
     /**
-     * Test method for {@link MongoDbClient#insert}, {@link MongoDbClient#read},
-     * {@link com.yahoo.ycsb.db.MongoDbClient#delete}.
+     * Test method for {@link DB#insert}, {@link DB#read}, and {@link DB#delete}
+     * .
      */
     @Test
     public void testInsertReadDelete() {
@@ -164,78 +164,7 @@ public abstract class AbstractDBTestCases {
     }
 
     /**
-     * Test method for {@link MongoDbClient#scan} .
-     */
-    @Test
-    public void testScan() {
-        final DB client = getDB();
-
-        final String table = "test";
-
-        // Insert a bunch of documents.
-        for (int i = 0; i < 100; ++i) {
-            HashMap<String, ByteIterator> inserted = new HashMap<String, ByteIterator>();
-            inserted.put("a", new ByteArrayByteIterator(new byte[] {
-                    (byte) (i & 0xFF), (byte) (i >> 8 & 0xFF),
-                    (byte) (i >> 16 & 0xFF), (byte) (i >> 24 & 0xFF) }));
-            int result = client.insert(table, padded(i), inserted);
-            assertThat("Insert did not return success (0).", result, is(0));
-        }
-
-        Set<String> keys = Collections.singleton("a");
-        Vector<HashMap<String, ByteIterator>> results = new Vector<HashMap<String, ByteIterator>>();
-        int result = client.scan(table, "00050", 5, null, results);
-        assertThat("Read did not return success (0).", result, is(0));
-        assertThat(results.size(), is(5));
-        for (int i = 0; i < 5; ++i) {
-            HashMap<String, ByteIterator> read = results.get(i);
-            for (String key : keys) {
-                ByteIterator iter = read.get(key);
-
-                assertThat("Did not read the inserted field: " + key, iter,
-                        notNullValue());
-                assertTrue(iter.hasNext());
-                assertThat(iter.nextByte(),
-                        is(Byte.valueOf((byte) ((i + 50) & 0xFF))));
-                assertTrue(iter.hasNext());
-                assertThat(iter.nextByte(),
-                        is(Byte.valueOf((byte) ((i + 50) >> 8 & 0xFF))));
-                assertTrue(iter.hasNext());
-                assertThat(iter.nextByte(),
-                        is(Byte.valueOf((byte) ((i + 50) >> 16 & 0xFF))));
-                assertTrue(iter.hasNext());
-                assertThat(iter.nextByte(),
-                        is(Byte.valueOf((byte) ((i + 50) >> 24 & 0xFF))));
-                assertFalse(iter.hasNext());
-            }
-        }
-    }
-
-    /**
-     * Creates a zero padded integer.
-     * 
-     * @param i
-     *            The integer to padd.
-     * @return The padded integer.
-     */
-    private String padded(int i) {
-        String result = String.valueOf(i);
-        while (result.length() < 5) {
-            result = "0" + result;
-        }
-        return result;
-    }
-
-    /**
-     * Gets the test DB.
-     * 
-     * @return The test DB.
-     */
-    protected abstract DB getDB();
-
-    /**
-     * Test method for
-     * {@link com.yahoo.ycsb.db.MongoDbClient#update(java.lang.String, java.lang.String, java.util.HashMap)}
+     * Test method for {@link DB#insert}, {@link DB#read}, and {@link DB#update}
      * .
      */
     @Test
@@ -294,6 +223,76 @@ public abstract class AbstractDBTestCases {
             assertThat(iter.nextByte(), is(Byte.valueOf((byte) 8)));
             assertFalse(iter.hasNext());
         }
+    }
+
+    /**
+     * Test method for {@link DB#scan}.
+     */
+    @Test
+    public void testScan() {
+        final DB client = getDB();
+
+        final String table = "test";
+
+        // Insert a bunch of documents.
+        for (int i = 0; i < 100; ++i) {
+            HashMap<String, ByteIterator> inserted = new HashMap<String, ByteIterator>();
+            inserted.put("a", new ByteArrayByteIterator(new byte[] {
+                    (byte) (i & 0xFF), (byte) (i >> 8 & 0xFF),
+                    (byte) (i >> 16 & 0xFF), (byte) (i >> 24 & 0xFF) }));
+            int result = client.insert(table, padded(i), inserted);
+            assertThat("Insert did not return success (0).", result, is(0));
+        }
+
+        Set<String> keys = Collections.singleton("a");
+        Vector<HashMap<String, ByteIterator>> results = new Vector<HashMap<String, ByteIterator>>();
+        int result = client.scan(table, "00050", 5, null, results);
+        assertThat("Read did not return success (0).", result, is(0));
+        assertThat(results.size(), is(5));
+        for (int i = 0; i < 5; ++i) {
+            HashMap<String, ByteIterator> read = results.get(i);
+            for (String key : keys) {
+                ByteIterator iter = read.get(key);
+
+                assertThat("Did not read the inserted field: " + key, iter,
+                        notNullValue());
+                assertTrue(iter.hasNext());
+                assertThat(iter.nextByte(),
+                        is(Byte.valueOf((byte) ((i + 50) & 0xFF))));
+                assertTrue(iter.hasNext());
+                assertThat(iter.nextByte(),
+                        is(Byte.valueOf((byte) ((i + 50) >> 8 & 0xFF))));
+                assertTrue(iter.hasNext());
+                assertThat(iter.nextByte(),
+                        is(Byte.valueOf((byte) ((i + 50) >> 16 & 0xFF))));
+                assertTrue(iter.hasNext());
+                assertThat(iter.nextByte(),
+                        is(Byte.valueOf((byte) ((i + 50) >> 24 & 0xFF))));
+                assertFalse(iter.hasNext());
+            }
+        }
+    }
+
+    /**
+     * Gets the test DB.
+     * 
+     * @return The test DB.
+     */
+    protected abstract DB getDB();
+
+    /**
+     * Creates a zero padded integer.
+     * 
+     * @param i
+     *            The integer to padd.
+     * @return The padded integer.
+     */
+    private String padded(int i) {
+        String result = String.valueOf(i);
+        while (result.length() < 5) {
+            result = "0" + result;
+        }
+        return result;
     }
 
 }
