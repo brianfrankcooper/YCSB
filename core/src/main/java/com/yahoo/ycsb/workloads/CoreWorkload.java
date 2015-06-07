@@ -61,6 +61,10 @@ import java.util.ArrayList;
  * <LI><b>maxscanlength</b>: for scans, what is the maximum number of records to scan (default: 1000)
  * <LI><b>scanlengthdistribution</b>: for scans, what distribution should be used to choose the number of records to scan, for each scan, between 1 and maxscanlength (default: uniform)
  * <LI><b>insertorder</b>: should records be inserted in order by key ("ordered"), or in hashed order ("hashed") (default: hashed)
+ * <LI><b>readretrycount</b>: number of retries for read operation (default: 0)
+ * <LI><b>updateretrycount</b>: number of retries for update operation (default: 0)
+ * <LI><b>insertretrycount</b>:number of retries for insert operation (default: 0)
+ * <LI><b>retrydelay</b>: delay between retries in milliseconds (default: 0)
  * </ul> 
  */
 public class CoreWorkload extends Workload

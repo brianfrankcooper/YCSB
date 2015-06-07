@@ -69,7 +69,7 @@ public class OneMeasurementTimeSeries extends OneMeasurement
 	int max=-1;
 
 	private HashMap<Integer, int[]> returncodes;
-	
+
 	public OneMeasurementTimeSeries(String name, Properties props)
 	{
 		super(name);
@@ -132,6 +132,7 @@ public class OneMeasurementTimeSeries extends OneMeasurement
     checkEndOfUnit(true);
 
     exporter.write(getName(), "Operations", operations);
+    exporter.write(getName(), "Retries", _retrycount);
     exporter.write(getName(), "AverageLatency(us)", (((double)totallatency)/((double)operations)));
     exporter.write(getName(), "MinLatency(us)", min);
     exporter.write(getName(), "MaxLatency(us)", max);

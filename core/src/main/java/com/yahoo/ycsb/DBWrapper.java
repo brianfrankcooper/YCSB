@@ -29,13 +29,35 @@ import com.yahoo.ycsb.measurements.Measurements;
  */
 public class DBWrapper extends DB
 {
+    private static final String READ_RETRY_PROPERTY = "readretrycount";
+    private static final String UPDATE_RETRY_PROPERTY = "updateretrycount";
+    private static final String INSERT_RETRY_PROPERTY = "insertretrycount";
+    private static final String RETRY_DELAY = "retrydelay";
+
+    int _readretrycount;
+    int _updateretrycount;
+    int _insertretrycount;
+    int _retrydelay;
+
 	DB _db;
 	Measurements _measurements;
 
-	public DBWrapper(DB db)
+    private interface DBOperation
+    {
+        String getName();
+        int getRetryCount();
+        int run();
+    }
+
+	public DBWrapper(DB db, Properties p)
 	{
 		_db=db;
 		_measurements=Measurements.getMeasurements();
+
+        _readretrycount = Integer.parseInt(p.getProperty(READ_RETRY_PROPERTY, "0"));
+        _updateretrycount = Integer.parseInt(p.getProperty(UPDATE_RETRY_PROPERTY, "0"));
+        _insertretrycount = Integer.parseInt(p.getProperty(INSERT_RETRY_PROPERTY, "0"));
+        _retrydelay = Integer.parseInt(p.getProperty(RETRY_DELAY, "0"));
 	}
 
 	/**
@@ -69,10 +91,10 @@ public class DBWrapper extends DB
 	 */
 	public void cleanup() throws DBException
 	{
-    long st=System.nanoTime();
-		_db.cleanup();
-    long en=System.nanoTime();
-    _measurements.measure("CLEANUP", (int)((en-st)/1000));
+        long st=System.nanoTime();
+        _db.cleanup();
+        long en=System.nanoTime();
+        _measurements.measure("CLEANUP", (int)((en-st)/1000));
 	}
 
 	/**
@@ -84,15 +106,26 @@ public class DBWrapper extends DB
 	 * @param result A HashMap of field/value pairs for the result
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
-	{
-		long st=System.nanoTime();
-		int res=_db.read(table,key,fields,result);
-		long en=System.nanoTime();
-		_measurements.measure("READ",(int)((en-st)/1000));
-		_measurements.reportReturnCode("READ",res);
-		return res;
-	}
+    public int read(final String table, final String key, final Set<String> fields, final HashMap<String, ByteIterator> result)
+    {
+        return operation(new DBOperation()
+        {
+            public String getName()
+            {
+                return "READ";
+            }
+
+            public int getRetryCount()
+            {
+                return _readretrycount;
+            }
+
+            public int run()
+            {
+                return _db.read(table, key, fields, result);
+            }
+        });
+    }
 
 	/**
 	 * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a HashMap.
@@ -104,14 +137,25 @@ public class DBWrapper extends DB
 	 * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
+	public int scan(final String table, final String startkey, final int recordcount, final Set<String> fields, final Vector<HashMap<String,ByteIterator>> result)
 	{
-		long st=System.nanoTime();
-		int res=_db.scan(table,startkey,recordcount,fields,result);
-		long en=System.nanoTime();
-		_measurements.measure("SCAN",(int)((en-st)/1000));
-		_measurements.reportReturnCode("SCAN",res);
-		return res;
+        return operation(new DBOperation()
+        {
+            public String getName()
+            {
+                return "SCAN";
+            }
+
+            public int getRetryCount()
+            {
+                return 0;
+            }
+
+            public int run()
+            {
+                return _db.scan(table,startkey,recordcount,fields,result);
+            }
+        });
 	}
 	
 	/**
@@ -123,15 +167,26 @@ public class DBWrapper extends DB
 	 * @param values A HashMap of field/value pairs to update in the record
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int update(String table, String key, HashMap<String,ByteIterator> values)
-	{
-		long st=System.nanoTime();
-		int res=_db.update(table,key,values);
-		long en=System.nanoTime();
-		_measurements.measure("UPDATE",(int)((en-st)/1000));
-		_measurements.reportReturnCode("UPDATE",res);
-		return res;
-	}
+    public int update(final String table, final String key, final HashMap<String, ByteIterator> values)
+    {
+        return operation(new DBOperation()
+        {
+            public String getName()
+            {
+                return "UPDATE";
+            }
+
+            public int getRetryCount()
+            {
+                return _updateretrycount;
+            }
+
+            public int run()
+            {
+                return _db.update(table, key, values);
+            }
+        });
+    }
 
 	/**
 	 * Insert a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
@@ -142,15 +197,26 @@ public class DBWrapper extends DB
 	 * @param values A HashMap of field/value pairs to insert in the record
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int insert(String table, String key, HashMap<String,ByteIterator> values)
-	{
-		long st=System.nanoTime();
-		int res=_db.insert(table,key,values);
-		long en=System.nanoTime();
-		_measurements.measure("INSERT",(int)((en-st)/1000));
-		_measurements.reportReturnCode("INSERT",res);
-		return res;
-	}
+    public int insert(final String table, final String key, final HashMap<String, ByteIterator> values)
+    {
+        return operation(new DBOperation()
+        {
+            public String getName()
+            {
+                return "INSERT";
+            }
+
+            public int getRetryCount()
+            {
+                return _insertretrycount;
+            }
+
+            public int run()
+            {
+                return _db.insert(table, key, values);
+            }
+        });
+    }
 
 	/**
 	 * Delete a record from the database. 
@@ -159,13 +225,56 @@ public class DBWrapper extends DB
 	 * @param key The record key of the record to delete.
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int delete(String table, String key)
-	{
-		long st=System.nanoTime();
-		int res=_db.delete(table,key);
-		long en=System.nanoTime();
-		_measurements.measure("DELETE",(int)((en-st)/1000));
-		_measurements.reportReturnCode("DELETE",res);
-		return res;
-	}
+    public int delete(final String table, final String key)
+    {
+        return operation(new DBOperation()
+        {
+            public String getName()
+            {
+                return "DELETE";
+            }
+
+            public int getRetryCount()
+            {
+                return 0;
+            }
+
+            public int run()
+            {
+                return _db.delete(table, key);
+            }
+        });
+    }
+
+    private int operation(DBOperation op)
+    {
+        long st = System.nanoTime();
+        int res = op.run();
+        int retrycount;
+        for (retrycount = 0; res != 0 && retrycount < op.getRetryCount(); retrycount++)
+        {
+            delay(_retrydelay);
+            res = op.run();
+        }
+        long en = System.nanoTime();
+        _measurements.measure(op.getName(), (int) ((en - st) / 1000));
+        _measurements.reportRetryCount(op.getName(), retrycount);
+        _measurements.reportReturnCode(op.getName(), res);
+        return res;
+    }
+
+    private void delay(int ms)
+    {
+        if(ms <= 0)
+        {
+            return;
+        }
+        try
+        {
+            Thread.sleep(ms);
+        } catch (InterruptedException e)
+        {
+            //do nothing
+        }
+    }
 }

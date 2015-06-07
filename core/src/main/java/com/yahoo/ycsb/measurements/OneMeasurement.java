@@ -27,6 +27,7 @@ import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 public abstract class OneMeasurement {
 
 	String _name;
+    int _retrycount;
 	
 	public String getName() {
 		return _name;
@@ -40,6 +41,10 @@ public abstract class OneMeasurement {
 	}
 
 	public abstract void reportReturnCode(int code);
+
+    public synchronized void reportRetryCount(int count) {
+        _retrycount += count;
+    }
 
 	public abstract void measure(int latency);
 
