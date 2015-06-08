@@ -3,8 +3,9 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.yahoo.ycsb</groupId>
-    <artifactId>root</artifactId>
+    <artifactId>binding-parent</artifactId>
     <version>0.2.0-SNAPSHOT</version>
+    <relativePath>../binding-parent</relativePath>
   </parent>
   
   <artifactId>gemfire-binding</artifactId>
@@ -21,6 +22,7 @@
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
   
@@ -30,29 +32,4 @@
       <url>http://dist.gemstone.com.s3.amazonaws.com/maven/release</url>
     </repository>
   </repositories>	
- 
-  <build>
-    <plugins>
-     <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <version>${maven.assembly.version}</version>
-        <configuration>
-          <descriptorRefs>
-            <descriptorRef>jar-with-dependencies</descriptorRef>
-          </descriptorRefs>
-          <appendAssemblyId>false</appendAssemblyId>
-        </configuration>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>single</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
-
 </project>

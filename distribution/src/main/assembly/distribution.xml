@@ -21,6 +21,9 @@
       <directory>../bin</directory>
       <outputDirectory>bin</outputDirectory>
       <fileMode>0755</fileMode>
+      <includes>
+        <include>ycsb</include>
+      </includes>
     </fileSet>
     <fileSet>
       <directory>../workloads</directory>
@@ -28,36 +31,52 @@
       <fileMode>0644</fileMode>
     </fileSet>
   </fileSets>
+  <dependencySets>
+    <dependencySet>
+      <outputDirectory>lib</outputDirectory>
+      <includes>
+        <include>com.yahoo.ycsb:core</include>
+      </includes>
+      <scope>runtime</scope>
+      <useProjectArtifact>false</useProjectArtifact>
+      <useProjectAttachments>false</useProjectAttachments>
+      <useTransitiveDependencies>true</useTransitiveDependencies>
+      <useTransitiveFiltering>true</useTransitiveFiltering>
+    </dependencySet>
+  </dependencySets>
   <moduleSets>
     <moduleSet>
       <useAllReactorProjects>true</useAllReactorProjects>
       <includeSubModules>true</includeSubModules>
+      <excludes>
+        <exclude>com.yahoo.ycsb:core</exclude>
+        <exclude>com.yahoo.ycsb:binding-parent</exclude>
+        <exclude>com.yahoo.ycsb:datastore-specific-descriptor</exclude>
+        <exclude>com.yahoo.ycsb:ycsb</exclude>
+        <exclude>com.yahoo.ycsb:root</exclude>
+      </excludes>
       <sources>
-        <includeModuleDirectory>true</includeModuleDirectory>
-
         <fileSets>
           <fileSet>
-            <directory>.</directory>
-            <fileMode>0644</fileMode>
-    	    <includes>
-              <include>README</include>
+            <includes>
+              <include>README.md</include>
             </includes>
           </fileSet>
           <fileSet>
-            <directory>src/main/conf</directory>
             <outputDirectory>conf</outputDirectory>
-            <fileMode>0644</fileMode>
+            <directory>src/main/conf</directory>
           </fileSet>
-	  <fileSet>
+          <fileSet>
             <outputDirectory>lib</outputDirectory>
-            <directory>target</directory>
-    	    <includes>
-              <include>*.jar</include>
-            </includes>
-            <fileMode>0644</fileMode>
+            <directory>target/dependency</directory>
           </fileSet>
         </fileSets>
       </sources>
+      <binaries>
+        <includeDependencies>false</includeDependencies>
+        <outputDirectory>${module.artifactId}/lib</outputDirectory>
+        <unpack>false</unpack>
+      </binaries>
     </moduleSet>
   </moduleSets>
 </assembly>
