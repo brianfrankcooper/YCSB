@@ -1,5 +1,5 @@
 /**                                                                                                                                                                                
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved.                                                                                                                             
+ * Copyright (c) 2015 Yahoo! Inc. All rights reserved.
  *                                                                                                                                                                                 
  * Licensed under the Apache License, Version 2.0 (the "License"); you                                                                                                             
  * may not use this file except in compliance with the License. You                                                                                                                
@@ -16,25 +16,25 @@
  */
 package com.yahoo.ycsb.measurements.exporter;
 
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonGenerator;
-import org.codehaus.jackson.util.DefaultPrettyPrinter;
-
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 
+import org.codehaus.jackson.JsonFactory;
+import org.codehaus.jackson.JsonGenerator;
+import org.codehaus.jackson.util.DefaultPrettyPrinter;
+
 /**
- * Export measurements into a machine readable JSON file.
+ * Export measurements into a machine readable JSON Array of measurement objects.
  */
-public class JSONMeasurementsExporter implements MeasurementsExporter
+public class JSONArrayMeasurementsExporter implements MeasurementsExporter
 {
 
   private JsonFactory factory = new JsonFactory();
   private JsonGenerator g;
 
-  public JSONMeasurementsExporter(OutputStream os) throws IOException
+  public JSONArrayMeasurementsExporter(OutputStream os) throws IOException
   {
 
     BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(os));
