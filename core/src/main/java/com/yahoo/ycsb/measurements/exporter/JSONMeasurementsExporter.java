@@ -40,7 +40,6 @@ public class JSONMeasurementsExporter implements MeasurementsExporter
     BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(os));
     g = factory.createJsonGenerator(bw);
     g.setPrettyPrinter(new DefaultPrettyPrinter());
-    g.writeStartArray();
   }
 
   public void write(String metric, String measurement, int i) throws IOException
@@ -65,7 +64,6 @@ public class JSONMeasurementsExporter implements MeasurementsExporter
   {
     if (g != null)
     {
-      g.writeEndArray();
       g.close();
     }
   }
