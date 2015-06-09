@@ -1,5 +1,5 @@
 /**                                                                                                                                                                                
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved.                                                                                                                             
+ * Copyright (c) 2015 Yahoo! Inc. All rights reserved.
  *                                                                                                                                                                                 
  * Licensed under the Apache License, Version 2.0 (the "License"); you                                                                                                             
  * may not use this file except in compliance with the License. You                                                                                                                
@@ -26,20 +26,21 @@ import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.util.DefaultPrettyPrinter;
 
 /**
- * Export measurements into a machine readable JSON file.
+ * Export measurements into a machine readable JSON Array of measurement objects.
  */
-public class JSONMeasurementsExporter implements MeasurementsExporter
+public class JSONArrayMeasurementsExporter implements MeasurementsExporter
 {
 
   private JsonFactory factory = new JsonFactory();
   private JsonGenerator g;
 
-  public JSONMeasurementsExporter(OutputStream os) throws IOException
+  public JSONArrayMeasurementsExporter(OutputStream os) throws IOException
   {
 
     BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(os));
     g = factory.createJsonGenerator(bw);
     g.setPrettyPrinter(new DefaultPrettyPrinter());
+    g.writeStartArray();
   }
 
   public void write(String metric, String measurement, int i) throws IOException
@@ -64,6 +65,7 @@ public class JSONMeasurementsExporter implements MeasurementsExporter
   {
     if (g != null)
     {
+      g.writeEndArray();
       g.close();
     }
   }
