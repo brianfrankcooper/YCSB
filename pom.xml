@@ -67,6 +67,7 @@
     <thrift.version>0.8.0</thrift.version>
     <hypertable.version>0.9.5.6</hypertable.version>
     <couchbase.version>1.1.8</couchbase.version>
+    <tarantool.version>1.6.1-SNAPSHOT</tarantool.version>
   </properties>
 
   <modules>
@@ -85,10 +86,11 @@
     <module>orientdb</module>
     <module>redis</module>
     <module>voldemort</module>
-    <module>distribution</module>
     <!--<module>mapkeeper</module>-->
     <!--module>nosqldb</module-->
     <module>couchbase</module>
+    <module>tarantool</module>
+    <module>distribution</module>
   </modules>
 
   <build>
