@@ -23,13 +23,13 @@ package com.yahoo.ycsb.generator;
  * @author cooperb
  *
  */
-public abstract class LongGenerator extends Generator
+public abstract class LongGenerator extends IntegerGenerator
 {
 	long lastlong;
 	
 	/**
-	 * Set the last value generated. IntegerGenerator subclasses must use this call
-	 * to properly set the last string value, or the lastString() and lastInt() calls won't work.
+	 * Set the last value generated. LongGenerator subclasses must use this call
+	 * to properly set the last string value, or the lastString() and lastLong() calls won't work.
 	 */
 	protected void setLastLong(long last)
 	{
@@ -41,7 +41,7 @@ public abstract class LongGenerator extends Generator
 	 */
     public String nextString()
     {
-        return ""+nextLong();
+        return Long.toString(nextLong());
     }
 
 
@@ -53,7 +53,7 @@ public abstract class LongGenerator extends Generator
 	@Override
 	public String lastString()
 	{
-		return ""+nextLong();
+		return Long.toString(lastlong);
 	}
 	
 	/**
@@ -65,12 +65,22 @@ public abstract class LongGenerator extends Generator
 		return lastlong;
 	}
 
-    /**
-     * Return the next value as an int. When overriding this method, be sure to call setLastString() properly, or the lastString() call won't work.
-     */
-    public abstract long nextLong();
+	/**
+	 * Return the next value as a long. When overriding this method, be sure to call setLastString() properly, or the lastString() call won't work.
+	 */
+	public abstract long nextLong();
 
-    /**
+	/**
+	 * Return the next value as an int. This implementation provided here so that implementors of LongGenerator do not need
+	 * override nextInt() if the method is not needed.
+	 *
+	 */
+	@Override
+	public int nextInt() {
+		return (int) nextLong();
+	};
+
+	/**
 	 * Return the expected value (mean) of the values this generator will return.
 	 */
 	public abstract double mean();
