@@ -38,7 +38,7 @@ public class SkewedLatestGenerator extends LongGenerator
 	public long nextLong()
 	{
         long max=_basis.lastLong();
-        long nextlong=max-_zipfian.nextInt((int)max);
+        long nextlong=max-_zipfian.nextLong(max);
 		setLastLong(nextlong);
 		return nextlong;
 	}
