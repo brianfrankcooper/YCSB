@@ -36,11 +36,6 @@ public class ConstantIntegerGenerator extends IntegerGenerator {
 		return i;
 	}
 
-    public long nextLong()
-    {
-        return (long) i;
-    }
-
     @Override
 	public double mean() {
 		return i;
