@@ -60,16 +60,6 @@ public class ExponentialLongGenerator extends LongGenerator
 
 	/****************************************************************************************/
 	
-	/** 
-	 * Generate the next item. this distribution will be skewed toward lower integers; e.g. 0 will
-	 * be the most popular, 1 the next most popular, etc.
-	 * @return The next item in the sequence.
-	 */
-	public int nextInt()
-	{
-		return (int)nextLong();
-	}
-
 	/**
 	 * Generate the next item as a long.
 	 * 
@@ -85,14 +75,5 @@ public class ExponentialLongGenerator extends LongGenerator
 	public double mean() {
 		return 1.0/_gamma;
 	}
-    public static void main(String args[]) {
-        ExponentialLongGenerator e = new ExponentialLongGenerator(90, 100);
-        int j = 0;
-        for(int i = 0; i < 1000; i++) {
-            if(e.nextInt() < 100) {
-                j++;
-            }
-        }
-        System.out.println("Got " + j + " hits.  Expect 900");
-    }
+
 }
