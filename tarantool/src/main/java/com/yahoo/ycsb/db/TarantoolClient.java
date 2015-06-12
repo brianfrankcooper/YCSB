@@ -1,3 +1,19 @@
+/**
+ * Copyright (c) 2014, Yahoo!, Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
+ */
 package com.yahoo.ycsb.db;
 
 import java.util.Map;
@@ -5,17 +21,14 @@ import java.util.Set;
 import java.util.List;
 import java.util.Arrays;
 import java.util.Vector;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.HashMap;
 import java.util.Properties;
-
-import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.tarantool.TarantoolConnection16;
 import org.tarantool.TarantoolConnection16Impl;
 import org.tarantool.TarantoolException;
-import org.tarantool.CommunicationException;
 
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
@@ -23,7 +36,7 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.StringByteIterator;
 
 public class TarantoolClient extends DB {
-	
+
 	public static final String HOST_PROPERTY  = "tarantool.host";
 	public static final String PORT_PROPERTY  = "tarantool.port";
 	public static final String SPACE_PROPERTY = "tarantool.space";
@@ -31,9 +44,9 @@ public class TarantoolClient extends DB {
 	public static final String DEFAULT_HOST   = "localhost";
 	public static final int    DEFAULT_PORT   = 3301;
 	public static final int    DEFAULT_SPACE  = 1024;
-	
-	private static final Logger log = Logger.getLogger(TarantoolClient.class.getName());
-	private TarantoolConnection16Impl connection;
+
+	private static final Logger logger = Logger.getLogger(TarantoolClient.class.getName());
+	private TarantoolConnection16 connection;
 	private int spaceNo;
 
 	public void init() throws DBException {
@@ -49,7 +62,7 @@ public class TarantoolClient extends DB {
 		if (host == null) {
 			host = DEFAULT_HOST;
 		}
-		
+
 		spaceNo = DEFAULT_SPACE;
 		String spaceString = props.getProperty(SPACE_PROPERTY);
 		if (spaceString != null) {
@@ -58,14 +71,12 @@ public class TarantoolClient extends DB {
 
 		try {
 			this.connection = new TarantoolConnection16Impl(host, port);
-		}
-		catch (Exception exc) {
-			System.err.println("Can't init Tarantool connection:" + exc.toString());
-			exc.printStackTrace();
+		} catch (Exception exc) {
+			logger.log(Level.SEVERE,"Can't initialize Tarantool connection", exc);
 			return;
 		}
 	}
-	
+
 	public void cleanup() throws DBException{
 		this.connection.close();
 	}
@@ -82,8 +93,8 @@ public class TarantoolClient extends DB {
 		}
 		try {
 			this.connection.insert(this.spaceNo, tuple);
-		} catch (TarantoolException e) {
-			e.printStackTrace();
+		} catch (TarantoolException exc) {
+			logger.log(Level.SEVERE,"Can't insert element", exc);
 			return 1;
 		}
 		return 0;
@@ -108,10 +119,10 @@ public class TarantoolClient extends DB {
 			response = this.connection.select(this.spaceNo, 0, Arrays.asList(key), 0, 1, 0);
 			result = tuple_convert_filter(response, fields);
 			return 0;
-		} catch (TarantoolException e) {
-			e.printStackTrace();
+		} catch (TarantoolException exc) {
+			logger.log(Level.SEVERE,"Can't select element", exc);
 			return 1;
-		} catch (IndexOutOfBoundsException e) {
+		} catch (NullPointerException exc) {
 			return 1;
 		}
 	}
@@ -123,8 +134,10 @@ public class TarantoolClient extends DB {
 		List<String> response;
 		try {
 			response = this.connection.select(this.spaceNo, 0, Arrays.asList(startkey), 0, recordcount, 6);
-		} catch (TarantoolException e) {
-			e.printStackTrace();
+		} catch (TarantoolException exc) {
+			logger.log(Level.SEVERE,"Can't select range elements", exc);
+			return 1;
+		} catch (NullPointerException exc) {
 			return 1;
 		}
 		HashMap<String, ByteIterator> temp = tuple_convert_filter(response, fields);
@@ -137,10 +150,10 @@ public class TarantoolClient extends DB {
 	public int delete(String table, String key) {
 		try {
 			this.connection.delete(this.spaceNo, Arrays.asList(key));
-		} catch (TarantoolException e) {
-			e.printStackTrace();
+		} catch (TarantoolException exc) {
+			logger.log(Level.SEVERE,"Can't delete element", exc);
 			return 1;
-		} catch (IndexOutOfBoundsException e) {
+		} catch (NullPointerException e) {
 			return 1;
 		}
 		return 0;
@@ -158,8 +171,8 @@ public class TarantoolClient extends DB {
 		}
 		try {
 			this.connection.replace(this.spaceNo, tuple);
-		} catch (TarantoolException e) {
-			e.printStackTrace();
+		} catch (TarantoolException exc) {
+			logger.log(Level.SEVERE,"Can't replace element", exc);
 			return 1;
 		}
 		return 0;
