@@ -29,10 +29,10 @@ This section descrives how to run YCSB against a local Tarantool instance
 
 First, clone Tarantool from it's own git repo and build it (described in our [README.md][tarantool-readme]):
 
-    cp YCSB/tarantool/config/tarantool-tree.lua <vardir>/tarantool.lua
-    cp TNT/src/box/tarantool_box <vardir>
+    cp %YCSB%/tarantool/conf/tarantool-tree.lua <vardir>/tarantool.lua
+    cp %TNT%/src/box/tarantool <vardir>
     cd <vardir>
-    ./tarantool_box tarantool.lua
+    ./tarantool tarantool.lua
 
 OR you can simply download ans install a binary package for your GNU/Linux or BSD distro from http://tarantool.org/download.html
 
