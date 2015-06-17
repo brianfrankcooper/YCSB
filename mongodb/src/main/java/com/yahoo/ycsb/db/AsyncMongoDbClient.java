@@ -55,7 +55,7 @@ import com.yahoo.ycsb.DBException;
  * 
  * Properties to set:
  * 
- * mongodb.url=mongodb://localhost:27017 mongodb.database=ycsb
+ * mongodb.url=mongodb://localhost:27017 
  * mongodb.writeConcern=normal
  * 
  * @author rjm
@@ -180,7 +180,7 @@ public class AsyncMongoDbClient extends DB {
             batchSize = Integer.parseInt(props.getProperty("mongodb.batchsize", "1"));
 
             // Just use the standard connection format URL
-            // http://docs.mongodatabase.org/manual/reference/connection-string/
+            // http://docs.mongodb.org/manual/reference/connection-string/ 
             // to configure the client.
             String url = props.getProperty("mongodb.url",
                     "mongodb://localhost:27017/ycsb?w=1");
