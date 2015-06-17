@@ -55,7 +55,7 @@ import com.yahoo.ycsb.DBException;
  * 
  * Properties to set:
  * 
- * mongodb.url=mongodb://localhost:27017 mongodb.database=ycsb
+ * mongodb.url=mongodb://localhost:27017 
  * mongodb.writeConcern=normal
  * 
  * @author rjm
@@ -180,7 +180,7 @@ public class AsyncMongoDbClient extends DB {
             batchSize = Integer.parseInt(props.getProperty("mongodb.batchsize", "1"));
 
             // Just use the standard connection format URL
-            // http://docs.mongodatabase.org/manual/reference/connection-string/
+            // http://docs.mongodb.org/manual/reference/connection-string/ 
             // to configure the client.
             String url = props.getProperty("mongodb.url",
                     "mongodb://localhost:27017/ycsb?w=1");
@@ -199,12 +199,9 @@ public class AsyncMongoDbClient extends DB {
             try {
                 databaseName = uri.getDatabase();
                 if ((databaseName == null) || databaseName.isEmpty()) {
-                    System.err
-                            .println("ERROR: Invalid URL: '"
-                                    + url
-                                    + "'. Must provide a database name with the URI. "
-                                    + "'mongodb://<host1>:<port1>,<host2>:<port2>/database");
-                    System.exit(1);
+                    // Default database is "ycsb" if database is not 
+                    // specified in URL
+                    databaseName="ycsb";
                 }
 
                 mongoClient = MongoFactory.createClient(uri);
