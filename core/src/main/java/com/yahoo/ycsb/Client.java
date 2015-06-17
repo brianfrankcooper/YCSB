@@ -18,10 +18,6 @@
 package com.yahoo.ycsb;
 
 
-import com.yahoo.ycsb.measurements.Measurements;
-import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
-import com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter;
-
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -32,6 +28,12 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Vector;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
+
+import com.yahoo.ycsb.measurements.Measurements;
+import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
+import com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter;
 
 //import org.apache.log4j.BasicConfigurator;
 
@@ -50,13 +52,14 @@ class StatusThread extends Thread
 	/**
 	 * The interval for reporting status.
 	 */
-	public static final long sleeptime=10000;
+	long _sleeptimeNs;
 
-	public StatusThread(Vector<Thread> threads, String label, boolean standardstatus)
+	public StatusThread(Vector<Thread> threads, String label, boolean standardstatus, int statusIntervalSeconds)
 	{
 		_threads=threads;
 		_label=label;
 		_standardstatus=standardstatus;
+		_sleeptimeNs=TimeUnit.SECONDS.toNanos(statusIntervalSeconds);
 	}
 
 	/**
@@ -64,8 +67,9 @@ class StatusThread extends Thread
 	 */
 	public void run()
 	{
-		long st=System.currentTimeMillis();
-
+		final long st=System.currentTimeMillis();
+		final long startTimeNanos = System.nanoTime();
+		long deadline = startTimeNanos + _sleeptimeNs;
 		long lasten=st;
 		long lasttotalops=0;
 		
@@ -118,15 +122,8 @@ class StatusThread extends Thread
 				System.out.println(msg);
 			}
 
-			try
-			{
-				sleep(sleeptime);
-			}
-			catch (InterruptedException e)
-			{
-				//do nothing
-			}
-
+			ClientThread.sleepUntil(deadline);
+			deadline+=_sleeptimeNs;
 		}
 		while (!alldone);
 	}
@@ -140,18 +137,20 @@ class StatusThread extends Thread
  */
 class ClientThread extends Thread
 {
-	DB _db;
+	private static boolean _spinSleep;
+    DB _db;
 	boolean _dotransactions;
 	Workload _workload;
 	int _opcount;
-	double _target;
+	double _targetOpsPerMs;
 
 	int _opsdone;
 	int _threadid;
 	int _threadcount;
 	Object _workloadstate;
 	Properties _props;
-
+    long _targetOpsTickNs;
+    final Measurements _measurements;
 
 	/**
 	 * Constructor.
@@ -173,11 +172,15 @@ class ClientThread extends Thread
 		_workload=workload;
 		_opcount=opcount;
 		_opsdone=0;
-		_target=targetperthreadperms;
+		if(targetperthreadperms > 0){
+		_targetOpsPerMs=targetperthreadperms;
+		_targetOpsTickNs=(long)(1000000/_targetOpsPerMs);
+		}
 		_threadid=threadid;
 		_threadcount=threadcount;
 		_props=props;
-		//System.out.println("Interval = "+interval);
+		_measurements = Measurements.getMeasurements();
+		_spinSleep = Boolean.valueOf(_props.getProperty("spin.sleep", "false"));
 	}
 
 	public int getOpsDone()
@@ -209,26 +212,22 @@ class ClientThread extends Thread
 			return;
 		}
 
-		//spread the thread operations out so they don't all hit the DB at the same time
-		try
-		{
-		   //GH issue 4 - throws exception if _target>1 because random.nextInt argument must be >0
-		   //and the sleep() doesn't make sense for granularities < 1 ms anyway
-		   if ( (_target>0) && (_target<=1.0) ) 
-		   {
-		      sleep(Utils.random().nextInt((int)(1.0/_target)));
-		   }
-		}
-		catch (InterruptedException e)
-		{
-		  // do nothing.
-		}
+		//NOTE: Switching to using nanoTime and parkNanos for time management here such that the measurements
+		// and the client thread have the same view on time.
 		
+		//spread the thread operations out so they don't all hit the DB at the same time
+		// GH issue 4 - throws exception if _target>1 because random.nextInt argument must be >0
+        // and the sleep() doesn't make sense for granularities < 1 ms anyway
+        if ((_targetOpsPerMs > 0) && (_targetOpsPerMs <= 1.0))
+        {
+            long randomMinorDelay = Utils.random().nextInt((int) _targetOpsTickNs);
+            sleepUntil(System.nanoTime() + randomMinorDelay);
+        }
 		try
 		{
 			if (_dotransactions)
 			{
-				long st=System.currentTimeMillis();
+			    long startTimeNanos = System.nanoTime();
 
 				while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
 				{
@@ -240,32 +239,13 @@ class ClientThread extends Thread
 
 					_opsdone++;
 
-					//throttle the operations
-					if (_target>0)
-					{
-						//this is more accurate than other throttling approaches we have tried,
-						//like sleeping for (1/target throughput)-operation latency,
-						//because it smooths timing inaccuracies (from sleep() taking an int, 
-						//current time in millis) over many operations
-						while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
-						{
-							try
-							{
-								sleep(1);
-							}
-							catch (InterruptedException e)
-							{
-							  // do nothing.
-							}
-
-						}
-					}
+					throttleNanos(startTimeNanos);
 				}
 			}
 			else
 			{
-				long st=System.currentTimeMillis();
-
+			    long startTimeNanos = System.nanoTime();
+		        
 				while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
 				{
 
@@ -276,25 +256,7 @@ class ClientThread extends Thread
 
 					_opsdone++;
 
-					//throttle the operations
-					if (_target>0)
-					{
-						//this is more accurate than other throttling approaches we have tried,
-						//like sleeping for (1/target throughput)-operation latency,
-						//because it smooths timing inaccuracies (from sleep() taking an int, 
-						//current time in millis) over many operations
-						while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
-						{
-							try 
-							{
-								sleep(1);
-							}
-							catch (InterruptedException e)
-							{
-							  // do nothing.
-							}
-						}
-					}
+					throttleNanos(startTimeNanos);
 				}
 			}
 		}
@@ -307,6 +269,7 @@ class ClientThread extends Thread
 
 		try
 		{
+		    _measurements.setIntendedStartTimeNs(0);
 			_db.cleanup();
 		}
 		catch (DBException e)
@@ -316,6 +279,26 @@ class ClientThread extends Thread
 			return;
 		}
 	}
+
+    static void sleepUntil(long deadline) {
+        long now = System.nanoTime();
+        while((now = System.nanoTime()) < deadline) {
+            if (!_spinSleep) {
+                LockSupport.parkNanos(deadline - now);
+            }
+        }
+    }
+    private void throttleNanos(long startTimeNanos) {
+        //throttle the operations
+        if (_targetOpsPerMs > 0)
+        {
+            // delay until next tick
+            long deadline = startTimeNanos + _opsdone*_targetOpsTickNs;
+            sleepUntil(deadline);
+            _measurements.setIntendedStartTimeNs(deadline);
+        }
+    }
+    
 }
 
 /**
@@ -323,6 +306,8 @@ class ClientThread extends Thread
  */
 public class Client
 {
+
+	public static final String DEFAULT_RECORD_COUNT = "0";
 
     /**
      * The target number of operations to perform.
@@ -377,6 +362,7 @@ public class Client
    * The maximum amount of time (in seconds) for which the benchmark will be run.
    */
   public static final String MAX_EXECUTION_TIME = "maxexecutiontime";
+
 
 	public static void usageMessage()
 	{
@@ -738,10 +724,9 @@ public class Client
 			}
 			else
 			{
-				opcount=Integer.parseInt(props.getProperty(RECORD_COUNT_PROPERTY,"0"));
+				opcount=Integer.parseInt(props.getProperty(RECORD_COUNT_PROPERTY, DEFAULT_RECORD_COUNT));
 			}
 		}
-
 		Vector<Thread> threads=new Vector<Thread>();
 
 		for (int threadid=0; threadid<threadcount; threadid++)
@@ -757,7 +742,8 @@ public class Client
 				System.exit(0);
 			}
 
-			Thread t=new ClientThread(db,dotransactions,workload,threadid,threadcount,props,opcount/threadcount,targetperthreadperms);
+			
+            Thread t=new ClientThread(db,dotransactions,workload,threadid,threadcount,props,opcount/threadcount, targetperthreadperms);
 
 			threads.add(t);
 			//t.start();
@@ -768,11 +754,12 @@ public class Client
 		if (status)
 		{
 			boolean standardstatus=false;
-			if (props.getProperty(Measurements.MEASUREMENT_TYPE_PROPERTY,"").compareTo("timeseries")==0)
+			if (props.getProperty(Measurements.MEASUREMENT_TYPE_PROPERTY,"").compareTo("timeseries")==0) 
 			{
 				standardstatus=true;
-			}	
-			statusthread=new StatusThread(threads,label,standardstatus);
+			}
+			int statusIntervalSeconds = Integer.parseInt(props.getProperty("status.interval","10"));
+			statusthread=new StatusThread(threads,label,standardstatus,statusIntervalSeconds);
 			statusthread.start();
 		}
 
@@ -812,7 +799,13 @@ public class Client
 
 		if (status)
 		{
-			statusthread.interrupt();
+		    // wake up status thread if it's asleep
+		    statusthread.interrupt();
+		    // at this point we assume all the monitored threads are already gone as per above join loop.
+			try {
+                statusthread.join();
+            } catch (InterruptedException e) {
+            }
 		}
 
 		try
