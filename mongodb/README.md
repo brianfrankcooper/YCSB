@@ -85,6 +85,7 @@ See the next section for the list of configuration parameters for MongoDB.
     - For the complete set of options for the synchronous driver see:
       - http://api.mongodb.org/java/current/index.html?com/mongodb/MongoClientURI.html
   - Default value is `mongodb://localhost:27017/ycsb?w=1`
+  - Default value of database is `ycsb`
 
 - `mongodb.batchsize`
   - Useful for the insert workload as it will submit the inserts in batches inproving throughput.
