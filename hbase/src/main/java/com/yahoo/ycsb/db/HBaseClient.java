@@ -33,6 +33,7 @@ import com.yahoo.ycsb.measurements.Measurements;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.HTableDescriptor;
 //import org.apache.hadoop.hbase.client.Scanner;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
@@ -71,6 +72,16 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     public static final Object tableLock = new Object();
 
     /**
+     * The name of the database table to run queries against.
+     */
+    public static final String TABLENAME_PROPERTY="table";
+
+    /**
+     * The default name of the database table to run queries against.
+     */
+    public static final String TABLENAME_PROPERTY_DEFAULT="usertable";
+
+    /**
      * Initialize any state for this DB.
      * Called once per DB instance; there is one DB instance per client thread.
      */
@@ -99,6 +110,19 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         }
       _columnFamilyBytes = Bytes.toBytes(_columnFamily);
 
+      // Terminate right now if table does not exist, since the client
+      // will not propagate this error upstream once the workload
+      // starts.
+      String table = getProperties().getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
+      try
+	  {
+	      HTable ht = new HTable(config, table);
+	      HTableDescriptor dsc = ht.getTableDescriptor();
+	  }
+      catch (IOException e)
+	  {
+	      throw new DBException("Error accessing HBase table: " + table);
+	  }
     }
 
     /**
