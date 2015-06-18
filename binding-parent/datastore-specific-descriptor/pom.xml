@@ -1,0 +1,28 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.yahoo.ycsb</groupId>
+    <artifactId>root</artifactId>
+    <version>0.2.0-SNAPSHOT</version>
+    <relativePath>../../</relativePath>
+  </parent>
+
+  <artifactId>datastore-specific-descriptor</artifactId>
+  <name>Per Datastore Binding descriptor</name>
+  <packaging>jar</packaging>
+
+  <description>
+    This module contains the assembly descriptor used by the individual components
+    to build binding-specific distributions.
+  </description>
+  <dependencies>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+</project>
+

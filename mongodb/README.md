@@ -53,7 +53,7 @@ Download the YCSB zip file and compile:
 
     git clone git://github.com/brianfrankcooper/YCSB.git
     cd YCSB
-    mvn -pl com.yahoo.ycsb:core,com.yahoo.ycsb:mongodb-binding clean package
+    mvn -pl com.yahoo.ycsb:mongodb-binding -am clean package
 
 ### 4. Run YCSB
 

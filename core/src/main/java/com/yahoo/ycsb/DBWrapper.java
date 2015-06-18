@@ -69,10 +69,11 @@ public class DBWrapper extends DB
 	 */
 	public void cleanup() throws DBException
 	{
-    long st=System.nanoTime();
+        long ist=_measurements.getIntendedtartTimeNs();
+        long st = System.nanoTime();
 		_db.cleanup();
-    long en=System.nanoTime();
-    _measurements.measure("CLEANUP", (int)((en-st)/1000));
+        long en=System.nanoTime();
+        measure("CLEANUP",ist, st, en);
 	}
 
 	/**
@@ -86,11 +87,12 @@ public class DBWrapper extends DB
 	 */
 	public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
 	{
-		long st=System.nanoTime();
-		int res=_db.read(table,key,fields,result);
+	    long ist=_measurements.getIntendedtartTimeNs();
+	    long st = System.nanoTime();
+	    int res=_db.read(table,key,fields,result);
 		long en=System.nanoTime();
-		_measurements.measure("READ",(int)((en-st)/1000));
-		_measurements.reportReturnCode("READ",res);
+		measure("READ",ist, st, en);
+	    _measurements.reportReturnCode("READ",res);
 		return res;
 	}
 
@@ -106,13 +108,19 @@ public class DBWrapper extends DB
 	 */
 	public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
 	{
-		long st=System.nanoTime();
-		int res=_db.scan(table,startkey,recordcount,fields,result);
+	    long ist=_measurements.getIntendedtartTimeNs();
+	    long st = System.nanoTime();
+	    int res=_db.scan(table,startkey,recordcount,fields,result);
 		long en=System.nanoTime();
-		_measurements.measure("SCAN",(int)((en-st)/1000));
-		_measurements.reportReturnCode("SCAN",res);
+		measure("SCAN",ist, st, en);
+	    _measurements.reportReturnCode("SCAN",res);
 		return res;
 	}
+
+    private void measure(String op, long intendedStartTimeNanos, long startTimeNanos, long endTimeNanos) {
+        _measurements.measure(op, (int)((endTimeNanos-startTimeNanos)/1000));
+	    _measurements.measureIntended(op, (int)((endTimeNanos-intendedStartTimeNanos)/1000));
+    }
 	
 	/**
 	 * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
@@ -125,10 +133,11 @@ public class DBWrapper extends DB
 	 */
 	public int update(String table, String key, HashMap<String,ByteIterator> values)
 	{
-		long st=System.nanoTime();
+	    long ist=_measurements.getIntendedtartTimeNs();
+	    long st = System.nanoTime();
 		int res=_db.update(table,key,values);
 		long en=System.nanoTime();
-		_measurements.measure("UPDATE",(int)((en-st)/1000));
+		measure("UPDATE",ist, st, en);
 		_measurements.reportReturnCode("UPDATE",res);
 		return res;
 	}
@@ -144,10 +153,11 @@ public class DBWrapper extends DB
 	 */
 	public int insert(String table, String key, HashMap<String,ByteIterator> values)
 	{
-		long st=System.nanoTime();
+	    long ist=_measurements.getIntendedtartTimeNs();
+	    long st = System.nanoTime();
 		int res=_db.insert(table,key,values);
 		long en=System.nanoTime();
-		_measurements.measure("INSERT",(int)((en-st)/1000));
+		measure("INSERT",ist, st, en);
 		_measurements.reportReturnCode("INSERT",res);
 		return res;
 	}
@@ -161,10 +171,11 @@ public class DBWrapper extends DB
 	 */
 	public int delete(String table, String key)
 	{
-		long st=System.nanoTime();
+	    long ist=_measurements.getIntendedtartTimeNs();
+	    long st = System.nanoTime();
 		int res=_db.delete(table,key);
 		long en=System.nanoTime();
-		_measurements.measure("DELETE",(int)((en-st)/1000));
+		measure("DELETE",ist, st, en);
 		_measurements.reportReturnCode("DELETE",res);
 		return res;
 	}
