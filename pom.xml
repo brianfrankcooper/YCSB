@@ -95,7 +95,7 @@
     <module>orientdb</module>
     <module>redis</module>
     <module>tarantool</module>
-    <module>voldemort</module>
+    <!--<module>voldemort</module>-->
   </modules>
 
   <build>
