@@ -91,7 +91,7 @@ def usage():
 def find_jars(dir, database):
     jars = []
     for (dirpath, dirnames, filenames) in os.walk(dir):
-        if dirpath.endswith("conf"):
+        if dirpath.endswith(os.path.join(database + "-binding", "conf")):
             jars.append(dirpath)
         for filename in filenames:
             if filename.endswith(".jar") and \
