@@ -46,6 +46,7 @@
         <include>com.yahoo.ycsb:core</include>
       </includes>
       <scope>provided</scope>
+      <useTransitiveFiltering>true</useTransitiveFiltering>
     </dependencySet>
     <dependencySet>
       <outputDirectory>lib</outputDirectory>
