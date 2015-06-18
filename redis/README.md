@@ -12,7 +12,7 @@ Git clone YCSB and compile:
 
     git clone http://github.com/brianfrankcooper/YCSB.git
     cd YCSB
-    mvn -pl com.yahoo.ycsb:core,com.yahoo.ycsb:redis-binding clean package
+    mvn -pl com.yahoo.ycsb:redis-binding -am clean package
 
 ### 4. Provide Redis Connection Parameters
     
@@ -36,4 +36,4 @@ Load the data:
 Run the workload test:
 
     ./bin/ycsb run redis -s -P workloads/workloada > outputRun.txt
-    
+
