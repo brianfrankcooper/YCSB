@@ -28,7 +28,7 @@
 		<dependency>
 			<groupId>com.orientechnologies</groupId>
 			<artifactId>orientdb-core</artifactId>
-			<version>1.7.5</version>
+			<version>1.7.10</version>
 		</dependency>
 	</dependencies>
 </project>
