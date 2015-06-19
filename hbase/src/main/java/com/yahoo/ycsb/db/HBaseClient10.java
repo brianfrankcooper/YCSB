@@ -147,7 +147,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
 	  }
       catch (IOException e)
 	  {
-	      throw new DBException("Error accessing HBase table: " + table);
+	      throw new DBException(e);
 	  }
     }
 
