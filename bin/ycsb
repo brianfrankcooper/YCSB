@@ -91,13 +91,8 @@ def usage():
 def find_jars(dir, database):
     jars = []
     for (dirpath, dirnames, filenames) in os.walk(dir):
-        if dirpath.endswith(os.path.join(database + "-binding", "conf")):
-            jars.append(dirpath)
         for filename in filenames:
-            if filename.endswith(".jar") and \
-               (filename.startswith("core") or \
-                filename.startswith(database.split("-")[0]) or \
-                not "binding" in filename):
+            if filename.endswith(".jar"):
                 jars.append(os.path.join(dirpath, filename))
     return jars
 
@@ -134,7 +129,11 @@ def main():
     db_classname = DATABASES[args.database]
     command = COMMANDS[args.command]["command"]
     main_classname = COMMANDS[args.command]["main"]
-    classpath = os.pathsep.join(find_jars(ycsb_home, args.database))
+    db_dir = os.path.join(ycsb_home, args.database + "-binding")
+    cp = [ os.path.join(db_dir, "conf") ]
+    cp.extend(find_jars(os.path.join(ycsb_home, "lib"), args.database))
+    cp.extend(find_jars(os.path.join(db_dir, "lib"), args.database))
+    classpath = os.pathsep.join(cp)
     if args.classpath:
         classpath = os.pathsep.join([args.classpath, classpath])
 
