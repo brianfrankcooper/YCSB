@@ -199,12 +199,9 @@ public class AsyncMongoDbClient extends DB {
             try {
                 databaseName = uri.getDatabase();
                 if ((databaseName == null) || databaseName.isEmpty()) {
-                    System.err
-                            .println("ERROR: Invalid URL: '"
-                                    + url
-                                    + "'. Must provide a database name with the URI. "
-                                    + "'mongodb://<host1>:<port1>,<host2>:<port2>/database");
-                    System.exit(1);
+                    // Default database is "ycsb" if database is not 
+                    // specified in URL
+                    databaseName="ycsb";
                 }
 
                 mongoClient = MongoFactory.createClient(uri);
