@@ -27,6 +27,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.BufferedMutator;
@@ -36,6 +37,7 @@ import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -133,6 +135,20 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             throw new DBException("No columnfamily specified");
         }
         _columnFamilyBytes = Bytes.toBytes(_columnFamily);
+
+      // Terminate right now if table does not exist, since the client
+      // will not propagate this error upstream once the workload
+      // starts.
+      String table = com.yahoo.ycsb.workloads.CoreWorkload.table;
+      try
+	  {
+	      final TableName tableName = TableName.valueOf(table);
+	      HTableDescriptor dsc = _connection.getTable(tableName).getTableDescriptor();
+	  }
+      catch (IOException e)
+	  {
+	      throw new DBException(e);
+	  }
     }
 
     /**
