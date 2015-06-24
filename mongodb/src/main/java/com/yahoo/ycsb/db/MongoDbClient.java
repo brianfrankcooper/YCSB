@@ -46,8 +46,8 @@ import com.yahoo.ycsb.DBException;
  * 
  * Properties to set:
  * 
- * mongodatabase.url=mongodb://localhost:27017 mongodatabase.database=ycsb
- * mongodatabase.writeConcern=acknowledged
+ * mongodb.url=mongodb://localhost:27017
+ * mongodb.writeConcern=acknowledged
  * 
  * @author ypai
  */
@@ -159,11 +159,9 @@ public class MongoDbClient extends DB {
             batchSize = Integer.parseInt(props.getProperty("batchsize", "1"));
 
             // Just use the standard connection format URL
-            // http://docs.mongodatabase.org/manual/reference/connection-string/
+            // http://docs.mongodb.org/manual/reference/connection-string/ 
             // to configure the client.
-            //
-            // Support legacy options by updating the URL as appropriate.
-            String url = props.getProperty("mongodatabase.url", null);
+            String url = props.getProperty("mongodb.url", null);
             boolean defaultedUrl = false;
             if (url == null) {
                 defaultedUrl = true;
@@ -178,7 +176,7 @@ public class MongoDbClient extends DB {
                                 + url
                                 + "'. Must be of the form "
                                 + "'mongodb://<host1>:<port1>,<host2>:<port2>/database?options'. "
-                                + "See http://docs.mongodatabase.org/manual/reference/connection-string/.");
+                                + "http://docs.mongodb.org/manual/reference/connection-string/");
                 System.exit(1);
             }
 
@@ -191,18 +189,11 @@ public class MongoDbClient extends DB {
                     databaseName = uriDb;
                 }
                 else {
-                    databaseName = props.getProperty("mongodatabase.database",
-                            "ycsb");
+                    //If no database is specified in URI, use "ycsb"
+                    databaseName = "ycsb"; 
+
                 }
 
-                if ((databaseName == null) || databaseName.isEmpty()) {
-                    System.err
-                            .println("ERROR: Invalid URL: '"
-                                    + url
-                                    + "'. Must provide a database name with the URI. "
-                                    + "'mongodb://<host1>:<port1>,<host2>:<port2>/database");
-                    System.exit(1);
-                }
 
                 readPreference = uri.getOptions().getReadPreference();
                 writeConcern = uri.getOptions().getWriteConcern();
