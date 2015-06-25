@@ -17,11 +17,14 @@ mvn clean package
 
 ### 3. Create a HBase table for testing
 
-```
-/HBASE-HOME-DIR/bin/hbase shell
+For best results, use the pre-splitting strategy recommended in [HBASE-4163](https://issues.apache.org/jira/browse/HBASE-4163):
 
-hbase(main):001:0> create 'usertable', 'family'
 ```
+hbase(main):001:0> n_splits = 200 # HBase recommends (10 * number of regionservers)
+hbase(main):002:0> create 'usertable', 'family', {SPLITS => (1..n_splits).map {|i| "user#{1000+i*(9999-1000)/n_splits}"}}
+```
+
+*Failing to do so will cause all writes to initially target a single region server*.
 
 ### 4. Run the Workload
 Before you can actually run the workload, you need to "load" the data first.
@@ -45,8 +48,9 @@ bin/ycsb run hbase -P workloads/workloada -cp /HBASE-HOME-DIR/conf -p table=user
 ```
 
 ## Configuration Options
-Following options can be configurable using -p.
+Following options can be configurable using `-p`.
 
-* clientbuffering : If true, buffer mutations on the client. The default is false.
-* writebuffersize : Buffer size to be used when clientbuffering is activated. The default is 12582912(= 1024 * 1024 * 12).
-* debug : If true, debugging logs are activated. The default is false.
+* `columnfamily`: The HBase column family to target.
+* `clientbuffering` : If true, buffer mutations on the client. The default is false.
+* `writebuffersize` : Buffer size to be used when `clientbuffering` is activated. The default is 12MB.
+* `debug` : If true, debugging logs are activated. The default is false.
