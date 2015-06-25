@@ -22,7 +22,7 @@ The following connection parameters are available.
   * `as.port` - The port to connect to (default: `3000`)
   * `as.user` - The user to connect as (no default)
   * `as.password` - The password for the user (no default)
-  * `as.timeout` - The transaction and connection timeout (in ms, default: `1000`)
+  * `as.timeout` - The transaction and connection timeout (in ms, default: `10000`)
   * `as.namespace` - The namespace to be used for the benchmark (default: `ycsb`)
 
 Add them to the workload or set them with the shell command, as in:
