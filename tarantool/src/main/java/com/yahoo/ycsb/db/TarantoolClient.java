@@ -92,7 +92,7 @@ public class TarantoolClient extends DB {
 			j += 2;
 		}
 		try {
-			this.connection.insert(this.spaceNo, tuple);
+			this.connection.replace(this.spaceNo, tuple);
 		} catch (TarantoolException exc) {
 			logger.log(Level.SEVERE,"Can't insert element", exc);
 			return 1;
@@ -131,7 +131,7 @@ public class TarantoolClient extends DB {
 	public int scan(String table, String startkey,
 			int recordcount, Set<String> fields,
 			Vector<HashMap<String, ByteIterator>> result) {
-		List<String> response;
+		List<List<String>> response;
 		try {
 			response = this.connection.select(this.spaceNo, 0, Arrays.asList(startkey), 0, recordcount, 6);
 		} catch (TarantoolException exc) {
@@ -140,9 +140,11 @@ public class TarantoolClient extends DB {
 		} catch (NullPointerException exc) {
 			return 1;
 		}
-		HashMap<String, ByteIterator> temp = tuple_convert_filter(response, fields);
-		if (!temp.isEmpty())
-			result.add((HashMap<String, ByteIterator>) temp.clone());
+		for(List<String> i: response) {
+			HashMap<String, ByteIterator> temp = tuple_convert_filter(i, fields);
+			if (!temp.isEmpty())
+				result.add((HashMap<String, ByteIterator>) temp.clone());
+		}
 		return 0;
 	}
 
