@@ -61,7 +61,7 @@ public class OneMeasurementHistogram extends OneMeasurement
 	 * The sum of each latency measurement over all operations.
 	 * Calculated in ms.
 	 */
-	double totallatency;
+	long totallatency;
 	
 	/**
 	 * The sum of each latency measurement squared over all operations. 
@@ -125,7 +125,7 @@ public class OneMeasurementHistogram extends OneMeasurement
 			histogram[latency/1000]++;
 		}
 		operations++;
-		totallatency += ((double)latency) / 1000;
+		totallatency += latency/1000;
 		totalsquaredlatency += ((double)latency) * ((double)latency) / 1000000;
 		windowoperations++;
 		windowtotallatency += latency;
