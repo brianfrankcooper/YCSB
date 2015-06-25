@@ -44,6 +44,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
   private WritePolicy updatePolicy = new WritePolicy();
   private WritePolicy deletePolicy = new WritePolicy();
 
+  @Override
   public void init() throws DBException {
     insertPolicy.recordExistsAction = RecordExistsAction.CREATE_ONLY;
     updatePolicy.recordExistsAction = RecordExistsAction.UPDATE_ONLY;
@@ -80,6 +81,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
     }
   }
 
+  @Override
   public void cleanup() throws DBException {
     client.close();
   }
