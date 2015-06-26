@@ -29,7 +29,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
   private static final String DEFAULT_NAMESPACE = "ycsb";
 
   private static final int RESULT_OK = 0;
-  private static final int RESULT_ERROR = 1;
+  private static final int RESULT_ERROR = -1;
 
   private static final int WRITE_OVERLOAD_DELAY = 5;
   private static final int WRITE_OVERLOAD_TRIES = 3;
