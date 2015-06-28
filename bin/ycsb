@@ -99,7 +99,7 @@ def find_jars(dir, database):
 
 def get_ycsb_home():
     dir = os.path.abspath(os.path.dirname(sys.argv[0]))
-    while "CHANGELOG" not in os.listdir(dir):
+    while "LICENSE.txt" not in os.listdir(dir):
         dir = os.path.join(dir, os.path.pardir)
     return os.path.abspath(dir)
 
