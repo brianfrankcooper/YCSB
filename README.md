@@ -14,7 +14,7 @@ Getting Started
 1. Download the latest release of YCSB:
 
     ```sh
-    wget https://github.com/downloads/brianfrankcooper/YCSB/ycsb-0.2.0.tar.gz
+    curl -O https://github.com/brianfrankcooper/YCSB/releases/download/0.2.0/ycsb-0.2.0.tar.gz
     tar xfvz ycsb-0.2.0.tar.gz
     cd ycsb-0.2.0
     ```
