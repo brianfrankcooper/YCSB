@@ -47,6 +47,20 @@ Please see the general instructions in the `doc` folder if you are not sure how 
 bin/ycsb run hbase -P workloads/workloada -cp /HBASE-HOME-DIR/conf -p table=usertable -p columnfamily=family -p clientbuffering=true
 ```
 
+### 5. Kerberos
+For secure Hadoop, you could enable kerberos authentication option.
+
+```
+kinit -kt /path/to/keytab user@XXX.COM
+bin/ycsb run hbase -P workloads/workloada -cp /HBASE-HOME-DIR/conf -p table=usertable -p columnfamily=family -p kerberos=true
+```
+
+Or specify kerberos principle and keytab as options:
+
+```
+bin/ycsb run hbase -P workloads/workloada -cp /HBASE-HOME-DIR/conf -p table=usertable -p columnfamily=family -p kerberos=true -p kerberosuser=user@XXX.COM -p kerberoskeytab=/path/to/keytab
+```
+
 ## Configuration Options
 Following options can be configurable using `-p`.
 
@@ -54,3 +68,6 @@ Following options can be configurable using `-p`.
 * `clientbuffering` : If true, buffer mutations on the client. The default is false.
 * `writebuffersize` : Buffer size to be used when `clientbuffering` is activated. The default is 12MB.
 * `debug` : If true, debugging logs are activated. The default is false.
+* `kerberos` : If true, use Kerberos authentication.
+* `kerberosuser` : Kerberos principle [optional].
+* `kerberoskeytab`: Kerberos keytab path [optional].
