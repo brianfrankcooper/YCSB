@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import fnmatch
 import io
 import os
 import shlex
@@ -87,13 +88,20 @@ def usage():
 
     return output.getvalue()
 
+def debug(message):
+    print >> sys.stderr, "[DEBUG] ", message
 
-def find_jars(dir, database):
+def warn(message):
+    print >> sys.stderr, "[WARN] ", message
+
+def error(message):
+    print >> sys.stderr, "[ERROR] ", message
+
+def find_jars(dir, glob='*.jar'):
     jars = []
     for (dirpath, dirnames, filenames) in os.walk(dir):
-        for filename in filenames:
-            if filename.endswith(".jar"):
-                jars.append(os.path.join(dirpath, filename))
+        for filename in fnmatch.filter(filenames, glob):
+            jars.append(os.path.join(dirpath, filename))
     return jars
 
 
@@ -103,6 +111,35 @@ def get_ycsb_home():
         dir = os.path.join(dir, os.path.pardir)
     return os.path.abspath(dir)
 
+def is_distribution():
+    # If there's a top level pom, we're a source checkout. otherwise a dist artifact
+    return "pom.xml" not in os.listdir(get_ycsb_home())
+
+# Run the maven dependency plugin to get the local jar paths.
+# presumes maven can run, so should only be run on source checkouts
+# will invoke the 'package' goal for the given binding in order to resolve intra-project deps
+# presumes maven properly handles system-specific path separators
+def get_classpath_from_maven(database):
+    try:
+        debug("Running 'mvn -pl com.yahoo.ycsb:"+database+"-binding -am package -DskipTests "
+              "dependency:build-classpath -DincludeScope=compile -Dmdep.outputFilterFile=true'")
+        mvn_output = subprocess.check_output(["mvn", "-pl", "com.yahoo.ycsb:"+database+"-binding",
+                                              "-am", "package", "-DskipTests",
+                                              "dependency:build-classpath",
+                                              "-DincludeScope=compile",
+                                              "-Dmdep.outputFilterFile=true"])
+        # the above outputs a "classpath=/path/tojar:/path/to/other/jar" for each module
+        # the last module will be the datastore binding
+        line = [x for x in mvn_output.splitlines() if x.startswith("classpath=")][-1:]
+        return line[0][len("classpath="):]
+    except subprocess.CalledProcessError, err:
+        error("Attempting to generate a classpath from Maven failed "
+              "with return code '" + str(err.returncode) + "'. The output from "
+              "Maven follows, try running "
+              "'mvn -DskipTests package dependency:build=classpath' on your "
+              "own and correct errors." + os.linesep + os.linesep + "mvn output:" + os.linesep
+              + err.output)
+        sys.exit(err.returncode)
 
 def main():
     p = argparse.ArgumentParser(
@@ -129,10 +166,30 @@ def main():
     db_classname = DATABASES[args.database]
     command = COMMANDS[args.command]["command"]
     main_classname = COMMANDS[args.command]["main"]
-    db_dir = os.path.join(ycsb_home, args.database + "-binding")
-    cp = [ os.path.join(db_dir, "conf") ]
-    cp.extend(find_jars(os.path.join(ycsb_home, "lib"), args.database))
-    cp.extend(find_jars(os.path.join(db_dir, "lib"), args.database))
+
+    # Classpath set up
+    binding = args.database.split("-")[0]
+    if is_distribution():
+        db_dir = os.path.join(ycsb_home, binding + "-binding")
+        # include top-level conf for when we're a binding-specific artifact.
+        # If we add top-level conf to the general artifact, starting here
+        # will allow binding-specific conf to override (because it's prepended)
+        cp = [os.path.join(ycsb_home, "conf")]
+        cp.extend(find_jars(os.path.join(ycsb_home, "lib")))
+        cp.extend(find_jars(os.path.join(db_dir, "lib")))
+    else:
+        warn("Running against a source checkout. In order to get our runtime "
+             "dependencies we'll have to invoke Maven. Depending on the state "
+             "of your system, this may take ~30-45 seconds")
+        db_dir = os.path.join(ycsb_home, binding)
+        # goes first so we can rely on side-effect of package
+        maven_says = get_classpath_from_maven(binding)
+        # TODO when we have a version property, skip the glob
+        cp = find_jars(os.path.join(db_dir, "target"),
+                       binding + "-binding*.jar")
+        # alredy in jar:jar:jar form
+        cp.append(maven_says)
+    cp.insert(0, os.path.join(db_dir, "conf"))
     classpath = os.pathsep.join(cp)
     if args.classpath:
         classpath = os.pathsep.join([args.classpath, classpath])
