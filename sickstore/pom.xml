@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>com.yahoo.ycsb</groupId>
+		<artifactId>binding-parent</artifactId>
+		<version>0.3.0-SNAPSHOT</version>
+		<relativePath>../binding-parent</relativePath>
+	</parent>
+
+	<artifactId>sickstore-binding</artifactId>
+	<name>SickStore Binding</name>
+	<packaging>jar</packaging> 
+
+	<repositories>
+    <repository>
+      <id>nosqlmark</id>
+      <name>NoSQLMark repo</name>
+      <url>http://nosqlmark.informatik.uni-hamburg.de/maven2/</url>
+    </repository>
+	</repositories>
+
+	<dependencies>
+		<dependency>
+			<groupId>de.uni-hamburg.informatik.nosqlmark</groupId>
+			<artifactId>sickstore</artifactId>
+			<version>${sickstore.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.yahoo.ycsb</groupId>
+			<artifactId>core</artifactId>
+			<version>${project.version}</version>
+			<scope>provided</scope>
+		</dependency>
+	</dependencies>
+</project>
