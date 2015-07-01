@@ -37,7 +37,6 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
   private String namespace = null;
 
   private com.aerospike.client.AerospikeClient client = null;
-  private int writeOverloadTries = WRITE_OVERLOAD_TRIES;
 
   private Policy readPolicy = new Policy();
   private WritePolicy insertPolicy = new WritePolicy();
@@ -128,10 +127,6 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
 
   private int write(String table, String key, WritePolicy writePolicy,
       HashMap<String, ByteIterator> values) {
-    if (writeOverloadTries == 0) {
-      return RESULT_ERROR;
-    }
-
     Bin[] bins = new Bin[values.size()];
     int index = 0;
 
@@ -143,22 +138,13 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
     int delay = WRITE_OVERLOAD_DELAY;
     Key keyObj = new Key(namespace, table, key);
 
-    while (true) {
+    for (int tries = 0; tries < WRITE_OVERLOAD_TRIES; ++tries) {
       try {
         client.put(writePolicy, keyObj, bins);
-        writeOverloadTries = WRITE_OVERLOAD_TRIES;
         return RESULT_OK;
       } catch (AerospikeException e) {
         if (e.getResultCode() != ResultCode.DEVICE_OVERLOAD) {
           System.err.println("Error while writing key " + key + ": " + e);
-          return RESULT_ERROR;
-        }
-
-        if (--writeOverloadTries == 0) {
-          if (DEBUG) {
-            System.err.println("Device overload: " + e);
-          }
-
           return RESULT_ERROR;
         }
 
@@ -173,6 +159,12 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
         delay *= 2;
       }
     }
+
+    if (DEBUG) {
+      System.err.println("Device overload");
+    }
+
+    return RESULT_ERROR;
   }
 
   @Override
