@@ -71,6 +71,7 @@
     <couchbase.version>1.1.8</couchbase.version>
     <sickstore.version>1.0</sickstore.version>
     <tarantool.version>1.6.1</tarantool.version>
+    <aerospike.version>3.1.2</aerospike.version>
   </properties>
 
   <modules>
@@ -79,6 +80,7 @@
     <module>binding-parent</module>
     <!-- all the datastore bindings, lex sorted please -->
     <module>accumulo</module>
+    <module>aerospike</module>
     <module>cassandra</module>
     <module>couchbase</module>
     <module>distribution</module>
@@ -127,6 +129,24 @@
             </goals>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+            <configuration>
+              <failOnError>false</failOnError>
+            </configuration>
+          </execution>
+        </executions>
+        <configuration>
+          <additionalparam>-Xdoclint:none</additionalparam>
+        </configuration>
       </plugin>
     </plugins>
   </build>

@@ -15,12 +15,12 @@
  * LICENSE file.
  */
 package com.yahoo.ycsb.db;
-import de.unihamburg.sickstore.Server;
-import  de.unihamburg.sickstore.database.SickServer;
+
+import de.unihamburg.sickstore.ServerStartup;
 
 public class SickStore {
 
 	public static void main(String[] args) throws Exception {
-		Server.main(args);
+		ServerStartup.main(args);
 	}
 }
