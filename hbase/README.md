@@ -47,8 +47,8 @@ Please see the general instructions in the `doc` folder if you are not sure how 
 bin/ycsb run hbase -P workloads/workloada -cp /HBASE-HOME-DIR/conf -p table=usertable -p columnfamily=family -p clientbuffering=true
 ```
 
-### 5. Kerberos
-For secure Hadoop, you could enable kerberos authentication option.
+### 5. Kerberos (optional)
+For secure HBase you can enable kerberos authentication option.
 
 ```
 kinit -kt /path/to/keytab user@XXX.COM
