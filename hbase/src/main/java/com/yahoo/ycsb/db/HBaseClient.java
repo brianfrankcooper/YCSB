@@ -109,30 +109,32 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             System.err.println("Error, must specify a columnfamily for HBase table");
             throw new DBException("No columnfamily specified");
         }
-        _columnFamilyBytes = Bytes.toBytes(_columnFamily);
+      _columnFamilyBytes = Bytes.toBytes(_columnFamily);
 
-        // Terminate right now if table does not exist, since the client
-        // will not propagate this error upstream once the workload
-        // starts.
-        String table = com.yahoo.ycsb.workloads.CoreWorkload.table;
-        try
-        {
-            //if using kerberos for authentication, setup UserGroupInformation.
-            if (_useKerberos)
-            {
-                config.set("hadoop.security.authentication", "kerberos");
-                UserGroupInformation.setConfiguration(config);
-            }
-            if (_kerberosUser != null && _kerberosKeytab != null)
-                UserGroupInformation.loginUserFromKeytab(_kerberosUser, _kerberosKeytab);
+      // Terminate right now if table does not exist, since the client
+      // will not propagate this error upstream once the workload
+      // starts.
+      String table = com.yahoo.ycsb.workloads.CoreWorkload.table;
+      try
+	  {
+          //if using kerberos for authentication, setup UserGroupInformation.
+          if (_useKerberos)
+          {
+              config.set("hadoop.security.authentication", "kerberos");
+              UserGroupInformation.setConfiguration(config);
+          }
+          if (_kerberosUser != null && _kerberosKeytab != null)
+          {
+              UserGroupInformation.loginUserFromKeytab(_kerberosUser, _kerberosKeytab);
+          }
 
-            HTable ht = new HTable(config, table);
-            HTableDescriptor dsc = ht.getTableDescriptor();
-        }
-        catch (IOException e)
-        {
-            throw new DBException(e);
-        }
+	      HTable ht = new HTable(config, table);
+	      HTableDescriptor dsc = ht.getTableDescriptor();
+	  }
+      catch (IOException e)
+	  {
+	      throw new DBException(e);
+	  }
     }
 
     /**
