@@ -743,7 +743,15 @@ public class Client
 			}
 
 			
-            Thread t=new ClientThread(db,dotransactions,workload,threadid,threadcount,props,opcount/threadcount, targetperthreadperms);
+            int threadopcount = opcount/threadcount;
+
+            // ensure correct number of operations, in case opcount is not a multiple of threadcount
+            if (threadid<opcount%threadcount)
+            {
+              ++threadopcount;
+            }
+
+            Thread t=new ClientThread(db,dotransactions,workload,threadid,threadcount,props,threadopcount, targetperthreadperms);
 
 			threads.add(t);
 			//t.start();
