@@ -14,8 +14,13 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.jboss.as</groupId>
-      <artifactId>jboss-as-clustering-infinispan</artifactId>
+      <groupId>org.infinispan</groupId>
+      <artifactId>infinispan-client-hotrod</artifactId>
+      <version>${infinispan.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.infinispan</groupId>
+      <artifactId>infinispan-core</artifactId>
       <version>${infinispan.version}</version>
     </dependency>
     <dependency>

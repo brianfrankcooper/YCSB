@@ -8,3 +8,6 @@ output*
 .project
 .classpath
 .settings
+.checkstyle
+
+.DS_Store
