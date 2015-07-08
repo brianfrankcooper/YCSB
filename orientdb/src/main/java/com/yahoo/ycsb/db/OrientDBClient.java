@@ -7,16 +7,11 @@
 
 package com.yahoo.ycsb.db;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
-
 import com.orientechnologies.orient.core.config.OGlobalConfiguration;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
+import com.orientechnologies.orient.core.db.record.OIdentifiable;
 import com.orientechnologies.orient.core.dictionary.ODictionary;
+import com.orientechnologies.orient.core.index.OIndexCursor;
 import com.orientechnologies.orient.core.intent.OIntentMassiveInsert;
 import com.orientechnologies.orient.core.record.ORecordInternal;
 import com.orientechnologies.orient.core.record.impl.ODocument;
@@ -24,6 +19,12 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.StringByteIterator;
+
+import java.util.HashMap;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
+import java.util.Vector;
 
 /**
  * OrientDB client for YCSB framework.
@@ -40,8 +41,8 @@ import com.yahoo.ycsb.StringByteIterator;
  */
 public class OrientDBClient extends DB {
 
-  private ODatabaseDocumentTx             db;
   private static final String             CLASS = "usertable";
+  private ODatabaseDocumentTx             db;
   private ODictionary<ORecordInternal<?>> dictionary;
 
   /**
@@ -51,7 +52,12 @@ public class OrientDBClient extends DB {
     // initialize OrientDB driver
     Properties props = getProperties();
 
-    String url = props.getProperty("orientdb.url", "local:C:/temp/databases/ycsb");
+    String url;
+    if (System.getProperty("os.name").toLowerCase().contains("win"))
+      url = props.getProperty("orientdb.url", "plocal:C:/temp/databases/ycsb");
+    else
+      url = props.getProperty("orientdb.url", "plocal:/temp/databases/ycsb");
+
     String user = props.getProperty("orientdb.user", "admin");
     String password = props.getProperty("orientdb.password", "admin");
     Boolean newdb = Boolean.parseBoolean(props.getProperty("orientdb.newdb", "false"));
@@ -206,13 +212,16 @@ public class OrientDBClient extends DB {
    */
   public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     try {
-      final Collection<ODocument> documents = dictionary.getIndex().getEntriesMajor(startkey, true, recordcount);
-      for (ODocument document : documents) {
-        final HashMap<String, ByteIterator> entry = new HashMap<String, ByteIterator>(fields.size());
-        result.add(entry);
+      final OIndexCursor entries = dictionary.getIndex().iterateEntriesMajor(startkey, true, true);
+      while (entries.hasNext()) {
+        final Entry<Object, OIdentifiable> entry = entries.nextEntry();
+        final ODocument document = entry.getValue().getRecord();
+
+        final HashMap<String, ByteIterator> map = new HashMap<String, ByteIterator>();
+        result.add(map);
 
         for (String field : fields)
-          entry.put(field, new StringByteIterator((String) document.field(field)));
+          map.put(field, new StringByteIterator((String) document.field(field)));
       }
 
       return 0;
