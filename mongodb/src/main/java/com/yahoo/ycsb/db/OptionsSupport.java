@@ -30,7 +30,7 @@ import java.util.Properties;
 public final class OptionsSupport {
 
     /** Value for an unavailable property. */
-    protected static final String UNAVAILABLE = "n/a";
+    private static final String UNAVAILABLE = "n/a";
 
     /**
      * Updates the URL with the appropriate attributes if legacy properties are
