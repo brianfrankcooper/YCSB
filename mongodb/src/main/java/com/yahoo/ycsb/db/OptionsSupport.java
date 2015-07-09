@@ -76,7 +76,7 @@ public final class OptionsSupport {
                 result = addUrlOption(result, "w", "1");
             }
             else if ("journaled".equals(writeConcernType)) {
-                result = addUrlOption(result, "journal", "true");
+                result = addUrlOption(result, "j", "true");
             }
             else if ("replica_acknowledged".equals(writeConcernType)) {
                 result = addUrlOption(result, "w", "2");
