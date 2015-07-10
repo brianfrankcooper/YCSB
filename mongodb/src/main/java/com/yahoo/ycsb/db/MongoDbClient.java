@@ -353,6 +353,9 @@ public class MongoDbClient extends DB {
                 System.err.println("Nothing found in scan for key " + startkey);
                 return 1;
             }
+
+            result.ensureCapacity(recordcount);
+
             while (cursor.hasNext()) {
                 HashMap<String, ByteIterator> resultMap = new HashMap<String, ByteIterator>();
 
