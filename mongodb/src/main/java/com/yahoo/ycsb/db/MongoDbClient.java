@@ -202,7 +202,9 @@ public class MongoDbClient extends DB {
                 writeConcern = uri.getOptions().getWriteConcern();
 
                 mongoClient = new MongoClient(uri);
-                database = mongoClient.getDatabase(databaseName);
+                database = mongoClient.getDatabase(databaseName)
+                                      .withReadPreference(readPreference)
+                                      .withWriteConcern(writeConcern);
 
                 System.out.println("mongo client connection created with "
                         + url);
@@ -244,8 +246,7 @@ public class MongoDbClient extends DB {
 
             bulkInserts.add(toInsert);
             if (bulkInserts.size() == batchSize) {
-                collection.withWriteConcern(writeConcern)
-                          .insertMany(bulkInserts, INSERT_MANY_OPTIONS);
+                collection.insertMany(bulkInserts, INSERT_MANY_OPTIONS);
                 bulkInserts.clear();
             }
             return 0;
@@ -281,9 +282,7 @@ public class MongoDbClient extends DB {
                     .getCollection(table);
             Document query = new Document("_id", key);
 
-            FindIterable<Document> findIterable = collection
-                                                  .withReadPreference(readPreference)
-                                                  .find(query);
+            FindIterable<Document> findIterable = collection.find(query);
 
             Document queryResult = null;
             if (fields != null) {
@@ -344,7 +343,7 @@ public class MongoDbClient extends DB {
                 }
             }
 
-            cursor = collection.withReadPreference(readPreference).find(query)
+            cursor = collection.find(query)
                     .projection(projection).sort(sort).limit(recordcount).iterator();
             if (!cursor.hasNext()) {
                 System.err.println("Nothing found in scan for key " + startkey);
@@ -400,8 +399,7 @@ public class MongoDbClient extends DB {
             }
             Document update = new Document("$set", fieldsToSet);
 
-            UpdateResult result = collection.withWriteConcern(writeConcern)
-                    .updateOne(query, update);
+            UpdateResult result = collection.updateOne(query, update);
             if (result.wasAcknowledged() && result.getMatchedCount() == 0) {
                 System.err.println("Nothing updated for key " + key);
                 return 1;
