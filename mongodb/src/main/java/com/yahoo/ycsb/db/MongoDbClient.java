@@ -284,7 +284,6 @@ public class MongoDbClient extends DB {
 
             FindIterable<Document> findIterable = collection.find(query);
 
-            Document queryResult = null;
             if (fields != null) {
                 Document projection = new Document();
                 for (String field : fields) {
@@ -293,7 +292,7 @@ public class MongoDbClient extends DB {
                 findIterable.projection(projection);
             }
 
-            queryResult = findIterable.first();
+            Document queryResult = findIterable.first();
 
             if (queryResult != null) {
                 fillMap(result, queryResult);
@@ -335,16 +334,21 @@ public class MongoDbClient extends DB {
             Document scanRange = new Document("$gte", startkey);
             Document query = new Document("_id", scanRange);
             Document sort = new Document("_id", INCLUDE);
-            Document projection = null;
+
+            FindIterable<Document> findIterable = collection.find(query)
+                                                            .sort(sort)
+                                                            .limit(recordcount);
+
             if (fields != null) {
-                projection = new Document();
+                Document projection = new Document();
                 for (String fieldName : fields) {
                     projection.put(fieldName, INCLUDE);
                 }
+                findIterable.projection(projection);
             }
 
-            cursor = collection.find(query)
-                    .projection(projection).sort(sort).limit(recordcount).iterator();
+            cursor = findIterable.iterator();
+
             if (!cursor.hasNext()) {
                 System.err.println("Nothing found in scan for key " + startkey);
                 return 1;
