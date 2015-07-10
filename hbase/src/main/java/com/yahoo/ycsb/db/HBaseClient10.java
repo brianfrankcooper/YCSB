@@ -24,6 +24,7 @@ import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.measurements.Measurements;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -92,6 +93,9 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
      */
     public boolean _clientSideBuffering = false;
     public long _writeBufferSize = 1024 * 1024 * 12;
+    public boolean _useKerberos = false;
+    public String _kerberosUser = null;
+    public String _kerberosKeytab = null;
 
     public static final int Ok=0;
     public static final int ServerError=-1;
@@ -128,6 +132,13 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             _debug=true;
         }
 
+        if (getProperties().containsKey("kerberos"))
+        {
+            _useKerberos = true;
+        }
+        _kerberosUser = getProperties().getProperty("kerberosuser");
+        _kerberosKeytab = getProperties().getProperty("kerberoskeytab");
+
         _columnFamily = getProperties().getProperty("columnfamily");
         if (_columnFamily == null)
         {
@@ -142,6 +153,17 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
       String table = com.yahoo.ycsb.workloads.CoreWorkload.table;
       try
 	  {
+          //if using kerberos for authentication, setup UserGroupInformation.
+          if (_useKerberos)
+          {
+              config.set("hadoop.security.authentication", "kerberos");
+              UserGroupInformation.setConfiguration(config);
+          }
+          if (_kerberosUser != null && _kerberosKeytab != null)
+          {
+              UserGroupInformation.loginUserFromKeytab(_kerberosUser, _kerberosKeytab);
+          }
+
 	      final TableName tableName = TableName.valueOf(table);
 	      HTableDescriptor dsc = _connection.getTable(tableName).getTableDescriptor();
 	  }
