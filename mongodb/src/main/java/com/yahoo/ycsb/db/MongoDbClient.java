@@ -58,7 +58,7 @@ public class MongoDbClient extends DB {
     protected static final Integer INCLUDE = Integer.valueOf(1);
 
     /** The options to use for inserting many documents */
-    protected static final InsertManyOptions INSERT_MANY_OPTIONS =
+    protected static final InsertManyOptions INSERT_UNORDERED =
     new InsertManyOptions().ordered(false);
 
     /**
@@ -246,7 +246,7 @@ public class MongoDbClient extends DB {
 
             bulkInserts.add(toInsert);
             if (bulkInserts.size() == batchSize) {
-                collection.insertMany(bulkInserts, INSERT_MANY_OPTIONS);
+                collection.insertMany(bulkInserts, INSERT_UNORDERED);
                 bulkInserts.clear();
             }
             return 0;
