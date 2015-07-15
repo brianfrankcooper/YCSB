@@ -48,7 +48,6 @@ public class OneMeasurementHistogram extends OneMeasurement
 	
 	int min;
 	int max;
-	HashMap<Integer,int[]> returncodes;
 
 	public OneMeasurementHistogram(String name, Properties props)
 	{
@@ -62,24 +61,7 @@ public class OneMeasurementHistogram extends OneMeasurement
 		windowtotallatency=0;
 		min=-1;
 		max=-1;
-		returncodes=new HashMap<Integer,int[]>();
 	}
-
-	/* (non-Javadoc)
-	 * @see com.yahoo.ycsb.OneMeasurement#reportReturnCode(int)
-	 */
-	public synchronized void reportReturnCode(int code)
-	{
-		Integer Icode=code;
-		if (!returncodes.containsKey(Icode))
-		{
-			int[] val=new int[1];
-			val[0]=0;
-			returncodes.put(Icode,val);
-		}
-		returncodes.get(Icode)[0]++;
-	}
-
 
 	/* (non-Javadoc)
 	 * @see com.yahoo.ycsb.OneMeasurement#measure(int)
@@ -136,11 +118,9 @@ public class OneMeasurementHistogram extends OneMeasurement
       }
     }
 
-    for (Integer I : returncodes.keySet())
-    {
-      int[] val=returncodes.get(I);
-      exporter.write(getName(), "Return="+I, val[0]);
-    }     
+    for (Map.Entry<Integer, AtomicInteger> entry : returncodes.entrySet()) {
+      exporter.write(getName(), "Return=" + entry.getKey(), entry.getValue().get());
+    }
 
     for (int i=0; i<_buckets; i++)
     {
