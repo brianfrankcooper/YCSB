@@ -46,13 +46,11 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
     final HistogramLogWriter histogramLogWriter;
     
     final Recorder histogram = new Recorder(3);
-    final ConcurrentHashMap<Integer, AtomicInteger> returncodes;
 
     Histogram totalHistogram;
 
     public OneMeasurementHdrHistogram(String name, Properties props) {
         super(name);
-        returncodes = new ConcurrentHashMap<Integer, AtomicInteger>();
         boolean shouldLog = Boolean.parseBoolean(props.getProperty("hdrhistogram.fileoutput", "false"));
         if (!shouldLog) {
             log = null;
@@ -70,24 +68,6 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
         histogramLogWriter.outputLogFormatVersion();
         histogramLogWriter.outputStartTime(System.currentTimeMillis());
         histogramLogWriter.outputLegend();
-    }
-
-    /**
-     * No need for synchronization, using CHM to deal with that
-     * 
-     * @see com.yahoo.ycsb.OneMeasurement#reportReturnCode(int)
-     */
-    public void reportReturnCode(int code) {
-        Integer Icode = code;
-        AtomicInteger counter = returncodes.get(Icode);
-        if (counter == null) {
-            AtomicInteger other = returncodes.putIfAbsent(Icode, counter = new AtomicInteger());
-            if (other != null) {
-                counter = other;
-            }
-        }
-
-        counter.incrementAndGet();
     }
 
     /**

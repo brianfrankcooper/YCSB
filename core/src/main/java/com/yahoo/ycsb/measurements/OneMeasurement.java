@@ -27,8 +27,10 @@ import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 public abstract class OneMeasurement {
 
 	String _name;
+  final ConcurrentHashMap<Integer, AtomicInteger> returncodes;
 	
 	public String getName() {
+    returncodes = new ConcurrentHashMap<Integer, AtomicInteger>();
 		return _name;
 	}
 
@@ -39,7 +41,22 @@ public abstract class OneMeasurement {
 		this._name = _name;
 	}
 
-	public abstract void reportReturnCode(int code);
+  /**
+   * No need for synchronization, using CHM to deal with that
+   */
+  public void reportReturnCode(int code) {
+    Integer Icode = code;
+
+    AtomicInteger counter = returncodes.get(Icode);
+    if (counter == null) {
+      AtomicInteger other = returncodes.putIfAbsent(Icode, counter = new AtomicInteger());
+      if (other != null) {
+        counter = other;
+      }
+    }
+
+    counter.incrementAndGet();
+  }
 
 	public abstract void measure(int latency);
 

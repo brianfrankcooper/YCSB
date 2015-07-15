@@ -68,14 +68,11 @@ public class OneMeasurementTimeSeries extends OneMeasurement
 	int min=-1;
 	int max=-1;
 
-	private HashMap<Integer, int[]> returncodes;
-	
 	public OneMeasurementTimeSeries(String name, Properties props)
 	{
 		super(name);
 		_granularity=Integer.parseInt(props.getProperty(GRANULARITY,GRANULARITY_DEFAULT));
 		_measurements=new Vector<SeriesUnit>();
-		returncodes=new HashMap<Integer,int[]>();
 	}
 	
 	void checkEndOfUnit(boolean forceend)
@@ -138,30 +135,16 @@ public class OneMeasurementTimeSeries extends OneMeasurement
 
     //TODO: 95th and 99th percentile latency
 
-    for (Integer I : returncodes.keySet())
-    {
-      int[] val=returncodes.get(I);
-      exporter.write(getName(), "Return="+I, val[0]);
-    }     
+
+    for (Map.Entry<Integer, AtomicInteger> entry : returncodes.entrySet()) {
+      exporter.write(getName(), "Return=" + entry.getKey(), entry.getValue().get());
+    }
 
     for (SeriesUnit unit : _measurements)
     {
       exporter.write(getName(), Long.toString(unit.time), unit.average);
     }
   }
-	
-	@Override
-	public void reportReturnCode(int code) {
-		Integer Icode=code;
-		if (!returncodes.containsKey(Icode))
-		{
-			int[] val=new int[1];
-			val[0]=0;
-			returncodes.put(Icode,val);
-		}
-		returncodes.get(Icode)[0]++;
-
-	}
 
 	@Override
 	public String getSummary() {
