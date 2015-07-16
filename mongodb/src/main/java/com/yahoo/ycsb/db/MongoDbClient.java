@@ -11,7 +11,6 @@ package com.yahoo.ycsb.db;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -19,6 +18,7 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.InsertManyOptions;
 import org.bson.Document;
 import org.bson.types.Binary;
@@ -27,13 +27,10 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
-import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.BulkWriteOptions;
-import com.mongodb.client.model.InsertOneModel;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
@@ -55,11 +52,15 @@ import com.yahoo.ycsb.DBException;
 public class MongoDbClient extends DB {
 
     /** Used to include a field in a response. */
-    protected static final Integer INCLUDE = Integer.valueOf(1);
+    private static final Integer INCLUDE = Integer.valueOf(1);
 
     /** The options to use for inserting many documents */
-    protected static final InsertManyOptions INSERT_UNORDERED =
+    private static final InsertManyOptions INSERT_UNORDERED =
     new InsertManyOptions().ordered(false);
+
+    /** The options to use for inserting a single document */
+    private static final UpdateOptions UPDATE_WITH_UPSERT =
+    new UpdateOptions().upsert(true);
 
     /**
      * The database name to access.
@@ -244,10 +245,20 @@ public class MongoDbClient extends DB {
                 toInsert.put(entry.getKey(), entry.getValue().toArray());
             }
 
-            bulkInserts.add(toInsert);
-            if (bulkInserts.size() == batchSize) {
-                collection.insertMany(bulkInserts, INSERT_UNORDERED);
-                bulkInserts.clear();
+            if (batchSize == 1) {
+                // this is effectively an insert, but using an upsert instead due
+                // to current inability of the framework to clean up after itself
+                // between test runs.
+                collection.replaceOne(new Document("_id", toInsert.get("_id")),
+                                      toInsert,
+                                      UPDATE_WITH_UPSERT);
+            }
+            else {
+                bulkInserts.add(toInsert);
+                if (bulkInserts.size() == batchSize) {
+                    collection.insertMany(bulkInserts, INSERT_UNORDERED);
+                    bulkInserts.clear();
+                }
             }
             return 0;
         }
