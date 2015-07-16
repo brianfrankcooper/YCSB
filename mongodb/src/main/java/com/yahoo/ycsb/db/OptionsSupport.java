@@ -76,7 +76,8 @@ public final class OptionsSupport {
                 result = addUrlOption(result, "w", "1");
             }
             else if ("journaled".equals(writeConcernType)) {
-                result = addUrlOption(result, "j", "true");
+                result = addUrlOption(result, "journal", "true"); // this is the documented option name
+                result = addUrlOption(result, "j", "true");       // but keep this until MongoDB Java driver supports "journal" option
             }
             else if ("replica_acknowledged".equals(writeConcernType)) {
                 result = addUrlOption(result, "w", "2");
