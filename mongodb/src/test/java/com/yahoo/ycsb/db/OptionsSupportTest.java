@@ -110,7 +110,7 @@ public class OptionsSupportTest {
         assertThat(
                 updateUrl("mongodb://locahost:27017/?foo=bar",
                         props("mongodb.writeConcern", "journaled")),
-                is("mongodb://locahost:27017/?foo=bar&journal=true"));
+                is("mongodb://locahost:27017/?foo=bar&journal=true&j=true"));
         assertThat(
                 updateUrl("mongodb://locahost:27017/?foo=bar",
                         props("mongodb.writeConcern", "replica_acknowledged")),
