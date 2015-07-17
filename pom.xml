@@ -60,7 +60,7 @@
     <infinispan.version>7.2.2.Final</infinispan.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
     <!--<mapkeeper.version>1.0</mapkeeper.version>-->
-    <mongodb.version>3.0.2</mongodb.version>
+    <mongodb.version>3.0.3</mongodb.version>
     <mongodb.async.version>2.0.1</mongodb.async.version>
     <orientdb.version>1.0.1</orientdb.version>
     <redis.version>2.0.0</redis.version>
