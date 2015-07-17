@@ -121,16 +121,20 @@ class StatusThread extends Thread
     SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
 
     long totalops=0;
+    long todoops=0;
 
     // Calculate the total number of operations completed.
     for (ClientThread t : _clients)
     {
       totalops+=t.getOpsDone();
+      todoops+=t.getOpsTodo();
     }
 
 
     long interval=endIntervalMs-startTimeMs;
+    double throughput=1000.0*(((double)totalops)/(double)interval);
     double curthroughput=1000.0*(((double)(totalops-lastTotalOps))/((double)(endIntervalMs-startIntervalMs)));
+    long estremaining = (long) Math.ceil(todoops / throughput);
 
 
     DecimalFormat d = new DecimalFormat("#.##");
@@ -141,6 +145,9 @@ class StatusThread extends Thread
 
     if (totalops != 0) {
       msg.append(d.format(curthroughput)).append(" current ops/sec; ");
+    }
+    if (todoops != 0) {
+        msg.append("est completion in ").append(RemainingFormatter.format(estremaining));
     }
 
     msg.append(Measurements.getMeasurements().getSummary());
@@ -180,6 +187,39 @@ class StatusThread extends Thread
 
     return alldone;
   }
+}
+
+/**
+ * Turn seconds remaining into more useful units.
+ * i.e. if there are hours or days worth of seconds, use them.
+ */
+class RemainingFormatter {
+	public static StringBuilder format(long seconds) {
+		StringBuilder time = new StringBuilder();
+		long days = TimeUnit.SECONDS.toDays(seconds);
+		if (days > 0) {
+			time.append(days).append(" days ");
+			seconds -= TimeUnit.DAYS.toSeconds(days);
+		}
+		long hours = TimeUnit.SECONDS.toHours(seconds);
+		if (hours > 0) {
+			time.append(hours).append(" hours ");
+			seconds -= TimeUnit.HOURS.toSeconds(hours);
+		}
+		/* Only include minute granularity if we're < 1 day. */
+		if (days < 1) {
+			long minutes = TimeUnit.SECONDS.toMinutes(seconds);
+			if (minutes > 0) {
+				time.append(minutes).append(" minutes ");
+				seconds -= TimeUnit.MINUTES.toSeconds(seconds);
+			}
+		}
+		/* Only bother to include seconds if we're < 1 minute */
+		if (time.length() == 0) {
+			time.append(seconds).append(" seconds ");
+		}
+		return time;
+	}
 }
 
 /**
@@ -356,7 +396,15 @@ class ClientThread extends Thread
       _measurements.setIntendedStartTimeNs(deadline);
     }
   }
-
+  
+  /**
+   * the total amount of work this thread is still expected to do
+   */
+  public int getOpsTodo()
+  {
+    int todo = _opcount - _opsdone;
+    return todo < 0 ? 0 : todo;
+  }
 }
 
 /**
