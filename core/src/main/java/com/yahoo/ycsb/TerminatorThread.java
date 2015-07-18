@@ -16,6 +16,7 @@
  */
 package com.yahoo.ycsb;
 
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -29,12 +30,12 @@ import java.util.Vector;
  */
 public class TerminatorThread extends Thread {
   
-  private Vector<Thread> threads;
+  private final List<? extends Thread> threads;
   private long maxExecutionTime;
   private Workload workload;
   private long waitTimeOutInMS;
   
-  public TerminatorThread(long maxExecutionTime, Vector<Thread> threads, 
+  public TerminatorThread(long maxExecutionTime, List<? extends Thread> threads, 
       Workload workload) {
     this.maxExecutionTime = maxExecutionTime;
     this.threads = threads;
