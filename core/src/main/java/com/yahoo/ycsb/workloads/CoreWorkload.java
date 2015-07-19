@@ -20,6 +20,7 @@ package com.yahoo.ycsb.workloads;
 import java.util.Properties;
 
 import com.yahoo.ycsb.*;
+import com.yahoo.ycsb.generator.AcknowledgedCounterGenerator;
 import com.yahoo.ycsb.generator.CounterGenerator;
 import com.yahoo.ycsb.generator.DiscreteGenerator;
 import com.yahoo.ycsb.generator.ExponentialGenerator;
@@ -299,7 +300,7 @@ public class CoreWorkload extends Workload
 
 	Generator fieldchooser;
 
-	CounterGenerator transactioninsertkeysequence;
+	AcknowledgedCounterGenerator transactioninsertkeysequence;
 	
 	IntegerGenerator scanlength;
 	
@@ -417,7 +418,7 @@ public class CoreWorkload extends Workload
 			operationchooser.addValue(readmodifywriteproportion,"READMODIFYWRITE");
 		}
 
-		transactioninsertkeysequence=new CounterGenerator(recordcount);
+		transactioninsertkeysequence=new AcknowledgedCounterGenerator(recordcount);
 		if (requestdistrib.compareTo("uniform")==0)
 		{
 			keychooser=new UniformIntegerGenerator(0,recordcount-1);
@@ -763,5 +764,6 @@ public class CoreWorkload extends Workload
 
 		HashMap<String, ByteIterator> values = buildValues(dbkey);
 		db.insert(table,dbkey,values);
+		transactioninsertkeysequence.acknowledge(keynum);
 	}
 }
