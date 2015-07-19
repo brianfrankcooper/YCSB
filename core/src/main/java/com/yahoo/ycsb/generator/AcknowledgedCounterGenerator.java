@@ -21,12 +21,19 @@ public class AcknowledgedCounterGenerator extends CounterGenerator
 		limit = countstart - 1;
 	}
 
+	/**
+	 * In this generator, the highest acknowledged counter value
+	 * (as opposed to the highest generated counter value).
+	 */
 	@Override
 	public int lastInt()
 	{
 		return limit;
 	}
 
+	/**
+	 * Make a generated counter value available via lastInt().
+	 */
 	public synchronized void acknowledge(int value)
 	{
 		ack.add(value);
