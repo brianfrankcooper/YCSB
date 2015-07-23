@@ -1,6 +1,6 @@
 package com.yahoo.ycsb.generator;
 
-import java.util.PriorityQueue;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A CounterGenerator that reports generated integers via lastInt()
@@ -8,7 +8,10 @@ import java.util.PriorityQueue;
  */
 public class AcknowledgedCounterGenerator extends CounterGenerator
 {
-	private PriorityQueue<Integer> ack;
+	private static final int WINDOW_SIZE = 10000;
+
+	private ReentrantLock lock;
+	private boolean[] window;
 	private int limit;
 
 	/**
@@ -17,7 +20,8 @@ public class AcknowledgedCounterGenerator extends CounterGenerator
 	public AcknowledgedCounterGenerator(int countstart)
 	{
 		super(countstart);
-		ack = new PriorityQueue<Integer>();
+		lock = new ReentrantLock();
+		window = new boolean[WINDOW_SIZE];
 		limit = countstart - 1;
 	}
 
@@ -34,17 +38,35 @@ public class AcknowledgedCounterGenerator extends CounterGenerator
 	/**
 	 * Make a generated counter value available via lastInt().
 	 */
-	public synchronized void acknowledge(int value)
+	public void acknowledge(int value)
 	{
-		ack.add(value);
+		if (value > limit + WINDOW_SIZE) {
+			throw new RuntimeException("This should be a different exception.");
+		}
 
-		// move a contiguous sequence from the priority queue
-		// over to the "limit" variable
+		window[value % WINDOW_SIZE] = true;
 
-		Integer min;
+		if (lock.tryLock()) {
+			// move a contiguous sequence from the window
+			// over to the "limit" variable
 
-		while ((min = ack.peek()) != null && min == limit + 1) {
-			limit = ack.poll();
+			try {
+				int index;
+
+				for (index = limit + 1; index <= value; ++index) {
+					int slot = index % WINDOW_SIZE;
+
+					if (!window[slot]) {
+						break;
+					}
+
+					window[slot] = false;
+				}
+
+				limit = index - 1;
+			} finally {
+				lock.unlock();
+			}
 		}
 	}
 }
