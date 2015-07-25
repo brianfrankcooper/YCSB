@@ -4,7 +4,7 @@
 
   <groupId>com.yahoo.ycsb</groupId>
   <artifactId>root</artifactId>
-  <version>0.3.0-RC2</version>
+  <version>0.3.0-RC3-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>YCSB Root</name>
