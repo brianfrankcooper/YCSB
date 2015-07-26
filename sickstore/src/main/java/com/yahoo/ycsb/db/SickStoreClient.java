@@ -25,6 +25,7 @@ import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.StringByteIterator;
 import de.unihamburg.sickstore.backend.Version;
 import de.unihamburg.sickstore.database.SickClient;
+import de.unihamburg.sickstore.database.WriteConcern;
 import de.unihamburg.sickstore.database.messages.exception.DatabaseException;
 
 /**
@@ -53,6 +54,8 @@ public class SickStoreClient extends DB {
 
     private SickClient client = null;
 
+    private WriteConcern writeConcern;
+
     /**
      * Cleanup any state for this DB. Called once per DB instance; there is one
      * DB instance per client thread.
@@ -75,7 +78,7 @@ public class SickStoreClient extends DB {
     @Override
     public int delete(String table, String key) {
         try {
-            client.delete(table, key);
+            client.delete(table, key, writeConcern);
             return STATUS_OK;
         } catch (Exception e) {
             e.printStackTrace();
@@ -92,11 +95,24 @@ public class SickStoreClient extends DB {
 
         // initialize SickStore driver
         Properties props = getProperties();
-        int timeout = Integer.parseInt(props.getProperty("sickstore.timeout",
-                "1000"));
+        int timeout = Integer.parseInt(props.getProperty("sickstore.timeout", "1000"));
         String url = props.getProperty("sickstore.url", "localhost");
-        int port = Integer.parseInt(props
-                .getProperty("sickstore.port", "54000"));
+        int port = Integer.parseInt(props.getProperty("sickstore.port", "54000"));
+
+        // configure write concern
+        writeConcern = new WriteConcern();
+        String ack = props.getProperty("sickstore.write_concern.ack", "1");
+        try {
+            writeConcern.setReplicaAcknowledgement(Integer.parseInt(ack));
+        } catch (NumberFormatException e) {
+            // no number given, assume it is a tag set
+            writeConcern.setReplicaAcknowledgementTagSet(ack);
+        }
+
+        String journaling = props.getProperty("sickstore.write_concern.journaling", "false");
+        if (journaling.equals("true")) {
+            writeConcern.setJournaling(true);
+        }
 
         try {
             client = new SickClient(timeout, url, port);
@@ -129,8 +145,8 @@ public class SickStoreClient extends DB {
             for (String k : values.keySet()) { 
                 Object v = values.get(k).toString();
                 version.put(k, (String) v); 
-            } 
-            client.insert(table, key, version); 
+            }
+            client.insert(table, key, version, writeConcern);
             return STATUS_OK;
         } catch (Exception e) {
             e.printStackTrace();
@@ -259,7 +275,7 @@ public class SickStoreClient extends DB {
             for (String column : values.keySet()) { 
                 version.put(column, values.get(column).toString());
             }
-            if (client.update(table, key, version)) {
+            if (client.update(table, key, version, writeConcern)) {
                 return STATUS_OK;
             } else {
                 return STATUS_FAIL;
