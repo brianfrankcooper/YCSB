@@ -119,9 +119,7 @@ public class OneMeasurementHistogram extends OneMeasurement
       }
     }
 
-    for (Map.Entry<Integer, AtomicInteger> entry : returncodes.entrySet()) {
-      exporter.write(getName(), "Return=" + entry.getKey(), entry.getValue().get());
-    }
+    exportReturnCodes(exporter);
 
     for (int i=0; i<_buckets; i++)
     {
