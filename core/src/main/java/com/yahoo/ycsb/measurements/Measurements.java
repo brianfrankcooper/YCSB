@@ -34,7 +34,7 @@ public class Measurements
 
   public static final String MEASUREMENT_TYPE_PROPERTY = "measurementtype";
 
-  private static final String MEASUREMENT_TYPE_PROPERTY_DEFAULT = "histogram";
+  private static final String MEASUREMENT_TYPE_PROPERTY_DEFAULT = "hdrhistogram";
   public static final String MEASUREMENT_INTERVAL = "measurement.interval";
   private static final String MEASUREMENT_INTERVAL_DEFAULT = "op";
 
