@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>com.yahoo.ycsb</groupId>
                 <artifactId>binding-parent</artifactId>
-                <version>0.3.0-RC3-SNAPSHOT</version>
+                <version>0.3.0-RC3</version>
                 <relativePath>../binding-parent</relativePath>
 	</parent>
 
