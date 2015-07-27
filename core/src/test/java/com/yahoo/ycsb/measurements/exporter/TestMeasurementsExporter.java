@@ -32,7 +32,9 @@ import static org.testng.AssertJUnit.assertTrue;
 public class TestMeasurementsExporter {
     @Test
     public void testJSONArrayMeasurementsExporter() throws IOException {
-        Measurements mm = new Measurements(new Properties());
+        Properties props = new Properties();
+        props.put(Measurements.MEASUREMENT_TYPE_PROPERTY, "histogram");
+        Measurements mm = new Measurements(props);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         JSONArrayMeasurementsExporter export = new JSONArrayMeasurementsExporter(out);
 
