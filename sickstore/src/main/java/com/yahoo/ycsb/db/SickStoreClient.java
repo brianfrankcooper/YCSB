@@ -224,11 +224,15 @@ public class SickStoreClient extends DB {
             Object value = null;
 
             try {
-                versions = client.scan(table, startkey, recordcount, fields,
-                        true);
+                versions = client.scan(table, startkey, recordcount, fields, true);
             } catch (DatabaseException e) {
                 e.printStackTrace();
                 return STATUS_FAIL;
+            }
+
+            if (fields == null && versions.size() > 0) {
+                // prevent NullPointerException
+                fields = versions.get(0).getValues().keySet();
             }
 
             for (int i = 0; i < versions.size(); i++) {
