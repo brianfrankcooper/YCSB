@@ -46,8 +46,7 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
   final PrintStream log;
   final HistogramLogWriter histogramLogWriter;
 
-  final Recorder histogram = new Recorder(3);
-
+  final Recorder histogram;
   Histogram totalHistogram;
 
   public OneMeasurementHdrHistogram(String name, Properties props) {
@@ -56,19 +55,22 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
     if (!shouldLog) {
       log = null;
       histogramLogWriter = null;
-      return;
+    } else {
+      try {
+        final String hdrOutputFilename = props.getProperty("hdrhistogram.output.path", "") + name + ".hdr";
+        log = new PrintStream(new FileOutputStream(hdrOutputFilename), false);
+      } catch (FileNotFoundException e) {
+        throw new RuntimeException("Failed to open hdr histogram output file", e);
+      }
+      histogramLogWriter = new HistogramLogWriter(log);
+      histogramLogWriter.outputComment("[Logging for: " + name + "]");
+      histogramLogWriter.outputLogFormatVersion();
+      long now = System.currentTimeMillis();
+      histogramLogWriter.outputStartTime(now);
+      histogramLogWriter.setBaseTime(now);
+      histogramLogWriter.outputLegend();
     }
-    try {
-      final String hdrOutputFilename = props.getProperty("hdrhistogram.output.path", "") +name+".hdr";
-      log = new PrintStream(new FileOutputStream(hdrOutputFilename), false);
-    } catch (FileNotFoundException e) {
-      throw new RuntimeException("Failed to open hdr histogram output file", e);
-    }
-    histogramLogWriter = new HistogramLogWriter(log);
-    histogramLogWriter.outputComment("[Logging for: " + name + "]");
-    histogramLogWriter.outputLogFormatVersion();
-    histogramLogWriter.outputStartTime(System.currentTimeMillis());
-    histogramLogWriter.outputLegend();
+    histogram = new Recorder(3);
   }
 
   /**
