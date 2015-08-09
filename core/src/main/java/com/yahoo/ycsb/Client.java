@@ -314,9 +314,9 @@ class ClientThread extends Thread
 		{
 		   //GH issue 4 - throws exception if _target>1 because random.nextInt argument must be >0
 		   //and the sleep() doesn't make sense for granularities < 1 ms anyway
-		   if ( (_target>0) && (_target<=1.0) ) 
+		   if ( (_targetOpsPerMs>0) && (_targetOpsPerMs<=1.0) ) 
 		   {
-		      sleep(Utils.random().nextInt((int)(1.0/_target)));
+		      sleep(Utils.random().nextInt((int)(1.0/_targetOpsTickNs)));
 		   }
 		}
 		catch (InterruptedException e)
@@ -328,7 +328,7 @@ class ClientThread extends Thread
 		{
 			if (_dotransactions)
 			{
-				long st=System.currentTimeMillis();
+                                long startTimeNanos = System.nanoTime();
 
 				while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
 				{
@@ -346,31 +346,12 @@ class ClientThread extends Thread
 
 					_opsdone++;
 
-					//throttle the operations
-					if (_target>0)
-					{
-						//this is more accurate than other throttling approaches we have tried,
-						//like sleeping for (1/target throughput)-operation latency,
-						//because it smooths timing inaccuracies (from sleep() taking an int, 
-						//current time in millis) over many operations
-						while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
-						{
-							try
-							{
-								sleep(1);
-							}
-							catch (InterruptedException e)
-							{
-							  // do nothing.
-							}
-
-						}
-					}
+                                        throttleNanos(startTimeNanos);
 				}
 			}
 			else
 			{
-				long st=System.currentTimeMillis();
+                                long startTimeNanos = System.nanoTime();
 
 				while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
 				{
@@ -388,25 +369,7 @@ class ClientThread extends Thread
 
 					_opsdone++;
 
-					//throttle the operations
-					if (_target>0)
-					{
-						//this is more accurate than other throttling approaches we have tried,
-						//like sleeping for (1/target throughput)-operation latency,
-						//because it smooths timing inaccuracies (from sleep() taking an int, 
-						//current time in millis) over many operations
-						while (System.currentTimeMillis()-st<((double)_opsdone)/_target)
-						{
-							try 
-							{
-								sleep(1);
-							}
-							catch (InterruptedException e)
-							{
-							  // do nothing.
-							}
-						}
-					}
+                                        throttleNanos(startTimeNanos);
 				}
 			}
 		}

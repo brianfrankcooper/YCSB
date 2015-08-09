@@ -52,9 +52,6 @@ import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
-import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.StringByteIterator;
-import com.yahoo.ycsb.ByteArrayByteIterator;
 
 /**
  * MongoDB asynchronous client for YCSB framework using the MongoDB Inc. <a

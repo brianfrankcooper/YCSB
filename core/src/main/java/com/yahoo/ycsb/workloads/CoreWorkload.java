@@ -292,7 +292,6 @@ public class CoreWorkload extends Workload
    */
   public static final String HOTSPOT_OPN_FRACTION_DEFAULT = "0.8";
   
-  private Measurements _measurements;
   private Hashtable<String, String> _operations = new Hashtable<String, String>() {{
 	  	put("READ", "TX-READ"); 
 	  	put("UPDATE", "TX-UPDATE");
