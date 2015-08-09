@@ -52,7 +52,40 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class JdbcDBClient extends DB implements JdbcDBClientConstants {
 	
-  private ArrayList<Connection> conns;
+  @Override
+	public void start() throws DBException {
+		super.start();
+		try {
+			conns.get(0).setAutoCommit(false);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new DBException(e);
+		}
+	}
+
+	@Override
+	public void commit() throws DBException {
+		super.commit();
+		try {
+			conns.get(0).commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new DBException(e);
+		}
+	}
+
+	@Override
+	public void abort() throws DBException {
+		super.abort();
+		try {
+			conns.get(0).rollback();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new DBException(e);
+		}
+	}
+
+private ArrayList<Connection> conns;
   private boolean initialized = false;
   private Properties props;
   private static final String DEFAULT_PROP = "";
