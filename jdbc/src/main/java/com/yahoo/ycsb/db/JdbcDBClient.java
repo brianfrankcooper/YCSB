@@ -88,6 +88,7 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
 private ArrayList<Connection> conns;
   private boolean initialized = false;
   private Properties props;
+  private Integer jdbcFetchSize;
   private static final String DEFAULT_PROP = "";
   private ConcurrentMap<StatementType, PreparedStatement> cachedStatements;
   
@@ -209,6 +210,19 @@ private ArrayList<Connection> conns;
 		String passwd = props.getProperty(CONNECTION_PASSWD, DEFAULT_PROP);
 		String driver = props.getProperty(DRIVER_CLASS);
 
+      String jdbcFetchSizeStr = props.getProperty(JDBC_FETCH_SIZE);
+          if (jdbcFetchSizeStr != null) {
+          try {
+              this.jdbcFetchSize = Integer.parseInt(jdbcFetchSizeStr);
+          } catch (NumberFormatException nfe) {
+              System.err.println("Invalid JDBC fetch size specified: " + jdbcFetchSizeStr);
+              throw new DBException(nfe);
+          }
+      }
+
+      String autoCommitStr = props.getProperty(JDBC_AUTO_COMMIT, Boolean.TRUE.toString());
+      Boolean autoCommit = Boolean.parseBoolean(autoCommitStr);
+
       try {
 		  if (driver != null) {
 	      Class.forName(driver);
@@ -218,9 +232,13 @@ private ArrayList<Connection> conns;
           for (String url: urls.split(",")) {
               System.out.println("Adding shard node URL: " + url);
             Connection conn = DriverManager.getConnection(url, user, passwd);
-		    // Since there is no explicit commit method in the DB interface, all
-		    // operations should auto commit.
-		    conn.setAutoCommit(true);
+
+            // Since there is no explicit commit method in the DB interface, all
+            // operations should auto commit, except when explicitly told not to
+            // (this is necessary in cases such as for PostgreSQL when running a
+            // scan workload with fetchSize)
+            conn.setAutoCommit(autoCommit);
+
             shardCount++;
             conns.add(conn);
           }
@@ -322,6 +340,7 @@ private ArrayList<Connection> conns;
     select.append(" >= ");
     select.append("?;");
     PreparedStatement scanStatement = getShardConnectionByKey(key).prepareStatement(select.toString());
+    if (this.jdbcFetchSize != null) scanStatement.setFetchSize(this.jdbcFetchSize);
     PreparedStatement stmt = cachedStatements.putIfAbsent(scanType, scanStatement);
     if (stmt == null) return scanStatement;
     else return stmt;

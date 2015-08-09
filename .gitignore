@@ -1,8 +1,13 @@
-.classpath
-.project
-.settings
-db/*/lib/*.jar
-db/*/lib/*.zip
-*.iml
-.idea
+# ignore compiled byte code
+target
 
+# ignore output files from testing
+output*
+
+# ignore standard eclipse
+.project
+.classpath
+.settings
+.checkstyle
+
+.DS_Store
