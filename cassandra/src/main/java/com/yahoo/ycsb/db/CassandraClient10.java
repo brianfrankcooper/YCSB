@@ -136,7 +136,7 @@ public class CassandraClient10 extends DB
 
     for (int retry = 0; retry < ConnectionRetries; retry++)
     {
-      tr = new TFramedTransport(new TSocket(myhost, 9160));
+      tr = new TFramedTransport(new TSocket(myhost, Integer.parseInt(getProperties().getProperty("port","9160"))));
       TProtocol proto = new TBinaryProtocol(tr);
       client = new Cassandra.Client(proto);
       try
