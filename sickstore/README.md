@@ -19,5 +19,7 @@ cd YCSB
  - sickstore.url=localhost => The connection URL.
  - sickstore.port=54000 => 
  - sickstore.timeout=1000 => ...
+ - sickstore.write_concern.ack=1 => The number of acknowledgments from replicas (or a tag set)
+ - sickstore.write_concern.journaling=false => Simulate a journal commit?
 
 ### SickStore
