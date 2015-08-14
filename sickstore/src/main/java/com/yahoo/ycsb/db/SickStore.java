@@ -16,11 +16,11 @@
  */
 package com.yahoo.ycsb.db;
 
-import de.unihamburg.sickstore.ServerStartup;
+import de.unihamburg.sickstore.YamlStartup;
 
 public class SickStore {
 
 	public static void main(String[] args) throws Exception {
-		ServerStartup.main(args);
+		YamlStartup.main(args);
 	}
 }

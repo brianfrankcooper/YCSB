@@ -1,0 +1,40 @@
+class: de.unihamburg.sickstore.database.SickServer
+port: 54234
+queryHandler:
+    class: de.unihamburg.sickstore.backend.QueryHandler
+    anomalyGenerator:
+        class: de.unihamburg.sickstore.backend.anomaly.BasicAnomalyGenerator
+        stalenessGenerator:
+            class: de.unihamburg.sickstore.backend.anomaly.staleness.ConstantStaleness
+            foreignReads: 500
+            ownReads: 0
+        clientDelayGenerator:
+            class: de.unihamburg.sickstore.backend.anomaly.clientdelay.MongoDbClientDelay
+            defaultDelay: 100
+            journalCommitInterval: 300
+            customDelays:
+                # to, from, delay
+                - [primary, secondary1, 1000]
+                - [secondary, primary, 100]
+            tagSets:
+                foobar:
+                    A: 1
+                    B: 2
+    nodes:
+        -
+            class: de.unihamburg.sickstore.database.Node
+            name: primary
+            primary: true
+            tags:
+                - A
+                - B
+        -
+            class: de.unihamburg.sickstore.database.Node
+            name: secondary1
+            tags:
+                - A
+        -
+            class: de.unihamburg.sickstore.database.Node
+            name: secondary2
+            tags:
+                - B
