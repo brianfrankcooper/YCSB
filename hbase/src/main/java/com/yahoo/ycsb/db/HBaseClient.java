@@ -21,7 +21,6 @@ package com.yahoo.ycsb.db;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.ByteArrayByteIterator;
-import com.yahoo.ycsb.StringByteIterator;
 
 import java.io.IOException;
 import java.util.*;
@@ -33,6 +32,7 @@ import java.util.*;
 import com.yahoo.ycsb.measurements.Measurements;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HTable;
 //import org.apache.hadoop.hbase.client.Scanner;
 import org.apache.hadoop.hbase.client.Get;
@@ -61,6 +61,8 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     public HTable _hTable=null;
     public String _columnFamily="";
     public byte _columnFamilyBytes[];
+    public boolean _clientSideBuffering = false;
+    public long _writeBufferSize = 1024 * 1024 * 12;
 
     public static final int Ok=0;
     public static final int ServerError=-1;
@@ -81,6 +83,15 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             _debug=true;
         }
 
+        if (getProperties().containsKey("clientbuffering"))
+        {
+            _clientSideBuffering = Boolean.parseBoolean(getProperties().getProperty("clientbuffering"));
+        }
+        if (getProperties().containsKey("writebuffersize"))
+        {
+            _writeBufferSize = Long.parseLong(getProperties().getProperty("writebuffersize"));
+        }
+
         _columnFamily = getProperties().getProperty("columnfamily");
         if (_columnFamily == null)
         {
@@ -89,6 +100,19 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         }
       _columnFamilyBytes = Bytes.toBytes(_columnFamily);
 
+      // Terminate right now if table does not exist, since the client
+      // will not propagate this error upstream once the workload
+      // starts.
+      String table = com.yahoo.ycsb.workloads.CoreWorkload.table;
+      try
+	  {
+	      HTable ht = new HTable(config, table);
+	      HTableDescriptor dsc = ht.getTableDescriptor();
+	  }
+      catch (IOException e)
+	  {
+	      throw new DBException(e);
+	  }
     }
 
     /**
@@ -117,8 +141,8 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         synchronized (tableLock) {
             _hTable = new HTable(config, table);
             //2 suggestions from http://ryantwopointoh.blogspot.com/2009/01/performance-of-hbase-importing.html
-            _hTable.setAutoFlush(false);
-            _hTable.setWriteBufferSize(1024*1024*12);
+            _hTable.setAutoFlush(!_clientSideBuffering, true);
+            _hTable.setWriteBufferSize(_writeBufferSize);
             //return hTable;
         }
 
@@ -316,11 +340,12 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         Put p = new Put(Bytes.toBytes(key));
         for (Map.Entry<String, ByteIterator> entry : values.entrySet())
         {
+            byte[] value = entry.getValue().toArray();
             if (_debug) {
                 System.out.println("Adding field/value " + entry.getKey() + "/"+
-                  entry.getValue() + " to put request");
+                  Bytes.toStringBinary(value) + " to put request");
             }
-            p.add(_columnFamilyBytes,Bytes.toBytes(entry.getKey()),entry.getValue().toArray());
+            p.add(_columnFamilyBytes,Bytes.toBytes(entry.getKey()), value);
         }
 
         try
