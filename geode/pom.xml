@@ -25,15 +25,15 @@ LICENSE file.
     <relativePath>../binding-parent</relativePath>
   </parent>
   
-  <artifactId>gemfire-binding</artifactId>
-  <name>Gemfire DB Binding</name>
+  <artifactId>geode-binding</artifactId>
+  <name>Geode DB Binding</name>
   <packaging>jar</packaging>
 
   <dependencies>
     <dependency>
-      <groupId>com.gemstone.gemfire</groupId>
-      <artifactId>gemfire</artifactId>
-      <version>${gemfire.version}</version>
+      <groupId>org.apache.geode</groupId>
+      <artifactId>gemfire-core</artifactId>
+      <version>${geode.version}</version>
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
@@ -45,8 +45,8 @@ LICENSE file.
   
   <repositories>
     <repository>
-      <id>gemstone</id>
-      <url>http://dist.gemstone.com.s3.amazonaws.com/maven/release</url>
+      <id>apache.snapshots</id>
+      <url>https://repository.apache.org/content/repositories/snapshots</url>
     </repository>
-  </repositories>	
+  </repositories>
 </project>
