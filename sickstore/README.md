@@ -3,7 +3,7 @@ This driver is a binding for the YCSB facilities to operate against a SickStore 
 
 ## Quickstart
 
-### 1. Set up YCSB (Fork from steffenfriedrich, branch nosqlmark) and SickStore
+### 1. Set up YCSB (Fork from steffenfriedrich) and SickStore
 ```
 git clone git://github.com/steffenfriedrich/YCSB.git
 cd YCSB
@@ -21,5 +21,3 @@ cd YCSB
  - sickstore.timeout=1000 => ...
  - sickstore.write_concern.ack=1 => The number of acknowledgments from replicas (or a tag set)
  - sickstore.write_concern.journaling=false => Simulate a journal commit?
-
-### SickStore
