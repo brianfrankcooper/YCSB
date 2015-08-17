@@ -114,8 +114,10 @@ public class SickStoreClient extends DB {
             writeConcern.setJournaling(true);
         }
 
+        String destinationNode = props.getProperty("sickstore.dest_node");
+
         try {
-            client = new SickClient(timeout, url, port);
+            client = new SickClient(timeout, url, port, destinationNode);
             client.connect();
         } catch (IOException e) {
             e.printStackTrace();
