@@ -69,7 +69,8 @@ LICENSE file.
   <properties>
     <maven.assembly.version>2.5.5</maven.assembly.version>
     <maven.dependency.version>2.10</maven.dependency.version>
-    <hbase.version>1.0.0</hbase.version>
+    <hbase.version>0.98.13-hadoop2</hbase.version>
+    <hbase1.version>1.0.0</hbase1.version>
     <accumulo.version>1.6.0</accumulo.version>
     <cassandra.version>1.2.9</cassandra.version>
     <cassandra.cql.version>1.0.3</cassandra.cql.version>
@@ -104,6 +105,7 @@ LICENSE file.
     <module>elasticsearch</module>
     <module>gemfire</module>
     <module>hbase</module>
+    <module>hbase1</module>
     <module>hypertable</module>
     <module>infinispan</module>
     <module>jdbc</module>

@@ -25,14 +25,14 @@ LICENSE file.
     <relativePath>../binding-parent/</relativePath>
   </parent>
 
-  <artifactId>hbase-binding</artifactId>
-  <name>HBase 0.9x DB Binding</name>
+  <artifactId>hbase1-binding</artifactId>
+  <name>HBase 1.0 DB Binding</name>
 
   <dependencies>
     <dependency>
       <groupId>org.apache.hbase</groupId>
       <artifactId>hbase-client</artifactId>
-      <version>${hbase.version}</version>
+      <version>${hbase1.version}</version>
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>

@@ -56,7 +56,7 @@ DATABASES = {
     "elasticsearch": "com.yahoo.ycsb.db.ElasticSearchClient",
     "gemfire"      : "com.yahoo.ycsb.db.GemFireClient",
     "hbase"        : "com.yahoo.ycsb.db.HBaseClient",
-    "hbase-10"     : "com.yahoo.ycsb.db.HBaseClient10",
+    "hbase1"       : "com.yahoo.ycsb.db.HBaseClient10",
     "hypertable"   : "com.yahoo.ycsb.db.HypertableClient",
     "infinispan-cs": "com.yahoo.ycsb.db.InfinispanRemoteClient",
     "infinispan"   : "com.yahoo.ycsb.db.InfinispanClient",

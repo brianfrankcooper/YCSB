@@ -15,9 +15,9 @@ permissions and limitations under the License. See accompanying
 LICENSE file.
 -->
 
-# HBase (0.9x) Driver for YCSB
-This driver is a binding for the YCSB facilities to operate against a HBase 0.9x Server cluster.
-To run against an HBase >= 1.0 cluster, use the `hbase1` binding.
+# HBase (1.x) Driver for YCSB
+This driver is a binding for the YCSB facilities to operate against a HBase 1.x Server cluster.
+To run against an HBase 0.9x cluster, use the `hbase` binding.
 
 ## Quickstart
 
@@ -50,23 +50,25 @@ Before you can actually run the workload, you need to "load" the data first.
 You should specify a HBase config directory(or any other directory containing your hbase-site.xml) and a table name and a column family(-cp is used to set java classpath and -p is used to set various properties).
 
 ```
-bin/ycsb load hbase -P workloads/workloada -cp /HBASE-HOME-DIR/conf -p table=usertable -p columnfamily=family
+bin/ycsb load hbase10 -P workloads/workloada -cp /HBASE-HOME-DIR/conf -p table=usertable -p columnfamily=family
 ```
 
 Then, you can run the workload:
 
 ```
-bin/ycsb run hbase -P workloads/workloada -cp /HBASE-HOME-DIR/conf -p table=usertable -p columnfamily=family
+bin/ycsb run hbase10 -P workloads/workloada -cp /HBASE-HOME-DIR/conf -p table=usertable -p columnfamily=family
 ```
 
 Please see the general instructions in the `doc` folder if you are not sure how it all works. You can apply additional properties (as seen in the next section) like this:
 
 ```
-bin/ycsb run hbase -P workloads/workloada -cp /HBASE-HOME-DIR/conf -p table=usertable -p columnfamily=family -p clientbuffering=true
+bin/ycsb run hbase10 -P workloads/workloada -cp /HBASE-HOME-DIR/conf -p table=usertable -p columnfamily=family -p clientbuffering=true
 ```
 
 ## Configuration Options
 Following options can be configurable using `-p`.
 
 * `columnfamily`: The HBase column family to target.
+* `clientbuffering` : If true, buffer mutations on the client. The default is false.
+* `writebuffersize` : Buffer size to be used when `clientbuffering` is activated. The default is 12MB.
 * `debug` : If true, debugging logs are activated. The default is false.
