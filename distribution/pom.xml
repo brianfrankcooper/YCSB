@@ -76,12 +76,17 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>hbase-binding</artifactId>
+      <artifactId>hbase094-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>hbase1-binding</artifactId>
+      <artifactId>hbase098-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>hbase10-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

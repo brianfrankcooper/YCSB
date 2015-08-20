@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
+<!--
 Copyright (c) 2012 - 2015 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -25,14 +25,14 @@ LICENSE file.
     <relativePath>../binding-parent/</relativePath>
   </parent>
 
-  <artifactId>hbase1-binding</artifactId>
-  <name>HBase 1.0 DB Binding</name>
+  <artifactId>hbase098-binding</artifactId>
+  <name>HBase 0.98.x DB Binding</name>
 
   <dependencies>
     <dependency>
       <groupId>org.apache.hbase</groupId>
       <artifactId>hbase-client</artifactId>
-      <version>${hbase1.version}</version>
+      <version>${hbase098.version}</version>
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
