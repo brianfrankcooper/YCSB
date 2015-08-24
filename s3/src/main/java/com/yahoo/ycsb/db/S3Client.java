@@ -13,6 +13,7 @@ import java.util.Vector;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
@@ -64,6 +65,7 @@ public class S3Client extends DB {
   private static BasicAWSCredentials s3Credentials;
   private static AmazonS3Client s3Client;
   private static ClientConfiguration clientConfig;
+  private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
   /**
   * Cleanup any state for this storage.
@@ -71,11 +73,13 @@ public class S3Client extends DB {
   */
   @Override
   public void cleanup() throws DBException {
-    if(this.s3Client != null){
+    if (INIT_COUNT.decrementAndGet() == 0) {
       try {
-        this.s3Client = null;
+        this.s3Client.shutdown();
       } catch (Exception e){
         e.printStackTrace();
+      } finally {
+        this.s3Client = null;
       }
     }
   }
@@ -105,22 +109,23 @@ public class S3Client extends DB {
   */
   @Override
   public void init() throws DBException {
+    INIT_COUNT.incrementAndGet();
     synchronized (S3Client.class){
-      Properties props = getProperties();
-      accessKeyId = props.getProperty("s3.accessKeyId", "accessKeyId");
-      secretKey = props.getProperty("s3.secretKey", "secretKey");
-      endPoint = props.getProperty("s3.endPoint", "s3.amazonaws.com");
-      region = props.getProperty("s3.region", "us-east-1");
-      maxErrorRetry = props.getProperty("s3.maxErrorRetry", "15");
-      System.out.println("Inizializing the S3 connection");
-      s3Credentials = new BasicAWSCredentials(accessKeyId, secretKey);
-      clientConfig = new ClientConfiguration();
-      clientConfig.setMaxErrorRetry(Integer.parseInt(maxErrorRetry));
       if (s3Client != null) {
         System.out.println("Reusing the same client");
         return;
       } 
       try {
+        Properties props = getProperties();
+        accessKeyId = props.getProperty("s3.accessKeyId", "accessKeyId");
+        secretKey = props.getProperty("s3.secretKey", "secretKey");
+        endPoint = props.getProperty("s3.endPoint", "s3.amazonaws.com");
+        region = props.getProperty("s3.region", "us-east-1");
+        maxErrorRetry = props.getProperty("s3.maxErrorRetry", "15");
+        System.out.println("Inizializing the S3 connection");
+        s3Credentials = new BasicAWSCredentials(accessKeyId, secretKey);
+        clientConfig = new ClientConfiguration();
+        clientConfig.setMaxErrorRetry(Integer.parseInt(maxErrorRetry));
         s3Client = new AmazonS3Client(s3Credentials, clientConfig);
         s3Client.setRegion(Region.getRegion(Regions.fromName(region)));
         s3Client.setEndpoint(endPoint);
