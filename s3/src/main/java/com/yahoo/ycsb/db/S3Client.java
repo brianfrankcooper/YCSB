@@ -68,17 +68,14 @@ public class S3Client extends DB {
   /**
   * Cleanup any state for this storage.
   * Called once per S3 instance; 
-  * there is one S3 instance per client thread.
   */
   @Override
   public void cleanup() throws DBException {
     if(this.s3Client != null){
       try {
-        this.s3Client.shutdown();
+        this.s3Client = null;
       } catch (Exception e){
         e.printStackTrace();
-      } finally {
-        this.s3Client = null;
       }
     }
   }
