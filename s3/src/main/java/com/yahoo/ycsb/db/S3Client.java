@@ -67,6 +67,7 @@ public class S3Client extends DB {
 	public void cleanup() throws DBException {
 		try {
 		//this.s3Client.shutdown(); //this should not be used
+		//this.s3Client = null;
 		} catch (Exception e){
 			e.printStackTrace();
 		}
@@ -93,30 +94,35 @@ public class S3Client extends DB {
     	}
 	/**
 	* Initialize any state for the storage.
-	* Called once per S3 instance; there is one S3 instance per client thread.
+	* Called once per S3 instance; If the client is not null it is re-used.
 	*/
 	@Override
 	public void init() throws DBException {
-       
-		Properties props = getProperties();
-		accessKeyId = props.getProperty("s3.accessKeyId","accessKeyId");
-		secretKey = props.getProperty("s3.secretKey","secretKey");
-		endPoint = props.getProperty("s3.endPoint","s3.amazonaws.com");
-		region = props.getProperty("s3.region","us-east-1");
-		maxErrorRetry = props.getProperty("s3.maxErrorRetry","15");
-		System.out.println("Inizializing the S3 connection");
-		s3Credentials = new BasicAWSCredentials(accessKeyId,secretKey);
-		clientConfig = new ClientConfiguration();
-		clientConfig.setMaxErrorRetry(Integer.parseInt(maxErrorRetry));
-		try {
-		s3Client = new AmazonS3Client(s3Credentials,clientConfig);
-		s3Client.setRegion(Region.getRegion(Regions.fromName(region)));
-		s3Client.setEndpoint(endPoint);
-		System.out.println("Connection successfully initialized");
-		} catch (Exception e){
-			System.err.println("Could not connect to S3 storage because: "+ e.toString());
-			e.printStackTrace();
-			return;
+       		synchronized (S3Client.class){
+			Properties props = getProperties();
+			accessKeyId = props.getProperty("s3.accessKeyId","accessKeyId");
+			secretKey = props.getProperty("s3.secretKey","secretKey");
+			endPoint = props.getProperty("s3.endPoint","s3.amazonaws.com");
+			region = props.getProperty("s3.region","us-east-1");
+			maxErrorRetry = props.getProperty("s3.maxErrorRetry","15");
+			System.out.println("Inizializing the S3 connection");
+			s3Credentials = new BasicAWSCredentials(accessKeyId,secretKey);
+			clientConfig = new ClientConfiguration();
+			clientConfig.setMaxErrorRetry(Integer.parseInt(maxErrorRetry));
+			if (s3Client != null) {
+				System.out.println("Reusing the same client");
+				return;
+			} 
+			try {
+				s3Client = new AmazonS3Client(s3Credentials,clientConfig);
+				s3Client.setRegion(Region.getRegion(Regions.fromName(region)));
+				s3Client.setEndpoint(endPoint);
+				System.out.println("Connection successfully initialized");
+			} catch (Exception e){
+				System.err.println("Could not connect to S3 storage because: "+ e.toString());
+				e.printStackTrace();
+				return;
+			}
 		}
     	}
 	/**
