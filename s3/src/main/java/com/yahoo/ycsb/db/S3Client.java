@@ -54,6 +54,7 @@ public class S3Client extends DB {
 	private static String secretKey;
 	private static String endPoint;
 	private static String region;
+	private static String maxErrorRetry;
 	private static BasicAWSCredentials s3Credentials;
 	private static AmazonS3Client s3Client;
 	private static ClientConfiguration clientConfig;
@@ -102,10 +103,11 @@ public class S3Client extends DB {
 		secretKey = props.getProperty("s3.secretKey","secretKey");
 		endPoint = props.getProperty("s3.endPoint","s3.amazonaws.com");
 		region = props.getProperty("s3.region","us-east-1");
+		maxErrorRetry = props.getProperty("s3.maxErrorRetry","15");
 		System.out.println("Inizializing the S3 connection");
 		s3Credentials = new BasicAWSCredentials(accessKeyId,secretKey);
 		clientConfig = new ClientConfiguration();
-		clientConfig.setMaxErrorRetry(15);
+		clientConfig.setMaxErrorRetry(Integer.parseInt(maxErrorRetry));
 		try {
 		s3Client = new AmazonS3Client(s3Credentials,clientConfig);
 		s3Client.setRegion(Region.getRegion(Regions.fromName(region)));
