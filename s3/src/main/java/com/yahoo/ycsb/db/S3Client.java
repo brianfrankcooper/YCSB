@@ -235,6 +235,9 @@ public class S3Client extends DB {
 		metadata.setContentLength(totalSize);
 		try {
 			PutObjectResult res = this.s3Client.putObject(bucket,key,input,metadata);
+			if(res.getETag() == null) {
+				return 1;			
+			}
         	} catch (Exception e) {
             		e.printStackTrace();
             		return 1;
@@ -245,7 +248,7 @@ public class S3Client extends DB {
         			e.printStackTrace();
             			return 1;
     			}
-		return 0;
+			return 0;
         	}
 	}
 
