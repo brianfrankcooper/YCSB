@@ -72,11 +72,14 @@ public class S3Client extends DB {
   */
   @Override
   public void cleanup() throws DBException {
-    try {
-      this.s3Client.shutdown(); //this should not be used
-      //this.s3Client = null;
-    } catch (Exception e){
-      e.printStackTrace();
+    if(this.s3Client != null){
+      try {
+        this.s3Client.shutdown();
+      } catch (Exception e){
+        e.printStackTrace();
+      } finally {
+        this.s3Client = null;
+      }
     }
   }
   /**
