@@ -58,6 +58,12 @@ public class Measurements
     return singleton;
   }
 
+  public synchronized static void resetMeasurements(Properties props)
+  {
+    measurementproperties=props;
+    singleton=new Measurements(props);
+  }
+
   final ConcurrentHashMap<String,OneMeasurement> _opToMesurementMap;
   final ConcurrentHashMap<String,OneMeasurement> _opToIntendedMesurementMap;
   final int _measurementType;
