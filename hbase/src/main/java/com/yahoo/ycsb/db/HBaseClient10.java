@@ -46,9 +46,11 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
@@ -92,6 +94,9 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
      */
     public boolean _clientSideBuffering = false;
     public long _writeBufferSize = 1024 * 1024 * 12;
+    public int multiGetsCount = 0;
+    // Collect the gets to form the multiGets
+    private List<Get> multiGets = null;
 
     public static final int Ok=0;
     public static final int ServerError=-1;
@@ -110,6 +115,10 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
         }
         if (getProperties().containsKey("writebuffersize")) {
             _writeBufferSize = Long.parseLong(getProperties().getProperty("writebuffersize"));
+        }
+
+        if (getProperties().containsKey("multiGets")) {
+          multiGetsCount = Integer.parseInt(getProperties().getProperty("multiGets"));
         }
 
         if (getProperties().getProperty("durability") != null) {
@@ -149,6 +158,8 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
 	  {
 	      throw new DBException(e);
 	  }
+    // Initialize the multiGets list
+    multiGets = new ArrayList<Get>(this.multiGetsCount);
     }
 
     /**
@@ -217,7 +228,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             }
         }
 
-        Result r = null;
+        Result[] r = new Result[1];
         try
         {
             if (_debug) {
@@ -232,7 +243,16 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
                     g.addColumn(_columnFamilyBytes, Bytes.toBytes(field));
                 }
             }
-            r = _table.get(g);
+            if (multiGetsCount > 0) {
+              multiGets.add(g);
+              if (multiGetsCount == multiGets.size()) {
+                r = _table.get(multiGets);
+                // clear it every time after execution
+                this.multiGets.clear();
+              }
+            } else {
+              r[0] = _table.get(g);
+            }
         }
         catch (IOException e)
         {
@@ -246,17 +266,20 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             //do nothing for now...need to understand HBase concurrency model better
             return ServerError;
         }
-
-        if (r.isEmpty()) {
+        if (multiGetsCount == 0) {
+          if (r[0].isEmpty()) {
             return NoMatchingRecord;
+          }
         }
-        for (Cell c : r.listCells()) {
+        for (Result res : r) {
+          for (Cell c : res.listCells()) {
             result.put(Bytes.toString(CellUtil.cloneQualifier(c)),
-                    new ByteArrayByteIterator(CellUtil.cloneValue(c)));
+                new ByteArrayByteIterator(CellUtil.cloneValue(c)));
             if (_debug) {
-                System.out.println("Result for field: "+Bytes.toString(CellUtil.cloneQualifier(c))+
-                        " is: "+Bytes.toString(CellUtil.cloneValue(c)));
+              System.out.println("Result for field: " + Bytes.toString(CellUtil.cloneQualifier(c))
+                  + " is: " + Bytes.toString(CellUtil.cloneValue(c)));
             }
+          }
         }
         return Ok;
     }
@@ -323,10 +346,10 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
 
                 HashMap<String,ByteIterator> rowResult = new HashMap<String, ByteIterator>();
 
-                for (KeyValue kv : rr.raw()) {
+                for (Cell kv : rr.rawCells()) {
                     rowResult.put(
-                            Bytes.toString(kv.getQualifier()),
-                            new ByteArrayByteIterator(kv.getValue()));
+                            Bytes.toString(kv.getQualifierArray(), kv.getQualifierOffset(), kv.getQualifierLength()),
+                            new ByteArrayByteIterator(kv.getValueArray(), kv.getValueOffset(), kv.getValueLength()));
                 }
                 //add rowResult to result vector
                 result.add(rowResult);
