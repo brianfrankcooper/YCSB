@@ -82,7 +82,14 @@ public abstract class Workload
        * synchronized, since each thread has its own threadstate instance.
        */
       public abstract boolean doInsert(DB db, Object threadstate);
-      
+
+      /**
+       * Do one delete operation. Works pretty much like doInsert(), but deletes records.
+       * Accordingly, it uses the same parameters, "insertcount" and "insertstart", to
+       * determine the record keys.
+       */
+      public abstract boolean doDelete(DB db, Object threadstate);
+
       /**
        * Do one transaction operation. Because it will be called concurrently from multiple client threads, this 
        * function must be thread safe. However, avoid synchronized, or the threads will block waiting for each 
