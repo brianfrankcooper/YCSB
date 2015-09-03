@@ -47,7 +47,14 @@ Getting Started
     bin/ycsb run basic -P workloads/workloada
     ```
 
-  Running the `ycsb` command without any argument will print the usage. 
+   Running the `ycsb` command without any argument will print the usage. 
+   The 'multiGets' option is an optimization where a set of 'gets' can be batched (on the client side) and sent to the server in one
+   RPC call using the 'multiGets' property.  Note that the multiGets works with only reads/gets and not with
+   scans.
+
+    ```sh
+    bin/ycsb run basic -P workloads/workloade -p multiGets=50
+    ```
    
   See https://github.com/brianfrankcooper/YCSB/wiki/Running-a-Workload
   for a detailed documentation on how to run a workload.
