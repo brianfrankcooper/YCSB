@@ -1,0 +1,57 @@
+class: de.unihamburg.sickstore.database.SickServer
+port: 54000
+queryHandler:
+    class: de.unihamburg.sickstore.backend.ShardingRouter
+    strategies:
+        "": # empty table name
+            class: de.unihamburg.sickstore.backend.sharding.HashBasedStrategy
+        "usertable": # YCSB uses this table name
+            class: de.unihamburg.sickstore.backend.sharding.HashBasedStrategy
+    shards:
+        -
+            class: de.unihamburg.sickstore.backend.QueryHandler
+            anomalyGenerator:
+                class: de.unihamburg.sickstore.backend.anomaly.BasicAnomalyGenerator
+        #        stalenessGenerator:
+        #            class: de.unihamburg.sickstore.backend.anomaly.staleness.ConstantStaleness
+        #            foreignReads: 500
+        #            ownReads: 0
+        #        clientDelayGenerator:
+        #            class: de.unihamburg.sickstore.backend.anomaly.MongoDbAnomalies
+                combinedGenerator:
+                    class: de.unihamburg.sickstore.backend.anomaly.MongoDbAnomalies
+            nodes:
+                -
+                    class: de.unihamburg.sickstore.database.Node
+                    name: primary
+                    primary: true
+                    tags:
+                        - A
+                        - B
+                -
+                    class: de.unihamburg.sickstore.database.Node
+                    name: secondary1
+                    tags:
+                        - A
+                -
+                    class: de.unihamburg.sickstore.database.Node
+                    name: secondary2
+                    tags:
+                        - B
+        -
+            class: de.unihamburg.sickstore.backend.QueryHandler
+            anomalyGenerator:
+                class: de.unihamburg.sickstore.backend.anomaly.BasicAnomalyGenerator
+        #        stalenessGenerator:
+        #            class: de.unihamburg.sickstore.backend.anomaly.staleness.ConstantStaleness
+        #            foreignReads: 500
+        #            ownReads: 0
+        #        clientDelayGenerator:
+        #            class: de.unihamburg.sickstore.backend.anomaly.MongoDbAnomalies
+                combinedGenerator:
+                    class: de.unihamburg.sickstore.backend.anomaly.MongoDbAnomalies
+            nodes:
+                -
+                    class: de.unihamburg.sickstore.database.Node
+                    name: primary
+                    primary: true
