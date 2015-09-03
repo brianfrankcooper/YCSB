@@ -94,7 +94,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
      */
     public boolean _clientSideBuffering = false;
     public long _writeBufferSize = 1024 * 1024 * 12;
-    public int multiGetsCount = 0;
+    public int multiGetBatchSize = 0;
     // Collect the gets to form the multiGets
     private List<Get> multiGets = null;
 
@@ -118,7 +118,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
         }
 
         if (getProperties().containsKey("multiGets")) {
-          multiGetsCount = Integer.parseInt(getProperties().getProperty("multiGets"));
+          multiGetBatchSize = Integer.parseInt(getProperties().getProperty("multiGets"));
         }
 
         if (getProperties().getProperty("durability") != null) {
@@ -159,7 +159,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
 	      throw new DBException(e);
 	  }
     // Initialize the multiGets list
-    multiGets = new ArrayList<Get>(this.multiGetsCount);
+    multiGets = new ArrayList<Get>(this.multiGetBatchSize);
     }
 
     /**
@@ -243,9 +243,9 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
                     g.addColumn(_columnFamilyBytes, Bytes.toBytes(field));
                 }
             }
-            if (multiGetsCount > 0) {
+            if (multiGetBatchSize > 0) {
               multiGets.add(g);
-              if (multiGetsCount == multiGets.size()) {
+              if (multiGetBatchSize == multiGets.size()) {
                 r = _table.get(multiGets);
                 // clear it every time after execution
                 this.multiGets.clear();
@@ -266,18 +266,20 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             //do nothing for now...need to understand HBase concurrency model better
             return ServerError;
         }
-        if (multiGetsCount == 0) {
+        if (multiGetBatchSize == 0) {
           if (r[0].isEmpty()) {
             return NoMatchingRecord;
           }
         }
         for (Result res : r) {
-          for (Cell c : res.listCells()) {
-            result.put(Bytes.toString(CellUtil.cloneQualifier(c)),
-                new ByteArrayByteIterator(CellUtil.cloneValue(c)));
-            if (_debug) {
-              System.out.println("Result for field: " + Bytes.toString(CellUtil.cloneQualifier(c))
-                  + " is: " + Bytes.toString(CellUtil.cloneValue(c)));
+          if(!res.isEmpty()) {
+            for (Cell c : res.listCells()) {
+              result.put(Bytes.toString(CellUtil.cloneQualifier(c)),
+                  new ByteArrayByteIterator(CellUtil.cloneValue(c)));
+              if (_debug) {
+                System.out.println("Result for field: " + Bytes.toString(CellUtil.cloneQualifier(c))
+                + " is: " + Bytes.toString(CellUtil.cloneValue(c)));
+              }
             }
           }
         }

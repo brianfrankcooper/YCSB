@@ -48,8 +48,8 @@ Getting Started
     ```
 
    Running the `ycsb` command without any argument will print the usage. 
-   Inorder to use the multiGet feature where a set of 'gets' can be batched and sent to the server in one
-   RPC call, use the 'multiGets' property.  Note that the multiGets works with only reads/gets and not with
+   The 'multiGets' option is an optimization where a set of 'gets' can be batched (on the client side) and sent to the server in one
+   RPC call using the 'multiGets' property.  Note that the multiGets works with only reads/gets and not with
    scans.
 
     ```sh
