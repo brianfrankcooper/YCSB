@@ -29,8 +29,8 @@ import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
  */
 public abstract class OneMeasurement {
 
-  String _name;
-  final ConcurrentHashMap<Integer, AtomicInteger> returncodes;
+  private final String _name;
+  private  final ConcurrentHashMap<Integer, AtomicInteger> _returncodes;
 
   public String getName() {
     return _name;
@@ -41,7 +41,7 @@ public abstract class OneMeasurement {
    */
   public OneMeasurement(String _name) {
     this._name = _name;
-    this.returncodes = new ConcurrentHashMap<Integer, AtomicInteger>();
+    this._returncodes = new ConcurrentHashMap<Integer, AtomicInteger>();
   }
 
   public abstract void measure(int latency);
@@ -53,10 +53,10 @@ public abstract class OneMeasurement {
    */
   public void reportReturnCode(int code) {
     Integer Icode = code;
-    AtomicInteger counter = returncodes.get(Icode);
+    AtomicInteger counter = _returncodes.get(Icode);
 
     if (counter == null) {
-      AtomicInteger other = returncodes.putIfAbsent(Icode, counter = new AtomicInteger());
+      AtomicInteger other = _returncodes.putIfAbsent(Icode, counter = new AtomicInteger());
       if (other != null) {
         counter = other;
       }
@@ -73,4 +73,9 @@ public abstract class OneMeasurement {
    */
   public abstract void exportMeasurements(MeasurementsExporter exporter) throws IOException;
 
+  protected final void exportReturnCodes(MeasurementsExporter exporter) throws IOException {
+    for (Map.Entry<Integer, AtomicInteger> entry : _returncodes.entrySet()) {
+      exporter.write(getName(), "Return=" + entry.getKey(), entry.getValue().get());
+    }
+  }
 }

@@ -109,19 +109,17 @@ public class OneMeasurementHistogram extends OneMeasurement
       opcounter+=histogram[i];
       if ( (!done95th) && (((double)opcounter)/((double)operations)>=0.95) )
       {
-        exporter.write(getName(), "95thPercentileLatency(ms)", i);
+        exporter.write(getName(), "95thPercentileLatency(us)", i*1000);
         done95th=true;
       }
       if (((double)opcounter)/((double)operations)>=0.99)
       {
-        exporter.write(getName(), "99thPercentileLatency(ms)", i);
+        exporter.write(getName(), "99thPercentileLatency(us)", i*1000);
         break;
       }
     }
 
-    for (Map.Entry<Integer, AtomicInteger> entry : returncodes.entrySet()) {
-      exporter.write(getName(), "Return=" + entry.getKey(), entry.getValue().get());
-    }
+    exportReturnCodes(exporter);
 
     for (int i=0; i<_buckets; i++)
     {

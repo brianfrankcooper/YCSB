@@ -125,24 +125,18 @@ public class OneMeasurementTimeSeries extends OneMeasurement
 
 
   @Override
-  public void exportMeasurements(MeasurementsExporter exporter) throws IOException
-  {
+  public void exportMeasurements(MeasurementsExporter exporter) throws IOException {
     checkEndOfUnit(true);
 
     exporter.write(getName(), "Operations", operations);
-    exporter.write(getName(), "AverageLatency(us)", (((double)totallatency)/((double)operations)));
+    exporter.write(getName(), "AverageLatency(us)", (((double) totallatency) / ((double) operations)));
     exporter.write(getName(), "MinLatency(us)", min);
     exporter.write(getName(), "MaxLatency(us)", max);
 
-    //TODO: 95th and 99th percentile latency
+    // TODO: 95th and 99th percentile latency
 
-
-    for (Map.Entry<Integer, AtomicInteger> entry : returncodes.entrySet()) {
-      exporter.write(getName(), "Return=" + entry.getKey(), entry.getValue().get());
-    }
-
-    for (SeriesUnit unit : _measurements)
-    {
+    exportReturnCodes(exporter);
+    for (SeriesUnit unit : _measurements) {
       exporter.write(getName(), Long.toString(unit.time), unit.average);
     }
   }

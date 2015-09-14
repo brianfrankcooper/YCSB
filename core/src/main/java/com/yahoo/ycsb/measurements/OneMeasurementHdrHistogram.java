@@ -34,8 +34,8 @@ import org.HdrHistogram.Recorder;
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 
 /**
- * Take measurements and maintain a HdrHistogram of a given metric, such as
- * READ LATENCY.
+ * Take measurements and maintain a HdrHistogram of a given metric, such as READ
+ * LATENCY.
  *
  * @author nitsanw
  *
@@ -46,8 +46,7 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
   final PrintStream log;
   final HistogramLogWriter histogramLogWriter;
 
-  final Recorder histogram = new Recorder(3);
-
+  final Recorder histogram;
   Histogram totalHistogram;
 
   public OneMeasurementHdrHistogram(String name, Properties props) {
@@ -56,19 +55,22 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
     if (!shouldLog) {
       log = null;
       histogramLogWriter = null;
-      return;
+    } else {
+      try {
+        final String hdrOutputFilename = props.getProperty("hdrhistogram.output.path", "") + name + ".hdr";
+        log = new PrintStream(new FileOutputStream(hdrOutputFilename), false);
+      } catch (FileNotFoundException e) {
+        throw new RuntimeException("Failed to open hdr histogram output file", e);
+      }
+      histogramLogWriter = new HistogramLogWriter(log);
+      histogramLogWriter.outputComment("[Logging for: " + name + "]");
+      histogramLogWriter.outputLogFormatVersion();
+      long now = System.currentTimeMillis();
+      histogramLogWriter.outputStartTime(now);
+      histogramLogWriter.setBaseTime(now);
+      histogramLogWriter.outputLegend();
     }
-    try {
-      final String hdrOutputFilename = props.getProperty("hdrhistogram.output.path", "") +name+".hdr";
-      log = new PrintStream(new FileOutputStream(hdrOutputFilename), false);
-    } catch (FileNotFoundException e) {
-      throw new RuntimeException("Failed to open hdr histogram output file", e);
-    }
-    histogramLogWriter = new HistogramLogWriter(log);
-    histogramLogWriter.outputComment("[Logging for: " + name + "]");
-    histogramLogWriter.outputLogFormatVersion();
-    histogramLogWriter.outputStartTime(System.currentTimeMillis());
-    histogramLogWriter.outputLegend();
+    histogram = new Recorder(3);
   }
 
   /**
@@ -90,7 +92,7 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
   public void exportMeasurements(MeasurementsExporter exporter) throws IOException {
     // accumulate the last interval which was not caught by status thread
     Histogram intervalHistogram = getIntervalHistogramAndAccumulate();
-    if(histogramLogWriter != null) {
+    if (histogramLogWriter != null) {
       histogramLogWriter.outputIntervalHistogram(intervalHistogram);
       // we can close now
       log.close();
@@ -99,49 +101,45 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
     exporter.write(getName(), "AverageLatency(us)", totalHistogram.getMean());
     exporter.write(getName(), "MinLatency(us)", totalHistogram.getMinValue());
     exporter.write(getName(), "MaxLatency(us)", totalHistogram.getMaxValue());
-    exporter.write(getName(), "95thPercentileLatency(ms)", totalHistogram.getValueAtPercentile(90)/1000);
-    exporter.write(getName(), "99thPercentileLatency(ms)", totalHistogram.getValueAtPercentile(99)/1000);
-
-    for (Map.Entry<Integer, AtomicInteger> entry : returncodes.entrySet()) {
-      exporter.write(getName(), "Return=" + entry.getKey(), entry.getValue().get());
-    }
+    exporter.write(getName(), "95thPercentileLatency(us)", totalHistogram.getValueAtPercentile(90));
+    exporter.write(getName(), "99thPercentileLatency(us)", totalHistogram.getValueAtPercentile(99));
+    
+    exportReturnCodes(exporter);
   }
 
-  /**
-    * This is called periodically from the StatusThread. There's a single StatusThread per Client process.
-    * We optionally serialize the interval to log on this opportunity.
-    * @see com.yahoo.ycsb.measurements.OneMeasurement#getSummary()
-    */
-  @Override
-  public String getSummary() {
-    Histogram intervalHistogram = getIntervalHistogramAndAccumulate();
-    // we use the summary interval as the histogram file interval.
-    if(histogramLogWriter != null) {
-      histogramLogWriter.outputIntervalHistogram(intervalHistogram);
-    }
+	/**
+	 * This is called periodically from the StatusThread. There's a single
+	 * StatusThread per Client process. We optionally serialize the interval to
+	 * log on this opportunity.
+	 * 
+	 * @see com.yahoo.ycsb.measurements.OneMeasurement#getSummary()
+	 */
+	@Override
+	public String getSummary() {
+		Histogram intervalHistogram = getIntervalHistogramAndAccumulate();
+		// we use the summary interval as the histogram file interval.
+		if (histogramLogWriter != null) {
+			histogramLogWriter.outputIntervalHistogram(intervalHistogram);
+		}
 
-    DecimalFormat d = new DecimalFormat("#.##");
-    return "[" + getName() +
-            ": Count=" + intervalHistogram.getTotalCount() +
-            ", Max=" + intervalHistogram.getMaxValue() +
-            ", Min=" + intervalHistogram.getMinValue() +
-            ", Avg=" + d.format(intervalHistogram.getMean()) +
-            ", 90=" + d.format(intervalHistogram.getValueAtPercentile(90)) +
-            ", 99=" + d.format(intervalHistogram.getValueAtPercentile(99)) +
-            ", 99.9=" + d.format(intervalHistogram.getValueAtPercentile(99.9)) +
-            ", 99.99=" + d.format(intervalHistogram.getValueAtPercentile(99.99)) +"]";
-  }
+		DecimalFormat d = new DecimalFormat("#.##");
+		return "[" + getName() + ": Count=" + intervalHistogram.getTotalCount() + ", Max="
+				+ intervalHistogram.getMaxValue() + ", Min=" + intervalHistogram.getMinValue() + ", Avg="
+				+ d.format(intervalHistogram.getMean()) + ", 90=" + d.format(intervalHistogram.getValueAtPercentile(90))
+				+ ", 99=" + d.format(intervalHistogram.getValueAtPercentile(99)) + ", 99.9="
+				+ d.format(intervalHistogram.getValueAtPercentile(99.9)) + ", 99.99="
+				+ d.format(intervalHistogram.getValueAtPercentile(99.99)) + "]";
+	}
 
-  private Histogram getIntervalHistogramAndAccumulate() {
-      Histogram intervalHistogram = histogram.getIntervalHistogram();
-      // add this to the total time histogram.
-      if (totalHistogram == null) {
-        totalHistogram = intervalHistogram;
-      }
-      else {
-        totalHistogram.add(intervalHistogram);
-      }
-      return intervalHistogram;
-  }
+	private Histogram getIntervalHistogramAndAccumulate() {
+		Histogram intervalHistogram = histogram.getIntervalHistogram();
+		// add this to the total time histogram.
+		if (totalHistogram == null) {
+			totalHistogram = intervalHistogram;
+		} else {
+			totalHistogram.add(intervalHistogram);
+		}
+		return intervalHistogram;
+	}
 
 }
