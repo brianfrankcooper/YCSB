@@ -70,8 +70,8 @@ LICENSE file.
     <maven.assembly.version>2.5.5</maven.assembly.version>
     <maven.dependency.version>2.10</maven.dependency.version>
     <hbase094.version>0.94.27</hbase094.version>
-    <hbase098.version>0.98.13-hadoop2</hbase098.version>
-    <hbase10.version>1.0.1.1</hbase10.version>
+    <hbase098.version>0.98.14-hadoop2</hbase098.version>
+    <hbase10.version>1.0.2</hbase10.version>
     <accumulo.version>1.6.0</accumulo.version>
     <cassandra.version>1.2.9</cassandra.version>
     <cassandra.cql.version>1.0.3</cassandra.cql.version>
