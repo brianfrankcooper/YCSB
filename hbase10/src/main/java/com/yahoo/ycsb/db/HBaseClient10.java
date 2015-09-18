@@ -16,6 +16,7 @@
 package com.yahoo.ycsb.db;
 
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 import com.yahoo.ycsb.ByteArrayByteIterator;
@@ -36,7 +37,6 @@ import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -47,10 +47,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Properties;
-import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
 
@@ -64,7 +61,7 @@ import java.util.Vector;
  */
 public class HBaseClient10 extends com.yahoo.ycsb.DB
 {
-    private static final Configuration config = HBaseConfiguration.create();
+    private Configuration config = HBaseConfiguration.create();
 
     public boolean _debug=false;
 
@@ -493,6 +490,11 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
         }
 
         return Ok;
+    }
+
+    @VisibleForTesting
+    void setConfiguration(final Configuration config) {
+        this.config = config;
     }
 }
 
