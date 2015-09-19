@@ -42,6 +42,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.filter.PageFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
@@ -291,6 +292,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
         //HBase has no record limit.  Here, assume recordcount is small enough to bring back in one call.
         //We get back recordcount records
         s.setCaching(recordcount);
+        s.setFilter(new PageFilter(recordcount));
 
         //add specified fields or else all fields
         if (fields == null)
@@ -332,6 +334,9 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
                 //add rowResult to result vector
                 result.add(rowResult);
                 numResults++;
+
+                // PageFilter does not guarantee that the number of results is <= pageSize, so this
+                // break is required.
                 if (numResults >= recordcount) //if hit recordcount, bail out
                 {
                     break;
