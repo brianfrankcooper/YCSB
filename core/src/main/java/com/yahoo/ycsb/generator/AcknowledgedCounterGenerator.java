@@ -8,11 +8,11 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class AcknowledgedCounterGenerator extends CounterGenerator
 {
-	private static final int WINDOW_SIZE = 10000;
+	private static final int WINDOW_SIZE = 1000000;
 
-	private ReentrantLock lock;
-	private boolean[] window;
-	private int limit;
+	private final ReentrantLock lock;
+	private final boolean[] window;
+	private volatile int limit;
 
 	/**
 	 * Create a counter that starts at countstart.
@@ -40,8 +40,11 @@ public class AcknowledgedCounterGenerator extends CounterGenerator
 	 */
 	public void acknowledge(int value)
 	{
+		// read volatile variable to see other threads' changes
+		limit = limit;
+
 		if (value > limit + WINDOW_SIZE) {
-			throw new RuntimeException("This should be a different exception.");
+			throw new RuntimeException("Too many unacknowledged insertion keys.");
 		}
 
 		window[value % WINDOW_SIZE] = true;
@@ -68,5 +71,8 @@ public class AcknowledgedCounterGenerator extends CounterGenerator
 				lock.unlock();
 			}
 		}
+
+		// write volatile variable to make other threads see changes
+		limit = limit;
 	}
 }
