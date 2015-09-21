@@ -36,6 +36,11 @@ COMMANDS = {
         "description" : "Execute the load phase",
         "main"        : "com.yahoo.ycsb.Client",
     },
+    "delete" : {
+        "command"     : "-delete",
+        "description" : "Execute the clean-up phase",
+        "main"        : "com.yahoo.ycsb.Client",
+    },
     "run" : {
         "command"     : "-t",
         "description" : "Execute the transaction phase",

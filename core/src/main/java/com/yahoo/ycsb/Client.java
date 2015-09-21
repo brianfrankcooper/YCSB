@@ -236,6 +236,7 @@ class ClientThread extends Thread
   private static boolean _spinSleep;
   DB _db;
   boolean _dotransactions;
+  boolean _dodelete;
   Workload _workload;
   int _opcount;
   double _targetOpsPerMs;
@@ -253,16 +254,18 @@ class ClientThread extends Thread
    *
    * @param db the DB implementation to use
    * @param dotransactions true to do transactions, false to insert data
+   * @param dodelete true to delete instead of load
    * @param workload the workload to use
    * @param props the properties defining the experiment
    * @param opcount the number of operations (transactions or inserts) to do
    * @param targetperthreadperms target number of operations per thread per ms
    * @param completeLatch The latch tracking the completion of all clients.
    */
-  public ClientThread(DB db, boolean dotransactions, Workload workload, Properties props, int opcount, double targetperthreadperms, CountDownLatch completeLatch)
+  public ClientThread(DB db, boolean dotransactions, boolean dodelete, Workload workload, Properties props, int opcount, double targetperthreadperms, CountDownLatch completeLatch)
   {
     _db=db;
     _dotransactions=dotransactions;
+    _dodelete=dodelete;
     _workload=workload;
     _opcount=opcount;
     _opsdone=0;
@@ -343,7 +346,12 @@ class ClientThread extends Thread
         while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
         {
 
-          if (!_workload.doInsert(_db,_workloadstate))
+          if (_dodelete)
+          {
+            _workload.doDelete(_db,_workloadstate);
+          }
+
+          else if (!_workload.doInsert(_db,_workloadstate))
           {
             break;
           }
@@ -566,6 +574,7 @@ public class Client
     Properties props=new Properties();
     Properties fileprops=new Properties();
     boolean dotransactions=true;
+    boolean dodelete=false;
     int threadcount=1;
     int target=0;
     boolean status=false;
@@ -609,6 +618,13 @@ public class Client
       else if (args[argindex].compareTo("-load")==0)
       {
         dotransactions=false;
+        dodelete=false;
+        argindex++;
+      }
+      else if (args[argindex].compareTo("-delete")==0)
+      {
+        dotransactions=false;
+        dodelete=true;
         argindex++;
       }
       else if (args[argindex].compareTo("-t")==0)
@@ -859,7 +875,7 @@ public class Client
         ++threadopcount;
       }
 
-      ClientThread t=new ClientThread(db,dotransactions,workload,props,threadopcount, targetperthreadperms, completeLatch);
+      ClientThread t=new ClientThread(db,dotransactions,dodelete,workload,props,threadopcount, targetperthreadperms, completeLatch);
 
       clients.add(t);
     }
