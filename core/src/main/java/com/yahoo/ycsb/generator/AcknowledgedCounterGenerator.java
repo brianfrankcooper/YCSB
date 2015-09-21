@@ -40,9 +40,6 @@ public class AcknowledgedCounterGenerator extends CounterGenerator
 	 */
 	public void acknowledge(int value)
 	{
-		// read volatile variable to see other threads' changes
-		limit = limit;
-
 		if (value > limit + WINDOW_SIZE) {
 			throw new RuntimeException("Too many unacknowledged insertion keys.");
 		}
@@ -71,8 +68,5 @@ public class AcknowledgedCounterGenerator extends CounterGenerator
 				lock.unlock();
 			}
 		}
-
-		// write volatile variable to make other threads see changes
-		limit = limit;
 	}
 }
