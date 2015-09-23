@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
+<!--
 Copyright (c) 2012 - 2015 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -22,17 +22,41 @@ LICENSE file.
     <groupId>com.yahoo.ycsb</groupId>
     <artifactId>binding-parent</artifactId>
     <version>0.5.0-SNAPSHOT</version>
-    <relativePath>../binding-parent</relativePath>
+    <relativePath>../binding-parent/</relativePath>
   </parent>
-  
-  <artifactId>nosqldb-binding</artifactId>
-  <name>Oracle NoSQL Database Binding</name>
+
+  <artifactId>hbase094-binding</artifactId>
+  <name>HBase 0.94.x DB Binding</name>
 
   <dependencies>
+    <!-- This binding is identical to the HBase 0.98, other than dependencies. -->
     <dependency>
-      <groupId>com.oracle</groupId>
-      <artifactId>kvclient</artifactId>
-      <version>1.2.123</version>
+      <groupId>org.apache.hbase</groupId>
+      <artifactId>hbase</artifactId>
+      <version>${hbase094.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-core</artifactId>
+      <version>1.0.4</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>hbase098-binding</artifactId>
+      <version>${project.version}</version>
+      <exclusions>
+      <!-- HBase 0.98.0 depends on hbase-client, HBase 0.94.0 on hbase.
+           Override all dependencies. -->
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>1.7.12</version>
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
