@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <!-- 
 Copyright (c) 2015 YCSB contributors. All rights reserved.
 
@@ -20,7 +19,7 @@ LICENSE file.
     <parent>
         <groupId>com.yahoo.ycsb</groupId>
         <artifactId>binding-parent</artifactId>
-        <version>0.4.0-SNAPSHOT</version>
+        <version>0.5.0-SNAPSHOT</version>
         <relativePath>../binding-parent</relativePath>
     </parent>
   
