@@ -336,28 +336,26 @@ public class S3Client extends DB {
       System.arraycopy(sourceArray, 0, destinationArray, offset, sizeArray);
       offset += sizeArray;
     }
-    InputStream input = new ByteArrayInputStream(destinationArray);
-    ObjectMetadata metadata = new ObjectMetadata();
-    metadata.setContentLength(totalSize);
-    try {
-      PutObjectResult res = 
-          s3Client.putObject(bucket, key, input, metadata);
-      if(res.getETag() == null) {
-        return 1;
-      }
-    } catch (Exception e) {
-      System.err.println("Not possible to write object :"+key);
-      e.printStackTrace();
-      return 1;
-    } finally {
+    try (InputStream input = new ByteArrayInputStream(destinationArray)) {
+      ObjectMetadata metadata = new ObjectMetadata();
+      metadata.setContentLength(totalSize);
       try {
-        input.close();
+        PutObjectResult res = 
+            s3Client.putObject(bucket, key, input, metadata);
+        if(res.getETag() == null) {
+          return 1;
+        }
       } catch (Exception e) {
-        System.err.println("Not possible to close the stream :"+e.toString());
+        System.err.println("Not possible to write object :"+key);
         e.printStackTrace();
         return 1;
+      } finally {
+        return 0;
       }
-      return 0;
+    } catch (Exception e) {
+      System.err.println("Error in the creation of the stream :"+e.toString());
+      e.printStackTrace();
+      return 1;
     }
   }
 
