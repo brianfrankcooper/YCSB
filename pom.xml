@@ -81,7 +81,7 @@ LICENSE file.
     <mongodb.async.version>2.0.1</mongodb.async.version>
     <orientdb.version>1.0.1</orientdb.version>
     <redis.version>2.0.0</redis.version>
-    <s3.version>1.10.6</s3.version>
+    <s3.version>1.10.20</s3.version>
     <voldemort.version>0.81</voldemort.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <thrift.version>0.8.0</thrift.version>
