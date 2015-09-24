@@ -82,6 +82,9 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
      */
     public Durability _durability = Durability.USE_DEFAULT;
 
+    /** Whether or not a page filter should be used to limit scan length. */
+    public boolean _usePageFilter = true;
+
     /**
      * If true, buffer mutations on the client.
      * This is the default behavior for HBaseClient. For measuring
@@ -123,6 +126,10 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
                 (getProperties().getProperty("debug").compareTo("true")==0) )
         {
             _debug=true;
+        }
+
+        if ("false".equals(getProperties().getProperty("hbase.usepagefilter", "true"))) {
+          _usePageFilter = false;
         }
 
         _columnFamily = getProperties().getProperty("columnfamily");
@@ -292,7 +299,9 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
         //HBase has no record limit.  Here, assume recordcount is small enough to bring back in one call.
         //We get back recordcount records
         s.setCaching(recordcount);
-        s.setFilter(new PageFilter(recordcount));
+        if (this._usePageFilter) {
+          s.setFilter(new PageFilter(recordcount));
+        }
 
         //add specified fields or else all fields
         if (fields == null)

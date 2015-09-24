@@ -71,3 +71,6 @@ Following options can be configurable using `-p`.
 
 * `columnfamily`: The HBase column family to target.
 * `debug` : If true, debugging logs are activated. The default is false.
+* `hbase.usepagefilter` : If true, HBase
+  [PageFilter](https://hbase.apache.org/apidocs/org/apache/hadoop/hbase/filter/PageFilter.html)s
+  are used to limit the number of records consumed in a scan operation. The default is true.
