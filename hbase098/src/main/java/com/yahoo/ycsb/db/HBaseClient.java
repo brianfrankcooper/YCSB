@@ -17,32 +17,25 @@
 
 package com.yahoo.ycsb.db;
 
-
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.ByteArrayByteIterator;
+import com.yahoo.ycsb.measurements.Measurements;
 
 import java.io.IOException;
 import java.util.*;
-//import java.util.HashMap;
-//import java.util.Properties;
-//import java.util.Set;
-//import java.util.Vector;
 
-import com.yahoo.ycsb.measurements.Measurements;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HTable;
-//import org.apache.hadoop.hbase.client.Scanner;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
-//import org.apache.hadoop.hbase.io.Cell;
-//import org.apache.hadoop.hbase.io.RowResult;
+import org.apache.hadoop.hbase.filter.PageFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 
@@ -63,6 +56,8 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     public byte _columnFamilyBytes[];
     public boolean _clientSideBuffering = false;
     public long _writeBufferSize = 1024 * 1024 * 12;
+    /** Whether or not a page filter should be used to limit scan length. */
+    public boolean _usePageFilter = true;
 
     public static final int Ok=0;
     public static final int ServerError=-1;
@@ -90,6 +85,9 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         if (getProperties().containsKey("writebuffersize"))
         {
             _writeBufferSize = Long.parseLong(getProperties().getProperty("writebuffersize"));
+        }
+        if ("false".equals(getProperties().getProperty("hbase.usepagefilter", "true"))) {
+          _usePageFilter = false;
         }
 
         _columnFamily = getProperties().getProperty("columnfamily");
@@ -246,6 +244,9 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         //HBase has no record limit.  Here, assume recordcount is small enough to bring back in one call.
         //We get back recordcount records
         s.setCaching(recordcount);
+        if (this._usePageFilter) {
+          s.setFilter(new PageFilter(recordcount));
+        }
 
         //add specified fields or else all fields
         if (fields == null)
@@ -284,6 +285,9 @@ public class HBaseClient extends com.yahoo.ycsb.DB
                 //add rowResult to result vector
                 result.add(rowResult);
                 numResults++;
+
+                // PageFilter does not guarantee that the number of results is <= pageSize, so this
+                // break is required.
                 if (numResults >= recordcount) //if hit recordcount, bail out
                 {
                     break;
