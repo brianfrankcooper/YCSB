@@ -102,12 +102,12 @@ public class CassandraCQLClient extends DB {
 
                 _debug = Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
 
-                String host = getProperties().getProperty("host");
+                String host = getProperties().getProperty("hosts");
                 if (host == null) {
                     throw new DBException("Required property \"host\" missing for CassandraClient");
                 }
-                String hosts[] = host.split(" ");
-                String port = getProperties().getProperty("port", "9160");
+                String hosts[] = host.split(",");
+                String port = getProperties().getProperty("port", "9042");
                 if (port == null) {
                     throw new DBException("Required property \"port\" missing for CassandraClient");
                 }
