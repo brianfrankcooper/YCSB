@@ -70,6 +70,7 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 public class S3Client extends DB {
  
   private static AmazonS3Client s3Client;
+  private static String sse;
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
   //private static int initCount = 0;
 
@@ -178,7 +179,10 @@ public class S3Client extends DB {
           if (maxErrorRetry == null){
             maxErrorRetry = propsCL.getProperty("s3.maxErrorRetry", "15");
           }
-          System.out.println(maxErrorRetry);
+          sse = props.getProperty("s3.sse");
+          if (sse == null){
+            sse = propsCL.getProperty("s3.sse", "false");
+          }  
         } catch (Exception e){
           System.err.println("The file properties doesn't exist "+e.toString());
           e.printStackTrace();
@@ -226,7 +230,7 @@ public class S3Client extends DB {
   @Override
   public int insert(String bucket, String key, 
       HashMap<String, ByteIterator> values) {
-    return writeToStorage(bucket, key, values, true);
+    return writeToStorage(bucket, key, values, true, sse);
   }
   /**
   * Read a file from the Bucket. Each field/value pair from the result
@@ -265,7 +269,7 @@ public class S3Client extends DB {
   @Override
   public int update(String bucket, String key, 
         HashMap<String, ByteIterator> values) {
-    return writeToStorage(bucket, key, values, false);
+    return writeToStorage(bucket, key, values, false, sse);
   }
   /**
   * Perform a range scan for a set of files in the bucket. Each
@@ -305,7 +309,8 @@ public class S3Client extends DB {
   * 
   */
   protected int writeToStorage(String bucket, String key, 
-        HashMap<String, ByteIterator> values, Boolean updateMarker) {
+        HashMap<String, ByteIterator> values, Boolean updateMarker, 
+            String sseLocal) {
     int totalSize = 0;
     int fieldCount = values.size(); //number of fields to concatenate
     // getting the first field in the values
@@ -338,12 +343,20 @@ public class S3Client extends DB {
     }
     try (InputStream input = new ByteArrayInputStream(destinationArray)) {
       ObjectMetadata metadata = new ObjectMetadata();
+      if (sseLocal.equals("true")) {
+        metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+      }
       metadata.setContentLength(totalSize);
       try {
         PutObjectResult res = 
             s3Client.putObject(bucket, key, input, metadata);
         if(res.getETag() == null) {
           return 1;
+        } else {
+          if (sseLocal.equals("true")) {
+            System.out.println("Uploaded object encryption status is " + 
+                res.getSSEAlgorithm()); 
+          }
         }
       } catch (Exception e) {
         System.err.println("Not possible to write object :"+key);
