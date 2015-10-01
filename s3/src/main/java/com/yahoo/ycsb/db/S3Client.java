@@ -43,6 +43,7 @@ import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.Protocol;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
@@ -148,6 +149,7 @@ public class S3Client extends DB {
         String endPoint = null;
         String region = null;
         String maxErrorRetry = null;
+        String protocol = null;
         BasicAWSCredentials s3Credentials;
         ClientConfiguration clientConfig;
         if (s3Client != null) {
@@ -183,6 +185,10 @@ public class S3Client extends DB {
           if (maxErrorRetry == null){
             maxErrorRetry = propsCL.getProperty("s3.maxErrorRetry", "15");
           }
+          protocol = props.getProperty("s3.protocol");
+          if (protocol == null){
+            protocol = propsCL.getProperty("s3.protocol", "HTTP");
+          }
           sse = props.getProperty("s3.sse");
           if (sse == null){
             sse = propsCL.getProperty("s3.sse", "false");
@@ -202,6 +208,9 @@ public class S3Client extends DB {
           s3Credentials = new BasicAWSCredentials(accessKeyId, secretKey);
           clientConfig = new ClientConfiguration();
           clientConfig.setMaxErrorRetry(Integer.parseInt(maxErrorRetry));
+          if(protocol.equals("HTTPS")) {
+            clientConfig.setProtocol(Protocol.HTTPS);
+          }
           s3Client = new AmazonS3Client(s3Credentials, clientConfig);
           s3Client.setRegion(Region.getRegion(Regions.fromName(region)));
           s3Client.setEndpoint(endPoint);
