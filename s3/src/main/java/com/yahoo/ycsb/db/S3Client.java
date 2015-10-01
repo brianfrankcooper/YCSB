@@ -46,6 +46,9 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.services.s3.model.SSECustomerKey;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 
 /**
  * S3 Storage client for YCSB framework.
@@ -71,6 +74,7 @@ public class S3Client extends DB {
  
   private static AmazonS3Client s3Client;
   private static String sse;
+  private static SSECustomerKey ssecKey;
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
   //private static int initCount = 0;
 
@@ -182,7 +186,13 @@ public class S3Client extends DB {
           sse = props.getProperty("s3.sse");
           if (sse == null){
             sse = propsCL.getProperty("s3.sse", "false");
-          }  
+          }
+          String ssec = props.getProperty("s3.ssec");
+          if (ssec == null){
+            ssec = propsCL.getProperty("s3.ssec", null);
+          } else {
+            ssecKey = new SSECustomerKey(ssec);
+          }
         } catch (Exception e){
           System.err.println("The file properties doesn't exist "+e.toString());
           e.printStackTrace();
@@ -230,7 +240,7 @@ public class S3Client extends DB {
   @Override
   public int insert(String bucket, String key, 
       HashMap<String, ByteIterator> values) {
-    return writeToStorage(bucket, key, values, true, sse);
+    return writeToStorage(bucket, key, values, true, sse, ssecKey);
   }
   /**
   * Read a file from the Bucket. Each field/value pair from the result
@@ -250,7 +260,7 @@ public class S3Client extends DB {
   @Override
   public int read(String bucket, String key, Set<String> fields, 
         HashMap<String, ByteIterator> result) {
-    return readFromStorage(bucket, key, result);
+    return readFromStorage(bucket, key, result, ssecKey);
   }
   /**
   * Update a file in the database. Any field/value pairs in the specified
@@ -269,7 +279,7 @@ public class S3Client extends DB {
   @Override
   public int update(String bucket, String key, 
         HashMap<String, ByteIterator> values) {
-    return writeToStorage(bucket, key, values, false, sse);
+    return writeToStorage(bucket, key, values, false, sse, ssecKey);
   }
   /**
   * Perform a range scan for a set of files in the bucket. Each
@@ -292,7 +302,7 @@ public class S3Client extends DB {
   @Override
   public int scan(String bucket, String startkey, int recordcount, 
         Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-    return scanFromStorage(bucket, startkey, recordcount, result);
+    return scanFromStorage(bucket, startkey, recordcount, result, ssecKey);
   }
   /**
   * Upload a new object to S3 or update an object on S3. 
@@ -310,7 +320,7 @@ public class S3Client extends DB {
   */
   protected int writeToStorage(String bucket, String key, 
         HashMap<String, ByteIterator> values, Boolean updateMarker, 
-            String sseLocal) {
+            String sseLocal, SSECustomerKey ssecLocal) {
     int totalSize = 0;
     int fieldCount = values.size(); //number of fields to concatenate
     // getting the first field in the values
@@ -322,10 +332,22 @@ public class S3Client extends DB {
       totalSize = sizeArray*fieldCount;
     } else {
       try {
+        GetObjectRequest getObjectRequest = null;
+        GetObjectMetadataRequest getObjectMetadataRequest = null;
+        if (ssecLocal != null) {
+          getObjectRequest = new GetObjectRequest(bucket, 
+              key).withSSECustomerKey(ssecLocal);
+          getObjectMetadataRequest = new GetObjectMetadataRequest(bucket, 
+              key).withSSECustomerKey(ssecLocal);
+        } else {
+          getObjectRequest = new GetObjectRequest(bucket, key);
+          getObjectMetadataRequest = new GetObjectMetadataRequest(bucket, 
+              key);
+        }
         S3Object object = 
-            s3Client.getObject(new GetObjectRequest(bucket, key));
+            s3Client.getObject(getObjectRequest);
         ObjectMetadata objectMetadata = 
-            s3Client.getObjectMetadata(bucket, key);
+            s3Client.getObjectMetadata(getObjectMetadataRequest);
         int sizeOfFile = (int)objectMetadata.getContentLength();
         fieldCount = sizeOfFile/sizeArray;
         totalSize = sizeOfFile;
@@ -343,17 +365,30 @@ public class S3Client extends DB {
     }
     try (InputStream input = new ByteArrayInputStream(destinationArray)) {
       ObjectMetadata metadata = new ObjectMetadata();
+      metadata.setContentLength(totalSize);
+      PutObjectRequest putObjectRequest = null;
       if (sseLocal.equals("true")) {
         metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+        putObjectRequest = new PutObjectRequest(bucket, key, 
+            input, metadata);
+      } else if (ssecLocal != null) {
+        putObjectRequest = new PutObjectRequest(bucket, key, 
+            input, metadata).withSSECustomerKey(ssecLocal);
+      } else {
+        putObjectRequest = new PutObjectRequest(bucket, key, 
+            input, metadata);
       }
-      metadata.setContentLength(totalSize);
+      
       try {
         PutObjectResult res = 
-            s3Client.putObject(bucket, key, input, metadata);
+            s3Client.putObject(putObjectRequest);
         if(res.getETag() == null) {
           return 1;
         } else {
           if (sseLocal.equals("true")) {
+            System.out.println("Uploaded object encryption status is " + 
+                res.getSSEAlgorithm()); 
+          } else if (ssecLocal != null) {
             System.out.println("Uploaded object encryption status is " + 
                 res.getSSEAlgorithm()); 
           }
@@ -384,12 +419,24 @@ public class S3Client extends DB {
   * 
   */
   protected int readFromStorage(String bucket, String key, 
-        HashMap<String, ByteIterator> result) {
+        HashMap<String, ByteIterator> result, SSECustomerKey ssecLocal) {
     try {
+      GetObjectRequest getObjectRequest = null;
+      GetObjectMetadataRequest getObjectMetadataRequest = null;
+      if (ssecLocal != null) {
+        getObjectRequest = new GetObjectRequest(bucket, 
+            key).withSSECustomerKey(ssecLocal);
+        getObjectMetadataRequest = new GetObjectMetadataRequest(bucket, 
+            key).withSSECustomerKey(ssecLocal);
+      } else {
+        getObjectRequest = new GetObjectRequest(bucket, key);
+        getObjectMetadataRequest = new GetObjectMetadataRequest(bucket, 
+            key);
+      }
       S3Object object = 
-          s3Client.getObject(new GetObjectRequest(bucket, key));
+          s3Client.getObject(getObjectRequest);
       ObjectMetadata objectMetadata = 
-          s3Client.getObjectMetadata(bucket, key);
+          s3Client.getObjectMetadata(getObjectMetadataRequest);
       InputStream objectData = object.getObjectContent(); //consuming the stream
       // writing the stream to bytes and to results
       int sizeOfFile = (int)objectMetadata.getContentLength();
@@ -423,7 +470,8 @@ public class S3Client extends DB {
   * 
   */
   protected int scanFromStorage(String bucket, String startkey, 
-      int recordcount, Vector<HashMap<String, ByteIterator>> result) {
+      int recordcount, Vector<HashMap<String, ByteIterator>> result,
+          SSECustomerKey ssecLocal) {
 
     int counter = 0;
     ObjectListing listing = s3Client.listObjects(bucket);
@@ -462,7 +510,8 @@ public class S3Client extends DB {
     for (int i = startkeyNumber; i < numberOfIteration; i++){
       HashMap<String, ByteIterator> resultTemp = 
           new HashMap<String, ByteIterator>();
-      readFromStorage(bucket, keyList.get(i), resultTemp);
+      readFromStorage(bucket, keyList.get(i), resultTemp, 
+          ssecLocal);
       result.add(resultTemp);
     }
     return 0;
