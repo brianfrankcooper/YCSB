@@ -74,6 +74,14 @@ public abstract class DB
 	}
 
 	/**
+	 * Initialize the DB for the warmup phase.
+	 * The operations should not be accounted into the measurements.
+	 */
+	public void init(boolean warmup) throws DBException
+	{
+	}
+
+	/**
 	 * Cleanup any state for this DB.
 	 * Called once per DB instance; there is one DB instance per client thread.
 	 */

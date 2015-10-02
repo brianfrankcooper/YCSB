@@ -31,6 +31,7 @@ public class DBWrapper extends DB
 {
 	DB _db;
 	Measurements _measurements;
+	boolean warmup = false;
 
 	public DBWrapper(DB db)
 	{
@@ -63,6 +64,12 @@ public class DBWrapper extends DB
 		_db.init();
 	}
 
+	public void init(boolean warmup) throws DBException
+	{
+		this.warmup = warmup;
+		_db.init();
+	}
+
 	/**
 	 * Cleanup any state for this DB.
 	 * Called once per DB instance; there is one DB instance per client thread.
@@ -87,12 +94,20 @@ public class DBWrapper extends DB
 	 */
 	public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
 	{
-	    long ist=_measurements.getIntendedtartTimeNs();
-	    long st = System.nanoTime();
-	    int res=_db.read(table,key,fields,result);
-		long en=System.nanoTime();
-		measure("READ",ist, st, en);
-	    _measurements.reportReturnCode("READ",res);
+		int res = 0;
+		if (!warmup)
+		{
+			long ist=_measurements.getIntendedtartTimeNs();
+			long st = System.nanoTime();
+			res=_db.read(table,key,fields,result);
+			long en=System.nanoTime();
+			measure("READ",ist, st, en);
+			_measurements.reportReturnCode("READ",res);
+		}
+		else
+		{
+			res = _db.read(table, key, fields, result);
+		}
 		return res;
 	}
 
