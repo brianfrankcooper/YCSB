@@ -93,9 +93,13 @@ public class Measurements
     {
       _measurementType = 2;
     }
-    else if (mTypeString.equals("timeseries"))
+    else if (mTypeString.equals("nosqlmarkhistogram"))
     {
       _measurementType = 3;
+    }
+    else if (mTypeString.equals("timeseries"))
+    {
+      _measurementType = 4;
     }
     else {
       throw new IllegalArgumentException("unknown "+MEASUREMENT_TYPE_PROPERTY+"="+mTypeString);
@@ -131,6 +135,7 @@ public class Measurements
       return new TwoInOneMeasurement(name,
               new OneMeasurementHdrHistogram("Hdr"+name, _props),
               new OneMeasurementHistogram("Bucket"+name, _props));
+    case 3: new OneMeasurementNoSQLMarkHistogram(name, _props);
     default:
       return new OneMeasurementTimeSeries(name, _props);
     }
@@ -147,7 +152,7 @@ public class Measurements
         return time;
       }
     }
-  }
+}
 
   ThreadLocal<StartTimeHolder> tlIntendedStartTime = new ThreadLocal<Measurements.StartTimeHolder>() {
     protected StartTimeHolder initialValue() {
