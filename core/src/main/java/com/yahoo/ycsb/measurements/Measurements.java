@@ -152,7 +152,7 @@ public class Measurements
         return time;
       }
     }
-}
+  }
 
   ThreadLocal<StartTimeHolder> tlIntendedStartTime = new ThreadLocal<Measurements.StartTimeHolder>() {
     protected StartTimeHolder initialValue() {
