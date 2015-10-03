@@ -15,8 +15,10 @@ permissions and limitations under the License. See accompanying
 LICENSE file.
 -->
 
-# HBase Driver for YCSB
-This driver is a binding for the YCSB facilities to operate against a HBase Server cluster.
+# HBase (0.98.x) Driver for YCSB
+This driver is a binding for the YCSB facilities to operate against a HBase 0.98.x Server cluster.
+To run against an HBase 0.94.x cluster, use the `hbase094` binding.
+To run against an HBase >= 1.0 cluster, use the `hbase10` binding.
 
 ## Quickstart
 
@@ -68,6 +70,7 @@ bin/ycsb run hbase -P workloads/workloada -cp /HBASE-HOME-DIR/conf -p table=user
 Following options can be configurable using `-p`.
 
 * `columnfamily`: The HBase column family to target.
-* `clientbuffering` : If true, buffer mutations on the client. The default is false.
-* `writebuffersize` : Buffer size to be used when `clientbuffering` is activated. The default is 12MB.
 * `debug` : If true, debugging logs are activated. The default is false.
+* `hbase.usepagefilter` : If true, HBase
+  [PageFilter](https://hbase.apache.org/apidocs/org/apache/hadoop/hbase/filter/PageFilter.html)s
+  are used to limit the number of records consumed in a scan operation. The default is true.
