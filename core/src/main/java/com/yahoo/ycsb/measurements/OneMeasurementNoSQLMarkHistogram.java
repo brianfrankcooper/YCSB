@@ -72,7 +72,7 @@ public class OneMeasurementNoSQLMarkHistogram extends OneMeasurement {
     * It appears latency is reported in micros.
     * Using {@link Recorder} to support concurrent updates to histogram.
     *
-    * @see com.yahoo.ycsb.OneMeasurement#measure(int)
+    * @see com.yahoo.ycsb.measurements.OneMeasurement#measure(int)
     */
   public void measure(int latencyInMicros) {
     histogram.recordValue(latencyInMicros);
@@ -102,9 +102,7 @@ public class OneMeasurementNoSQLMarkHistogram extends OneMeasurement {
     exporter.write(getName(), "99.99thPercentileLatency(ms)", totalHistogram.getValueAtPercentile(99.99)/1000);
     exporter.write(getName(), compressedHistogram.toString("UTF8"), 0);
 
-    for (Map.Entry<Integer, AtomicInteger> entry : returncodes.entrySet()) {
-      exporter.write(getName(), "Return=" + entry.getKey(), entry.getValue().get());
-    }
+    exportReturnCodes(exporter);
   }
 
   /**
