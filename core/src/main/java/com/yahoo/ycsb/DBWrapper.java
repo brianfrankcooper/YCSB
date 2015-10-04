@@ -31,7 +31,6 @@ public class DBWrapper extends DB
 {
 	DB _db;
 	Measurements _measurements;
-	boolean warmup = false;
 
 	public DBWrapper(DB db)
 	{
@@ -61,18 +60,6 @@ public class DBWrapper extends DB
 	 */
 	public void init() throws DBException
 	{
-		_db.init();
-	}
-
-	/**
-	 * Initialize the DB regarding whether it is the warmup phase.
-	 * If warmup phase, operations should not be accounted into the measurements.
-	 *
-	 * @param warmup The flag for the warmup phase
-	 */
-	public void init(boolean warmup) throws DBException
-	{
-		this.warmup = warmup;
 		_db.init();
 	}
 
