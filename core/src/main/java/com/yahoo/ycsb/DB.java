@@ -74,12 +74,10 @@ public abstract class DB
 	}
 
 	/**
-	 * Initialize the DB for the warmup phase.
-	 * The operations should not be accounted into the measurements.
+	 * Initialize the DB regarding whether it is the warmup phase.
+	 * If warmup phase, operations should not be accounted into the measurements.
 	 */
-	public void init(boolean warmup) throws DBException
-	{
-	}
+	public abstract void init(boolean warmup) throws DBException;
 
 	/**
 	 * Cleanup any state for this DB.
