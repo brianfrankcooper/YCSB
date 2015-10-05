@@ -93,7 +93,7 @@ public class Measurements
     {
       _measurementType = 2;
     }
-    else if (mTypeString.equals("nosqlmarkhistogram"))
+    else if (mTypeString.equals("compressedhdrhistogram"))
     {
       _measurementType = 3;
     }
@@ -135,7 +135,8 @@ public class Measurements
       return new TwoInOneMeasurement(name,
               new OneMeasurementHdrHistogram("Hdr"+name, _props),
               new OneMeasurementHistogram("Bucket"+name, _props));
-    case 3: new OneMeasurementNoSQLMarkHistogram(name, _props);
+    case 3:
+      return new OneMeasurementCompressedHdrHistogram(name, _props);
     default:
       return new OneMeasurementTimeSeries(name, _props);
     }

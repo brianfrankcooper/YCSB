@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author nitsanw
  *
  */
-public class OneMeasurementNoSQLMarkHistogram extends OneMeasurement {
+public class OneMeasurementCompressedHdrHistogram extends OneMeasurement {
 
   // we need one log per measurement histogram
   PrintStream log;
@@ -44,7 +44,7 @@ public class OneMeasurementNoSQLMarkHistogram extends OneMeasurement {
   final Recorder histogram;
   Histogram totalHistogram;
 
-  public OneMeasurementNoSQLMarkHistogram(String name, Properties props) {
+  public OneMeasurementCompressedHdrHistogram(String name, Properties props) {
     super(name);
     boolean shouldLog = Boolean.parseBoolean(props.getProperty("hdrhistogram.fileoutput", "false"));
     if (!shouldLog) {
@@ -100,7 +100,7 @@ public class OneMeasurementNoSQLMarkHistogram extends OneMeasurement {
     exporter.write(getName(), "99thPercentileLatency(ms)", totalHistogram.getValueAtPercentile(99)/1000);
     exporter.write(getName(), "99.9thPercentileLatency(ms)", totalHistogram.getValueAtPercentile(99.9)/1000);
     exporter.write(getName(), "99.99thPercentileLatency(ms)", totalHistogram.getValueAtPercentile(99.99)/1000);
-    exporter.write(getName(), compressedHistogram.toString("UTF8"), 0);
+    exporter.write(getName(), compressedHistogram.toString("UTF8"), -1);
 
     exportReturnCodes(exporter);
   }
