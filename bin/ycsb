@@ -49,7 +49,7 @@ COMMANDS = {
 }
 
 DATABASES = {
-    "accumulo"     : "com.yahoo.ycsb.db.AccumuloClient",
+    "accumulo"     : "com.yahoo.ycsb.db.accumulo.AccumuloClient",
     "aerospike"    : "com.yahoo.ycsb.db.AerospikeClient",
     "basic"        : "com.yahoo.ycsb.BasicDB",
     "cassandra-7"  : "com.yahoo.ycsb.db.CassandraClient7",
