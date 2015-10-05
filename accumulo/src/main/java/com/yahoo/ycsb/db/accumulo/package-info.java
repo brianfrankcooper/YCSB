@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2015, YCSB contributors. All rights reserved.
+/**
+ * Copyright (c) 2015 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -16,7 +16,7 @@
  */
 
 /**
- * The YCSB binding for <a href="https://accumulo.apache.org/">Apache Accumulo</a>.
+ * YCSB binding for <a href="https://accumulo.apache.org/">Apache Accumulo</a>.
  */
 package com.yahoo.ycsb.db.accumulo;
 
