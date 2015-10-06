@@ -953,6 +953,10 @@ public class Client
         warmupLatch.await();
       } catch (InterruptedException e) {
         e.printStackTrace();
+        e.printStackTrace(System.out);
+        // restore the interrupted status and get out
+        Thread.currentThread().interrupt();
+        System.exit(0);
       }
     }
 
