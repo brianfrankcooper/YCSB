@@ -39,44 +39,31 @@ public class OneMeasurementCompressedHdrHistogram extends OneMeasurement {
 
   // we need one log per measurement histogram
   PrintStream log;
-  PrintStream filelog;
   HistogramLogWriter histogramLogWriter;
-  HistogramLogWriter histogramLogFileWriter;
   ByteArrayOutputStream compressedHistogram = new ByteArrayOutputStream();
   final Recorder histogram;
   Histogram totalHistogram;
 
   public OneMeasurementCompressedHdrHistogram(String name, Properties props) {
     super(name);
-    // log compressed histogram to ByteArrayOutputStream
-    try {
-      log = new PrintStream(compressedHistogram, false, "UTF-8");
-      histogramLogWriter = new HistogramLogWriter(log);
-      long now = System.currentTimeMillis();
-      histogramLogWriter.setBaseTime(now);
-    } catch (UnsupportedEncodingException e) {
-      e.printStackTrace();
-    }
-
-    // log to file?
     boolean shouldLog = Boolean.parseBoolean(props.getProperty("hdrhistogram.fileoutput", "false"));
     if (!shouldLog) {
-      filelog = null;
-      histogramLogFileWriter = null;
+      log = null;
+      histogramLogWriter = null;
     } else {
       try {
-        final String hdrOutputFilename = props.getProperty("hdrhistogram.output.path", "") + name + ".hdr";
-        filelog = new PrintStream(new FileOutputStream(hdrOutputFilename), false);
-      } catch (FileNotFoundException e) {
-        throw new RuntimeException("Failed to open hdr histogram output file", e);
+        log = new PrintStream(compressedHistogram, false, "UTF-8");
+
+        histogramLogWriter = new HistogramLogWriter(log);
+        //histogramLogWriter.outputComment("[Logging for: " + name + "]");
+        //histogramLogWriter.outputLogFormatVersion();
+        long now = System.currentTimeMillis();
+        //histogramLogWriter.outputStartTime(now);
+        histogramLogWriter.setBaseTime(now);
+        //histogramLogWriter.outputLegend();
+      } catch (UnsupportedEncodingException e) {
+        e.printStackTrace();
       }
-      histogramLogFileWriter = new HistogramLogWriter(filelog);
-      histogramLogFileWriter.outputComment("[Logging for: " + name + "]");
-      histogramLogFileWriter.outputLogFormatVersion();
-      long now = System.currentTimeMillis();
-      histogramLogFileWriter.outputStartTime(now);
-      histogramLogFileWriter.setBaseTime(now);
-      histogramLogFileWriter.outputLegend();
     }
     histogram = new Recorder(3);
   }
@@ -105,19 +92,8 @@ public class OneMeasurementCompressedHdrHistogram extends OneMeasurement {
       // we can close now
       log.close();
     }
-    if(histogramLogFileWriter != null) {
-      histogramLogFileWriter.outputIntervalHistogram(intervalHistogram);
-      // we can close now
-      filelog.close();
-    }
-    exporter.write(getName(), "Operations", totalHistogram.getTotalCount());
-    exporter.write(getName(), "AverageLatency(us)", totalHistogram.getMean());
-    exporter.write(getName(), "MinLatency(us)", totalHistogram.getMinValue());
-    exporter.write(getName(), "MaxLatency(us)", totalHistogram.getMaxValue());
-    exporter.write(getName(), "95thPercentileLatency(ms)", totalHistogram.getValueAtPercentile(90)/1000);
-    exporter.write(getName(), "99thPercentileLatency(ms)", totalHistogram.getValueAtPercentile(99)/1000);
-    exporter.write(getName(), "99.9thPercentileLatency(ms)", totalHistogram.getValueAtPercentile(99.9)/1000);
-    exporter.write(getName(), "99.99thPercentileLatency(ms)", totalHistogram.getValueAtPercentile(99.99)/1000);
+
+    exporter.write(getName(), compressedHistogram.toString("UTF8") , 0);
 
     exportReturnCodes(exporter);
   }
@@ -130,19 +106,21 @@ public class OneMeasurementCompressedHdrHistogram extends OneMeasurement {
   @Override
   public String getSummary() {
     Histogram intervalHistogram = getIntervalHistogramAndAccumulate();
-
-    if (histogramLogWriter != null) {
+    // we use the summary interval as the histogram file interval.
+    if(histogramLogWriter != null) {
       histogramLogWriter.outputIntervalHistogram(intervalHistogram);
     }
 
-    String summary = "";
-    try {
-      summary = compressedHistogram.toString("UTF8");
-
-    } catch (UnsupportedEncodingException e) {
-      e.printStackTrace();
-    }
-    return summary;
+    DecimalFormat d = new DecimalFormat("#.##");
+    return "[" + getName() +
+            ": Count=" + intervalHistogram.getTotalCount() +
+            ", Max=" + intervalHistogram.getMaxValue() +
+            ", Min=" + intervalHistogram.getMinValue() +
+            ", Avg=" + d.format(intervalHistogram.getMean()) +
+            ", 90=" + d.format(intervalHistogram.getValueAtPercentile(90)) +
+            ", 99=" + d.format(intervalHistogram.getValueAtPercentile(99)) +
+            ", 99.9=" + d.format(intervalHistogram.getValueAtPercentile(99.9)) +
+            ", 99.99=" + d.format(intervalHistogram.getValueAtPercentile(99.99)) +"]";
   }
 
   private Histogram getIntervalHistogramAndAccumulate() {
