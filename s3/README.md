@@ -29,6 +29,9 @@ Running the command:
 the workload A will be executed with 50/50 updates/reads. 
 
 #### S3 Storage Configuration Parameters
+
+The parameters to configure the S3 client can be set using the file "s3-binding/conf/s3.properties". This is highly advisable for the parameters s3.accessKeyId and s3.secretKey. All the other parameters can be set also on the command line. Here the list of all the parameters that is possible to configure:
+
 - `table`
   - This should be a S3 Storage bucket name and it replace the standard table name assigned by YCSB. 
  
@@ -48,3 +51,13 @@ the workload A will be executed with 50/50 updates/reads.
 
 - `s3.maxErrorRetry`
   - This is the maxErrorRetry parameter for the S3Client.
+
+- `s3.protocol`
+  - This is the protocol parameter for the S3Client. The default value is HTTPS.
+
+- `s3.sse`
+  - This parameter set to true activates the Server Side Encryption.
+
+- `s3.ssec`
+  - This parameter if not null activates the SSE-C client side encryption. The value passed with this parameter is the client key used to encrpyt the files.
+

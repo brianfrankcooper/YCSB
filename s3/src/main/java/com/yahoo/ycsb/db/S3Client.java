@@ -149,6 +149,7 @@ public class S3Client extends DB {
         String endPoint = null;
         String region = null;
         String maxErrorRetry = null;
+        String maxConnections = null;
         String protocol = null;
         BasicAWSCredentials s3Credentials;
         ClientConfiguration clientConfig;
@@ -185,6 +186,10 @@ public class S3Client extends DB {
           if (maxErrorRetry == null){
             maxErrorRetry = propsCL.getProperty("s3.maxErrorRetry", "15");
           }
+          maxConnections = props.getProperty("s3.maxConnections");
+          if (maxConnections == null){
+            maxConnections = propsCL.getProperty("s3.maxConnections");
+          }
           protocol = props.getProperty("s3.protocol");
           if (protocol == null){
             protocol = propsCL.getProperty("s3.protocol", "HTTP");
@@ -208,8 +213,13 @@ public class S3Client extends DB {
           s3Credentials = new BasicAWSCredentials(accessKeyId, secretKey);
           clientConfig = new ClientConfiguration();
           clientConfig.setMaxErrorRetry(Integer.parseInt(maxErrorRetry));
-          if(protocol.equals("HTTPS")) {
+          if(protocol.equals("HTTP")) {
+            clientConfig.setProtocol(Protocol.HTTP);
+          } else {
             clientConfig.setProtocol(Protocol.HTTPS);
+          }
+          if(maxConnections != null) {
+            clientConfig.setMaxConnections(Integer.parseInt(maxConnections));
           }
           s3Client = new AmazonS3Client(s3Credentials, clientConfig);
           s3Client.setRegion(Region.getRegion(Regions.fromName(region)));
