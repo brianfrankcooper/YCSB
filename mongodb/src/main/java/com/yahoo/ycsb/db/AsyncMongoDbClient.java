@@ -96,6 +96,9 @@ public class AsyncMongoDbClient extends DB {
 
   /** The batch size to use for inserts. */
   private static int batchSize;
+  
+  /** If true then use updates with the upsert option for inserts. */
+  private static boolean useUpsert;
 
   /** The bulk inserts pending for the thread. */
   private final BatchedWrite.Builder batchedWrite = BatchedWrite.builder()
@@ -178,7 +181,11 @@ public class AsyncMongoDbClient extends DB {
 
       // Set insert batchsize, default 1 - to be YCSB-original equivalent
       batchSize = Integer.parseInt(props.getProperty("mongodb.batchsize", "1"));
-
+      
+      // Set is inserts are done as upserts. Defaults to false.
+      useUpsert = Boolean.parseBoolean(
+          props.getProperty("mongodb.upsert", "false"));
+      
       // Just use the standard connection format URL
       // http://docs.mongodb.org/manual/reference/connection-string/
       // to configure the client.
@@ -255,15 +262,26 @@ public class AsyncMongoDbClient extends DB {
 
       // Do an upsert.
       if (batchSize <= 1) {
-        long result = collection.update(query, toInsert,
-        /* multi= */false, /* upsert= */true, writeConcern);
-
+        long result;
+        if (useUpsert) {
+          result = collection.update(query, toInsert,
+              /* multi= */false, /* upsert= */true, writeConcern);
+        } else {
+          // Return is not stable pre-SERVER-4381. No exception is success.
+          collection.insert(writeConcern, toInsert);
+          result = 1;
+        }
         return result == 1 ? 0 : 1;
       }
 
       // Use a bulk insert.
       try {
-        batchedWrite.insert(toInsert);
+        if (useUpsert) {
+          batchedWrite.update(query, toInsert, /* multi= */false, 
+              /* upsert= */true);
+        } else {
+          batchedWrite.insert(toInsert);
+        }
         batchedWriteCount += 1;
 
         if (batchedWriteCount < batchSize) {

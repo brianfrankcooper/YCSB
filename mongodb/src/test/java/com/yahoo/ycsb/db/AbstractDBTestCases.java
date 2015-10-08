@@ -29,6 +29,7 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
@@ -190,6 +191,69 @@ public abstract class AbstractDBTestCases {
   }
 
   /**
+   * Test method for {@link DB#insert}, {@link DB#read}, and {@link DB#update} .
+   */
+  @Test
+  public void testInsertReadUpdateWithUpsert() {
+    Properties props = new Properties();
+    props.setProperty("mongodb.upsert", "true");
+    DB client = getDB(props);
+
+    final String table = getClass().getSimpleName();
+    final String id = "updateWithUpsert";
+
+    HashMap<String, ByteIterator> inserted =
+        new HashMap<String, ByteIterator>();
+    inserted.put("a", new ByteArrayByteIterator(new byte[] { 1, 2, 3, 4 }));
+    int result = client.insert(table, id, inserted);
+    assertThat("Insert did not return success (0).", result, is(0));
+
+    HashMap<String, ByteIterator> read = new HashMap<String, ByteIterator>();
+    Set<String> keys = Collections.singleton("a");
+    result = client.read(table, id, keys, read);
+    assertThat("Read did not return success (0).", result, is(0));
+    for (String key : keys) {
+      ByteIterator iter = read.get(key);
+
+      assertThat("Did not read the inserted field: " + key, iter,
+          notNullValue());
+      assertTrue(iter.hasNext());
+      assertThat(iter.nextByte(), is(Byte.valueOf((byte) 1)));
+      assertTrue(iter.hasNext());
+      assertThat(iter.nextByte(), is(Byte.valueOf((byte) 2)));
+      assertTrue(iter.hasNext());
+      assertThat(iter.nextByte(), is(Byte.valueOf((byte) 3)));
+      assertTrue(iter.hasNext());
+      assertThat(iter.nextByte(), is(Byte.valueOf((byte) 4)));
+      assertFalse(iter.hasNext());
+    }
+
+    HashMap<String, ByteIterator> updated = new HashMap<String, ByteIterator>();
+    updated.put("a", new ByteArrayByteIterator(new byte[] { 5, 6, 7, 8 }));
+    result = client.update(table, id, updated);
+    assertThat("Update did not return success (0).", result, is(0));
+
+    read.clear();
+    result = client.read(table, id, null, read);
+    assertThat("Read, after update, did not return success (0).", result, is(0));
+    for (String key : keys) {
+      ByteIterator iter = read.get(key);
+
+      assertThat("Did not read the inserted field: " + key, iter,
+          notNullValue());
+      assertTrue(iter.hasNext());
+      assertThat(iter.nextByte(), is(Byte.valueOf((byte) 5)));
+      assertTrue(iter.hasNext());
+      assertThat(iter.nextByte(), is(Byte.valueOf((byte) 6)));
+      assertTrue(iter.hasNext());
+      assertThat(iter.nextByte(), is(Byte.valueOf((byte) 7)));
+      assertTrue(iter.hasNext());
+      assertThat(iter.nextByte(), is(Byte.valueOf((byte) 8)));
+      assertFalse(iter.hasNext());
+    }
+  }
+
+  /**
    * Test method for {@link DB#scan}.
    */
   @Test
@@ -243,7 +307,18 @@ public abstract class AbstractDBTestCases {
    * 
    * @return The test DB.
    */
-  protected abstract DB getDB();
+  protected DB getDB() {
+    return getDB(new Properties());
+  }
+
+  /**
+   * Gets the test DB.
+   * 
+   * @param props 
+   *    Properties to pass to the client.
+   * @return The test DB.
+   */
+  protected abstract DB getDB(Properties props);
 
   /**
    * Creates a zero padded integer.
