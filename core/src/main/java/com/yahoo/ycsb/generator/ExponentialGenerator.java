@@ -17,8 +17,6 @@
 
 package com.yahoo.ycsb.generator;
 
-import java.util.Random;
-
 import com.yahoo.ycsb.Utils;
 
 /**
@@ -30,7 +28,7 @@ import com.yahoo.ycsb.Utils;
  * which corresponds to the rate at which events occur.
  * Alternatively, 1/gamma is the average length of an interval.
  */
-public class ExponentialGenerator extends IntegerGenerator
+public class ExponentialGenerator extends LongGenerator
 {
     // What percentage of the readings should be within the most recent exponential.frac portion of the dataset?
     public static final String EXPONENTIAL_PERCENTILE_PROPERTY="exponential.percentile";
@@ -62,22 +60,9 @@ public class ExponentialGenerator extends IntegerGenerator
 
 	/****************************************************************************************/
 	
-	/** 
-	 * Generate the next item. this distribution will be skewed toward lower integers; e.g. 0 will
-	 * be the most popular, 1 the next most popular, etc.
-	 * @param itemcount The number of items in the distribution.
-	 * @return The next item in the sequence.
-	 */
-	@Override
-	public int nextInt()
-	{
-		return (int)nextLong();
-	}
-
 	/**
 	 * Generate the next item as a long.
 	 * 
-	 * @param itemcount The number of items in the distribution.
 	 * @return The next item in the sequence.
 	 */
 	public long nextLong()
@@ -93,7 +78,7 @@ public class ExponentialGenerator extends IntegerGenerator
         ExponentialGenerator e = new ExponentialGenerator(90, 100);
         int j = 0;
         for(int i = 0; i < 1000; i++) {
-            if(e.nextInt() < 100) {
+            if(e.nextLong() < 100) {
                 j++;
             }
         }

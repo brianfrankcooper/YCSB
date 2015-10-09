@@ -17,38 +17,51 @@
 
 package com.yahoo.ycsb.generator;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Generates a sequence of integers 0, 1, ...
  */
-public class CounterGenerator extends IntegerGenerator
+public class CounterGenerator extends LongGenerator
 {
-	final AtomicInteger counter;
+	final AtomicLong counter;
 
 	/**
 	 * Create a counter that starts at countstart
 	 */
-	public CounterGenerator(int countstart)
+	public CounterGenerator(long countstart)
 	{
-		counter=new AtomicInteger(countstart);
-		setLastInt(counter.get()-1);
+		counter=new AtomicLong(countstart);
+		setLastLong(counter.get()-1);
 	}
 	
 	/**
 	 * If the generator returns numeric (integer) values, return the next value as an int. Default is to return -1, which
 	 * is appropriate for generators that do not return numeric values.
 	 */
-	public int nextInt() 
+	public long nextLong() 
 	{
-		int ret = counter.getAndIncrement();
-		setLastInt(ret);
-		return ret;
+	  // Increment the counter but avoid overflow and stop at Long.MAX_VALUE.
+	  long current;
+	  long next;
+	  do {
+  	  current = counter.get();
+  	  next = current + 1;
+  	  
+  	  // Check for overflow.
+  	  if (next < 0) {
+  	    next = Long.MAX_VALUE;
+  	  }
+	  } while(!counter.compareAndSet(current, next));
+		
+	  setLastLong(next);
+	  
+		return next;
 	}
 	@Override
-	public int lastInt()
+	public long lastLong()
 	{
-	                return counter.get() - 1;
+    return counter.get() - 1;
 	}
 	@Override
 	public double mean() {

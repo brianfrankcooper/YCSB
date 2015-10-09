@@ -20,7 +20,7 @@ import java.util.Properties;
 
 import com.yahoo.ycsb.WorkloadException;
 import com.yahoo.ycsb.Client;
-import com.yahoo.ycsb.generator.IntegerGenerator;
+import com.yahoo.ycsb.generator.LongGenerator;
 
 /**
  * A disk-fragmenting workload.
@@ -47,7 +47,7 @@ import com.yahoo.ycsb.generator.IntegerGenerator;
 public class ConstantOccupancyWorkload extends CoreWorkload {
 	long disksize;
 	long storageages;
-	IntegerGenerator objectsizes;
+	LongGenerator objectsizes;
 	double occupancy;
 	
 	long object_count;
@@ -73,7 +73,7 @@ public class ConstantOccupancyWorkload extends CoreWorkload {
 		   p.getProperty(Client.OPERATION_COUNT_PROPERTY) != null) {
 			System.err.println("Warning: record, insert or operation count was set prior to initting ConstantOccupancyWorkload.  Overriding old values.");
 		}
-		IntegerGenerator g = CoreWorkload.getFieldLengthGenerator(p);
+		LongGenerator g = CoreWorkload.getFieldLengthGenerator(p);
 		double fieldsize = g.mean();
 		int fieldcount = Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
 

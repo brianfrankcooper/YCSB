@@ -17,28 +17,29 @@
 package com.yahoo.ycsb.generator;
 
 /**
- * A trivial integer generator that always returns the same value.
+ * A trivial long generator that always returns the same value.
  * 
  * @author sears
  *
  */
-public class ConstantIntegerGenerator extends IntegerGenerator {
-	private final int i;
+public class ConstantGenerator extends LongGenerator {
+	private final long value;
+	
 	/**
 	 * @param i The integer that this generator will always return.
 	 */
-	public ConstantIntegerGenerator(int i) {
-		this.i = i;
+	public ConstantGenerator(long i) {
+		this.value = i;
 	}
 
 	@Override
-	public int nextInt() {
-		return i;
+	public long nextLong() {
+		return value;
 	}
 
 	@Override
 	public double mean() {
-		return i;
+		return value;
 	}
 
 }

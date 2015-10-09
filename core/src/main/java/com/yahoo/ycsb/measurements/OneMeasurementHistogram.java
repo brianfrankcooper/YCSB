@@ -39,23 +39,23 @@ public class OneMeasurementHistogram extends OneMeasurement
   public static final String BUCKETS_DEFAULT="1000";
 
   int _buckets;
-  int[] histogram;
-  int histogramoverflow;
-  int operations;
+  long[] histogram;
+  long histogramoverflow;
+  long operations;
   long totallatency;
 
   //keep a windowed version of these stats for printing status
-  int windowoperations;
+  long windowoperations;
   long windowtotallatency;
 
-  int min;
-  int max;
+  long min;
+  long max;
 
   public OneMeasurementHistogram(String name, Properties props)
   {
     super(name);
     _buckets=Integer.parseInt(props.getProperty(BUCKETS, BUCKETS_DEFAULT));
-    histogram=new int[_buckets];
+    histogram=new long[_buckets];
     histogramoverflow=0;
     operations=0;
     totallatency=0;
@@ -68,15 +68,16 @@ public class OneMeasurementHistogram extends OneMeasurement
   /* (non-Javadoc)
    * @see com.yahoo.ycsb.OneMeasurement#measure(int)
    */
-  public synchronized void measure(int latency)
+  public synchronized void measure(long latency)
   {
-    if (latency/1000>=_buckets)
+    long bucket = latency/1000;
+    if (bucket >=_buckets)
     {
       histogramoverflow++;
     }
     else
     {
-      histogram[latency/1000]++;
+      histogram[(int) bucket]++;
     }
     operations++;
     totallatency+=latency;

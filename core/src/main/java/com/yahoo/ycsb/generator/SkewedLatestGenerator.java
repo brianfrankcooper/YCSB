@@ -20,7 +20,7 @@ package com.yahoo.ycsb.generator;
 /**
  * Generate a popularity distribution of items, skewed to favor recent items significantly more than older items.
  */
-public class SkewedLatestGenerator extends IntegerGenerator
+public class SkewedLatestGenerator extends LongGenerator
 {
 	CounterGenerator _basis;
 	ZipfianGenerator _zipfian;
@@ -28,18 +28,18 @@ public class SkewedLatestGenerator extends IntegerGenerator
 	public SkewedLatestGenerator(CounterGenerator basis)
 	{
 		_basis=basis;
-		_zipfian=new ZipfianGenerator(_basis.lastInt());
-		nextInt();
+		_zipfian=new ZipfianGenerator(_basis.lastLong());
+		nextLong();
 	}
 
 	/**
 	 * Generate the next string in the distribution, skewed Zipfian favoring the items most recently returned by the basis generator.
 	 */
-	public int nextInt()
+	public long nextLong()
 	{
-		int max=_basis.lastInt();
-		int nextint=max-_zipfian.nextInt(max);
-		setLastInt(nextint);
+		long max=_basis.lastLong();
+		long nextint=max-_zipfian.nextLong(max);
+		setLastLong(nextint);
 		return nextint;
 	}
 

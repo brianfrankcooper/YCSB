@@ -28,7 +28,7 @@ import com.yahoo.ycsb.Utils;
  * Unlike @ZipfianGenerator, this class scatters the "popular" items across the itemspace. Use this, instead of @ZipfianGenerator, if you
  * don't want the head of the distribution (the popular items) clustered together.
  */
-public class ScrambledZipfianGenerator extends IntegerGenerator 
+public class ScrambledZipfianGenerator extends LongGenerator 
 {
 	public static final double ZETAN=26.46902820178302;
         public static final double USED_ZIPFIAN_CONSTANT=0.99;
@@ -57,20 +57,6 @@ public class ScrambledZipfianGenerator extends IntegerGenerator
 	{
 		this(_min,_max,ZipfianGenerator.ZIPFIAN_CONSTANT);
 	}
-
-	/**
-	 * Create a zipfian generator for the specified number of items using the specified zipfian constant.
-	 * 
-	 * @param _items The number of items in the distribution.
-	 * @param _zipfianconstant The zipfian constant to use.
-	 */
-	/*
-// not supported, as the value of zeta depends on the zipfian constant, and we have only precomputed zeta for one zipfian constant
-	public ScrambledZipfianGenerator(long _items, double _zipfianconstant)
-	{
-		this(0,_items-1,_zipfianconstant);
-	}
-*/
 	
 	/**
 	 * Create a zipfian generator for items between min and max (inclusive) for the specified zipfian constant. If you 
@@ -93,23 +79,16 @@ public class ScrambledZipfianGenerator extends IntegerGenerator
 	}
 	
 	/**************************************************************************************************/
-	
-	/**
-	 * Return the next int in the sequence.
-	 */
-	@Override
-	public int nextInt() {
-		return (int)nextLong();
-	}
 
 	/**
 	 * Return the next long in the sequence.
 	 */
+  @Override
 	public long nextLong()
 	{
 		long ret=gen.nextLong();
 		ret=_min+Utils.FNVhash64(ret)%_itemcount;
-		setLastInt((int)ret);
+		setLastLong(ret);
 		return ret;
 	}
 	
@@ -123,7 +102,7 @@ public class ScrambledZipfianGenerator extends IntegerGenerator
 		
 		for (int i=0; i<1000000; i++)
 		{
-			System.out.println(""+gen.nextInt());
+			System.out.println(""+gen.nextLong());
 		}
 	}
 
@@ -132,6 +111,6 @@ public class ScrambledZipfianGenerator extends IntegerGenerator
 	 */
 	@Override
 	public double mean() {
-		return ((double)(((long)_min) +(long)_max))/2.0;
+		return (_min +_max)/2.0;
 	}
 }

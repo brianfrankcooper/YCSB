@@ -42,7 +42,7 @@ public class JSONMeasurementsExporter implements MeasurementsExporter
     g.setPrettyPrinter(new DefaultPrettyPrinter());
   }
 
-  public void write(String metric, String measurement, int i) throws IOException
+  public void write(String metric, String measurement, long i) throws IOException
   {
     g.writeStartObject();
     g.writeStringField("metric", metric);

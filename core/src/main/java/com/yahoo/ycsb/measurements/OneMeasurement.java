@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 
@@ -30,7 +31,7 @@ import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 public abstract class OneMeasurement {
 
   private final String _name;
-  private  final ConcurrentHashMap<Integer, AtomicInteger> _returncodes;
+  private  final ConcurrentHashMap<Integer, AtomicLong> _returncodes;
 
   public String getName() {
     return _name;
@@ -41,10 +42,10 @@ public abstract class OneMeasurement {
    */
   public OneMeasurement(String _name) {
     this._name = _name;
-    this._returncodes = new ConcurrentHashMap<Integer, AtomicInteger>();
+    this._returncodes = new ConcurrentHashMap<Integer, AtomicLong>();
   }
 
-  public abstract void measure(int latency);
+  public abstract void measure(long latency);
 
   public abstract String getSummary();
 
@@ -53,10 +54,10 @@ public abstract class OneMeasurement {
    */
   public void reportReturnCode(int code) {
     Integer Icode = code;
-    AtomicInteger counter = _returncodes.get(Icode);
+    AtomicLong counter = _returncodes.get(Icode);
 
     if (counter == null) {
-      AtomicInteger other = _returncodes.putIfAbsent(Icode, counter = new AtomicInteger());
+      AtomicLong other = _returncodes.putIfAbsent(Icode, counter = new AtomicLong());
       if (other != null) {
         counter = other;
       }
@@ -74,7 +75,7 @@ public abstract class OneMeasurement {
   public abstract void exportMeasurements(MeasurementsExporter exporter) throws IOException;
 
   protected final void exportReturnCodes(MeasurementsExporter exporter) throws IOException {
-    for (Map.Entry<Integer, AtomicInteger> entry : _returncodes.entrySet()) {
+    for (Map.Entry<Integer, AtomicLong> entry : _returncodes.entrySet()) {
       exporter.write(getName(), "Return=" + entry.getKey(), entry.getValue().get());
     }
   }

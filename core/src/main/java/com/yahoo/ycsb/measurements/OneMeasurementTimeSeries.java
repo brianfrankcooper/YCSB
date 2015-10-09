@@ -52,22 +52,22 @@ public class OneMeasurementTimeSeries extends OneMeasurement
   public static final String GRANULARITY="timeseries.granularity";
   public static final String GRANULARITY_DEFAULT="1000";
 
-  int _granularity;
+  long _granularity;
   Vector<SeriesUnit> _measurements;
 
   long start=-1;
   long currentunit=-1;
-  int count=0;
-  int sum=0;
-  int operations=0;
+  long count=0;
+  long sum=0;
+  long operations=0;
   long totallatency=0;
 
   //keep a windowed version of these stats for printing status
-  int windowoperations=0;
+  long windowoperations=0;
   long windowtotallatency=0;
 
-  int min=-1;
-  int max=-1;
+  long min=-1;
+  long max=-1;
 
   public OneMeasurementTimeSeries(String name, Properties props)
   {
@@ -101,7 +101,7 @@ public class OneMeasurementTimeSeries extends OneMeasurement
   }
 
   @Override
-  public void measure(int latency)
+  public void measure(long latency)
   {
     checkEndOfUnit(false);
 

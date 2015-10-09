@@ -39,7 +39,7 @@ import com.yahoo.ycsb.Utils;
  *
  * The algorithm used here is from "Quickly Generating Billion-Record Synthetic Databases", Jim Gray et al, SIGMOD 1994.
  */
-public class ZipfianGenerator extends IntegerGenerator
+public class ZipfianGenerator extends LongGenerator
 {     
 	public static final double ZIPFIAN_CONSTANT=0.99;
 
@@ -148,7 +148,7 @@ public class ZipfianGenerator extends IntegerGenerator
 		eta=(1-Math.pow(2.0/items,1-theta))/(1-zeta2theta/zetan);
 		
 		//System.out.println("XXXX 3 XXXX");
-		nextInt();
+		nextLong();
 		//System.out.println("XXXX 4 XXXX");
 	}
 	
@@ -285,7 +285,7 @@ public class ZipfianGenerator extends IntegerGenerator
 		}
 
 		long ret=base+(long)((itemcount) * Math.pow(eta*u - eta + 1, alpha));
-		setLastInt((int)ret);
+		setLastLong((int)ret);
 		return ret;
 	}
 
@@ -294,17 +294,7 @@ public class ZipfianGenerator extends IntegerGenerator
 	 * by the 2nd, etc. (Or, if min != 0, the min-th item is the most popular, the min+1th item the next most popular, etc.) If you want the
 	 * popular items scattered throughout the item space, use ScrambledZipfianGenerator instead.
 	 */
-	@Override
-	public int nextInt() 
-	{
-		return (int)nextLong(items);
-	}
-
-	/**
-	 * Return the next value, skewed by the Zipfian distribution. The 0th item will be the most popular, followed by the 1st, followed
-	 * by the 2nd, etc. (Or, if min != 0, the min-th item is the most popular, the min+1th item the next most popular, etc.) If you want the
-	 * popular items scattered throughout the item space, use ScrambledZipfianGenerator instead.
-	 */
+  @Override
 	public long nextLong()
 	{
 		return nextLong(items);

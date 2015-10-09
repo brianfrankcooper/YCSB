@@ -34,7 +34,7 @@ public class TextMeasurementsExporter implements MeasurementsExporter
     this.bw = new BufferedWriter(new OutputStreamWriter(os));
   }
 
-  public void write(String metric, String measurement, int i) throws IOException
+  public void write(String metric, String measurement, long i) throws IOException
   {
     bw.write("[" + metric + "], " + measurement + ", " + i);
     bw.newLine();
