@@ -34,6 +34,8 @@ import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.mongodb.client.model.InsertManyOptions;
+import com.mongodb.client.model.UpdateOneModel;
+
 import org.bson.Document;
 import org.bson.types.Binary;
 
@@ -102,6 +104,9 @@ public class MongoDbClient extends DB {
 
   /** The batch size to use for inserts. */
   private static int batchSize;
+
+  /** If true then use updates with the upsert option for inserts. */
+  private static boolean useUpsert;
 
   /** The bulk inserts pending for the thread. */
   private final List<Document> bulkInserts = new ArrayList<Document>();
@@ -172,6 +177,10 @@ public class MongoDbClient extends DB {
 
       // Set insert batchsize, default 1 - to be YCSB-original equivalent
       batchSize = Integer.parseInt(props.getProperty("batchsize", "1"));
+
+      // Set is inserts are done as upserts. Defaults to false.
+      useUpsert = Boolean.parseBoolean(
+          props.getProperty("mongodb.upsert", "false"));
 
       // Just use the standard connection format URL
       // http://docs.mongodb.org/manual/reference/connection-string/
@@ -251,15 +260,30 @@ public class MongoDbClient extends DB {
       }
 
       if (batchSize == 1) {
-        // this is effectively an insert, but using an upsert instead due
-        // to current inability of the framework to clean up after itself
-        // between test runs.
-        collection.replaceOne(new Document("_id", toInsert.get("_id")),
-            toInsert, UPDATE_WITH_UPSERT);
+        if (useUpsert) {
+          // this is effectively an insert, but using an upsert instead due
+          // to current inability of the framework to clean up after itself
+          // between test runs.
+          collection.replaceOne(new Document("_id", toInsert.get("_id")),
+              toInsert, UPDATE_WITH_UPSERT);
+        } else {
+          collection.insertOne(toInsert);
+        }
       } else {
         bulkInserts.add(toInsert);
         if (bulkInserts.size() == batchSize) {
-          collection.insertMany(bulkInserts, INSERT_UNORDERED);
+          if (useUpsert) {
+            List<UpdateOneModel<Document>> updates = 
+                new ArrayList<UpdateOneModel<Document>>(bulkInserts.size());
+            for (Document doc : bulkInserts) {
+              updates.add(new UpdateOneModel<Document>(
+                  new Document("_id", doc.get("_id")),
+                  doc, UPDATE_WITH_UPSERT));
+            }
+            collection.bulkWrite(updates);
+          } else {
+            collection.insertMany(bulkInserts, INSERT_UNORDERED);
+          }
           bulkInserts.clear();
         }
       }
