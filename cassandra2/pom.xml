@@ -44,6 +44,18 @@ LICENSE file.
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>org.cassandraunit</groupId>
+      <artifactId>cassandra-unit-shaded</artifactId>
+      <version>2.1.9.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
+      <scope>test</scope>
+    </dependency>
 
   </dependencies>
 </project>
