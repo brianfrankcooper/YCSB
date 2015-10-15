@@ -35,6 +35,7 @@ import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.StatusCode;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -57,10 +58,6 @@ public class CassandraCQLClient extends DB {
 
   private static ConsistencyLevel readConsistencyLevel = ConsistencyLevel.ONE;
   private static ConsistencyLevel writeConsistencyLevel = ConsistencyLevel.ONE;
-
-  public static final int OK = 0;
-  public static final int ERR = -1;
-  public static final int NOT_FOUND = -3;
 
   public static final String YCSB_KEY = "y_id";
   public static final String KEYSPACE_PROPERTY = "cassandra.keyspace";
@@ -240,7 +237,7 @@ public class CassandraCQLClient extends DB {
       ResultSet rs = session.execute(stmt);
 
       if (rs.isExhausted()) {
-        return NOT_FOUND;
+        return StatusCode.NOT_FOUND;
       }
 
       // Should be only 1 row
@@ -256,12 +253,12 @@ public class CassandraCQLClient extends DB {
         }
       }
 
-      return OK;
+      return StatusCode.OK;
 
     } catch (Exception e) {
       e.printStackTrace();
       System.out.println("Error reading key: " + key);
-      return ERR;
+      return StatusCode.ERROR;
     }
 
   }
@@ -347,12 +344,12 @@ public class CassandraCQLClient extends DB {
         result.add(tuple);
       }
 
-      return OK;
+      return StatusCode.OK;
 
     } catch (Exception e) {
       e.printStackTrace();
       System.out.println("Error scanning with startkey: " + startkey);
-      return ERR;
+      return StatusCode.ERROR;
     }
 
   }
@@ -417,12 +414,12 @@ public class CassandraCQLClient extends DB {
 
       ResultSet rs = session.execute(insertStmt);
 
-      return OK;
+      return StatusCode.OK;
     } catch (Exception e) {
       e.printStackTrace();
     }
 
-    return ERR;
+    return StatusCode.ERROR;
   }
 
   /**
@@ -450,13 +447,13 @@ public class CassandraCQLClient extends DB {
 
       ResultSet rs = session.execute(stmt);
 
-      return OK;
+      return StatusCode.OK;
     } catch (Exception e) {
       e.printStackTrace();
       System.out.println("Error deleting key: " + key);
     }
 
-    return ERR;
+    return StatusCode.ERROR;
   }
 
 }

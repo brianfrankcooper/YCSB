@@ -18,16 +18,11 @@
 
 package com.yahoo.ycsb.db;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.Vector;
-import java.util.concurrent.TimeUnit;
+import com.yahoo.ycsb.ByteArrayByteIterator;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.DB;
+import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.StatusCode;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -49,20 +44,21 @@ import org.apache.accumulo.core.util.CleanUp;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 
-import com.yahoo.ycsb.ByteArrayByteIterator;
-import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.DB;
-import com.yahoo.ycsb.DBException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Random;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.Vector;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <a href="https://accumulo.apache.org/">Accumulo</a> binding for YCSB.
  */
 public class AccumuloClient extends DB {
-  // Error code constants.
-  public static final int OK = 0;
-  public static final int SERVER_ERROR = -1;
-  public static final int HTTP_ERROR = -2;
-  public static final int NO_MATCHING_RECORD = -3;
 
   private ZooKeeperInstance inst;
   private Connector connector;
@@ -210,7 +206,7 @@ public class AccumuloClient extends DB {
       checkTable(t);
     } catch (TableNotFoundException e) {
       System.err.println("Error trying to connect to Accumulo table." + e);
-      return SERVER_ERROR;
+      return StatusCode.ERROR;
     }
 
     try {
@@ -223,9 +219,9 @@ public class AccumuloClient extends DB {
       }
     } catch (Exception e) {
       System.err.println("Error trying to reading Accumulo table" + key + e);
-      return SERVER_ERROR;
+      return StatusCode.ERROR;
     }
-    return OK;
+    return StatusCode.OK;
 
   }
 
@@ -236,7 +232,7 @@ public class AccumuloClient extends DB {
       checkTable(t);
     } catch (TableNotFoundException e) {
       System.err.println("Error trying to connect to Accumulo table." + e);
-      return SERVER_ERROR;
+      return StatusCode.ERROR;
     }
 
     // There doesn't appear to be a way to create a range for a given
@@ -287,7 +283,7 @@ public class AccumuloClient extends DB {
           new ByteArrayByteIterator(buf));
     }
 
-    return OK;
+    return StatusCode.OK;
   }
 
   @Override
@@ -297,7 +293,7 @@ public class AccumuloClient extends DB {
       checkTable(t);
     } catch (TableNotFoundException e) {
       System.err.println("Error trying to connect to Accumulo table." + e);
-      return SERVER_ERROR;
+      return StatusCode.ERROR;
     }
 
     Mutation mutInsert = new Mutation(new Text(key));
@@ -319,14 +315,14 @@ public class AccumuloClient extends DB {
     } catch (MutationsRejectedException e) {
       System.err.println("Error performing update.");
       e.printStackTrace();
-      return SERVER_ERROR;
+      return StatusCode.ERROR;
     } catch (KeeperException e) {
       System.err.println("Error notifying the Zookeeper Queue.");
       e.printStackTrace();
-      return SERVER_ERROR;
+      return StatusCode.ERROR;
     }
 
-    return OK;
+    return StatusCode.OK;
   }
 
   @Override
@@ -341,7 +337,7 @@ public class AccumuloClient extends DB {
       checkTable(t);
     } catch (TableNotFoundException e) {
       System.err.println("Error trying to connect to Accumulo table." + e);
-      return SERVER_ERROR;
+      return StatusCode.ERROR;
     }
 
     try {
@@ -349,14 +345,14 @@ public class AccumuloClient extends DB {
     } catch (MutationsRejectedException e) {
       System.err.println("Error performing delete.");
       e.printStackTrace();
-      return SERVER_ERROR;
+      return StatusCode.ERROR;
     } catch (RuntimeException e) {
       System.err.println("Error performing delete.");
       e.printStackTrace();
-      return SERVER_ERROR;
+      return StatusCode.ERROR;
     }
 
-    return OK;
+    return StatusCode.OK;
   }
 
   // These functions are adapted from RowOperations.java:
@@ -449,8 +445,8 @@ public class AccumuloClient extends DB {
     for (int i = 0; i < keys.length; i++) {
       splits.add(new Text(keys[i]));
     }
-    connector.tableOperations().addSplits(t, splits);
-    return OK;
+    connector.tableOperations().addSplits(t, splits);   
+    return StatusCode.OK;
   }
 
 }

@@ -46,9 +46,6 @@ public class CassandraCQLClient extends DB {
   private static ConsistencyLevel readConsistencyLevel = ConsistencyLevel.ONE;
   private static ConsistencyLevel writeConsistencyLevel = ConsistencyLevel.ONE;
 
-  public static final int OK = 0;
-  public static final int ERR = -1;
-
   public static final String YCSB_KEY = "y_id";
   public static final String KEYSPACE_PROPERTY = "cassandra.keyspace";
   public static final String KEYSPACE_PROPERTY_DEFAULT = "ycsb";
@@ -232,12 +229,12 @@ public class CassandraCQLClient extends DB {
 
       }
 
-      return OK;
+      return StatusCode.OK;
 
     } catch (Exception e) {
       e.printStackTrace();
       System.out.println("Error reading key: " + key);
-      return ERR;
+      return StatusCode.ERROR;
     }
 
   }
@@ -323,12 +320,12 @@ public class CassandraCQLClient extends DB {
         result.add(tuple);
       }
 
-      return OK;
+      return StatusCode.OK;
 
     } catch (Exception e) {
       e.printStackTrace();
       System.out.println("Error scanning with startkey: " + startkey);
-      return ERR;
+      return StatusCode.ERROR;
     }
 
   }
@@ -393,12 +390,12 @@ public class CassandraCQLClient extends DB {
 
       ResultSet rs = session.execute(insertStmt);
 
-      return OK;
+      return StatusCode.OK;
     } catch (Exception e) {
       e.printStackTrace();
     }
 
-    return ERR;
+    return StatusCode.ERROR;
   }
 
   /**
@@ -426,13 +423,13 @@ public class CassandraCQLClient extends DB {
 
       ResultSet rs = session.execute(stmt);
 
-      return OK;
+      return StatusCode.OK;
     } catch (Exception e) {
       e.printStackTrace();
       System.out.println("Error deleting key: " + key);
     }
 
-    return ERR;
+    return StatusCode.ERROR;
   }
 
 }

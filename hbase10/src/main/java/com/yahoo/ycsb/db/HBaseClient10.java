@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.StatusCode;
 import com.yahoo.ycsb.measurements.Measurements;
 
 import org.apache.hadoop.conf.Configuration;
@@ -93,10 +94,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
     public boolean _clientSideBuffering = false;
     public long _writeBufferSize = 1024 * 1024 * 12;
 
-    public static final int Ok=0;
-    public static final int ServerError=-1;
-    public static final int HttpError=-2;
-    public static final int NoMatchingRecord=-3;
+    public static final int HTTP_ERROR = -2;
 
     /**
      * Initialize any state for this DB.
@@ -217,7 +215,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             catch (IOException e)
             {
                 System.err.println("Error accessing HBase table: " + e);
-                return ServerError;
+                return StatusCode.ERROR;
             }
         }
 
@@ -243,16 +241,16 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             if (_debug) {
                 System.err.println("Error doing get: "+e);
             }
-            return ServerError;
+            return StatusCode.ERROR;
         }
         catch (ConcurrentModificationException e)
         {
             //do nothing for now...need to understand HBase concurrency model better
-            return ServerError;
+            return StatusCode.ERROR;
         }
 
         if (r.isEmpty()) {
-            return NoMatchingRecord;
+            return StatusCode.NOT_FOUND;
         }
 
         while (r.advance()) {
@@ -264,7 +262,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
                         " is: "+Bytes.toString(CellUtil.cloneValue(c)));
             }
         }
-        return Ok;
+        return StatusCode.OK;
     }
 
     /**
@@ -291,7 +289,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             catch (IOException e)
             {
                 System.err.println("Error accessing HBase table: "+e);
-                return ServerError;
+                return StatusCode.ERROR;
             }
         }
 
@@ -359,7 +357,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             {
                 System.out.println("Error in getting/parsing scan result: "+e);
             }
-            return ServerError;
+            return StatusCode.ERROR;
         }
 
         finally {
@@ -369,7 +367,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             }
         }
 
-        return Ok;
+        return StatusCode.OK;
     }
 
     /**
@@ -395,7 +393,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             catch (IOException e)
             {
                 System.err.println("Error accessing HBase table: "+e);
-                return ServerError;
+                return StatusCode.ERROR;
             }
         }
 
@@ -429,15 +427,15 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             if (_debug) {
                 System.err.println("Error doing put: "+e);
             }
-            return ServerError;
+            return StatusCode.ERROR;
         }
         catch (ConcurrentModificationException e)
         {
             //do nothing for now...hope this is rare
-            return ServerError;
+            return StatusCode.ERROR;
         }
 
-        return Ok;
+        return StatusCode.OK;
     }
 
     /**
@@ -476,7 +474,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             catch (IOException e)
             {
                 System.err.println("Error accessing HBase table: "+e);
-                return ServerError;
+                return StatusCode.ERROR;
             }
         }
 
@@ -500,10 +498,10 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             if (_debug) {
                 System.err.println("Error doing delete: "+e);
             }
-            return ServerError;
+            return StatusCode.ERROR;
         }
 
-        return Ok;
+        return StatusCode.OK;
     }
 
     @VisibleForTesting

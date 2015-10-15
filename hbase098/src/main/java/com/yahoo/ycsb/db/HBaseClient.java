@@ -17,27 +17,35 @@
 
 package com.yahoo.ycsb.db;
 
-import com.yahoo.ycsb.DBException;
-import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.ByteArrayByteIterator;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.StatusCode;
 import com.yahoo.ycsb.measurements.Measurements;
 
-import java.io.IOException;
-import java.util.*;
-
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.PageFilter;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.HBaseConfiguration;
+
+import java.io.IOException;
+import java.util.ConcurrentModificationException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Random;
+import java.util.Set;
+import java.util.Vector;
 
 /**
  * HBase client for YCSB framework
@@ -59,10 +67,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     /** Whether or not a page filter should be used to limit scan length. */
     public boolean _usePageFilter = true;
 
-    public static final int Ok=0;
-    public static final int ServerError=-1;
     public static final int HttpError=-2;
-    public static final int NoMatchingRecord=-3;
 
     public static final Object tableLock = new Object();
 
@@ -168,7 +173,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             catch (IOException e)
             {
                 System.err.println("Error accessing HBase table: "+e);
-                return ServerError;
+                return StatusCode.ERROR;
             }
         }
 
@@ -192,12 +197,12 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         catch (IOException e)
         {
             System.err.println("Error doing get: "+e);
-            return ServerError;
+            return StatusCode.ERROR;
         }
         catch (ConcurrentModificationException e)
         {
             //do nothing for now...need to understand HBase concurrency model better
-            return ServerError;
+            return StatusCode.ERROR;
         }
 
   for (KeyValue kv : r.raw()) {
@@ -210,7 +215,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     }
 
   }
-    return Ok;
+    return StatusCode.OK;
     }
 
     /**
@@ -236,7 +241,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             catch (IOException e)
             {
                 System.err.println("Error accessing HBase table: "+e);
-                return ServerError;
+                return StatusCode.ERROR;
             }
         }
 
@@ -301,14 +306,14 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             {
                 System.out.println("Error in getting/parsing scan result: "+e);
             }
-            return ServerError;
+            return StatusCode.ERROR;
         }
 
         finally {
             scanner.close();
         }
 
-        return Ok;
+        return StatusCode.OK;
     }
 
     /**
@@ -333,7 +338,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             catch (IOException e)
             {
                 System.err.println("Error accessing HBase table: "+e);
-                return ServerError;
+                return StatusCode.ERROR;
             }
         }
 
@@ -361,15 +366,15 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             if (_debug) {
                 System.err.println("Error doing put: "+e);
             }
-            return ServerError;
+            return StatusCode.ERROR;
         }
         catch (ConcurrentModificationException e)
         {
             //do nothing for now...hope this is rare
-            return ServerError;
+            return StatusCode.ERROR;
         }
 
-        return Ok;
+        return StatusCode.OK;
     }
 
     /**
@@ -406,7 +411,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             catch (IOException e)
             {
                 System.err.println("Error accessing HBase table: "+e);
-                return ServerError;
+                return StatusCode.ERROR;
             }
         }
 
@@ -424,10 +429,10 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             if (_debug) {
                 System.err.println("Error doing delete: "+e);
             }
-            return ServerError;
+            return StatusCode.ERROR;
         }
 
-        return Ok;
+        return StatusCode.OK;
     }
 
     public static void main(String[] args)
@@ -502,7 +507,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 
                             accum+=(en-st);
 
-                            if (rescode!=Ok)
+                            if (rescode!=StatusCode.OK)
                             {
                                 System.out.println("Error "+rescode+" for "+key);
                             }
