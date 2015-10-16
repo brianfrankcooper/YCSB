@@ -27,7 +27,7 @@ public class UniformGenerator extends Generator
 	
 	Vector<String> _values;
 	String _laststring;
-	UniformIntegerGenerator _gen;
+	UniformLongGenerator _gen;
 	
 
 	/**
@@ -38,7 +38,7 @@ public class UniformGenerator extends Generator
 	{
 		_values=(Vector<String>)values.clone();
 		_laststring=null;
-		_gen=new UniformIntegerGenerator(0,values.size()-1);
+		_gen=new UniformLongGenerator(0,values.size()-1);
 	}
 
 	/**
@@ -46,7 +46,8 @@ public class UniformGenerator extends Generator
 	 */
 	public String nextString()
 	{
-		_laststring=_values.elementAt(_gen.nextInt());
+	  int offset = (int) Math.abs(_gen.nextLong() % _values.size());
+		_laststring=_values.elementAt(offset);
 		return _laststring;
 	}
 	

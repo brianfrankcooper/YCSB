@@ -19,10 +19,9 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Random;
 
 import com.yahoo.ycsb.Utils;
-import com.yahoo.ycsb.generator.IntegerGenerator;
+import com.yahoo.ycsb.generator.LongGenerator;
 
 /**
  * Generate integers according to a histogram distribution.  The histogram
@@ -38,7 +37,7 @@ import com.yahoo.ycsb.generator.IntegerGenerator;
  * @author snjones
  *
  */
-public class HistogramGenerator extends IntegerGenerator {
+public class HistogramGenerator extends LongGenerator {
 
 	long block_size;
 	long[] buckets;
@@ -51,7 +50,7 @@ public class HistogramGenerator extends IntegerGenerator {
 	String str;
 	String[] line;
 	
-	ArrayList<Integer> a = new ArrayList<Integer>();
+	ArrayList<Long> a = new ArrayList<Long>();
 
 	str = in.readLine();
 	if(str == null) {
@@ -61,13 +60,13 @@ public class HistogramGenerator extends IntegerGenerator {
 	if(line[0].compareTo("BlockSize") != 0) {
 		throw new IOException("First line of histogram is not the BlockSize!\n");
 	}
-	block_size = Integer.parseInt(line[1]);
+	block_size = Long.parseLong(line[1]);
 	
 	while((str = in.readLine()) != null){
 		// [0] is the bucket, [1] is the value
 		line = str.split("\t");
 		
-		a.add(Integer.parseInt(line[0]), Integer.parseInt(line[1]));
+		a.add(Integer.parseInt(line[0]), Long.parseLong(line[1]));
 	}
 	buckets = new long[a.size()];
 	for(int i = 0; i < a.size(); i++) {
@@ -93,18 +92,18 @@ public class HistogramGenerator extends IntegerGenerator {
 	}
 
 	@Override
-	public int nextInt() {
+	public long nextLong() {
 		int number = Utils.random().nextInt((int)area);
 		int i;
 		
 		for(i = 0; i < (buckets.length - 1); i++){
 			number -= buckets[i];
 			if(number <= 0){
-				return (int)((i+1)*block_size);
+				return ((i+1)*block_size);
 			}
 		}
 		
-		return (int)(i * block_size);
+		return (i * block_size);
 	}
 
 	@Override

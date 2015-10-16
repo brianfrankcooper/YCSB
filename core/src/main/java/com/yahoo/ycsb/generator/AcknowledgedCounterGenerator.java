@@ -28,16 +28,16 @@ public class AcknowledgedCounterGenerator extends CounterGenerator
 	static final int WINDOW_SIZE = Integer.rotateLeft(1, 20);
 
 	/** The mask to use to turn an id into a slot in {@link #window}. */
-	private static final int WINDOW_MASK = WINDOW_SIZE - 1;
+	private static final long WINDOW_MASK = WINDOW_SIZE - 1;
 
 	private final ReentrantLock lock;
 	private final boolean[] window;
-	private volatile int limit;
+	private volatile long limit;
 
 	/**
 	 * Create a counter that starts at countstart.
 	 */
-	public AcknowledgedCounterGenerator(int countstart)
+	public AcknowledgedCounterGenerator(long countstart)
 	{
 		super(countstart);
 		lock = new ReentrantLock();
@@ -50,7 +50,7 @@ public class AcknowledgedCounterGenerator extends CounterGenerator
 	 * (as opposed to the highest generated counter value).
 	 */
 	@Override
-	public int lastInt()
+	public long lastLong()
 	{
 		return limit;
 	}
@@ -58,9 +58,9 @@ public class AcknowledgedCounterGenerator extends CounterGenerator
 	/**
 	 * Make a generated counter value available via lastInt().
 	 */
-	public void acknowledge(int value)
+	public void acknowledge(long value)
 	{
-		final int currentSlot = (value & WINDOW_MASK);
+		final int currentSlot = (int) (value & WINDOW_MASK);
 		if (window[currentSlot] == true) {
 			throw new RuntimeException("Too many unacknowledged insertion keys.");
 		}
@@ -72,10 +72,10 @@ public class AcknowledgedCounterGenerator extends CounterGenerator
 			// over to the "limit" variable
 			try {
 			  // Only loop through the entire window at most once.
-			  int beforeFirstSlot = (limit & WINDOW_MASK);
-				int index;
-				for (index = limit + 1; index != beforeFirstSlot; ++index) {
-					int slot = (index & WINDOW_MASK);
+			  int beforeFirstSlot = (int) (limit & WINDOW_MASK);
+				long index;
+				for (index = limit + 1; (index != beforeFirstSlot) && (index > 0); ++index) {
+					int slot = (int) (index & WINDOW_MASK);
 					if (!window[slot]) {
 						break;
 					}
@@ -83,7 +83,11 @@ public class AcknowledgedCounterGenerator extends CounterGenerator
 					window[slot] = false;
 				}
 
-				limit = index - 1;
+				if( index < 0 ) {
+				  limit = Long.MAX_VALUE;
+				} else {
+				  limit = index - 1;
+				}
 			} finally {
 				lock.unlock();
 			}

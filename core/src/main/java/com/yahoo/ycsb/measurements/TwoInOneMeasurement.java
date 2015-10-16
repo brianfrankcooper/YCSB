@@ -50,9 +50,9 @@ public class TwoInOneMeasurement extends OneMeasurement {
    * It appears latency is reported in micros.
    * Using {@link Recorder} to support concurrent updates to histogram.
    *
-   * @see com.yahoo.ycsb.OneMeasurement#measure(int)
+   * @see com.yahoo.ycsb.OneMeasurement#measure(long)
    */
-  public void measure(int latencyInMicros) {
+  public void measure(long latencyInMicros) {
     thing1.measure(latencyInMicros);
     thing2.measure(latencyInMicros);
   }
