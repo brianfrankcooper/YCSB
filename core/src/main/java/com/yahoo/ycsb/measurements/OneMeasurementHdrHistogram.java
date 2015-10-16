@@ -156,12 +156,12 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
 		return intervalHistogram;
 	}
 
-  /**
-   * Helper method to parse the given percentile value string
-   *
-   * @param percentileString - comma delimited string of Integer values
-   * @return An Integer List of percentile values
-   */
+    /**
+     * Helper method to parse the given percentile value string
+     *
+     * @param percentileString - comma delimited string of Integer values
+     * @return An Integer List of percentile values
+     */
     private List<Integer> getPercentileValues(String percentileString) {
       List<Integer> percentileValues = new ArrayList<Integer>();
 
