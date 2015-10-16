@@ -115,7 +115,7 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
     exporter.write(getName(), "MaxLatency(us)", totalHistogram.getMaxValue());
 
     for (Integer percentile: percentiles) {
-      exporter.write(getName(), percentile + "thPercentileLatency(us)", totalHistogram.getValueAtPercentile(percentile));
+      exporter.write(getName(), ordinal(percentile) + "PercentileLatency(us)", totalHistogram.getValueAtPercentile(percentile));
     }
     
     exportReturnCodes(exporter);
@@ -180,4 +180,20 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
       return percentileValues;
     }
 
+    /**
+     * Helper method to find the ordinal of any number. eg 1 -> 1st
+     * @param i
+     * @return ordinal string
+     */
+    private String ordinal(int i) {
+      String[] suffixes = new String[] { "th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th" };
+      switch (i % 100) {
+        case 11:
+        case 12:
+        case 13:
+          return i + "th";
+        default:
+          return i + suffixes[i % 10];
+      }
+    }
 }
