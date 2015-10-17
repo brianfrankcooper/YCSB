@@ -174,6 +174,7 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
         // then calculate and return the default set.
         System.err.println("[WARN] Couldn't read " + PERCENTILES_PROPERTY + " value: '" + percentileString +
             "', the default of '" + PERCENTILES_PROPERTY_DEFAULT + "' will be used.");
+        e.printStackTrace();
         return getPercentileValues(PERCENTILES_PROPERTY_DEFAULT);
       }
 
