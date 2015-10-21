@@ -15,6 +15,19 @@ permissions and limitations under the License. See accompanying
 LICENSE file.
 -->
 
-# Couchbase Driver for YCSB
-This driver is a binding for the YCSB facilities to operate against a Couchbase Server cluster. It uses the official Couchbase Java SDK and provides a rich set of configuration options.
+# Crate Driver for YCSB
+This driver is a binding for the YCSB facilities to operate against a Crate Server cluster. It uses the official Crate JDBC and provides a rich set of configuration options.
+
+# Running tests
+
+Preferrable is to run using docker
+
+docker pull crate
+docker run -d -p 4200:4200 -p 4300:4300 crate crate
+
+Build module:
+mvn -pl com.yahoo.ycsb:crate-binding -am clean package
+
+Run:
+./bin/ycsb load crate -P workloads/workloada -P crate/src/main/conf/db.properties
 
