@@ -118,6 +118,7 @@ LICENSE file.
     <module>redis</module>
     <module>tarantool</module>
     <!--<module>voldemort</module>-->
+    <module>crate</module>
   </modules>
 
   <build>
