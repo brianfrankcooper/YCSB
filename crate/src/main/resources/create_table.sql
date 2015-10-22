@@ -20,8 +20,8 @@ DROP TABLE IF EXISTS usertable;
 
 -- Create the user table with 5 fields.
 CREATE TABLE usertable(YCSB_KEY string PRIMARY KEY,
-  FIELD01 string, FIELD02 string,
-  FIELD03 string, FIELD04 string,
-  FIELD05 string, FIELD06 string,
-  FIELD07 string, FIELD08 string,
-  FIELD09 string, FIELD10 string);
+  zFIELD01 string, zFIELD02 string,
+  zFIELD03 string, zFIELD04 string,
+  zFIELD05 string, zFIELD06 string,
+  zFIELD07 string, zFIELD08 string,
+  zFIELD09 string, zFIELD10 string);
