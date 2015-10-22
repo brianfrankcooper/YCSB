@@ -29,16 +29,17 @@ bin/ycsb load kudu -P workloads/workloada
 ```
 
 Additional configurations:
-* `masterQuorum`: The master's address. The default configuration expects a master on localhost.
-* `pre_split_num_tablets`: The number of tablets (or partitions) to create for the table. The default
+* `kudu_master_addresses`: The master's address. The default configuration expects a master on localhost.
+* `kudu_pre_split_num_tablets`: The number of tablets (or partitions) to create for the table. The default
 uses 4 tablets. A good rule of thumb is to use 5 per tablet server.
-* `table_num_replicas`: The number of replicas that each tablet will have. The default is 3. Should
+* `kudu_table_num_replicas`: The number of replicas that each tablet will have. The default is 3. Should
 only be configured to use 1 instead, for single node tests.
-* `sync_ops`: If the client should buffer data before sending it. The default is false. Should
+* `kudu_sync_ops`: If the client should buffer data before sending it. The default is false. Should
 always be set to true for the run phase.
+* `kudu_block_size`: The data block size used to configure columns. The default is 4096 bytes.
 
 Then, you can run the workload:
 
 ```
-bin/ycsb run kudu -P workloads/workloada -p sync_ops=true
+bin/ycsb run kudu -P workloads/workloada -p kudu_sync_ops=true
 ```

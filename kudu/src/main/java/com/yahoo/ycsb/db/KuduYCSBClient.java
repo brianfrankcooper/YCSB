@@ -21,6 +21,7 @@ import com.stumbleupon.async.TimeoutException;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.StringByteIterator;
+import com.yahoo.ycsb.workloads.CoreWorkload;
 import org.kududb.ColumnSchema;
 import org.kududb.Schema;
 import org.kududb.client.*;
@@ -39,7 +40,7 @@ import static org.kududb.Type.STRING;
  * Example to load:
  * $ ./bin/ycsb load kudu -P workloads/workloada  -threads 5
  * Example to run:
- * ./bin/ycsb run kudu -P workloads/workloada -p sync_ops=true -threads 5
+ * ./bin/ycsb run kudu -P workloads/workloada -p kudu_sync_ops=true -threads 5
  *
  */
 public class KuduYCSBClient extends com.yahoo.ycsb.DB {
@@ -48,22 +49,23 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
   public static final int SERVER_ERROR = -1;
   public static final int NO_MATCHING_RECORD = -2;
   public static final int TIMEOUT = -3;
-  public static final int FATAL_ERROR = -4;
   public static final int MAX_TABLETS = 9000;
   public static final long DEFAULT_SLEEP = 60000;
-  private static final String SYNC_OPS_OPT = "sync_ops";
-  private static final String DEBUG_OPT = "debug";
-  private static final String PRINT_ROW_ERRORS_OPT = "print_row_errors";
-  private static final String PRE_SPLIT_NUM_TABLETS_OPT = "pre_split_num_tablets";
-  private static final String TABLE_NUM_REPLICAS = "table_num_replicas";
-  private static final String BLOCK_SIZE_OPT = "block_size";
+  private static final String SYNC_OPS_OPT = "kudu_sync_ops";
+  private static final String DEBUG_OPT = "kudu_debug";
+  private static final String PRINT_ROW_ERRORS_OPT = "kudu_print_row_errors";
+  private static final String PRE_SPLIT_NUM_TABLETS_OPT = "kudu_pre_split_num_tablets";
+  private static final String TABLE_NUM_REPLICAS = "kudu_table_num_replicas";
+  private static final String BLOCK_SIZE_OPT = "kudu_block_size";
+  private static final String MASTER_ADDRESSES_OPT = "kudu_master_addresses";
   private static final int BLOCK_SIZE_DEFAULT = 4096;
   private static final List<String> columnNames = new ArrayList<String>();
   private static KuduClient client;
   private static Schema schema;
-  public boolean debug = false;
-  public boolean printErrors = false;
-  public String tableName;
+  private static int fieldCount;
+  private boolean debug = false;
+  private boolean printErrors = false;
+  private String tableName;
   private KuduSession session;
   private KuduTable table;
 
@@ -100,9 +102,9 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
       throws DBException {
     if (client != null) return;
 
-    String masterQuorum = prop.getProperty("masterQuorum");
-    if (masterQuorum == null) {
-      masterQuorum = "localhost:7051";
+    String masterAddresses = prop.getProperty(MASTER_ADDRESSES_OPT);
+    if (masterAddresses == null) {
+      masterAddresses = "localhost:7051";
     }
 
     int numTablets = getIntFromProp(prop, PRE_SPLIT_NUM_TABLETS_OPT, 4);
@@ -115,15 +117,18 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
 
     int blockSize = getIntFromProp(prop, BLOCK_SIZE_OPT, BLOCK_SIZE_DEFAULT);
 
-    client = new KuduClient.KuduClientBuilder(masterQuorum)
+    client = new KuduClient.KuduClientBuilder(masterAddresses)
         .defaultSocketReadTimeoutMs(DEFAULT_SLEEP)
         .defaultOperationTimeoutMs(DEFAULT_SLEEP)
         .build();
     if (debug) {
-      System.out.println("Connecting to the masters at " + masterQuorum);
+      System.out.println("Connecting to the masters at " + masterAddresses);
     }
 
-    List<ColumnSchema> columns = new ArrayList<ColumnSchema>(11);
+    fieldCount = getIntFromProp(prop, CoreWorkload.FIELD_COUNT_PROPERTY,
+        Integer.parseInt(CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
+
+    List<ColumnSchema> columns = new ArrayList<ColumnSchema>(fieldCount + 1);
 
     ColumnSchema keyColumn = new ColumnSchema.ColumnSchemaBuilder(KEY, STRING)
                              .key(true)
@@ -131,7 +136,7 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
                              .build();
     columns.add(keyColumn);
     columnNames.add(KEY);
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < fieldCount; i++) {
       String name = "field" + i;
       columnNames.add(name);
       columns.add(new ColumnSchema.ColumnSchemaBuilder(name, STRING)
@@ -199,13 +204,6 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
   public int scan(String table, String startkey, int recordcount, Set<String> fields,
                   Vector<HashMap<String, ByteIterator>> result) {
     try {
-
-      if (fields != null && fields.size() > 10) {
-        System.err.println("YCSB doesn't expose the fields count to DBs and " +
-            "more than 10 were requested");
-        return FATAL_ERROR;
-      }
-
       KuduScanner.KuduScannerBuilder scannerBuilder = client.newScannerBuilder(this.table);
       List<String> querySchema;
       if (fields == null) {
