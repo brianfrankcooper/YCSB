@@ -138,11 +138,12 @@ def is_distribution():
 # presumes maven can run, so should only be run on source checkouts
 # will invoke the 'package' goal for the given binding in order to resolve intra-project deps
 # presumes maven properly handles system-specific path separators
-def get_classpath_from_maven(database):
+# Given module is full module name eg. 'core' or 'couchbase-binding'
+def get_classpath_from_maven(module):
     try:
-        debug("Running 'mvn -pl com.yahoo.ycsb:"+database+"-binding -am package -DskipTests "
+        debug("Running 'mvn -pl com.yahoo.ycsb:" + module + " -am package -DskipTests "
               "dependency:build-classpath -DincludeScope=compile -Dmdep.outputFilterFile=true'")
-        mvn_output = subprocess.check_output(["mvn", "-pl", "com.yahoo.ycsb:"+database+"-binding",
+        mvn_output = subprocess.check_output(["mvn", "-pl", "com.yahoo.ycsb:" + module,
                                               "-am", "package", "-DskipTests",
                                               "dependency:build-classpath",
                                               "-DincludeScope=compile",
@@ -200,12 +201,14 @@ def main():
         warn("Running against a source checkout. In order to get our runtime "
              "dependencies we'll have to invoke Maven. Depending on the state "
              "of your system, this may take ~30-45 seconds")
-        db_dir = os.path.join(ycsb_home, binding)
+        db_location = "core" if binding == "basic" else binding
+        project = "core" if binding == "basic" else binding + "-binding"
+        db_dir = os.path.join(ycsb_home, db_location)
         # goes first so we can rely on side-effect of package
-        maven_says = get_classpath_from_maven(binding)
+        maven_says = get_classpath_from_maven(project)
         # TODO when we have a version property, skip the glob
         cp = find_jars(os.path.join(db_dir, "target"),
-                       binding + "-binding*.jar")
+                       project + "*.jar")
         # alredy in jar:jar:jar form
         cp.append(maven_says)
     cp.insert(0, os.path.join(db_dir, "conf"))
