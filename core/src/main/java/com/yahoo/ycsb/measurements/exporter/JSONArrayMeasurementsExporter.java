@@ -1,18 +1,18 @@
-/**                                                                                                                                                                                
+/**
  * Copyright (c) 2015 Yahoo! Inc. All rights reserved.
- *                                                                                                                                                                                 
- * Licensed under the Apache License, Version 2.0 (the "License"); you                                                                                                             
- * may not use this file except in compliance with the License. You                                                                                                                
- * may obtain a copy of the License at                                                                                                                                             
- *                                                                                                                                                                                 
- * http://www.apache.org/licenses/LICENSE-2.0                                                                                                                                      
- *                                                                                                                                                                                 
- * Unless required by applicable law or agreed to in writing, software                                                                                                             
- * distributed under the License is distributed on an "AS IS" BASIS,                                                                                                               
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or                                                                                                                 
- * implied. See the License for the specific language governing                                                                                                                    
- * permissions and limitations under the License. See accompanying                                                                                                                 
- * LICENSE file.                                                                                                                                                                   
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
  */
 package com.yahoo.ycsb.measurements.exporter;
 
@@ -26,33 +26,33 @@ import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.util.DefaultPrettyPrinter;
 
 /**
- * Export measurements into a machine readable JSON Array of measurement objects.
+ * Export measurements into a machine readable JSON Array of measurement
+ * objects.
  */
-public class JSONArrayMeasurementsExporter implements MeasurementsExporter
-{
+public class JSONArrayMeasurementsExporter implements MeasurementsExporter {
 
-  private JsonFactory factory = new JsonFactory();
-  private JsonGenerator g;
+  private final JsonFactory factory = new JsonFactory();
+  private final JsonGenerator g;
 
-  public JSONArrayMeasurementsExporter(OutputStream os) throws IOException
-  {
-    BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(os));
+  public JSONArrayMeasurementsExporter(final OutputStream os)
+      throws IOException {
+    final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(os));
     g = factory.createJsonGenerator(bw);
     g.setPrettyPrinter(new DefaultPrettyPrinter());
     g.writeStartArray();
   }
 
-  public void write(String metric, String measurement, int i) throws IOException
-  {
-    g.writeStartObject();
-    g.writeStringField("metric", metric);
-    g.writeStringField("measurement", measurement);
-    g.writeNumberField("value", i);
-    g.writeEndObject();
+  @Override
+  public void close() throws IOException {
+    if (g != null) {
+      g.writeEndArray();
+      g.close();
+    }
   }
 
-  public void write(String metric, String measurement, double d) throws IOException
-  {
+  @Override
+  public void write(final String metric, final String measurement,
+      final double d) throws IOException {
     g.writeStartObject();
     g.writeStringField("metric", metric);
     g.writeStringField("measurement", measurement);
@@ -60,13 +60,14 @@ public class JSONArrayMeasurementsExporter implements MeasurementsExporter
     g.writeEndObject();
   }
 
-  public void close() throws IOException
-  {
-    if (g != null)
-    {
-      g.writeEndArray();
-      g.close();
-    }
+  @Override
+  public void write(final String metric, final String measurement, final int i)
+      throws IOException {
+    g.writeStartObject();
+    g.writeStringField("metric", metric);
+    g.writeStringField("measurement", measurement);
+    g.writeNumberField("value", i);
+    g.writeEndObject();
   }
 
 }
