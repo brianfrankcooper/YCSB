@@ -24,4 +24,4 @@ CREATE TABLE usertable(YCSB_KEY string PRIMARY KEY,
   zFIELD03 string, zFIELD04 string,
   zFIELD05 string, zFIELD06 string,
   zFIELD07 string, zFIELD08 string,
-  zFIELD09 string, zFIELD10 string);
+  zFIELD09 string, zFIELD10 string) WITH (number_of_replicas = 0);
