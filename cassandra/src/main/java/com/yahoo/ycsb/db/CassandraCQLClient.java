@@ -69,6 +69,10 @@ public class CassandraCQLClient extends DB {
     public static final String USERNAME_PROPERTY = "cassandra.username";
     public static final String PASSWORD_PROPERTY = "cassandra.password";
 
+    public static final String HOSTS_PROPERTY = "hosts";
+    public static final String PORT_PROPERTY = "port";
+
+
     public static final String READ_CONSISTENCY_LEVEL_PROPERTY = "cassandra.readconsistencylevel";
     public static final String READ_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
     public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY = "cassandra.writeconsistencylevel";
@@ -102,14 +106,14 @@ public class CassandraCQLClient extends DB {
 
                 _debug = Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
 
-                String host = getProperties().getProperty("host");
+                String host = getProperties().getProperty(HOSTS_PROPERTY);
                 if (host == null) {
-                    throw new DBException("Required property \"host\" missing for CassandraClient");
+                    throw new DBException(String.format("Required property \"%s\" missing for CassandraCQLClient", HOSTS_PROPERTY));
                 }
-                String hosts[] = host.split(" ");
-                String port = getProperties().getProperty("port", "9160");
+                String hosts[] = host.split(",");
+                String port = getProperties().getProperty("port", "9042");
                 if (port == null) {
-                    throw new DBException("Required property \"port\" missing for CassandraClient");
+                    throw new DBException(String.format("Required property \"%s\" missing for CassandraCQLClient", PORT_PROPERTY));
                 }
 
                 String username = getProperties().getProperty(USERNAME_PROPERTY);

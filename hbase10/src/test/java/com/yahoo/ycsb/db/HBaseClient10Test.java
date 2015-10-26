@@ -15,6 +15,7 @@
 
 package com.yahoo.ycsb.db;
 
+import static org.junit.Assume.assumeTrue;
 import static org.junit.Assert.*;
 
 import com.yahoo.ycsb.ByteIterator;
@@ -56,6 +57,11 @@ public class HBaseClient10Test {
   private HBaseClient10 client;
   private Table table = null;
 
+  private static boolean isWindows() {
+    final String os = System.getProperty("os.name");
+    return os.startsWith("Windows");
+  }
+
   /**
    * Creates a mini-cluster for use in these tests.
    *
@@ -63,6 +69,9 @@ public class HBaseClient10Test {
    */
   @BeforeClass
   public static void setUpClass() throws Exception {
+    // Minicluster setup fails on Windows with an UnsatisfiedLinkError.
+    // Skip if windows.
+    assumeTrue(!isWindows());
     testingUtil = HBaseTestingUtility.createLocalHTU();
     testingUtil.startMiniCluster();
   }
@@ -72,7 +81,9 @@ public class HBaseClient10Test {
    */
   @AfterClass
   public static void tearDownClass() throws Exception {
-    testingUtil.shutdownMiniCluster();
+    if (testingUtil != null) {
+      testingUtil.shutdownMiniCluster();
+    }
   }
 
   /**
