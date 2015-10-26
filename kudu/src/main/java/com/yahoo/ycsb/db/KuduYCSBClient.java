@@ -78,7 +78,8 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
     if (getProperties().getProperty(PRINT_ROW_ERRORS_OPT) != null) {
       this.printErrors = getProperties().getProperty(PRINT_ROW_ERRORS_OPT).equals("true");
     }
-    this.tableName = com.yahoo.ycsb.workloads.CoreWorkload.table;
+    this.tableName = getProperties().getProperty(CoreWorkload.TABLENAME_PROPERTY, 
+            CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
     initClient(debug, tableName, getProperties());
     this.session = client.newSession();
     if (getProperties().getProperty(SYNC_OPS_OPT) != null &&

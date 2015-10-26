@@ -16,43 +16,45 @@
  */
 package com.yahoo.ycsb.measurements.exporter;
 
-import com.yahoo.ycsb.generator.ZipfianGenerator;
-import com.yahoo.ycsb.measurements.Measurements;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.testng.annotations.Test;
+import static org.testng.AssertJUnit.assertEquals;
+import static org.testng.AssertJUnit.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Properties;
 
-import static org.testng.AssertJUnit.assertEquals;
-import static org.testng.AssertJUnit.assertTrue;
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.testng.annotations.Test;
+
+import com.yahoo.ycsb.generator.ZipfianGenerator;
+import com.yahoo.ycsb.measurements.Measurements;
 
 public class TestMeasurementsExporter {
-    @Test
-    public void testJSONArrayMeasurementsExporter() throws IOException {
-        Properties props = new Properties();
-        props.put(Measurements.MEASUREMENT_TYPE_PROPERTY, "histogram");
-        Measurements mm = new Measurements(props);
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        JSONArrayMeasurementsExporter export = new JSONArrayMeasurementsExporter(out);
+  @Test
+  public void testJSONArrayMeasurementsExporter() throws IOException {
+    final Properties props = new Properties();
+    props.put(Measurements.MEASUREMENT_TYPE_PROPERTY, "histogram");
+    final Measurements mm = new Measurements(props);
+    final ByteArrayOutputStream out = new ByteArrayOutputStream();
+    final JSONArrayMeasurementsExporter export =
+        new JSONArrayMeasurementsExporter(out);
 
-        long min = 5000;
-        long max = 100000;
-        ZipfianGenerator zipfian = new ZipfianGenerator(min, max);
-        for (int i = 0; i < 1000; i++) {
-            int rnd = zipfian.nextInt();
-            mm.measure("UPDATE", rnd);
-        }
-        mm.exportMeasurements(export);
-        export.close();
-
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode  json = mapper.readTree(out.toString("UTF-8"));
-        assertTrue(json.isArray());
-        assertEquals(json.get(0).get("measurement").asText(), "Operations");
-        assertEquals(json.get(3).get("measurement").asText(), "MaxLatency(us)");
-        assertEquals(json.get(11).get("measurement").asText(), "5");
+    final long min = 5000;
+    final long max = 100000;
+    final ZipfianGenerator zipfian = new ZipfianGenerator(min, max);
+    for (int i = 0; i < 1000; i++) {
+      final int rnd = zipfian.nextInt();
+      mm.measure("UPDATE", rnd);
     }
+    mm.exportMeasurements(export);
+    export.close();
+
+    final ObjectMapper mapper = new ObjectMapper();
+    final JsonNode json = mapper.readTree(out.toString("UTF-8"));
+    assertTrue(json.isArray());
+    assertEquals(json.get(0).get("measurement").asText(), "Operations");
+    assertEquals(json.get(3).get("measurement").asText(), "MaxLatency(us)");
+    assertEquals(json.get(11).get("measurement").asText(), "5");
+  }
 }

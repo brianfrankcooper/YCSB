@@ -17,13 +17,16 @@
 
 package com.yahoo.ycsb;
 
+import static org.testng.AssertJUnit.assertEquals;
+import static org.testng.AssertJUnit.assertFalse;
+import static org.testng.AssertJUnit.assertTrue;
+
 import org.testng.annotations.Test;
-import static org.testng.AssertJUnit.*;
 
 public class TestByteIterator {
   @Test
   public void testRandomByteIterator() {
-    int size = 100;
+    final int size = 100;
     ByteIterator itor = new RandomByteIterator(size);
     assertTrue(itor.hasNext());
     assertEquals(size, itor.bytesLeft());

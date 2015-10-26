@@ -43,7 +43,7 @@ public class OneMeasurementRaw extends OneMeasurement {
     private final long timestamp;
     private final int value;
 
-    public RawDataPoint(int value) {
+    RawDataPoint(int value) {
       this.timestamp = System.currentTimeMillis();
       this.value = value;
     }
@@ -59,8 +59,8 @@ public class OneMeasurementRaw extends OneMeasurement {
 
   class RawDataPointComparator implements Comparator<RawDataPoint> {
     @Override
-    public int compare(RawDataPoint p1, RawDataPoint p2){
-      if (p1.value() < p2.value()){
+    public int compare(RawDataPoint p1, RawDataPoint p2) {
+      if (p1.value() < p2.value()) {
         return -1;
       } else if (p1.value() == p2.value()) {
         return 0;
@@ -79,12 +79,12 @@ public class OneMeasurementRaw extends OneMeasurement {
   public static final String OUTPUT_FILE_PATH_DEFAULT = "";
 
   /**
-   * Optionally, user can request to not output summary stats. This is useful
-   * if the user chains the raw measurement type behind the HdrHistogram type
-   * which already outputs summary stats. But even in that case, the user may
-   * still want this class to compute summary stats for them, especially if
-   * they want accurate computation of percentiles (because percentils computed
-   * by histogram classes are still approximations).
+   * Optionally, user can request to not output summary stats. This is useful if
+   * the user chains the raw measurement type behind the HdrHistogram type which
+   * already outputs summary stats. But even in that case, the user may still
+   * want this class to compute summary stats for them, especially if they want
+   * accurate computation of percentiles (because percentils computed by
+   * histogram classes are still approximations).
    */
   public static final String NO_SUMMARY_STATS = "measurement.raw.no_summary";
   public static final String NO_SUMMARY_STATS_DEFAULT = "false";
@@ -106,30 +106,29 @@ public class OneMeasurementRaw extends OneMeasurement {
   public OneMeasurementRaw(String name, Properties props) {
     super(name);
 
-    outputFilePath = props.getProperty(OUTPUT_FILE_PATH,
-        OUTPUT_FILE_PATH_DEFAULT);
+    outputFilePath =
+        props.getProperty(OUTPUT_FILE_PATH, OUTPUT_FILE_PATH_DEFAULT);
     if (!outputFilePath.isEmpty()) {
-      System.out.println("Raw data measurement: will output to result file: " +
-          outputFilePath);
+      System.out.println("Raw data measurement: will output to result file: "
+          + outputFilePath);
 
       try {
-        outputStream = new PrintStream(
-            new FileOutputStream(outputFilePath, true),
-            true);
+        outputStream =
+            new PrintStream(new FileOutputStream(outputFilePath, true), true);
       } catch (FileNotFoundException e) {
         throw new RuntimeException("Failed to open raw data output file", e);
       }
 
-    } else{
+    } else {
       System.out.println("Raw data measurement: will output to stdout.");
       outputStream = System.out;
 
     }
 
-   noSummaryStats = Boolean.parseBoolean(props.getProperty(NO_SUMMARY_STATS,
-        NO_SUMMARY_STATS_DEFAULT));
+    noSummaryStats = Boolean.parseBoolean(
+        props.getProperty(NO_SUMMARY_STATS, NO_SUMMARY_STATS_DEFAULT));
 
-   measurements = new LinkedList<RawDataPoint>();
+    measurements = new LinkedList<RawDataPoint>();
   }
 
   @Override
@@ -147,12 +146,11 @@ public class OneMeasurementRaw extends OneMeasurement {
     // Output raw data points first then print out a summary of percentiles to
     // stdout.
 
-    outputStream.println(getName() +
-        " latency raw data: op, timestamp(ms), latency(us)");
+    outputStream.println(
+        getName() + " latency raw data: op, timestamp(ms), latency(us)");
     for (RawDataPoint point : measurements) {
-      outputStream.println(
-          String.format("%s,%d,%d", getName(), point.timeStamp(),
-              point.value()));
+      outputStream.println(String.format("%s,%d,%d", getName(),
+          point.timeStamp(), point.value()));
     }
     if (outputStream != System.out) {
       outputStream.close();
@@ -164,29 +162,28 @@ public class OneMeasurementRaw extends OneMeasurement {
       exporter.write(getName(),
           "Below is a summary of latency in microseconds:", -1);
       exporter.write(getName(), "Average",
-          (double)totalLatency / (double)totalOps);
+          (double) totalLatency / (double) totalOps);
 
       Collections.sort(measurements, new RawDataPointComparator());
 
       exporter.write(getName(), "Min", measurements.get(0).value());
-      exporter.write(
-          getName(), "Max", measurements.get(totalOps - 1).value());
-      exporter.write(
-          getName(), "p1", measurements.get((int)(totalOps*0.01)).value());
-      exporter.write(
-          getName(), "p5", measurements.get((int)(totalOps*0.05)).value());
-      exporter.write(
-          getName(), "p50", measurements.get((int)(totalOps*0.5)).value());
-      exporter.write(
-          getName(), "p90", measurements.get((int)(totalOps*0.9)).value());
-      exporter.write(
-          getName(), "p95", measurements.get((int)(totalOps*0.95)).value());
-      exporter.write(
-          getName(), "p99", measurements.get((int)(totalOps*0.99)).value());
+      exporter.write(getName(), "Max", measurements.get(totalOps - 1).value());
+      exporter.write(getName(), "p1",
+          measurements.get((int) (totalOps * 0.01)).value());
+      exporter.write(getName(), "p5",
+          measurements.get((int) (totalOps * 0.05)).value());
+      exporter.write(getName(), "p50",
+          measurements.get((int) (totalOps * 0.5)).value());
+      exporter.write(getName(), "p90",
+          measurements.get((int) (totalOps * 0.9)).value());
+      exporter.write(getName(), "p95",
+          measurements.get((int) (totalOps * 0.95)).value());
+      exporter.write(getName(), "p99",
+          measurements.get((int) (totalOps * 0.99)).value());
       exporter.write(getName(), "p99.9",
-          measurements.get((int)(totalOps*0.999)).value());
+          measurements.get((int) (totalOps * 0.999)).value());
       exporter.write(getName(), "p99.99",
-          measurements.get((int)(totalOps*0.9999)).value());
+          measurements.get((int) (totalOps * 0.9999)).value());
     }
 
     exportStatusCounts(exporter);
@@ -200,10 +197,10 @@ public class OneMeasurementRaw extends OneMeasurement {
 
     String toReturn = String.format("%s count: %d, average latency(us): %.2f",
         getName(), windowOperations,
-        (double)windowTotalLatency / (double)windowOperations);
+        (double) windowTotalLatency / (double) windowOperations);
 
-    windowTotalLatency=0;
-    windowOperations=0;
+    windowTotalLatency = 0;
+    windowOperations = 0;
 
     return toReturn;
   }
