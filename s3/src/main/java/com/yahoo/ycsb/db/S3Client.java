@@ -192,7 +192,7 @@ public class S3Client extends DB {
           }
           protocol = props.getProperty("s3.protocol");
           if (protocol == null){
-            protocol = propsCL.getProperty("s3.protocol", "HTTP");
+            protocol = propsCL.getProperty("s3.protocol", "HTTPS");
           }
           sse = props.getProperty("s3.sse");
           if (sse == null){
