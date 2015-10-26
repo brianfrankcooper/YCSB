@@ -20,7 +20,7 @@ This driver is a binding for the YCSB facilities to operate against a Crate Serv
 
 # Running tests
 
-Preferrable is to run using docker
+To get started quickly, you can test out the binding against crate running in a single docker node:
 
 docker pull crate
 

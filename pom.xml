@@ -101,6 +101,7 @@ LICENSE file.
     <module>aerospike</module>
     <module>cassandra</module>
     <module>couchbase</module>
+    <module>crate</module>
     <module>distribution</module>
     <module>dynamodb</module>
     <module>elasticsearch</module>
@@ -118,7 +119,6 @@ LICENSE file.
     <module>redis</module>
     <module>tarantool</module>
     <!--<module>voldemort</module>-->
-    <module>crate</module>
   </modules>
 
   <build>
