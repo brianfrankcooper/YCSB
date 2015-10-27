@@ -77,7 +77,6 @@ public class S3Client extends DB {
   private static String sse;
   private static SSECustomerKey ssecKey;
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
-  //private static int initCount = 0;
 
   /**
   * Cleanup any state for this storage.
