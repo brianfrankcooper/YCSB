@@ -84,13 +84,13 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
     initClient(debug, tableName, getProperties());
     this.session = client.newSession();
     if (getProperties().getProperty(SYNC_OPS_OPT) != null &&
-        getProperties().getProperty(SYNC_OPS_OPT).equals("true")) {
-      this.session.setFlushMode(KuduSession.FlushMode.AUTO_FLUSH_SYNC);
-    } else {
+        getProperties().getProperty(SYNC_OPS_OPT).equals("false")) {
       this.session.setFlushMode(KuduSession.FlushMode.AUTO_FLUSH_BACKGROUND);
+      this.session.setMutationBufferSpace(100);
+    } else {
+      this.session.setFlushMode(KuduSession.FlushMode.AUTO_FLUSH_SYNC);
     }
 
-    this.session.setMutationBufferSpace(100);
     try {
       this.table = client.openTable(tableName);
     } catch (Exception e) {
