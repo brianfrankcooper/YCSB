@@ -33,22 +33,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Tested with Cassandra 2.0, CQL client for YCSB framework
- * 
- * In CQLSH, create keyspace and table.  Something like:
- * cqlsh> create keyspace ycsb
- *     WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 1 };
- * cqlsh> create table usertable (
- *     y_id varchar primary key,
- *     field0 varchar,
- *     field1 varchar,
- *     field2 varchar,
- *     field3 varchar,
- *     field4 varchar,
- *     field5 varchar,
- *     field6 varchar,
- *     field7 varchar,
- *     field8 varchar,
- *     field9 varchar);
+ *
+ * See {@code cassandra2} for a version compatible with Cassandra 2.1+.
+ * See {@code cassandra2/README.md} for details.
  *
  * @author cmatser
  */
