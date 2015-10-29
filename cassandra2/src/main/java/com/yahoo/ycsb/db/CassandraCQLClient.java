@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2013 Yahoo! Inc. All rights reserved.
+ * Copyright (c) 2013-2015 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -17,38 +17,51 @@
  */
 package com.yahoo.ycsb.db;
 
-import com.datastax.driver.core.*;
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ColumnDefinitions;
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.Host;
+import com.datastax.driver.core.HostDistance;
+import com.datastax.driver.core.Metadata;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SimpleStatement;
+import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
-import com.yahoo.ycsb.*;
-import java.nio.ByteBuffer;
+import com.yahoo.ycsb.ByteArrayByteIterator;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.DB;
+import com.yahoo.ycsb.DBException;
 
+import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.HashMap;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
- * Tested with Cassandra 2.0, CQL client for YCSB framework
+ * Cassandra 2.x CQL client.
  *
- * See {@code cassandra2} for a version compatible with Cassandra 2.1+.
  * See {@code cassandra2/README.md} for details.
  *
  * @author cmatser
  */
 public class CassandraCQLClient extends DB {
 
-    private static Cluster cluster = null;
-    private static Session session = null;
+    protected static Cluster cluster = null;
+    protected static Session session = null;
 
     private static ConsistencyLevel readConsistencyLevel = ConsistencyLevel.ONE;
     private static ConsistencyLevel writeConsistencyLevel = ConsistencyLevel.ONE;
 
     public static final int OK = 0;
     public static final int ERR = -1;
+    public static final int NOT_FOUND = -3;
 
     public static final String YCSB_KEY = "y_id";
     public static final String KEYSPACE_PROPERTY = "cassandra.keyspace";
@@ -134,7 +147,7 @@ public class CassandraCQLClient extends DB {
                 cluster.getConfiguration().getSocketOptions().setReadTimeoutMillis(3*60*1000);
 
                 Metadata metadata = cluster.getMetadata();
-                System.out.printf("Connected to cluster: %s\n", metadata.getClusterName());
+                System.err.printf("Connected to cluster: %s\n", metadata.getClusterName());
 
                 for (Host discoveredHost : metadata.getAllHosts()) {
                     System.out.printf("Datacenter: %s; Host: %s; Rack: %s\n",
@@ -157,9 +170,20 @@ public class CassandraCQLClient extends DB {
      */
     @Override
     public void cleanup() throws DBException {
-        if (initCount.decrementAndGet() <= 0) {
-            cluster.shutdown();
+      synchronized(initCount) {
+        final int curInitCount = initCount.decrementAndGet();
+        if (curInitCount <= 0) {
+          session.close();
+          cluster.close();
+          cluster = null;
+          session = null;
         }
+        if (curInitCount < 0) {
+          // This should never happen.
+          throw new DBException(
+              String.format("initCount is negative: %d", curInitCount));
+        }
+      }
     }
 
     /**
@@ -174,7 +198,6 @@ public class CassandraCQLClient extends DB {
      */
     @Override
     public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
-
         try {
             Statement stmt;
             Select.Builder selectBuilder;
@@ -198,22 +221,23 @@ public class CassandraCQLClient extends DB {
 
             ResultSet rs = session.execute(stmt);
 
-            //Should be only 1 row
-            if (!rs.isExhausted()) {
-                Row row = rs.one();
-                ColumnDefinitions cd = row.getColumnDefinitions();
-                
-                for (ColumnDefinitions.Definition def : cd) {
-                    ByteBuffer val = row.getBytesUnsafe(def.getName());
-                    if (val != null) {
-                        result.put(def.getName(),
-                            new ByteArrayByteIterator(val.array()));
-                    }
-                    else {
-                        result.put(def.getName(), null);
-                    }
-                }
+            if (rs.isExhausted()) {
+              return NOT_FOUND;
+            }
 
+            //Should be only 1 row
+            Row row = rs.one();
+            ColumnDefinitions cd = row.getColumnDefinitions();
+
+            for (ColumnDefinitions.Definition def : cd) {
+                ByteBuffer val = row.getBytesUnsafe(def.getName());
+                if (val != null) {
+                    result.put(def.getName(),
+                        new ByteArrayByteIterator(val.array()));
+                }
+                else {
+                    result.put(def.getName(), null);
+                }
             }
 
             return OK;
@@ -229,7 +253,7 @@ public class CassandraCQLClient extends DB {
     /**
      * Perform a range scan for a set of records in the database. Each
      * field/value pair from the result will be stored in a HashMap.
-     * 
+     *
      * Cassandra CQL uses "token" method for range scan which doesn't always
      * yield intuitive results.
      *
@@ -290,7 +314,7 @@ public class CassandraCQLClient extends DB {
                 tuple = new HashMap<String, ByteIterator> ();
 
                 ColumnDefinitions cd = row.getColumnDefinitions();
-                
+
                 for (ColumnDefinitions.Definition def : cd) {
                     ByteBuffer val = row.getBytesUnsafe(def.getName());
                     if (val != null) {
@@ -359,7 +383,7 @@ public class CassandraCQLClient extends DB {
                 insertStmt.value(entry.getKey(), value);
             }
 
-            insertStmt.setConsistencyLevel(writeConsistencyLevel);
+            insertStmt.setConsistencyLevel(writeConsistencyLevel).enableTracing();
 
             if (_debug) {
                 System.out.println(insertStmt.toString());
