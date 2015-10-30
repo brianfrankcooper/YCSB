@@ -57,7 +57,7 @@ YCSB has a utility to help create your SQL table. NOTE: It does not support all 
 java -cp YCSB_HOME/jdbc-binding/lib/jdbc-binding-0.4.0.jar:mysql-connector-java-5.1.37-bin.jar com.yahoo.ycsb.db.JdbcDBCreateTable -P testworkload -P db.properties -n usertable
 ```
 
-Hint: you need to include your Driver jar in the classpath as well as specify your loading options via a workload file, jdbc connection information, and a table name with ```-n```. 
+Hint: you need to include your Driver jar in the classpath as well as specify your loading options via a workload file, JDBC connection information, and a table name with ```-n```. 
 
 Simply executing the JdbcDBCreateTable class without any other parameters will print out usage information.
 
@@ -71,9 +71,9 @@ db.user=admin
 db.passwd=admin
 ```
 
-Be sure to use your driver class, a valid jdbc connection string, and credentials to your database.
+Be sure to use your driver class, a valid JDBC connection string, and credentials to your database.
 
-You can add these to your workload configuration or a seperate properties file and specify it with ```-P``` or you can add the properties individually to your ycsb command with ```-p```.
+You can add these to your workload configuration or a separate properties file and specify it with ```-P``` or you can add the properties individually to your ycsb command with ```-p```.
 
 ### 5. Add your JDBC Driver to the classpath
 There are several ways to do this, but a couple easy methods are to put a copy of your Driver jar in ```YCSB_HOME/jdbc-binding/lib/``` or just specify the path to your Driver jar with ```-cp``` in your ycsb command.
