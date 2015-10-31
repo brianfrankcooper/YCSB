@@ -115,6 +115,23 @@ table=usertable
 # How the latency measurements are presented
 measurementtype=histogram
 #measurementtype=timeseries
+#measurementtype=raw
+# When measurementtype is set to raw, measurements will be output
+# as RAW datapoints in the following csv format:
+# "operation, timestamp of the measurement, latency in us"
+#
+# Raw datapoints are collected in-memory while the test is running. Each
+# data point consumes about 20 bytes (including java object overhead).
+# For a typical run of 1 million to 10 million operations, this should
+# easily fit into memory. If you plan to do a run with 100s of millions of
+# operations, consider increasing your jvm heap size before you enable the
+# RAW measurement type, or split the run into multiple runs.
+#
+# Optionally, you can specify an output file to save raw datapoints.
+# Otherwise, raw datapoints will be written to stdout.
+# The output file will be appended to if it already exists, otherwise
+# a new output file will be created.
+#measurement.raw.output_file = /tmp/your_output_file_for_this_run
 
 # The range of latencies to track in the histogram (milliseconds)
 histogram.buckets=1000
