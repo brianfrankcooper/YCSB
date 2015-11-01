@@ -43,6 +43,7 @@ import java.util.Vector;
  */
 public abstract class DB
 {
+    boolean warmup = false;
 	/**
 	 * Properties for configuring this DB.
 	 */
@@ -72,6 +73,18 @@ public abstract class DB
 	public void init() throws DBException
 	{
 	}
+
+    /**
+     * Initialize the DB regarding whether it is the warmup phase.
+     * If warmup phase, operations should not be accounted into the measurements.
+     *
+     * @param warmup The flag for the warmup phase
+     */
+    public void init(boolean warmup) throws DBException
+    {
+        this.warmup = warmup;
+        init();
+    }
 
 	/**
 	 * Cleanup any state for this DB.

@@ -63,6 +63,8 @@ import java.util.ArrayList;
  * <LI><b>maxscanlength</b>: for scans, what is the maximum number of records to scan (default: 1000)
  * <LI><b>scanlengthdistribution</b>: for scans, what distribution should be used to choose the number of records to scan, for each scan, between 1 and maxscanlength (default: uniform)
  * <LI><b>insertorder</b>: should records be inserted in order by key ("ordered"), or in hashed order ("hashed") (default: hashed)
+ * <LI><b>warmupoperationcount</b>: max number of warmup operations (default: 0)
+ * <LI><b>warmupexecutiontime</b>: max execution time of warmup phase in milliseconds (default: 0)
  * </ul> 
  */
 public class CoreWorkload extends Workload
@@ -586,7 +588,16 @@ public class CoreWorkload extends Workload
 		return true;
 	}
 
-  /**
+	/**
+	 * Read operation is exposed to the warmup phase.
+	 */
+	@Override
+	public boolean doRead(DB db, Object threadstate) {
+		doTransactionRead(db);
+		return true;
+	}
+
+	/**
    * Results are reported in the first three buckets of the histogram under
    * the label "VERIFY". 
    * Bucket 0 means the expected data was returned.

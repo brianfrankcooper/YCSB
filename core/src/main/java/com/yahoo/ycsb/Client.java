@@ -223,6 +223,78 @@ class RemainingFormatter {
 }
 
 /**
+ * A thread for executing warmup transactions (read operation) before the actual measurements.
+ */
+class WarmupThread extends ClientThread {
+  private boolean warmup = true;
+  private long exectime;
+  private long curexec = 0;
+  private CountDownLatch warmupLatch;
+  public WarmupThread(DB db, boolean dotransactions, Workload workload, Properties props, int opcount, double targetperthreadperms, CountDownLatch warmupLatch, long exectime){
+    super(db, dotransactions, workload, props, opcount, targetperthreadperms, warmupLatch);
+    this.exectime = exectime;
+    this.warmupLatch = warmupLatch;
+  }
+
+  @Override
+  public void run()
+  {
+    long startexec = System.currentTimeMillis();
+    try
+    {
+      // differentiate the warmup from actual measurements
+      // warmup operations are not counted into the measurements
+      _db.init(warmup);
+    }
+    catch (DBException e)
+    {
+      e.printStackTrace();
+      e.printStackTrace(System.out);
+      return;
+    }
+
+    try
+    {
+      _workloadstate=_workload.initThread(_props,_threadid,_threadcount);
+    }
+    catch (WorkloadException e)
+    {
+      e.printStackTrace();
+      e.printStackTrace(System.out);
+      return;
+    }
+    while (isContinue()) {
+      if (!_workload.doRead(_db, _workloadstate)) {
+        break;
+      }
+      _opsdone++;
+      curexec = System.currentTimeMillis() - startexec;
+    }
+    warmupLatch.countDown();
+  }
+
+  /**
+   * Decide whether the warmup operation is done.
+   * @return true if the number of operations has not been done, or the execution time is not expired.
+   */
+  private boolean isContinue() {
+    if (exectime != 0) {
+      if (curexec < exectime) {
+        return true;
+      } else
+        return false;
+    }
+    if (_opcount != 0) {
+      if (_opsdone < _opcount) {
+        return true;
+      } else
+        return false;
+    }
+    return false;
+  }
+}
+
+/**
  * A thread for executing transactions or data inserts to the database.
  *
  * @author cooperb
@@ -469,6 +541,15 @@ public class Client
    */
   public static final String MAX_EXECUTION_TIME = "maxexecutiontime";
 
+  /**
+   * The maximum amount of warmpup operations.
+   */
+  public static final String WARMUP_OPERATION_COUNT_PROPERTY = "warmupoperationcount";
+
+  /**
+   * The maximum amount of time (in seconds) for which the benchmark will be warmup.
+   */
+  public static final String WARMUP_EXECUTION_TIME = "warmupexecutiontime";
 
   public static void usageMessage()
   {
@@ -835,6 +916,52 @@ public class Client
       }
     }
 
+    //run warmup threads
+    int warmupopcount = Integer.parseInt(props.getProperty(WARMUP_OPERATION_COUNT_PROPERTY, "0"));
+    int warmupexectime = Integer.parseInt(props.getProperty(WARMUP_EXECUTION_TIME, "0"));
+
+    if(dotransactions && (warmupopcount > 0 || warmupexectime > 0))
+    {
+      System.err.println("Starting warmup the datastore...");
+      CountDownLatch warmupLatch=new CountDownLatch(threadcount);
+      List<WarmupThread> warmupThreads = new ArrayList<WarmupThread>();
+      for (int threadid = 0; threadid < threadcount; threadid++)
+      {
+        DB db = null;
+        try
+        {
+          db = DBFactory.newDB(dbname, props);
+        } catch (UnknownDBException e)
+        {
+          System.out.println("Unknown DB " + dbname);
+          System.exit(0);
+        }
+        int operations_perthread = warmupopcount / threadcount;
+        if (threadid < (warmupopcount % threadcount))
+        {
+          ++operations_perthread;
+        }
+        WarmupThread t = new WarmupThread(db, dotransactions, workload, props,
+                operations_perthread, targetperthreadperms, warmupLatch, warmupexectime);
+        warmupThreads.add(t);
+      }
+      for (Thread t : warmupThreads)
+      {
+        t.start();
+      }
+      try {
+        warmupLatch.await();
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+        e.printStackTrace(System.out);
+        // restore the interrupted status and get out
+        Thread.currentThread().interrupt();
+        System.exit(0);
+      }
+    }
+
+    System.err.println("Finish warmup the datastore with " + warmupopcount + " read operations");
+
     CountDownLatch completeLatch=new CountDownLatch(threadcount);
     final List<ClientThread> clients=new ArrayList<ClientThread>(threadcount);
     for (int threadid=0; threadid<threadcount; threadid++)
@@ -849,7 +976,6 @@ public class Client
         System.out.println("Unknown DB "+dbname);
         System.exit(0);
       }
-
 
       int threadopcount = opcount/threadcount;
 

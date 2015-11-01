@@ -94,6 +94,7 @@ public class CassandraCQLClient extends DB {
                 _debug = Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
 
                 String host = getProperties().getProperty(HOSTS_PROPERTY);
+
                 if (host == null) {
                     throw new DBException(String.format("Required property \"%s\" missing for CassandraCQLClient", HOSTS_PROPERTY));
                 }

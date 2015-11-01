@@ -87,12 +87,20 @@ public class DBWrapper extends DB
 	 */
 	public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
 	{
-	    long ist=_measurements.getIntendedtartTimeNs();
-	    long st = System.nanoTime();
-	    int res=_db.read(table,key,fields,result);
-		long en=System.nanoTime();
-		measure("READ",ist, st, en);
-	    _measurements.reportReturnCode("READ",res);
+		int res = 0;
+		if (!warmup)
+		{
+			long ist=_measurements.getIntendedtartTimeNs();
+			long st = System.nanoTime();
+			res=_db.read(table,key,fields,result);
+			long en=System.nanoTime();
+			measure("READ",ist, st, en);
+			_measurements.reportReturnCode("READ",res);
+		}
+		else
+		{
+			res = _db.read(table, key, fields, result);
+		}
 		return res;
 	}
 
