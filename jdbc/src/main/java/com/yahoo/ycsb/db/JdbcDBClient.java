@@ -69,7 +69,6 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
       DELETE(2),
       READ(3),
       UPDATE(4),
-      SCAN(5),
       ;
       int internalType;
       private Type(int type) {
@@ -297,21 +296,6 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
     if (stmt == null) return insertStatement;
     else return stmt;
   }
-	
-	private PreparedStatement createAndCacheScanStatement(StatementType scanType, String key)
-	throws SQLException {
-	  StringBuilder select = new StringBuilder("SELECT * FROM ");
-    select.append(scanType.tableName);
-    select.append(" WHERE ");
-    select.append(PRIMARY_KEY);
-    select.append(" >= ");
-    select.append("?;");
-    PreparedStatement scanStatement = getShardConnectionByKey(key).prepareStatement(select.toString());
-    if (this.jdbcFetchSize != null) scanStatement.setFetchSize(this.jdbcFetchSize);
-    PreparedStatement stmt = cachedStatements.putIfAbsent(scanType, scanStatement);
-    if (stmt == null) return scanStatement;
-    else return stmt;
-  }
 
 	@Override
 	public int read(String tableName, String key, Set<String> fields,
@@ -351,36 +335,8 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
 	@Override
 	public int scan(String tableName, String startKey, int recordcount,
 			Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-	  if (tableName == null) {
+      System.err.println("JDBC does not support Scan semantics");
       return -1;
-    }
-    if (startKey == null) {
-      return -1;
-    }
-    try {
-      StatementType type = new StatementType(StatementType.Type.SCAN, tableName, 1, getShardIndexByKey(startKey));
-      PreparedStatement scanStatement = cachedStatements.get(type);
-      if (scanStatement == null) {
-        scanStatement = createAndCacheScanStatement(type, startKey);
-      }
-      scanStatement.setString(1, startKey);
-      ResultSet resultSet = scanStatement.executeQuery();
-      for (int i = 0; i < recordcount && resultSet.next(); i++) {
-        if (result != null && fields != null) {
-          HashMap<String, ByteIterator> values = new HashMap<String, ByteIterator>();
-          for (String field : fields) {
-            String value = resultSet.getString(field);
-            values.put(field, new StringByteIterator(value));
-          }
-          result.add(values);
-        }
-      }
-      resultSet.close();
-      return SUCCESS;
-    } catch (SQLException e) {
-      System.err.println("Error in processing scan of table: " + tableName + e);
-      return -2;
-    }
 	}
 
 	@Override
