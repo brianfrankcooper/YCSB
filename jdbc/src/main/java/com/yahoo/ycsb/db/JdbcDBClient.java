@@ -283,11 +283,11 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
     StringBuilder update = new StringBuilder("UPDATE ");
     update.append(updateType.tableName);
     update.append(" SET ");
-    for (int i = 1; i <= updateType.numFields; i++) {
+    for (int i = 0; i < updateType.numFields; i++) {
       update.append(COLUMN_PREFIX);
       update.append(i);
       update.append("=?");
-      if (i < updateType.numFields) update.append(", ");
+      if (i < updateType.numFields - 1) update.append(", ");
     }
     update.append(" WHERE ");
     update.append(PRIMARY_KEY);
