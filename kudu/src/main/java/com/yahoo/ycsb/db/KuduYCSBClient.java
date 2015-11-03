@@ -20,6 +20,7 @@ package com.yahoo.ycsb.db;
 import com.stumbleupon.async.TimeoutException;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.workloads.CoreWorkload;
 import org.kududb.ColumnSchema;
@@ -45,10 +46,7 @@ import static org.kududb.Type.STRING;
  */
 public class KuduYCSBClient extends com.yahoo.ycsb.DB {
   public static final String KEY = "key";
-  public static final int OK = 0;
-  public static final int SERVER_ERROR = -1;
-  public static final int NO_MATCHING_RECORD = -2;
-  public static final int TIMEOUT = -3;
+  public static final Status TIMEOUT = new Status("TIMEOUT", "The operation timed out.");
   public static final int MAX_TABLETS = 9000;
   public static final long DEFAULT_SLEEP = 60000;
   private static final String SYNC_OPS_OPT = "kudu_sync_ops";
@@ -190,18 +188,18 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
   }
 
   @Override
-  public int read(String table, String key, Set<String> fields,
+  public Status read(String table, String key, Set<String> fields,
                   HashMap<String,ByteIterator> result) {
     Vector<HashMap<String, ByteIterator>> results = new Vector<HashMap<String, ByteIterator>>();
-    int ret = scan(table, key, 1, fields, results);
-    if (ret != OK) return ret;
-    if (results.size() != 1) return NO_MATCHING_RECORD;
+    final Status status = scan(table, key, 1, fields, results);
+    if (!status.equals(Status.OK)) return status;
+    if (results.size() != 1) return Status.NOT_FOUND;
     result.putAll(results.firstElement());
-    return OK;
+    return Status.OK;
   }
 
   @Override
-  public int scan(String table, String startkey, int recordcount, Set<String> fields,
+  public Status scan(String table, String startkey, int recordcount, Set<String> fields,
                   Vector<HashMap<String, ByteIterator>> result) {
     try {
       KuduScanner.KuduScannerBuilder scannerBuilder = client.newScannerBuilder(this.table);
@@ -243,9 +241,9 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
     } catch (Exception e) {
       System.err.println("Unexpected exception " + e);
       e.printStackTrace();
-      return SERVER_ERROR;
+      return Status.ERROR;
     }
-    return OK;
+    return Status.OK;
   }
 
   private void addAllRowsToResult(RowResultIterator it, int recordcount,
@@ -268,7 +266,7 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
   }
 
   @Override
-  public int update(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
     Update update = this.table.newUpdate();
     PartialRow row = update.getRow();
     row.addString(KEY, key);
@@ -280,11 +278,11 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
       }
     }
     apply(update);
-    return OK;
+    return Status.OK;
   }
 
   @Override
-  public int insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
     Insert insert = this.table.newInsert();
     PartialRow row = insert.getRow();
     row.addString(KEY, key);
@@ -292,16 +290,16 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
       row.addString(i, new String(values.get(schema.getColumnByIndex(i).getName()).toArray()));
     }
     apply(insert);
-    return OK;
+    return Status.OK;
   }
 
   @Override
-  public int delete(String table, String key) {
+  public Status delete(String table, String key) {
     Delete delete = this.table.newDelete();
     PartialRow row = delete.getRow();
     row.addString(KEY, key);
     apply(delete);
-    return OK;
+    return Status.OK;
   }
 
   private void apply(Operation op) {

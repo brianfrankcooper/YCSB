@@ -22,7 +22,7 @@ import com.google.common.base.Preconditions;
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
-import com.yahoo.ycsb.StatusCode;
+import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.measurements.Measurements;
 
 import org.apache.hadoop.conf.Configuration;
@@ -202,7 +202,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
      * @param result A HashMap of field/value pairs for the result
      * @return Zero on success, a non-zero error code on error
      */
-    public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
+    public Status read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
         if (!_tableName.equals(table)) {
@@ -215,7 +215,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             catch (IOException e)
             {
                 System.err.println("Error accessing HBase table: " + e);
-                return StatusCode.ERROR;
+                return Status.ERROR;
             }
         }
 
@@ -241,16 +241,16 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             if (_debug) {
                 System.err.println("Error doing get: "+e);
             }
-            return StatusCode.ERROR;
+            return Status.ERROR;
         }
         catch (ConcurrentModificationException e)
         {
             //do nothing for now...need to understand HBase concurrency model better
-            return StatusCode.ERROR;
+            return Status.ERROR;
         }
 
         if (r.isEmpty()) {
-            return StatusCode.NOT_FOUND;
+            return Status.NOT_FOUND;
         }
 
         while (r.advance()) {
@@ -262,7 +262,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
                         " is: "+Bytes.toString(CellUtil.cloneValue(c)));
             }
         }
-        return StatusCode.OK;
+        return Status.OK;
     }
 
     /**
@@ -276,7 +276,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
+    public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
         if (!_tableName.equals(table)) {
@@ -289,7 +289,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             catch (IOException e)
             {
                 System.err.println("Error accessing HBase table: "+e);
-                return StatusCode.ERROR;
+                return Status.ERROR;
             }
         }
 
@@ -357,7 +357,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             {
                 System.out.println("Error in getting/parsing scan result: "+e);
             }
-            return StatusCode.ERROR;
+            return Status.ERROR;
         }
 
         finally {
@@ -367,7 +367,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             }
         }
 
-        return StatusCode.OK;
+        return Status.OK;
     }
 
     /**
@@ -380,7 +380,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int update(String table, String key, HashMap<String,ByteIterator> values)
+    public Status update(String table, String key, HashMap<String,ByteIterator> values)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
         if (!_tableName.equals(table)) {
@@ -393,7 +393,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             catch (IOException e)
             {
                 System.err.println("Error accessing HBase table: "+e);
-                return StatusCode.ERROR;
+                return Status.ERROR;
             }
         }
 
@@ -427,15 +427,15 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             if (_debug) {
                 System.err.println("Error doing put: "+e);
             }
-            return StatusCode.ERROR;
+            return Status.ERROR;
         }
         catch (ConcurrentModificationException e)
         {
             //do nothing for now...hope this is rare
-            return StatusCode.ERROR;
+            return Status.ERROR;
         }
 
-        return StatusCode.OK;
+        return Status.OK;
     }
 
     /**
@@ -448,7 +448,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int insert(String table, String key, HashMap<String,ByteIterator> values)
+    public Status insert(String table, String key, HashMap<String,ByteIterator> values)
     {
         return update(table,key,values);
     }
@@ -461,7 +461,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int delete(String table, String key)
+    public Status delete(String table, String key)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
         if (!_tableName.equals(table)) {
@@ -474,7 +474,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             catch (IOException e)
             {
                 System.err.println("Error accessing HBase table: "+e);
-                return StatusCode.ERROR;
+                return Status.ERROR;
             }
         }
 
@@ -498,10 +498,10 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
             if (_debug) {
                 System.err.println("Error doing delete: "+e);
             }
-            return StatusCode.ERROR;
+            return Status.ERROR;
         }
 
-        return StatusCode.OK;
+        return Status.OK;
     }
 
     @VisibleForTesting

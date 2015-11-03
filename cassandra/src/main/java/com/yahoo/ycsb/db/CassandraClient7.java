@@ -17,15 +17,13 @@
 
 package com.yahoo.ycsb.db;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import com.yahoo.ycsb.ByteArrayByteIterator;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.DB;
+import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
+import com.yahoo.ycsb.StringByteIterator;
+import com.yahoo.ycsb.Utils;
 
 import org.apache.cassandra.thrift.AuthenticationRequest;
 import org.apache.cassandra.thrift.Cassandra;
@@ -45,20 +43,21 @@ import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 
-import com.yahoo.ycsb.ByteArrayByteIterator;
-import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.DB;
-import com.yahoo.ycsb.DBException;
-import com.yahoo.ycsb.StringByteIterator;
-import com.yahoo.ycsb.Utils;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.Vector;
 
 //XXXX if we do replication, fix the consistency levels
 /**
  * Cassandra 0.7 client for YCSB framework.
  */
 public class CassandraClient7 extends DB {
-  public static final int OK = 0;
-  public static final int ERROR = -1;
   public static final ByteBuffer EMPTY_BYTE_BUFFER =
       ByteBuffer.wrap(new byte[0]);
 
@@ -188,7 +187,7 @@ public class CassandraClient7 extends DB {
    *          A HashMap of field/value pairs for the result
    * @return Zero on success, a non-zero error code on error
    */
-  public int read(String table, String key, Set<String> fields,
+  public Status read(String table, String key, Set<String> fields,
       HashMap<String, ByteIterator> result) {
     if (!tableName.equals(table)) {
       try {
@@ -197,7 +196,7 @@ public class CassandraClient7 extends DB {
       } catch (Exception e) {
         e.printStackTrace();
         e.printStackTrace(System.out);
-        return ERROR;
+        return Status.ERROR;
       }
     }
 
@@ -253,7 +252,7 @@ public class CassandraClient7 extends DB {
           System.out.println();
         }
 
-        return OK;
+        return Status.OK;
       } catch (Exception e) {
         errorexception = e;
       }
@@ -266,7 +265,7 @@ public class CassandraClient7 extends DB {
     }
     errorexception.printStackTrace();
     errorexception.printStackTrace(System.out);
-    return ERROR;
+    return Status.ERROR;
 
   }
 
@@ -287,7 +286,7 @@ public class CassandraClient7 extends DB {
    *          pairs for one record
    * @return Zero on success, a non-zero error code on error
    */
-  public int scan(String table, String startkey, int recordcount,
+  public Status scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     if (!tableName.equals(table)) {
       try {
@@ -296,7 +295,7 @@ public class CassandraClient7 extends DB {
       } catch (Exception e) {
         e.printStackTrace();
         e.printStackTrace(System.out);
-        return ERROR;
+        return Status.ERROR;
       }
     }
 
@@ -359,7 +358,7 @@ public class CassandraClient7 extends DB {
           }
         }
 
-        return OK;
+        return Status.OK;
       } catch (Exception e) {
         errorexception = e;
       }
@@ -371,7 +370,7 @@ public class CassandraClient7 extends DB {
     }
     errorexception.printStackTrace();
     errorexception.printStackTrace(System.out);
-    return ERROR;
+    return Status.ERROR;
   }
 
   /**
@@ -387,7 +386,7 @@ public class CassandraClient7 extends DB {
    *          A HashMap of field/value pairs to update in the record
    * @return Zero on success, a non-zero error code on error
    */
-  public int update(String table, String key,
+  public Status update(String table, String key,
       HashMap<String, ByteIterator> values) {
     return insert(table, key, values);
   }
@@ -405,7 +404,7 @@ public class CassandraClient7 extends DB {
    *          A HashMap of field/value pairs to insert in the record
    * @return Zero on success, a non-zero error code on error
    */
-  public int insert(String table, String key,
+  public Status insert(String table, String key,
       HashMap<String, ByteIterator> values) {
     if (!tableName.equals(table)) {
       try {
@@ -414,7 +413,7 @@ public class CassandraClient7 extends DB {
       } catch (Exception e) {
         e.printStackTrace();
         e.printStackTrace(System.out);
-        return ERROR;
+        return Status.ERROR;
       }
     }
 
@@ -449,7 +448,7 @@ public class CassandraClient7 extends DB {
         mutationMap.clear();
         record.clear();
 
-        return OK;
+        return Status.OK;
       } catch (Exception e) {
         errorexception = e;
       }
@@ -462,7 +461,7 @@ public class CassandraClient7 extends DB {
 
     errorexception.printStackTrace();
     errorexception.printStackTrace(System.out);
-    return ERROR;
+    return Status.ERROR;
   }
 
   /**
@@ -474,7 +473,7 @@ public class CassandraClient7 extends DB {
    *          The record key of the record to delete.
    * @return Zero on success, a non-zero error code on error
    */
-  public int delete(String table, String key) {
+  public Status delete(String table, String key) {
     if (!tableName.equals(table)) {
       try {
         client.set_keyspace(table);
@@ -482,7 +481,7 @@ public class CassandraClient7 extends DB {
       } catch (Exception e) {
         e.printStackTrace();
         e.printStackTrace(System.out);
-        return ERROR;
+        return Status.ERROR;
       }
     }
 
@@ -496,7 +495,7 @@ public class CassandraClient7 extends DB {
           System.out.println("Delete key: " + key);
         }
 
-        return OK;
+        return Status.OK;
       } catch (Exception e) {
         errorexception = e;
       }
@@ -508,7 +507,7 @@ public class CassandraClient7 extends DB {
     }
     errorexception.printStackTrace();
     errorexception.printStackTrace(System.out);
-    return ERROR;
+    return Status.ERROR;
   }
 
   public static void main(String[] args) {
@@ -530,8 +529,8 @@ public class CassandraClient7 extends DB {
     vals.put("age", new StringByteIterator("57"));
     vals.put("middlename", new StringByteIterator("bradley"));
     vals.put("favoritecolor", new StringByteIterator("blue"));
-    int res = cli.insert("usertable", "BrianFrankCooper", vals);
-    System.out.println("Result of insert: " + res);
+    Status res = cli.insert("usertable", "BrianFrankCooper", vals);
+    System.out.println("Result of insert: " + res.getName());
 
     HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
     HashSet<String> fields = new HashSet<String>();
@@ -539,12 +538,12 @@ public class CassandraClient7 extends DB {
     fields.add("age");
     fields.add("favoritecolor");
     res = cli.read("usertable", "BrianFrankCooper", null, result);
-    System.out.println("Result of read: " + res);
+    System.out.println("Result of read: " + res.getName());
     for (String s : result.keySet()) {
       System.out.println("[" + s + "]=[" + result.get(s) + "]");
     }
 
     res = cli.delete("usertable", "BrianFrankCooper");
-    System.out.println("Result of delete: " + res);
+    System.out.println("Result of delete: " + res.getName());
   }
 }

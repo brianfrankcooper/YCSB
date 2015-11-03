@@ -20,6 +20,7 @@ package com.yahoo.ycsb.db;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 
 import java.sql.*;
@@ -316,14 +317,8 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
   }
 
 	@Override
-	public int read(String tableName, String key, Set<String> fields,
+	public Status read(String tableName, String key, Set<String> fields,
 			HashMap<String, ByteIterator> result) {
-	  if (tableName == null) {
-      return -1;
-    }
-    if (key == null) {
-      return -1;
-    }
     try {
       StatementType type = new StatementType(StatementType.Type.READ, tableName, 1, getShardIndexByKey(key));
       PreparedStatement readStatement = cachedStatements.get(type);
@@ -334,7 +329,7 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
       ResultSet resultSet = readStatement.executeQuery();
       if (!resultSet.next()) {
         resultSet.close();
-        return 1;
+        return Status.NOT_FOUND;
       }
       if (result != null && fields != null) {
         for (String field : fields) {
@@ -343,22 +338,16 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
         }
       }
       resultSet.close();
-      return SUCCESS;
+      return Status.OK;
     } catch (SQLException e) {
         System.err.println("Error in processing read of table " + tableName + ": "+e);
-      return -2;
+      return Status.ERROR;
     }
 	}
 
 	@Override
-	public int scan(String tableName, String startKey, int recordcount,
+	public Status scan(String tableName, String startKey, int recordcount,
 			Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-	  if (tableName == null) {
-      return -1;
-    }
-    if (startKey == null) {
-      return -1;
-    }
     try {
       StatementType type = new StatementType(StatementType.Type.SCAN, tableName, 1, getShardIndexByKey(startKey));
       PreparedStatement scanStatement = cachedStatements.get(type);
@@ -379,21 +368,15 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
         }
       }
       resultSet.close();
-      return SUCCESS;
+      return Status.OK;
     } catch (SQLException e) {
       System.err.println("Error in processing scan of table: " + tableName + e);
-      return -2;
+      return Status.ERROR;
     }
 	}
 
 	@Override
-	public int update(String tableName, String key, HashMap<String, ByteIterator> values) {
-	  if (tableName == null) {
-      return -1;
-    }
-    if (key == null) {
-      return -1;
-    }
+	public Status update(String tableName, String key, HashMap<String, ByteIterator> values) {
     try {
       int numFields = values.size();
       StatementType type = new StatementType(StatementType.Type.UPDATE, tableName, numFields, getShardIndexByKey(key));
@@ -407,22 +390,16 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
       }
       updateStatement.setString(index, key);
       int result = updateStatement.executeUpdate();
-      if (result == 1) return SUCCESS;
-      else return 1;
+      if (result == 1) return Status.OK;
+      else return Status.UNEXPECTED_STATE;
     } catch (SQLException e) {
       System.err.println("Error in processing update to table: " + tableName + e);
-      return -1;
+      return Status.ERROR;
     }
 	}
 
 	@Override
-	public int insert(String tableName, String key, HashMap<String, ByteIterator> values) {
-	  if (tableName == null) {
-	    return -1;
-	  }
-	  if (key == null) {
-	    return -1;
-	  }
+	public Status insert(String tableName, String key, HashMap<String, ByteIterator> values) {
 	  try {
 	    int numFields = values.size();
 	    StatementType type = new StatementType(StatementType.Type.INSERT, tableName, numFields, getShardIndexByKey(key));
@@ -437,22 +414,16 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
         insertStatement.setString(index++, field);
       }
       int result = insertStatement.executeUpdate();
-      if (result == 1) return SUCCESS;
-      else return 1;
+      if (result == 1) return Status.OK;
+      else return Status.UNEXPECTED_STATE;
     } catch (SQLException e) {
       System.err.println("Error in processing insert to table: " + tableName + e);
-      return -1;
+      return Status.ERROR;
     }
 	}
 
 	@Override
-	public int delete(String tableName, String key) {
-	  if (tableName == null) {
-      return -1;
-    }
-    if (key == null) {
-      return -1;
-    }
+	public Status delete(String tableName, String key) {
     try {
       StatementType type = new StatementType(StatementType.Type.DELETE, tableName, 1, getShardIndexByKey(key));
       PreparedStatement deleteStatement = cachedStatements.get(type);
@@ -461,11 +432,11 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
       }
       deleteStatement.setString(1, key);
       int result = deleteStatement.executeUpdate();
-      if (result == 1) return SUCCESS;
-      else return 1;
+      if (result == 1) return Status.OK;
+      else return Status.UNEXPECTED_STATE;
     } catch (SQLException e) {
       System.err.println("Error in processing delete to table: " + tableName + e);
-      return -1;
+      return Status.ERROR;
     }
 	}
 }

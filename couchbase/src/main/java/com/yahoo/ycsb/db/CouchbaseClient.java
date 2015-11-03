@@ -25,17 +25,26 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
+
 import net.spy.memcached.PersistTo;
 import net.spy.memcached.ReplicateTo;
 import net.spy.memcached.internal.OperationFuture;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.StringWriter;
 import java.io.Writer;
 import java.net.URI;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.Vector;
 
 /**
  * A class that wraps the CouchbaseClient to allow it to be interfaced with YCSB.
@@ -64,9 +73,6 @@ public class CouchbaseClient extends DB {
   public static final String PERSIST_PROPERTY = "couchbase.persistTo";
   public static final String REPLICATE_PROPERTY = "couchbase.replicateTo";
   public static final String JSON_PROPERTY = "couchbase.json";
-
-  public static final int OK = 0;
-  public static final int FAILURE = 1;
 
   protected static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
@@ -156,7 +162,7 @@ public class CouchbaseClient extends DB {
   }
 
   @Override
-  public int read(final String table, final String key, final Set<String> fields,
+  public Status read(final String table, final String key, final Set<String> fields,
     final HashMap<String, ByteIterator> result) {
     String formattedKey = formatKey(table, key);
 
@@ -164,16 +170,16 @@ public class CouchbaseClient extends DB {
       Object loaded = client.get(formattedKey);
 
       if (loaded == null) {
-        return FAILURE;
+        return Status.ERROR;
       }
 
       decode(loaded, fields, result);
-      return OK;
+      return Status.OK;
     } catch (Exception e) {
       if (log.isErrorEnabled()) {
         log.error("Could not read value for key " + formattedKey, e);
       }
-      return FAILURE;
+      return Status.ERROR;
     }
   }
 
@@ -185,16 +191,16 @@ public class CouchbaseClient extends DB {
    * @param recordcount The number of records to read
    * @param fields The list of fields to read, or null for all of them
    * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
-   * @return FAILURE, because not implemented yet.
+   * @return Status.ERROR, because not implemented yet.
    */
   @Override
-  public int scan(final String table, final String startkey, final int recordcount,
+  public Status scan(final String table, final String startkey, final int recordcount,
     final Set<String> fields, final Vector<HashMap<String, ByteIterator>> result) {
-    return FAILURE;
+    return Status.ERROR;
   }
 
   @Override
-  public int update(final String table, final String key, final HashMap<String, ByteIterator> values) {
+  public Status update(final String table, final String key, final HashMap<String, ByteIterator> values) {
     String formattedKey = formatKey(table, key);
 
     try {
@@ -209,12 +215,12 @@ public class CouchbaseClient extends DB {
       if (log.isErrorEnabled()) {
         log.error("Could not update value for key " + formattedKey, e);
       }
-      return FAILURE;
+      return Status.ERROR;
     }
   }
 
   @Override
-  public int insert(final String table, final String key, final HashMap<String, ByteIterator> values) {
+  public Status insert(final String table, final String key, final HashMap<String, ByteIterator> values) {
     String formattedKey = formatKey(table, key);
 
     try {
@@ -229,12 +235,12 @@ public class CouchbaseClient extends DB {
       if (log.isErrorEnabled()) {
         log.error("Could not insert value for key " + formattedKey, e);
       }
-      return FAILURE;
+      return Status.ERROR;
     }
   }
 
   @Override
-  public int delete(final String table, final String key) {
+  public Status delete(final String table, final String key) {
     String formattedKey = formatKey(table, key);
 
     try {
@@ -244,7 +250,7 @@ public class CouchbaseClient extends DB {
       if (log.isErrorEnabled()) {
         log.error("Could not delete value for key " + formattedKey, e);
       }
-      return FAILURE;
+      return Status.ERROR;
     }
   }
 
@@ -265,11 +271,11 @@ public class CouchbaseClient extends DB {
    * @param future the future to potentially verify.
    * @return the status of the future result.
    */
-  private int checkFutureStatus(final OperationFuture<?> future) {
+  private Status checkFutureStatus(final OperationFuture<?> future) {
     if (checkFutures) {
-      return future.getStatus().isSuccess() ? OK : FAILURE;
+      return future.getStatus().isSuccess() ? Status.OK : Status.ERROR;
     } else {
-      return OK;
+      return Status.OK;
     }
   }
 

@@ -41,8 +41,6 @@ import org.apache.cassandra.thrift.*;
  * Cassandra 0.8 client for YCSB framework.
  */
 public class CassandraClient8 extends DB {
-  public static final int OK = 0;
-  public static final int ERROR = -1;
   public static final ByteBuffer EMPTY_BYTE_BUFFER =
       ByteBuffer.wrap(new byte[0]);
 
@@ -172,7 +170,7 @@ public class CassandraClient8 extends DB {
    *          A HashMap of field/value pairs for the result
    * @return Zero on success, a non-zero error code on error
    */
-  public int read(String table, String key, Set<String> fields,
+  public Status read(String table, String key, Set<String> fields,
       HashMap<String, ByteIterator> result) {
     if (!tableName.equals(table)) {
       try {
@@ -181,7 +179,7 @@ public class CassandraClient8 extends DB {
       } catch (Exception e) {
         e.printStackTrace();
         e.printStackTrace(System.out);
-        return ERROR;
+        return Status.ERROR;
       }
     }
 
@@ -235,7 +233,7 @@ public class CassandraClient8 extends DB {
           System.out.println();
         }
 
-        return OK;
+        return Status.OK;
       } catch (Exception e) {
         errorexception = e;
       }
@@ -248,7 +246,7 @@ public class CassandraClient8 extends DB {
     }
     errorexception.printStackTrace();
     errorexception.printStackTrace(System.out);
-    return ERROR;
+    return Status.ERROR;
 
   }
 
@@ -269,7 +267,7 @@ public class CassandraClient8 extends DB {
    *          pairs for one record
    * @return Zero on success, a non-zero error code on error
    */
-  public int scan(String table, String startkey, int recordcount,
+  public Status scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     if (!tableName.equals(table)) {
       try {
@@ -278,7 +276,7 @@ public class CassandraClient8 extends DB {
       } catch (Exception e) {
         e.printStackTrace();
         e.printStackTrace(System.out);
-        return ERROR;
+        return Status.ERROR;
       }
     }
 
@@ -339,7 +337,7 @@ public class CassandraClient8 extends DB {
           }
         }
 
-        return OK;
+        return Status.OK;
       } catch (Exception e) {
         errorexception = e;
       }
@@ -351,7 +349,7 @@ public class CassandraClient8 extends DB {
     }
     errorexception.printStackTrace();
     errorexception.printStackTrace(System.out);
-    return ERROR;
+    return Status.ERROR;
   }
 
   /**
@@ -367,7 +365,7 @@ public class CassandraClient8 extends DB {
    *          A HashMap of field/value pairs to update in the record
    * @return Zero on success, a non-zero error code on error
    */
-  public int update(String table, String key,
+  public Status update(String table, String key,
       HashMap<String, ByteIterator> values) {
     return insert(table, key, values);
   }
@@ -385,7 +383,7 @@ public class CassandraClient8 extends DB {
    *          A HashMap of field/value pairs to insert in the record
    * @return Zero on success, a non-zero error code on error
    */
-  public int insert(String table, String key,
+  public Status insert(String table, String key,
       HashMap<String, ByteIterator> values) {
     if (!tableName.equals(table)) {
       try {
@@ -394,7 +392,7 @@ public class CassandraClient8 extends DB {
       } catch (Exception e) {
         e.printStackTrace();
         e.printStackTrace(System.out);
-        return ERROR;
+        return Status.ERROR;
       }
     }
 
@@ -429,7 +427,7 @@ public class CassandraClient8 extends DB {
         mutationMap.clear();
         record.clear();
 
-        return OK;
+        return Status.OK;
       } catch (Exception e) {
         errorexception = e;
       }
@@ -442,7 +440,7 @@ public class CassandraClient8 extends DB {
 
     errorexception.printStackTrace();
     errorexception.printStackTrace(System.out);
-    return ERROR;
+    return Status.ERROR;
   }
 
   /**
@@ -454,7 +452,7 @@ public class CassandraClient8 extends DB {
    *          The record key of the record to delete.
    * @return Zero on success, a non-zero error code on error
    */
-  public int delete(String table, String key) {
+  public Status delete(String table, String key) {
     if (!tableName.equals(table)) {
       try {
         client.set_keyspace(table);
@@ -462,7 +460,7 @@ public class CassandraClient8 extends DB {
       } catch (Exception e) {
         e.printStackTrace();
         e.printStackTrace(System.out);
-        return ERROR;
+        return Status.ERROR;
       }
     }
 
@@ -476,7 +474,7 @@ public class CassandraClient8 extends DB {
           System.out.println("Delete key: " + key);
         }
 
-        return OK;
+        return Status.OK;
       } catch (Exception e) {
         errorexception = e;
       }
@@ -488,7 +486,7 @@ public class CassandraClient8 extends DB {
     }
     errorexception.printStackTrace();
     errorexception.printStackTrace(System.out);
-    return ERROR;
+    return Status.ERROR;
   }
 
   public static void main(String[] args) {
@@ -510,7 +508,7 @@ public class CassandraClient8 extends DB {
     vals.put("age", new StringByteIterator("57"));
     vals.put("middlename", new StringByteIterator("bradley"));
     vals.put("favoritecolor", new StringByteIterator("blue"));
-    int res = cli.insert("usertable", "BrianFrankCooper", vals);
+    Status res = cli.insert("usertable", "BrianFrankCooper", vals);
     System.out.println("Result of insert: " + res);
 
     HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();

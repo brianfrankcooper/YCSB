@@ -16,7 +16,6 @@
  */
 package com.yahoo.ycsb.db;
 
-import com.yahoo.ycsb.StatusCode;
 
 /**
  * Constants used by the JDBC client.
@@ -52,9 +51,6 @@ public interface JdbcDBClientConstants {
   
   /** Representing a NULL value. */
   public static final String NULL_VALUE = "NULL";
-  
-  /** The code to return when the call succeeds. */
-  public static final int SUCCESS = StatusCode.OK;
   
   /** The primary key in the user table.*/
   public static String PRIMARY_KEY = "YCSB_KEY";

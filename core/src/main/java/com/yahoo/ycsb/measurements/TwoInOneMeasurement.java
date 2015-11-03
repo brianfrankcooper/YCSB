@@ -17,11 +17,12 @@
 
 package com.yahoo.ycsb.measurements;
 
-import java.io.IOException;
+import com.yahoo.ycsb.Status;
+import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 
 import org.HdrHistogram.Recorder;
 
-import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
+import java.io.IOException;
 
 /**
  * delegates to 2 measurement instances.
@@ -40,10 +41,11 @@ public class TwoInOneMeasurement extends OneMeasurement {
   /**
    * No need for synchronization, using CHM to deal with that
    *
-   * @see com.yahoo.ycsb.OneMeasurement#reportReturnCode(int)
+   * @see com.yahoo.ycsb.OneMeasurement#reportStatus(int)
    */
-  public void reportReturnCode(int code) {
-    thing1.reportReturnCode(code);
+  @Override
+  public void reportStatus(final Status status) {
+    thing1.reportStatus(status);
   }
 
   /**
@@ -52,6 +54,7 @@ public class TwoInOneMeasurement extends OneMeasurement {
    *
    * @see com.yahoo.ycsb.OneMeasurement#measure(int)
    */
+  @Override
   public void measure(int latencyInMicros) {
     thing1.measure(latencyInMicros);
     thing2.measure(latencyInMicros);
