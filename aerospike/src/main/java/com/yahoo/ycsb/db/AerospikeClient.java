@@ -36,6 +36,9 @@ import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 
+/**
+ * YCSB binding for <a href="http://www.aerospike.com/">Areospike</a>.
+ */
 public class AerospikeClient extends com.yahoo.ycsb.DB {
   private static final String DEFAULT_HOST = "localhost";
   private static final String DEFAULT_PORT = "3000";
