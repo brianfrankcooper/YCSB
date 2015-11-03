@@ -56,8 +56,30 @@ import java.util.Vector;
 
 public class DynamoDBClient extends DB {
 
+    /**
+     * Defines the primary key type used in this particular DB instance.
+     *
+     * By default, the primary key type is "HASH". Optionally, the user can
+     * choose to use hash_and_range key type. See documentation in the
+     * DynamoDB.Properties file for more details.
+     */
+    private enum PrimaryKeyType {
+      HASH,
+      HASH_AND_RANGE
+    }
+
+    private static final String DEFAULT_HASH_KEY_VALUE = "YCSB_0";
+
     private AmazonDynamoDBClient dynamoDB;
     private String primaryKeyName;
+    private PrimaryKeyType primaryKeyType = PrimaryKeyType.HASH;
+
+    // If the user choose to use HASH_AND_RANGE as primary key type, then
+    // the following two variables become relevant. See documentation in the
+    // DynamoDB.Properties file for more details.
+    private String hashKeyValue;
+    private String hashKeyName;
+
     private boolean debug = false;
     private boolean consistentRead = false;
     private String endpoint = "http://dynamodb.us-east-1.amazonaws.com";
@@ -69,6 +91,7 @@ public class DynamoDBClient extends DB {
      * Initialize any state for this DB. Called once per DB instance; there is
      * one DB instance per client thread.
      */
+    @Override
     public void init() throws DBException {
         // initialize DynamoDb driver & table.
         String debug = getProperties().getProperty("dynamodb.debug",null);
@@ -80,6 +103,7 @@ public class DynamoDBClient extends DB {
         String endpoint = getProperties().getProperty("dynamodb.endpoint",null);
         String credentialsFile = getProperties().getProperty("dynamodb.awsCredentialsFile",null);
         String primaryKey = getProperties().getProperty("dynamodb.primaryKey",null);
+        String primaryKeyTypeString = getProperties().getProperty("dynamodb.primaryKeyType", null);
         String consistentReads = getProperties().getProperty("dynamodb.consistentReads",null);
         String connectMax = getProperties().getProperty("dynamodb.connectMax",null);
 
@@ -98,6 +122,32 @@ public class DynamoDBClient extends DB {
         if (null == primaryKey || primaryKey.length() < 1) {
             String errMsg = "Missing primary key attribute name, cannot continue";
             logger.error(errMsg);
+        }
+
+        if (null != primaryKeyTypeString) {
+            try {
+              this.primaryKeyType = PrimaryKeyType.valueOf(
+                  primaryKeyTypeString.trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+              throw new DBException("Invalid primary key mode specified: " +
+                  primaryKeyTypeString + ". Expecting HASH or HASH_AND_RANGE.");
+            }
+        }
+
+        if (this.primaryKeyType == PrimaryKeyType.HASH_AND_RANGE) {
+          // When the primary key type is HASH_AND_RANGE, keys used by YCSB
+          // are range keys so we can benchmark performance of individual hash
+          // partitions. In this case, the user must specify the hash key's name
+          // and optionally can designate a value for the hash key.
+
+          String hashKeyName = getProperties().getProperty("dynamodb.hashKeyName", null);
+          if (null == hashKeyName || hashKeyName.isEmpty()) {
+            throw new DBException("Must specify a non-empty hash key name " +
+                "when the primary key type is HASH_AND_RANGE.");
+          }
+          this.hashKeyName = hashKeyName;
+          this.hashKeyValue = getProperties().getProperty(
+              "dynamodb.hashKeyValue", DEFAULT_HASH_KEY_VALUE);
         }
 
         try {
@@ -233,6 +283,12 @@ public class DynamoDBClient extends DB {
         Map<String, AttributeValue> attributes = createAttributes(values);
         // adding primary key
         attributes.put(primaryKeyName, new AttributeValue(key));
+        if (primaryKeyType == PrimaryKeyType.HASH_AND_RANGE) {
+          // If the primary key type is HASH_AND_RANGE, then what has been put
+          // into the attributes map above is the range key part of the primary
+          // key, we still need to put in the hash key part here.
+          attributes.put(hashKeyName, new AttributeValue(hashKeyValue));
+        }
 
         PutItemRequest putItemRequest = new PutItemRequest(table, attributes);
         PutItemResult res = null;
@@ -289,8 +345,18 @@ public class DynamoDBClient extends DB {
         return rItems;
     }
 
-    private static Key createPrimaryKey(String key) {
-        Key k = new Key().withHashKeyElement(new AttributeValue().withS(key));
+    private Key createPrimaryKey(String key) {
+        Key k;
+        if (primaryKeyType == PrimaryKeyType.HASH) {
+          k = new Key().withHashKeyElement(new AttributeValue().withS(key));
+        } else if (primaryKeyType == PrimaryKeyType.HASH_AND_RANGE) {
+          k = new Key()
+                .withHashKeyElement(new AttributeValue().withS(hashKeyValue))
+                .withRangeKeyElement(new AttributeValue().withS(key));
+        } else {
+          throw new RuntimeException("Assertion Error: impossible primary key"
+                  + " type");
+        }
         return k;
     }
     
