@@ -38,6 +38,7 @@ public class Measurements {
     HISTOGRAM,
     HDRHISTOGRAM,
     HDRHISTOGRAM_AND_HISTOGRAM,
+    HDRHISTOGRAM_AND_RAW,
     TIMESERIES,
     RAW
   }
@@ -97,6 +98,10 @@ public class Measurements {
     {
       _measurementType = MeasurementType.HDRHISTOGRAM_AND_HISTOGRAM;
     }
+    else if (mTypeString.equals("hdrhistogram+raw"))
+    {
+      _measurementType = MeasurementType.HDRHISTOGRAM_AND_RAW;
+    }
     else if (mTypeString.equals("timeseries"))
     {
       _measurementType = MeasurementType.TIMESERIES;
@@ -139,6 +144,10 @@ public class Measurements {
       return new TwoInOneMeasurement(name,
               new OneMeasurementHdrHistogram("Hdr"+name, _props),
               new OneMeasurementHistogram("Bucket"+name, _props));
+    case HDRHISTOGRAM_AND_RAW:
+      return new TwoInOneMeasurement(name,
+          new OneMeasurementHdrHistogram("Hdr"+name, _props),
+          new OneMeasurementHistogram("Raw"+name, _props));
     case TIMESERIES:
       return new OneMeasurementTimeSeries(name, _props);
     case RAW:

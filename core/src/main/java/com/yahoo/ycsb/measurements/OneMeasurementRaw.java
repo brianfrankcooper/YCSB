@@ -22,7 +22,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Properties;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Collections;
 import java.util.Comparator;
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
@@ -77,14 +77,28 @@ public class OneMeasurementRaw extends OneMeasurement {
    */
   public static final String OUTPUT_FILE_PATH = "measurement.raw.output_file";
   public static final String OUTPUT_FILE_PATH_DEFAULT = "";
+
+  /**
+   * Optionally, user can request to not output summary stats. This is useful
+   * if the user chains the raw measurement type behind the HdrHistogram type
+   * which already outputs summary stats. But even in that case, the user may
+   * still want this class to compute summary stats for them, especially if
+   * they want accurate computation of percentiles (because percentils computed
+   * by histogram classes are still approximations).
+   */
+  public static final String NO_SUMMARY_STATS = "measurement.raw.no_summary";
+  public static final String NO_SUMMARY_STATS_DEFAULT = "false";
+
   private String outputFilePath = "";
   private final PrintStream outputStream;
 
-  private ArrayList<RawDataPoint> measurements;
+  private boolean noSummaryStats = false;
+
+  private LinkedList<RawDataPoint> measurements;
   private long totalLatency = 0;
 
   // A window of stats to print summary for at the next getSummary() call.
-  // It's supposed to be a one line summary, so we will just print count and 
+  // It's supposed to be a one line summary, so we will just print count and
   // average.
   private int windowOperations = 0;
   private long windowTotalLatency = 0;
@@ -111,7 +125,11 @@ public class OneMeasurementRaw extends OneMeasurement {
       outputStream = System.out;
 
     }
-    measurements = new ArrayList<RawDataPoint>(1000);
+
+   noSummaryStats = Boolean.parseBoolean(props.getProperty(NO_SUMMARY_STATS,
+        NO_SUMMARY_STATS_DEFAULT));
+
+   measurements = new LinkedList<RawDataPoint>();
   }
 
   @Override
@@ -142,7 +160,7 @@ public class OneMeasurementRaw extends OneMeasurement {
 
     int totalOps = measurements.size();
     exporter.write(getName(), "Total Operations", totalOps);
-    if (totalOps > 0) {
+    if (totalOps > 0 && !noSummaryStats) {
       exporter.write(getName(),
           "Below is a summary of latency in microseconds:", -1);
       exporter.write(getName(), "Average",

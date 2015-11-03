@@ -121,11 +121,11 @@ measurementtype=histogram
 # "operation, timestamp of the measurement, latency in us"
 #
 # Raw datapoints are collected in-memory while the test is running. Each
-# data point consumes about 20 bytes (including java object overhead).
+# data point consumes about 50 bytes (including java object overhead).
 # For a typical run of 1 million to 10 million operations, this should
-# easily fit into memory. If you plan to do a run with 100s of millions of
-# operations, consider increasing your jvm heap size before you enable the
-# RAW measurement type, or split the run into multiple runs.
+# fit into memory most of the time. If you plan to do 100s of millions of
+# operations per run, consider provisioning a machine with larger RAM when using
+# the RAW measurement type, or split the run into multiple runs.
 #
 # Optionally, you can specify an output file to save raw datapoints.
 # Otherwise, raw datapoints will be written to stdout.
