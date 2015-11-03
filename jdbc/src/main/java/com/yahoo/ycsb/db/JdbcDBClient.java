@@ -245,7 +245,7 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
     for (int i = 0; i < insertType.numFields; i++) {
       insert.append(",?");
     }
-    insert.append(");");
+    insert.append(")");
     PreparedStatement insertStatement = getShardConnectionByKey(key).prepareStatement(insert.toString());
     PreparedStatement stmt = cachedStatements.putIfAbsent(insertType, insertStatement);
     if (stmt == null) return insertStatement;
@@ -259,7 +259,7 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
     read.append(" WHERE ");
     read.append(PRIMARY_KEY);
     read.append(" = ");
-    read.append("?;");
+    read.append("?");
     PreparedStatement readStatement = getShardConnectionByKey(key).prepareStatement(read.toString());
     PreparedStatement stmt = cachedStatements.putIfAbsent(readType, readStatement);
     if (stmt == null) return readStatement;
@@ -272,7 +272,7 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
     delete.append(deleteType.tableName);
     delete.append(" WHERE ");
     delete.append(PRIMARY_KEY);
-    delete.append(" = ?;");
+    delete.append(" = ?");
     PreparedStatement deleteStatement = getShardConnectionByKey(key).prepareStatement(delete.toString());
     PreparedStatement stmt = cachedStatements.putIfAbsent(deleteType, deleteStatement);
     if (stmt == null) return deleteStatement;
@@ -292,7 +292,7 @@ public class JdbcDBClient extends DB implements JdbcDBClientConstants {
     }
     update.append(" WHERE ");
     update.append(PRIMARY_KEY);
-    update.append(" = ?;");
+    update.append(" = ?");
     PreparedStatement insertStatement = getShardConnectionByKey(key).prepareStatement(update.toString());
     PreparedStatement stmt = cachedStatements.putIfAbsent(updateType, insertStatement);
     if (stmt == null) return insertStatement;

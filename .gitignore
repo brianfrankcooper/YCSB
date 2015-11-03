@@ -3,6 +3,7 @@ target
 
 # ignore output files from testing
 output*
+derby.log
 
 # ignore standard eclipse
 .project
