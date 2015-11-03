@@ -148,6 +148,7 @@ LICENSE file.
             <descriptor>src/main/assembly/distribution.xml</descriptor>
           </descriptors>
           <appendAssemblyId>false</appendAssemblyId>
+          <tarLongFileMode>posix</tarLongFileMode>
         </configuration>
         <executions>
           <execution>

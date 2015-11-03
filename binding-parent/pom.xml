@@ -60,6 +60,7 @@ LICENSE file.
               <format>tar.gz</format>
             </formats>
             <appendAssemblyId>false</appendAssemblyId>
+            <tarLongFileMode>posix</tarLongFileMode>
           </configuration>
           <executions>
             <execution>
