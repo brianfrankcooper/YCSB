@@ -68,8 +68,6 @@ public class DynamoDBClient extends DB {
       HASH_AND_RANGE
     }
 
-    private static final String DEFAULT_HASH_KEY_VALUE = "YCSB_0";
-
     private AmazonDynamoDBClient dynamoDB;
     private String primaryKeyName;
     private PrimaryKeyType primaryKeyType = PrimaryKeyType.HASH;
@@ -85,6 +83,10 @@ public class DynamoDBClient extends DB {
     private String endpoint = "http://dynamodb.us-east-1.amazonaws.com";
     private int maxConnects = 50;
     private static Logger logger = Logger.getLogger(DynamoDBClient.class);
+    private static final Status CLIENT_ERROR = new Status("CLIENT_ERROR",
+        "An error occurred on the client.");
+    private static final String DEFAULT_HASH_KEY_VALUE = "YCSB_0";
+
     public DynamoDBClient() {}
 
     /**
@@ -359,6 +361,4 @@ public class DynamoDBClient extends DB {
         }
         return k;
     }
-    
-    private final static Status CLIENT_ERROR = new Status("CLIENT_ERROR", "An error occurred on the client.");
 }
