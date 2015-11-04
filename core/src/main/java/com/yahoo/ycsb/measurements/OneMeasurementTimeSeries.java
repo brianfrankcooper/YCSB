@@ -135,7 +135,7 @@ public class OneMeasurementTimeSeries extends OneMeasurement
 
     // TODO: 95th and 99th percentile latency
 
-    exportReturnCodes(exporter);
+    exportStatusCounts(exporter);
     for (SeriesUnit unit : _measurements) {
       exporter.write(getName(), Long.toString(unit.time), unit.average);
     }

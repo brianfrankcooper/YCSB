@@ -17,11 +17,12 @@
 
 package com.yahoo.ycsb.measurements;
 
+import com.yahoo.ycsb.Status;
+import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
+
 import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
-
-import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 
 /**
  * Collects latency measurements, and reports them when requested.
@@ -264,12 +265,12 @@ public class Measurements {
   /**
    * Report a return code for a single DB operation.
    */
-  public void reportReturnCode(String operation, int code)
+  public void reportStatus(final String operation, final Status status)
   {
     OneMeasurement m = _measurementInterval==1 ?
           getOpIntendedMeasurement(operation) :
           getOpMeasurement(operation);
-    m.reportReturnCode(code);
+    m.reportStatus(status);
   }
 
   /**

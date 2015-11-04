@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2015 YCSB contributors. All rights reserved.
+/*
+ * Copyright (c) 2014, Yahoo!, Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -15,12 +15,9 @@
  * LICENSE file.
  */
 
+/**
+ * The YCSB binding for <a href="http://cassandra.apache.org/">Cassandra</a> 
+ * 2.1+ via CQL.
+ */
 package com.yahoo.ycsb.db;
 
-public class Status {
-	public static final int OK = 0;
-	public static final int ERROR = 1;
-	public static final int NOT_FOUND = 2;
-	public static final int CONFLICT = 3;
-	public static final int NOT_SUPPORT = 4;
-}	

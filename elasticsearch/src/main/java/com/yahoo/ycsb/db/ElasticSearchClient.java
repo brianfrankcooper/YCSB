@@ -17,32 +17,35 @@
 
 package com.yahoo.ycsb.db;
 
+import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
+import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
+import static org.elasticsearch.index.query.FilterBuilders.rangeFilter;
+import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
+import static org.elasticsearch.node.NodeBuilder.nodeBuilder;
+
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
+
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.client.Requests;
+import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.settings.ImmutableSettings.Builder;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.index.query.RangeFilterBuilder;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.search.SearchHit;
+
 import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.client.Requests;
-import static org.elasticsearch.common.settings.ImmutableSettings.*;
-
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.ImmutableSettings.Builder;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import static org.elasticsearch.common.xcontent.XContentFactory.*;
-import static org.elasticsearch.index.query.FilterBuilders.*;
-import static org.elasticsearch.index.query.QueryBuilders.*;
-import org.elasticsearch.index.query.RangeFilterBuilder;
-import org.elasticsearch.node.Node;
-import static org.elasticsearch.node.NodeBuilder.*;
-import org.elasticsearch.search.SearchHit;
 
 /**
  * ElasticSearch client for YCSB framework.
@@ -152,7 +155,7 @@ public class ElasticSearchClient extends DB {
      * description for a discussion of error codes.
      */
     @Override
-    public int insert(String table, String key, HashMap<String, ByteIterator> values) {
+    public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
         try {
             final XContentBuilder doc = jsonBuilder().startObject();
 
@@ -167,11 +170,11 @@ public class ElasticSearchClient extends DB {
                     .execute()
                     .actionGet();
 
-            return 0;
+            return Status.OK;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return 1;
+        return Status.ERROR;
     }
 
     /**
@@ -183,16 +186,16 @@ public class ElasticSearchClient extends DB {
      * description for a discussion of error codes.
      */
     @Override
-    public int delete(String table, String key) {
+    public Status delete(String table, String key) {
         try {
             client.prepareDelete(indexKey, table, key)
                     .execute()
                     .actionGet();
-            return 0;
+            return Status.OK;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return 1;
+        return Status.ERROR;
     }
 
     /**
@@ -206,7 +209,7 @@ public class ElasticSearchClient extends DB {
      * @return Zero on success, a non-zero error code on error or "not found".
      */
     @Override
-    public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+    public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
         try {
             final GetResponse response = client.prepareGet(indexKey, table, key)
                     .execute()
@@ -222,12 +225,12 @@ public class ElasticSearchClient extends DB {
                         result.put(field, new StringByteIterator((String) response.getSource().get(field)));
                     }
                 }
-                return 0;
+                return Status.OK;
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return 1;
+        return Status.ERROR;
     }
 
     /**
@@ -242,7 +245,7 @@ public class ElasticSearchClient extends DB {
      * description for a discussion of error codes.
      */
     @Override
-    public int update(String table, String key, HashMap<String, ByteIterator> values) {
+    public Status update(String table, String key, HashMap<String, ByteIterator> values) {
         try {
             final GetResponse response = client.prepareGet(indexKey, table, key)
                     .execute()
@@ -258,13 +261,13 @@ public class ElasticSearchClient extends DB {
                         .execute()
                         .actionGet();
 
-                return 0;
+                return Status.OK;
             }
 
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return 1;
+        return Status.ERROR;
     }
 
     /**
@@ -281,7 +284,7 @@ public class ElasticSearchClient extends DB {
      * description for a discussion of error codes.
      */
     @Override
-    public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
         try {
             final RangeFilterBuilder filter = rangeFilter("_id").gte(startkey);
             final SearchResponse response = client.prepareSearch(indexKey)
@@ -304,10 +307,10 @@ public class ElasticSearchClient extends DB {
                 result.add(entry);
             }
 
-            return 0;
+            return Status.OK;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return 1;
+        return Status.ERROR;
     }
 }
