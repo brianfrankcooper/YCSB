@@ -24,21 +24,6 @@
  */
 package com.yahoo.ycsb.db;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import com.mongodb.client.model.InsertManyOptions;
-import com.mongodb.client.model.UpdateOneModel;
-
-import org.bson.Document;
-import org.bson.types.Binary;
-
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.ReadPreference;
@@ -47,6 +32,8 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.InsertManyOptions;
+import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
@@ -54,6 +41,19 @@ import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
+
+import org.bson.Document;
+import org.bson.types.Binary;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.Vector;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * MongoDB asynchronous client for YCSB framework using the MongoDB Inc. <a
@@ -143,7 +143,7 @@ public class MongoDbClient extends DB {
    *         class's description for a discussion of error codes.
    */
   @Override
-  public int delete(String table, String key) {
+  public Status delete(String table, String key) {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
 
@@ -152,12 +152,12 @@ public class MongoDbClient extends DB {
           collection.withWriteConcern(writeConcern).deleteOne(query);
       if (result.wasAcknowledged() && result.getDeletedCount() == 0) {
         System.err.println("Nothing deleted for key " + key);
-        return 1;
+        return Status.NOT_FOUND;
       }
-      return 0;
+      return Status.OK;
     } catch (Exception e) {
       System.err.println(e.toString());
-      return 1;
+      return Status.ERROR;
     }
   }
 
@@ -250,7 +250,7 @@ public class MongoDbClient extends DB {
    *         class's description for a discussion of error codes.
    */
   @Override
-  public int insert(String table, String key,
+  public Status insert(String table, String key,
       HashMap<String, ByteIterator> values) {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
@@ -287,12 +287,12 @@ public class MongoDbClient extends DB {
           bulkInserts.clear();
         }
       }
-      return 0;
+      return Status.OK;
     } catch (Exception e) {
       System.err.println("Exception while trying bulk insert with "
           + bulkInserts.size());
       e.printStackTrace();
-      return 1;
+      return Status.ERROR;
     }
 
   }
@@ -312,7 +312,7 @@ public class MongoDbClient extends DB {
    * @return Zero on success, a non-zero error code on error or "not found".
    */
   @Override
-  public int read(String table, String key, Set<String> fields,
+  public Status read(String table, String key, Set<String> fields,
       HashMap<String, ByteIterator> result) {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
@@ -333,10 +333,10 @@ public class MongoDbClient extends DB {
       if (queryResult != null) {
         fillMap(result, queryResult);
       }
-      return queryResult != null ? 0 : 1;
+      return queryResult != null ? Status.OK : Status.NOT_FOUND;
     } catch (Exception e) {
       System.err.println(e.toString());
-      return 1;
+      return Status.ERROR;
     }
   }
 
@@ -359,7 +359,7 @@ public class MongoDbClient extends DB {
    *         class's description for a discussion of error codes.
    */
   @Override
-  public int scan(String table, String startkey, int recordcount,
+  public Status scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     MongoCursor<Document> cursor = null;
     try {
@@ -384,7 +384,7 @@ public class MongoDbClient extends DB {
 
       if (!cursor.hasNext()) {
         System.err.println("Nothing found in scan for key " + startkey);
-        return 1;
+        return Status.ERROR;
       }
 
       result.ensureCapacity(recordcount);
@@ -399,10 +399,10 @@ public class MongoDbClient extends DB {
         result.add(resultMap);
       }
 
-      return 0;
+      return Status.OK;
     } catch (Exception e) {
       System.err.println(e.toString());
-      return 1;
+      return Status.ERROR;
     } finally {
       if (cursor != null) {
         cursor.close();
@@ -425,7 +425,7 @@ public class MongoDbClient extends DB {
    *         description for a discussion of error codes.
    */
   @Override
-  public int update(String table, String key,
+  public Status update(String table, String key,
       HashMap<String, ByteIterator> values) {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
@@ -440,12 +440,12 @@ public class MongoDbClient extends DB {
       UpdateResult result = collection.updateOne(query, update);
       if (result.wasAcknowledged() && result.getMatchedCount() == 0) {
         System.err.println("Nothing updated for key " + key);
-        return 1;
+        return Status.NOT_FOUND;
       }
-      return 0;
+      return Status.OK;
     } catch (Exception e) {
       System.err.println(e.toString());
-      return 1;
+      return Status.ERROR;
     }
   }
 

@@ -16,24 +16,12 @@
 
 package com.yahoo.ycsb.db;
 
-import java.io.FileInputStream;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
-import java.io.File;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.PropertiesCredentials;
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.services.dynamodb.AmazonDynamoDBClient;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.PropertiesCredentials;
+import com.amazonaws.services.dynamodb.AmazonDynamoDBClient;
 import com.amazonaws.services.dynamodb.model.AttributeValue;
 import com.amazonaws.services.dynamodb.model.AttributeValueUpdate;
 import com.amazonaws.services.dynamodb.model.DeleteItemRequest;
@@ -49,7 +37,18 @@ import com.amazonaws.services.dynamodb.model.UpdateItemRequest;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.Vector;
 
 /**
  * DynamoDB v1.3.14 client for YCSB
@@ -69,9 +68,6 @@ public class DynamoDBClient extends DB {
       HASH_AND_RANGE
     }
 
-    private static final int OK = 0;
-    private static final int SERVER_ERROR = 1;
-    private static final int CLIENT_ERROR = 2;
     private static final String DEFAULT_HASH_KEY_VALUE = "YCSB_0";
 
     private AmazonDynamoDBClient dynamoDB;
@@ -169,7 +165,7 @@ public class DynamoDBClient extends DB {
     }
 
     @Override
-    public int read(String table, String key, Set<String> fields,
+    public Status read(String table, String key, Set<String> fields,
             HashMap<String, ByteIterator> result) {
 
         logger.debug("readkey: " + key + " from table: " + table);
@@ -182,7 +178,7 @@ public class DynamoDBClient extends DB {
             res = dynamoDB.getItem(req);
         }catch (AmazonServiceException ex) {
             logger.error(ex.getMessage());
-            return SERVER_ERROR;
+            return Status.ERROR;
         }catch (AmazonClientException ex){
             logger.error(ex.getMessage());
             return CLIENT_ERROR;
@@ -193,11 +189,11 @@ public class DynamoDBClient extends DB {
             result.putAll(extractResult(res.getItem()));
             logger.debug("Result: " + res.toString());
         }
-        return OK;
+        return Status.OK;
     }
 
     @Override
-    public int scan(String table, String startkey, int recordcount,
+    public Status scan(String table, String startkey, int recordcount,
         Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
         logger.debug("scan " + recordcount + " records from key: " + startkey + " on table: " + table);
         /*
@@ -213,7 +209,7 @@ public class DynamoDBClient extends DB {
             gres = dynamoDB.getItem(greq);
         }catch (AmazonServiceException ex) {
             logger.error(ex.getMessage());
-            return SERVER_ERROR;
+            return Status.ERROR;
         }catch (AmazonClientException ex){
             logger.error(ex.getMessage());
            return CLIENT_ERROR;
@@ -237,7 +233,7 @@ public class DynamoDBClient extends DB {
             }catch (AmazonServiceException ex) {
                 logger.error(ex.getMessage());
               ex.printStackTrace();
-             return SERVER_ERROR;
+             return Status.ERROR;
             }catch (AmazonClientException ex){
                 logger.error(ex.getMessage());
                ex.printStackTrace();
@@ -252,11 +248,11 @@ public class DynamoDBClient extends DB {
 
         }
 
-        return OK;
+        return Status.OK;
     }
 
     @Override
-    public int update(String table, String key, HashMap<String, ByteIterator> values) {
+    public Status update(String table, String key, HashMap<String, ByteIterator> values) {
         logger.debug("updatekey: " + key + " from table: " + table);
 
         Map<String, AttributeValueUpdate> attributes = new HashMap<String, AttributeValueUpdate>(
@@ -273,16 +269,16 @@ public class DynamoDBClient extends DB {
             dynamoDB.updateItem(req);
         }catch (AmazonServiceException ex) {
             logger.error(ex.getMessage());
-            return SERVER_ERROR;
+            return Status.ERROR;
         }catch (AmazonClientException ex){
             logger.error(ex.getMessage());
             return CLIENT_ERROR;
         }
-        return OK;
+        return Status.OK;
     }
 
     @Override
-    public int insert(String table, String key,HashMap<String, ByteIterator> values) {
+    public Status insert(String table, String key,HashMap<String, ByteIterator> values) {
         logger.debug("insertkey: " + primaryKeyName + "-" + key + " from table: " + table);
         Map<String, AttributeValue> attributes = createAttributes(values);
         // adding primary key
@@ -300,16 +296,16 @@ public class DynamoDBClient extends DB {
             res = dynamoDB.putItem(putItemRequest);
         }catch (AmazonServiceException ex) {
             logger.error(ex.getMessage());
-            return SERVER_ERROR;
+            return Status.ERROR;
         }catch (AmazonClientException ex){
             logger.error(ex.getMessage());
             return CLIENT_ERROR;
         }
-        return OK;
+        return Status.OK;
     }
 
     @Override
-    public int delete(String table, String key) {
+    public Status delete(String table, String key) {
         logger.debug("deletekey: " + key + " from table: " + table);
         DeleteItemRequest req = new DeleteItemRequest(table, createPrimaryKey(key));
         DeleteItemResult res = null;
@@ -318,12 +314,12 @@ public class DynamoDBClient extends DB {
             res = dynamoDB.deleteItem(req);
         }catch (AmazonServiceException ex) {
             logger.error(ex.getMessage());
-            return SERVER_ERROR;
+            return Status.ERROR;
         }catch (AmazonClientException ex){
             logger.error(ex.getMessage());
             return CLIENT_ERROR;
         }
-        return OK;
+        return Status.OK;
     }
 
     private static Map<String, AttributeValue> createAttributes(
@@ -363,4 +359,6 @@ public class DynamoDBClient extends DB {
         }
         return k;
     }
+    
+    private final static Status CLIENT_ERROR = new Status("CLIENT_ERROR", "An error occurred on the client.");
 }
