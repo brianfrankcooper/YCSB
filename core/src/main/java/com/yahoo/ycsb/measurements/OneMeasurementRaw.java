@@ -189,7 +189,7 @@ public class OneMeasurementRaw extends OneMeasurement {
           measurements.get((int)(totalOps*0.9999)).value());
     }
 
-    exportReturnCodes(exporter);
+    exportStatusCounts(exporter);
   }
 
   @Override
