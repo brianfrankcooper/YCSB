@@ -83,16 +83,16 @@ public class DBWrapper extends DB
 	 * @param key The record key of the record to read.
 	 * @param fields The list of fields to read, or null for all of them
 	 * @param result A HashMap of field/value pairs for the result
-	 * @return Zero on success, a non-zero error code on error
+	 * @return The result of the operation.
 	 */
-	public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
+	public Status read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
 	{
 	    long ist=_measurements.getIntendedtartTimeNs();
 	    long st = System.nanoTime();
-	    int res=_db.read(table,key,fields,result);
+	    Status res=_db.read(table,key,fields,result);
 		long en=System.nanoTime();
 		measure("READ",ist, st, en);
-	    _measurements.reportReturnCode("READ",res);
+	    _measurements.reportStatus("READ",res);
 		return res;
 	}
 
@@ -104,16 +104,16 @@ public class DBWrapper extends DB
 	 * @param recordcount The number of records to read
 	 * @param fields The list of fields to read, or null for all of them
 	 * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
-	 * @return Zero on success, a non-zero error code on error
+	 * @return The result of the operation.
 	 */
-	public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
+	public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
 	{
 	    long ist=_measurements.getIntendedtartTimeNs();
 	    long st = System.nanoTime();
-	    int res=_db.scan(table,startkey,recordcount,fields,result);
+	    Status res=_db.scan(table,startkey,recordcount,fields,result);
 		long en=System.nanoTime();
 		measure("SCAN",ist, st, en);
-	    _measurements.reportReturnCode("SCAN",res);
+	    _measurements.reportStatus("SCAN",res);
 		return res;
 	}
 
@@ -129,16 +129,16 @@ public class DBWrapper extends DB
 	 * @param table The name of the table
 	 * @param key The record key of the record to write.
 	 * @param values A HashMap of field/value pairs to update in the record
-	 * @return Zero on success, a non-zero error code on error
+	 * @return The result of the operation.
 	 */
-	public int update(String table, String key, HashMap<String,ByteIterator> values)
+	public Status update(String table, String key, HashMap<String,ByteIterator> values)
 	{
 	    long ist=_measurements.getIntendedtartTimeNs();
 	    long st = System.nanoTime();
-		int res=_db.update(table,key,values);
+		Status res=_db.update(table,key,values);
 		long en=System.nanoTime();
 		measure("UPDATE",ist, st, en);
-		_measurements.reportReturnCode("UPDATE",res);
+		_measurements.reportStatus("UPDATE",res);
 		return res;
 	}
 
@@ -149,16 +149,16 @@ public class DBWrapper extends DB
 	 * @param table The name of the table
 	 * @param key The record key of the record to insert.
 	 * @param values A HashMap of field/value pairs to insert in the record
-	 * @return Zero on success, a non-zero error code on error
+	 * @return The result of the operation.
 	 */
-	public int insert(String table, String key, HashMap<String,ByteIterator> values)
+	public Status insert(String table, String key, HashMap<String,ByteIterator> values)
 	{
 	    long ist=_measurements.getIntendedtartTimeNs();
 	    long st = System.nanoTime();
-		int res=_db.insert(table,key,values);
+		Status res=_db.insert(table,key,values);
 		long en=System.nanoTime();
 		measure("INSERT",ist, st, en);
-		_measurements.reportReturnCode("INSERT",res);
+		_measurements.reportStatus("INSERT",res);
 		return res;
 	}
 
@@ -167,16 +167,16 @@ public class DBWrapper extends DB
 	 *
 	 * @param table The name of the table
 	 * @param key The record key of the record to delete.
-	 * @return Zero on success, a non-zero error code on error
+	 * @return The result of the operation.
 	 */
-	public int delete(String table, String key)
+	public Status delete(String table, String key)
 	{
 	    long ist=_measurements.getIntendedtartTimeNs();
 	    long st = System.nanoTime();
-		int res=_db.delete(table,key);
+		Status res=_db.delete(table,key);
 		long en=System.nanoTime();
 		measure("DELETE",ist, st, en);
-		_measurements.reportReturnCode("DELETE",res);
+		_measurements.reportStatus("DELETE",res);
 		return res;
 	}
 }

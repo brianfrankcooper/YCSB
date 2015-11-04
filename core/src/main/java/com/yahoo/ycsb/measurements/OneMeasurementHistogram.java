@@ -119,7 +119,7 @@ public class OneMeasurementHistogram extends OneMeasurement
       }
     }
 
-    exportReturnCodes(exporter);
+    exportStatusCounts(exporter);
 
     for (int i=0; i<_buckets; i++)
     {

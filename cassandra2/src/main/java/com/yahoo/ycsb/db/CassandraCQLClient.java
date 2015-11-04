@@ -35,6 +35,7 @@ import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -57,10 +58,6 @@ public class CassandraCQLClient extends DB {
 
   private static ConsistencyLevel readConsistencyLevel = ConsistencyLevel.ONE;
   private static ConsistencyLevel writeConsistencyLevel = ConsistencyLevel.ONE;
-
-  public static final int OK = 0;
-  public static final int ERR = -1;
-  public static final int NOT_FOUND = -3;
 
   public static final String YCSB_KEY = "y_id";
   public static final String KEYSPACE_PROPERTY = "cassandra.keyspace";
@@ -214,7 +211,7 @@ public class CassandraCQLClient extends DB {
    * @return Zero on success, a non-zero error code on error
    */
   @Override
-  public int read(String table, String key, Set<String> fields,
+  public Status read(String table, String key, Set<String> fields,
       HashMap<String, ByteIterator> result) {
     try {
       Statement stmt;
@@ -240,7 +237,7 @@ public class CassandraCQLClient extends DB {
       ResultSet rs = session.execute(stmt);
 
       if (rs.isExhausted()) {
-        return NOT_FOUND;
+        return Status.NOT_FOUND;
       }
 
       // Should be only 1 row
@@ -256,12 +253,12 @@ public class CassandraCQLClient extends DB {
         }
       }
 
-      return OK;
+      return Status.OK;
 
     } catch (Exception e) {
       e.printStackTrace();
       System.out.println("Error reading key: " + key);
-      return ERR;
+      return Status.ERROR;
     }
 
   }
@@ -287,7 +284,7 @@ public class CassandraCQLClient extends DB {
    * @return Zero on success, a non-zero error code on error
    */
   @Override
-  public int scan(String table, String startkey, int recordcount,
+  public Status scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
 
     try {
@@ -347,12 +344,12 @@ public class CassandraCQLClient extends DB {
         result.add(tuple);
       }
 
-      return OK;
+      return Status.OK;
 
     } catch (Exception e) {
       e.printStackTrace();
       System.out.println("Error scanning with startkey: " + startkey);
-      return ERR;
+      return Status.ERROR;
     }
 
   }
@@ -371,7 +368,7 @@ public class CassandraCQLClient extends DB {
    * @return Zero on success, a non-zero error code on error
    */
   @Override
-  public int update(String table, String key,
+  public Status update(String table, String key,
       HashMap<String, ByteIterator> values) {
     // Insert and updates provide the same functionality
     return insert(table, key, values);
@@ -391,7 +388,7 @@ public class CassandraCQLClient extends DB {
    * @return Zero on success, a non-zero error code on error
    */
   @Override
-  public int insert(String table, String key,
+  public Status insert(String table, String key,
       HashMap<String, ByteIterator> values) {
 
     try {
@@ -417,12 +414,12 @@ public class CassandraCQLClient extends DB {
 
       ResultSet rs = session.execute(insertStmt);
 
-      return OK;
+      return Status.OK;
     } catch (Exception e) {
       e.printStackTrace();
     }
 
-    return ERR;
+    return Status.ERROR;
   }
 
   /**
@@ -435,7 +432,7 @@ public class CassandraCQLClient extends DB {
    * @return Zero on success, a non-zero error code on error
    */
   @Override
-  public int delete(String table, String key) {
+  public Status delete(String table, String key) {
 
     try {
       Statement stmt;
@@ -450,13 +447,13 @@ public class CassandraCQLClient extends DB {
 
       ResultSet rs = session.execute(stmt);
 
-      return OK;
+      return Status.OK;
     } catch (Exception e) {
       e.printStackTrace();
       System.out.println("Error deleting key: " + key);
     }
 
-    return ERR;
+    return Status.ERROR;
   }
 
 }

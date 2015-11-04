@@ -118,7 +118,7 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
       exporter.write(getName(), ordinal(percentile) + "PercentileLatency(us)", totalHistogram.getValueAtPercentile(percentile));
     }
     
-    exportReturnCodes(exporter);
+    exportStatusCounts(exporter);
   }
 
 	/**

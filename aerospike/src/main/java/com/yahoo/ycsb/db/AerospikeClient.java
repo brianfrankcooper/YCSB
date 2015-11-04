@@ -17,12 +17,6 @@
 
 package com.yahoo.ycsb.db;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
-
 import com.aerospike.client.AerospikeException;
 import com.aerospike.client.Bin;
 import com.aerospike.client.Key;
@@ -31,10 +25,16 @@ import com.aerospike.client.policy.ClientPolicy;
 import com.aerospike.client.policy.Policy;
 import com.aerospike.client.policy.RecordExistsAction;
 import com.aerospike.client.policy.WritePolicy;
-
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.Vector;
 
 /**
  * YCSB binding for <a href="http://www.aerospike.com/">Areospike</a>.
@@ -44,9 +44,6 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
   private static final String DEFAULT_PORT = "3000";
   private static final String DEFAULT_TIMEOUT = "10000";
   private static final String DEFAULT_NAMESPACE = "ycsb";
-
-  private static final int RESULT_OK = 0;
-  private static final int RESULT_ERROR = -1;
 
   private String namespace = null;
 
@@ -100,7 +97,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
   }
 
   @Override
-  public int read(String table, String key, Set<String> fields,
+  public Status read(String table, String key, Set<String> fields,
       HashMap<String, ByteIterator> result) {
     try {
       Record record;
@@ -114,7 +111,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
 
       if (record == null) {
         System.err.println("Record key " + key + " not found (read)");
-        return RESULT_ERROR;
+        return Status.ERROR;
       }
 
       for (Map.Entry<String, Object> entry: record.bins.entrySet()) {
@@ -122,21 +119,21 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
             new ByteArrayByteIterator((byte[])entry.getValue()));
       }
 
-      return RESULT_OK;
+      return Status.OK;
     } catch (AerospikeException e) {
       System.err.println("Error while reading key " + key + ": " + e);
-      return RESULT_ERROR;
+      return Status.ERROR;
     }
   }
 
   @Override
-  public int scan(String table, String start, int count, Set<String> fields,
+  public Status scan(String table, String start, int count, Set<String> fields,
       Vector<HashMap<String, ByteIterator>> result) {
     System.err.println("Scan not implemented");
-    return RESULT_ERROR;
+    return Status.ERROR;
   }
 
-  private int write(String table, String key, WritePolicy writePolicy,
+  private Status write(String table, String key, WritePolicy writePolicy,
       HashMap<String, ByteIterator> values) {
     Bin[] bins = new Bin[values.size()];
     int index = 0;
@@ -150,37 +147,37 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
 
     try {
       client.put(writePolicy, keyObj, bins);
-      return RESULT_OK;
+      return Status.OK;
     } catch (AerospikeException e) {
       System.err.println("Error while writing key " + key + ": " + e);
-      return RESULT_ERROR;
+      return Status.ERROR;
     }
   }
 
   @Override
-  public int update(String table, String key,
+  public Status update(String table, String key,
       HashMap<String, ByteIterator> values) {
     return write(table, key, updatePolicy, values);
   }
 
   @Override
-  public int insert(String table, String key,
+  public Status insert(String table, String key,
       HashMap<String, ByteIterator> values) {
     return write(table, key, insertPolicy, values);
   }
 
   @Override
-  public int delete(String table, String key) {
+  public Status delete(String table, String key) {
     try {
       if (!client.delete(deletePolicy, new Key(namespace, table, key))) {
         System.err.println("Record key " + key + " not found (delete)");
-        return RESULT_ERROR;
+        return Status.ERROR;
       }
 
-      return RESULT_OK;
+      return Status.OK;
     } catch (AerospikeException e) {
       System.err.println("Error while deleting key " + key + ": " + e);
-      return RESULT_ERROR;
+      return Status.ERROR;
     }
   }
 }

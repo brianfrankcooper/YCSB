@@ -24,6 +24,14 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeNoException;
 
+import com.yahoo.ycsb.ByteArrayByteIterator;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.DB;
+import com.yahoo.ycsb.Status;
+
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -32,13 +40,6 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
-
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import com.yahoo.ycsb.ByteArrayByteIterator;
-import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.DB;
 
 /**
  * MongoDbClientTest provides runs the basic DB test cases.
@@ -93,13 +94,13 @@ public abstract class AbstractDBTestCases {
     HashMap<String, ByteIterator> inserted =
         new HashMap<String, ByteIterator>();
     inserted.put("a", new ByteArrayByteIterator(new byte[] { 1, 2, 3, 4 }));
-    int result = client.insert(table, id, inserted);
-    assertThat("Insert did not return success (0).", result, is(0));
+    Status result = client.insert(table, id, inserted);
+    assertThat("Insert did not return success (0).", result, is(Status.OK));
 
     HashMap<String, ByteIterator> read = new HashMap<String, ByteIterator>();
     Set<String> keys = Collections.singleton("a");
     result = client.read(table, id, keys, read);
-    assertThat("Read did not return success (0).", result, is(0));
+    assertThat("Read did not return success (0).", result, is(Status.OK));
     for (String key : keys) {
       ByteIterator iter = read.get(key);
 
@@ -117,16 +118,16 @@ public abstract class AbstractDBTestCases {
     }
 
     result = client.delete(table, id);
-    assertThat("Delete did not return success (0).", result, is(0));
+    assertThat("Delete did not return success (0).", result, is(Status.OK));
 
     read.clear();
     result = client.read(table, id, null, read);
     assertThat("Read, after delete, did not return not found (1).", result,
-        is(1));
+        is(Status.NOT_FOUND));
     assertThat("Found the deleted fields.", read.size(), is(0));
 
     result = client.delete(table, id);
-    assertThat("Delete did not return not found (1).", result, is(1));
+    assertThat("Delete did not return not found (1).", result, is(Status.NOT_FOUND));
   }
 
   /**
@@ -142,13 +143,13 @@ public abstract class AbstractDBTestCases {
     HashMap<String, ByteIterator> inserted =
         new HashMap<String, ByteIterator>();
     inserted.put("a", new ByteArrayByteIterator(new byte[] { 1, 2, 3, 4 }));
-    int result = client.insert(table, id, inserted);
-    assertThat("Insert did not return success (0).", result, is(0));
+    Status result = client.insert(table, id, inserted);
+    assertThat("Insert did not return success (0).", result, is(Status.OK));
 
     HashMap<String, ByteIterator> read = new HashMap<String, ByteIterator>();
     Set<String> keys = Collections.singleton("a");
     result = client.read(table, id, keys, read);
-    assertThat("Read did not return success (0).", result, is(0));
+    assertThat("Read did not return success (0).", result, is(Status.OK));
     for (String key : keys) {
       ByteIterator iter = read.get(key);
 
@@ -168,11 +169,11 @@ public abstract class AbstractDBTestCases {
     HashMap<String, ByteIterator> updated = new HashMap<String, ByteIterator>();
     updated.put("a", new ByteArrayByteIterator(new byte[] { 5, 6, 7, 8 }));
     result = client.update(table, id, updated);
-    assertThat("Update did not return success (0).", result, is(0));
+    assertThat("Update did not return success (0).", result, is(Status.OK));
 
     read.clear();
     result = client.read(table, id, null, read);
-    assertThat("Read, after update, did not return success (0).", result, is(0));
+    assertThat("Read, after update, did not return success (0).", result, is(Status.OK));
     for (String key : keys) {
       ByteIterator iter = read.get(key);
 
@@ -205,13 +206,13 @@ public abstract class AbstractDBTestCases {
     HashMap<String, ByteIterator> inserted =
         new HashMap<String, ByteIterator>();
     inserted.put("a", new ByteArrayByteIterator(new byte[] { 1, 2, 3, 4 }));
-    int result = client.insert(table, id, inserted);
-    assertThat("Insert did not return success (0).", result, is(0));
+    Status result = client.insert(table, id, inserted);
+    assertThat("Insert did not return success (0).", result, is(Status.OK));
 
     HashMap<String, ByteIterator> read = new HashMap<String, ByteIterator>();
     Set<String> keys = Collections.singleton("a");
     result = client.read(table, id, keys, read);
-    assertThat("Read did not return success (0).", result, is(0));
+    assertThat("Read did not return success (0).", result, is(Status.OK));
     for (String key : keys) {
       ByteIterator iter = read.get(key);
 
@@ -231,11 +232,11 @@ public abstract class AbstractDBTestCases {
     HashMap<String, ByteIterator> updated = new HashMap<String, ByteIterator>();
     updated.put("a", new ByteArrayByteIterator(new byte[] { 5, 6, 7, 8 }));
     result = client.update(table, id, updated);
-    assertThat("Update did not return success (0).", result, is(0));
+    assertThat("Update did not return success (0).", result, is(Status.OK));
 
     read.clear();
     result = client.read(table, id, null, read);
-    assertThat("Read, after update, did not return success (0).", result, is(0));
+    assertThat("Read, after update, did not return success (0).", result, is(Status.OK));
     for (String key : keys) {
       ByteIterator iter = read.get(key);
 
@@ -269,15 +270,15 @@ public abstract class AbstractDBTestCases {
       inserted.put("a", new ByteArrayByteIterator(new byte[] {
           (byte) (i & 0xFF), (byte) (i >> 8 & 0xFF), (byte) (i >> 16 & 0xFF),
           (byte) (i >> 24 & 0xFF) }));
-      int result = client.insert(table, padded(i), inserted);
-      assertThat("Insert did not return success (0).", result, is(0));
+      Status result = client.insert(table, padded(i), inserted);
+      assertThat("Insert did not return success (0).", result, is(Status.OK));
     }
 
     Set<String> keys = Collections.singleton("a");
     Vector<HashMap<String, ByteIterator>> results =
         new Vector<HashMap<String, ByteIterator>>();
-    int result = client.scan(table, "00050", 5, null, results);
-    assertThat("Read did not return success (0).", result, is(0));
+    Status result = client.scan(table, "00050", 5, null, results);
+    assertThat("Read did not return success (0).", result, is(Status.OK));
     assertThat(results.size(), is(5));
     for (int i = 0; i < 5; ++i) {
       HashMap<String, ByteIterator> read = results.get(i);

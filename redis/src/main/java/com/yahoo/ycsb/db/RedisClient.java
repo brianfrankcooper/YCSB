@@ -23,21 +23,21 @@
  */
 
 package com.yahoo.ycsb.db;
+import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
-import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 
-import java.util.Map;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.Protocol;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
-
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.Protocol;
 
 public class RedisClient extends DB {
 
@@ -87,7 +87,7 @@ public class RedisClient extends DB {
     //XXX jedis.select(int index) to switch to `table`
 
     @Override
-    public int read(String table, String key, Set<String> fields,
+    public Status read(String table, String key, Set<String> fields,
             HashMap<String, ByteIterator> result) {
         if (fields == null) {
             StringByteIterator.putAllAsByteIterators(result, jedis.hgetAll(key));
@@ -105,32 +105,33 @@ public class RedisClient extends DB {
             }
             assert !fieldIterator.hasNext() && !valueIterator.hasNext();
         }
-        return result.isEmpty() ? 1 : 0;
+        return result.isEmpty() ? Status.ERROR : Status.OK;
     }
 
     @Override
-    public int insert(String table, String key, HashMap<String, ByteIterator> values) {
+    public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
         if (jedis.hmset(key, StringByteIterator.getStringMap(values)).equals("OK")) {
             jedis.zadd(INDEX_KEY, hash(key), key);
-            return 0;
+            return Status.OK;
         }
-        return 1;
+        return Status.ERROR;
     }
 
     @Override
-    public int delete(String table, String key) {
+    public Status delete(String table, String key) {
         return jedis.del(key) == 0
             && jedis.zrem(INDEX_KEY, key) == 0
-               ? 1 : 0;
+               ? Status.ERROR : Status.OK;
     }
 
     @Override
-    public int update(String table, String key, HashMap<String, ByteIterator> values) {
-        return jedis.hmset(key, StringByteIterator.getStringMap(values)).equals("OK") ? 0 : 1;
+    public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+        return jedis.hmset(key, StringByteIterator.getStringMap(values)).equals("OK") ? 
+            Status.OK : Status.ERROR;
     }
 
     @Override
-    public int scan(String table, String startkey, int recordcount,
+    public Status scan(String table, String startkey, int recordcount,
             Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
         Set<String> keys = jedis.zrangeByScore(INDEX_KEY, hash(startkey),
                                 Double.POSITIVE_INFINITY, 0, recordcount);
@@ -142,7 +143,7 @@ public class RedisClient extends DB {
             result.add(values);
         }
 
-        return 0;
+        return Status.OK;
     }
 
 }

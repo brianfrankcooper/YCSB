@@ -33,6 +33,7 @@ import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.measurements.Measurements;
 import com.yahoo.ycsb.workloads.CoreWorkload;
@@ -101,9 +102,9 @@ public class CassandraCQLClientTest {
   @Test
   public void testReadMissingRow() throws Exception {
     final HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
-    final int status = client.read(TABLE, "Missing row", null, result);
+    final Status status = client.read(TABLE, "Missing row", null, result);
     assertThat(result.size(), is(0));
-    assertThat(status, is(CassandraCQLClient.NOT_FOUND));
+    assertThat(status, is(Status.NOT_FOUND));
   }
 
   private void insertRow() {
@@ -121,8 +122,8 @@ public class CassandraCQLClientTest {
     insertRow();
 
     final HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
-    final int status = client.read(CoreWorkload.table, DEFAULT_ROW_KEY, null, result);
-    assertThat(status, is(CassandraCQLClient.OK));
+    final Status status = client.read(CoreWorkload.table, DEFAULT_ROW_KEY, null, result);
+    assertThat(status, is(Status.OK));
     assertThat(result.entrySet(), hasSize(11));
     assertThat(result, hasEntry("field2", null));
 
@@ -142,8 +143,8 @@ public class CassandraCQLClientTest {
     insertRow();
     final HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
     final Set<String> fields = Sets.newHashSet("field1");
-    final int status = client.read(CoreWorkload.table, DEFAULT_ROW_KEY, fields, result);
-    assertThat(status, is(CassandraCQLClient.OK));
+    final Status status = client.read(CoreWorkload.table, DEFAULT_ROW_KEY, fields, result);
+    assertThat(status, is(Status.OK));
     assertThat(result.entrySet(), hasSize(1));
     final Map<String, String> strResult = StringByteIterator.getStringMap(result);
     assertThat(strResult, hasEntry("field1", "value2"));
@@ -156,8 +157,8 @@ public class CassandraCQLClientTest {
     input.put("field0", "value1");
     input.put("field1", "value2");
 
-    final int status = client.insert(TABLE, key, StringByteIterator.getByteIteratorMap(input));
-    assertThat(status, is(CassandraCQLClient.OK));
+    final Status status = client.insert(TABLE, key, StringByteIterator.getByteIteratorMap(input));
+    assertThat(status, is(Status.OK));
 
     // Verify result
     final Select selectStmt =
