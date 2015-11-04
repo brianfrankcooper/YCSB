@@ -1,3 +1,20 @@
+/**
+ * Copyright (c) 2015 Yahoo! Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
+ */
+
 package com.yahoo.ycsb.db;
 
 import static org.junit.Assert.*;
@@ -33,9 +50,7 @@ public class JdbcDBClientTest {
     @BeforeClass
     public static void setup() {
         try {
-            Class driverClass = Class.forName(TEST_DB_DRIVER);
             jdbcConnection = DriverManager.getConnection(TEST_DB_URL);
-
             jdbcDBClient = new JdbcDBClient();
 
             Properties p = new Properties();
@@ -45,10 +60,6 @@ public class JdbcDBClientTest {
 
             jdbcDBClient.setProperties(p);
             jdbcDBClient.init();
-
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-            fail("Could not find Driver Class: " + TEST_DB_DRIVER);
         } catch (SQLException e) {
             e.printStackTrace();
             fail("Could not create local Database");
@@ -61,13 +72,19 @@ public class JdbcDBClientTest {
     @AfterClass
     public static void teardown() {
         try {
-            jdbcConnection.close();
-            jdbcConnection = DriverManager.getConnection(TEST_DB_URL + ";shutdown=true");
-        } catch (SQLNonTransientConnectionException e) {
-            // Expected exception when database is destroyed
+            if (jdbcConnection != null) {
+                jdbcConnection.close();
+            }
         } catch (SQLException e) {
             e.printStackTrace();
-            fail("Could not drop local Database");
+        }
+        
+        try {
+            if (jdbcDBClient != null) {
+                jdbcDBClient.cleanup();
+            }
+        } catch (DBException e) {
+            e.printStackTrace();
         }
     }
 
@@ -98,7 +115,6 @@ public class JdbcDBClientTest {
             e.printStackTrace();
             fail("Failed to prepare test");
         }
-
     }
 
     /*
@@ -224,9 +240,6 @@ public class JdbcDBClientTest {
             e.printStackTrace();
             fail("Failed updateTest");
         }
-
-
-        assertTrue(true);
     }
 
     @Test
@@ -263,12 +276,10 @@ public class JdbcDBClientTest {
     @Test
     public void deleteTest() {
         try {
-            String insertBeforeKey = "user0";
-            HashMap<String, ByteIterator> insertBeforeMap = insertRow(insertBeforeKey);
+            insertRow("user0");
             String deleteKey = "user1";
             insertRow(deleteKey);
-            String insertAfterKey = "user2";
-            HashMap<String, ByteIterator> insertAfterMap = insertRow(insertAfterKey);
+            insertRow("user2");
 
             jdbcDBClient.delete(TABLE_NAME, deleteKey);
 
