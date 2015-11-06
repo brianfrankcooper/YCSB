@@ -1,3 +1,20 @@
+/**
+ * Copyright (c) 2015 YCSB contributors All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
+ */
+
 package com.yahoo.ycsb;
 
 /**
@@ -6,8 +23,8 @@ package com.yahoo.ycsb;
 public class Status {
   private final String name;
   private final String description;
-  
-  
+
+
   /**
    * @param name A short name for the status.
    * @param description A description of the status.
@@ -67,6 +84,6 @@ public class Status {
   public static final Status NOT_FOUND = new Status("NOT_FOUND", "The requested record was not found.");
   public static final Status NOT_IMPLEMENTED = new Status("NOT_IMPLEMENTED", "The operation is not implemented for the current binding.");
   public static final Status UNEXPECTED_STATE = new Status("UNEXPECTED_STATE", "The operation reported success, but the result was not as expected.");
-      
+
 }
 
