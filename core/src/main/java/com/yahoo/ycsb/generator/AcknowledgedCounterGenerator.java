@@ -19,74 +19,70 @@ package com.yahoo.ycsb.generator;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * A CounterGenerator that reports generated integers via lastInt()
- * only after they have been acknowledged.
+ * A CounterGenerator that reports generated integers via lastInt() only after
+ * they have been acknowledged.
  */
-public class AcknowledgedCounterGenerator extends CounterGenerator
-{
-	/** The size of the window of pending id ack's. 2^20 = {@value} */
-	static final int WINDOW_SIZE = Integer.rotateLeft(1, 20);
+public class AcknowledgedCounterGenerator extends CounterGenerator {
+  /** The size of the window of pending id ack's. 2^20 = {@value} */
+  static final int WINDOW_SIZE = Integer.rotateLeft(1, 20);
 
-	/** The mask to use to turn an id into a slot in {@link #window}. */
-	private static final int WINDOW_MASK = WINDOW_SIZE - 1;
+  /** The mask to use to turn an id into a slot in {@link #window}. */
+  private static final int WINDOW_MASK = WINDOW_SIZE - 1;
 
-	private final ReentrantLock lock;
-	private final boolean[] window;
-	private volatile int limit;
+  private volatile int limit;
+  private final ReentrantLock lock;
+  private final boolean[] window;
 
-	/**
-	 * Create a counter that starts at countstart.
-	 */
-	public AcknowledgedCounterGenerator(int countstart)
-	{
-		super(countstart);
-		lock = new ReentrantLock();
-		window = new boolean[WINDOW_SIZE];
-		limit = countstart - 1;
-	}
+  /**
+   * Create a counter that starts at countstart.
+   */
+  public AcknowledgedCounterGenerator(final int countstart) {
+    super(countstart);
+    lock = new ReentrantLock();
+    window = new boolean[WINDOW_SIZE];
+    limit = countstart - 1;
+  }
 
-	/**
-	 * In this generator, the highest acknowledged counter value
-	 * (as opposed to the highest generated counter value).
-	 */
-	@Override
-	public int lastInt()
-	{
-		return limit;
-	}
+  /**
+   * Make a generated counter value available via lastInt().
+   */
+  public void acknowledge(final int value) {
+    final int currentSlot = (value & WINDOW_MASK);
+    if (window[currentSlot]) {
+      throw new RuntimeException("Too many unacknowledged insertion keys.");
+    }
 
-	/**
-	 * Make a generated counter value available via lastInt().
-	 */
-	public void acknowledge(int value)
-	{
-		final int currentSlot = (value & WINDOW_MASK);
-		if (window[currentSlot] == true) {
-			throw new RuntimeException("Too many unacknowledged insertion keys.");
-		}
+    window[currentSlot] = true;
 
-		window[currentSlot] = true;
+    if (lock.tryLock()) {
+      // move a contiguous sequence from the window
+      // over to the "limit" variable
+      try {
+        // Only loop through the entire window at most once.
+        final int beforeFirstSlot = (limit & WINDOW_MASK);
+        int index;
+        for (index = limit + 1; index != beforeFirstSlot; ++index) {
+          final int slot = (index & WINDOW_MASK);
+          if (!window[slot]) {
+            break;
+          }
 
-		if (lock.tryLock()) {
-			// move a contiguous sequence from the window
-			// over to the "limit" variable
-			try {
-			  // Only loop through the entire window at most once.
-			  int beforeFirstSlot = (limit & WINDOW_MASK);
-				int index;
-				for (index = limit + 1; index != beforeFirstSlot; ++index) {
-					int slot = (index & WINDOW_MASK);
-					if (!window[slot]) {
-						break;
-					}
+          window[slot] = false;
+        }
 
-					window[slot] = false;
-				}
+        limit = index - 1;
+      } finally {
+        lock.unlock();
+      }
+    }
+  }
 
-				limit = index - 1;
-			} finally {
-				lock.unlock();
-			}
-		}
-	}
+  /**
+   * In this generator, the highest acknowledged counter value (as opposed to
+   * the highest generated counter value).
+   */
+  @Override
+  public int lastInt() {
+    return limit;
+  }
 }

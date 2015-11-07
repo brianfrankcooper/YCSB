@@ -24,10 +24,11 @@ public class Status {
   private final String name;
   private final String description;
 
-
   /**
-   * @param name A short name for the status.
-   * @param description A description of the status.
+   * @param name
+   *          A short name for the status.
+   * @param description
+   *          A description of the status.
    */
   public Status(String name, String description) {
     super();
@@ -52,38 +53,52 @@ public class Status {
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + ((description == null) ? 0 : description.hashCode());
+    result =
+        prime * result + ((description == null) ? 0 : description.hashCode());
     result = prime * result + ((name == null) ? 0 : name.hashCode());
     return result;
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
+    if (this == obj) {
       return true;
-    if (obj == null)
+    }
+    if (obj == null) {
       return false;
-    if (getClass() != obj.getClass())
+    }
+    if (getClass() != obj.getClass()) {
       return false;
+    }
+    
     Status other = (Status) obj;
     if (description == null) {
-      if (other.description != null)
+      if (other.description != null) {
         return false;
-    } else if (!description.equals(other.description))
+      }
+    } else if (!description.equals(other.description)) {
       return false;
+    }
+    
     if (name == null) {
-      if (other.name != null)
+      if (other.name != null) {
         return false;
-    } else if (!name.equals(other.name))
+      }
+    } else if (!name.equals(other.name)) {
       return false;
+    }
+    
     return true;
   }
 
-  public static final Status OK = new Status("OK", "The operation completed successfully.");
-  public static final Status ERROR = new Status("ERROR", "The operation failed.");
-  public static final Status NOT_FOUND = new Status("NOT_FOUND", "The requested record was not found.");
-  public static final Status NOT_IMPLEMENTED = new Status("NOT_IMPLEMENTED", "The operation is not implemented for the current binding.");
-  public static final Status UNEXPECTED_STATE = new Status("UNEXPECTED_STATE", "The operation reported success, but the result was not as expected.");
-
+  public static final Status OK =
+      new Status("OK", "The operation completed successfully.");
+  public static final Status ERROR =
+      new Status("ERROR", "The operation failed.");
+  public static final Status NOT_FOUND =
+      new Status("NOT_FOUND", "The requested record was not found.");
+  public static final Status NOT_IMPLEMENTED = new Status("NOT_IMPLEMENTED",
+      "The operation is not implemented for the current binding.");
+  public static final Status UNEXPECTED_STATE = new Status("UNEXPECTED_STATE",
+      "The operation reported success, but the result was not as expected.");
 }
-

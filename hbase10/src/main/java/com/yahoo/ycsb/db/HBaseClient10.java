@@ -141,7 +141,9 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB
       // Terminate right now if table does not exist, since the client
       // will not propagate this error upstream once the workload
       // starts.
-      String table = com.yahoo.ycsb.workloads.CoreWorkload.table;
+      String table = getProperties().getProperty(
+          com.yahoo.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY,
+          com.yahoo.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
       try
 	  {
 	      final TableName tableName = TableName.valueOf(table);

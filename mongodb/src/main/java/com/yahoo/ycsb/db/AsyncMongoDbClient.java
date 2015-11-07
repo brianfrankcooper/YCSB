@@ -505,7 +505,7 @@ public class AsyncMongoDbClient extends DB {
      * @param element
      *          The {@link BinaryElement} to iterate over.
      */
-    public BinaryByteArrayIterator(final BinaryElement element) {
+    BinaryByteArrayIterator(final BinaryElement element) {
       this.binaryElement = element;
       this.offset = 0;
     }

@@ -34,23 +34,24 @@ public class AcknowledgedCounterGeneratorTest {
   public void testIncrementPastIntegerMaxValue() {
     final long toTry = AcknowledgedCounterGenerator.WINDOW_SIZE * 3;
 
-    AcknowledgedCounterGenerator generator =
+    final AcknowledgedCounterGenerator generator =
         new AcknowledgedCounterGenerator(Integer.MAX_VALUE - 1000);
 
-    Random rand = new Random(System.currentTimeMillis());
-    BlockingQueue<Integer> pending = new ArrayBlockingQueue<Integer>(1000);
+    final Random rand = new Random(System.currentTimeMillis());
+    final BlockingQueue<Integer> pending =
+        new ArrayBlockingQueue<Integer>(1000);
     for (long i = 0; i < toTry; ++i) {
-      int value = generator.nextInt();
+      final int value = generator.nextInt();
 
       while (!pending.offer(value)) {
 
-        Integer first = pending.poll();
+        final Integer first = pending.poll();
 
         // Don't always advance by one.
         if (rand.nextBoolean()) {
           generator.acknowledge(first);
         } else {
-          Integer second = pending.poll();
+          final Integer second = pending.poll();
           pending.add(first);
           generator.acknowledge(second);
         }
