@@ -37,27 +37,40 @@ import java.util.Vector;
 import static org.kududb.Type.STRING;
 
 /**
- * Kudu client for YCSB framework
- * Example to load:
- * $ ./bin/ycsb load kudu -P workloads/workloada  -threads 5
- * Example to run:
+ * Kudu client for YCSB framework. Example to load: <blockquote>
+ * 
+ * <pre>
+ * <code>
+ * $ ./bin/ycsb load kudu -P workloads/workloada -threads 5 
+ * </code>
+ * </pre>
+ * 
+ * </blockquote> Example to run:  <blockquote>
+ * 
+ * <pre>
+ * <code>
  * ./bin/ycsb run kudu -P workloads/workloada -p kudu_sync_ops=true -threads 5
- *
+ * </code>
+ * </pre>
+ * 
+ * </blockquote>
  */
 public class KuduYCSBClient extends com.yahoo.ycsb.DB {
   public static final String KEY = "key";
-  public static final Status TIMEOUT = new Status("TIMEOUT", "The operation timed out.");
+  public static final Status TIMEOUT =
+      new Status("TIMEOUT", "The operation timed out.");
   public static final int MAX_TABLETS = 9000;
   public static final long DEFAULT_SLEEP = 60000;
   private static final String SYNC_OPS_OPT = "kudu_sync_ops";
   private static final String DEBUG_OPT = "kudu_debug";
   private static final String PRINT_ROW_ERRORS_OPT = "kudu_print_row_errors";
-  private static final String PRE_SPLIT_NUM_TABLETS_OPT = "kudu_pre_split_num_tablets";
+  private static final String PRE_SPLIT_NUM_TABLETS_OPT =
+      "kudu_pre_split_num_tablets";
   private static final String TABLE_NUM_REPLICAS = "kudu_table_num_replicas";
   private static final String BLOCK_SIZE_OPT = "kudu_block_size";
   private static final String MASTER_ADDRESSES_OPT = "kudu_master_addresses";
   private static final int BLOCK_SIZE_DEFAULT = 4096;
-  private static final List<String> columnNames = new ArrayList<String>();
+  private static final List<String> COLUMN_NAMES = new ArrayList<String>();
   private static KuduClient client;
   private static Schema schema;
   private static int fieldCount;
@@ -65,7 +78,7 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
   private boolean printErrors = false;
   private String tableName;
   private KuduSession session;
-  private KuduTable table;
+  private KuduTable kuduTable;
 
   @Override
   public void init() throws DBException {
@@ -73,16 +86,18 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
       this.debug = getProperties().getProperty(DEBUG_OPT).equals("true");
     }
     if (getProperties().getProperty(PRINT_ROW_ERRORS_OPT) != null) {
-      this.printErrors = getProperties().getProperty(PRINT_ROW_ERRORS_OPT).equals("true");
+      this.printErrors =
+          getProperties().getProperty(PRINT_ROW_ERRORS_OPT).equals("true");
     }
     if (getProperties().getProperty(PRINT_ROW_ERRORS_OPT) != null) {
-      this.printErrors = getProperties().getProperty(PRINT_ROW_ERRORS_OPT).equals("true");
+      this.printErrors =
+          getProperties().getProperty(PRINT_ROW_ERRORS_OPT).equals("true");
     }
     this.tableName = com.yahoo.ycsb.workloads.CoreWorkload.table;
     initClient(debug, tableName, getProperties());
     this.session = client.newSession();
-    if (getProperties().getProperty(SYNC_OPS_OPT) != null &&
-        getProperties().getProperty(SYNC_OPS_OPT).equals("false")) {
+    if (getProperties().getProperty(SYNC_OPS_OPT) != null
+        && getProperties().getProperty(SYNC_OPS_OPT).equals("false")) {
       this.session.setFlushMode(KuduSession.FlushMode.AUTO_FLUSH_BACKGROUND);
       this.session.setMutationBufferSpace(100);
     } else {
@@ -90,15 +105,17 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
     }
 
     try {
-      this.table = client.openTable(tableName);
+      this.kuduTable = client.openTable(tableName);
     } catch (Exception e) {
       throw new DBException("Could not open a table because of:", e);
     }
   }
 
-  private synchronized static void initClient(boolean debug, String tableName, Properties prop)
-      throws DBException {
-    if (client != null) return;
+  private static synchronized void initClient(boolean debug, String tableName,
+      Properties prop) throws DBException {
+    if (client != null) {
+      return;
+    }
 
     String masterAddresses = prop.getProperty(MASTER_ADDRESSES_OPT);
     if (masterAddresses == null) {
@@ -107,8 +124,8 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
 
     int numTablets = getIntFromProp(prop, PRE_SPLIT_NUM_TABLETS_OPT, 4);
     if (numTablets > MAX_TABLETS) {
-      throw new DBException("Specified number of tablets (" + numTablets + ") must be equal " +
-          "or below " + MAX_TABLETS);
+      throw new DBException("Specified number of tablets (" + numTablets
+          + ") must be equal " + "or below " + MAX_TABLETS);
     }
 
     int numReplicas = getIntFromProp(prop, TABLE_NUM_REPLICAS, 3);
@@ -117,8 +134,7 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
 
     client = new KuduClient.KuduClientBuilder(masterAddresses)
         .defaultSocketReadTimeoutMs(DEFAULT_SLEEP)
-        .defaultOperationTimeoutMs(DEFAULT_SLEEP)
-        .build();
+        .defaultOperationTimeoutMs(DEFAULT_SLEEP).build();
     if (debug) {
       System.out.println("Connecting to the masters at " + masterAddresses);
     }
@@ -129,17 +145,14 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
     List<ColumnSchema> columns = new ArrayList<ColumnSchema>(fieldCount + 1);
 
     ColumnSchema keyColumn = new ColumnSchema.ColumnSchemaBuilder(KEY, STRING)
-                             .key(true)
-                             .desiredBlockSize(blockSize)
-                             .build();
+        .key(true).desiredBlockSize(blockSize).build();
     columns.add(keyColumn);
-    columnNames.add(KEY);
+    COLUMN_NAMES.add(KEY);
     for (int i = 0; i < fieldCount; i++) {
       String name = "field" + i;
-      columnNames.add(name);
+      COLUMN_NAMES.add(name);
       columns.add(new ColumnSchema.ColumnSchemaBuilder(name, STRING)
-                  .desiredBlockSize(blockSize)
-                  .build());
+          .desiredBlockSize(blockSize).build());
     }
     schema = new Schema(columns);
 
@@ -164,8 +177,8 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
     }
   }
 
-  private static int getIntFromProp(Properties prop, String propName, int defaultValue)
-      throws DBException {
+  private static int getIntFromProp(Properties prop, String propName,
+      int defaultValue) throws DBException {
     String intStr = prop.getProperty(propName);
     if (intStr == null) {
       return defaultValue;
@@ -173,7 +186,8 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
       try {
         return Integer.valueOf(intStr);
       } catch (NumberFormatException ex) {
-        throw new DBException("Provided number for " + propName + " isn't a valid integer");
+        throw new DBException(
+            "Provided number for " + propName + " isn't a valid integer");
       }
     }
   }
@@ -189,23 +203,29 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
 
   @Override
   public Status read(String table, String key, Set<String> fields,
-                  HashMap<String,ByteIterator> result) {
-    Vector<HashMap<String, ByteIterator>> results = new Vector<HashMap<String, ByteIterator>>();
+      HashMap<String, ByteIterator> result) {
+    Vector<HashMap<String, ByteIterator>> results =
+        new Vector<HashMap<String, ByteIterator>>();
     final Status status = scan(table, key, 1, fields, results);
-    if (!status.equals(Status.OK)) return status;
-    if (results.size() != 1) return Status.NOT_FOUND;
+    if (!status.equals(Status.OK)) {
+      return status;
+    }
+    if (results.size() != 1) {
+      return Status.NOT_FOUND;
+    }
     result.putAll(results.firstElement());
     return Status.OK;
   }
 
   @Override
-  public Status scan(String table, String startkey, int recordcount, Set<String> fields,
-                  Vector<HashMap<String, ByteIterator>> result) {
+  public Status scan(String table, String startkey, int recordcount,
+      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     try {
-      KuduScanner.KuduScannerBuilder scannerBuilder = client.newScannerBuilder(this.table);
+      KuduScanner.KuduScannerBuilder scannerBuilder =
+          client.newScannerBuilder(this.kuduTable);
       List<String> querySchema;
       if (fields == null) {
-        querySchema = columnNames;
+        querySchema = COLUMN_NAMES;
         // No need to set the projected columns with the whole schema.
       } else {
         querySchema = new ArrayList<String>(fields);
@@ -222,20 +242,22 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
         scannerBuilder.exclusiveUpperBound(upperBound);
       }
 
-      KuduScanner scanner = scannerBuilder
-          .limit(recordcount) // currently noop
+      KuduScanner scanner = scannerBuilder.limit(recordcount) // currently noop
           .build();
 
       while (scanner.hasMoreRows()) {
         RowResultIterator data = scanner.nextRows();
         addAllRowsToResult(data, recordcount, querySchema, result);
-        if (recordcount == result.size()) break;
+        if (recordcount == result.size()) {
+          break;
+        }
       }
       RowResultIterator closer = scanner.close();
       addAllRowsToResult(closer, recordcount, querySchema, result);
     } catch (TimeoutException te) {
       if (printErrors) {
-        System.err.println("Waited too long for a scan operation with start key=" + startkey);
+        System.err.println(
+            "Waited too long for a scan operation with start key=" + startkey);
       }
       return TIMEOUT;
     } catch (Exception e) {
@@ -247,14 +269,18 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
   }
 
   private void addAllRowsToResult(RowResultIterator it, int recordcount,
-                                  List<String> querySchema,
-                                  Vector<HashMap<String, ByteIterator>> result)
-      throws Exception {
+      List<String> querySchema, Vector<HashMap<String, ByteIterator>> result)
+          throws Exception {
     RowResult row;
-    HashMap<String, ByteIterator> rowResult = new HashMap<String, ByteIterator>(querySchema.size());
-    if (it == null) return;
+    HashMap<String, ByteIterator> rowResult =
+        new HashMap<String, ByteIterator>(querySchema.size());
+    if (it == null) {
+      return;
+    }
     while (it.hasNext()) {
-      if (result.size() == recordcount) return;
+      if (result.size() == recordcount) {
+        return;
+      }
       row = it.next();
       int colIdx = 0;
       for (String col : querySchema) {
@@ -266,8 +292,9 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
   }
 
   @Override
-  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
-    Update update = this.table.newUpdate();
+  public Status update(String table, String key,
+      HashMap<String, ByteIterator> values) {
+    Update update = this.kuduTable.newUpdate();
     PartialRow row = update.getRow();
     row.addString(KEY, key);
     for (int i = 1; i < schema.getColumnCount(); i++) {
@@ -282,12 +309,14 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
   }
 
   @Override
-  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
-    Insert insert = this.table.newInsert();
+  public Status insert(String table, String key,
+      HashMap<String, ByteIterator> values) {
+    Insert insert = this.kuduTable.newInsert();
     PartialRow row = insert.getRow();
     row.addString(KEY, key);
     for (int i = 1; i < schema.getColumnCount(); i++) {
-      row.addString(i, new String(values.get(schema.getColumnByIndex(i).getName()).toArray()));
+      row.addString(i, new String(
+          values.get(schema.getColumnByIndex(i).getName()).toArray()));
     }
     apply(insert);
     return Status.OK;
@@ -295,7 +324,7 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
 
   @Override
   public Status delete(String table, String key) {
-    Delete delete = this.table.newDelete();
+    Delete delete = this.kuduTable.newDelete();
     PartialRow row = delete.getRow();
     row.addString(KEY, key);
     apply(delete);
