@@ -21,22 +21,27 @@ import java.util.Properties;
 
 import org.infinispan.client.hotrod.RemoteCacheManager;
 
-public class RemoteCacheManagerHolder {
-	
-	private static volatile RemoteCacheManager cacheManager = null;
-	
-	private RemoteCacheManagerHolder() {}
-	
-	public static RemoteCacheManager getInstance(Properties props){
-		RemoteCacheManager result = cacheManager;
-		if(result == null){
-			synchronized (RemoteCacheManagerHolder.class) {
-				result = cacheManager;
-				if (result == null) {
-					cacheManager = result = new RemoteCacheManager(props);
-				}
-			}
-		}
-		return result;
-	}
+/**
+ * Utility class to ensure only a single RemoteCacheManager is created.
+ */
+public final class RemoteCacheManagerHolder {
+
+  private static volatile RemoteCacheManager cacheManager = null;
+
+  private RemoteCacheManagerHolder() {
+  }
+
+  public static RemoteCacheManager getInstance(Properties props) {
+    RemoteCacheManager result = cacheManager;
+    if (result == null) {
+      synchronized (RemoteCacheManagerHolder.class) {
+        result = cacheManager;
+        if (result == null) {
+          result = new RemoteCacheManager(props);
+          cacheManager = new RemoteCacheManager(props);
+        }
+      }
+    }
+    return result;
+  }
 }
