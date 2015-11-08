@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2012 YCSB contributors. All rights reserved.
+ * Copyright (c) 2012-2016 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -39,112 +39,118 @@ import java.util.Vector;
 
 /**
  * This is a client implementation for Infinispan 5.x.
- *
- * Some settings:
- *
- * @author Manik Surtani (manik AT jboss DOT org)
  */
 public class InfinispanClient extends DB {
+  private static final Log LOGGER = LogFactory.getLog(InfinispanClient.class);
 
-   // An optimisation for clustered mode
-   private final boolean clustered;
+  // An optimisation for clustered mode
+  private final boolean clustered;
 
-   private EmbeddedCacheManager infinispanManager;
+  private EmbeddedCacheManager infinispanManager;
 
-   private static final Log logger = LogFactory.getLog(InfinispanClient.class);
+  public InfinispanClient() {
+    clustered = Boolean.getBoolean("infinispan.clustered");
+  }
 
-   public InfinispanClient() {
-      clustered = Boolean.getBoolean("infinispan.clustered");
-   }
+  public void init() throws DBException {
+    try {
+      infinispanManager = new DefaultCacheManager("infinispan-config.xml");
+    } catch (IOException e) {
+      throw new DBException(e);
+    }
+  }
 
-   public void init() throws DBException {
-      try {
-         infinispanManager = new DefaultCacheManager("infinispan-config.xml");
-      } catch (IOException e) {
-         throw new DBException(e);
+  public void cleanup() {
+    infinispanManager.stop();
+    infinispanManager = null;
+  }
+
+  public Status read(String table, String key, Set<String> fields,
+      HashMap<String, ByteIterator> result) {
+    try {
+      Map<String, String> row;
+      if (clustered) {
+        row = AtomicMapLookup.getAtomicMap(infinispanManager.getCache(table), key, false);
+      } else {
+        Cache<String, Map<String, String>> cache = infinispanManager.getCache(table);
+        row = cache.get(key);
       }
-   }
-
-   public void cleanup() {
-      infinispanManager.stop();
-      infinispanManager = null;
-   }
-
-   public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
-      try {
-         Map<String, String> row;
-         if (clustered) {
-            row = AtomicMapLookup.getAtomicMap(infinispanManager.getCache(table), key, false);
-         } else {
-            Cache<String, Map<String, String>> cache = infinispanManager.getCache(table);
-            row = cache.get(key);
-         }
-         if (row != null) {
-            result.clear();
-            if (fields == null || fields.isEmpty()) {
-		StringByteIterator.putAllAsByteIterators(result, row);
-            } else {
-	       for (String field : fields) result.put(field, new StringByteIterator(row.get(field)));
-            }
-         }
-         return Status.OK;
-      } catch (Exception e) {
-         return Status.ERROR;
+      if (row != null) {
+        result.clear();
+        if (fields == null || fields.isEmpty()) {
+          StringByteIterator.putAllAsByteIterators(result, row);
+        } else {
+          for (String field : fields) {
+            result.put(field, new StringByteIterator(row.get(field)));
+          }
+        }
       }
-   }
-
-   public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-      logger.warn("Infinispan does not support scan semantics");
       return Status.OK;
-   }
+    } catch (Exception e) {
+      LOGGER.error(e);
+      return Status.ERROR;
+    }
+  }
 
-   public Status update(String table, String key, HashMap<String, ByteIterator> values) {
-      try {
-         if (clustered) {
-            AtomicMap<String, String> row = AtomicMapLookup.getAtomicMap(infinispanManager.getCache(table), key);
-            StringByteIterator.putAllAsStrings(row, values);
-         } else {
-            Cache<String, Map<String, String>> cache = infinispanManager.getCache(table);
-            Map<String, String> row = cache.get(key);
-            if (row == null) {
-               row = StringByteIterator.getStringMap(values);
-               cache.put(key, row);
-            } else {
-               StringByteIterator.putAllAsStrings(row, values);
-            }
-         }
+  public Status scan(String table, String startkey, int recordcount,
+      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    LOGGER.warn("Infinispan does not support scan semantics");
+    return Status.OK;
+  }
 
-         return Status.OK;
-      } catch (Exception e) {
-         return Status.ERROR;
+  public Status update(String table, String key,
+      HashMap<String, ByteIterator> values) {
+    try {
+      if (clustered) {
+        AtomicMap<String, String> row = AtomicMapLookup.getAtomicMap(infinispanManager.getCache(table), key);
+        StringByteIterator.putAllAsStrings(row, values);
+      } else {
+        Cache<String, Map<String, String>> cache = infinispanManager.getCache(table);
+        Map<String, String> row = cache.get(key);
+        if (row == null) {
+          row = StringByteIterator.getStringMap(values);
+          cache.put(key, row);
+        } else {
+          StringByteIterator.putAllAsStrings(row, values);
+        }
       }
-   }
 
-   public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
-      try {
-         if (clustered) {
-            AtomicMap<String, String> row = AtomicMapLookup.getAtomicMap(infinispanManager.getCache(table), key);
-            row.clear();
-            StringByteIterator.putAllAsStrings(row, values);
-         } else {
-            infinispanManager.getCache(table).put(key, values);
-         }
+      return Status.OK;
+    } catch (Exception e) {
+      LOGGER.error(e);
+      return Status.ERROR;
+    }
+  }
 
-         return Status.OK;
-      } catch (Exception e) {
-         return Status.ERROR;
+  public Status insert(String table, String key,
+      HashMap<String, ByteIterator> values) {
+    try {
+      if (clustered) {
+        AtomicMap<String, String> row = AtomicMapLookup.getAtomicMap(infinispanManager.getCache(table), key);
+        row.clear();
+        StringByteIterator.putAllAsStrings(row, values);
+      } else {
+        infinispanManager.getCache(table).put(key, values);
       }
-   }
 
-   public Status delete(String table, String key) {
-      try {
-         if (clustered)
-            AtomicMapLookup.removeAtomicMap(infinispanManager.getCache(table), key);
-         else
-            infinispanManager.getCache(table).remove(key);
-         return Status.OK;
-      } catch (Exception e) {
-         return Status.ERROR;
+      return Status.OK;
+    } catch (Exception e) {
+      LOGGER.error(e);
+      return Status.ERROR;
+    }
+  }
+
+  public Status delete(String table, String key) {
+    try {
+      if (clustered) {
+        AtomicMapLookup.removeAtomicMap(infinispanManager.getCache(table), key);
+      } else {
+        infinispanManager.getCache(table).remove(key);
       }
-   }
+      return Status.OK;
+    } catch (Exception e) {
+      LOGGER.error(e);
+      return Status.ERROR;
+    }
+  }
 }
