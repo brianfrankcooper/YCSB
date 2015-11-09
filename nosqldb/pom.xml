@@ -27,6 +27,7 @@ LICENSE file.
   
   <artifactId>nosqldb-binding</artifactId>
   <name>Oracle NoSQL Database Binding</name>
+  <packaging>jar</packaging>
 
   <dependencies>
     <dependency>
