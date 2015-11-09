@@ -30,9 +30,9 @@ LICENSE file.
 
   <dependencies>
     <dependency>
-      <groupId>com.oracle</groupId>
-      <artifactId>kvclient</artifactId>
-      <version>1.2.123</version>
+      <groupId>com.oracle.kv</groupId>
+      <artifactId>oracle-nosql-client</artifactId>
+      <version>3.0.5</version>
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>

@@ -42,14 +42,12 @@ import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
 
 /**
  * A database interface layer for Oracle NoSQL Database.
  */
 public class NoSqlDbClient extends DB {
-	
-	public static final int OK = 0;
-	public static final int ERROR = -1;
 	
 	KVStore store;
 	
@@ -173,14 +171,14 @@ public class NoSqlDbClient extends DB {
 	}
 
 	@Override
-	public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+	public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
 		Key kvKey = createKey(table, key);
 		SortedMap<Key, ValueVersion> kvResult;
 		try {
 			kvResult = store.multiGet(kvKey, null, null);
 		} catch (FaultException e) {
 			System.err.println(e);
-			return ERROR;
+			return Status.ERROR;
 		}
 		
 		for (Map.Entry<Key, ValueVersion> entry : kvResult.entrySet()) {
@@ -192,17 +190,17 @@ public class NoSqlDbClient extends DB {
 			result.put(field, new ByteArrayByteIterator(entry.getValue().getValue().getValue()));
 		}
 		
-		return OK;
+		return Status.OK;
 	}
 
 	@Override
-	public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+	public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
 		System.err.println("Oracle NoSQL Database does not support Scan semantics");
-		return ERROR;
+		return Status.ERROR;
 	}
 
 	@Override
-	public int update(String table, String key, HashMap<String, ByteIterator> values) {
+	public Status update(String table, String key, HashMap<String, ByteIterator> values) {
 		for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
 			Key kvKey = createKey(table, key, entry.getKey());
 			Value kvValue = Value.createValue(entry.getValue().toArray());
@@ -210,29 +208,29 @@ public class NoSqlDbClient extends DB {
 				store.put(kvKey, kvValue);
 			} catch (FaultException e) {
 				System.err.println(e);
-				return ERROR;
+				return Status.ERROR;
 			}
 		}
 		
-		return OK;
+		return Status.OK;
 	}
 
 	@Override
-	public int insert(String table, String key, HashMap<String, ByteIterator> values) {
+	public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
 		return update(table, key, values);
 	}
 
 	@Override
-	public int delete(String table, String key) {
+	public Status delete(String table, String key) {
 		Key kvKey = createKey(table, key);
 		try {
 			store.multiDelete(kvKey, null, null);
 		} catch (FaultException e) {
 			System.err.println(e);
-			return ERROR;
+			return Status.ERROR;
 		}
 		
-		return OK;
+		return Status.OK;
 	}
 
 }
