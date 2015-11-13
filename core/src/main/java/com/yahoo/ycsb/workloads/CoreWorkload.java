@@ -637,7 +637,10 @@ public class CoreWorkload extends Workload
 
 			fields=new HashSet<String>();
 			fields.add(fieldname);
-		}
+		} else if (dataintegrity) {
+      // pass the full field list if dataintegrity is on for verification
+      fields = new HashSet<String>(fieldnames);
+    }
 
     HashMap<String,ByteIterator> cells =
         new HashMap<String,ByteIterator>();
