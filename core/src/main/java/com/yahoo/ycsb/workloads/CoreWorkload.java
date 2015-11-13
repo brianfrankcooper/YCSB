@@ -584,23 +584,23 @@ public class CoreWorkload extends Workload
    * Bucket 2 means null data was returned when some data was expected. 
    */
   protected void verifyRow(String key, HashMap<String,ByteIterator> cells) {
-		Status verifyStatus = Status.OK;
-		long startTime = System.nanoTime();
-		if (!cells.isEmpty()) {
+    Status verifyStatus = Status.OK;
+    long startTime = System.nanoTime();
+    if (!cells.isEmpty()) {
       for (Map.Entry<String, ByteIterator> entry : cells.entrySet()) {
-				if (!entry.getValue().toString().equals(
+        if (!entry.getValue().toString().equals(
             buildDeterministicValue(key, entry.getKey()))) {
           verifyStatus = Status.UNEXPECTED_STATE;
-					break;
+          break;
         }
       }
     } else {
       //This assumes that null data is never valid
-			verifyStatus = Status.ERROR;
+      verifyStatus = Status.ERROR;
     }
-		long endTime = System.nanoTime();
+    long endTime = System.nanoTime();
     _measurements.measure("VERIFY", (int) (endTime - startTime) / 1000);
-		_measurements.reportStatus("VERIFY",verifyStatus);
+    _measurements.reportStatus("VERIFY",verifyStatus);
   }
 
     int nextKeynum() {
