@@ -56,6 +56,7 @@ DATABASES = {
     "dynamodb"     : "com.yahoo.ycsb.db.DynamoDBClient",
     "elasticsearch": "com.yahoo.ycsb.db.ElasticSearchClient",
     "gemfire"      : "com.yahoo.ycsb.db.GemFireClient",
+    "googledatastore" : "com.yahoo.ycsb.db.GoogleDatastoreClient",
     "hbase094"     : "com.yahoo.ycsb.db.HBaseClient",
     "hbase098"     : "com.yahoo.ycsb.db.HBaseClient",
     "hbase10"      : "com.yahoo.ycsb.db.HBaseClient10",
