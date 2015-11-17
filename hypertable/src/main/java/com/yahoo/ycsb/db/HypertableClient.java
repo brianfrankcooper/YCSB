@@ -16,14 +16,14 @@
 package com.yahoo.ycsb.db;
 
 
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
+import com.yahoo.ycsb.ByteArrayByteIterator;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
 
 import org.apache.thrift.TException;
 import org.hypertable.thrift.SerializedCellsFlag;
+import org.hypertable.thrift.SerializedCellsReader;
 import org.hypertable.thrift.SerializedCellsWriter;
 import org.hypertable.thrift.ThriftClient;
 import org.hypertable.thriftgen.Cell;
@@ -32,11 +32,12 @@ import org.hypertable.thriftgen.Key;
 import org.hypertable.thriftgen.KeyFlag;
 import org.hypertable.thriftgen.RowInterval;
 import org.hypertable.thriftgen.ScanSpec;
-import org.hypertable.thrift.SerializedCellsReader;
 
-import com.yahoo.ycsb.ByteArrayByteIterator;
-import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.DBException;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.Vector;
 
 /**
  * Hypertable client for YCSB framework
@@ -49,9 +50,6 @@ public class HypertableClient extends com.yahoo.ycsb.DB
     private long ns;
 
     private String _columnFamily = "";
-
-    public static final int OK = 0;
-    public static final int SERVERERROR = -1;
     
     public static final String NAMESPACE = "/ycsb";
     public static final int THRIFTBROKER_PORT = 38080;
@@ -122,7 +120,7 @@ public class HypertableClient extends com.yahoo.ycsb.DB
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int read(String table, String key, Set<String> fields, 
+    public Status read(String table, String key, Set<String> fields, 
                     HashMap<String, ByteIterator> result)
     {
         //SELECT _column_family:field[i] 
@@ -138,8 +136,8 @@ public class HypertableClient extends com.yahoo.ycsb.DB
             if (null != fields) {
                 Vector<HashMap<String, ByteIterator>> resMap = 
                         new Vector<HashMap<String, ByteIterator>>();
-                if (0 != scan(table, key, 1, fields, resMap)) {
-                    return SERVERERROR;
+                if (!scan(table, key, 1, fields, resMap).equals(Status.OK)) {
+                    return Status.ERROR;
                 }
                 if (!resMap.isEmpty())
                     result.putAll(resMap.firstElement());
@@ -155,14 +153,14 @@ public class HypertableClient extends com.yahoo.ycsb.DB
             if (_debug) {
                 System.err.println("Error doing read: " + e.message);
             }
-            return SERVERERROR;
+            return Status.ERROR;
         } catch (TException e) {
             if (_debug)
                 System.err.println("Error doing read");
-            return SERVERERROR;
+            return Status.ERROR;
         }
 
-        return OK;
+        return Status.OK;
     }
     
     /**
@@ -178,7 +176,7 @@ public class HypertableClient extends com.yahoo.ycsb.DB
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int scan(String table, String startkey, int recordcount, 
+    public Status scan(String table, String startkey, int recordcount, 
                     Set<String> fields, 
                     Vector<HashMap<String, ByteIterator>> result)
     {
@@ -230,14 +228,14 @@ public class HypertableClient extends com.yahoo.ycsb.DB
             if (_debug) {
                 System.err.println("Error doing scan: " + e.message);
             }
-            return SERVERERROR;
+            return Status.ERROR;
         } catch (TException e) {
             if (_debug)
                 System.err.println("Error doing scan");
-            return SERVERERROR;            
+            return Status.ERROR;            
         }
         
-        return OK;
+        return Status.OK;
     }
 
     /**
@@ -251,7 +249,7 @@ public class HypertableClient extends com.yahoo.ycsb.DB
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int update(String table, String key, 
+    public Status update(String table, String key, 
             HashMap<String, ByteIterator> values)
     {
         return insert(table, key, values);
@@ -268,7 +266,7 @@ public class HypertableClient extends com.yahoo.ycsb.DB
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int insert(String table, String key, 
+    public Status insert(String table, String key, 
             HashMap<String, ByteIterator> values)
     {
         //INSERT INTO table VALUES 
@@ -294,14 +292,14 @@ public class HypertableClient extends com.yahoo.ycsb.DB
             if (_debug) {
                 System.err.println("Error doing set: " + e.message);
             }
-            return SERVERERROR;
+            return Status.ERROR;
         } catch (TException e) {
             if (_debug)
                 System.err.println("Error doing set");
-            return SERVERERROR;
+            return Status.ERROR;
         }
         
-        return OK;
+        return Status.OK;
     }
 
     /**
@@ -312,7 +310,7 @@ public class HypertableClient extends com.yahoo.ycsb.DB
      * @return Zero on success, a non-zero error code on error
      */
     @Override
-    public int delete(String table, String key)
+    public Status delete(String table, String key)
     {
         //DELETE * FROM table WHERE ROW=key;
         
@@ -331,14 +329,14 @@ public class HypertableClient extends com.yahoo.ycsb.DB
             if (_debug) {
                 System.err.println("Error doing delete: " + e.message);
             }
-            return SERVERERROR;            
+            return Status.ERROR;            
         } catch (TException e) {
             if (_debug)
                 System.err.println("Error doing delete");
-            return SERVERERROR;
+            return Status.ERROR;
         }
       
-        return OK;
+        return Status.OK;
     }
 }
 

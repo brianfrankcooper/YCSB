@@ -15,10 +15,14 @@
 
 package com.yahoo.ycsb.db;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
-import static org.junit.Assert.*;
 
 import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.measurements.Measurements;
 import com.yahoo.ycsb.workloads.CoreWorkload;
@@ -31,7 +35,6 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -126,8 +129,8 @@ public class HBaseClient10Test {
     table.put(p);
 
     final HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
-    final int status = client.read(CoreWorkload.table, rowKey, null, result);
-    assertEquals(HBaseClient10.Ok, status);
+    final Status status = client.read(CoreWorkload.table, rowKey, null, result);
+    assertEquals(Status.OK, status);
     assertEquals(2, result.size());
     assertEquals("value1", result.get("column1").toString());
     assertEquals("value2", result.get("column2").toString());
@@ -136,8 +139,8 @@ public class HBaseClient10Test {
   @Test
   public void testReadMissingRow() throws Exception {
     final HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
-    final int status = client.read(CoreWorkload.table, "Missing row", null, result);
-    assertEquals(HBaseClient10.NoMatchingRecord, status);
+    final Status status = client.read(CoreWorkload.table, "Missing row", null, result);
+    assertEquals(Status.NOT_FOUND, status);
     assertEquals(0, result.size());
   }
 
@@ -182,8 +185,8 @@ public class HBaseClient10Test {
     final HashMap<String, String> input = new HashMap<String, String>();
     input.put("column1", "value1");
     input.put("column2", "value2");
-    final int status = client.insert(CoreWorkload.table, key, StringByteIterator.getByteIteratorMap(input));
-    assertEquals(HBaseClient10.Ok, status);
+    final Status status = client.insert(CoreWorkload.table, key, StringByteIterator.getByteIteratorMap(input));
+    assertEquals(Status.OK, status);
 
     // Verify result
     final Get get = new Get(Bytes.toBytes(key));

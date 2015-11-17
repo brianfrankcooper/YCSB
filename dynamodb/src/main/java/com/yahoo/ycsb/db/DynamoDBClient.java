@@ -16,24 +16,12 @@
 
 package com.yahoo.ycsb.db;
 
-import java.io.FileInputStream;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
-import java.io.File;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.PropertiesCredentials;
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.services.dynamodb.AmazonDynamoDBClient;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.PropertiesCredentials;
+import com.amazonaws.services.dynamodb.AmazonDynamoDBClient;
 import com.amazonaws.services.dynamodb.model.AttributeValue;
 import com.amazonaws.services.dynamodb.model.AttributeValueUpdate;
 import com.amazonaws.services.dynamodb.model.DeleteItemRequest;
@@ -49,7 +37,18 @@ import com.amazonaws.services.dynamodb.model.UpdateItemRequest;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.Vector;
 
 /**
  * DynamoDB v1.3.14 client for YCSB
@@ -57,22 +56,44 @@ import com.yahoo.ycsb.StringByteIterator;
 
 public class DynamoDBClient extends DB {
 
-    private static final int OK = 0;
-    private static final int SERVER_ERROR = 1;
-    private static final int CLIENT_ERROR = 2;
+    /**
+     * Defines the primary key type used in this particular DB instance.
+     *
+     * By default, the primary key type is "HASH". Optionally, the user can
+     * choose to use hash_and_range key type. See documentation in the
+     * DynamoDB.Properties file for more details.
+     */
+    private enum PrimaryKeyType {
+      HASH,
+      HASH_AND_RANGE
+    }
+
     private AmazonDynamoDBClient dynamoDB;
     private String primaryKeyName;
+    private PrimaryKeyType primaryKeyType = PrimaryKeyType.HASH;
+
+    // If the user choose to use HASH_AND_RANGE as primary key type, then
+    // the following two variables become relevant. See documentation in the
+    // DynamoDB.Properties file for more details.
+    private String hashKeyValue;
+    private String hashKeyName;
+
     private boolean debug = false;
     private boolean consistentRead = false;
     private String endpoint = "http://dynamodb.us-east-1.amazonaws.com";
     private int maxConnects = 50;
     private static Logger logger = Logger.getLogger(DynamoDBClient.class);
+    private static final Status CLIENT_ERROR = new Status("CLIENT_ERROR",
+        "An error occurred on the client.");
+    private static final String DEFAULT_HASH_KEY_VALUE = "YCSB_0";
+
     public DynamoDBClient() {}
 
     /**
      * Initialize any state for this DB. Called once per DB instance; there is
      * one DB instance per client thread.
      */
+    @Override
     public void init() throws DBException {
         // initialize DynamoDb driver & table.
         String debug = getProperties().getProperty("dynamodb.debug",null);
@@ -84,6 +105,7 @@ public class DynamoDBClient extends DB {
         String endpoint = getProperties().getProperty("dynamodb.endpoint",null);
         String credentialsFile = getProperties().getProperty("dynamodb.awsCredentialsFile",null);
         String primaryKey = getProperties().getProperty("dynamodb.primaryKey",null);
+        String primaryKeyTypeString = getProperties().getProperty("dynamodb.primaryKeyType", null);
         String consistentReads = getProperties().getProperty("dynamodb.consistentReads",null);
         String connectMax = getProperties().getProperty("dynamodb.connectMax",null);
 
@@ -104,6 +126,32 @@ public class DynamoDBClient extends DB {
             logger.error(errMsg);
         }
 
+        if (null != primaryKeyTypeString) {
+            try {
+              this.primaryKeyType = PrimaryKeyType.valueOf(
+                  primaryKeyTypeString.trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+              throw new DBException("Invalid primary key mode specified: " +
+                  primaryKeyTypeString + ". Expecting HASH or HASH_AND_RANGE.");
+            }
+        }
+
+        if (this.primaryKeyType == PrimaryKeyType.HASH_AND_RANGE) {
+          // When the primary key type is HASH_AND_RANGE, keys used by YCSB
+          // are range keys so we can benchmark performance of individual hash
+          // partitions. In this case, the user must specify the hash key's name
+          // and optionally can designate a value for the hash key.
+
+          String hashKeyName = getProperties().getProperty("dynamodb.hashKeyName", null);
+          if (null == hashKeyName || hashKeyName.isEmpty()) {
+            throw new DBException("Must specify a non-empty hash key name " +
+                "when the primary key type is HASH_AND_RANGE.");
+          }
+          this.hashKeyName = hashKeyName;
+          this.hashKeyValue = getProperties().getProperty(
+              "dynamodb.hashKeyValue", DEFAULT_HASH_KEY_VALUE);
+        }
+
         try {
             AWSCredentials credentials = new PropertiesCredentials(new File(credentialsFile));
             ClientConfiguration cconfig = new ClientConfiguration();
@@ -119,7 +167,7 @@ public class DynamoDBClient extends DB {
     }
 
     @Override
-    public int read(String table, String key, Set<String> fields,
+    public Status read(String table, String key, Set<String> fields,
             HashMap<String, ByteIterator> result) {
 
         logger.debug("readkey: " + key + " from table: " + table);
@@ -132,7 +180,7 @@ public class DynamoDBClient extends DB {
             res = dynamoDB.getItem(req);
         }catch (AmazonServiceException ex) {
             logger.error(ex.getMessage());
-            return SERVER_ERROR;
+            return Status.ERROR;
         }catch (AmazonClientException ex){
             logger.error(ex.getMessage());
             return CLIENT_ERROR;
@@ -143,11 +191,11 @@ public class DynamoDBClient extends DB {
             result.putAll(extractResult(res.getItem()));
             logger.debug("Result: " + res.toString());
         }
-        return OK;
+        return Status.OK;
     }
 
     @Override
-    public int scan(String table, String startkey, int recordcount,
+    public Status scan(String table, String startkey, int recordcount,
         Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
         logger.debug("scan " + recordcount + " records from key: " + startkey + " on table: " + table);
         /*
@@ -163,7 +211,7 @@ public class DynamoDBClient extends DB {
             gres = dynamoDB.getItem(greq);
         }catch (AmazonServiceException ex) {
             logger.error(ex.getMessage());
-            return SERVER_ERROR;
+            return Status.ERROR;
         }catch (AmazonClientException ex){
             logger.error(ex.getMessage());
            return CLIENT_ERROR;
@@ -187,7 +235,7 @@ public class DynamoDBClient extends DB {
             }catch (AmazonServiceException ex) {
                 logger.error(ex.getMessage());
               ex.printStackTrace();
-             return SERVER_ERROR;
+             return Status.ERROR;
             }catch (AmazonClientException ex){
                 logger.error(ex.getMessage());
                ex.printStackTrace();
@@ -202,11 +250,11 @@ public class DynamoDBClient extends DB {
 
         }
 
-        return OK;
+        return Status.OK;
     }
 
     @Override
-    public int update(String table, String key, HashMap<String, ByteIterator> values) {
+    public Status update(String table, String key, HashMap<String, ByteIterator> values) {
         logger.debug("updatekey: " + key + " from table: " + table);
 
         Map<String, AttributeValueUpdate> attributes = new HashMap<String, AttributeValueUpdate>(
@@ -223,20 +271,26 @@ public class DynamoDBClient extends DB {
             dynamoDB.updateItem(req);
         }catch (AmazonServiceException ex) {
             logger.error(ex.getMessage());
-            return SERVER_ERROR;
+            return Status.ERROR;
         }catch (AmazonClientException ex){
             logger.error(ex.getMessage());
             return CLIENT_ERROR;
         }
-        return OK;
+        return Status.OK;
     }
 
     @Override
-    public int insert(String table, String key,HashMap<String, ByteIterator> values) {
+    public Status insert(String table, String key,HashMap<String, ByteIterator> values) {
         logger.debug("insertkey: " + primaryKeyName + "-" + key + " from table: " + table);
         Map<String, AttributeValue> attributes = createAttributes(values);
         // adding primary key
         attributes.put(primaryKeyName, new AttributeValue(key));
+        if (primaryKeyType == PrimaryKeyType.HASH_AND_RANGE) {
+          // If the primary key type is HASH_AND_RANGE, then what has been put
+          // into the attributes map above is the range key part of the primary
+          // key, we still need to put in the hash key part here.
+          attributes.put(hashKeyName, new AttributeValue(hashKeyValue));
+        }
 
         PutItemRequest putItemRequest = new PutItemRequest(table, attributes);
         PutItemResult res = null;
@@ -244,16 +298,16 @@ public class DynamoDBClient extends DB {
             res = dynamoDB.putItem(putItemRequest);
         }catch (AmazonServiceException ex) {
             logger.error(ex.getMessage());
-            return SERVER_ERROR;
+            return Status.ERROR;
         }catch (AmazonClientException ex){
             logger.error(ex.getMessage());
             return CLIENT_ERROR;
         }
-        return OK;
+        return Status.OK;
     }
 
     @Override
-    public int delete(String table, String key) {
+    public Status delete(String table, String key) {
         logger.debug("deletekey: " + key + " from table: " + table);
         DeleteItemRequest req = new DeleteItemRequest(table, createPrimaryKey(key));
         DeleteItemResult res = null;
@@ -262,12 +316,12 @@ public class DynamoDBClient extends DB {
             res = dynamoDB.deleteItem(req);
         }catch (AmazonServiceException ex) {
             logger.error(ex.getMessage());
-            return SERVER_ERROR;
+            return Status.ERROR;
         }catch (AmazonClientException ex){
             logger.error(ex.getMessage());
             return CLIENT_ERROR;
         }
-        return OK;
+        return Status.OK;
     }
 
     private static Map<String, AttributeValue> createAttributes(
@@ -293,8 +347,18 @@ public class DynamoDBClient extends DB {
         return rItems;
     }
 
-    private static Key createPrimaryKey(String key) {
-        Key k = new Key().withHashKeyElement(new AttributeValue().withS(key));
+    private Key createPrimaryKey(String key) {
+        Key k;
+        if (primaryKeyType == PrimaryKeyType.HASH) {
+          k = new Key().withHashKeyElement(new AttributeValue().withS(key));
+        } else if (primaryKeyType == PrimaryKeyType.HASH_AND_RANGE) {
+          k = new Key()
+                .withHashKeyElement(new AttributeValue().withS(hashKeyValue))
+                .withRangeKeyElement(new AttributeValue().withS(key));
+        } else {
+          throw new RuntimeException("Assertion Error: impossible primary key"
+                  + " type");
+        }
         return k;
     }
 }

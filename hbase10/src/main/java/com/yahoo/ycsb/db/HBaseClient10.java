@@ -15,13 +15,13 @@
 
 package com.yahoo.ycsb.db;
 
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.measurements.Measurements;
 
 import org.apache.hadoop.conf.Configuration;
@@ -58,463 +58,438 @@ import java.util.Vector;
  * A modified version of HBaseClient (which targets HBase v0.9) utilizing the
  * HBase 1.0.0 API.
  *
- * This client also adds toggleable client-side buffering and configurable write durability.
+ * This client also adds toggleable client-side buffering and configurable write
+ * durability.
  */
-public class HBaseClient10 extends com.yahoo.ycsb.DB
-{
-    private Configuration config = HBaseConfiguration.create();
+public class HBaseClient10 extends com.yahoo.ycsb.DB {
+  private Configuration config = HBaseConfiguration.create();
 
-    public boolean _debug=false;
+  private boolean debug = false;
 
-    public String _tableName="";
-    public Connection _connection=null;
+  private String tableName = "";
+  private Connection connection = null;
 
-    // Depending on the value of _clientBuffering, either _bufferedMutator
-    // (_clientBuffering) or _hTable (!_clientBuffering) will be used.
-    public Table _table=null;
-    public BufferedMutator _bufferedMutator=null;
+  // Depending on the value of clientSideBuffering, either bufferedMutator
+  // (clientSideBuffering) or currentTable (!clientSideBuffering) will be used.
+  private Table currentTable = null;
+  private BufferedMutator bufferedMutator = null;
 
-    public String _columnFamily="";
-    public byte _columnFamilyBytes[];
+  private String columnFamily = "";
+  private byte[] columnFamilyBytes;
 
-    /**
-     * Durability to use for puts and deletes.
-     */
-    public Durability _durability = Durability.USE_DEFAULT;
+  /**
+   * Durability to use for puts and deletes.
+   */
+  private Durability durability = Durability.USE_DEFAULT;
 
-    /** Whether or not a page filter should be used to limit scan length. */
-    public boolean _usePageFilter = true;
+  /** Whether or not a page filter should be used to limit scan length. */
+  private boolean usePageFilter = true;
 
-    /**
-     * If true, buffer mutations on the client.
-     * This is the default behavior for HBaseClient. For measuring
-     * insert/update/delete latencies, client side buffering should be disabled.
-     */
-    public boolean _clientSideBuffering = false;
-    public long _writeBufferSize = 1024 * 1024 * 12;
+  /**
+   * If true, buffer mutations on the client. This is the default behavior for
+   * HBaseClient. For measuring insert/update/delete latencies, client side
+   * buffering should be disabled.
+   */
+  private boolean clientSideBuffering = false;
+  private long writeBufferSize = 1024 * 1024 * 12;
 
-    public static final int Ok=0;
-    public static final int ServerError=-1;
-    public static final int HttpError=-2;
-    public static final int NoMatchingRecord=-3;
-
-    /**
-     * Initialize any state for this DB.
-     * Called once per DB instance; there is one DB instance per client thread.
-     */
-    @Override
-    public void init() throws DBException
-    {
-        if ("true".equals(getProperties().getProperty("clientbuffering", "false"))) {
-            this._clientSideBuffering = true;
-        }
-        if (getProperties().containsKey("writebuffersize")) {
-            _writeBufferSize = Long.parseLong(getProperties().getProperty("writebuffersize"));
-        }
-
-        if (getProperties().getProperty("durability") != null) {
-            this._durability = Durability.valueOf(getProperties().getProperty("durability"));
-        }
-
-        try {
-            _connection = ConnectionFactory.createConnection(config);
-        } catch (java.io.IOException e) {
-            throw new DBException(e);
-        }
-
-        if ( (getProperties().getProperty("debug")!=null) &&
-                (getProperties().getProperty("debug").compareTo("true")==0) )
-        {
-            _debug=true;
-        }
-
-        if ("false".equals(getProperties().getProperty("hbase.usepagefilter", "true"))) {
-          _usePageFilter = false;
-        }
-
-        _columnFamily = getProperties().getProperty("columnfamily");
-        if (_columnFamily == null)
-        {
-            System.err.println("Error, must specify a columnfamily for HBase table");
-            throw new DBException("No columnfamily specified");
-        }
-        _columnFamilyBytes = Bytes.toBytes(_columnFamily);
-
-      // Terminate right now if table does not exist, since the client
-      // will not propagate this error upstream once the workload
-      // starts.
-      String table = com.yahoo.ycsb.workloads.CoreWorkload.table;
-      try
-	  {
-	      final TableName tableName = TableName.valueOf(table);
-	      HTableDescriptor dsc = _connection.getTable(tableName).getTableDescriptor();
-	  }
-      catch (IOException e)
-	  {
-	      throw new DBException(e);
-	  }
+  /**
+   * Initialize any state for this DB. Called once per DB instance; there is one
+   * DB instance per client thread.
+   */
+  @Override
+  public void init() throws DBException {
+    if ("true"
+        .equals(getProperties().getProperty("clientbuffering", "false"))) {
+      this.clientSideBuffering = true;
+    }
+    if (getProperties().containsKey("writebuffersize")) {
+      writeBufferSize =
+          Long.parseLong(getProperties().getProperty("writebuffersize"));
     }
 
-    /**
-     * Cleanup any state for this DB.
-     * Called once per DB instance; there is one DB instance per client thread.
-     */
-    @Override
-    public void cleanup() throws DBException
-    {
-        // Get the measurements instance as this is the only client that should
-        // count clean up time like an update if client-side buffering is
-        // enabled.
-        Measurements _measurements = Measurements.getMeasurements();
-        try {
-            long st=System.nanoTime();
-            if (_bufferedMutator != null) {
-                _bufferedMutator.close();
-            }
-            if (_table != null) {
-                _table.close();
-            }
-            long en=System.nanoTime();
-            final String type = _clientSideBuffering ? "UPDATE" : "CLEANUP";
-            _measurements.measure(type, (int)((en-st)/1000));
-            _connection.close();
-        } catch (IOException e) {
-            throw new DBException(e);
-        }
+    if (getProperties().getProperty("durability") != null) {
+      this.durability =
+          Durability.valueOf(getProperties().getProperty("durability"));
     }
 
-    public void getHTable(String table) throws IOException
-    {
-        final TableName tableName = TableName.valueOf(table);
-        this._table = this._connection.getTable(tableName);
-        //suggestions from http://ryantwopointoh.blogspot.com/2009/01/performance-of-hbase-importing.html
-        if (_clientSideBuffering) {
-            final BufferedMutatorParams p = new BufferedMutatorParams(tableName);
-            p.writeBufferSize(_writeBufferSize);
-            this._bufferedMutator = this._connection.getBufferedMutator(p);
-        }
+    try {
+      connection = ConnectionFactory.createConnection(config);
+    } catch (java.io.IOException e) {
+      throw new DBException(e);
     }
 
-    /**
-     * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
-     *
-     * @param table The name of the table
-     * @param key The record key of the record to read.
-     * @param fields The list of fields to read, or null for all of them
-     * @param result A HashMap of field/value pairs for the result
-     * @return Zero on success, a non-zero error code on error
-     */
-    public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
-    {
-        //if this is a "new" table, init HTable object.  Else, use existing one
-        if (!_tableName.equals(table)) {
-            _table = null;
-            try
-            {
-                getHTable(table);
-                _tableName = table;
-            }
-            catch (IOException e)
-            {
-                System.err.println("Error accessing HBase table: " + e);
-                return ServerError;
-            }
-        }
-
-        Result r = null;
-        try
-        {
-            if (_debug) {
-                System.out.println("Doing read from HBase columnfamily "+_columnFamily);
-                System.out.println("Doing read for key: "+key);
-            }
-            Get g = new Get(Bytes.toBytes(key));
-            if (fields == null) {
-                g.addFamily(_columnFamilyBytes);
-            } else {
-                for (String field : fields) {
-                    g.addColumn(_columnFamilyBytes, Bytes.toBytes(field));
-                }
-            }
-            r = _table.get(g);
-        }
-        catch (IOException e)
-        {
-            if (_debug) {
-                System.err.println("Error doing get: "+e);
-            }
-            return ServerError;
-        }
-        catch (ConcurrentModificationException e)
-        {
-            //do nothing for now...need to understand HBase concurrency model better
-            return ServerError;
-        }
-
-        if (r.isEmpty()) {
-            return NoMatchingRecord;
-        }
-
-        while (r.advance()) {
-            final Cell c = r.current();
-            result.put(Bytes.toString(CellUtil.cloneQualifier(c)),
-                    new ByteArrayByteIterator(CellUtil.cloneValue(c)));
-            if (_debug) {
-                System.out.println("Result for field: "+Bytes.toString(CellUtil.cloneQualifier(c))+
-                        " is: "+Bytes.toString(CellUtil.cloneValue(c)));
-            }
-        }
-        return Ok;
+    if ((getProperties().getProperty("debug") != null)
+        && (getProperties().getProperty("debug").compareTo("true") == 0)) {
+      debug = true;
     }
 
-    /**
-     * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a HashMap.
-     *
-     * @param table The name of the table
-     * @param startkey The record key of the first record to read.
-     * @param recordcount The number of records to read
-     * @param fields The list of fields to read, or null for all of them
-     * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
-     * @return Zero on success, a non-zero error code on error
-     */
-    @Override
-    public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
-    {
-        //if this is a "new" table, init HTable object.  Else, use existing one
-        if (!_tableName.equals(table)) {
-            _table = null;
-            try
-            {
-                getHTable(table);
-                _tableName = table;
-            }
-            catch (IOException e)
-            {
-                System.err.println("Error accessing HBase table: "+e);
-                return ServerError;
-            }
-        }
-
-        Scan s = new Scan(Bytes.toBytes(startkey));
-        //HBase has no record limit.  Here, assume recordcount is small enough to bring back in one call.
-        //We get back recordcount records
-        s.setCaching(recordcount);
-        if (this._usePageFilter) {
-          s.setFilter(new PageFilter(recordcount));
-        }
-
-        //add specified fields or else all fields
-        if (fields == null)
-        {
-            s.addFamily(_columnFamilyBytes);
-        }
-        else
-        {
-            for (String field : fields)
-            {
-                s.addColumn(_columnFamilyBytes,Bytes.toBytes(field));
-            }
-        }
-
-        //get results
-        ResultScanner scanner = null;
-        try {
-            scanner = _table.getScanner(s);
-            int numResults = 0;
-            for (Result rr = scanner.next(); rr != null; rr = scanner.next())
-            {
-                //get row key
-                String key = Bytes.toString(rr.getRow());
-
-                if (_debug)
-                {
-                    System.out.println("Got scan result for key: "+key);
-                }
-
-                HashMap<String,ByteIterator> rowResult = new HashMap<String, ByteIterator>();
-
-                while (rr.advance()) {
-                    final Cell cell = rr.current();
-                    rowResult.put(
-                            Bytes.toString(CellUtil.cloneQualifier(cell)),
-                            new ByteArrayByteIterator(CellUtil.cloneValue(cell)));
-                }
-
-                //add rowResult to result vector
-                result.add(rowResult);
-                numResults++;
-
-                // PageFilter does not guarantee that the number of results is <= pageSize, so this
-                // break is required.
-                if (numResults >= recordcount) //if hit recordcount, bail out
-                {
-                    break;
-                }
-            } //done with row
-
-        }
-
-        catch (IOException e) {
-            if (_debug)
-            {
-                System.out.println("Error in getting/parsing scan result: "+e);
-            }
-            return ServerError;
-        }
-
-        finally {
-            if (scanner != null)
-            {
-                scanner.close();
-            }
-        }
-
-        return Ok;
+    if ("false"
+        .equals(getProperties().getProperty("hbase.usepagefilter", "true"))) {
+      usePageFilter = false;
     }
 
-    /**
-     * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
-     * record key, overwriting any existing values with the same field name.
-     *
-     * @param table The name of the table
-     * @param key The record key of the record to write
-     * @param values A HashMap of field/value pairs to update in the record
-     * @return Zero on success, a non-zero error code on error
-     */
-    @Override
-    public int update(String table, String key, HashMap<String,ByteIterator> values)
-    {
-        //if this is a "new" table, init HTable object.  Else, use existing one
-        if (!_tableName.equals(table)) {
-            _table = null;
-            try
-            {
-                getHTable(table);
-                _tableName = table;
-            }
-            catch (IOException e)
-            {
-                System.err.println("Error accessing HBase table: "+e);
-                return ServerError;
-            }
-        }
+    columnFamily = getProperties().getProperty("columnfamily");
+    if (columnFamily == null) {
+      System.err.println("Error, must specify a columnfamily for HBase table");
+      throw new DBException("No columnfamily specified");
+    }
+    columnFamilyBytes = Bytes.toBytes(columnFamily);
 
+    // Terminate right now if table does not exist, since the client
+    // will not propagate this error upstream once the workload
+    // starts.
+    String table = com.yahoo.ycsb.workloads.CoreWorkload.table;
+    try {
+      final TableName tName = TableName.valueOf(table);
+      HTableDescriptor dsc =
+          connection.getTable(tName).getTableDescriptor();
+    } catch (IOException e) {
+      throw new DBException(e);
+    }
+  }
 
-        if (_debug) {
-            System.out.println("Setting up put for key: "+key);
-        }
-        Put p = new Put(Bytes.toBytes(key));
-        p.setDurability(_durability);
-        for (Map.Entry<String, ByteIterator> entry : values.entrySet())
-        {
-            byte[] value = entry.getValue().toArray();
-            if (_debug) {
-                System.out.println("Adding field/value " + entry.getKey() + "/"+
-                        Bytes.toStringBinary(value) + " to put request");
-            }
-            p.addColumn(_columnFamilyBytes,Bytes.toBytes(entry.getKey()), value);
-        }
+  /**
+   * Cleanup any state for this DB. Called once per DB instance; there is one DB
+   * instance per client thread.
+   */
+  @Override
+  public void cleanup() throws DBException {
+    // Get the measurements instance as this is the only client that should
+    // count clean up time like an update if client-side buffering is
+    // enabled.
+    Measurements measurements = Measurements.getMeasurements();
+    try {
+      long st = System.nanoTime();
+      if (bufferedMutator != null) {
+        bufferedMutator.close();
+      }
+      if (currentTable != null) {
+        currentTable.close();
+      }
+      long en = System.nanoTime();
+      final String type = clientSideBuffering ? "UPDATE" : "CLEANUP";
+      measurements.measure(type, (int) ((en - st) / 1000));
+      connection.close();
+    } catch (IOException e) {
+      throw new DBException(e);
+    }
+  }
 
-        try
-        {
-            if (_clientSideBuffering) {
-                Preconditions.checkNotNull(_bufferedMutator);
-                _bufferedMutator.mutate(p);
-            } else{
-                _table.put(p);
-            }
-        }
-        catch (IOException e)
-        {
-            if (_debug) {
-                System.err.println("Error doing put: "+e);
-            }
-            return ServerError;
-        }
-        catch (ConcurrentModificationException e)
-        {
-            //do nothing for now...hope this is rare
-            return ServerError;
-        }
+  public void getHTable(String table) throws IOException {
+    final TableName tName = TableName.valueOf(table);
+    this.currentTable = this.connection.getTable(tName);
+    // suggestions from
+    // http://ryantwopointoh.blogspot.com/2009/01/
+    // performance-of-hbase-importing.html
+    if (clientSideBuffering) {
+      final BufferedMutatorParams p = new BufferedMutatorParams(tName);
+      p.writeBufferSize(writeBufferSize);
+      this.bufferedMutator = this.connection.getBufferedMutator(p);
+    }
+  }
 
-        return Ok;
+  /**
+   * Read a record from the database. Each field/value pair from the result will
+   * be stored in a HashMap.
+   *
+   * @param table
+   *          The name of the table
+   * @param key
+   *          The record key of the record to read.
+   * @param fields
+   *          The list of fields to read, or null for all of them
+   * @param result
+   *          A HashMap of field/value pairs for the result
+   * @return Zero on success, a non-zero error code on error
+   */
+  public Status read(String table, String key, Set<String> fields,
+      HashMap<String, ByteIterator> result) {
+    // if this is a "new" table, init HTable object. Else, use existing one
+    if (!tableName.equals(table)) {
+      currentTable = null;
+      try {
+        getHTable(table);
+        tableName = table;
+      } catch (IOException e) {
+        System.err.println("Error accessing HBase table: " + e);
+        return Status.ERROR;
+      }
     }
 
-    /**
-     * Insert a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
-     * record key.
-     *
-     * @param table The name of the table
-     * @param key The record key of the record to insert.
-     * @param values A HashMap of field/value pairs to insert in the record
-     * @return Zero on success, a non-zero error code on error
-     */
-    @Override
-    public int insert(String table, String key, HashMap<String,ByteIterator> values)
-    {
-        return update(table,key,values);
+    Result r = null;
+    try {
+      if (debug) {
+        System.out
+            .println("Doing read from HBase columnfamily " + columnFamily);
+        System.out.println("Doing read for key: " + key);
+      }
+      Get g = new Get(Bytes.toBytes(key));
+      if (fields == null) {
+        g.addFamily(columnFamilyBytes);
+      } else {
+        for (String field : fields) {
+          g.addColumn(columnFamilyBytes, Bytes.toBytes(field));
+        }
+      }
+      r = currentTable.get(g);
+    } catch (IOException e) {
+      if (debug) {
+        System.err.println("Error doing get: " + e);
+      }
+      return Status.ERROR;
+    } catch (ConcurrentModificationException e) {
+      // do nothing for now...need to understand HBase concurrency model better
+      return Status.ERROR;
     }
 
-    /**
-     * Delete a record from the database.
-     *
-     * @param table The name of the table
-     * @param key The record key of the record to delete.
-     * @return Zero on success, a non-zero error code on error
-     */
-    @Override
-    public int delete(String table, String key)
-    {
-        //if this is a "new" table, init HTable object.  Else, use existing one
-        if (!_tableName.equals(table)) {
-            _table = null;
-            try
-            {
-                getHTable(table);
-                _tableName = table;
-            }
-            catch (IOException e)
-            {
-                System.err.println("Error accessing HBase table: "+e);
-                return ServerError;
-            }
-        }
-
-        if (_debug) {
-            System.out.println("Doing delete for key: "+key);
-        }
-
-        final Delete d = new Delete(Bytes.toBytes(key));
-        d.setDurability(_durability);
-        try
-        {
-            if (_clientSideBuffering) {
-                Preconditions.checkNotNull(_bufferedMutator);
-                _bufferedMutator.mutate(d);
-            } else {
-                _table.delete(d);
-            }
-        }
-        catch (IOException e)
-        {
-            if (_debug) {
-                System.err.println("Error doing delete: "+e);
-            }
-            return ServerError;
-        }
-
-        return Ok;
+    if (r.isEmpty()) {
+      return Status.NOT_FOUND;
     }
 
-    @VisibleForTesting
-    void setConfiguration(final Configuration config) {
-        this.config = config;
+    while (r.advance()) {
+      final Cell c = r.current();
+      result.put(Bytes.toString(CellUtil.cloneQualifier(c)),
+          new ByteArrayByteIterator(CellUtil.cloneValue(c)));
+      if (debug) {
+        System.out.println(
+            "Result for field: " + Bytes.toString(CellUtil.cloneQualifier(c))
+                + " is: " + Bytes.toString(CellUtil.cloneValue(c)));
+      }
     }
+    return Status.OK;
+  }
+
+  /**
+   * Perform a range scan for a set of records in the database. Each field/value
+   * pair from the result will be stored in a HashMap.
+   *
+   * @param table
+   *          The name of the table
+   * @param startkey
+   *          The record key of the first record to read.
+   * @param recordcount
+   *          The number of records to read
+   * @param fields
+   *          The list of fields to read, or null for all of them
+   * @param result
+   *          A Vector of HashMaps, where each HashMap is a set field/value
+   *          pairs for one record
+   * @return Zero on success, a non-zero error code on error
+   */
+  @Override
+  public Status scan(String table, String startkey, int recordcount,
+      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    // if this is a "new" table, init HTable object. Else, use existing one
+    if (!tableName.equals(table)) {
+      currentTable = null;
+      try {
+        getHTable(table);
+        tableName = table;
+      } catch (IOException e) {
+        System.err.println("Error accessing HBase table: " + e);
+        return Status.ERROR;
+      }
+    }
+
+    Scan s = new Scan(Bytes.toBytes(startkey));
+    // HBase has no record limit. Here, assume recordcount is small enough to
+    // bring back in one call.
+    // We get back recordcount records
+    s.setCaching(recordcount);
+    if (this.usePageFilter) {
+      s.setFilter(new PageFilter(recordcount));
+    }
+
+    // add specified fields or else all fields
+    if (fields == null) {
+      s.addFamily(columnFamilyBytes);
+    } else {
+      for (String field : fields) {
+        s.addColumn(columnFamilyBytes, Bytes.toBytes(field));
+      }
+    }
+
+    // get results
+    ResultScanner scanner = null;
+    try {
+      scanner = currentTable.getScanner(s);
+      int numResults = 0;
+      for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
+        // get row key
+        String key = Bytes.toString(rr.getRow());
+
+        if (debug) {
+          System.out.println("Got scan result for key: " + key);
+        }
+
+        HashMap<String, ByteIterator> rowResult =
+            new HashMap<String, ByteIterator>();
+
+        while (rr.advance()) {
+          final Cell cell = rr.current();
+          rowResult.put(Bytes.toString(CellUtil.cloneQualifier(cell)),
+              new ByteArrayByteIterator(CellUtil.cloneValue(cell)));
+        }
+
+        // add rowResult to result vector
+        result.add(rowResult);
+        numResults++;
+
+        // PageFilter does not guarantee that the number of results is <=
+        // pageSize, so this
+        // break is required.
+        if (numResults >= recordcount) {// if hit recordcount, bail out
+          break;
+        }
+      } // done with row
+    } catch (IOException e) {
+      if (debug) {
+        System.out.println("Error in getting/parsing scan result: " + e);
+      }
+      return Status.ERROR;
+    } finally {
+      if (scanner != null) {
+        scanner.close();
+      }
+    }
+
+    return Status.OK;
+  }
+
+  /**
+   * Update a record in the database. Any field/value pairs in the specified
+   * values HashMap will be written into the record with the specified record
+   * key, overwriting any existing values with the same field name.
+   *
+   * @param table
+   *          The name of the table
+   * @param key
+   *          The record key of the record to write
+   * @param values
+   *          A HashMap of field/value pairs to update in the record
+   * @return Zero on success, a non-zero error code on error
+   */
+  @Override
+  public Status update(String table, String key,
+      HashMap<String, ByteIterator> values) {
+    // if this is a "new" table, init HTable object. Else, use existing one
+    if (!tableName.equals(table)) {
+      currentTable = null;
+      try {
+        getHTable(table);
+        tableName = table;
+      } catch (IOException e) {
+        System.err.println("Error accessing HBase table: " + e);
+        return Status.ERROR;
+      }
+    }
+
+    if (debug) {
+      System.out.println("Setting up put for key: " + key);
+    }
+    Put p = new Put(Bytes.toBytes(key));
+    p.setDurability(durability);
+    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+      byte[] value = entry.getValue().toArray();
+      if (debug) {
+        System.out.println("Adding field/value " + entry.getKey() + "/"
+            + Bytes.toStringBinary(value) + " to put request");
+      }
+      p.addColumn(columnFamilyBytes, Bytes.toBytes(entry.getKey()), value);
+    }
+
+    try {
+      if (clientSideBuffering) {
+        Preconditions.checkNotNull(bufferedMutator);
+        bufferedMutator.mutate(p);
+      } else {
+        currentTable.put(p);
+      }
+    } catch (IOException e) {
+      if (debug) {
+        System.err.println("Error doing put: " + e);
+      }
+      return Status.ERROR;
+    } catch (ConcurrentModificationException e) {
+      // do nothing for now...hope this is rare
+      return Status.ERROR;
+    }
+
+    return Status.OK;
+  }
+
+  /**
+   * Insert a record in the database. Any field/value pairs in the specified
+   * values HashMap will be written into the record with the specified record
+   * key.
+   *
+   * @param table
+   *          The name of the table
+   * @param key
+   *          The record key of the record to insert.
+   * @param values
+   *          A HashMap of field/value pairs to insert in the record
+   * @return Zero on success, a non-zero error code on error
+   */
+  @Override
+  public Status insert(String table, String key,
+      HashMap<String, ByteIterator> values) {
+    return update(table, key, values);
+  }
+
+  /**
+   * Delete a record from the database.
+   *
+   * @param table
+   *          The name of the table
+   * @param key
+   *          The record key of the record to delete.
+   * @return Zero on success, a non-zero error code on error
+   */
+  @Override
+  public Status delete(String table, String key) {
+    // if this is a "new" table, init HTable object. Else, use existing one
+    if (!tableName.equals(table)) {
+      currentTable = null;
+      try {
+        getHTable(table);
+        tableName = table;
+      } catch (IOException e) {
+        System.err.println("Error accessing HBase table: " + e);
+        return Status.ERROR;
+      }
+    }
+
+    if (debug) {
+      System.out.println("Doing delete for key: " + key);
+    }
+
+    final Delete d = new Delete(Bytes.toBytes(key));
+    d.setDurability(durability);
+    try {
+      if (clientSideBuffering) {
+        Preconditions.checkNotNull(bufferedMutator);
+        bufferedMutator.mutate(d);
+      } else {
+        currentTable.delete(d);
+      }
+    } catch (IOException e) {
+      if (debug) {
+        System.err.println("Error doing delete: " + e);
+      }
+      return Status.ERROR;
+    }
+
+    return Status.OK;
+  }
+
+  @VisibleForTesting
+  void setConfiguration(final Configuration newConfig) {
+    this.config = newConfig;
+  }
 }
 
-/* For customized vim control
- * set autoindent
- * set si
- * set shiftwidth=4
+/*
+ * For customized vim control set autoindent set si set shiftwidth=4
  */
-

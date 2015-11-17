@@ -172,16 +172,6 @@ public class CoreWorkload extends Workload
    */
   private boolean dataintegrity;
 
-  /**
-   * Response values for data integrity checks.
-   * Need to be multiples of 1000 to match bucket offsets of
-   * measurements/OneMeasurementHistogram.java.
-   */
-  private final int DATA_INT_MATCH = 0;
-  private final int DATA_INT_DEVIATE = 1000;
-  private final int DATA_INT_UNEXPECTED_NULL = 2000;
-
-
 	/**
 	 * The name of the property for the proportion of transactions that are reads.
 	 */
@@ -546,7 +536,7 @@ public class CoreWorkload extends Workload
 		int keynum=keysequence.nextInt();
 		String dbkey = buildKeyName(keynum);
 		HashMap<String, ByteIterator> values = buildValues(dbkey);
-		if (db.insert(table,dbkey,values) == 0)
+		if (db.insert(table,dbkey,values).equals(Status.OK))
 			return true;
 		else
 			return false;
@@ -594,20 +584,23 @@ public class CoreWorkload extends Workload
    * Bucket 2 means null data was returned when some data was expected. 
    */
   protected void verifyRow(String key, HashMap<String,ByteIterator> cells) {
-    int matchType = DATA_INT_MATCH;
+    Status verifyStatus = Status.OK;
+    long startTime = System.nanoTime();
     if (!cells.isEmpty()) {
       for (Map.Entry<String, ByteIterator> entry : cells.entrySet()) {
         if (!entry.getValue().toString().equals(
             buildDeterministicValue(key, entry.getKey()))) {
-          matchType = DATA_INT_DEVIATE;
+          verifyStatus = Status.UNEXPECTED_STATE;
           break;
         }
       }
     } else {
       //This assumes that null data is never valid
-      matchType = DATA_INT_UNEXPECTED_NULL;
+      verifyStatus = Status.ERROR;
     }
-    Measurements.getMeasurements().measure("VERIFY", matchType);
+    long endTime = System.nanoTime();
+    _measurements.measure("VERIFY", (int) (endTime - startTime) / 1000);
+    _measurements.reportStatus("VERIFY",verifyStatus);
   }
 
     int nextKeynum() {
@@ -644,7 +637,10 @@ public class CoreWorkload extends Workload
 
 			fields=new HashSet<String>();
 			fields.add(fieldname);
-		}
+		} else if (dataintegrity) {
+      // pass the full field list if dataintegrity is on for verification
+      fields = new HashSet<String>(fieldnames);
+    }
 
     HashMap<String,ByteIterator> cells =
         new HashMap<String,ByteIterator>();

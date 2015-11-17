@@ -16,24 +16,25 @@
  */
 package com.yahoo.ycsb.db;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.List;
-import java.util.Arrays;
-import java.util.Vector;
-import java.util.HashMap;
-import java.util.Properties;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.DB;
+import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
+import com.yahoo.ycsb.StringByteIterator;
 
 import org.tarantool.TarantoolConnection16;
 import org.tarantool.TarantoolConnection16Impl;
 import org.tarantool.TarantoolException;
 
-import com.yahoo.ycsb.DB;
-import com.yahoo.ycsb.DBException;
-import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.StringByteIterator;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.Vector;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class TarantoolClient extends DB {
 
@@ -82,7 +83,7 @@ public class TarantoolClient extends DB {
 	}
 
 	@Override
-	public int insert(String table, String key, HashMap<String, ByteIterator> values) {
+	public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
 		int j = 0;
 		String[] tuple = new String[1 + 2 * values.size()];
 		tuple[0] = key;
@@ -95,9 +96,9 @@ public class TarantoolClient extends DB {
 			this.connection.replace(this.spaceNo, tuple);
 		} catch (TarantoolException exc) {
 			logger.log(Level.SEVERE,"Can't insert element", exc);
-			return 1;
+			return Status.ERROR;
 		}
-		return 0;
+		return Status.OK;
 	}
 
 	private HashMap<String, ByteIterator> tuple_convert_filter (List<String> input,
@@ -112,23 +113,23 @@ public class TarantoolClient extends DB {
 	}
 
 	@Override
-	public int read(String table, String key, Set<String> fields,
+	public Status read(String table, String key, Set<String> fields,
 			HashMap<String, ByteIterator> result) {
 		try {
 			List<String> response;
 			response = this.connection.select(this.spaceNo, 0, Arrays.asList(key), 0, 1, 0);
 			result = tuple_convert_filter(response, fields);
-			return 0;
+			return Status.OK;
 		} catch (TarantoolException exc) {
 			logger.log(Level.SEVERE,"Can't select element", exc);
-			return 1;
+			return Status.ERROR;
 		} catch (NullPointerException exc) {
-			return 1;
+			return Status.ERROR;
 		}
 	}
 
 	@Override
-	public int scan(String table, String startkey,
+	public Status scan(String table, String startkey,
 			int recordcount, Set<String> fields,
 			Vector<HashMap<String, ByteIterator>> result) {
 		List<List<String>> response;
@@ -136,32 +137,32 @@ public class TarantoolClient extends DB {
 			response = this.connection.select(this.spaceNo, 0, Arrays.asList(startkey), 0, recordcount, 6);
 		} catch (TarantoolException exc) {
 			logger.log(Level.SEVERE,"Can't select range elements", exc);
-			return 1;
+			return Status.ERROR;
 		} catch (NullPointerException exc) {
-			return 1;
+			return Status.ERROR;
 		}
 		for(List<String> i: response) {
 			HashMap<String, ByteIterator> temp = tuple_convert_filter(i, fields);
 			if (!temp.isEmpty())
 				result.add((HashMap<String, ByteIterator>) temp.clone());
 		}
-		return 0;
+		return Status.OK;
 	}
 
 	@Override
-	public int delete(String table, String key) {
+	public Status delete(String table, String key) {
 		try {
 			this.connection.delete(this.spaceNo, Arrays.asList(key));
 		} catch (TarantoolException exc) {
 			logger.log(Level.SEVERE,"Can't delete element", exc);
-			return 1;
+			return Status.ERROR;
 		} catch (NullPointerException e) {
-			return 1;
+			return Status.ERROR;
 		}
-		return 0;
+		return Status.OK;
 	}
 	@Override
-	public int update(String table, String key,
+	public Status update(String table, String key,
 			HashMap<String, ByteIterator> values) {
 		int j = 0;
 		String[] tuple = new String[1 + 2 * values.size()];
@@ -175,9 +176,9 @@ public class TarantoolClient extends DB {
 			this.connection.replace(this.spaceNo, tuple);
 		} catch (TarantoolException exc) {
 			logger.log(Level.SEVERE,"Can't replace element", exc);
-			return 1;
+			return Status.ERROR;
 		}
-		return 0;
+		return Status.OK;
 
 	}
 }
