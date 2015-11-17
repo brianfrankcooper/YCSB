@@ -121,15 +121,15 @@ public class Measurements
     else {
       throw new IllegalArgumentException("unknown "+MEASUREMENT_INTERVAL+"="+mIntervalString);
     }
-  }
+    }
 
-  OneMeasurement constructOneMeasurement(String name)
-  {
-    switch (_measurementType)
+    OneMeasurement constructOneMeasurement(String name)
     {
-    case 0:
-      return new OneMeasurementHistogram(name, _props);
-    case 1:
+      switch (_measurementType)
+      {
+        case 0:
+          return new OneMeasurementHistogram(name, _props);
+        case 1:
       return new OneMeasurementHdrHistogram(name, _props);
     case 2:
       return new TwoInOneMeasurement(name,

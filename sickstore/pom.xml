@@ -12,17 +12,22 @@
 	<name>SickStore Binding</name>
 	<packaging>jar</packaging> 
 
-	<repositories>
+<!--	<repositories>
     <repository>
       <id>nosqlmark</id>
       <name>NoSQLMark repo</name>
       <url>http://nosqlmark.informatik.uni-hamburg.de/maven2/</url>
     </repository>
-	</repositories>
+	</repositories>-->
 
 	<dependencies>
 		<dependency>
-			<groupId>de.uni-hamburg.informatik.nosqlmark</groupId>
+			<groupId>de.unihamburg.informatik</groupId>
+			<artifactId>sickstore_binding_2.11</artifactId>
+			<version>1.0.0</version>
+		</dependency>
+		<dependency>
+			<groupId>de.unihamburg</groupId>
 			<artifactId>sickstore</artifactId>
 			<version>${sickstore.version}</version>
 		</dependency>
