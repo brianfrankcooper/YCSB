@@ -61,12 +61,25 @@ public class GoogleDatastoreClient extends DB {
     DELETE
   }
 
+  /**
+   * Defines a EntityGroupingMode enum used in this class.
+   */
+  private enum EntityGroupingMode {
+    ONE_ENTITY_PER_GROUP,
+    MULTI_ENTITY_PER_GROUP
+  }
+
   private static Logger logger =
       Logger.getLogger(GoogleDatastoreClient.class);
 
   // Read consistency defaults to "eventual" (this is the same as other
   // DB client, such as DynamoDB). User can override this via configure.
   private ReadConsistency readConsistency = ReadConsistency.EVENTUAL;
+
+  private EntityGroupingMode entityGroupingMode =
+      EntityGroupingMode.ONE_ENTITY_PER_GROUP;
+
+  private String rootEntityName;
 
   private Datastore datastore = null;
 
@@ -122,6 +135,26 @@ public class GoogleDatastoreClient extends DB {
             readConsistencyConfig + ". Expecting STRONG or EVENTUAL.");
       }
     }
+
+    //
+    // Entity Grouping Mode (googledatastore.entitygroupingmode), see
+    // documentation in conf/googledatastore.properties.
+    //
+    String entityGroupingConfig = getProperties().getProperty(
+        "googledatastore.entityGroupingMode", null);
+    if (entityGroupingConfig != null) {
+      try {
+        this.entityGroupingMode = EntityGroupingMode.valueOf(
+            entityGroupingConfig.trim().toUpperCase());
+      } catch (IllegalArgumentException e) {
+        throw new DBException("Invalid entity grouping mode specified: " +
+            entityGroupingConfig + ". Expecting ONE_ENTITY_PER_GROUP or " +
+            "MULTI_ENTITY_PER_GROUP.");
+      }
+    }
+
+    this.rootEntityName = getProperties().getProperty(
+        "googledatastore.rootEntityName", "YCSB_ROOT_ENTITY");
 
     try {
       // Setup the connection to Google Cloud Datastore with the credentials
@@ -227,9 +260,15 @@ public class GoogleDatastoreClient extends DB {
   }
 
   private Key.Builder buildPrimaryKey(String table, String key) {
-    return Key.newBuilder().addPathElement(
-        Key.PathElement.newBuilder()
-        .setKind(table)
+    Key.Builder result = Key.newBuilder();
+
+    if (this.entityGroupingMode == EntityGroupingMode.MULTI_ENTITY_PER_GROUP) {
+      // All entities are in side the same group when we are in this mode.
+      result.addPathElement(Key.PathElement.newBuilder().setKind(table).
+          setName(rootEntityName));
+    }
+
+    return result.addPathElement(Key.PathElement.newBuilder().setKind(table)
         .setName(key));
   }
 
