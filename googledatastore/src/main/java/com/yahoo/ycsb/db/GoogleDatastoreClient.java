@@ -234,7 +234,8 @@ public class GoogleDatastoreClient extends DB {
   @Override
   public Status scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-      return Status.OK;
+      // TODO: Implement Scan as query on primary key.
+      return Status.NOT_IMPLEMENTED;
   }
 
   @Override
