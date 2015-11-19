@@ -20,7 +20,8 @@ package com.yahoo.ycsb.db;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.services.datastore.DatastoreV1.*;
 import com.google.api.services.datastore.DatastoreV1.CommitRequest.Mode;
-import com.google.api.services.datastore.DatastoreV1.ReadOptions.ReadConsistency;
+import com.google.api.services.datastore.DatastoreV1.ReadOptions
+  .ReadConsistency;
 import com.google.api.services.datastore.client.Datastore;
 import com.google.api.services.datastore.client.DatastoreException;
 import com.google.api.services.datastore.client.DatastoreFactory;
@@ -93,7 +94,7 @@ public class GoogleDatastoreClient extends DB {
   public void init() throws DBException {
     String debug = getProperties().getProperty("googledatastore.debug", null);
     if (null != debug && "true".equalsIgnoreCase(debug)) {
-        logger.setLevel(Level.DEBUG);
+      logger.setLevel(Level.DEBUG);
     }
 
     // We need the following 3 essential properties to initialize datastore:
@@ -115,11 +116,11 @@ public class GoogleDatastoreClient extends DB {
           "Required property \"privateKeyFile\" missing.");
     }
 
-    String serviceAccount = getProperties().getProperty(
-        "googledatastore.serviceAccount", null);
-    if (serviceAccount == null) {
+    String serviceAccountEmail = getProperties().getProperty(
+        "googledatastore.serviceAccountEmail", null);
+    if (serviceAccountEmail == null) {
       throw new DBException(
-          "Required property \"serviceAccount\" missing.");
+          "Required property \"serviceAccountEmail\" missing.");
     }
 
     // Below are properties related to benchmarking.
@@ -161,10 +162,10 @@ public class GoogleDatastoreClient extends DB {
       // obtained from the configure.
       DatastoreOptions.Builder options = new DatastoreOptions.Builder();
       Credential credential = DatastoreHelper.getServiceAccountCredential(
-          serviceAccount, privateKeyFile);
+          serviceAccountEmail, privateKeyFile);
       logger.info("Using JWT Service Account credential.");
-      logger.info("DatasetID: " + datasetId + "\nService Account Email: " +
-          serviceAccount + "\nPrivate Key File Path: " + privateKeyFile);
+      logger.info("DatasetID: " + datasetId + ", Service Account Email: " +
+          serviceAccountEmail + ", Private Key File Path: " + privateKeyFile);
 
       datastore = DatastoreFactory.get().create(
           options.credential(credential).dataset(datasetId).build());
@@ -178,7 +179,7 @@ public class GoogleDatastoreClient extends DB {
             exception.getMessage());
     }
 
-    logger.info("Datastore client instance created:\n" +
+    logger.info("Datastore client instance created: " +
         datastore.toString());
   }
 
@@ -192,7 +193,7 @@ public class GoogleDatastoreClient extends DB {
     // Note above, datastore lookupRequest always reads the entire entity, it
     // does not support reading a subset of "fields" (properties) of an entity.
 
-    logger.debug("Built lookup request as:\n" + lookupRequest.toString());
+    logger.debug("Built lookup request as: " + lookupRequest.toString());
 
     LookupResponse response = null;
     try {
@@ -212,6 +213,10 @@ public class GoogleDatastoreClient extends DB {
 
     if (response.getFoundCount() == 0) {
       return new Status("ERROR-404", "Not Found, key is: " + key);
+    } else if (response.getFoundCount() > 1) {
+      // We only asked to lookup for one key, shouldn't have got more than one
+      // entity back. Unexpected State.
+      return Status.UNEXPECTED_STATE;
     }
 
     Entity entity = response.getFound(0).getEntity();
@@ -234,8 +239,8 @@ public class GoogleDatastoreClient extends DB {
   @Override
   public Status scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-      // TODO: Implement Scan as query on primary key.
-      return Status.NOT_IMPLEMENTED;
+    // TODO: Implement Scan as query on primary key.
+    return Status.NOT_IMPLEMENTED;
   }
 
   @Override
@@ -330,5 +335,5 @@ public class GoogleDatastoreClient extends DB {
     }
 
     return Status.OK;
- }
+  }
 }
