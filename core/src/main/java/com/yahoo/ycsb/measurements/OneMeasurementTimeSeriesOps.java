@@ -26,40 +26,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 
-class SeriesUnit
-{
-  /**
-   * @param time
-   * @param average
-   */
-  public SeriesUnit(long time, double average, long count) {
-    this.time = time;
-    this.average = average;
-    this.count = count;
-  }
-  public SeriesUnit(long time, double average) {
-    this.time = time;
-    this.average = average;
-    this.count = 0;
-  }
-  public long time;
-  public double average;
-  public long count;
-}
+import com.yahoo.ycsb.measurements.SeriesUnit;
 
 /**
  * A time series measurement of a metric, such as READ LATENCY.
  */
-public class OneMeasurementTimeSeries extends OneMeasurement
+public class OneMeasurementTimeSeriesOps extends OneMeasurement
 {
 
-  /**
-   * Granularity for time series; measurements will be averaged in chunks of this granularity. Units are milliseconds.
-   */
-  public static final String GRANULARITY="timeseries.granularity";
-  public static final String GRANULARITY_DEFAULT="1000";
+  public static final String INTERVAL="timeseries.intervalSecs";
+  public static final String INTERVAL_DEFAULT="1";
 
-  int _granularity;
+  int _intervalMS;
   Vector<SeriesUnit> _measurements;
 
   long start=-1;
@@ -76,10 +54,10 @@ public class OneMeasurementTimeSeries extends OneMeasurement
   int min=-1;
   int max=-1;
 
-  public OneMeasurementTimeSeries(String name, Properties props)
+  public OneMeasurementTimeSeriesOps(String name, Properties props)
   {
     super(name);
-    _granularity=Integer.parseInt(props.getProperty(GRANULARITY,GRANULARITY_DEFAULT));
+    _intervalMS=1000*Integer.parseInt(props.getProperty(INTERVAL,INTERVAL_DEFAULT));
     _measurements=new Vector<SeriesUnit>();
   }
 
@@ -93,12 +71,14 @@ public class OneMeasurementTimeSeries extends OneMeasurement
       start=now;
     }
 
-    long unit=((now-start)/_granularity)*_granularity;
+    // We want output units to be seconds. sorry for the mess...
+    long unit=((now-start)/_intervalMS)*(_intervalMS/1000);
 
     if ( (unit>currentunit) || (forceend) )
     {
+      // Average latency
       double avg=((double)sum)/((double)count);
-      _measurements.add(new SeriesUnit(currentunit,avg));
+      _measurements.add(new SeriesUnit(unit,avg,count));
 
       currentunit=unit;
 
@@ -144,7 +124,8 @@ public class OneMeasurementTimeSeries extends OneMeasurement
 
     exportStatusCounts(exporter);
     for (SeriesUnit unit : _measurements) {
-      exporter.write(getName(), Long.toString(unit.time), unit.average);
+      // Granularity of 1 sec is good enough for me
+      exporter.write("at time, ops", Long.toString(unit.time), unit.count);
     }
   }
 
