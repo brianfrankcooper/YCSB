@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Google Inc. All Rights Reserved.
+ * Copyright 2015 YCSB contributors. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -49,7 +49,6 @@ import javax.annotation.Nullable;
 
 /**
  * Google Cloud Datastore Client for YCSB.
- * Author: stfeng@
  */
 
 public class GoogleDatastoreClient extends DB {
@@ -73,9 +72,9 @@ public class GoogleDatastoreClient extends DB {
   private static Logger logger =
       Logger.getLogger(GoogleDatastoreClient.class);
 
-  // Read consistency defaults to "eventual" (this is the same as other
-  // DB client, such as DynamoDB). User can override this via configure.
-  private ReadConsistency readConsistency = ReadConsistency.EVENTUAL;
+  // Read consistency defaults to "STRONG" per YCSB guidance.
+  // User can override this via configure.
+  private ReadConsistency readConsistency = ReadConsistency.STRONG;
 
   private EntityGroupingMode entityGroupingMode =
       EntityGroupingMode.ONE_ENTITY_PER_GROUP;
@@ -172,11 +171,13 @@ public class GoogleDatastoreClient extends DB {
 
     } catch (GeneralSecurityException exception) {
       throw new DBException("Security error connecting to the datastore: " +
-            exception.getMessage());
+            "cause: " + exception.getCause() +
+            " details: " + exception.getMessage());
 
     } catch (IOException exception) {
       throw new DBException("I/O error connecting to the datastore: " +
-            exception.getMessage());
+            "cause: " + exception.getCause() +
+            " details: " + exception.getMessage());
     }
 
     logger.info("Datastore client instance created: " +
