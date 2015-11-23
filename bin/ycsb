@@ -69,15 +69,9 @@ DATABASES = {
     "mongodb-async": "com.yahoo.ycsb.db.AsyncMongoDbClient",
     "nosqldb"      : "com.yahoo.ycsb.db.NoSqlDbClient",
     "orientdb"     : "com.yahoo.ycsb.db.OrientDBClient",
-<<<<<<< HEAD
-    "redis"        : "com.yahoo.ycsb.db.RedisClient", 
-    "voldemort"    : "com.yahoo.ycsb.db.VoldemortClient", 
-    "riak"         : "com.yahoo.ycsb.db.RiakDBClient"
-=======
     "redis"        : "com.yahoo.ycsb.db.RedisClient",
     "tarantool"    : "com.yahoo.ycsb.db.TarantoolClient",
     "voldemort"    : "com.yahoo.ycsb.db.VoldemortClient"
->>>>>>> upstream/master
 }
 
 OPTIONS = {
