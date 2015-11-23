@@ -207,7 +207,6 @@ public final class RiakDBClient extends DB {
 	 */
 	@Override
 	public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
-		System.out.println(key + ": " + BinaryValue.create(serializeTable(values)));
         try {
         	final Location location = new Location(new Namespace(bucketType, table), key);
             final RiakObject object = new RiakObject();
