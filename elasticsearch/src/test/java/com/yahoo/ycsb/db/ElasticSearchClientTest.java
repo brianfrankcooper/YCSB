@@ -1,21 +1,42 @@
+/**
+ * Copyright (c) 2012 YCSB contributors. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
+ */
+
 /*
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
 package com.yahoo.ycsb.db;
 
+import static org.testng.AssertJUnit.assertEquals;
+
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
-import java.util.HashMap;
-import java.util.Set;
-import java.util.Vector;
-import static org.testng.AssertJUnit.*;
+
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import java.util.HashMap;
+import java.util.Set;
+import java.util.Vector;
 
 /**
  *
@@ -65,9 +86,8 @@ public class ElasticSearchClientTest {
     @Test
     public void testInsert() {
         System.out.println("insert");
-        int expResult = 0;
-        int result = instance.insert(MOCK_TABLE, MOCK_KEY0, MOCK_DATA);
-        assertEquals(expResult, result);
+        Status result = instance.insert(MOCK_TABLE, MOCK_KEY0, MOCK_DATA);
+        assertEquals(Status.OK, result);
     }
 
     /**
@@ -76,9 +96,8 @@ public class ElasticSearchClientTest {
     @Test
     public void testDelete() {
         System.out.println("delete");
-        int expResult = 0;
-        int result = instance.delete(MOCK_TABLE, MOCK_KEY1);
-        assertEquals(expResult, result);
+        Status result = instance.delete(MOCK_TABLE, MOCK_KEY1);
+        assertEquals(Status.OK, result);
     }
 
     /**
@@ -89,9 +108,8 @@ public class ElasticSearchClientTest {
         System.out.println("read");
         Set<String> fields = MOCK_DATA.keySet();
         HashMap<String, ByteIterator> resultParam = new HashMap<String, ByteIterator>(10);
-        int expResult = 0;
-        int result = instance.read(MOCK_TABLE, MOCK_KEY1, fields, resultParam);
-        assertEquals(expResult, result);
+        Status result = instance.read(MOCK_TABLE, MOCK_KEY1, fields, resultParam);
+        assertEquals(Status.OK, result);
     }
 
     /**
@@ -107,9 +125,8 @@ public class ElasticSearchClientTest {
             newValues.put("field" + i, new StringByteIterator("newvalue" + i));
         }
 
-        int expResult = 0;
-        int result = instance.update(MOCK_TABLE, MOCK_KEY1, newValues);
-        assertEquals(expResult, result);
+        Status result = instance.update(MOCK_TABLE, MOCK_KEY1, newValues);
+        assertEquals(Status.OK, result);
 
         //validate that the values changed
         HashMap<String, ByteIterator> resultParam = new HashMap<String, ByteIterator>(10);
@@ -130,8 +147,7 @@ public class ElasticSearchClientTest {
         int recordcount = 10;
         Set<String> fields = MOCK_DATA.keySet();
         Vector<HashMap<String, ByteIterator>> resultParam = new Vector<HashMap<String, ByteIterator>>(10);
-        int expResult = 0;
-        int result = instance.scan(MOCK_TABLE, MOCK_KEY1, recordcount, fields, resultParam);
-        assertEquals(expResult, result);
+        Status result = instance.scan(MOCK_TABLE, MOCK_KEY1, recordcount, fields, resultParam);
+        assertEquals(Status.OK, result);
     }
 }

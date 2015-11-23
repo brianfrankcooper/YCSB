@@ -1,3 +1,20 @@
+/**
+ * Copyright (c) 2012 YCSB contributors. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
+ */
+
 package com.yahoo.ycsb.db;
 
 import java.util.HashMap;
@@ -15,137 +32,141 @@ import voldemort.versioning.Versioned;
 
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.StringByteIterator;
 
-
+/**
+ * YCSB binding for
+ * <a href="http://www.project-voldemort.com/voldemort/">Voldemort</a>.
+ */
 public class VoldemortClient extends DB {
+  private static final Logger LOGGER = Logger.getLogger(VoldemortClient.class);
 
-	private StoreClient<String, HashMap<String, String>> storeClient;
-	private SocketStoreClientFactory socketFactory;
-	private String storeName;
-    private final Logger logger = Logger.getLogger(VoldemortClient.class);
-    
-    public static final int OK = 0;
-    public static final int ERROR = -1;
-    public static final int NOT_FOUND = -2;
-    
-    /**
-     * Initialize the DB layer. This accepts all properties allowed by the Voldemort client.
-     * A store maps to a table.
-     * Required : bootstrap_urls
-     * Additional property : store_name -> to preload once, should be same as -t <table>
-     * 
-     * {@linktourl http://project-voldemort.com/javadoc/client/voldemort/client/ClientConfig.html}
-     */
-	public void init() throws DBException {
-		ClientConfig clientConfig = new ClientConfig(getProperties());
-		socketFactory = new SocketStoreClientFactory(clientConfig);
-		
-		// Retrieve store name
-		storeName = getProperties().getProperty("store_name", "usertable");
-		
-		// Use store name to retrieve client
-		storeClient = socketFactory.getStoreClient(storeName);
-		if ( storeClient == null )
-			throw new DBException("Unable to instantiate store client");
-		
-	}
-	
-	public void cleanup() throws DBException {
-		socketFactory.close();
-	}
-	
-	@Override
-	public int delete(String table, String key) {
-		if ( checkStore(table) == ERROR ) {
-			return ERROR;
-		}
-		
-		if ( storeClient.delete(key) )
-			return OK;
-		else
-			return ERROR;
-	}
+  private StoreClient<String, HashMap<String, String>> storeClient;
+  private SocketStoreClientFactory socketFactory;
+  private String storeName;
 
-	@Override
-	public int insert(String table, String key, HashMap<String, ByteIterator> values) {
-		if ( checkStore(table) == ERROR ) {
-			return ERROR;
-		}
-		storeClient.put(key, (HashMap<String,String>)StringByteIterator.getStringMap(values));
-		return OK;
-	}
+  /**
+   * Initialize the DB layer. This accepts all properties allowed by the
+   * Voldemort client. A store maps to a table. Required : bootstrap_urls
+   * Additional property : store_name -> to preload once, should be same as -t
+   * {@link ClientConfig}
+   */
+  public void init() throws DBException {
+    ClientConfig clientConfig = new ClientConfig(getProperties());
+    socketFactory = new SocketStoreClientFactory(clientConfig);
 
-	@Override
-	public int read(String table, String key, Set<String> fields,
-			HashMap<String, ByteIterator> result) {
-		if ( checkStore(table) == ERROR ) {
-			return ERROR;
-		}
-		
-		Versioned<HashMap<String, String>> versionedValue = storeClient.get(key);
-		
-		if ( versionedValue == null )
-			return NOT_FOUND;
-		
-		if ( fields != null ) {
-			for (String field : fields) {
-				String val = versionedValue.getValue().get(field);
-				if ( val != null )
-				    result.put(field, new StringByteIterator(val));
-			}
-		} else {
-			StringByteIterator.putAllAsByteIterators(result, versionedValue.getValue());
-		}
-		return OK;
-	}
+    // Retrieve store name
+    storeName = getProperties().getProperty("store_name", "usertable");
 
-	@Override
-	public int scan(String table, String startkey, int recordcount,
-			Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-		logger.warn("Voldemort does not support Scan semantics");
-		return OK;
-	}
+    // Use store name to retrieve client
+    storeClient = socketFactory.getStoreClient(storeName);
+    if (storeClient == null) {
+      throw new DBException("Unable to instantiate store client");
+    }
+  }
 
-	@Override
-	public int update(String table, String key, HashMap<String, ByteIterator> values) {
-		if ( checkStore(table) == ERROR ) {
-			return ERROR;
-		}
-		
-		Versioned<HashMap<String, String>> versionedValue = storeClient.get(key);
-		HashMap<String, String> value = new HashMap<String, String>();
-		VectorClock version;
-		if ( versionedValue != null ) {
-			version = ((VectorClock) versionedValue.getVersion()).incremented(0, 1);
-			value = versionedValue.getValue();
-			for (Entry<String, ByteIterator> entry : values.entrySet()) {
-				value.put(entry.getKey(), entry.getValue().toString());
-			}
-		} else {
-			version = new VectorClock();
-			StringByteIterator.putAllAsStrings(value, values);
-		}
-		
-		storeClient.put(key, Versioned.value(value, version));
-		return OK;
-	}
-	
-	private int checkStore(String table) {
-		if ( table.compareTo(storeName) != 0 ) {
-			try {
-				storeClient = socketFactory.getStoreClient(table);
-				if ( storeClient == null ) {
-					logger.error("Could not instantiate storeclient for " + table);
-					return ERROR;
-				}
-				storeName = table;
-			} catch ( Exception e ) {
-				return ERROR;
-			}
-		}
-		return OK;
-	}
+  public void cleanup() throws DBException {
+    socketFactory.close();
+  }
+
+  @Override
+  public Status delete(String table, String key) {
+    if (checkStore(table) == Status.ERROR) {
+      return Status.ERROR;
+    }
+
+    if (storeClient.delete(key)) {
+      return Status.OK;
+    }
+    return Status.ERROR;
+  }
+
+  @Override
+  public Status insert(String table, String key,
+      HashMap<String, ByteIterator> values) {
+    if (checkStore(table) == Status.ERROR) {
+      return Status.ERROR;
+    }
+    storeClient.put(key,
+        (HashMap<String, String>) StringByteIterator.getStringMap(values));
+    return Status.OK;
+  }
+
+  @Override
+  public Status read(String table, String key, Set<String> fields,
+      HashMap<String, ByteIterator> result) {
+    if (checkStore(table) == Status.ERROR) {
+      return Status.ERROR;
+    }
+
+    Versioned<HashMap<String, String>> versionedValue = storeClient.get(key);
+
+    if (versionedValue == null) {
+      return Status.NOT_FOUND;
+    }
+
+    if (fields != null) {
+      for (String field : fields) {
+        String val = versionedValue.getValue().get(field);
+        if (val != null) {
+          result.put(field, new StringByteIterator(val));
+        }
+      }
+    } else {
+      StringByteIterator.putAllAsByteIterators(result,
+          versionedValue.getValue());
+    }
+    return Status.OK;
+  }
+
+  @Override
+  public Status scan(String table, String startkey, int recordcount,
+      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    LOGGER.warn("Voldemort does not support Scan semantics");
+    return Status.OK;
+  }
+
+  @Override
+  public Status update(String table, String key,
+      HashMap<String, ByteIterator> values) {
+    if (checkStore(table) == Status.ERROR) {
+      return Status.ERROR;
+    }
+
+    Versioned<HashMap<String, String>> versionedValue = storeClient.get(key);
+    HashMap<String, String> value = new HashMap<String, String>();
+    VectorClock version;
+    if (versionedValue != null) {
+      version = ((VectorClock) versionedValue.getVersion()).incremented(0, 1);
+      value = versionedValue.getValue();
+      for (Entry<String, ByteIterator> entry : values.entrySet()) {
+        value.put(entry.getKey(), entry.getValue().toString());
+      }
+    } else {
+      version = new VectorClock();
+      StringByteIterator.putAllAsStrings(value, values);
+    }
+
+    storeClient.put(key, Versioned.value(value, version));
+    return Status.OK;
+  }
+
+  private Status checkStore(String table) {
+    if (table.compareTo(storeName) != 0) {
+      try {
+        storeClient = socketFactory.getStoreClient(table);
+        if (storeClient == null) {
+          LOGGER.error("Could not instantiate storeclient for " + table);
+          return Status.ERROR;
+        }
+        storeName = table;
+      } catch (Exception e) {
+        return Status.ERROR;
+      }
+    }
+    return Status.OK;
+  }
 
 }

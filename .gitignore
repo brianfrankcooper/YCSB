@@ -1,10 +1,18 @@
-/elasticsearch/target/
+# ignore compiled byte code
+target
+
+# ignore output files from testing
+output*
+
+# ignore standard eclipse
 .project
 .classpath
-test-output
-*.swp
-.DS_Store
-target
 .settings
-*.config
+.checkstyle
 
+# ignore standard intellij
+.idea/
+*.iml
+*.iws
+
+.DS_Store

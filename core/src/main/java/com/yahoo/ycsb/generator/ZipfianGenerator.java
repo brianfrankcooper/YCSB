@@ -276,12 +276,12 @@ public class ZipfianGenerator extends IntegerGenerator
 
 		if (uz<1.0)
 		{
-			return 0;
+			return base;
 		}
 
 		if (uz<1.0+Math.pow(0.5,theta)) 
 		{
-			return 1;
+			return base + 1;
 		}
 
 		long ret=base+(long)((itemcount) * Math.pow(eta*u - eta + 1, alpha));

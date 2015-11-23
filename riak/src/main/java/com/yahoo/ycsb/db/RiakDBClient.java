@@ -15,11 +15,10 @@
  */
 package com.yahoo.ycsb.db;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URL;
-import java.net.URLDecoder;
+import com.yahoo.ycsb.DB;
+import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
+
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -54,23 +53,55 @@ import static com.yahoo.ycsb.db.RiakUtils.*;
  */
 public final class RiakDBClient extends DB {
 
-	// Array of nodes in the Riak cluster or load balancer in front of the cluster, 
-	// IP Addresses or Fully Qualified Domain Names (FQDNs)
-	// e.g.: {"127.0.0.1","127.0.0.2","127.0.0.3","127.0.0.4","127.0.0.5"} or
-	// {"riak1.mydomain.com","riak2.mydomain.com","riak3.mydomain.com","riak4.mydomain.com","riak5.mydomain.com"}
-	private String[] nodesArray = {"127.0.0.1"};
-	
-	// Note: DEFAULT_BUCKET_TYPE value is set when configuring
-	// the Riak cluster as described in the project README.md
-	private String bucketType = "ycsb";
-	
-	private int rvalue = 2;
-	private int wvalue = 2;
-	private int readRetryCount = 5;
+	private boolean _debug = false;
+
+	public static final String HOST_PROPERTY = "riak.hosts";
+    public static final String PORT_PROPERTY = "riak.port";
+    public static final String BUCKET_TYPE_PROPERTY = "riak.bucket_type";
+    public static final String R_VALUE_PROPERTY = "riak.r_val";
+    public static final String W_VALUE_PROPERTY = "riak.w_val";
+    public static final String READ_RETRY_COUNT_PROPERTY = "riak.read_retry_count";
+
+    public static final String[] DEFAULT_HOSTS = {"127.0.0.1"};
+    public static final int DEFAULT_PORT = 8087;
+    public static final String DEFAULT_BUCKET_TYPE = "ycsb";
+    public static int DEFAULT_R_VALUE = 2;
+    public static int DEFAULT_W_VALUE = 2;
+	public static int DEFAULT_READ_RETRY_COUNT_VALUE = 5;
+
+	private String[] hosts = DEFAULT_HOSTS;
+	private int port = DEFAULT_PORT;
+	private String bucketType = DEFAULT_BUCKET_TYPE;
+	private int rvalue = DEFAULT_R_VALUE;
+	private int wvalue = DEFAULT_W_VALUE;
+	private int readRetryCount = DEFAULT_READ_RETRY_COUNT_VALUE;
 	
 	private RiakClient riakClient;
 	private RiakCluster riakCluster;
-	
+
+	public void init() throws DBException {
+		loadProperties();
+
+		if (_debug) {
+			System.out.println("Hosts: " + Arrays.toString(hosts));
+			System.out.println("Port: " + port);
+			System.out.println("Bucket Type: " + bucketType);
+			System.out.println("R Val: " + rvalue);
+			System.out.println("W Val: " + wvalue);
+			System.out.println("Read Retry Count: " + readRetryCount);
+		}
+
+		final RiakNode.Builder builder = new RiakNode.Builder();
+        List<RiakNode> nodes;
+		try {
+			nodes = RiakNode.Builder.buildNodes(builder, Arrays.asList(hosts));
+			riakCluster = new RiakCluster.Builder(nodes).build();
+	        riakCluster.start();
+	        riakClient = new RiakClient(riakCluster);
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		}
+	}
 	
 	/**
 	 * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
@@ -82,7 +113,7 @@ public final class RiakDBClient extends DB {
 	 * @return Zero on success, a non-zero error code on error
 	 */
 	@Override
-	public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+	public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
         try {
         	final Location location = new Location(new Namespace(bucketType, table), key);
             final FetchValue fv = new FetchValue.Builder(location)
@@ -90,13 +121,13 @@ public final class RiakDBClient extends DB {
             	.build();
             final FetchValue.Response response = fetch(fv);
             if (response.isNotFound()) {
-            	return 1;
+            	return Status.ERROR;
             }
-            return 0;
+            return Status.OK;
         } 
         catch (Exception e) {
             e.printStackTrace();
-            return 1;
+            return Status.ERROR;
         }
 	}
 	
@@ -114,7 +145,7 @@ public final class RiakDBClient extends DB {
 	 * @return Zero on success, a non-zero error code on error
 	 */
 	@Override
-	public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+	public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
 		try {
 			Namespace ns = new Namespace(bucketType, table);
 			IntIndexQuery iiq = new IntIndexQuery
@@ -133,16 +164,16 @@ public final class RiakDBClient extends DB {
 				
 	            final FetchValue.Response keyResponse = fetch(fv);
 	            if (keyResponse.isNotFound()) {
-	            	return 1;
+	            	return Status.ERROR;
 	            }
 			}
-			return 0;
+			return Status.OK;
 		} catch (ExecutionException e) {
 			e.printStackTrace();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		return 1;
+		return Status.ERROR;
 	}
 	
 	
@@ -175,7 +206,7 @@ public final class RiakDBClient extends DB {
 	 * @return Zero on success, a non-zero error code on error
 	 */
 	@Override
-	public int insert(String table, String key, HashMap<String, ByteIterator> values) {
+	public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
         try {
         	final Location location = new Location(new Namespace(bucketType, table), key);
             final RiakObject object = new RiakObject();
@@ -186,11 +217,11 @@ public final class RiakDBClient extends DB {
                 .withOption(Option.W, new Quorum(wvalue))
                 .build();
             riakClient.execute(store);
-            return 0;
+            return Status.OK;
         } 
         catch (Exception e) {
             e.printStackTrace();
-            return 1;
+            return Status.ERROR;
         }
 	}
 	
@@ -206,7 +237,7 @@ public final class RiakDBClient extends DB {
 	 * @return Zero on success, a non-zero error code on error
 	 */
 	@Override
-	public int update(String table, String key, HashMap<String, ByteIterator> values) {
+	public Status update(String table, String key, HashMap<String, ByteIterator> values) {
         return insert(table, key, values);
 	}
 		
@@ -219,82 +250,16 @@ public final class RiakDBClient extends DB {
 	 * @return Zero on success, a non-zero error code on error
 	 */
 	@Override
-	public int delete(String table, String key) {
+	public Status delete(String table, String key) {
         try {
         	final Location location = new Location(new Namespace(bucketType, table), key);
             final DeleteValue dv = new DeleteValue.Builder(location).build();
             riakClient.execute(dv);
         } catch (Exception e) {
             e.printStackTrace();
-            return 1;
+            return Status.ERROR;
         }
-        return 0;
-	}
-
-	
-	
-
-	public void init() throws DBException {
-		loadProperties();
-		final RiakNode.Builder builder = new RiakNode.Builder();
-        List<RiakNode> nodes;
-		try {
-			nodes = RiakNode.Builder.buildNodes(builder, Arrays.asList(nodesArray));
-			riakCluster = new RiakCluster.Builder(nodes).build();
-	        riakCluster.start();
-	        riakClient = new RiakClient(riakCluster);
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	private boolean loadProperties() {
-		Properties defaultProps = new Properties();
-		try
-		{
-			File f = getPropertiesFile();
-			if(f.exists() && !f.isDirectory()) {
-				FileInputStream propertyFile = new FileInputStream(f);
-				defaultProps.load(propertyFile);
-				propertyFile.close();
-				
-				nodesArray = defaultProps.getProperty("NODES", "127.0.0.1").split(",");
-				bucketType = defaultProps.getProperty("DEFAULT_BUCKET_TYPE","ycsb");
-				rvalue = Integer.parseInt( defaultProps.getProperty("R_VALUE", "2") );
-				wvalue = Integer.parseInt( defaultProps.getProperty("W_VALUE", "2") );
-				readRetryCount = Integer.parseInt( defaultProps.getProperty("READ_RETRY_COUNT", "5") );			
-			}
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			return false;
-		}
-		return true;
-	}
-	
-	private File getPropertiesFile() {
-		File f = new File("riak-binding/lib/riak.properties");
-		if(f.exists() && !f.isDirectory()) {
-			return f;
-		}
-		else {
-			f = new File("riak/target/riak.properties");
-			if(f.exists() && !f.isDirectory()) {
-				return f;
-			}
-			else {
-				URL url = RiakDBClient.class.getProtectionDomain().getCodeSource().getLocation();
-				String jarPath = null;
-				try {
-					jarPath = URLDecoder.decode(url.getFile(), "UTF-8");
-				} catch (UnsupportedEncodingException e) {
-					e.printStackTrace();
-					return null;
-				}
-				f = new File(jarPath + "riak.properties");
-				return f;
-			}
-		}
+        return Status.OK;
 	}
 
 	public void cleanup() throws DBException
@@ -305,5 +270,46 @@ public final class RiakDBClient extends DB {
 		catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	private void loadProperties()
+	{
+		Properties props = getProperties();
+
+		String portString = props.getProperty(PORT_PROPERTY);
+        if (portString != null) {
+            port = Integer.parseInt(portString);
+        }
+
+        String hostsString = props.getProperty(HOST_PROPERTY);
+        if (hostsString != null) {
+            hosts = hostsString.split(",");
+        }
+
+        String bucketTypeString = props.getProperty(BUCKET_TYPE_PROPERTY);
+        if (bucketTypeString != null) {
+        	bucketType = bucketTypeString;
+        }
+
+        String rvalueString = props.getProperty(R_VALUE_PROPERTY);
+        if (rvalueString != null) {
+        	rvalue = Integer.parseInt(rvalueString);
+        }
+
+        String wvalueString = props.getProperty(W_VALUE_PROPERTY);
+        if (wvalueString != null) {
+        	wvalue = Integer.parseInt(wvalueString);
+        }
+
+        String readRetryCountString = props.getProperty(READ_RETRY_COUNT_PROPERTY);
+        if (readRetryCountString != null) {
+        	readRetryCount = Integer.parseInt(readRetryCountString);
+        }
+
+        String debugString = props.getProperty("debug");
+        if (debugString != null)
+        {
+        	_debug = Boolean.parseBoolean(debugString);
+        }
 	}
 }
