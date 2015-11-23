@@ -1,8 +1,26 @@
+/**
+ * Copyright (c) 2012 YCSB contributors. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
+ */
+
 package com.yahoo.ycsb.db;
 
+import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
-import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 
 import org.infinispan.Cache;
@@ -28,10 +46,6 @@ import java.util.Vector;
  */
 public class InfinispanClient extends DB {
 
-   private static final int OK = 0;
-   private static final int ERROR = -1;
-   private static final int NOT_FOUND = -2;
-
    // An optimisation for clustered mode
    private final boolean clustered;
 
@@ -56,7 +70,7 @@ public class InfinispanClient extends DB {
       infinispanManager = null;
    }
 
-   public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+   public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
       try {
          Map<String, String> row;
          if (clustered) {
@@ -73,18 +87,18 @@ public class InfinispanClient extends DB {
 	       for (String field : fields) result.put(field, new StringByteIterator(row.get(field)));
             }
          }
-         return OK;
+         return Status.OK;
       } catch (Exception e) {
-         return ERROR;
+         return Status.ERROR;
       }
    }
 
-   public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+   public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
       logger.warn("Infinispan does not support scan semantics");
-      return OK;
+      return Status.OK;
    }
 
-   public int update(String table, String key, HashMap<String, ByteIterator> values) {
+   public Status update(String table, String key, HashMap<String, ByteIterator> values) {
       try {
          if (clustered) {
             AtomicMap<String, String> row = AtomicMapLookup.getAtomicMap(infinispanManager.getCache(table), key);
@@ -100,13 +114,13 @@ public class InfinispanClient extends DB {
             }
          }
 
-         return OK;
+         return Status.OK;
       } catch (Exception e) {
-         return ERROR;
+         return Status.ERROR;
       }
    }
 
-   public int insert(String table, String key, HashMap<String, ByteIterator> values) {
+   public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
       try {
          if (clustered) {
             AtomicMap<String, String> row = AtomicMapLookup.getAtomicMap(infinispanManager.getCache(table), key);
@@ -116,21 +130,21 @@ public class InfinispanClient extends DB {
             infinispanManager.getCache(table).put(key, values);
          }
 
-         return OK;
+         return Status.OK;
       } catch (Exception e) {
-         return ERROR;
+         return Status.ERROR;
       }
    }
 
-   public int delete(String table, String key) {
+   public Status delete(String table, String key) {
       try {
          if (clustered)
             AtomicMapLookup.removeAtomicMap(infinispanManager.getCache(table), key);
          else
             infinispanManager.getCache(table).remove(key);
-         return OK;
+         return Status.OK;
       } catch (Exception e) {
-         return ERROR;
+         return Status.ERROR;
       }
    }
 }

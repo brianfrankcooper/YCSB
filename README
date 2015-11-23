@@ -1,5 +1,0 @@
-Yahoo! Cloud System Benchmark (YCSB) - Riak Client
-==================================================
-Forked from: https://github.com/brianfrankcooper/YCSB/
-
-See ReadMe at https://github.com/basho-labs/YCSB/tree/master/riak for information on how to implement the Riak YCSB client binding.

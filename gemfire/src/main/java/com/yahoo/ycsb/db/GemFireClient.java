@@ -1,10 +1,21 @@
-package com.yahoo.ycsb.db;
+/**
+ * Copyright (c) 2013 - 2014 YCSB Contributors. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
+ */
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+package com.yahoo.ycsb.db;
 
 import com.gemstone.gemfire.cache.Cache;
 import com.gemstone.gemfire.cache.CacheFactory;
@@ -22,7 +33,13 @@ import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
-import com.yahoo.ycsb.StringByteIterator;
+import com.yahoo.ycsb.Status;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.Vector;
 
 /**
  * VMware vFabric GemFire client for the YCSB benchmark.<br />
@@ -48,12 +65,6 @@ import com.yahoo.ycsb.StringByteIterator;
  *
  */
 public class GemFireClient extends DB {
-
-  /** Return code when operation succeeded */
-  private static final int SUCCESS = 0;
-
-  /** Return code when operation did not succeed */
-  private static final int ERROR = -1;
 
   /** property name of the port where GemFire server is listening for connections */
   private static final String SERVERPORT_PROPERTY_NAME = "gemfire.serverport";
@@ -126,48 +137,48 @@ public class GemFireClient extends DB {
   }
   
   @Override
-  public int read(String table, String key, Set<String> fields,
+  public Status read(String table, String key, Set<String> fields,
       HashMap<String, ByteIterator> result) {
     Region<String, Map<String, byte[]>> r = getRegion(table);
     Map<String, byte[]> val = r.get(key);
     if (val != null) {
       if (fields == null) {
         for (String k : val.keySet()) {
-          result.put(key, new ByteArrayByteIterator(val.get(key)));
+          result.put(k, new ByteArrayByteIterator(val.get(k)));
         }
       } else {
         for (String field : fields) {
           result.put(field, new ByteArrayByteIterator(val.get(field)));
         }
       }
-      return SUCCESS;
+      return Status.OK;
     }
-    return ERROR;
+    return Status.ERROR;
   }
 
   @Override
-  public int scan(String table, String startkey, int recordcount,
+  public Status scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     // GemFire does not support scan
-    return ERROR;
+    return Status.ERROR;
   }
 
   @Override
-  public int update(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
     getRegion(table).put(key, convertToBytearrayMap(values));
-    return 0;
+    return Status.OK;
   }
 
   @Override
-  public int insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
     getRegion(table).put(key, convertToBytearrayMap(values));
-    return 0;
+    return Status.OK;
   }
 
   @Override
-  public int delete(String table, String key) {
+  public Status delete(String table, String key) {
     getRegion(table).destroy(key);
-    return 0;
+    return Status.OK;
   }
 
   private Map<String, byte[]> convertToBytearrayMap(Map<String,ByteIterator> values) {

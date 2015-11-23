@@ -34,11 +34,11 @@ public class RandomByteIterator extends ByteIterator {
     int bytes = Utils.random().nextInt();
     try {
       buffer[base+0] = (byte)(((bytes) & 31) + ' ');
-      buffer[base+1] = (byte)(((bytes >> 5) & 31) + ' ');
-      buffer[base+2] = (byte)(((bytes >> 10) & 31) + ' ');
+      buffer[base+1] = (byte)(((bytes >> 5) & 63) + ' ');
+      buffer[base+2] = (byte)(((bytes >> 10) & 95) + ' ');
       buffer[base+3] = (byte)(((bytes >> 15) & 31) + ' ');
-      buffer[base+4] = (byte)(((bytes >> 20) & 31) + ' ');
-      buffer[base+5] = (byte)(((bytes >> 25) & 31) + ' ');
+      buffer[base+4] = (byte)(((bytes >> 20) & 63) + ' ');
+      buffer[base+5] = (byte)(((bytes >> 25) & 95) + ' ');
     } catch (ArrayIndexOutOfBoundsException e) { /* ignore it */ }
   }
 

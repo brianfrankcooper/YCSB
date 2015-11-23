@@ -69,10 +69,11 @@ public class DBWrapper extends DB
 	 */
 	public void cleanup() throws DBException
 	{
-    long st=System.nanoTime();
+        long ist=_measurements.getIntendedtartTimeNs();
+        long st = System.nanoTime();
 		_db.cleanup();
-    long en=System.nanoTime();
-    _measurements.measure("CLEANUP", (int)((en-st)/1000));
+        long en=System.nanoTime();
+        measure("CLEANUP",ist, st, en);
 	}
 
 	/**
@@ -82,15 +83,16 @@ public class DBWrapper extends DB
 	 * @param key The record key of the record to read.
 	 * @param fields The list of fields to read, or null for all of them
 	 * @param result A HashMap of field/value pairs for the result
-	 * @return Zero on success, a non-zero error code on error
+	 * @return The result of the operation.
 	 */
-	public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
+	public Status read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
 	{
-		long st=System.nanoTime();
-		int res=_db.read(table,key,fields,result);
+	    long ist=_measurements.getIntendedtartTimeNs();
+	    long st = System.nanoTime();
+	    Status res=_db.read(table,key,fields,result);
 		long en=System.nanoTime();
-		_measurements.measure("READ",(int)((en-st)/1000));
-		_measurements.reportReturnCode("READ",res);
+		measure("READ",ist, st, en);
+	    _measurements.reportStatus("READ",res);
 		return res;
 	}
 
@@ -102,17 +104,23 @@ public class DBWrapper extends DB
 	 * @param recordcount The number of records to read
 	 * @param fields The list of fields to read, or null for all of them
 	 * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
-	 * @return Zero on success, a non-zero error code on error
+	 * @return The result of the operation.
 	 */
-	public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
+	public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
 	{
-		long st=System.nanoTime();
-		int res=_db.scan(table,startkey,recordcount,fields,result);
+	    long ist=_measurements.getIntendedtartTimeNs();
+	    long st = System.nanoTime();
+	    Status res=_db.scan(table,startkey,recordcount,fields,result);
 		long en=System.nanoTime();
-		_measurements.measure("SCAN",(int)((en-st)/1000));
-		_measurements.reportReturnCode("SCAN",res);
+		measure("SCAN",ist, st, en);
+	    _measurements.reportStatus("SCAN",res);
 		return res;
 	}
+
+    private void measure(String op, long intendedStartTimeNanos, long startTimeNanos, long endTimeNanos) {
+        _measurements.measure(op, (int)((endTimeNanos-startTimeNanos)/1000));
+	    _measurements.measureIntended(op, (int)((endTimeNanos-intendedStartTimeNanos)/1000));
+    }
 	
 	/**
 	 * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
@@ -121,15 +129,16 @@ public class DBWrapper extends DB
 	 * @param table The name of the table
 	 * @param key The record key of the record to write.
 	 * @param values A HashMap of field/value pairs to update in the record
-	 * @return Zero on success, a non-zero error code on error
+	 * @return The result of the operation.
 	 */
-	public int update(String table, String key, HashMap<String,ByteIterator> values)
+	public Status update(String table, String key, HashMap<String,ByteIterator> values)
 	{
-		long st=System.nanoTime();
-		int res=_db.update(table,key,values);
+	    long ist=_measurements.getIntendedtartTimeNs();
+	    long st = System.nanoTime();
+		Status res=_db.update(table,key,values);
 		long en=System.nanoTime();
-		_measurements.measure("UPDATE",(int)((en-st)/1000));
-		_measurements.reportReturnCode("UPDATE",res);
+		measure("UPDATE",ist, st, en);
+		_measurements.reportStatus("UPDATE",res);
 		return res;
 	}
 
@@ -140,15 +149,16 @@ public class DBWrapper extends DB
 	 * @param table The name of the table
 	 * @param key The record key of the record to insert.
 	 * @param values A HashMap of field/value pairs to insert in the record
-	 * @return Zero on success, a non-zero error code on error
+	 * @return The result of the operation.
 	 */
-	public int insert(String table, String key, HashMap<String,ByteIterator> values)
+	public Status insert(String table, String key, HashMap<String,ByteIterator> values)
 	{
-		long st=System.nanoTime();
-		int res=_db.insert(table,key,values);
+	    long ist=_measurements.getIntendedtartTimeNs();
+	    long st = System.nanoTime();
+		Status res=_db.insert(table,key,values);
 		long en=System.nanoTime();
-		_measurements.measure("INSERT",(int)((en-st)/1000));
-		_measurements.reportReturnCode("INSERT",res);
+		measure("INSERT",ist, st, en);
+		_measurements.reportStatus("INSERT",res);
 		return res;
 	}
 
@@ -157,15 +167,16 @@ public class DBWrapper extends DB
 	 *
 	 * @param table The name of the table
 	 * @param key The record key of the record to delete.
-	 * @return Zero on success, a non-zero error code on error
+	 * @return The result of the operation.
 	 */
-	public int delete(String table, String key)
+	public Status delete(String table, String key)
 	{
-		long st=System.nanoTime();
-		int res=_db.delete(table,key);
+	    long ist=_measurements.getIntendedtartTimeNs();
+	    long st = System.nanoTime();
+		Status res=_db.delete(table,key);
 		long en=System.nanoTime();
-		_measurements.measure("DELETE",(int)((en-st)/1000));
-		_measurements.reportReturnCode("DELETE",res);
+		measure("DELETE",ist, st, en);
+		_measurements.reportStatus("DELETE",res);
 		return res;
 	}
 }
