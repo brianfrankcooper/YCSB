@@ -1,0 +1,127 @@
+<configuration scan="true" scanPeriod="5 seconds">
+
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>%date{ISO8601} | %-5level | %X{akkaSource} %msg%n</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="FILE"
+			  class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>logs/akka.log</file>
+		<encoder>
+			<pattern>%date{ISO8601} | %-5level | %X{akkaSource} %msg%n</pattern>
+		</encoder>
+		<rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+			<fileNamePattern>logs/akka.%i.log</fileNamePattern>
+			<minIndex>1</minIndex>
+			<maxIndex>20</maxIndex>
+	    </rollingPolicy>
+		<triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+			<maxFileSize>50MB</maxFileSize>
+		</triggeringPolicy>
+	</appender>
+
+	<appender name="NOSQLMARK-FILE"
+			  class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>logs/nosqlmark.log</file>
+		<encoder>
+			<pattern>%date{ISO8601} | %-5level | %X{akkaSource} %msg%n</pattern>
+		</encoder>
+		<rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+			<fileNamePattern>logs/nosqlmark.%i.log</fileNamePattern>
+			<minIndex>1</minIndex>
+			<maxIndex>20</maxIndex>
+		</rollingPolicy>
+		<triggeringPolicy
+				class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+			<maxFileSize>50MB</maxFileSize>
+		</triggeringPolicy>
+	</appender>
+
+	<appender name="TIMESERIES-FILE"
+			  class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>logs/timeseries.log</file>
+		<encoder>
+			<pattern>%msg%n</pattern>
+		</encoder>
+		<rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+			<fileNamePattern>logs/timeseries.%i.log</fileNamePattern>
+			<minIndex>1</minIndex>
+			<maxIndex>100</maxIndex>
+		</rollingPolicy>
+		<triggeringPolicy
+				class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+			<maxFileSize>50MB</maxFileSize>
+		</triggeringPolicy>
+	</appender>
+
+	<appender name="SICKSTORE-FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>logs/sickstore.log</file>
+		<encoder>
+			<pattern>%date{ISO8601} | %-5level | %msg%n</pattern>
+		</encoder>
+		<rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+			<fileNamePattern>logs/sickstore.%i.log</fileNamePattern>
+			<minIndex>1</minIndex>
+			<maxIndex>20</maxIndex>
+		</rollingPolicy>
+		<triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+			<maxFileSize>50MB</maxFileSize>
+		</triggeringPolicy>
+	</appender>
+
+	<logger name="NoSQLMark" level="debug" additivity="false">
+		<appender-ref ref="STDOUT"/>
+		<appender-ref ref="NOSQLMARK-FILE" />
+	</logger>
+
+	<logger name="ClusterMaster" level="debug" additivity="false">
+		<appender-ref ref="STDOUT"/>
+		<appender-ref ref="NOSQLMARK-FILE" />
+	</logger>
+
+
+	<logger name="NodeMaster" level="debug" additivity="false">
+		<appender-ref ref="STDOUT"/>
+		<appender-ref ref="NOSQLMARK-FILE" />
+	</logger>
+
+	<logger name="WorkerMaster" level="debug" additivity="false">
+		<appender-ref ref="STDOUT"/>
+		<appender-ref ref="NOSQLMARK-FILE"/>
+	</logger>
+
+	<logger name="Worker" level="debug" additivity="false">
+		<appender-ref ref="STDOUT"/>
+		<appender-ref ref="NOSQLMARK-FILE" />
+	</logger>
+
+	<logger name="Timeseries" level="debug" additivity="false">
+		<appender-ref ref="TIMESERIES-FILE" />
+	</logger>
+
+	<logger name="MeasurementsAggregator" level="debug" additivity="false">
+		<appender-ref ref="STDOUT"/>
+		<appender-ref ref="NOSQLMARK-FILE" />
+	</logger>
+
+	<logger name="Workload" level="debug" additivity="false">
+		<appender-ref ref="STDOUT"/>
+		<appender-ref ref="NOSQLMARK-FILE" />
+	</logger>
+
+	<logger name="ClientActor" level="debug" additivity="false">
+		<appender-ref ref="STDOUT"/>
+		<appender-ref ref="NOSQLMARK-FILE" />
+	</logger>
+
+	<logger name="sickstore" level="debug" additivity="false">
+		<appender-ref ref="SICKSTORE-FILE" />
+	</logger>
+
+	<root level="debug">
+		<appender-ref ref="FILE" />
+	</root>
+</configuration>

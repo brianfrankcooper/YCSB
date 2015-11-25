@@ -32,7 +32,7 @@ queryHandler:
             primary: true
             clientLatency: 0
             throughput:
-                max: 1000.0
+                max: 700.0
                 hickupAfter: 30000
                 hickupDuration: 1000
                 periodically: true
@@ -44,7 +44,7 @@ queryHandler:
             name: secondary1
             clientLatency: 0
             throughput:
-                max: 1000.0
+                max: 700.0
                 hickupAfter: 30000
                 hickupDuration: 1000
                 periodically: true
@@ -55,7 +55,7 @@ queryHandler:
             name: secondary2
             clientLatency: 0
             throughput:
-                max: 1000.0
+                max: 700.0
                 hickupAfter: 30000
                 hickupDuration: 1000
                 periodically: true

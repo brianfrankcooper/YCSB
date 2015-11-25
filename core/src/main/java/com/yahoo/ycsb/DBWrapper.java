@@ -23,6 +23,8 @@ import java.util.Set;
 import java.util.Vector;
 
 import com.yahoo.ycsb.measurements.Measurements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Wrapper around a "real" DB that measures latencies and counts return codes.
@@ -31,6 +33,10 @@ public class DBWrapper extends DB
 {
 	DB _db;
 	Measurements _measurements;
+
+	private static final Logger log = LoggerFactory.getLogger("Timeseries");
+	private long totalStartTime = Long.MAX_VALUE;
+	private Boolean logtimeseries = false;
 
 	public DBWrapper(DB db)
 	{
@@ -118,8 +124,19 @@ public class DBWrapper extends DB
 	}
 
     private void measure(String op, long intendedStartTimeNanos, long startTimeNanos, long endTimeNanos) {
-        _measurements.measure(op, (int)((endTimeNanos-startTimeNanos)/1000));
-	    _measurements.measureIntended(op, (int)((endTimeNanos-intendedStartTimeNanos)/1000));
+		if(startTimeNanos < totalStartTime) {
+			totalStartTime = intendedStartTimeNanos;
+			logtimeseries = Boolean.parseBoolean(getProperties().getProperty("logtimeseries"));
+		}
+		double latency = (endTimeNanos-startTimeNanos)/1000;
+		double intendedLatency = (endTimeNanos-intendedStartTimeNanos)/1000;
+		int nanoToMilli = 1000000;
+		if(logtimeseries) {
+			log.debug((startTimeNanos - totalStartTime) / nanoToMilli  + "," + (endTimeNanos - totalStartTime) /nanoToMilli + "," + latency / 1000+ ",");
+			log.debug((intendedStartTimeNanos - totalStartTime) / nanoToMilli + "," + (endTimeNanos - totalStartTime) / nanoToMilli + ",," + intendedLatency / 1000);
+		}
+        _measurements.measure(op, (int) latency);
+	    _measurements.measureIntended(op, (int) intendedLatency);
     }
 	
 	/**
