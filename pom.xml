@@ -108,6 +108,7 @@ LICENSE file.
     <module>dynamodb</module>
     <module>elasticsearch</module>
     <module>gemfire</module>
+    <module>googledatastore</module>
     <module>hbase094</module>
     <module>hbase098</module>
     <module>hbase10</module>
