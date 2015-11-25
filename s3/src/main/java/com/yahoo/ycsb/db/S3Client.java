@@ -32,6 +32,7 @@ import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.*;
@@ -105,19 +106,19 @@ public class S3Client extends DB {
   *            The name of the bucket
   * @param key
   * The record key of the file to delete.
-  * @return Zero on success, a non-zero error code on error. See the
+  * @return OK on success, otherwise ERROR. See the
   * {@link DB} class's description for a discussion of error codes.
   */
   @Override
-  public int delete(String bucket, String key) {
+  public Status delete(String bucket, String key) {
     try {
       s3Client.deleteObject(new DeleteObjectRequest(bucket, key));
     } catch (Exception e){
       System.err.println("Not possible to delete the key "+key);
       e.printStackTrace();
-      return 1;
+      return Status.ERROR;
     }
-    return 0;
+    return Status.OK;
   }
   /**
   * Initialize any state for the storage.
@@ -252,11 +253,11 @@ public class S3Client extends DB {
   *            multiplied by the number of field. In this way the size 
   *            of the file to upload is determined by the fieldlength 
   *            and fieldcount parameters.
-  * @return Zero on success, a non-zero error code on error. See the
+  * @return OK on success, ERROR otherwise. See the
   *         {@link DB} class's description for a discussion of error codes.
   */    
   @Override
-  public int insert(String bucket, String key, 
+  public Status insert(String bucket, String key, 
       HashMap<String, ByteIterator> values) {
     return writeToStorage(bucket, key, values, true, sse, ssecKey);
   }
@@ -273,10 +274,10 @@ public class S3Client extends DB {
   *            it is null by default
   * @param result
   *          A HashMap of field/value pairs for the result
-  * @return Zero on success, a non-zero error code on error or "not found".
+  * @return OK on success, ERROR otherwise.
   */
   @Override
-  public int read(String bucket, String key, Set<String> fields, 
+  public Status read(String bucket, String key, Set<String> fields, 
         HashMap<String, ByteIterator> result) {
     return readFromStorage(bucket, key, result, ssecKey);
   }
@@ -291,11 +292,10 @@ public class S3Client extends DB {
   *            The file key of the file to write.
   * @param values
   *            A HashMap of field/value pairs to update in the record
-  * @return Zero on success, a non-zero error code on error. See this class's
-  *         description for a discussion of error codes.
+  * @return OK on success, ERORR otherwise.
   */
   @Override
-  public int update(String bucket, String key, 
+  public Status update(String bucket, String key, 
         HashMap<String, ByteIterator> values) {
     return writeToStorage(bucket, key, values, false, sse, ssecKey);
   }
@@ -314,11 +314,10 @@ public class S3Client extends DB {
   * @param result
   *            A Vector of HashMaps, where each HashMap is a set field/value
   *            pairs for one file
-  * @return Zero on success, a non-zero error code on error. See the
-  *         {@link DB} class's description for a discussion of error codes.
+  * @return OK on success, ERROR otherwise.
   */
   @Override
-  public int scan(String bucket, String startkey, int recordcount, 
+  public Status scan(String bucket, String startkey, int recordcount, 
         Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     return scanFromStorage(bucket, startkey, recordcount, result, ssecKey);
   }
@@ -336,7 +335,7 @@ public class S3Client extends DB {
   *            to S3. If false an existing object will be re-uploaded
   * 
   */
-  protected int writeToStorage(String bucket, String key, 
+  protected Status writeToStorage(String bucket, String key, 
         HashMap<String, ByteIterator> values, Boolean updateMarker, 
             String sseLocal, SSECustomerKey ssecLocal) {
     int totalSize = 0;
@@ -372,7 +371,7 @@ public class S3Client extends DB {
       } catch (Exception e){
         System.err.println("Not possible to get the object :"+key);
         e.printStackTrace();
-        return 1;
+        return Status.ERROR;
       }
     }
     byte[] destinationArray = new byte[totalSize];
@@ -401,7 +400,7 @@ public class S3Client extends DB {
         PutObjectResult res = 
             s3Client.putObject(putObjectRequest);
         if(res.getETag() == null) {
-          return 1;
+          return Status.ERROR;
         } else {
           if (sseLocal.equals("true")) {
             System.out.println("Uploaded object encryption status is " + 
@@ -414,14 +413,14 @@ public class S3Client extends DB {
       } catch (Exception e) {
         System.err.println("Not possible to write object :"+key);
         e.printStackTrace();
-        return 1;
+        return Status.ERROR;
       } finally {
-        return 0;
+        return Status.OK;
       }
     } catch (Exception e) {
       System.err.println("Error in the creation of the stream :"+e.toString());
       e.printStackTrace();
-      return 1;
+      return Status.ERROR;
     }
   }
 
@@ -436,7 +435,7 @@ public class S3Client extends DB {
   *            The Hash map where data from the object are written
   * 
   */
-  protected int readFromStorage(String bucket, String key, 
+  protected Status readFromStorage(String bucket, String key, 
         HashMap<String, ByteIterator> result, SSECustomerKey ssecLocal) {
     try {
       GetObjectRequest getObjectRequest = null;
@@ -465,9 +464,9 @@ public class S3Client extends DB {
     } catch (Exception e){
       System.err.println("Not possible to get the object "+key);
       e.printStackTrace();
-      return 1;
+      return Status.ERROR;
     } finally {
-      return 0;
+      return Status.OK;
     }
   }
 
@@ -487,7 +486,7 @@ public class S3Client extends DB {
   *            pairs for one file
   * 
   */
-  protected int scanFromStorage(String bucket, String startkey, 
+  protected Status scanFromStorage(String bucket, String startkey, 
       int recordcount, Vector<HashMap<String, ByteIterator>> result,
           SSECustomerKey ssecLocal) {
 
@@ -532,6 +531,6 @@ public class S3Client extends DB {
           ssecLocal);
       result.add(resultTemp);
     }
-    return 0;
+    return Status.OK;
   }
 }
