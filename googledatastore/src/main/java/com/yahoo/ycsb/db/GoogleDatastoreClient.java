@@ -171,13 +171,11 @@ public class GoogleDatastoreClient extends DB {
 
     } catch (GeneralSecurityException exception) {
       throw new DBException("Security error connecting to the datastore: " +
-            "cause: " + exception.getCause() +
-            " details: " + exception.getMessage());
+          exception.getMessage(), exception);
 
     } catch (IOException exception) {
       throw new DBException("I/O error connecting to the datastore: " +
-            "cause: " + exception.getCause() +
-            " details: " + exception.getMessage());
+          exception.getMessage(), exception);
     }
 
     logger.info("Datastore client instance created: " +
