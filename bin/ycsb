@@ -70,7 +70,6 @@ DATABASES = {
     "nosqldb"      : "com.yahoo.ycsb.db.NoSqlDbClient",
     "orientdb"     : "com.yahoo.ycsb.db.OrientDBClient",
     "redis"        : "com.yahoo.ycsb.db.RedisClient",
-    "s3"           : "com.yahoo.ycsb.db.S3Client",
     "tarantool"    : "com.yahoo.ycsb.db.TarantoolClient",
     "voldemort"    : "com.yahoo.ycsb.db.VoldemortClient"
 }
