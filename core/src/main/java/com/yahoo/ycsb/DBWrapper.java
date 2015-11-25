@@ -32,11 +32,19 @@ import com.yahoo.ycsb.measurements.Measurements;
  */
 public class DBWrapper extends DB
 {
-  DB _db;
-  Measurements _measurements;
+  private DB _db;
+  private Measurements _measurements;
 
-  boolean reportLatencyForEachError = false;
-  HashSet<String> latencyTrackedErrors = new HashSet<String>();
+  private boolean reportLatencyForEachError = false;
+  private HashSet<String> latencyTrackedErrors = new HashSet<String>();
+
+  private static final String REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY =
+      "reportlatencyforeacherror";
+  private static final String REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY_DEFAULT =
+      "false";
+
+  private static final String LATENCY_TRACKED_ERRORS_PROPERTY =
+      "latencytrackederrors";
 
   public DBWrapper(DB db)
   {
@@ -69,11 +77,12 @@ public class DBWrapper extends DB
     _db.init();
 
     this.reportLatencyForEachError = Boolean.parseBoolean(getProperties().
-        getProperty("reportlatencyforeacherror", "false"));
+        getProperty(REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY,
+            REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY_DEFAULT));
 
     if (!reportLatencyForEachError) {
       String latencyTrackedErrors = getProperties().getProperty(
-          "latencytrackederrors", null);
+          LATENCY_TRACKED_ERRORS_PROPERTY, null);
       if (latencyTrackedErrors != null) {
         this.latencyTrackedErrors = new HashSet<String>(Arrays.asList(
             latencyTrackedErrors.split(",")));
