@@ -17,7 +17,9 @@
 
 package com.yahoo.ycsb;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
@@ -26,11 +28,23 @@ import com.yahoo.ycsb.measurements.Measurements;
 
 /**
  * Wrapper around a "real" DB that measures latencies and counts return codes.
+ * Also reports latency separately between OK and failed operations.
  */
 public class DBWrapper extends DB
 {
   DB _db;
   Measurements _measurements;
+
+  // By default we don't track latency numbers for specific error status code.
+  // We just report latency of all failed operation under one measurement name
+  // such as [READ-FAILED]. But optionally, user can configure to have either:
+  // 1) Record and report latency for each and every error status code by
+  //    setting reportLatencyForEachError to true, or
+  // 2) Record and report latency for a select set of error status codes by
+  //    providing a CSV list of Status codes via the "latencytrackederrors"
+  //    property.
+  boolean reportLatencyForEachError = false;
+  HashSet<String> latencyTrackedErrors = new HashSet<String>();
 
   public DBWrapper(DB db)
   {
@@ -61,6 +75,20 @@ public class DBWrapper extends DB
   public void init() throws DBException
   {
     _db.init();
+
+    this.reportLatencyForEachError = Boolean.parseBoolean(getProperties().
+        getProperty("reportlatencyforeacherror", "false"));
+
+    String latencyTrackedErrors = getProperties().getProperty(
+        "latencytrackederrors", null);
+    if (latencyTrackedErrors != null) {
+      this.latencyTrackedErrors = new HashSet<String>(Arrays.asList(
+          latencyTrackedErrors.split(",")));
+    }
+
+    System.out.println("DBWrapper: report latency for each error is " +
+        this.reportLatencyForEachError + " and specific error codes to track" +
+        " for latency are: " + this.latencyTrackedErrors.toString());
   }
 
   /**
@@ -73,7 +101,7 @@ public class DBWrapper extends DB
     long st = System.nanoTime();
     _db.cleanup();
     long en=System.nanoTime();
-    measure("CLEANUP",ist, st, en);
+    measure("CLEANUP", Status.OK, ist, st, en);
   }
 
   /**
@@ -93,21 +121,20 @@ public class DBWrapper extends DB
     long st = System.nanoTime();
     Status res=_db.read(table,key,fields,result);
     long en=System.nanoTime();
-    measure("READ",ist, st, en);
-    _measurements.reportStatus("READ",res);
+    measure("READ", res, ist, st, en);
+    _measurements.reportStatus("READ", res);
     return res;
   }
 
   /**
-   * Perform a range scan for a set of records in the database. Each
-   * field/value pair from the result will be stored in a HashMap.
+   * Perform a range scan for a set of records in the database.
+   * Each field/value pair from the result will be stored in a HashMap.
    *
    * @param table The name of the table
    * @param startkey The record key of the first record to read.
    * @param recordcount The number of records to read
    * @param fields The list of fields to read, or null for all of them
-   * @param result A Vector of HashMaps, where each HashMap is a set
-   *        field/value pairs for one record
+   * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
    * @return The result of the operation.
    */
   public Status scan(String table, String startkey, int recordcount,
@@ -117,21 +144,30 @@ public class DBWrapper extends DB
     long st = System.nanoTime();
     Status res=_db.scan(table,startkey,recordcount,fields,result);
     long en=System.nanoTime();
-    measure("SCAN",ist, st, en);
-    _measurements.reportStatus("SCAN",res);
+    measure("SCAN", res, ist, st, en);
+    _measurements.reportStatus("SCAN", res);
     return res;
   }
 
-  private void measure(String op, long intendedStartTimeNanos,
+  private void measure(String op, Status result, long intendedStartTimeNanos,
       long startTimeNanos, long endTimeNanos) {
-    _measurements.measure(op, (int)((endTimeNanos-startTimeNanos)/1000));
-    _measurements.measureIntended(op,
+    String measurementName = op;
+    if (result != Status.OK) {
+      if (this.reportLatencyForEachError ||
+          this.latencyTrackedErrors.contains(result.getName())) {
+        measurementName = op + "-" + result.getName();
+      } else {
+        measurementName = op + "-FAILED";
+      }
+    }
+    _measurements.measure(measurementName,
+        (int)((endTimeNanos-startTimeNanos)/1000));
+    _measurements.measureIntended(measurementName,
         (int)((endTimeNanos-intendedStartTimeNanos)/1000));
   }
 
   /**
-   * Update a record in the database. Any field/value pairs in the specified
-   * values HashMap will be written into the record with the specified
+   * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
    * record key, overwriting any existing values with the same field name.
    *
    * @param table The name of the table
@@ -146,8 +182,8 @@ public class DBWrapper extends DB
     long st = System.nanoTime();
     Status res=_db.update(table,key,values);
     long en=System.nanoTime();
-    measure("UPDATE",ist, st, en);
-    _measurements.reportStatus("UPDATE",res);
+    measure("UPDATE", res, ist, st, en);
+    _measurements.reportStatus("UPDATE", res);
     return res;
   }
 
@@ -168,8 +204,8 @@ public class DBWrapper extends DB
     long st = System.nanoTime();
     Status res=_db.insert(table,key,values);
     long en=System.nanoTime();
-    measure("INSERT",ist, st, en);
-    _measurements.reportStatus("INSERT",res);
+    measure("INSERT", res, ist, st, en);
+    _measurements.reportStatus("INSERT", res);
     return res;
   }
 
@@ -186,8 +222,8 @@ public class DBWrapper extends DB
     long st = System.nanoTime();
     Status res=_db.delete(table,key);
     long en=System.nanoTime();
-    measure("DELETE",ist, st, en);
-    _measurements.reportStatus("DELETE",res);
+    measure("DELETE", res, ist, st, en);
+    _measurements.reportStatus("DELETE", res);
     return res;
   }
 }
