@@ -35,14 +35,6 @@ public class DBWrapper extends DB
   DB _db;
   Measurements _measurements;
 
-  // By default we don't track latency numbers for specific error status code.
-  // We just report latency of all failed operation under one measurement name
-  // such as [READ-FAILED]. But optionally, user can configure to have either:
-  // 1) Record and report latency for each and every error status code by
-  //    setting reportLatencyForEachError to true, or
-  // 2) Record and report latency for a select set of error status codes by
-  //    providing a CSV list of Status codes via the "latencytrackederrors"
-  //    property.
   boolean reportLatencyForEachError = false;
   HashSet<String> latencyTrackedErrors = new HashSet<String>();
 
@@ -79,14 +71,16 @@ public class DBWrapper extends DB
     this.reportLatencyForEachError = Boolean.parseBoolean(getProperties().
         getProperty("reportlatencyforeacherror", "false"));
 
-    String latencyTrackedErrors = getProperties().getProperty(
-        "latencytrackederrors", null);
-    if (latencyTrackedErrors != null) {
-      this.latencyTrackedErrors = new HashSet<String>(Arrays.asList(
-          latencyTrackedErrors.split(",")));
+    if (!reportLatencyForEachError) {
+      String latencyTrackedErrors = getProperties().getProperty(
+          "latencytrackederrors", null);
+      if (latencyTrackedErrors != null) {
+        this.latencyTrackedErrors = new HashSet<String>(Arrays.asList(
+            latencyTrackedErrors.split(",")));
+      }
     }
 
-    System.out.println("DBWrapper: report latency for each error is " +
+    System.err.println("DBWrapper: report latency for each error is " +
         this.reportLatencyForEachError + " and specific error codes to track" +
         " for latency are: " + this.latencyTrackedErrors.toString());
   }
