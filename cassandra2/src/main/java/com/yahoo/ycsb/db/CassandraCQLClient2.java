@@ -51,7 +51,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author cmatser
  */
-public class CassandraCQLClient extends DB {
+public class CassandraCQLClient2 extends DB {
 
   private static Cluster cluster = null;
   private static Session session = null;
@@ -110,14 +110,14 @@ public class CassandraCQLClient extends DB {
         String host = getProperties().getProperty(HOSTS_PROPERTY);
         if (host == null) {
           throw new DBException(String.format(
-              "Required property \"%s\" missing for CassandraCQLClient",
+              "Required property \"%s\" missing for CassandraCQLClient2",
               HOSTS_PROPERTY));
         }
         String[] hosts = host.split(",");
         String port = getProperties().getProperty("port", "9042");
         if (port == null) {
           throw new DBException(String.format(
-              "Required property \"%s\" missing for CassandraCQLClient",
+              "Required property \"%s\" missing for CassandraCQLClient2",
               PORT_PROPERTY));
         }
 

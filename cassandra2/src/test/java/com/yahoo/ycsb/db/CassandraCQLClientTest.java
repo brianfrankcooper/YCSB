@@ -59,7 +59,7 @@ public class CassandraCQLClientTest {
   private final static int PORT = 9142;
   private final static String DEFAULT_ROW_KEY = "user1";
 
-  private CassandraCQLClient client;
+  private CassandraCQLClient2 client;
   private Session session;
 
   @ClassRule
@@ -76,7 +76,7 @@ public class CassandraCQLClientTest {
     Measurements.setProperties(p);
     final CoreWorkload workload = new CoreWorkload();
     workload.init(p);
-    client = new CassandraCQLClient();
+    client = new CassandraCQLClient2();
     client.setProperties(p);
     client.init();
   }
@@ -110,7 +110,7 @@ public class CassandraCQLClientTest {
   private void insertRow() {
     final String rowKey = DEFAULT_ROW_KEY;
     Insert insertStmt = QueryBuilder.insertInto(TABLE);
-    insertStmt.value(CassandraCQLClient.YCSB_KEY, rowKey);
+    insertStmt.value(CassandraCQLClient2.YCSB_KEY, rowKey);
 
     insertStmt.value("field0", "value1");
     insertStmt.value("field1", "value2");
@@ -133,7 +133,7 @@ public class CassandraCQLClientTest {
         strResult.put(e.getKey(), e.getValue().toString());
       }
     }
-    assertThat(strResult, hasEntry(CassandraCQLClient.YCSB_KEY, DEFAULT_ROW_KEY));
+    assertThat(strResult, hasEntry(CassandraCQLClient2.YCSB_KEY, DEFAULT_ROW_KEY));
     assertThat(strResult, hasEntry("field0", "value1"));
     assertThat(strResult, hasEntry("field1", "value2"));
   }
@@ -164,7 +164,7 @@ public class CassandraCQLClientTest {
     final Select selectStmt =
         QueryBuilder.select("field0", "field1")
             .from(TABLE)
-            .where(QueryBuilder.eq(CassandraCQLClient.YCSB_KEY, key))
+            .where(QueryBuilder.eq(CassandraCQLClient2.YCSB_KEY, key))
             .limit(1);
 
     final ResultSet rs = session.execute(selectStmt);

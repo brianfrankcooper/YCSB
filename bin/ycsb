@@ -51,7 +51,7 @@ DATABASES = {
     "cassandra-8"  : "com.yahoo.ycsb.db.CassandraClient8",
     "cassandra-10" : "com.yahoo.ycsb.db.CassandraClient10",
     "cassandra-cql": "com.yahoo.ycsb.db.CassandraCQLClient",
-    "cassandra2-cql": "com.yahoo.ycsb.db.CassandraCQLClient",
+    "cassandra2-cql": "com.yahoo.ycsb.db.CassandraCQLClient2",
     "couchbase"    : "com.yahoo.ycsb.db.CouchbaseClient",
     "dynamodb"     : "com.yahoo.ycsb.db.DynamoDBClient",
     "elasticsearch": "com.yahoo.ycsb.db.ElasticSearchClient",
