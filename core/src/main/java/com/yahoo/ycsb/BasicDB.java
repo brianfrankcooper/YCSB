@@ -22,6 +22,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Enumeration;
 import java.util.Vector;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 
 
 /**
@@ -32,11 +34,15 @@ public class BasicDB extends DB
 	public static final String VERBOSE="basicdb.verbose";
 	public static final String VERBOSE_DEFAULT="true";
 	
-	public static final String SIMULATE_DELAY="basicdb.simulatedelay";
-	public static final String SIMULATE_DELAY_DEFAULT="0";
+    public static final String SIMULATE_DELAY="basicdb.simulatedelay";
+    public static final String SIMULATE_DELAY_DEFAULT="0";
+    
+    public static final String RANDOMIZE_DELAY="basicdb.randomizedelay";
+    public static final String RANDOMIZE_DELAY_DEFAULT="true";
+    
 	
-	
-	boolean verbose;
+    boolean verbose;
+    boolean randomizedelay;
 	int todelay;
 
 	public BasicDB()
@@ -49,14 +55,22 @@ public class BasicDB extends DB
 	{
 		if (todelay>0)
 		{
-			try
-			{
-				Thread.sleep((long)Utils.random().nextInt(todelay));
-			}
-			catch (InterruptedException e)
-			{
-				//do nothing
-			}
+		    long delayNs;
+		    if (randomizedelay) {
+		        delayNs = TimeUnit.MILLISECONDS.toNanos(Utils.random().nextInt(todelay));
+		        if (delayNs == 0) {
+		            return;
+		        }
+		    }
+		    else {
+		        delayNs = TimeUnit.MILLISECONDS.toNanos(todelay);
+		    }
+		    
+		    long now = System.nanoTime();
+            final long deadline = now + delayNs;
+            do {
+                LockSupport.parkNanos(deadline - now);
+            } while ((now = System.nanoTime()) < deadline && !Thread.interrupted());
 		}
 	}
 
@@ -69,7 +83,7 @@ public class BasicDB extends DB
 	{
 		verbose=Boolean.parseBoolean(getProperties().getProperty(VERBOSE, VERBOSE_DEFAULT));
 		todelay=Integer.parseInt(getProperties().getProperty(SIMULATE_DELAY, SIMULATE_DELAY_DEFAULT));
-		
+		randomizedelay=Boolean.parseBoolean(getProperties().getProperty(RANDOMIZE_DELAY, RANDOMIZE_DELAY_DEFAULT));
 		if (verbose)
 		{
 			System.out.println("***************** properties *****************");
@@ -95,7 +109,7 @@ public class BasicDB extends DB
 	 * @param result A HashMap of field/value pairs for the result
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
+	public Status read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
 	{
 		delay();
 
@@ -117,7 +131,7 @@ public class BasicDB extends DB
 			System.out.println("]");
 		}
 
-		return 0;
+		return Status.OK;
 	}
 	
 	/**
@@ -130,7 +144,7 @@ public class BasicDB extends DB
 	 * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
+	public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
 	{
 		delay();
 
@@ -152,7 +166,7 @@ public class BasicDB extends DB
 			System.out.println("]");
 		}
 
-		return 0;
+		return Status.OK;
 	}
 
 	/**
@@ -164,7 +178,7 @@ public class BasicDB extends DB
 	 * @param values A HashMap of field/value pairs to update in the record
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int update(String table, String key, HashMap<String,ByteIterator> values)
+	public Status update(String table, String key, HashMap<String,ByteIterator> values)
 	{
 		delay();
 
@@ -181,7 +195,7 @@ public class BasicDB extends DB
 			System.out.println("]");
 		}
 
-		return 0;
+		return Status.OK;
 	}
 
 	/**
@@ -193,7 +207,7 @@ public class BasicDB extends DB
 	 * @param values A HashMap of field/value pairs to insert in the record
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int insert(String table, String key, HashMap<String,ByteIterator> values)
+	public Status insert(String table, String key, HashMap<String,ByteIterator> values)
 	{
 		delay();
 
@@ -211,7 +225,7 @@ public class BasicDB extends DB
 			System.out.println("]");
 		}
 
-		return 0;
+		return Status.OK;
 	}
 
 
@@ -222,7 +236,7 @@ public class BasicDB extends DB
 	 * @param key The record key of the record to delete.
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int delete(String table, String key)
+	public Status delete(String table, String key)
 	{
 		delay();
 
@@ -231,7 +245,7 @@ public class BasicDB extends DB
 			System.out.println("DELETE "+table+" "+key);
 		}
 
-		return 0;
+		return Status.OK;
 	}
 
 	/**

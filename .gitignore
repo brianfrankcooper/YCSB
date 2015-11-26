@@ -1,0 +1,18 @@
+# ignore compiled byte code
+target
+
+# ignore output files from testing
+output*
+
+# ignore standard eclipse
+.project
+.classpath
+.settings
+.checkstyle
+
+# ignore standard intellij
+.idea/
+*.iml
+*.iws
+
+.DS_Store

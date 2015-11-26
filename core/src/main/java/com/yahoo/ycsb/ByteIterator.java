@@ -16,8 +16,10 @@
  */
 package com.yahoo.ycsb;
 
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
 import java.util.Iterator;
-import java.util.ArrayList;
 /**
  * YCSB-specific buffer class.  ByteIterators are designed to support
  * efficient field generation, and to allow backend drivers that can stream
@@ -73,10 +75,11 @@ public abstract class ByteIterator implements Iterator<Byte> {
 
 	/** Consumes remaining contents of this object, and returns them as a string. */
 	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		while(this.hasNext()) { sb.append((char)nextByte()); }
-		return sb.toString();
+		Charset cset = Charset.forName("UTF-8");
+		CharBuffer cb = cset.decode(ByteBuffer.wrap(this.toArray()));
+		return cb.toString();
 	}
+
 	/** Consumes remaining contents of this object, and returns them as a byte array. */
 	public byte[] toArray() {
 	    long left = bytesLeft();

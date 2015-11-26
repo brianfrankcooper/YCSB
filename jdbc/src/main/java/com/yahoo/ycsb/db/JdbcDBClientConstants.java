@@ -16,6 +16,7 @@
  */
 package com.yahoo.ycsb.db;
 
+
 /**
  * Constants used by the JDBC client.
  * 
@@ -35,7 +36,13 @@ public interface JdbcDBClientConstants {
   
   /** The password to use for establishing the connection. */
   public static final String CONNECTION_PASSWD = "db.passwd";
-  
+
+  /** The JDBC fetch size hinted to the driver. */
+  public static final String JDBC_FETCH_SIZE = "jdbc.fetchsize";
+
+  /** The JDBC connection auto-commit property for the driver. */
+  public static final String JDBC_AUTO_COMMIT = "jdbc.autocommit";
+
   /** The name of the property for the number of fields in a record. */
   public static final String FIELD_COUNT_PROPERTY="fieldcount";
   
@@ -44,9 +51,6 @@ public interface JdbcDBClientConstants {
   
   /** Representing a NULL value. */
   public static final String NULL_VALUE = "NULL";
-  
-  /** The code to return when the call succeeds. */
-  public static final int SUCCESS = 0;
   
   /** The primary key in the user table.*/
   public static String PRIMARY_KEY = "YCSB_KEY";
