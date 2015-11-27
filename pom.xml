@@ -118,6 +118,7 @@ LICENSE file.
     <module>jdbc</module>
     <module>kudu</module>
     <!--<module>mapkeeper</module>-->
+    <module>memcached</module>
     <module>mongodb</module>
     <!--module>nosqldb</module-->
     <module>orientdb</module>
