@@ -38,12 +38,40 @@ public class OneMeasurementHistogram extends OneMeasurement
   public static final String BUCKETS="histogram.buckets";
   public static final String BUCKETS_DEFAULT="1000";
 
+
+  /**
+   * Specify the range of latencies to track in the histogram.
+   */
   int _buckets;
+
+  /**
+     * Groups operations in discrete blocks of 1ms width.
+     */
   int[] histogram;
+  
+  /**
+   * Counts all operations outside the histogram's range.
+   */
   int histogramoverflow;
+  
+  /**
+   * The total number of reported operations.
+   */
   int operations;
+  
+  /**
+   * The sum of each latency measurement over all operations.
+   * Calculated in ms.
+   */
   long totallatency;
 
+  /**
+   * The sum of each latency measurement squared over all operations. 
+   * Used to calculate variance of latency.
+   * Calculated in ms. 
+   */
+  double totalsquaredlatency;
+  
   //keep a windowed version of these stats for printing status
   int windowoperations;
   long windowtotallatency;
@@ -59,6 +87,7 @@ public class OneMeasurementHistogram extends OneMeasurement
     histogramoverflow=0;
     operations=0;
     totallatency=0;
+    totalsquaredlatency=0;
     windowoperations=0;
     windowtotallatency=0;
     min=-1;
@@ -70,6 +99,7 @@ public class OneMeasurementHistogram extends OneMeasurement
    */
   public synchronized void measure(int latency)
   {
+      //latency reported in us and collected in bucket by ms.
     if (latency/1000>=_buckets)
     {
       histogramoverflow++;
@@ -79,9 +109,10 @@ public class OneMeasurementHistogram extends OneMeasurement
       histogram[latency/1000]++;
     }
     operations++;
-    totallatency+=latency;
+    totallatency += latency;
+    totalsquaredlatency += ((double)latency) * ((double)latency);
     windowoperations++;
-    windowtotallatency+=latency;
+    windowtotallatency += latency;
 
     if ( (min<0) || (latency<min) )
     {
@@ -97,8 +128,11 @@ public class OneMeasurementHistogram extends OneMeasurement
   @Override
   public void exportMeasurements(MeasurementsExporter exporter) throws IOException
   {
+    double mean = totallatency/((double)operations);
+    double variance = totalsquaredlatency/((double)operations) - (mean * mean);
     exporter.write(getName(), "Operations", operations);
-    exporter.write(getName(), "AverageLatency(us)", (((double)totallatency)/((double)operations)));
+    exporter.write(getName(), "AverageLatency(us)", mean);
+    exporter.write(getName(), "LatencyVariance(us)", variance);
     exporter.write(getName(), "MinLatency(us)", min);
     exporter.write(getName(), "MaxLatency(us)", max);
 
