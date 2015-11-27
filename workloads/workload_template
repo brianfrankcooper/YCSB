@@ -138,3 +138,21 @@ histogram.buckets=1000
 
 # Granularity for time series (in milliseconds)
 timeseries.granularity=1000
+
+# Latency reporting.
+#
+# YCSB records latency of failed operations separately from successful ones.
+# Latency of all OK operations will be reported under their operation name,
+# such as [READ], [UPDATE], etc.
+#
+# For failed operations:
+# By default we don't track latency numbers of specific error status.
+# We just report latency of all failed operation under one measurement name
+# such as [READ-FAILED]. But optionally, user can configure to have either:
+# 1. Record and report latency for each and every error status code by
+#    setting reportLatencyForEachError to true, or
+# 2. Record and report latency for a select set of error status codes by
+#    providing a CSV list of Status codes via the "latencytrackederrors"
+#    property.
+# reportlatencyforeacherror=false
+# latencytrackederrors="<comma separated strings of error codes>"
