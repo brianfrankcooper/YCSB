@@ -109,8 +109,8 @@ public class OneMeasurementHistogram extends OneMeasurement
       histogram[latency/1000]++;
     }
     operations++;
-    totallatency += latency/1000;
-    totalsquaredlatency += ((double)latency) * ((double)latency) / 1000000;
+    totallatency += latency;
+    totalsquaredlatency += ((double)latency) * ((double)latency);
     windowoperations++;
     windowtotallatency += latency;
 
@@ -131,8 +131,8 @@ public class OneMeasurementHistogram extends OneMeasurement
     double mean = totallatency/((double)operations);
     double variance = totalsquaredlatency/((double)operations) - (mean * mean);
     exporter.write(getName(), "Operations", operations);
-    exporter.write(getName(), "AverageLatency(ms)", mean);
-    exporter.write(getName(), "LatencyVariance(ms)", variance);
+    exporter.write(getName(), "AverageLatency(us)", mean);
+    exporter.write(getName(), "LatencyVariance(us)", variance);
     exporter.write(getName(), "MinLatency(us)", min);
     exporter.write(getName(), "MaxLatency(us)", max);
 
