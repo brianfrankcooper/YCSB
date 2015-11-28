@@ -58,6 +58,9 @@ Getting Started
 Building from source
 --------------------
 
+YCSB requires the use of Maven 3; if you use Maven 2, you may see [errors
+such as these](https://github.com/brianfrankcooper/YCSB/issues/406).
+
 To build the full distribution, with all database bindings:
 
     mvn clean package
