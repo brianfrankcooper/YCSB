@@ -24,17 +24,17 @@ import java.util.Vector;
 
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.StringByteIterator;
-import com.yahoo.ycsb.db.RiakDBClient;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 /**
- * @author Basho Technologies, Inc.
+ * @author Brian McClain <bmcclain at basho dot com>
+ * @author Sergey Galkin <srggal at gmail dot com>
  */
 public class RiakDBClientTest {
-	RiakDBClient cli;
+	RiakKVDBClient cli;
 	String bucket = "people";
     String key = "person1";
 	
@@ -43,7 +43,7 @@ public class RiakDBClientTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
-		cli = new RiakDBClient();
+		cli = new RiakKVDBClient();
 		cli.init();
 	}
 
