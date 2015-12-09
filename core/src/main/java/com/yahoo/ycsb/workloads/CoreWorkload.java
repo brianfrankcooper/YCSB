@@ -296,6 +296,16 @@ public class CoreWorkload extends Workload {
    */
   public static final String HOTSPOT_OPN_FRACTION_DEFAULT = "0.8";
 
+  /**
+   * How many times to retry when insertion of a single item to a DB fails.
+   */
+  public static final String INSERTION_RETRY_LIMIT_DEFAULT = "0";
+
+  /**
+   * On average, how long to wait between the retries, in seconds.
+   */
+  public static final String INSERTION_RETRY_INTERVAL_DEFAULT = "3";
+
   IntegerGenerator keysequence;
 
   DiscreteGenerator operationchooser;
@@ -311,6 +321,9 @@ public class CoreWorkload extends Workload {
   boolean orderedinserts;
 
   int recordcount;
+
+  int insertionRetryLimit;
+  int insertionRetryInterval;
 
   private Measurements _measurements = Measurements.getMeasurements();
 
@@ -475,6 +488,12 @@ public class CoreWorkload extends Workload {
       throw new WorkloadException(
           "Distribution \"" + scanlengthdistrib + "\" not allowed for scan length");
     }
+
+    insertionRetryLimit = Integer.parseInt(p.getProperty(
+        "insertionretrylimit", INSERTION_RETRY_LIMIT_DEFAULT));
+
+    insertionRetryInterval = Integer.parseInt(p.getProperty(
+        "insertionretryinterval", INSERTION_RETRY_INTERVAL_DEFAULT));
   }
 
   public String buildKeyName(long keynum) {
@@ -550,12 +569,37 @@ public class CoreWorkload extends Workload {
     int keynum = keysequence.nextInt();
     String dbkey = buildKeyName(keynum);
     HashMap<String, ByteIterator> values = buildValues(dbkey);
-    if (db.insert(table, dbkey, values).equals(Status.OK))
-      return true;
-    else
-      return false;
-  }
 
+    Status status;
+    int numOfRetries = 0;
+    do {
+      status = db.insert(table, dbkey, values);
+      if (status == Status.OK) {
+        break;
+      }
+      // Retry if configured. Without retrying, the load process will fail
+      // even if one single insertion fails. User can optionally configure
+      // an insertion retry limit (default is 0) to enable retry.
+      if (++numOfRetries <= insertionRetryLimit) {
+        System.err.println("Retrying insertion, retry count: " + numOfRetries);
+        try {
+          // Sleep for a random number between [0.8, 1.2)*insertionRetryInterval.
+          int sleepTime = (int) (1000 * insertionRetryInterval * (0.8 + 0.4 * Math.random()));
+          Thread.sleep(sleepTime);
+        } catch (InterruptedException e) {
+          break;
+        }
+
+      } else {
+        System.err.println("Error inserting, not retrying any more. number of attempts: " + numOfRetries +
+            "Insertion Retry Limit: " + insertionRetryLimit);
+        break;
+
+      }
+    } while (true);
+
+    return (status == Status.OK);
+  }
 
   /**
    * Do one transaction operation. Because it will be called concurrently from multiple client

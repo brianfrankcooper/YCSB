@@ -156,3 +156,15 @@ timeseries.granularity=1000
 #    property.
 # reportlatencyforeacherror=false
 # latencytrackederrors="<comma separated strings of error codes>"
+
+# Insertion error retry
+#
+# By default, YCSB does not retry any operations. However, during the
+# load process, if any insertion fails, the entire load process is terminated.
+# If a user desires to have more robust behavior during this phase, they can
+# enable retry for insertion by setting the following property to a positive
+# number.
+# insertionretrylimit = 0
+#
+# the following number controls the interval between retries (in seconds):
+# insertionretryinterval = 3
