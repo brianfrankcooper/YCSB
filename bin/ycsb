@@ -16,13 +16,18 @@
 # LICENSE file.
 #
 
-import argparse
+import errno
 import fnmatch
 import io
 import os
 import shlex
 import sys
 import subprocess
+try:
+    import argparse
+except ImportError:
+    print >> sys.stderr, '[ERROR] argparse not found. Try installing it via "pip".'
+    raise
 
 BASE_URL = "https://github.com/brianfrankcooper/YCSB/tree/master/"
 COMMANDS = {
@@ -111,6 +116,13 @@ def usage():
 
     return output.getvalue()
 
+def check_output(cmd):
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    stdout, _ = p.communicate()
+    if p.returncode:
+        raise subprocess.CalledProcessError(p.returncode, cmd)
+    return stdout
+
 def debug(message):
     print >> sys.stderr, "[DEBUG] ", message
 
@@ -126,7 +138,6 @@ def find_jars(dir, glob='*.jar'):
         for filename in fnmatch.filter(filenames, glob):
             jars.append(os.path.join(dirpath, filename))
     return jars
-
 
 def get_ycsb_home():
     dir = os.path.abspath(os.path.dirname(sys.argv[0]))
@@ -147,11 +158,11 @@ def get_classpath_from_maven(module):
     try:
         debug("Running 'mvn -pl com.yahoo.ycsb:" + module + " -am package -DskipTests "
               "dependency:build-classpath -DincludeScope=compile -Dmdep.outputFilterFile=true'")
-        mvn_output = subprocess.check_output(["mvn", "-pl", "com.yahoo.ycsb:" + module,
-                                              "-am", "package", "-DskipTests",
-                                              "dependency:build-classpath",
-                                              "-DincludeScope=compile",
-                                              "-Dmdep.outputFilterFile=true"])
+        mvn_output = check_output(["mvn", "-pl", "com.yahoo.ycsb:" + module,
+                                   "-am", "package", "-DskipTests",
+                                   "dependency:build-classpath",
+                                   "-DincludeScope=compile",
+                                   "-Dmdep.outputFilterFile=true"])
         # the above outputs a "classpath=/path/tojar:/path/to/other/jar" for each module
         # the last module will be the datastore binding
         line = [x for x in mvn_output.splitlines() if x.startswith("classpath=")][-1:]
@@ -226,8 +237,14 @@ def main():
     if command:
         ycsb_command.append(command)
     print >> sys.stderr, " ".join(ycsb_command)
-    return subprocess.call(ycsb_command)
-
+    try:
+        return subprocess.call(ycsb_command)
+    except OSError as e:
+        if e.errno == errno.ENOENT:
+            error('Command failed. Is java installed and on your PATH?')
+            return 1
+        else:
+            raise
 
 if __name__ == '__main__':
     sys.exit(main())
