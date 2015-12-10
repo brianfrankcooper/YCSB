@@ -156,7 +156,7 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
     }
     schema = new Schema(columns);
 
-    CreateTableBuilder builder = new CreateTableBuilder();
+    CreateTableOptions builder = new CreateTableOptions();
     builder.setNumReplicas(numReplicas);
     // create n-1 split keys, which will end up being n tablets master-side
     for (int i = 1; i < numTablets + 0; i++) {
