@@ -156,3 +156,16 @@ timeseries.granularity=1000
 #    property.
 # reportlatencyforeacherror=false
 # latencytrackederrors="<comma separated strings of error codes>"
+
+# Insertion error retry for the core workload.
+#
+# By default, the YCSB core workload does not retry any operations.
+# However, during the load process, if any insertion fails, the entire
+# load process is terminated.
+# If a user desires to have more robust behavior during this phase, they can
+# enable retry for insertion by setting the following property to a positive
+# number.
+# core_workload_insertion_retry_limit = 0
+#
+# the following number controls the interval between retries (in seconds):
+# core_workload_insertion_retry_interval = 3
