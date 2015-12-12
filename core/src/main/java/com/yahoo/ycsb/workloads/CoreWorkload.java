@@ -299,11 +299,13 @@ public class CoreWorkload extends Workload {
   /**
    * How many times to retry when insertion of a single item to a DB fails.
    */
+  public static final String INSERTION_RETRY_LIMIT = "core_workload_insertion_retry_limit";
   public static final String INSERTION_RETRY_LIMIT_DEFAULT = "0";
 
   /**
    * On average, how long to wait between the retries, in seconds.
    */
+  public static final String INSERTION_RETRY_INTERVAL = "core_workload_insertion_retry_interval";
   public static final String INSERTION_RETRY_INTERVAL_DEFAULT = "3";
 
   IntegerGenerator keysequence;
@@ -490,10 +492,10 @@ public class CoreWorkload extends Workload {
     }
 
     insertionRetryLimit = Integer.parseInt(p.getProperty(
-        "insertionretrylimit", INSERTION_RETRY_LIMIT_DEFAULT));
+        INSERTION_RETRY_LIMIT, INSERTION_RETRY_LIMIT_DEFAULT));
 
     insertionRetryInterval = Integer.parseInt(p.getProperty(
-        "insertionretryinterval", INSERTION_RETRY_INTERVAL_DEFAULT));
+        INSERTION_RETRY_INTERVAL, INSERTION_RETRY_INTERVAL_DEFAULT));
   }
 
   public String buildKeyName(long keynum) {
