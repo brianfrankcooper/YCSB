@@ -14,6 +14,13 @@ implied. See the License for the specific language governing
 permissions and limitations under the License. See accompanying
 LICENSE file.
 -->
+# THIS BINDING IS DEPRECATED
+----------------------------
+Date of removal from YCSB: **March 2016**
+
+Due to the low amount of use and support for older Cassandra lineages (0.X and 1.X), YCSB will not support clients for these versions either.
+
+For Cassandra 2.X use the ```cassandra2-cql``` client: https://github.com/brianfrankcooper/YCSB/tree/master/cassandra2.
 
 # Cassandra (0.7, 0.8, 1.x) drivers for YCSB
 
