@@ -27,7 +27,6 @@ LICENSE file.
 
   <artifactId>memcached-binding</artifactId>
   <name>memcached binding</name>
-  <groupId>com.yahoo.ycsb</groupId>
   <packaging>jar</packaging>
 
   <dependencies>
