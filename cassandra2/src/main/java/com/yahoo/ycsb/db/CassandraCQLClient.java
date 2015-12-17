@@ -67,6 +67,7 @@ public class CassandraCQLClient extends DB {
 
   public static final String HOSTS_PROPERTY = "hosts";
   public static final String PORT_PROPERTY = "port";
+  public static final String PORT_PROPERTY_DEFAULT = "9042";
 
   public static final String READ_CONSISTENCY_LEVEL_PROPERTY =
       "cassandra.readconsistencylevel";
@@ -74,6 +75,15 @@ public class CassandraCQLClient extends DB {
   public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY =
       "cassandra.writeconsistencylevel";
   public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
+
+  public static final String MAX_CONNECTIONS_PROPERTY =
+      "cassandra.maxconnections";
+  public static final String CORE_CONNECTIONS_PROPERTY =
+      "cassandra.coreconnections";
+  public static final String CONNECT_TIMEOUT_MILLIS_PROPERTY =
+      "cassandra.connecttimeoutmillis";
+  public static final String READ_TIMEOUT_MILLIS_PROPERTY =
+      "cassandra.readtimeoutmillis";
 
   /**
    * Count the number of times initialized to teardown on the last
@@ -114,12 +124,7 @@ public class CassandraCQLClient extends DB {
               HOSTS_PROPERTY));
         }
         String[] hosts = host.split(",");
-        String port = getProperties().getProperty("port", "9042");
-        if (port == null) {
-          throw new DBException(String.format(
-              "Required property \"%s\" missing for CassandraCQLClient",
-              PORT_PROPERTY));
-        }
+        String port = getProperties().getProperty(PORT_PROPERTY, PORT_PROPERTY_DEFAULT);
 
         String username = getProperties().getProperty(USERNAME_PROPERTY);
         String password = getProperties().getProperty(PASSWORD_PROPERTY);
@@ -134,7 +139,6 @@ public class CassandraCQLClient extends DB {
             getProperties().getProperty(WRITE_CONSISTENCY_LEVEL_PROPERTY,
                 WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT));
 
-        // public void connect(String node) {}
         if ((username != null) && !username.isEmpty()) {
           cluster = Cluster.builder().withCredentials(username, password)
               .withPort(Integer.valueOf(port)).addContactPoints(hosts).build();
@@ -143,18 +147,35 @@ public class CassandraCQLClient extends DB {
               .addContactPoints(hosts).build();
         }
 
-        // Update number of connections based on threads
-        int threadcount =
-            Integer.parseInt(getProperties().getProperty("threadcount", "1"));
-        cluster.getConfiguration().getPoolingOptions()
-            .setMaxConnectionsPerHost(HostDistance.LOCAL, threadcount);
+        String maxConnections = getProperties().getProperty(
+            MAX_CONNECTIONS_PROPERTY);
+        if (maxConnections != null) {
+          cluster.getConfiguration().getPoolingOptions()
+              .setMaxConnectionsPerHost(HostDistance.LOCAL,
+              Integer.valueOf(maxConnections));
+        }
 
-        // Set connection timeout 3min (default is 5s)
-        cluster.getConfiguration().getSocketOptions()
-            .setConnectTimeoutMillis(3 * 60 * 1000);
-        // Set read (execute) timeout 3min (default is 12s)
-        cluster.getConfiguration().getSocketOptions()
-            .setReadTimeoutMillis(3 * 60 * 1000);
+        String coreConnections = getProperties().getProperty(
+            CORE_CONNECTIONS_PROPERTY);
+        if (coreConnections != null) {
+          cluster.getConfiguration().getPoolingOptions()
+              .setCoreConnectionsPerHost(HostDistance.LOCAL,
+              Integer.valueOf(coreConnections));
+        }
+
+        String connectTimoutMillis = getProperties().getProperty(
+            CONNECT_TIMEOUT_MILLIS_PROPERTY);
+        if (connectTimoutMillis != null) {
+          cluster.getConfiguration().getSocketOptions()
+              .setConnectTimeoutMillis(Integer.valueOf(connectTimoutMillis));
+        }
+
+        String readTimoutMillis = getProperties().getProperty(
+            READ_TIMEOUT_MILLIS_PROPERTY);
+        if (readTimoutMillis != null) {
+          cluster.getConfiguration().getSocketOptions()
+              .setReadTimeoutMillis(Integer.valueOf(readTimoutMillis));
+        }
 
         Metadata metadata = cluster.getMetadata();
         System.err.printf("Connected to cluster: %s\n",
