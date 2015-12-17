@@ -71,3 +71,10 @@ For keyspace `ycsb`, table `usertable`:
   * Default value is `ONE`
   - Consistency level for reads and writes, respectively. See the [DataStax documentation](http://docs.datastax.com/en/cassandra/2.0/cassandra/dml/dml_config_consistency_c.html) for details.
   * *Note that the default setting does not provide durability in the face of node failure. Changing this setting will affect observed performance.* See also `replication_factor`, above.
+
+* `cassandra.maxconnections`
+* `cassandra.coreconnections`
+  * Defaults for max and core connections can be found here: https://datastax.github.io/java-driver/2.1.8/features/pooling/#pool-size. Cassandra 2.0.X falls under protocol V2, Cassandra 2.1+ falls under protocol V3.
+* `cassandra.connecttimeoutmillis`
+* `cassandra.readtimeoutmillis`
+  * Defaults for connect and read timeouts can be found here: https://docs.datastax.com/en/drivers/java/2.0/com/datastax/driver/core/SocketOptions.html.
