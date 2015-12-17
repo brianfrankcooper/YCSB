@@ -205,6 +205,13 @@ def main():
 
     # Classpath set up
     binding = args.database.split("-")[0]
+
+    # Deprecation message for the entire cassandra-binding
+    if binding == "cassandra":
+        warn("The 'cassandra-7', 'cassandra-8', 'cassandra-10', and "
+             "cassandra-cql' clients are deprecated. If you are using "
+             "Cassandra 2.X try using the 'cassandra2-cql' client instead.")
+
     if is_distribution():
         db_dir = os.path.join(ycsb_home, binding + "-binding")
         # include top-level conf for when we're a binding-specific artifact.
