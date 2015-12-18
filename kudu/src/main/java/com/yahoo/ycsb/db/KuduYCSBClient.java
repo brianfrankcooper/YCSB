@@ -134,7 +134,8 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
 
     client = new KuduClient.KuduClientBuilder(masterAddresses)
         .defaultSocketReadTimeoutMs(DEFAULT_SLEEP)
-        .defaultOperationTimeoutMs(DEFAULT_SLEEP).build();
+        .defaultOperationTimeoutMs(DEFAULT_SLEEP)
+        .defaultAdminOperationTimeoutMs(DEFAULT_SLEEP).build();
     if (debug) {
       System.out.println("Connecting to the masters at " + masterAddresses);
     }
