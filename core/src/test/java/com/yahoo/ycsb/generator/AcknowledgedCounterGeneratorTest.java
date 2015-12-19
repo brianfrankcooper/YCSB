@@ -40,7 +40,7 @@ public class AcknowledgedCounterGeneratorTest {
     Random rand = new Random(System.currentTimeMillis());
     BlockingQueue<Integer> pending = new ArrayBlockingQueue<Integer>(1000);
     for (long i = 0; i < toTry; ++i) {
-      int value = generator.nextInt();
+      int value = generator.nextValue();
 
       while (!pending.offer(value)) {
 

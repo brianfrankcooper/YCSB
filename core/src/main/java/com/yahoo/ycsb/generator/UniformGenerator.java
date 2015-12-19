@@ -17,26 +17,27 @@
 
 package com.yahoo.ycsb.generator;
 
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 /**
- * An expression that generates a random integer in the specified range
+ * An expression that generates a random value in the specified range
  */
-public class UniformGenerator extends Generator
+public class UniformGenerator extends Generator<String>
 {
 	
-	Vector<String> _values;
-	String _laststring;
-	UniformIntegerGenerator _gen;
+	private final List<String> _values;
+	private String _laststring;
+	private final UniformIntegerGenerator _gen;
 	
 
 	/**
 	 * Creates a generator that will return strings from the specified set uniformly randomly
 	 */
-	@SuppressWarnings( "unchecked" ) 
-	public UniformGenerator(Vector<String> values)
+	public UniformGenerator(Collection<String> values)
 	{
-		_values=(Vector<String>)values.clone();
+		_values= new ArrayList<>(values);
 		_laststring=null;
 		_gen=new UniformIntegerGenerator(0,values.size()-1);
 	}
@@ -44,9 +45,10 @@ public class UniformGenerator extends Generator
 	/**
 	 * Generate the next string in the distribution.
 	 */
-	public String nextString()
+	@Override
+  public String nextValue()
 	{
-		_laststring=_values.elementAt(_gen.nextInt());
+		_laststring = _values.get(_gen.nextValue());
 		return _laststring;
 	}
 	
@@ -55,11 +57,12 @@ public class UniformGenerator extends Generator
 	 * Calling lastString() should not advance the distribution or have any side effects. If nextString() has not yet 
 	 * been called, lastString() should return something reasonable.
 	 */
-	public String lastString()
+	@Override
+  public String lastValue()
 	{
 		if (_laststring==null)
 		{
-			nextString();
+		  nextValue();
 		}
 		return _laststring;
 	}

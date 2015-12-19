@@ -50,7 +50,7 @@ public class AcknowledgedCounterGenerator extends CounterGenerator
 	 * (as opposed to the highest generated counter value).
 	 */
 	@Override
-	public int lastInt()
+	public Integer lastValue()
 	{
 		return limit;
 	}
