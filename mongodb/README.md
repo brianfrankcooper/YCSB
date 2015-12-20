@@ -68,9 +68,9 @@ Reload bash and test mvn
 
 Download the YCSB zip file and compile:
 
-    git clone git://github.com/brianfrankcooper/YCSB.git
-    cd YCSB
-    mvn -pl com.yahoo.ycsb:mongodb-binding -am clean package
+    curl -O --location https://github.com/brianfrankcooper/YCSB/releases/download/0.5.0/ycsb-0.5.0.tar.gz
+    tar xfvz ycsb-0.5.0.tar.gz
+    cd ycsb-0.5.0
 
 ### 4. Run YCSB
 
