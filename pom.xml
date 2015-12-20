@@ -21,7 +21,7 @@ LICENSE file.
 
   <groupId>com.yahoo.ycsb</groupId>
   <artifactId>root</artifactId>
-  <version>0.6.0-SNAPSHOT</version>
+  <version>0.7.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>YCSB Root</name>
@@ -78,7 +78,7 @@ LICENSE file.
     <cassandra2.cql.version>2.1.8</cassandra2.cql.version>
     <gemfire.version>8.1.0</gemfire.version>
     <infinispan.version>7.2.2.Final</infinispan.version>
-    <kudu.version>0.6.0</kudu.version>
+    <kudu.version>0.7.0</kudu.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
     <!--<mapkeeper.version>1.0</mapkeeper.version>-->
     <mongodb.version>3.0.3</mongodb.version>
