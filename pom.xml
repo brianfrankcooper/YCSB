@@ -90,7 +90,7 @@ LICENSE file.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <thrift.version>0.8.0</thrift.version>
     <hypertable.version>0.9.5.6</hypertable.version>
-    <couchbase.version>1.1.8</couchbase.version>
+    <couchbase.version>1.4.10</couchbase.version>
     <tarantool.version>1.6.1</tarantool.version>
     <aerospike.version>3.1.2</aerospike.version>
   </properties>
