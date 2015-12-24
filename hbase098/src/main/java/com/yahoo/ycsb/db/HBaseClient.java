@@ -168,7 +168,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB {
    * @param result A HashMap of field/value pairs for the result
    * @return Zero on success, a non-zero error code on error
    */
-  public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     //if this is a "new" tableName, init HTable object.  Else, use existing one
     if (!this.tableName.equals(table)) {
       hTable = null;
@@ -307,7 +307,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB {
    * @param values A HashMap of field/value pairs to update in the record
    * @return Zero on success, a non-zero error code on error
    */
-  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
     //if this is a "new" tableName, init HTable object.  Else, use existing one
     if (!this.tableName.equals(table)) {
       hTable = null;
@@ -358,7 +358,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB {
    * @param values A HashMap of field/value pairs to insert in the record
    * @return Zero on success, a non-zero error code on error
    */
-  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     return update(table, key, values);
   }
 
@@ -439,6 +439,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB {
               long st = System.currentTimeMillis();
               Status result;
               Vector<HashMap<String, ByteIterator>> scanResults = new Vector<>();
+              Set<String> scanFields = new HashSet<String>();
               result = cli.scan("table1", "user2", 20, null, scanResults);
 
               long en = System.currentTimeMillis();

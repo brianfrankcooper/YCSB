@@ -21,6 +21,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Vector;
@@ -196,7 +197,7 @@ public class AsyncHBaseClient extends com.yahoo.ycsb.DB {
   
   @Override
   public Status read(String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
+                     Map<String, ByteIterator> result) {
     setTable(table);
     
     final GetRequest get = new GetRequest(
@@ -299,7 +300,7 @@ public class AsyncHBaseClient extends com.yahoo.ycsb.DB {
 
   @Override
   public Status update(String table, String key,
-      HashMap<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     setTable(table);
     
     if (debug) {
@@ -347,7 +348,7 @@ public class AsyncHBaseClient extends com.yahoo.ycsb.DB {
 
   @Override
   public Status insert(String table, String key,
-      HashMap<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     return update(table, key, values);
   }
 

@@ -303,7 +303,7 @@ public final class CommandLine {
       } else {
         System.out.println("--------------------------------");
       }
-      for (HashMap<String, ByteIterator> result : results) {
+      for (Map<String, ByteIterator> result : results) {
         System.out.println("Record " + (record++));
         for (Map.Entry<String, ByteIterator> ent : result.entrySet()) {
           System.out.println(ent.getKey() + "=" + ent.getValue());

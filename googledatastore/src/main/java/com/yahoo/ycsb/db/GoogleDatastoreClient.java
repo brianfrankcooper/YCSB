@@ -181,7 +181,7 @@ public class GoogleDatastoreClient extends DB {
 
   @Override
   public Status read(String table, String key, Set<String> fields,
-          HashMap<String, ByteIterator> result) {
+          Map<String, ByteIterator> result) {
     LookupRequest.Builder lookupRequest = LookupRequest.newBuilder();
     lookupRequest.addKeys(buildPrimaryKey(table, key));
     lookupRequest.getReadOptionsBuilder().setReadConsistency(
@@ -241,14 +241,14 @@ public class GoogleDatastoreClient extends DB {
 
   @Override
   public Status update(String table, String key,
-      HashMap<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
 
     return doSingleItemMutation(table, key, values, MutationType.UPDATE);
   }
 
   @Override
   public Status insert(String table, String key,
-      HashMap<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     // Use Upsert to allow overwrite of existing key instead of failing the
     // load (or run) just because the DB already has the key.
     // This is the same behavior as what other DB does here (such as
@@ -275,7 +275,7 @@ public class GoogleDatastoreClient extends DB {
   }
 
   private Status doSingleItemMutation(String table, String key,
-      @Nullable HashMap<String, ByteIterator> values,
+      @Nullable Map<String, ByteIterator> values,
       MutationType mutationType) {
     // First build the key.
     Key.Builder datastoreKey = buildPrimaryKey(table, key);

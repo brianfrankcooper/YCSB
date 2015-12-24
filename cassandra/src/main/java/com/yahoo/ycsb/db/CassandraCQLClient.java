@@ -239,7 +239,7 @@ public class CassandraCQLClient extends DB {
    */
   @Override
   public Status read(String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
+      Map<String, ByteIterator> result) {
     try {
       Statement stmt;
       Select.Builder selectBuilder;
@@ -402,7 +402,7 @@ public class CassandraCQLClient extends DB {
    */
   @Override
   public Status update(String table, String key,
-      HashMap<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     // Insert and updates provide the same functionality
     return insert(table, key, values);
   }
@@ -422,7 +422,7 @@ public class CassandraCQLClient extends DB {
    */
   @Override
   public Status insert(String table, String key,
-      HashMap<String, ByteIterator> values) {
+      Map<String, ByteIterator> values) {
 
     try {
       Insert insertStmt = QueryBuilder.insertInto(table);

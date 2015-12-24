@@ -222,7 +222,7 @@ public class CloudSpannerClient extends DB {
   }
 
   private Status readUsingQuery(
-      String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+      String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     Statement query;
     Iterable<String> columns = fields == null ? STANDARD_FIELDS : fields;
     if (fields == null || fields.size() == fieldCount) {
@@ -253,7 +253,7 @@ public class CloudSpannerClient extends DB {
 
   @Override
   public Status read(
-      String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+      String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     if (queriesForReads) {
       return readUsingQuery(table, key, fields, result);
     }
@@ -324,7 +324,7 @@ public class CloudSpannerClient extends DB {
   }
 
   @Override
-  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
     Mutation.WriteBuilder m = Mutation.newInsertOrUpdateBuilder(table);
     m.set(PRIMARY_KEY_COLUMN).to(key);
     for (Map.Entry<String, ByteIterator> e : values.entrySet()) {
@@ -340,7 +340,7 @@ public class CloudSpannerClient extends DB {
   }
 
   @Override
-  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     if (bufferedMutations.size() < batchInserts) {
       Mutation.WriteBuilder m = Mutation.newInsertOrUpdateBuilder(table);
       m.set(PRIMARY_KEY_COLUMN).to(key);
@@ -389,7 +389,7 @@ public class CloudSpannerClient extends DB {
   }
 
   private static void decodeStruct(
-      Iterable<String> columns, StructReader structReader, HashMap<String, ByteIterator> result) {
+      Iterable<String> columns, StructReader structReader, Map<String, ByteIterator> result) {
     for (String col : columns) {
       result.put(col, new StringByteIterator(structReader.getString(col)));
     }

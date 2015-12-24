@@ -35,6 +35,7 @@ import com.yahoo.ycsb.Status;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
@@ -105,7 +106,7 @@ public class AzureClient extends DB {
 
   @Override
   public Status read(String table, String key, Set<String> fields,
-      final HashMap<String, ByteIterator> result) {
+                     Map<String, ByteIterator> result) {
     if (fields != null) {
       return readSubset(key, fields, result);
     } else {
@@ -145,12 +146,12 @@ public class AzureClient extends DB {
   }
 
   @Override
-  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
     return insertOrUpdate(key, values);
   }
 
   @Override
-  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     if (batchSize == 1) {
       return insertOrUpdate(key, values);
     } else {
@@ -187,7 +188,7 @@ public class AzureClient extends DB {
   /*
    * Read subset of properties instead of full fields with projection.
    */
-  public Status readSubset(String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+  public Status readSubset(String key, Set<String> fields, Map<String, ByteIterator> result) {
     String whereStr = String.format("RowKey eq '%s'", key);
 
     TableQuery<TableServiceEntity> projectionQuery = TableQuery.from(
@@ -220,7 +221,7 @@ public class AzureClient extends DB {
     }
   }
 
-  private Status readEntity(String key, HashMap<String, ByteIterator> result) {
+  private Status readEntity(String key, Map<String, ByteIterator> result) {
     try {
       // firstly, retrieve the entity to be deleted
       TableOperation retrieveOp = 
@@ -238,7 +239,7 @@ public class AzureClient extends DB {
     }
   }
 
-  private Status insertBatch(String key, HashMap<String, ByteIterator> values) {
+  private Status insertBatch(String key, Map<String, ByteIterator> values) {
     HashMap<String, EntityProperty> properties = new HashMap<String, EntityProperty>();
     for (Entry<String, ByteIterator> entry : values.entrySet()) {
       String fieldName = entry.getKey();
@@ -259,7 +260,7 @@ public class AzureClient extends DB {
     return Status.OK;
   }
   
-  private Status insertOrUpdate(String key, HashMap<String, ByteIterator> values) {
+  private Status insertOrUpdate(String key, Map<String, ByteIterator> values) {
     HashMap<String, EntityProperty> properties = new HashMap<String, EntityProperty>();
     for (Entry<String, ByteIterator> entry : values.entrySet()) {
       String fieldName = entry.getKey();

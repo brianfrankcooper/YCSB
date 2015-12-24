@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -198,7 +199,7 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
   
   @Override
   public Status read(String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
+                     Map<String, ByteIterator> result) {
     if (debug) {
       System.out.println("Doing read from Bigtable columnfamily " 
           + new String(columnFamilyBytes));
@@ -360,7 +361,7 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
 
   @Override
   public Status update(String table, String key,
-      HashMap<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     if (debug) {
       System.out.println("Setting up put for key: " + key);
     }
@@ -398,7 +399,7 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
 
   @Override
   public Status insert(String table, String key,
-      HashMap<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     return update(table, key, values);
   }
 

@@ -18,6 +18,7 @@
 package com.yahoo.ycsb;
 
 import java.util.*;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
@@ -107,7 +108,7 @@ public class BasicDB extends DB {
    * @param result A HashMap of field/value pairs for the result
    * @return Zero on success, a non-zero error code on error
    */
-  public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     delay();
 
     if (verbose) {
@@ -170,7 +171,7 @@ public class BasicDB extends DB {
    * @param values A HashMap of field/value pairs to update in the record
    * @return Zero on success, a non-zero error code on error
    */
-  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
     delay();
 
     if (verbose) {
@@ -197,7 +198,7 @@ public class BasicDB extends DB {
    * @param values A HashMap of field/value pairs to insert in the record
    * @return Zero on success, a non-zero error code on error
    */
-  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     delay();
 
     if (verbose) {

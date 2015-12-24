@@ -180,7 +180,7 @@ public class MemcachedClient extends DB {
   @Override
   public Status read(
       String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
+      Map<String, ByteIterator> result) {
     key = createQualifiedKey(table, key);
     try {
       GetFuture<Object> future = memcachedClient().asyncGet(key);
@@ -204,7 +204,7 @@ public class MemcachedClient extends DB {
 
   @Override
   public Status update(
-      String table, String key, HashMap<String, ByteIterator> values) {
+      String table, String key, Map<String, ByteIterator> values) {
     key = createQualifiedKey(table, key);
     try {
       OperationFuture<Boolean> future =
@@ -218,7 +218,7 @@ public class MemcachedClient extends DB {
 
   @Override
   public Status insert(
-      String table, String key, HashMap<String, ByteIterator> values) {
+      String table, String key, Map<String, ByteIterator> values) {
     key = createQualifiedKey(table, key);
     try {
       OperationFuture<Boolean> future =
@@ -290,7 +290,7 @@ public class MemcachedClient extends DB {
   protected static String toJson(Map<String, ByteIterator> values)
       throws IOException {
     ObjectNode node = MAPPER.createObjectNode();
-    HashMap<String, String> stringMap = StringByteIterator.getStringMap(values);
+    Map<String, String> stringMap = StringByteIterator.getStringMap(values);
     for (Map.Entry<String, String> pair : stringMap.entrySet()) {
       node.put(pair.getKey(), pair.getValue());
     }

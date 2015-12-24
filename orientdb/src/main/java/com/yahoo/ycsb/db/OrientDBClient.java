@@ -31,7 +31,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.Vector;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -192,7 +196,7 @@ public class OrientDBClient extends DB {
   }
 
   @Override
-  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try (ODatabaseDocumentTx db = databasePool.acquire()) {
       final ODocument document = new ODocument(CLASS);
 
@@ -228,7 +232,7 @@ public class OrientDBClient extends DB {
   }
 
   @Override
-  public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try (ODatabaseDocumentTx db = databasePool.acquire()) {
       final ODictionary<ORecord> dictionary = db.getMetadata().getIndexManager().getDictionary();
       final ODocument document = dictionary.get(key);
@@ -251,7 +255,7 @@ public class OrientDBClient extends DB {
   }
 
   @Override
-  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
     while (true) {
       try (ODatabaseDocumentTx db = databasePool.acquire()) {
         final ODictionary<ORecord> dictionary = db.getMetadata().getIndexManager().getDictionary();

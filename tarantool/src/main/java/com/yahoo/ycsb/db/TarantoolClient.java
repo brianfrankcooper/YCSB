@@ -60,7 +60,7 @@ public class TarantoolClient extends DB {
   }
 
   @Override
-  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     return replace(key, values, "Can't insert element");
   }
 
@@ -78,7 +78,7 @@ public class TarantoolClient extends DB {
   }
 
   @Override
-  public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try {
       List<String> response = this.connection.select(this.spaceNo, 0, Arrays.asList(key), 0, 1, 0);
       result = tupleConvertFilter(response, fields);
@@ -127,11 +127,11 @@ public class TarantoolClient extends DB {
   }
 
   @Override
-  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
     return replace(key, values, "Can't replace element");
   }
 
-  private Status replace(String key, HashMap<String, ByteIterator> values, String exceptionDescription) {
+  private Status replace(String key, Map<String, ByteIterator> values, String exceptionDescription) {
     int j = 0;
     String[] tuple = new String[1 + 2 * values.size()];
     tuple[0] = key;

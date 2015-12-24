@@ -32,6 +32,7 @@ import com.yahoo.ycsb.StringByteIterator;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
@@ -102,7 +103,7 @@ public class RadosClient extends DB {
   }
 
   @Override
-  public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     byte[] buffer;
 
     try {
@@ -137,7 +138,7 @@ public class RadosClient extends DB {
   }
 
   @Override
-  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     JSONObject json = new JSONObject();
     for (final Entry<String, ByteIterator> e : values.entrySet()) {
       json.put(e.getKey(), e.getValue().toString());
@@ -162,7 +163,7 @@ public class RadosClient extends DB {
   }
 
   @Override
-  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
     Status rtn = delete(table, key);
     if (rtn.equals(Status.OK)) {
       return insert(table, key, values);

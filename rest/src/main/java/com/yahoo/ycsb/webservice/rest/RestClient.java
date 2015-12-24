@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
@@ -101,7 +102,7 @@ public class RestClient extends DB {
   }
 
   @Override
-  public Status read(String table, String endpoint, Set<String> fields, HashMap<String, ByteIterator> result) {
+  public Status read(String table, String endpoint, Set<String> fields, Map<String, ByteIterator> result) {
     int responseCode;
     try {
       responseCode = httpGet(urlPrefix + endpoint, result);
@@ -116,7 +117,7 @@ public class RestClient extends DB {
   }
 
   @Override
-  public Status insert(String table, String endpoint, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String endpoint, Map<String, ByteIterator> values) {
     int responseCode;
     try {
       responseCode = httpExecute(new HttpPost(urlPrefix + endpoint), values.get("data").toString());
@@ -146,7 +147,7 @@ public class RestClient extends DB {
   }
 
   @Override
-  public Status update(String table, String endpoint, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String endpoint, Map<String, ByteIterator> values) {
     int responseCode;
     try {
       responseCode = httpExecute(new HttpPut(urlPrefix + endpoint), values.get("data").toString());
@@ -199,7 +200,7 @@ public class RestClient extends DB {
   }
 
   // Connection is automatically released back in case of an exception.
-  private int httpGet(String endpoint, HashMap<String, ByteIterator> result) throws IOException {
+  private int httpGet(String endpoint, Map<String, ByteIterator> result) throws IOException {
     requestTimedout.setIsSatisfied(false);
     Thread timer = new Thread(new Timer(execTimeout, requestTimedout));
     timer.start();

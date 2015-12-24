@@ -51,7 +51,7 @@ public class InfinispanRemoteClient extends DB {
   }
 
   @Override
-  public Status insert(String table, String recordKey, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String recordKey, Map<String, ByteIterator> values) {
     String compositKey = createKey(table, recordKey);
     Map<String, String> stringValues = new HashMap<>();
     StringByteIterator.putAllAsStrings(stringValues, values);
@@ -65,7 +65,7 @@ public class InfinispanRemoteClient extends DB {
   }
 
   @Override
-  public Status read(String table, String recordKey, Set<String> fields, HashMap<String, ByteIterator> result) {
+  public Status read(String table, String recordKey, Set<String> fields, Map<String, ByteIterator> result) {
     String compositKey = createKey(table, recordKey);
     try {
       Map<String, String> values = cache().get(compositKey);
@@ -100,7 +100,7 @@ public class InfinispanRemoteClient extends DB {
   }
 
   @Override
-  public Status update(String table, String recordKey, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String recordKey, Map<String, ByteIterator> values) {
     String compositKey = createKey(table, recordKey);
     try {
       Map<String, String> stringValues = new HashMap<>();

@@ -137,7 +137,7 @@ public class DynamoDBClient extends DB {
   }
 
   @Override
-  public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("readkey: " + key + " from table: " + table);
     }
@@ -228,7 +228,7 @@ public class DynamoDBClient extends DB {
   }
 
   @Override
-  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("updatekey: " + key + " from table: " + table);
     }
@@ -254,7 +254,7 @@ public class DynamoDBClient extends DB {
   }
 
   @Override
-  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("insertkey: " + primaryKeyName + "-" + key + " from table: " + table);
     }
@@ -302,8 +302,7 @@ public class DynamoDBClient extends DB {
     return Status.OK;
   }
 
-  private static Map<String, AttributeValue> createAttributes(HashMap<String, ByteIterator> values) {
-    //leave space for the PrimaryKey
+  private static Map<String, AttributeValue> createAttributes(Map<String, ByteIterator> values) {
     Map<String, AttributeValue> attributes = new HashMap<>(values.size() + 1);
     for (Entry<String, ByteIterator> val : values.entrySet()) {
       attributes.put(val.getKey(), new AttributeValue(val.getValue().toString()));

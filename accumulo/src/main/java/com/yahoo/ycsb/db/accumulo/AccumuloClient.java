@@ -192,7 +192,7 @@ public class AccumuloClient extends DB {
 
   @Override
   public Status read(String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
+                     Map<String, ByteIterator> result) {
 
     Scanner scanner = null;
     try {
@@ -280,7 +280,7 @@ public class AccumuloClient extends DB {
 
   @Override
   public Status update(String table, String key,
-      HashMap<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     BatchWriter bw = null;
     try {
       bw = getWriter(table);
@@ -308,7 +308,7 @@ public class AccumuloClient extends DB {
 
   @Override
   public Status insert(String t, String key,
-      HashMap<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     return update(t, key, values);
   }
 

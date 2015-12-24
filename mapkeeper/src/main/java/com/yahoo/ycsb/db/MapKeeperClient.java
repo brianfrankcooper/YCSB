@@ -129,7 +129,7 @@ public class MapKeeperClient extends DB {
 
     @Override
     public int read(String table, String key, Set<String> fields,
-            HashMap<String, ByteIterator> result) {
+            Map<String, ByteIterator> result) {
         try {
             ByteBuffer buf = bufStr(key);
 
@@ -177,7 +177,7 @@ public class MapKeeperClient extends DB {
 
     @Override
     public int update(String table, String key,
-            HashMap<String, ByteIterator> values) {
+            Map<String, ByteIterator> values) {
         try {
             if(!writeallfields) {
                 HashMap<String, ByteIterator> oldval = new HashMap<String, ByteIterator>();
@@ -197,7 +197,7 @@ public class MapKeeperClient extends DB {
 
     @Override
     public int insert(String table, String key,
-            HashMap<String, ByteIterator> values) {
+            Map<String, ByteIterator> values) {
         try {
             int ret = ycsbThriftRet(c.insert(table, bufStr(key), encode(values)), ResponseCode.Success, ResponseCode.RecordExists);
             return ret;
