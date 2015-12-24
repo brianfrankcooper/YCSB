@@ -388,7 +388,7 @@ public class CassandraCQLClient extends DB {
         System.out.println(insertStmt.toString());
       }
 
-      ResultSet rs = session.execute(insertStmt);
+      session.execute(insertStmt);
 
       return Status.OK;
     } catch (Exception e) {

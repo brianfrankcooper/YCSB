@@ -28,7 +28,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.BufferedMutator;
 import org.apache.hadoop.hbase.client.BufferedMutatorParams;
@@ -142,8 +141,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
     String table = com.yahoo.ycsb.workloads.CoreWorkload.table;
     try {
       final TableName tName = TableName.valueOf(table);
-      HTableDescriptor dsc =
-          connection.getTable(tName).getTableDescriptor();
+      connection.getTable(tName).getTableDescriptor();
     } catch (IOException e) {
       throw new DBException(e);
     }

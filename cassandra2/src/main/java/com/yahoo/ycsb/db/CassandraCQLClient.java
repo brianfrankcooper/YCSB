@@ -433,7 +433,7 @@ public class CassandraCQLClient extends DB {
         System.out.println(insertStmt.toString());
       }
 
-      ResultSet rs = session.execute(insertStmt);
+      session.execute(insertStmt);
 
       return Status.OK;
     } catch (Exception e) {
@@ -466,7 +466,7 @@ public class CassandraCQLClient extends DB {
         System.out.println(stmt.toString());
       }
 
-      ResultSet rs = session.execute(stmt);
+      session.execute(stmt);
 
       return Status.OK;
     } catch (Exception e) {

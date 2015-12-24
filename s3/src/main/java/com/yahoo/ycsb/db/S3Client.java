@@ -361,8 +361,7 @@ public class S3Client extends DB {
           getObjectMetadataRequest = new GetObjectMetadataRequest(bucket,
               key);
         }
-        S3Object object =
-            s3Client.getObject(getObjectRequest);
+        s3Client.getObject(getObjectRequest);
         ObjectMetadata objectMetadata =
             s3Client.getObjectMetadata(getObjectMetadataRequest);
         int sizeOfFile = (int)objectMetadata.getContentLength();
