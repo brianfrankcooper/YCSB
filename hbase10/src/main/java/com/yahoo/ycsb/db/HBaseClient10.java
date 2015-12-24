@@ -139,7 +139,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
     // Terminate right now if table does not exist, since the client
     // will not propagate this error upstream once the workload
     // starts.
-    String table = com.yahoo.ycsb.workloads.CoreWorkload.table;
+    String table = com.yahoo.ycsb.workloads.CoreWorkload.getTable();
     try {
       final TableName tName = TableName.valueOf(table);
       HTableDescriptor dsc =
