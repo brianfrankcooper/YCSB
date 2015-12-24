@@ -16,53 +16,15 @@
  */
 package com.yahoo.ycsb.db;
 
-import static org.junit.Assume.assumeNoException;
-
-import java.util.Properties;
-
-import org.junit.After;
-
 import com.yahoo.ycsb.DB;
 
 /**
  * AsyncMongoDbClientTest provides runs the basic workload operations.
  */
-public class AsyncMongoDbClientTest extends AbstractDBTestCases {
+public class AsyncMongoDbClientTest extends MongoDbClientTest {
 
-  /** The client to use. */
-  private AsyncMongoDbClient myClient = null;
-
-  /**
-   * Stops the test client.
-   */
-  @After
-  public void tearDown() {
-    try {
-      myClient.cleanup();
-    } catch (Exception error) {
-      // Ignore.
-    } finally {
-      myClient = null;
-    }
-  }
-
-  /**
-   * {@inheritDoc}
-   * <p>
-   * Overridden to return the {@link AsyncMongoDbClient}.
-   * </p>
-   */
   @Override
-  protected DB getDB(Properties props) {
-    if( myClient == null ) {
-      myClient = new AsyncMongoDbClient();
-      myClient.setProperties(props);
-      try {
-        myClient.init();
-      } catch (Exception error) {
-        assumeNoException(error);
-      }
-    }
-    return myClient;
+  protected DB instantiateClient() {
+    return new AsyncMongoDbClient();
   }
 }
