@@ -581,8 +581,8 @@ public class CassandraClient10 extends DB {
     fields.add("favoritecolor");
     res = cli.read("usertable", "BrianFrankCooper", null, result);
     System.out.println("Result of read: " + res);
-    for (String s : result.keySet()) {
-      System.out.println("[" + s + "]=[" + result.get(s) + "]");
+    for (Map.Entry<String, ByteIterator> entry : result.entrySet()) {
+      System.out.println("[" + entry.getKey() + "]=[" + entry.getValue() + "]");
     }
 
     res = cli.delete("usertable", "BrianFrankCooper");
