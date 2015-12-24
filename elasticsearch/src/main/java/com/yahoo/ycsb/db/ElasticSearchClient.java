@@ -17,11 +17,12 @@
 
 package com.yahoo.ycsb.db;
 
-import static org.elasticsearch.common.settings.ImmutableSettings.*;
+import static org.elasticsearch.common.settings.Settings.Builder;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
-import static org.elasticsearch.index.query.FilterBuilders.rangeFilter;
+import static org.elasticsearch.index.query.QueryBuilders.rangeQuery;
 import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
 import static org.elasticsearch.node.NodeBuilder.nodeBuilder;
+
 
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
@@ -29,18 +30,21 @@ import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.ImmutableSettings.Builder;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.query.RangeFilterBuilder;
+import org.elasticsearch.index.query.RangeQueryBuilder;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.search.SearchHit;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -70,7 +74,6 @@ public class ElasticSearchClient extends DB {
   private Node node;
   private Client client;
   private String indexKey;
-
   private Boolean remoteMode;
 
   /**
@@ -79,7 +82,6 @@ public class ElasticSearchClient extends DB {
    */
   @Override
   public void init() throws DBException {
-    // initialize OrientDB driver
     Properties props = getProperties();
     this.indexKey = props.getProperty("es.index.key", DEFAULT_INDEX_KEY);
     String clusterName =
@@ -90,13 +92,15 @@ public class ElasticSearchClient extends DB {
         .parseBoolean(props.getProperty("elasticsearch.remote", "false"));
     Boolean newdb =
         Boolean.parseBoolean(props.getProperty("elasticsearch.newdb", "false"));
-    Builder settings = settingsBuilder().put("node.local", "true")
+    Builder settings = Settings.settingsBuilder()
+        .put("node.local", "true")
         .put("path.data", System.getProperty("java.io.tmpdir") + "/esdata")
         .put("discovery.zen.ping.multicast.enabled", "false")
         .put("index.mapping._id.indexed", "true")
-        .put("index.gateway.type", "none").put("gateway.type", "none")
+        .put("index.gateway.type", "none")
         .put("index.number_of_shards", "1")
-        .put("index.number_of_replicas", "0");
+        .put("index.number_of_replicas", "0")
+        .put("path.home", System.getProperty("java.io.tmpdir"));
 
     // if properties file contains elasticsearch user defined properties
     // add it to the settings file (will overwrite the defaults).
@@ -118,12 +122,20 @@ public class ElasticSearchClient extends DB {
               .split(",");
       System.out.println("ElasticSearch Remote Hosts = "
           + props.getProperty("elasticsearch.hosts.list", DEFAULT_REMOTE_HOST));
-      TransportClient tClient = new TransportClient(settings);
+      TransportClient tClient = TransportClient.builder()
+                                  .settings(settings).build();
       for (String h : nodeList) {
         String[] nodes = h.split(":");
-        tClient.addTransportAddress(
-            new InetSocketTransportAddress(nodes[0], 
-                Integer.parseInt(nodes[1])));
+        try {
+          tClient.addTransportAddress(new InetSocketTransportAddress(
+              InetAddress.getByName(nodes[0]),
+              Integer.parseInt(nodes[1])
+              ));
+        } catch (NumberFormatException e) {
+          throw new IllegalArgumentException("Unable to parse port number.", e);
+        } catch (UnknownHostException e) {
+          throw new IllegalArgumentException("Unable to Identify host.", e);
+        }
       }
       client = tClient;
     } else { // Start node only if transport client mode is disabled
@@ -132,6 +144,10 @@ public class ElasticSearchClient extends DB {
       client = node.client();
     }
 
+    //wait for shards to be ready
+    client.admin().cluster()
+      .health(new ClusterHealthRequest("lists").waitForActiveShards(1))
+      .actionGet();
     if (newdb) {
       client.admin().indices().prepareDelete(indexKey).execute().actionGet();
       client.admin().indices().prepareCreate(indexKey).execute().actionGet();
@@ -150,7 +166,6 @@ public class ElasticSearchClient extends DB {
     if (!remoteMode) {
       if (!node.isClosed()) {
         client.close();
-        node.stop();
         node.close();
       }
     } else {
@@ -318,10 +333,13 @@ public class ElasticSearchClient extends DB {
   public Status scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     try {
-      final RangeFilterBuilder filter = rangeFilter("_id").gte(startkey);
+      final RangeQueryBuilder filter = rangeQuery("_id").gte(startkey);
       final SearchResponse response = client.prepareSearch(indexKey)
-          .setTypes(table).setQuery(matchAllQuery()).setFilter(filter)
-          .setSize(recordcount).execute().actionGet();
+          .setTypes(table)
+          .setQuery(matchAllQuery())
+          .setSize(recordcount)
+          .execute()
+          .actionGet();
 
       HashMap<String, ByteIterator> entry;
 
