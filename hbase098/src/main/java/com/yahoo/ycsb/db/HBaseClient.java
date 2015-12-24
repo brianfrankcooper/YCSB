@@ -160,7 +160,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      * @param result A HashMap of field/value pairs for the result
      * @return Zero on success, a non-zero error code on error
      */
-    public Status read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
+    public Status read(String table, String key, Set<String> fields, Map<String,ByteIterator> result)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
         if (!_table.equals(table)) {
@@ -325,7 +325,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      * @param values A HashMap of field/value pairs to update in the record
      * @return Zero on success, a non-zero error code on error
      */
-    public Status update(String table, String key, HashMap<String,ByteIterator> values)
+    public Status update(String table, String key, Map<String,ByteIterator> values)
     {
         //if this is a "new" table, init HTable object.  Else, use existing one
         if (!_table.equals(table)) {
@@ -386,7 +386,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      * @param values A HashMap of field/value pairs to insert in the record
      * @return Zero on success, a non-zero error code on error
      */
-    public Status insert(String table, String key, HashMap<String,ByteIterator> values)
+    public Status insert(String table, String key, Map<String, ByteIterator> values)
     {
         return update(table,key,values);
     }
@@ -497,7 +497,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
                             //rescode=cli.delete("table1",key);
                             rescode=cli.read("table1", key, s, result);
                             */
-                            HashSet<String> scanFields = new HashSet<String>();
+                            Set<String> scanFields = new HashSet<String>();
                             scanFields.add("field1");
                             scanFields.add("field3");
                             Vector<HashMap<String,ByteIterator>> scanResults = new Vector<HashMap<String,ByteIterator>>();

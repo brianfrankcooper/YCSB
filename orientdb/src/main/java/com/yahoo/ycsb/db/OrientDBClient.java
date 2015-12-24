@@ -1,4 +1,5 @@
 /**
+/**
  * Copyright (c) 2012 - 2015 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -39,6 +40,7 @@ import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
@@ -131,7 +133,7 @@ public class OrientDBClient extends DB {
    * @param values A HashMap of field/value pairs to insert in the record
    * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
    */
-  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
       final ODocument document = new ODocument(CLASS);
       for (Entry<String, String> entry : StringByteIterator.getStringMap(values).entrySet())
@@ -174,7 +176,7 @@ public class OrientDBClient extends DB {
    * @param result A HashMap of field/value pairs for the result
    * @return Zero on success, a non-zero error code on error or "not found".
    */
-  public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try {
       final ODocument document = dictionary.get(key);
       if (document != null) {
@@ -202,7 +204,7 @@ public class OrientDBClient extends DB {
    * @param values A HashMap of field/value pairs to update in the record
    * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
    */
-  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
     try {
       final ODocument document = dictionary.get(key);
       if (document != null) {

@@ -138,7 +138,7 @@ public class GemFireClient extends DB {
   
   @Override
   public Status read(String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
+      Map<String, ByteIterator> result) {
     Region<String, Map<String, byte[]>> r = getRegion(table);
     Map<String, byte[]> val = r.get(key);
     if (val != null) {
@@ -164,13 +164,13 @@ public class GemFireClient extends DB {
   }
 
   @Override
-  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
     getRegion(table).put(key, convertToBytearrayMap(values));
     return Status.OK;
   }
 
   @Override
-  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     getRegion(table).put(key, convertToBytearrayMap(values));
     return Status.OK;
   }

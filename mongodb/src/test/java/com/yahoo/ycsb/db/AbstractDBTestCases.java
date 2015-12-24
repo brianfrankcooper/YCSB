@@ -37,6 +37,7 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
@@ -281,7 +282,7 @@ public abstract class AbstractDBTestCases {
     assertThat("Read did not return success (0).", result, is(Status.OK));
     assertThat(results.size(), is(5));
     for (int i = 0; i < 5; ++i) {
-      HashMap<String, ByteIterator> read = results.get(i);
+      Map<String, ByteIterator> read = results.get(i);
       for (String key : keys) {
         ByteIterator iter = read.get(key);
 

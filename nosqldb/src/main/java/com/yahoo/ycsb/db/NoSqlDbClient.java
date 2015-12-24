@@ -173,7 +173,7 @@ public class NoSqlDbClient extends DB {
 	}
 
 	@Override
-	public int read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+	public int read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
 		Key kvKey = createKey(table, key);
 		SortedMap<Key, ValueVersion> kvResult;
 		try {
@@ -202,7 +202,7 @@ public class NoSqlDbClient extends DB {
 	}
 
 	@Override
-	public int update(String table, String key, HashMap<String, ByteIterator> values) {
+	public int update(String table, String key, Map<String, ByteIterator> values) {
 		for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
 			Key kvKey = createKey(table, key, entry.getKey());
 			Value kvValue = Value.createValue(entry.getValue().toArray());
@@ -218,7 +218,7 @@ public class NoSqlDbClient extends DB {
 	}
 
 	@Override
-	public int insert(String table, String key, HashMap<String, ByteIterator> values) {
+	public int insert(String table, String key, Map<String, ByteIterator> values) {
 		return update(table, key, values);
 	}
 

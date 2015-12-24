@@ -251,7 +251,7 @@ public class AsyncMongoDbClient extends DB {
    */
   @Override
   public final Status insert(final String table, final String key,
-      final HashMap<String, ByteIterator> values) {
+      final Map<String, ByteIterator> values) {
     try {
       final MongoCollection collection = database.getCollection(table);
       final DocumentBuilder toInsert =
@@ -329,7 +329,7 @@ public class AsyncMongoDbClient extends DB {
    */
   @Override
   public final Status read(final String table, final String key,
-      final Set<String> fields, final HashMap<String, ByteIterator> result) {
+      final Set<String> fields, final Map<String, ByteIterator> result) {
     try {
       final MongoCollection collection = database.getCollection(table);
       final DocumentBuilder query =
@@ -450,7 +450,7 @@ public class AsyncMongoDbClient extends DB {
    */
   @Override
   public final Status update(final String table, final String key,
-      final HashMap<String, ByteIterator> values) {
+      final Map<String, ByteIterator> values) {
     try {
       final MongoCollection collection = database.getCollection(table);
       final DocumentBuilder query = BuilderFactory.start().add("_id", key);
@@ -477,7 +477,7 @@ public class AsyncMongoDbClient extends DB {
    * @param queryResult
    *          The document to fill from.
    */
-  protected final void fillMap(final HashMap<String, ByteIterator> result,
+  protected final void fillMap(final Map<String, ByteIterator> result,
       final Document queryResult) {
     for (final Element be : queryResult) {
       if (be.getType() == ElementType.BINARY) {

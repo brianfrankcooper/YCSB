@@ -19,6 +19,7 @@ package com.yahoo.ycsb;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
@@ -36,7 +37,7 @@ public class DBWrapper extends DB
   private Measurements _measurements;
 
   private boolean reportLatencyForEachError = false;
-  private HashSet<String> latencyTrackedErrors = new HashSet<String>();
+  private Set<String> latencyTrackedErrors = new HashSet<String>();
 
   private static final String REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY =
       "reportlatencyforeacherror";
@@ -118,7 +119,7 @@ public class DBWrapper extends DB
    * @return The result of the operation.
    */
   public Status read(String table, String key, Set<String> fields,
-      HashMap<String,ByteIterator> result)
+                     Map<String, ByteIterator> result)
   {
     long ist=_measurements.getIntendedtartTimeNs();
     long st = System.nanoTime();
@@ -179,7 +180,7 @@ public class DBWrapper extends DB
    * @return The result of the operation.
    */
   public Status update(String table, String key,
-      HashMap<String,ByteIterator> values)
+                       Map<String, ByteIterator> values)
   {
     long ist=_measurements.getIntendedtartTimeNs();
     long st = System.nanoTime();
@@ -201,7 +202,7 @@ public class DBWrapper extends DB
    * @return The result of the operation.
    */
   public Status insert(String table, String key,
-      HashMap<String,ByteIterator> values)
+                       Map<String, ByteIterator> values)
   {
     long ist=_measurements.getIntendedtartTimeNs();
     long st = System.nanoTime();
