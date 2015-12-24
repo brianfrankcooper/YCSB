@@ -30,7 +30,11 @@ import com.yahoo.ycsb.DB;
 public class MongoDbClientTest extends AbstractDBTestCases {
 
   /** The client to use. */
-  private MongoDbClient myClient = null;
+  private DB myClient = null;
+
+  protected DB instantiateClient() {
+    return new MongoDbClient();
+  }
 
   /**
    * Stops the test client.
@@ -55,7 +59,7 @@ public class MongoDbClientTest extends AbstractDBTestCases {
   @Override
   protected DB getDB(Properties props) {
     if( myClient == null ) {
-      myClient = new MongoDbClient();
+      myClient = instantiateClient();
       myClient.setProperties(props);
       try {
         myClient.init();
