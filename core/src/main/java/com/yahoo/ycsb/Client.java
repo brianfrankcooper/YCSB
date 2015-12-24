@@ -591,7 +591,7 @@ public class Client
           System.exit(0);
         }
         int tcount=Integer.parseInt(args[argindex]);
-        props.setProperty(THREAD_COUNT_PROPERTY, tcount+"");
+        props.setProperty(THREAD_COUNT_PROPERTY, String.valueOf(tcount));
         argindex++;
       }
       else if (args[argindex].compareTo("-target")==0)
@@ -603,7 +603,7 @@ public class Client
           System.exit(0);
         }
         int ttarget=Integer.parseInt(args[argindex]);
-        props.setProperty(TARGET_PROPERTY, ttarget+"");
+        props.setProperty(TARGET_PROPERTY, String.valueOf(ttarget));
         argindex++;
       }
       else if (args[argindex].compareTo("-load")==0)

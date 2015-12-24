@@ -123,7 +123,7 @@ public class ScrambledZipfianGenerator extends IntegerGenerator
 		
 		for (int i=0; i<1000000; i++)
 		{
-			System.out.println(""+gen.nextInt());
+			System.out.println(gen.nextInt());
 		}
 	}
 

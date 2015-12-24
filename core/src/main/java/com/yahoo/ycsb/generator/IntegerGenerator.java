@@ -46,7 +46,7 @@ public abstract class IntegerGenerator extends Generator
 	 */
 	public String nextString()
 	{
-		return ""+nextInt();
+		return String.valueOf(nextInt());
 	}
 	
 	/**
@@ -57,7 +57,7 @@ public abstract class IntegerGenerator extends Generator
 	@Override
 	public String lastString()
 	{
-		return ""+lastInt();
+		return String.valueOf(lastInt());
 	}
 	
 	/**
