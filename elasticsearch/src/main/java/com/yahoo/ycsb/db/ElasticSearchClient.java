@@ -20,7 +20,6 @@ package com.yahoo.ycsb.db;
 import static org.elasticsearch.common.settings.Settings.Builder;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.elasticsearch.index.query.QueryBuilders.rangeQuery;
-import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
 import static org.elasticsearch.node.NodeBuilder.nodeBuilder;
 
 
@@ -333,10 +332,10 @@ public class ElasticSearchClient extends DB {
   public Status scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     try {
-      final RangeQueryBuilder filter = rangeQuery("_id").gte(startkey);
+      final RangeQueryBuilder rangeQuery = rangeQuery("_id").gte(startkey);
       final SearchResponse response = client.prepareSearch(indexKey)
           .setTypes(table)
-          .setQuery(matchAllQuery())
+          .setQuery(rangeQuery)
           .setSize(recordcount)
           .execute()
           .actionGet();

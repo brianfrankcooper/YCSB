@@ -33,6 +33,8 @@ LICENSE file.
     </properties>
     <dependencies>
         <dependency>
+        <!-- jna is supported in ES and will be used when provided 
+             otherwise a fallback is used -->    
             <groupId>net.java.dev.jna</groupId>
             <artifactId>jna</artifactId>
             <version>4.1.0</version>
