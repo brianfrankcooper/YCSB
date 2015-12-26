@@ -56,7 +56,7 @@ import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * MongoDB asynchronous client for YCSB framework using the MongoDB Inc. <a
+ * MongoDB binding for YCSB framework using the MongoDB Inc. <a
  * href="http://docs.mongodb.org/ecosystem/drivers/java/">driver</a>
  * <p>
  * See the <code>README.md</code> for configuration information.
@@ -285,6 +285,8 @@ public class MongoDbClient extends DB {
             collection.insertMany(bulkInserts, INSERT_UNORDERED);
           }
           bulkInserts.clear();
+        } else {
+          return OptionsSupport.BATCHED_OK;
         }
       }
       return Status.OK;
