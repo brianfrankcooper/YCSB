@@ -85,7 +85,7 @@ public class VoldemortClient extends DB {
 
   @Override
   public Status insert(String table, String key,
-      HashMap<String, ByteIterator> values) {
+      Map<String, ByteIterator> values) {
     if (checkStore(table) == Status.ERROR) {
       return Status.ERROR;
     }
@@ -96,7 +96,7 @@ public class VoldemortClient extends DB {
 
   @Override
   public Status read(String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
+      Map<String, ByteIterator> result) {
     if (checkStore(table) == Status.ERROR) {
       return Status.ERROR;
     }
@@ -130,7 +130,7 @@ public class VoldemortClient extends DB {
 
   @Override
   public Status update(String table, String key,
-      HashMap<String, ByteIterator> values) {
+      Map<String, ByteIterator> values) {
     if (checkStore(table) == Status.ERROR) {
       return Status.ERROR;
     }

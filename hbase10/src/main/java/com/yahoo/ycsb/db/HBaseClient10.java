@@ -204,7 +204,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
    * @return Zero on success, a non-zero error code on error
    */
   public Status read(String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
+      Map<String, ByteIterator> result) {
     // if this is a "new" table, init HTable object. Else, use existing one
     if (!tableName.equals(table)) {
       currentTable = null;
@@ -372,7 +372,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
    */
   @Override
   public Status update(String table, String key,
-      HashMap<String, ByteIterator> values) {
+      Map<String, ByteIterator> values) {
     // if this is a "new" table, init HTable object. Else, use existing one
     if (!tableName.equals(table)) {
       currentTable = null;
@@ -434,7 +434,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
    */
   @Override
   public Status insert(String table, String key,
-      HashMap<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     return update(table, key, values);
   }
 

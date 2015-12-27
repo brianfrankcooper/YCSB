@@ -168,7 +168,7 @@ public class DynamoDBClient extends DB {
 
     @Override
     public Status read(String table, String key, Set<String> fields,
-            HashMap<String, ByteIterator> result) {
+            Map<String, ByteIterator> result) {
 
         logger.debug("readkey: " + key + " from table: " + table);
         GetItemRequest req = new GetItemRequest(table, createPrimaryKey(key));
@@ -254,7 +254,7 @@ public class DynamoDBClient extends DB {
     }
 
     @Override
-    public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+    public Status update(String table, String key, Map<String, ByteIterator> values) {
         logger.debug("updatekey: " + key + " from table: " + table);
 
         Map<String, AttributeValueUpdate> attributes = new HashMap<String, AttributeValueUpdate>(
@@ -280,7 +280,7 @@ public class DynamoDBClient extends DB {
     }
 
     @Override
-    public Status insert(String table, String key,HashMap<String, ByteIterator> values) {
+    public Status insert(String table, String key, Map<String, ByteIterator> values) {
         logger.debug("insertkey: " + primaryKeyName + "-" + key + " from table: " + table);
         Map<String, AttributeValue> attributes = createAttributes(values);
         // adding primary key
@@ -325,7 +325,7 @@ public class DynamoDBClient extends DB {
     }
 
     private static Map<String, AttributeValue> createAttributes(
-            HashMap<String, ByteIterator> values) {
+            Map<String, ByteIterator> values) {
         Map<String, AttributeValue> attributes = new HashMap<String, AttributeValue>(
                 values.size() + 1); //leave space for the PrimaryKey
         for (Entry<String, ByteIterator> val : values.entrySet()) {

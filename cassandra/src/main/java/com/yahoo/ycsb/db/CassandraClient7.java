@@ -188,7 +188,7 @@ public class CassandraClient7 extends DB {
    * @return Zero on success, a non-zero error code on error
    */
   public Status read(String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
+      Map<String, ByteIterator> result) {
     if (!tableName.equals(table)) {
       try {
         client.set_keyspace(table);
@@ -211,7 +211,7 @@ public class CassandraClient7 extends DB {
           predicate = new SlicePredicate().setSlice_range(range);
 
         } else {
-          ArrayList<ByteBuffer> fieldlist =
+          List<ByteBuffer> fieldlist =
               new ArrayList<ByteBuffer>(fields.size());
           for (String s : fields) {
             fieldlist.add(ByteBuffer.wrap(s.getBytes("UTF-8")));
@@ -310,7 +310,7 @@ public class CassandraClient7 extends DB {
           predicate = new SlicePredicate().setSlice_range(range);
 
         } else {
-          ArrayList<ByteBuffer> fieldlist =
+          List<ByteBuffer> fieldlist =
               new ArrayList<ByteBuffer>(fields.size());
           for (String s : fields) {
             fieldlist.add(ByteBuffer.wrap(s.getBytes("UTF-8")));
@@ -387,7 +387,7 @@ public class CassandraClient7 extends DB {
    * @return Zero on success, a non-zero error code on error
    */
   public Status update(String table, String key,
-      HashMap<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     return insert(table, key, values);
   }
 
@@ -405,7 +405,7 @@ public class CassandraClient7 extends DB {
    * @return Zero on success, a non-zero error code on error
    */
   public Status insert(String table, String key,
-      HashMap<String, ByteIterator> values) {
+      Map<String, ByteIterator> values) {
     if (!tableName.equals(table)) {
       try {
         client.set_keyspace(table);
@@ -533,7 +533,7 @@ public class CassandraClient7 extends DB {
     System.out.println("Result of insert: " + res.getName());
 
     HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
-    HashSet<String> fields = new HashSet<String>();
+    Set<String> fields = new HashSet<String>();
     fields.add("middlename");
     fields.add("age");
     fields.add("favoritecolor");

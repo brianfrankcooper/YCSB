@@ -258,7 +258,7 @@ public class S3Client extends DB {
   */
   @Override
   public Status insert(String bucket, String key,
-      HashMap<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     return writeToStorage(bucket, key, values, true, sse, ssecKey);
   }
   /**
@@ -278,7 +278,7 @@ public class S3Client extends DB {
   */
   @Override
   public Status read(String bucket, String key, Set<String> fields,
-        HashMap<String, ByteIterator> result) {
+                     Map<String, ByteIterator> result) {
     return readFromStorage(bucket, key, result, ssecKey);
   }
   /**
@@ -296,7 +296,7 @@ public class S3Client extends DB {
   */
   @Override
   public Status update(String bucket, String key,
-        HashMap<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     return writeToStorage(bucket, key, values, false, sse, ssecKey);
   }
   /**
@@ -336,8 +336,8 @@ public class S3Client extends DB {
   *
   */
   protected Status writeToStorage(String bucket, String key,
-        HashMap<String, ByteIterator> values, Boolean updateMarker,
-            String sseLocal, SSECustomerKey ssecLocal) {
+                                  Map<String, ByteIterator> values, Boolean updateMarker,
+                                  String sseLocal, SSECustomerKey ssecLocal) {
     int totalSize = 0;
     int fieldCount = values.size(); //number of fields to concatenate
     // getting the first field in the values
@@ -436,7 +436,7 @@ public class S3Client extends DB {
   *
   */
   protected Status readFromStorage(String bucket, String key,
-        HashMap<String, ByteIterator> result, SSECustomerKey ssecLocal) {
+                                   Map<String, ByteIterator> result, SSECustomerKey ssecLocal) {
     try {
       GetObjectRequest getObjectRequest = null;
       GetObjectMetadataRequest getObjectMetadataRequest = null;

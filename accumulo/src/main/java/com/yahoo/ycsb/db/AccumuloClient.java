@@ -200,7 +200,7 @@ public class AccumuloClient extends DB {
 
   @Override
   public Status read(String t, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
+      Map<String, ByteIterator> result) {
 
     try {
       checkTable(t);
@@ -288,7 +288,7 @@ public class AccumuloClient extends DB {
 
   @Override
   public Status update(String t, String key,
-      HashMap<String, ByteIterator> values) {
+      Map<String, ByteIterator> values) {
     try {
       checkTable(t);
     } catch (TableNotFoundException e) {
@@ -327,7 +327,7 @@ public class AccumuloClient extends DB {
 
   @Override
   public Status insert(String t, String key,
-      HashMap<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     return update(t, key, values);
   }
 
@@ -405,7 +405,7 @@ public class AccumuloClient extends DB {
           // (current way is kind of ugly but works, i think)
           // TODO : Get table name from configuration or argument
           String usertable = "usertable";
-          HashSet<String> fields = new HashSet<String>();
+          Set<String> fields = new HashSet<String>();
           for (int j = 0; j < 9; j++) {
             fields.add("field" + j);
           }

@@ -29,6 +29,7 @@ import org.kududb.client.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -204,7 +205,7 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
 
   @Override
   public Status read(String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
+      Map<String, ByteIterator> result) {
     Vector<HashMap<String, ByteIterator>> results =
         new Vector<HashMap<String, ByteIterator>>();
     final Status status = scan(table, key, 1, fields, results);
@@ -294,7 +295,7 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
 
   @Override
   public Status update(String table, String key,
-      HashMap<String, ByteIterator> values) {
+      Map<String, ByteIterator> values) {
     Update update = this.kuduTable.newUpdate();
     PartialRow row = update.getRow();
     row.addString(KEY, key);
@@ -311,7 +312,7 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
 
   @Override
   public Status insert(String table, String key,
-      HashMap<String, ByteIterator> values) {
+      Map<String, ByteIterator> values) {
     Insert insert = this.kuduTable.newInsert();
     PartialRow row = insert.getRow();
     row.addString(KEY, key);

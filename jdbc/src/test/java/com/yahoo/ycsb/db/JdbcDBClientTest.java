@@ -26,7 +26,9 @@ import org.junit.*;
 
 import java.sql.*;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -246,7 +248,7 @@ public class JdbcDBClientTest {
     public void readTest() {
         String insertKey = "user0";
         HashMap<String, ByteIterator> insertMap = insertRow(insertKey);
-        HashSet<String> readFields = new HashSet<String>();
+        Set<String> readFields = new HashSet<String>();
         HashMap<String, ByteIterator> readResultMap = new HashMap<String, ByteIterator>();
 
         // Test reading a single field
@@ -304,12 +306,12 @@ public class JdbcDBClientTest {
 
     @Test
     public void scanTest() throws SQLException {
-        HashMap<String, HashMap<String, ByteIterator>> keyMap = new HashMap<String, HashMap<String, ByteIterator>>();
+        Map<String, HashMap<String, ByteIterator>> keyMap = new HashMap<String, HashMap<String, ByteIterator>>();
         for (int i = 0; i < 5; i++) {
             String insertKey = KEY_PREFIX + i;
             keyMap.put(insertKey, insertRow(insertKey));
         }
-        HashSet<String> fieldSet = new HashSet<String>();
+        Set<String> fieldSet = new HashSet<String>();
         fieldSet.add("FIELD0");
         fieldSet.add("FIELD1");
         int startIndex = 1;
@@ -322,7 +324,7 @@ public class JdbcDBClientTest {
         assertEquals("Assert the correct number of results rows were returned", resultRows, resultVector.size());
         // Check each vector row to make sure we have the correct fields
         int testIndex = startIndex;
-        for (HashMap<String, ByteIterator> result: resultVector) {
+        for (Map<String, ByteIterator> result: resultVector) {
             assertEquals("Assert that this row has the correct number of fields", fieldSet.size(), result.size());
             for (String field: fieldSet) {
                 // TODO: This will fail until the fix is made to insert and update fields in the correct order.

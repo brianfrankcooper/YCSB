@@ -34,6 +34,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Protocol;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -94,7 +95,7 @@ public class RedisClient extends DB {
 
   @Override
   public Status read(String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
+      Map<String, ByteIterator> result) {
     if (fields == null) {
       StringByteIterator.putAllAsByteIterators(result, jedis.hgetAll(key));
     } else {
@@ -116,7 +117,7 @@ public class RedisClient extends DB {
 
   @Override
   public Status insert(String table, String key,
-      HashMap<String, ByteIterator> values) {
+      Map<String, ByteIterator> values) {
     if (jedis.hmset(key, StringByteIterator.getStringMap(values))
         .equals("OK")) {
       jedis.zadd(INDEX_KEY, hash(key), key);
@@ -133,7 +134,7 @@ public class RedisClient extends DB {
 
   @Override
   public Status update(String table, String key,
-      HashMap<String, ByteIterator> values) {
+      Map<String, ByteIterator> values) {
     return jedis.hmset(key, StringByteIterator.getStringMap(values))
         .equals("OK") ? Status.OK : Status.ERROR;
   }

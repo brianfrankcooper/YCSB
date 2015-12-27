@@ -335,7 +335,7 @@ public class CommandLine
 		  {
 		     System.out.println("--------------------------------");
 		  }
-		  for (HashMap<String,ByteIterator> result : results)
+		  for (Map<String,ByteIterator> result : results)
 		  {
 		     System.out.println("Record "+(record++));
 		     for (Map.Entry<String,ByteIterator> ent : result.entrySet())
