@@ -427,7 +427,7 @@ public class CassandraCQLClient extends DB {
         insertStmt.value(entry.getKey(), value);
       }
 
-      insertStmt.setConsistencyLevel(writeConsistencyLevel).enableTracing();
+      insertStmt.setConsistencyLevel(writeConsistencyLevel);
 
       if (debug) {
         System.out.println(insertStmt.toString());
