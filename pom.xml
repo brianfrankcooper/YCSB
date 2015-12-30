@@ -93,6 +93,7 @@ LICENSE file.
     <couchbase.version>1.1.8</couchbase.version>
     <tarantool.version>1.6.5</tarantool.version>
     <aerospike.version>3.1.2</aerospike.version>
+    <solr.version>5.4.0</solr.version>
   </properties>
 
   <modules>
@@ -124,6 +125,7 @@ LICENSE file.
     <module>orientdb</module>
     <module>redis</module>
     <module>s3</module>
+    <module>solr</module>
     <module>tarantool</module>
     <!--<module>voldemort</module>-->
   </modules>

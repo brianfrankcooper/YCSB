@@ -84,6 +84,9 @@ public class Status {
   public static final Status NOT_FOUND = new Status("NOT_FOUND", "The requested record was not found.");
   public static final Status NOT_IMPLEMENTED = new Status("NOT_IMPLEMENTED", "The operation is not implemented for the current binding.");
   public static final Status UNEXPECTED_STATE = new Status("UNEXPECTED_STATE", "The operation reported success, but the result was not as expected.");
-
+  public static final Status BAD_REQUEST = new Status("BAD_REQUEST", "The request was not valid.");
+  public static final Status FORBIDDEN = new Status("FORBIDDEN", "The operation is forbidden.");
+  public static final Status SERVICE_UNAVAILABLE = new Status("SERVICE_UNAVAILABLE", "Dependant service for the current binding is not available.");
+  
 }
 
