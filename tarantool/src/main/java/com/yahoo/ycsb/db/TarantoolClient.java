@@ -84,21 +84,7 @@ public class TarantoolClient extends DB {
 
 	@Override
 	public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
-		int j = 0;
-		String[] tuple = new String[1 + 2 * values.size()];
-		tuple[0] = key;
-		for (Map.Entry<String, ByteIterator> i: values.entrySet()) {
-			tuple[j + 1] = i.getKey();
-			tuple[j + 2] = i.getValue().toString();
-			j += 2;
-		}
-		try {
-			this.connection.replace(this.spaceNo, tuple);
-		} catch (TarantoolException exc) {
-			logger.log(Level.SEVERE,"Can't insert element", exc);
-			return Status.ERROR;
-		}
-		return Status.OK;
+		return replace(key, values, "Can't insert element");
 	}
 
 	private HashMap<String, ByteIterator> tuple_convert_filter (List<String> input,
@@ -164,6 +150,13 @@ public class TarantoolClient extends DB {
 	@Override
 	public Status update(String table, String key,
 			HashMap<String, ByteIterator> values) {
+		return replace(key, values, "Can't replace element");
+
+	}
+
+	private Status replace(String key,
+						  HashMap<String, ByteIterator> values,
+						  String exceptionDescription) {
 		int j = 0;
 		String[] tuple = new String[1 + 2 * values.size()];
 		tuple[0] = key;
@@ -175,7 +168,7 @@ public class TarantoolClient extends DB {
 		try {
 			this.connection.replace(this.spaceNo, tuple);
 		} catch (TarantoolException exc) {
-			logger.log(Level.SEVERE,"Can't replace element", exc);
+			logger.log(Level.SEVERE,exceptionDescription, exc);
 			return Status.ERROR;
 		}
 		return Status.OK;
