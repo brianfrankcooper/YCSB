@@ -47,10 +47,6 @@ public class InfinispanRemoteClient extends DB {
 
    private static final Log logger = LogFactory.getLog(InfinispanRemoteClient.class);
 
-   public InfinispanRemoteClient() {
-      
-   }
-   
    @Override
    public void init() throws DBException {
 	  remoteIspnManager = RemoteCacheManagerHolder.getInstance(getProperties());

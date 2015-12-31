@@ -174,7 +174,7 @@ public class Measurements {
   ThreadLocal<StartTimeHolder> tlIntendedStartTime = new ThreadLocal<Measurements.StartTimeHolder>() {
     protected StartTimeHolder initialValue() {
       return new StartTimeHolder();
-    };
+    }
   };
 
   public void setIntendedStartTimeNs(long time) {

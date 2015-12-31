@@ -87,8 +87,6 @@ public class DynamoDBClient extends DB {
         "An error occurred on the client.");
     private static final String DEFAULT_HASH_KEY_VALUE = "YCSB_0";
 
-    public DynamoDBClient() {}
-
     /**
      * Initialize any state for this DB. Called once per DB instance; there is
      * one DB instance per client thread.
