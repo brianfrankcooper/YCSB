@@ -153,7 +153,7 @@ public class JdbcDBClientTest {
     public void insertTest() {
         try {
             String insertKey = "user0";
-            HashMap<String, ByteIterator> insertMap = insertRow(insertKey);
+            insertRow(insertKey);
 
             ResultSet resultSet = jdbcConnection.prepareStatement(
                 String.format("SELECT * FROM %s", TABLE_NAME)
@@ -245,7 +245,7 @@ public class JdbcDBClientTest {
     @Test
     public void readTest() {
         String insertKey = "user0";
-        HashMap<String, ByteIterator> insertMap = insertRow(insertKey);
+        insertRow(insertKey);
         HashSet<String> readFields = new HashSet<String>();
         HashMap<String, ByteIterator> readResultMap = new HashMap<String, ByteIterator>();
 

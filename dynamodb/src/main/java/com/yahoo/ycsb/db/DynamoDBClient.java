@@ -293,9 +293,8 @@ public class DynamoDBClient extends DB {
         }
 
         PutItemRequest putItemRequest = new PutItemRequest(table, attributes);
-        PutItemResult res = null;
         try {
-            res = dynamoDB.putItem(putItemRequest);
+            dynamoDB.putItem(putItemRequest);
         }catch (AmazonServiceException ex) {
             logger.error(ex.getMessage());
             return Status.ERROR;
@@ -310,10 +309,9 @@ public class DynamoDBClient extends DB {
     public Status delete(String table, String key) {
         logger.debug("deletekey: " + key + " from table: " + table);
         DeleteItemRequest req = new DeleteItemRequest(table, createPrimaryKey(key));
-        DeleteItemResult res = null;
 
         try {
-            res = dynamoDB.deleteItem(req);
+            dynamoDB.deleteItem(req);
         }catch (AmazonServiceException ex) {
             logger.error(ex.getMessage());
             return Status.ERROR;

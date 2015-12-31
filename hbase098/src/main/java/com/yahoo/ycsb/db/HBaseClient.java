@@ -110,7 +110,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
       try
 	  {
 	      HTable ht = new HTable(config, table);
-	      HTableDescriptor dsc = ht.getTableDescriptor();
+	      ht.getTableDescriptor();
 	  }
       catch (IOException e)
 	  {
