@@ -262,7 +262,7 @@ public class MemcachedClient extends DB {
       String value, Set<String> fields,
       Map<String, ByteIterator> result) throws IOException {
     JsonNode json = MAPPER.readTree(value);
-    boolean checkFields = fields != null && fields.size() > 0;
+    boolean checkFields = fields != null && !fields.isEmpty();
     for (Iterator<Map.Entry<String, JsonNode>> jsonFields = json.getFields();
          jsonFields.hasNext();
          /* increment in loop body */) {

@@ -291,7 +291,7 @@ public class CouchbaseClient extends DB {
     if (useJson) {
       try {
         JsonNode json = JSON_MAPPER.readTree((String) source);
-        boolean checkFields = fields != null && fields.size() > 0;
+        boolean checkFields = fields != null && !fields.isEmpty();
         for (Iterator<Map.Entry<String, JsonNode>> jsonFields = json.fields(); jsonFields.hasNext();) {
           Map.Entry<String, JsonNode> jsonField = jsonFields.next();
           String name = jsonField.getKey();

@@ -327,7 +327,7 @@ public class CommandLine
 		  Status ret=db.scan(table,tokens[1],Integer.parseInt(tokens[2]),fields,results);
 		  System.out.println("Result: "+ret.getName());
 		  int record=0;
-		  if (results.size()==0)
+		  if (results.isEmpty())
 		  {
 		     System.out.println("0 records");
 		  }
