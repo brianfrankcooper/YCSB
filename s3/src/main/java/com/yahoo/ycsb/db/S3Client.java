@@ -413,14 +413,14 @@ public class S3Client extends DB {
         System.err.println("Not possible to write object :"+key);
         e.printStackTrace();
         return Status.ERROR;
-      } finally {
-        return Status.OK;
       }
     } catch (Exception e) {
       System.err.println("Error in the creation of the stream :"+e.toString());
       e.printStackTrace();
       return Status.ERROR;
     }
+
+    return Status.OK;
   }
 
   /**
@@ -464,9 +464,9 @@ public class S3Client extends DB {
       System.err.println("Not possible to get the object "+key);
       e.printStackTrace();
       return Status.ERROR;
-    } finally {
-      return Status.OK;
     }
+
+    return Status.OK;
   }
 
   /**
