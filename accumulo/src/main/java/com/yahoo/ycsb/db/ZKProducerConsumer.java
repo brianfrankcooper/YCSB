@@ -174,7 +174,7 @@ public class ZKProducerConsumer implements Watcher {
       while (true) {
         synchronized (mutex) {
           List<String> list = zk.getChildren(getRoot(), true);
-          if (list.size() == 0) {
+          if (list.isEmpty()) {
             System.out.println("Going to wait");
             mutex.wait();
           } else {
