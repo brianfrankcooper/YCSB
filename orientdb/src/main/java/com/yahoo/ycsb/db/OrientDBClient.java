@@ -230,16 +230,21 @@ public class OrientDBClient extends DB {
    */
   public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     try {
+      int entrycount = 0;
       final OIndexCursor entries = dictionary.getIndex().iterateEntriesMajor(startkey, true, true);
-      while (entries.hasNext()) {
+
+      while (entries.hasNext() && entrycount < recordcount) {
         final Entry<Object, OIdentifiable> entry = entries.nextEntry();
         final ODocument document = entry.getValue().getRecord();
 
         final HashMap<String, ByteIterator> map = new HashMap<String, ByteIterator>();
         result.add(map);
 
-        for (String field : fields)
+        for (String field : fields) {
           map.put(field, new StringByteIterator((String) document.field(field)));
+        }
+
+        entrycount++;
       }
 
       return Status.OK;
