@@ -169,11 +169,11 @@ public class AccumuloClient extends DB {
     bwc.setMaxWriteThreads(Integer.parseInt(
         getProperties().getProperty("accumulo.batchWriterThreads", "1")));
 
-    bw = connector.createBatchWriter(table, bwc);
+    bw = connector.createBatchWriter(t, bwc);
 
     // Create our scanners
-    singleScanner = connector.createScanner(table, Authorizations.EMPTY);
-    scanScanner = connector.createScanner(table, Authorizations.EMPTY);
+    singleScanner = connector.createScanner(t, Authorizations.EMPTY);
+    scanScanner = connector.createScanner(t, Authorizations.EMPTY);
 
     table = t; // Store the name of the table we have open.
   }
