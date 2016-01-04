@@ -17,11 +17,7 @@
 
 package com.yahoo.ycsb;
 
-import java.util.HashMap;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Enumeration;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
@@ -187,9 +183,9 @@ public class BasicDB extends DB
 			System.out.print("UPDATE "+table+" "+key+" [ ");
 			if (values!=null)
 			{
-				for (String k : values.keySet())
+				for (Map.Entry<String, ByteIterator> entry : values.entrySet())
 				{
-					System.out.print(k+"="+values.get(k)+" ");
+					System.out.print(entry.getKey() +"="+ entry.getValue() +" ");
 				}
 			}
 			System.out.println("]");
@@ -216,9 +212,9 @@ public class BasicDB extends DB
 			System.out.print("INSERT "+table+" "+key+" [ ");
 			if (values!=null)
 			{
-				for (String k : values.keySet())
+				for (Map.Entry<String, ByteIterator> entry : values.entrySet())
 				{
-					System.out.print(k+"="+values.get(k)+" ");
+					System.out.print(entry.getKey() +"="+ entry.getValue() +" ");
 				}
 			}
 

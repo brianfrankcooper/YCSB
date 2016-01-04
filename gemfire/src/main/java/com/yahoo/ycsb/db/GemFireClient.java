@@ -143,8 +143,8 @@ public class GemFireClient extends DB {
     Map<String, byte[]> val = r.get(key);
     if (val != null) {
       if (fields == null) {
-        for (String k : val.keySet()) {
-          result.put(k, new ByteArrayByteIterator(val.get(k)));
+        for (Map.Entry<String, byte[]> entry : val.entrySet()) {
+          result.put(entry.getKey(), new ByteArrayByteIterator(entry.getValue()));
         }
       } else {
         for (String field : fields) {
@@ -183,8 +183,8 @@ public class GemFireClient extends DB {
 
   private Map<String, byte[]> convertToBytearrayMap(Map<String,ByteIterator> values) {
     Map<String, byte[]> retVal = new HashMap<String, byte[]>();
-    for (String key : values.keySet()) {
-      retVal.put(key, values.get(key).toArray());
+    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+      retVal.put(entry.getKey(), entry.getValue().toArray());
     }
     return retVal;
   }
