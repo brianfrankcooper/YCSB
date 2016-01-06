@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 YCSB contributors. All rights reserved.
+ * Copyright (c) 2015 - 2016 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -17,9 +17,8 @@
 
 package com.yahoo.ycsb.db;
 
-import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.dictionary.ODictionary;
-import com.orientechnologies.orient.core.record.ORecordInternal;
+import com.orientechnologies.orient.core.record.ORecord;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
@@ -42,8 +41,7 @@ public class OrientDBClientTest {
   private static final int NUM_FIELDS = 3;
   private static final String TEST_DB_URL = "memory:test";
 
-  private static ODatabaseDocumentTx orientDBConnection = null;
-  private static ODictionary<ORecordInternal<?>> orientDBDictionary;
+  private static ODictionary<ORecord> orientDBDictionary;
   private static OrientDBClient orientDBClient = null;
 
   @Before
@@ -56,16 +54,11 @@ public class OrientDBClientTest {
 
     orientDBClient.setProperties(p);
     orientDBClient.init();
-    orientDBConnection = new ODatabaseDocumentTx(TEST_DB_URL).open("admin","admin");
-    orientDBDictionary = orientDBConnection.getMetadata().getIndexManager().getDictionary();
+    orientDBDictionary = orientDBClient.db.getDictionary();
   }
 
   @After
   public void teardown() throws DBException {
-    if (orientDBConnection != null) {
-      orientDBConnection.close();
-    }
-
     if (orientDBClient != null) {
       orientDBClient.cleanup();
     }
@@ -223,8 +216,17 @@ public class OrientDBClientTest {
 
     // Check the resultVector is the correct size
     assertEquals("Assert the correct number of results rows were returned", resultRows, resultVector.size());
+
+    /**
+     * Part of the known issue about the broken iterator in orientdb is that the iterator
+     * starts at index 1 instead of index 0. Because of this, to test it we must increment
+     * the start index. When that known issue has been fixed, remove the increment below.
+     * Track the issue here: https://github.com/orientechnologies/orientdb/issues/5541
+     * This fix was implemented for orientechnologies:orientdb-client:2.1.8
+     */
+    int testIndex = startIndex + 1; // <-- Remove the +1 when the known issue of broken iterator is fixed.
+
     // Check each vector row to make sure we have the correct fields
-    int testIndex = startIndex;
     for (HashMap<String, ByteIterator> result: resultVector) {
       assertEquals("Assert that this row has the correct number of fields", fieldSet.size(), result.size());
       for (String field: fieldSet) {

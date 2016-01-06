@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2012 - 2015 YCSB contributors. All rights reserved.
+ * Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -25,12 +25,13 @@
 package com.yahoo.ycsb.db;
 
 import com.orientechnologies.orient.core.config.OGlobalConfiguration;
+import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.db.record.OIdentifiable;
 import com.orientechnologies.orient.core.dictionary.ODictionary;
 import com.orientechnologies.orient.core.index.OIndexCursor;
 import com.orientechnologies.orient.core.intent.OIntentMassiveInsert;
-import com.orientechnologies.orient.core.record.ORecordInternal;
+import com.orientechnologies.orient.core.record.ORecord;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
@@ -60,8 +61,8 @@ import java.util.Vector;
 public class OrientDBClient extends DB {
 
   private static final String             CLASS = "usertable";
-  private ODatabaseDocumentTx             db;
-  private ODictionary<ORecordInternal<?>> dictionary;
+  protected ODatabaseDocumentTx             db;
+  private ODictionary<ORecord> dictionary;
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one DB instance per client thread.
@@ -115,6 +116,9 @@ public class OrientDBClient extends DB {
 
   @Override
   public void cleanup() throws DBException {
+    // Set this thread's db reference (needed for thread safety in testing)
+    ODatabaseRecordThreadLocal.INSTANCE.set(db);
+
     if (db != null) {
       db.close();
       db = null;

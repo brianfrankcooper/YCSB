@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 
-Copyright (c) 2012 - 2015 YCSB contributors. All rights reserved.
+Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -83,7 +83,7 @@ LICENSE file.
     <!--<mapkeeper.version>1.0</mapkeeper.version>-->
     <mongodb.version>3.0.3</mongodb.version>
     <mongodb.async.version>2.0.1</mongodb.async.version>
-    <orientdb.version>1.0.1</orientdb.version>
+    <orientdb.version>2.1.8</orientdb.version>
     <redis.version>2.0.0</redis.version>
     <s3.version>1.10.20</s3.version>
     <voldemort.version>0.81</voldemort.version>
