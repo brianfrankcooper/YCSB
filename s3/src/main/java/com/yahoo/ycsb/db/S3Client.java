@@ -349,22 +349,8 @@ public class S3Client extends DB {
       totalSize = sizeArray*fieldCount;
     } else {
       try {
-        GetObjectRequest getObjectRequest = null;
-        GetObjectMetadataRequest getObjectMetadataRequest = null;
-        if (ssecLocal != null) {
-          getObjectRequest = new GetObjectRequest(bucket,
-              key).withSSECustomerKey(ssecLocal);
-          getObjectMetadataRequest = new GetObjectMetadataRequest(bucket,
-              key).withSSECustomerKey(ssecLocal);
-        } else {
-          getObjectRequest = new GetObjectRequest(bucket, key);
-          getObjectMetadataRequest = new GetObjectMetadataRequest(bucket,
-              key);
-        }
-        s3Client.getObject(getObjectRequest);
-        ObjectMetadata objectMetadata =
-            s3Client.getObjectMetadata(getObjectMetadataRequest);
-        int sizeOfFile = (int)objectMetadata.getContentLength();
+        Map.Entry<S3Object, ObjectMetadata> objectAndMetadata = getS3ObjectAndMetadata(bucket, key, ssecLocal);
+        int sizeOfFile = (int)objectAndMetadata.getValue().getContentLength();
         fieldCount = sizeOfFile/sizeArray;
         totalSize = sizeOfFile;
       } catch (Exception e){
@@ -437,25 +423,10 @@ public class S3Client extends DB {
   protected Status readFromStorage(String bucket, String key,
         HashMap<String, ByteIterator> result, SSECustomerKey ssecLocal) {
     try {
-      GetObjectRequest getObjectRequest = null;
-      GetObjectMetadataRequest getObjectMetadataRequest = null;
-      if (ssecLocal != null) {
-        getObjectRequest = new GetObjectRequest(bucket,
-            key).withSSECustomerKey(ssecLocal);
-        getObjectMetadataRequest = new GetObjectMetadataRequest(bucket,
-            key).withSSECustomerKey(ssecLocal);
-      } else {
-        getObjectRequest = new GetObjectRequest(bucket, key);
-        getObjectMetadataRequest = new GetObjectMetadataRequest(bucket,
-            key);
-      }
-      S3Object object =
-          s3Client.getObject(getObjectRequest);
-      ObjectMetadata objectMetadata =
-          s3Client.getObjectMetadata(getObjectMetadataRequest);
-      InputStream objectData = object.getObjectContent(); //consuming the stream
+      Map.Entry<S3Object, ObjectMetadata> objectAndMetadata = getS3ObjectAndMetadata(bucket, key, ssecLocal);
+      InputStream objectData = objectAndMetadata.getKey().getObjectContent(); //consuming the stream
       // writing the stream to bytes and to results
-      int sizeOfFile = (int)objectMetadata.getContentLength();
+      int sizeOfFile = (int)objectAndMetadata.getValue().getContentLength();
       byte[] inputStreamToByte = new byte[sizeOfFile];
       objectData.read(inputStreamToByte, 0, sizeOfFile);
       result.put(key, new ByteArrayByteIterator(inputStreamToByte));
@@ -467,6 +438,25 @@ public class S3Client extends DB {
     }
 
     return Status.OK;
+  }
+
+  private Map.Entry<S3Object, ObjectMetadata> getS3ObjectAndMetadata(String bucket,
+                                                                     String key, SSECustomerKey ssecLocal) {
+    GetObjectRequest getObjectRequest;
+    GetObjectMetadataRequest getObjectMetadataRequest;
+    if (ssecLocal != null) {
+      getObjectRequest = new GetObjectRequest(bucket,
+              key).withSSECustomerKey(ssecLocal);
+      getObjectMetadataRequest = new GetObjectMetadataRequest(bucket,
+              key).withSSECustomerKey(ssecLocal);
+    } else {
+      getObjectRequest = new GetObjectRequest(bucket, key);
+      getObjectMetadataRequest = new GetObjectMetadataRequest(bucket,
+              key);
+    }
+
+    return new AbstractMap.SimpleEntry<>(s3Client.getObject(getObjectRequest),
+            s3Client.getObjectMetadata(getObjectMetadataRequest));
   }
 
   /**
