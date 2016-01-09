@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2012 YCSB contributors. All rights reserved.
+Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -41,11 +41,15 @@ See the next section for the list of configuration parameters for OrientDB.
 
 ## OrientDB Configuration Parameters
 
-### `OrientDB.url` (default: `local:C:/temp/databases/ycsb`)
-
-### `OrientDB.user` (default `admin`)
-
-### `OrientDB.password` (default `admin`)
+* ```orientdb.url``` - (required) The address to your database.
+    * Supported storage types: memory, plocal
+    * EX. ```plocal:/path/to/database```
+* ```orientdb.user``` - The user to connect to the database with.
+    * Default: ```admin```
+* ```orientdb.password``` - The password to connect to the database with.
+    * Default: ```admin```
+* ```orientdb.newdb``` - Create the database if it does not exists, or overwrite the database if it does exist.
+    * Default: ```false```
 
 ## Known Issues
 

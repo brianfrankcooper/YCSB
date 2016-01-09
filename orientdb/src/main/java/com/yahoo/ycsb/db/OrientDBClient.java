@@ -15,13 +15,6 @@
  * LICENSE file.
  */
 
-/**
- * OrientDB client binding for YCSB.
- *
- * Submitted by Luca Garulli on 5/10/2012.
- *
- */
-
 package com.yahoo.ycsb.db;
 
 import com.orientechnologies.orient.core.config.OGlobalConfiguration;
@@ -47,16 +40,6 @@ import java.util.Vector;
 
 /**
  * OrientDB client for YCSB framework.
- * 
- * Properties to set:
- * 
- * orientdb.url=local:C:/temp/databases or remote:localhost:2424 <br>
- * orientdb.database=ycsb <br>
- * orientdb.user=admin <br>
- * orientdb.password=admin <br>
- * 
- * @author Luca Garulli
- * 
  */
 public class OrientDBClient extends DB {
 
@@ -64,22 +47,31 @@ public class OrientDBClient extends DB {
   protected ODatabaseDocumentTx             db;
   private ODictionary<ORecord> dictionary;
 
+  private static final String URL_PROPERTY = "orientdb.url";
+
+  private static final String USER_PROPERTY = "orientdb.user";
+  private static final String USER_PROPERTY_DEFAULT = "admin";
+
+  private static final String PASSWORD_PROPERTY = "orientdb.password";
+  private static final String PASSWORD_PROPERTY_DEFAULT = "admin";
+
+  private static final String NEWDB_PROPERTY = "orientdb.newdb";
+  private static final String NEWDB_PROPERTY_DEFAULT = "false";
+
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one DB instance per client thread.
    */
   public void init() throws DBException {
-    // initialize OrientDB driver
     Properties props = getProperties();
 
-    String url;
-    if (System.getProperty("os.name").toLowerCase().contains("win"))
-      url = props.getProperty("orientdb.url", "plocal:C:/temp/databases/ycsb");
-    else
-      url = props.getProperty("orientdb.url", "plocal:/temp/databases/ycsb");
+    String url = props.getProperty(URL_PROPERTY);
+    String user = props.getProperty(USER_PROPERTY, USER_PROPERTY_DEFAULT);
+    String password = props.getProperty(PASSWORD_PROPERTY, PASSWORD_PROPERTY_DEFAULT);
+    Boolean newdb = Boolean.parseBoolean(props.getProperty(NEWDB_PROPERTY, NEWDB_PROPERTY_DEFAULT));
 
-    String user = props.getProperty("orientdb.user", "admin");
-    String password = props.getProperty("orientdb.password", "admin");
-    Boolean newdb = Boolean.parseBoolean(props.getProperty("orientdb.newdb", "false"));
+    if (url == null) {
+      throw new DBException(String.format("Required property \"%s\" missing for OrientDBClient", URL_PROPERTY));
+    }
 
     try {
       System.out.println("OrientDB loading database url = " + url);
