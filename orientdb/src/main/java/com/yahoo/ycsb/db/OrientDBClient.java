@@ -17,11 +17,14 @@
 
 package com.yahoo.ycsb.db;
 
-import com.orientechnologies.orient.core.config.OGlobalConfiguration;
+import com.orientechnologies.common.exception.OException;
+import com.orientechnologies.orient.client.remote.OEngineRemote;
+import com.orientechnologies.orient.client.remote.OServerAdmin;
 import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.db.record.OIdentifiable;
 import com.orientechnologies.orient.core.dictionary.ODictionary;
+import com.orientechnologies.orient.core.exception.ODatabaseException;
 import com.orientechnologies.orient.core.index.OIndexCursor;
 import com.orientechnologies.orient.core.intent.OIntentMassiveInsert;
 import com.orientechnologies.orient.core.record.ORecord;
@@ -32,6 +35,7 @@ import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -46,6 +50,7 @@ public class OrientDBClient extends DB {
   private static final String             CLASS = "usertable";
   protected ODatabaseDocumentTx             db;
   private ODictionary<ORecord> dictionary;
+  private boolean isRemote = false;
 
   private static final String URL_PROPERTY = "orientdb.url";
 
@@ -58,6 +63,13 @@ public class OrientDBClient extends DB {
   private static final String NEWDB_PROPERTY = "orientdb.newdb";
   private static final String NEWDB_PROPERTY_DEFAULT = "false";
 
+  private static final String STORAGE_TYPE_PROPERTY = "orientdb.remote.storagetype";
+
+  private static final String DO_TRANSACTIONS_PROPERTY = "dotransactions";
+  private static final String DO_TRANSACTIONS_PROPERTY_DEFAULT = "true";
+
+  private static final String ORIENTDB_DOCUMENT_TYPE = "document";
+
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one DB instance per client thread.
    */
@@ -68,42 +80,67 @@ public class OrientDBClient extends DB {
     String user = props.getProperty(USER_PROPERTY, USER_PROPERTY_DEFAULT);
     String password = props.getProperty(PASSWORD_PROPERTY, PASSWORD_PROPERTY_DEFAULT);
     Boolean newdb = Boolean.parseBoolean(props.getProperty(NEWDB_PROPERTY, NEWDB_PROPERTY_DEFAULT));
+    String remoteStorageType = props.getProperty(STORAGE_TYPE_PROPERTY);
+    Boolean dotransactions = Boolean.parseBoolean(props.getProperty(DO_TRANSACTIONS_PROPERTY, DO_TRANSACTIONS_PROPERTY_DEFAULT));
 
     if (url == null) {
       throw new DBException(String.format("Required property \"%s\" missing for OrientDBClient", URL_PROPERTY));
     }
 
-    try {
-      System.out.println("OrientDB loading database url = " + url);
+    System.err.println("OrientDB loading database url = " + url);
 
-      OGlobalConfiguration.STORAGE_KEEP_OPEN.setValue(false);
-      db = new ODatabaseDocumentTx(url);
-      if (db.exists()) {
-        db.open(user, password);
-        if (newdb) {
-          System.out.println("OrientDB drop and recreate fresh db");
-          db.drop();
-          db.create();
-        }
-      } else {
-        System.out.println("OrientDB database not found, create fresh db");
-        db.create();
+    // If using a remote database, use the OServerAdmin interface to connect
+    if (url.startsWith(OEngineRemote.NAME)) {
+      isRemote = true;
+      if (remoteStorageType == null) {
+        throw new DBException("When connecting to a remote OrientDB instance, specify a database storage type (plocal or memory) with " + STORAGE_TYPE_PROPERTY);
       }
 
-      System.out.println("OrientDB connection created with " + url);
+      try {
+        OServerAdmin server = new OServerAdmin(url).connect(user, password);
 
-      dictionary = db.getMetadata().getIndexManager().getDictionary();
-      if (!db.getMetadata().getSchema().existsClass(CLASS))
-        db.getMetadata().getSchema().createClass(CLASS);
+        if (server.existsDatabase()) {
+          if (newdb && !dotransactions) {
+            System.err.println("OrientDB dropping and recreating fresh db on remote server.");
+            server.dropDatabase(remoteStorageType);
+            server.createDatabase(server.getURL(), ORIENTDB_DOCUMENT_TYPE, remoteStorageType);
+          }
+        } else {
+          System.err.println("OrientDB database not found, creating fresh db");
+          server.createDatabase(server.getURL(), ORIENTDB_DOCUMENT_TYPE, remoteStorageType);
+        }
 
-      db.declareIntent(new OIntentMassiveInsert());
-
-    } catch (Exception e1) {
-      System.err.println("Could not initialize OrientDB connection pool for Loader: " + e1.toString());
-      e1.printStackTrace();
-      return;
+        server.close();
+        db = new ODatabaseDocumentTx(url).open(user, password);
+      } catch (IOException | OException e) {
+        throw new DBException(String.format("Error interfacing with %s", url), e);
+      }
+    } else {
+      try {
+        db = new ODatabaseDocumentTx(url);
+        if (db.exists()) {
+          db.open(user, password);
+          if (newdb && !dotransactions) {
+            System.err.println("OrientDB dropping and recreating fresh db.");
+            db.drop();
+            db.create();
+          }
+        } else {
+          System.err.println("OrientDB database not found, creating fresh db");
+          db.create();
+        }
+      } catch (ODatabaseException e) {
+        throw new DBException(String.format("Error interfacing with %s", url), e);
+      }
     }
 
+    System.err.println("OrientDB connection created with " + url);
+    dictionary = db.getMetadata().getIndexManager().getDictionary();
+    if (!db.getMetadata().getSchema().existsClass(CLASS))
+      db.getMetadata().getSchema().createClass(CLASS);
+
+    // TODO: This is a transparent optimization that should be openned up to the user.
+    db.declareIntent(new OIntentMassiveInsert());
   }
 
   @Override
@@ -225,6 +262,11 @@ public class OrientDBClient extends DB {
    * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
    */
   public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    if (isRemote) {
+      // Iterator methods needed for scanning are Unsupported for remote database connections.
+      return Status.NOT_IMPLEMENTED;
+    }
+
     try {
       int entrycount = 0;
       final OIndexCursor entries = dictionary.getIndex().iterateEntriesMajor(startkey, true, true);

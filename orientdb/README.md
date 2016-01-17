@@ -42,16 +42,20 @@ See the next section for the list of configuration parameters for OrientDB.
 ## OrientDB Configuration Parameters
 
 * ```orientdb.url``` - (required) The address to your database.
-    * Supported storage types: memory, plocal
+    * Supported storage types: memory, plocal, remote
     * EX. ```plocal:/path/to/database```
 * ```orientdb.user``` - The user to connect to the database with.
     * Default: ```admin```
 * ```orientdb.password``` - The password to connect to the database with.
     * Default: ```admin```
-* ```orientdb.newdb``` - Create the database if it does not exists, or overwrite the database if it does exist.
+* ```orientdb.newdb``` - Overwrite the database if it already exists.
+    * Only effects the ```load``` phase.
     * Default: ```false```
+* ```orientdb.remote.storagetype``` - Storage type of the database on remote server
+    * This is only required if using a ```remote:``` connection url
 
 ## Known Issues
 
 * There is a performance issue around the scan operation. This binding uses OIndex.iterateEntriesMajor() which will return unnecessarily large iterators. This has a performance impact as the recordcount goes up. There are ideas in the works to fix it, track it here: [#568](https://github.com/brianfrankcooper/YCSB/issues/568).
 * The OIndexCursor used to run the scan operation currently seems to be broken. Because of this, if the startkey and recordcount combination on a particular operation were to cause the iterator to go to the end, a NullPointerException is thrown. With sufficiently high record counts, this does not happen very often, but it could cause false negatives. Track that issue here: https://github.com/orientechnologies/orientdb/issues/5541.
+* Iterator methods needed to perform scans are Unsupported in the OrientDB API for remote database connections and so will return NOT_IMPLEMENTED status if attempted.
