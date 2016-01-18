@@ -47,8 +47,8 @@ import java.util.Vector;
  */
 public class OrientDBClient extends DB {
 
-  private static final String             CLASS = "usertable";
-  protected ODatabaseDocumentTx             db;
+  private static final String CLASS = "usertable";
+  private ODatabaseDocumentTx db;
   private ODictionary<ORecord> dictionary;
   private boolean isRemote = false;
 
@@ -70,9 +70,7 @@ public class OrientDBClient extends DB {
 
   private static final String ORIENTDB_DOCUMENT_TYPE = "document";
 
-  /**
-   * Initialize any state for this DB. Called once per DB instance; there is one DB instance per client thread.
-   */
+  @Override
   public void init() throws DBException {
     Properties props = getProperties();
 
@@ -81,7 +79,8 @@ public class OrientDBClient extends DB {
     String password = props.getProperty(PASSWORD_PROPERTY, PASSWORD_PROPERTY_DEFAULT);
     Boolean newdb = Boolean.parseBoolean(props.getProperty(NEWDB_PROPERTY, NEWDB_PROPERTY_DEFAULT));
     String remoteStorageType = props.getProperty(STORAGE_TYPE_PROPERTY);
-    Boolean dotransactions = Boolean.parseBoolean(props.getProperty(DO_TRANSACTIONS_PROPERTY, DO_TRANSACTIONS_PROPERTY_DEFAULT));
+    Boolean dotransactions = Boolean.parseBoolean(
+        props.getProperty(DO_TRANSACTIONS_PROPERTY, DO_TRANSACTIONS_PROPERTY_DEFAULT));
 
     if (url == null) {
       throw new DBException(String.format("Required property \"%s\" missing for OrientDBClient", URL_PROPERTY));
@@ -93,7 +92,8 @@ public class OrientDBClient extends DB {
     if (url.startsWith(OEngineRemote.NAME)) {
       isRemote = true;
       if (remoteStorageType == null) {
-        throw new DBException("When connecting to a remote OrientDB instance, specify a database storage type (plocal or memory) with " + STORAGE_TYPE_PROPERTY);
+        throw new DBException("When connecting to a remote OrientDB instance, " +
+          "specify a database storage type (plocal or memory) with " + STORAGE_TYPE_PROPERTY);
       }
 
       try {
@@ -136,10 +136,10 @@ public class OrientDBClient extends DB {
 
     System.err.println("OrientDB connection created with " + url);
     dictionary = db.getMetadata().getIndexManager().getDictionary();
-    if (!db.getMetadata().getSchema().existsClass(CLASS))
+    if (!db.getMetadata().getSchema().existsClass(CLASS)) {
       db.getMetadata().getSchema().createClass(CLASS);
+    }
 
-    // TODO: This is a transparent optimization that should be openned up to the user.
     db.declareIntent(new OIntentMassiveInsert());
   }
 
@@ -155,20 +155,12 @@ public class OrientDBClient extends DB {
   }
 
   @Override
-  /**
-   * Insert a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
-   * record key.
-   *
-   * @param table The name of the table
-   * @param key The record key of the record to insert.
-   * @param values A HashMap of field/value pairs to insert in the record
-   * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
-   */
   public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
     try {
       final ODocument document = new ODocument(CLASS);
-      for (Entry<String, String> entry : StringByteIterator.getStringMap(values).entrySet())
+      for (Entry<String, String> entry : StringByteIterator.getStringMap(values).entrySet()) {
         document.field(entry.getKey(), entry.getValue());
+      }
       document.save();
       dictionary.put(key, document);
 
@@ -180,13 +172,6 @@ public class OrientDBClient extends DB {
   }
 
   @Override
-  /**
-   * Delete a record from the database.
-   *
-   * @param table The name of the table
-   * @param key The record key of the record to delete.
-   * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
-   */
   public Status delete(String table, String key) {
     try {
       dictionary.remove(key);
@@ -198,25 +183,19 @@ public class OrientDBClient extends DB {
   }
 
   @Override
-  /**
-   * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
-   *
-   * @param table The name of the table
-   * @param key The record key of the record to read.
-   * @param fields The list of fields to read, or null for all of them
-   * @param result A HashMap of field/value pairs for the result
-   * @return Zero on success, a non-zero error code on error or "not found".
-   */
   public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
     try {
       final ODocument document = dictionary.get(key);
       if (document != null) {
-        if (fields != null)
-          for (String field : fields)
+        if (fields != null) {
+          for (String field : fields) {
             result.put(field, new StringByteIterator((String) document.field(field)));
-        else
-          for (String field : document.fieldNames())
+          }
+        } else {
+          for (String field : document.fieldNames()) {
             result.put(field, new StringByteIterator((String) document.field(field)));
+          }
+        }
         return Status.OK;
       }
     } catch (Exception e) {
@@ -226,21 +205,13 @@ public class OrientDBClient extends DB {
   }
 
   @Override
-  /**
-   * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
-   * record key, overwriting any existing values with the same field name.
-   *
-   * @param table The name of the table
-   * @param key The record key of the record to write.
-   * @param values A HashMap of field/value pairs to update in the record
-   * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
-   */
   public Status update(String table, String key, HashMap<String, ByteIterator> values) {
     try {
       final ODocument document = dictionary.get(key);
       if (document != null) {
-        for (Entry<String, String> entry : StringByteIterator.getStringMap(values).entrySet())
+        for (Entry<String, String> entry : StringByteIterator.getStringMap(values).entrySet()) {
           document.field(entry.getKey(), entry.getValue());
+        }
         document.save();
         return Status.OK;
       }
@@ -251,17 +222,8 @@ public class OrientDBClient extends DB {
   }
 
   @Override
-  /**
-   * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a HashMap.
-   *
-   * @param table The name of the table
-   * @param startkey The record key of the first record to read.
-   * @param recordcount The number of records to read
-   * @param fields The list of fields to read, or null for all of them
-   * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
-   * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
-   */
-  public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+  public Status scan(String table, String startkey, int recordcount, Set<String> fields,
+                     Vector<HashMap<String, ByteIterator>> result) {
     if (isRemote) {
       // Iterator methods needed for scanning are Unsupported for remote database connections.
       return Status.NOT_IMPLEMENTED;
@@ -275,7 +237,8 @@ public class OrientDBClient extends DB {
         final Entry<Object, OIdentifiable> entry = entries.nextEntry();
         final ODocument document = entry.getValue().getRecord();
 
-        final HashMap<String, ByteIterator> map = new HashMap<String, ByteIterator>();
+        final HashMap<String, ByteIterator> map =
+            new HashMap<String, ByteIterator>();
         result.add(map);
 
         for (String field : fields) {
@@ -290,5 +253,12 @@ public class OrientDBClient extends DB {
       e.printStackTrace();
     }
     return Status.ERROR;
+  }
+
+  /**
+   * Access method to db variable for unit testing.
+   **/
+  ODatabaseDocumentTx getDB() {
+    return db;
   }
 }
