@@ -27,6 +27,8 @@ import com.orientechnologies.orient.core.dictionary.ODictionary;
 import com.orientechnologies.orient.core.exception.ODatabaseException;
 import com.orientechnologies.orient.core.index.OIndexCursor;
 import com.orientechnologies.orient.core.intent.OIntentMassiveInsert;
+import com.orientechnologies.orient.core.intent.OIntentMassiveRead;
+import com.orientechnologies.orient.core.intent.OIntentNoCache;
 import com.orientechnologies.orient.core.record.ORecord;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.yahoo.ycsb.ByteIterator;
@@ -67,10 +69,16 @@ public class OrientDBClient extends DB {
 
   private static final String STORAGE_TYPE_PROPERTY = "orientdb.remote.storagetype";
 
+  private static final String INTENT_PROPERTY = "orientdb.intent";
+  private static final String INTENT_PROPERTY_DEFAULT = "";
+
   private static final String DO_TRANSACTIONS_PROPERTY = "dotransactions";
   private static final String DO_TRANSACTIONS_PROPERTY_DEFAULT = "true";
 
   private static final String ORIENTDB_DOCUMENT_TYPE = "document";
+  private static final String ORIENTDB_MASSIVEINSERT = "massiveinsert";
+  private static final String ORIENTDB_MASSIVEREAD = "massiveread";
+  private static final String ORIENTDB_NOCACHE = "nocache";
 
   private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -83,6 +91,7 @@ public class OrientDBClient extends DB {
     String password = props.getProperty(PASSWORD_PROPERTY, PASSWORD_PROPERTY_DEFAULT);
     Boolean newdb = Boolean.parseBoolean(props.getProperty(NEWDB_PROPERTY, NEWDB_PROPERTY_DEFAULT));
     String remoteStorageType = props.getProperty(STORAGE_TYPE_PROPERTY);
+    String intent = props.getProperty(INTENT_PROPERTY, INTENT_PROPERTY_DEFAULT);
     Boolean dotransactions = Boolean.parseBoolean(
         props.getProperty(DO_TRANSACTIONS_PROPERTY, DO_TRANSACTIONS_PROPERTY_DEFAULT));
 
@@ -144,7 +153,16 @@ public class OrientDBClient extends DB {
       db.getMetadata().getSchema().createClass(CLASS);
     }
 
-    db.declareIntent(new OIntentMassiveInsert());
+    if (intent.equals(ORIENTDB_MASSIVEINSERT)) {
+      log.info("Declaring intent of MassiveInsert.");
+      db.declareIntent(new OIntentMassiveInsert());
+    } else if (intent.equals(ORIENTDB_MASSIVEREAD)) {
+      log.info("Declaring intent of MassiveRead.");
+      db.declareIntent(new OIntentMassiveRead());
+    } else if (intent.equals(ORIENTDB_NOCACHE)) {
+      log.info("Declaring intent of NoCache.");
+      db.declareIntent(new OIntentNoCache());
+    }
   }
 
   @Override
