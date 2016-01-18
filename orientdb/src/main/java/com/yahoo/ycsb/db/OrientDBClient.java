@@ -34,6 +34,8 @@ import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -70,6 +72,8 @@ public class OrientDBClient extends DB {
 
   private static final String ORIENTDB_DOCUMENT_TYPE = "document";
 
+  private final Logger log = LoggerFactory.getLogger(getClass());
+
   @Override
   public void init() throws DBException {
     Properties props = getProperties();
@@ -86,7 +90,7 @@ public class OrientDBClient extends DB {
       throw new DBException(String.format("Required property \"%s\" missing for OrientDBClient", URL_PROPERTY));
     }
 
-    System.err.println("OrientDB loading database url = " + url);
+    log.info("OrientDB loading database url = " + url);
 
     // If using a remote database, use the OServerAdmin interface to connect
     if (url.startsWith(OEngineRemote.NAME)) {
@@ -101,12 +105,12 @@ public class OrientDBClient extends DB {
 
         if (server.existsDatabase()) {
           if (newdb && !dotransactions) {
-            System.err.println("OrientDB dropping and recreating fresh db on remote server.");
+            log.info("OrientDB dropping and recreating fresh db on remote server.");
             server.dropDatabase(remoteStorageType);
             server.createDatabase(server.getURL(), ORIENTDB_DOCUMENT_TYPE, remoteStorageType);
           }
         } else {
-          System.err.println("OrientDB database not found, creating fresh db");
+          log.info("OrientDB database not found, creating fresh db");
           server.createDatabase(server.getURL(), ORIENTDB_DOCUMENT_TYPE, remoteStorageType);
         }
 
@@ -121,12 +125,12 @@ public class OrientDBClient extends DB {
         if (db.exists()) {
           db.open(user, password);
           if (newdb && !dotransactions) {
-            System.err.println("OrientDB dropping and recreating fresh db.");
+            log.info("OrientDB dropping and recreating fresh db.");
             db.drop();
             db.create();
           }
         } else {
-          System.err.println("OrientDB database not found, creating fresh db");
+          log.info("OrientDB database not found, creating fresh db");
           db.create();
         }
       } catch (ODatabaseException e) {
@@ -134,7 +138,7 @@ public class OrientDBClient extends DB {
       }
     }
 
-    System.err.println("OrientDB connection created with " + url);
+    log.info("OrientDB connection created with " + url);
     dictionary = db.getMetadata().getIndexManager().getDictionary();
     if (!db.getMetadata().getSchema().existsClass(CLASS)) {
       db.getMetadata().getSchema().createClass(CLASS);
@@ -226,6 +230,7 @@ public class OrientDBClient extends DB {
                      Vector<HashMap<String, ByteIterator>> result) {
     if (isRemote) {
       // Iterator methods needed for scanning are Unsupported for remote database connections.
+      log.warn("OrientDB scan operation is not implemented for remote database connections.");
       return Status.NOT_IMPLEMENTED;
     }
 
