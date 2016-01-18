@@ -54,7 +54,7 @@ public class OrientDBClientTest {
 
     orientDBClient.setProperties(p);
     orientDBClient.init();
-    orientDBDictionary = orientDBClient.db.getDictionary();
+    orientDBDictionary = orientDBClient.getDB().getDictionary();
   }
 
   @After
