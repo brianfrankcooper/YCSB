@@ -29,42 +29,7 @@ ycsb-users@yahoogroups.com
 Getting Started
 ---------------
 
-1. Download the [latest release of YCSB](https://github.com/brianfrankcooper/YCSB/releases/latest):
+See the appropriate docs per platform:
 
-    ```sh
-    curl -O --location https://github.com/brianfrankcooper/YCSB/releases/download/0.5.0/ycsb-0.5.0.tar.gz
-    tar xfvz ycsb-0.5.0.tar.gz
-    cd ycsb-0.5.0
-    ```
-    
-2. Set up a database to benchmark. There is a README file under each binding 
-   directory.
-
-3. Run YCSB command. 
-    
-    ```sh
-    bin/ycsb load basic -P workloads/workloada
-    bin/ycsb run basic -P workloads/workloada
-    ```
-
-  Running the `ycsb` command without any argument will print the usage. 
-   
-  See https://github.com/brianfrankcooper/YCSB/wiki/Running-a-Workload
-  for a detailed documentation on how to run a workload.
-
-  See https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties for 
-  the list of available workload properties.
-
-Building from source
---------------------
-
-YCSB requires the use of Maven 3; if you use Maven 2, you may see [errors
-such as these](https://github.com/brianfrankcooper/YCSB/issues/406).
-
-To build the full distribution, with all database bindings:
-
-    mvn clean package
-
-To build a single database binding:
-
-    mvn -pl com.yahoo.ycsb:mongodb-binding -am clean package
+* [Linux](doc/GettingStartedLinux.md)
+* [Windows](https://github.com/brianfrankcooper/YCSB/wiki/Prerequisites-for-Windows)
