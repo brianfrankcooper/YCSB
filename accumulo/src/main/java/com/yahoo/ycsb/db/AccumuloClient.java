@@ -18,6 +18,7 @@
 
 package com.yahoo.ycsb.db;
 
+import com.google.common.base.Preconditions;
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
@@ -276,11 +277,14 @@ public class AccumuloClient extends DB {
         }
         result.add(currentHM);
       }
+
+      Preconditions.checkNotNull(currentHM, "Unexpected scanner behaviour - currentHM is null");
+
       // Now add the key to the hashmap.
       Value v = entry.getValue();
       byte[] buf = v.get();
       currentHM.put(entry.getKey().getColumnQualifier().toString(),
-          new ByteArrayByteIterator(buf));
+              new ByteArrayByteIterator(buf));
     }
 
     return Status.OK;
