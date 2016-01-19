@@ -37,6 +37,7 @@ LICENSE file.
       <artifactId>accumulo-core</artifactId>
       <version>${accumulo.version}</version>
     </dependency>
+    <!-- Needed for hadoop.io.Text :( -->
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-common</artifactId>
@@ -47,6 +48,25 @@ LICENSE file.
       <artifactId>core</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-minicluster</artifactId>
+      <version>${accumulo.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- needed directly only in test, but transitive
+         at runtime for accumulo, hadoop, and thrift. -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>1.7.13</version>
     </dependency>
   </dependencies>
   <build>
@@ -72,5 +92,14 @@ LICENSE file.
         </executions>
       </plugin>
     </plugins>
+    <testResources>
+      <testResource>
+        <directory>../workloads</directory>
+        <targetPath>workloads</targetPath>
+      </testResource>
+      <testResource>
+        <directory>src/test/resources</directory>
+      </testResource>
+    </testResources>
   </build>
 </project>
