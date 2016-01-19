@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved. 
+ * Copyright (c) 2010 - 2016 Yahoo! Inc. All rights reserved.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License"); you 
  * may not use this file except in compliance with the License. You
@@ -40,15 +40,13 @@ public final class JdbcDBCreateTable {
     System.out.println("  -f   number of fields (default 10).");
   }
 
-  private static void createTable(Properties props, String tablename)
-      throws SQLException {
+  private static void createTable(Properties props, String tablename) throws SQLException {
     String driver = props.getProperty(JdbcDBClient.DRIVER_CLASS);
     String username = props.getProperty(JdbcDBClient.CONNECTION_USER);
     String password = props.getProperty(JdbcDBClient.CONNECTION_PASSWD, "");
     String url = props.getProperty(JdbcDBClient.CONNECTION_URL);
-    int fieldcount =
-        Integer.parseInt(props.getProperty(JdbcDBClient.FIELD_COUNT_PROPERTY,
-            JdbcDBClient.FIELD_COUNT_PROPERTY_DEFAULT));
+    int fieldcount = Integer.parseInt(props.getProperty(JdbcDBClient.FIELD_COUNT_PROPERTY,
+        JdbcDBClient.FIELD_COUNT_PROPERTY_DEFAULT));
 
     if (driver == null || username == null || url == null) {
       throw new SQLException("Missing connection information.");
@@ -129,8 +127,7 @@ public final class JdbcDBCreateTable {
 
         // Issue #5 - remove call to stringPropertyNames to make compilable
         // under Java 1.5
-        for (Enumeration<?> e = myfileprops.propertyNames(); e
-            .hasMoreElements();) {
+        for (Enumeration<?> e = myfileprops.propertyNames(); e.hasMoreElements();) {
           String prop = (String) e.nextElement();
 
           fileprops.setProperty(prop, myfileprops.getProperty(prop));
@@ -207,8 +204,7 @@ public final class JdbcDBCreateTable {
     }
 
     if (fieldcount > 0) {
-      props.setProperty(JdbcDBClient.FIELD_COUNT_PROPERTY,
-          String.valueOf(fieldcount));
+      props.setProperty(JdbcDBClient.FIELD_COUNT_PROPERTY, String.valueOf(fieldcount));
     }
 
     try {

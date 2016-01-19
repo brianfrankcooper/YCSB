@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved. 
+ * Copyright (c) 2010 - 2016 Yahoo! Inc. All rights reserved.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License"); you 
  * may not use this file except in compliance with the License. You
@@ -39,8 +39,7 @@ public final class JdbcDBCli {
     System.out.println("  -c   SQL command to execute.");
   }
 
-  private static void executeCommand(Properties props, String sql)
-      throws SQLException {
+  private static void executeCommand(Properties props, String sql) throws SQLException {
     String driver = props.getProperty(JdbcDBClient.DRIVER_CLASS);
     String username = props.getProperty(JdbcDBClient.CONNECTION_USER);
     String password = props.getProperty(JdbcDBClient.CONNECTION_PASSWD, "");
@@ -104,8 +103,7 @@ public final class JdbcDBCli {
 
         // Issue #5 - remove call to stringPropertyNames to make compilable
         // under Java 1.5
-        for (Enumeration<?> e = myfileprops.propertyNames(); e
-            .hasMoreElements();) {
+        for (Enumeration<?> e = myfileprops.propertyNames(); e.hasMoreElements();) {
           String prop = (String) e.nextElement();
 
           fileprops.setProperty(prop, myfileprops.getProperty(prop));
