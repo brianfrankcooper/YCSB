@@ -74,3 +74,6 @@ Following options can be configurable using `-p`.
 * `hbase.usepagefilter` : If true, HBase
   [PageFilter](https://hbase.apache.org/apidocs/org/apache/hadoop/hbase/filter/PageFilter.html)s
   are used to limit the number of records consumed in a scan operation. The default is true.
+* `principal`: If testing need to be done against a secure HBase cluster using Kerberos Keytab, 
+  this property can be used to pass the principal in the keytab file.
+* `keytab`: The Kerberos keytab file name and location can be passed through this property.
