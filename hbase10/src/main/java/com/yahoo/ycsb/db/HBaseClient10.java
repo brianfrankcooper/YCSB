@@ -24,6 +24,7 @@ import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.measurements.Measurements;
 
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
@@ -110,6 +111,22 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
     if (getProperties().getProperty("durability") != null) {
       this.durability =
           Durability.valueOf(getProperties().getProperty("durability"));
+    }
+
+    if ("kerberos".equalsIgnoreCase(config.get("hbase.security.authentication"))) {
+      config.set("hadoop.security.authentication", "Kerberos");
+      UserGroupInformation.setConfiguration(config);
+    }
+
+    if ((getProperties().getProperty("principal")!=null) 
+        && (getProperties().getProperty("keytab")!=null)) {
+      try {
+        UserGroupInformation.loginUserFromKeytab(getProperties().getProperty("principal"), 
+              getProperties().getProperty("keytab"));
+      } catch (IOException e) {
+        System.err.println("Keytab file is not readable or not found");
+        throw new DBException(e);
+      }
     }
 
     try {
