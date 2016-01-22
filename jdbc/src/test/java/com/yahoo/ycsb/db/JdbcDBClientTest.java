@@ -54,9 +54,9 @@ public class JdbcDBClientTest {
             jdbcDBClient = new JdbcDBClient();
 
             Properties p = new Properties();
-            p.setProperty(JdbcDBClientConstants.CONNECTION_URL, TEST_DB_URL);
-            p.setProperty(JdbcDBClientConstants.DRIVER_CLASS, TEST_DB_DRIVER);
-            p.setProperty(JdbcDBClientConstants.CONNECTION_USER, TEST_DB_USER);
+            p.setProperty(JdbcDBClient.CONNECTION_URL, TEST_DB_URL);
+            p.setProperty(JdbcDBClient.DRIVER_CLASS, TEST_DB_DRIVER);
+            p.setProperty(JdbcDBClient.CONNECTION_USER, TEST_DB_USER);
 
             jdbcDBClient.setProperties(p);
             jdbcDBClient.init();
