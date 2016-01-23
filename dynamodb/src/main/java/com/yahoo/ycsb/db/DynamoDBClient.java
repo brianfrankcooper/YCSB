@@ -21,19 +21,16 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.PropertiesCredentials;
-import com.amazonaws.services.dynamodb.AmazonDynamoDBClient;
-import com.amazonaws.services.dynamodb.model.AttributeValue;
-import com.amazonaws.services.dynamodb.model.AttributeValueUpdate;
-import com.amazonaws.services.dynamodb.model.DeleteItemRequest;
-import com.amazonaws.services.dynamodb.model.DeleteItemResult;
-import com.amazonaws.services.dynamodb.model.GetItemRequest;
-import com.amazonaws.services.dynamodb.model.GetItemResult;
-import com.amazonaws.services.dynamodb.model.Key;
-import com.amazonaws.services.dynamodb.model.PutItemRequest;
-import com.amazonaws.services.dynamodb.model.PutItemResult;
-import com.amazonaws.services.dynamodb.model.ScanRequest;
-import com.amazonaws.services.dynamodb.model.ScanResult;
-import com.amazonaws.services.dynamodb.model.UpdateItemRequest;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.amazonaws.services.dynamodbv2.model.AttributeValueUpdate;
+import com.amazonaws.services.dynamodbv2.model.DeleteItemRequest;
+import com.amazonaws.services.dynamodbv2.model.GetItemRequest;
+import com.amazonaws.services.dynamodbv2.model.GetItemResult;
+import com.amazonaws.services.dynamodbv2.model.PutItemRequest;
+import com.amazonaws.services.dynamodbv2.model.ScanRequest;
+import com.amazonaws.services.dynamodbv2.model.ScanResult;
+import com.amazonaws.services.dynamodbv2.model.UpdateItemRequest;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
@@ -51,7 +48,7 @@ import java.util.Set;
 import java.util.Vector;
 
 /**
- * DynamoDB v1.3.14 client for YCSB
+ * DynamoDB v1.10.48 client for YCSB
  */
 
 public class DynamoDBClient extends DB {
@@ -94,18 +91,18 @@ public class DynamoDBClient extends DB {
     @Override
     public void init() throws DBException {
         // initialize DynamoDb driver & table.
-        String debug = getProperties().getProperty("dynamodb.debug",null);
+        String debug = getProperties().getProperty("dynamodb.debug", null);
 
         if (null != debug && "true".equalsIgnoreCase(debug)) {
             logger.setLevel(Level.DEBUG);
         }
 
-        String endpoint = getProperties().getProperty("dynamodb.endpoint",null);
-        String credentialsFile = getProperties().getProperty("dynamodb.awsCredentialsFile",null);
-        String primaryKey = getProperties().getProperty("dynamodb.primaryKey",null);
+        String endpoint = getProperties().getProperty("dynamodb.endpoint", null);
+        String credentialsFile = getProperties().getProperty("dynamodb.awsCredentialsFile", null);
+        String primaryKey = getProperties().getProperty("dynamodb.primaryKey", null);
         String primaryKeyTypeString = getProperties().getProperty("dynamodb.primaryKeyType", null);
-        String consistentReads = getProperties().getProperty("dynamodb.consistentReads",null);
-        String connectMax = getProperties().getProperty("dynamodb.connectMax",null);
+        String consistentReads = getProperties().getProperty("dynamodb.consistentReads", null);
+        String connectMax = getProperties().getProperty("dynamodb.connectMax", null);
 
         if (null != connectMax) {
             this.maxConnects = Integer.parseInt(connectMax);
@@ -154,7 +151,7 @@ public class DynamoDBClient extends DB {
             AWSCredentials credentials = new PropertiesCredentials(new File(credentialsFile));
             ClientConfiguration cconfig = new ClientConfiguration();
             cconfig.setMaxConnections(maxConnects);
-            dynamoDB = new AmazonDynamoDBClient(credentials,cconfig);
+            dynamoDB = new AmazonDynamoDBClient(credentials, cconfig);
             dynamoDB.setEndpoint(this.endpoint);
             primaryKeyName = primaryKey;
             logger.info("dynamodb connection created with " + this.endpoint);
@@ -184,8 +181,7 @@ public class DynamoDBClient extends DB {
             return CLIENT_ERROR;
         }
 
-        if (null != res.getItem())
-        {
+        if (null != res.getItem()) {
             result.putAll(extractResult(res.getItem()));
             logger.debug("Result: " + res.toString());
         }
@@ -221,7 +217,7 @@ public class DynamoDBClient extends DB {
 
         int count = 1; // startKey is done, rest to go.
 
-        Key startKey = createPrimaryKey(startkey);
+        Map<String, AttributeValue> startKey = createPrimaryKey(startkey);
         ScanRequest req = new ScanRequest(table);
         req.setAttributesToGet(fields);
         while (count < recordcount) {
@@ -278,7 +274,7 @@ public class DynamoDBClient extends DB {
     }
 
     @Override
-    public Status insert(String table, String key,HashMap<String, ByteIterator> values) {
+    public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
         logger.debug("insertkey: " + primaryKeyName + "-" + key + " from table: " + table);
         Map<String, AttributeValue> attributes = createAttributes(values);
         // adding primary key
@@ -337,20 +333,19 @@ public class DynamoDBClient extends DB {
         HashMap<String, ByteIterator> rItems = new HashMap<String, ByteIterator>(item.size());
 
         for (Entry<String, AttributeValue> attr : item.entrySet()) {
-            logger.debug(String.format("Result- key: %s, value: %s", attr.getKey(), attr.getValue()) );
+            logger.debug(String.format("Result- key: %s, value: %s", attr.getKey(), attr.getValue()));
             rItems.put(attr.getKey(), new StringByteIterator(attr.getValue().getS()));
         }
         return rItems;
     }
 
-    private Key createPrimaryKey(String key) {
-        Key k;
+    private Map<String, AttributeValue> createPrimaryKey(String key) {
+        Map<String, AttributeValue> k = new HashMap<String, AttributeValue>();
         if (primaryKeyType == PrimaryKeyType.HASH) {
-          k = new Key().withHashKeyElement(new AttributeValue().withS(key));
+          k.put(primaryKeyName, new AttributeValue().withS(key));
         } else if (primaryKeyType == PrimaryKeyType.HASH_AND_RANGE) {
-          k = new Key()
-                .withHashKeyElement(new AttributeValue().withS(hashKeyValue))
-                .withRangeKeyElement(new AttributeValue().withS(key));
+          k.put(hashKeyName, new AttributeValue().withS(hashKeyValue));
+          k.put(primaryKeyName, new AttributeValue().withS(key));
         } else {
           throw new RuntimeException("Assertion Error: impossible primary key"
                   + " type");
