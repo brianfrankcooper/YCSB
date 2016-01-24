@@ -63,6 +63,16 @@ public class AccumuloClient extends DB {
   private Scanner singleScanner = null; // A scanner for reads/deletes.
   private Scanner scanScanner = null; // A scanner for use by scan()
 
+  static {
+
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+      @Override
+      public void run() {
+        CleanUp.shutdownNow();
+      }
+    });
+  }
+
   @Override
   public void init() throws DBException {
     colFam = new Text(getProperties().getProperty("accumulo.columnFamily"));
@@ -96,7 +106,6 @@ public class AccumuloClient extends DB {
     } catch (MutationsRejectedException e) {
       throw new DBException(e);
     }
-    CleanUp.shutdownNow();
   }
 
   /**
