@@ -16,6 +16,7 @@
  */
 
 /**
- * YCSB binding for <a href="https://accumulo.apache.org/">Accumulo</a>.
+ * YCSB binding for <a href="https://accumulo.apache.org/">Apache Accumulo</a>.
  */
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.accumulo;
+

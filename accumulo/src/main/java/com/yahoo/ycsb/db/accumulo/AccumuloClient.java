@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011 YCSB++ project, 2014 YCSB contributors.
+ * Copyright (c) 2011 YCSB++ project, 2014-2016 YCSB contributors.
  * All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -16,7 +16,7 @@
  * LICENSE file.
  */
 
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.accumulo;
 
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
@@ -42,16 +42,11 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CleanUp;
 import org.apache.hadoop.io.Text;
-import org.apache.zookeeper.KeeperException;
 
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.Vector;
 import java.util.concurrent.TimeUnit;
 
@@ -68,13 +63,15 @@ public class AccumuloClient extends DB {
   private Scanner singleScanner = null; // A scanner for reads/deletes.
   private Scanner scanScanner = null; // A scanner for use by scan()
 
-  private static final String PC_PRODUCER = "producer";
-  private static final String PC_CONSUMER = "consumer";
-  private String pcFlag = "";
-  private ZKProducerConsumer.Queue q = null;
-  private static Hashtable<String, Long> hmKeyReads = null;
-  private static Hashtable<String, Integer> hmKeyNumReads = null;
-  private Random r = null;
+  static {
+
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+      @Override
+      public void run() {
+        CleanUp.shutdownNow();
+      }
+    });
+  }
 
   @Override
   public void init() throws DBException {
@@ -94,25 +91,9 @@ public class AccumuloClient extends DB {
       throw new DBException(e);
     }
 
-    pcFlag = getProperties().getProperty("accumulo.PC_FLAG", "none");
-    if (pcFlag.equals(PC_PRODUCER) || pcFlag.equals(PC_CONSUMER)) {
-      System.out.println("*** YCSB Client is " + pcFlag);
-      String address = getProperties().getProperty("accumulo.PC_SERVER");
-      String root = getProperties().getProperty("accumulo.PC_ROOT_IN_ZK");
-      System.out
-          .println("*** PC_INFO(server:" + address + ";root=" + root + ")");
-      q = new ZKProducerConsumer.Queue(address, root);
-      r = new Random();
-    }
-
-    if (pcFlag.equals(PC_CONSUMER)) {
-      hmKeyReads = new Hashtable<String, Long>();
-      hmKeyNumReads = new Hashtable<String, Integer>();
-      try {
-        keyNotification(null);
-      } catch (KeeperException e) {
-        throw new DBException(e);
-      }
+    if (!(getProperties().getProperty("accumulo.pcFlag", "none").equals("none"))) {
+      System.err.println("Sorry, the ZK based producer/consumer implementation has been removed. " +
+          "Please see YCSB issue #416 for work on adding a general solution to coordinated work.");
     }
   }
 
@@ -125,7 +106,6 @@ public class AccumuloClient extends DB {
     } catch (MutationsRejectedException e) {
       throw new DBException(e);
     }
-    CleanUp.shutdownNow();
   }
 
   /**
@@ -180,11 +160,9 @@ public class AccumuloClient extends DB {
 
   /**
    * Gets a scanner from Accumulo over one row.
-   * 
-   * @param row
-   *          the row to scan
-   * @param fields
-   *          the set of columns to scan
+   *
+   * @param row the row to scan
+   * @param fields the set of columns to scan
    * @return an Accumulo {@link Scanner} bound to the given row and columns
    */
   private Scanner getRow(Text row, Set<String> fields) {
@@ -244,16 +222,17 @@ public class AccumuloClient extends DB {
 
     // Batch size is how many key/values to try to get per call. Here, I'm
     // guessing that the number of keys in a row is equal to the number of
-    // fields
-    // we're interested in.
+    // fields we're interested in.
+
     // We try to fetch one more so as to tell when we've run out of fields.
 
+    // If no fields are provided, we assume one column/row.
     if (fields != null) {
       // And add each of them as fields we want.
       for (String field : fields) {
         scanScanner.fetchColumn(colFam, new Text(field));
       }
-    } // else - If no fields are provided, we assume one column/row.
+    }
 
     String rowKey = "";
     HashMap<String, ByteIterator> currentHM = null;
@@ -304,20 +283,8 @@ public class AccumuloClient extends DB {
 
     try {
       bw.addMutation(mutInsert);
-      // Distributed YCSB co-ordination: YCSB on a client produces the key
-      // to
-      // be stored in the shared queue in ZooKeeper.
-      if (pcFlag.equals(PC_PRODUCER)) {
-        if (r.nextFloat() < 0.01) {
-          keyNotification(key);
-        }
-      }
     } catch (MutationsRejectedException e) {
       System.err.println("Error performing update.");
-      e.printStackTrace();
-      return Status.ERROR;
-    } catch (KeeperException e) {
-      System.err.println("Error notifying the Zookeeper Queue.");
       e.printStackTrace();
       return Status.ERROR;
     }
@@ -378,75 +345,4 @@ public class AccumuloClient extends DB {
 
     bw.addMutation(deleter);
   }
-
-  private void keyNotification(String key) throws KeeperException {
-
-    if (pcFlag.equals(PC_PRODUCER)) {
-      try {
-        q.produce(key);
-      } catch (InterruptedException e) {
-        // Reset the interrupted state.
-        Thread.currentThread().interrupt();
-      }
-    } else {
-      // XXX: do something better to keep the loop going (while??)
-      for (int i = 0; i < 10000000; i++) {
-        try {
-          String strKey = q.consume();
-
-          if (!hmKeyReads.containsKey(strKey)
-              && !hmKeyNumReads.containsKey(strKey)) {
-            hmKeyReads.put(strKey, new Long(System.currentTimeMillis()));
-            hmKeyNumReads.put(strKey, new Integer(1));
-          }
-
-          // YCSB Consumer will read the key that was fetched from the
-          // queue in ZooKeeper.
-          // (current way is kind of ugly but works, i think)
-          // TODO : Get table name from configuration or argument
-          String usertable = "usertable";
-          HashSet<String> fields = new HashSet<String>();
-          for (int j = 0; j < 9; j++) {
-            fields.add("field" + j);
-          }
-          HashMap<String, ByteIterator> result =
-              new HashMap<String, ByteIterator>();
-
-          read(usertable, strKey, fields, result);
-          // If the results are empty, the key is enqueued in
-          // Zookeeper
-          // and tried again, until the results are found.
-          if (result.isEmpty()) {
-            q.produce(strKey);
-            int count = ((Integer) hmKeyNumReads.get(strKey)).intValue();
-            hmKeyNumReads.put(strKey, new Integer(count + 1));
-          } else {
-            if (((Integer) hmKeyNumReads.get(strKey)).intValue() > 1) {
-              long currTime = System.currentTimeMillis();
-              long writeTime = ((Long) hmKeyReads.get(strKey)).longValue();
-              System.out.println(
-                  "Key=" + strKey + ";StartSearch=" + writeTime + ";EndSearch="
-                      + currTime + ";TimeLag=" + (currTime - writeTime));
-            }
-          }
-        } catch (InterruptedException e) {
-          // Reset the interrupted state.
-          Thread.currentThread().interrupt();
-        }
-      }
-    }
-
-  }
-
-  public Status presplit(String t, String[] keys)
-      throws TableNotFoundException, AccumuloException,
-      AccumuloSecurityException {
-    TreeSet<Text> splits = new TreeSet<Text>();
-    for (int i = 0; i < keys.length; i++) {
-      splits.add(new Text(keys[i]));
-    }
-    connector.tableOperations().addSplits(t, splits);   
-    return Status.OK;
-  }
-
 }
