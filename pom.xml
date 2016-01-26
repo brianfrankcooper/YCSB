@@ -37,7 +37,6 @@ LICENSE file.
   </scm>
   <dependencyManagement>
     <dependencies>
-      <!-- voldemort -->
       <dependency>
         <groupId>checkstyle</groupId>
         <artifactId>checkstyle</artifactId>
@@ -121,7 +120,7 @@ LICENSE file.
     <!--<module>mapkeeper</module>-->
     <module>memcached</module>
     <module>mongodb</module>
-    <!--module>nosqldb</module-->
+    <module>nosqldb</module>
     <module>orientdb</module>
     <module>redis</module>
     <module>s3</module>
