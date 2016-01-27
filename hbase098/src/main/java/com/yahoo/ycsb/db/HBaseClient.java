@@ -50,6 +50,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * HBase client for YCSB framework
@@ -59,11 +60,12 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     // BFC: Change to fix broken build (with HBase 0.20.6)
     //private static final Configuration config = HBaseConfiguration.create();
     private static final Configuration config = HBaseConfiguration.create(); //new HBaseConfiguration();
+    private static final AtomicInteger THREAD_COUNT = new AtomicInteger(0);
 
     public boolean _debug=false;
 
     public String _table="";
-    public HConnection _hConn=null;
+    private static HConnection _hConn=null;
     public HTableInterface _hTable=null;
     public String _columnFamily="";
     public byte _columnFamilyBytes[];
@@ -112,7 +114,12 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             }
         }
         try {
-            _hConn = HConnectionManager.createConnection(config);
+            THREAD_COUNT.getAndIncrement();
+            synchronized(THREAD_COUNT) {
+              if (_hConn == null){
+                _hConn = HConnectionManager.createConnection(config);
+              }
+            }
         } catch (IOException e) {
             System.err.println("Connection to HBase was not successful");
             throw new DBException(e);  
@@ -154,8 +161,11 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             if (_hTable != null) {
                 _hTable.flushCommits();
             }
-            if (_hConn != null) {
-                _hConn.close();
+            synchronized(THREAD_COUNT) {
+              int threadCount = THREAD_COUNT.decrementAndGet();
+              if (threadCount <= 0 && _hConn != null) {
+                 _hConn.close();
+              }
             }
             long en=System.nanoTime();
             _measurements.measure("UPDATE", (int)((en-st)/1000));
