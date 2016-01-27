@@ -81,7 +81,7 @@ public class CoreWorkload extends Workload {
    */
   public static final String TABLENAME_PROPERTY_DEFAULT = "usertable";
 
-  public static String table;
+  private static String table;
 
 
   /**
@@ -328,6 +328,10 @@ public class CoreWorkload extends Workload {
   int insertionRetryInterval;
 
   private Measurements _measurements = Measurements.getMeasurements();
+
+  public static String getTable() {
+    return table;
+  }
 
   protected static IntegerGenerator getFieldLengthGenerator(Properties p) throws WorkloadException {
     IntegerGenerator fieldlengthgenerator;

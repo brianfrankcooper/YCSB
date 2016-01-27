@@ -56,20 +56,20 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     //private static final Configuration config = HBaseConfiguration.create();
     private static final Configuration config = HBaseConfiguration.create(); //new HBaseConfiguration();
 
-    public boolean _debug=false;
+    private boolean _debug=false;
 
-    public String _table="";
-    public HTable _hTable=null;
-    public String _columnFamily="";
-    public byte _columnFamilyBytes[];
-    public boolean _clientSideBuffering = false;
-    public long _writeBufferSize = 1024 * 1024 * 12;
+    private String _table="";
+    private HTable _hTable=null;
+    private String _columnFamily="";
+    private byte _columnFamilyBytes[];
+    private boolean _clientSideBuffering = false;
+    private long _writeBufferSize = 1024 * 1024 * 12;
     /** Whether or not a page filter should be used to limit scan length. */
-    public boolean _usePageFilter = true;
+    private boolean _usePageFilter = true;
 
-    public static final int HttpError=-2;
+    private static final int HttpError=-2;
 
-    public static final Object tableLock = new Object();
+    private static final Object tableLock = new Object();
 
     /**
      * Initialize any state for this DB.
@@ -106,7 +106,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
       // Terminate right now if table does not exist, since the client
       // will not propagate this error upstream once the workload
       // starts.
-      String table = com.yahoo.ycsb.workloads.CoreWorkload.table;
+      String table = com.yahoo.ycsb.workloads.CoreWorkload.getTable();
       try
 	  {
 	      HTable ht = new HTable(config, table);
