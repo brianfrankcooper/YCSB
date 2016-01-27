@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 Yahoo! Inc. All rights reserved.
+ * Copyright (c) 2015 - 2016 Yahoo! Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -30,9 +30,6 @@ import java.util.HashSet;
 import java.util.Properties;
 import java.util.Vector;
 
-/**
- * Created by kruthar on 11/2/15.
- */
 public class JdbcDBClientTest {
     private static final String TEST_DB_DRIVER = "org.hsqldb.jdbc.JDBCDriver";
     private static final String TEST_DB_URL = "jdbc:hsqldb:mem:ycsb";
@@ -153,7 +150,7 @@ public class JdbcDBClientTest {
     public void insertTest() {
         try {
             String insertKey = "user0";
-            insertRow(insertKey);
+            HashMap<String, ByteIterator> insertMap = insertRow(insertKey);
 
             ResultSet resultSet = jdbcConnection.prepareStatement(
                 String.format("SELECT * FROM %s", TABLE_NAME)
@@ -164,9 +161,7 @@ public class JdbcDBClientTest {
             // Check that all the columns have expected values
             assertEquals(resultSet.getString(KEY_FIELD), insertKey);
             for (int i = 0; i < 3; i++) {
-                // TODO: This will fail until the fix is made to insert and update fields in the correct order.
-                // TODO: Uncomment this assertEquals when the fix is made.
-                //assertEquals(resultSet.getString(FIELD_PREFIX + i), insertMap.get(FIELD_PREFIX + i));
+                assertEquals(resultSet.getString(FIELD_PREFIX + i), insertMap.get(FIELD_PREFIX + i).toString());
             }
             // Check that we do not have any more rows
             assertFalse(resultSet.next());
@@ -224,9 +219,7 @@ public class JdbcDBClientTest {
             resultSet.next();
             assertEquals(resultSet.getString(KEY_FIELD), "user1");
             for (int i = 0; i < 3; i++) {
-                // TODO: This will fail until the fix is made to insert and update fields in the correct order.
-                // TODO: Uncomment this assertEquals when the fix is made.
-                //assertEquals(resultSet.getString(FIELD_PREFIX + i), updateMap.get(FIELD_PREFIX + i));
+                assertEquals(resultSet.getString(FIELD_PREFIX + i), updateMap.get(FIELD_PREFIX + i).toString());
             }
 
             // Ensure that user2 record was not changed
@@ -245,7 +238,7 @@ public class JdbcDBClientTest {
     @Test
     public void readTest() {
         String insertKey = "user0";
-        insertRow(insertKey);
+        HashMap<String, ByteIterator> insertMap = insertRow(insertKey);
         HashSet<String> readFields = new HashSet<String>();
         HashMap<String, ByteIterator> readResultMap = new HashMap<String, ByteIterator>();
 
@@ -254,9 +247,7 @@ public class JdbcDBClientTest {
         jdbcDBClient.read(TABLE_NAME, insertKey, readFields, readResultMap);
         assertEquals("Assert that result has correct number of fields", readFields.size(), readResultMap.size());
         for (String field: readFields) {
-            // TODO: This will fail until the fix is made to insert and update fields in the correct order.
-            // TODO: Uncomment this assertEquals when the fix is made.
-            //assertEquals("Assert " + field + " was read correctly", insertMap.get(field), readResultMap.get(field));
+            assertEquals("Assert " + field + " was read correctly", insertMap.get(field).toString(), readResultMap.get(field).toString());
         }
 
         readResultMap = new HashMap<String, ByteIterator>();
@@ -267,9 +258,7 @@ public class JdbcDBClientTest {
         jdbcDBClient.read(TABLE_NAME, insertKey, readFields, readResultMap);
         assertEquals("Assert that result has correct number of fields", readFields.size(), readResultMap.size());
         for (String field: readFields) {
-            // TODO: This will fail until the fix is made to insert and update fields in the correct order.
-            // TODO: Uncomment this assertEquals when the fix is made.
-            //assertEquals("Assert " + field + " was read correctly", insertMap.get(field), readResultMap.get(field));
+            assertEquals("Assert " + field + " was read correctly", insertMap.get(field).toString(), readResultMap.get(field).toString());
         }
     }
 
@@ -325,9 +314,7 @@ public class JdbcDBClientTest {
         for (HashMap<String, ByteIterator> result: resultVector) {
             assertEquals("Assert that this row has the correct number of fields", fieldSet.size(), result.size());
             for (String field: fieldSet) {
-                // TODO: This will fail until the fix is made to insert and update fields in the correct order.
-                // TODO: Uncomment this assertEquals when the fix is made.
-                //assertEquals("Assert this field is correct in this row", keyMap.get(KEY_PREFIX + testIndex).get(field), result.get(field));
+                assertEquals("Assert this field is correct in this row", keyMap.get(KEY_PREFIX + testIndex).get(field).toString(), result.get(field).toString());
             }
             testIndex++;
         }

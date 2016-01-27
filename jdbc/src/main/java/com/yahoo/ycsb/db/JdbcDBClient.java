@@ -84,6 +84,27 @@ public class JdbcDBClient extends DB {
   private ConcurrentMap<StatementType, PreparedStatement> cachedStatements;
 
   /**
+   * Ordered field information for insert and update statements.
+   */
+  private static class OrderedFieldInfo {
+    private String fieldKeys;
+    private List<String> fieldValues;
+
+    OrderedFieldInfo(String fieldKeys, List<String> fieldValues) {
+      this.fieldKeys = fieldKeys;
+      this.fieldValues = fieldValues;
+    }
+
+    String getFieldKeys() {
+      return fieldKeys;
+    }
+
+    List<String> getFieldValues() {
+      return fieldValues;
+    }
+  }
+
+  /**
    * The statement type for the prepared statements.
    */
   private static class StatementType {
@@ -109,11 +130,13 @@ public class JdbcDBClient extends DB {
     private int shardIndex;
     private int numFields;
     private String tableName;
+    private String fieldString;
 
-    StatementType(Type type, String tableName, int numFields, int shardIndex) {
+    StatementType(Type type, String tableName, int numFields, String fieldString, int shardIndex) {
       this.type = type;
       this.tableName = tableName;
       this.numFields = numFields;
+      this.fieldString = fieldString;
       this.shardIndex = shardIndex;
     }
 
@@ -153,6 +176,9 @@ public class JdbcDBClient extends DB {
         return false;
       }
       if (type != other.type) {
+        return false;
+      }
+      if (!fieldString.equals(other.fieldString)) {
         return false;
       }
       return true;
@@ -261,6 +287,7 @@ public class JdbcDBClient extends DB {
   private PreparedStatement createAndCacheInsertStatement(StatementType insertType, String key) throws SQLException {
     StringBuilder insert = new StringBuilder("INSERT INTO ");
     insert.append(insertType.tableName);
+    insert.append(" (" + PRIMARY_KEY + "," + insertType.fieldString + ")");
     insert.append(" VALUES(?");
     for (int i = 0; i < insertType.numFields; i++) {
       insert.append(",?");
@@ -304,14 +331,14 @@ public class JdbcDBClient extends DB {
   }
 
   private PreparedStatement createAndCacheUpdateStatement(StatementType updateType, String key) throws SQLException {
+    String[] fieldKeys = updateType.fieldString.split(",");
     StringBuilder update = new StringBuilder("UPDATE ");
     update.append(updateType.tableName);
     update.append(" SET ");
-    for (int i = 0; i < updateType.numFields; i++) {
-      update.append(COLUMN_PREFIX);
-      update.append(i);
+    for (int i = 0; i < fieldKeys.length; i++) {
+      update.append(fieldKeys[i]);
       update.append("=?");
-      if (i < updateType.numFields - 1) {
+      if (i < fieldKeys.length - 1) {
         update.append(", ");
       }
     }
@@ -349,7 +376,7 @@ public class JdbcDBClient extends DB {
   @Override
   public Status read(String tableName, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
     try {
-      StatementType type = new StatementType(StatementType.Type.READ, tableName, 1, getShardIndexByKey(key));
+      StatementType type = new StatementType(StatementType.Type.READ, tableName, 1, "", getShardIndexByKey(key));
       PreparedStatement readStatement = cachedStatements.get(type);
       if (readStatement == null) {
         readStatement = createAndCacheReadStatement(type, key);
@@ -378,7 +405,7 @@ public class JdbcDBClient extends DB {
   public Status scan(String tableName, String startKey, int recordcount, Set<String> fields,
                      Vector<HashMap<String, ByteIterator>> result) {
     try {
-      StatementType type = new StatementType(StatementType.Type.SCAN, tableName, 1, getShardIndexByKey(startKey));
+      StatementType type = new StatementType(StatementType.Type.SCAN, tableName, 1, "", getShardIndexByKey(startKey));
       PreparedStatement scanStatement = cachedStatements.get(type);
       if (scanStatement == null) {
         scanStatement = createAndCacheScanStatement(type, startKey);
@@ -408,14 +435,16 @@ public class JdbcDBClient extends DB {
   public Status update(String tableName, String key, HashMap<String, ByteIterator> values) {
     try {
       int numFields = values.size();
-      StatementType type = new StatementType(StatementType.Type.UPDATE, tableName, numFields, getShardIndexByKey(key));
+      OrderedFieldInfo fieldInfo = getFieldInfo(values);
+      StatementType type = new StatementType(StatementType.Type.UPDATE, tableName,
+          numFields, fieldInfo.getFieldKeys(), getShardIndexByKey(key));
       PreparedStatement updateStatement = cachedStatements.get(type);
       if (updateStatement == null) {
         updateStatement = createAndCacheUpdateStatement(type, key);
       }
       int index = 1;
-      for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-        updateStatement.setString(index++, entry.getValue().toString());
+      for (String value: fieldInfo.getFieldValues()) {
+        updateStatement.setString(index++, value);
       }
       updateStatement.setString(index, key);
       int result = updateStatement.executeUpdate();
@@ -433,16 +462,17 @@ public class JdbcDBClient extends DB {
   public Status insert(String tableName, String key, HashMap<String, ByteIterator> values) {
     try {
       int numFields = values.size();
-      StatementType type = new StatementType(StatementType.Type.INSERT, tableName, numFields, getShardIndexByKey(key));
+      OrderedFieldInfo fieldInfo = getFieldInfo(values);
+      StatementType type = new StatementType(StatementType.Type.INSERT, tableName,
+          numFields, fieldInfo.getFieldKeys(), getShardIndexByKey(key));
       PreparedStatement insertStatement = cachedStatements.get(type);
       if (insertStatement == null) {
         insertStatement = createAndCacheInsertStatement(type, key);
       }
       insertStatement.setString(1, key);
       int index = 2;
-      for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-        String field = entry.getValue().toString();
-        insertStatement.setString(index++, field);
+      for (String value: fieldInfo.getFieldValues()) {
+        insertStatement.setString(index++, value);
       }
       int result = insertStatement.executeUpdate();
       if (result == 1) {
@@ -458,7 +488,7 @@ public class JdbcDBClient extends DB {
   @Override
   public Status delete(String tableName, String key) {
     try {
-      StatementType type = new StatementType(StatementType.Type.DELETE, tableName, 1, getShardIndexByKey(key));
+      StatementType type = new StatementType(StatementType.Type.DELETE, tableName, 1, "", getShardIndexByKey(key));
       PreparedStatement deleteStatement = cachedStatements.get(type);
       if (deleteStatement == null) {
         deleteStatement = createAndCacheDeleteStatement(type, key);
@@ -473,5 +503,21 @@ public class JdbcDBClient extends DB {
       System.err.println("Error in processing delete to table: " + tableName + e);
       return Status.ERROR;
     }
+  }
+
+  private OrderedFieldInfo getFieldInfo(HashMap<String, ByteIterator> values) {
+    String fieldKeys = "";
+    List<String> fieldValues = new ArrayList();
+    int count = 0;
+    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+      fieldKeys += entry.getKey();
+      if (count < values.size() - 1) {
+        fieldKeys += ",";
+      }
+      fieldValues.add(count, entry.getValue().toString());
+      count++;
+    }
+
+    return new OrderedFieldInfo(fieldKeys, fieldValues);
   }
 }
