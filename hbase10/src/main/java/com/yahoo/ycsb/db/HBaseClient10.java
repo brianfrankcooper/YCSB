@@ -51,6 +51,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * HBase 1.0 client for YCSB framework.
@@ -63,11 +64,12 @@ import java.util.Vector;
  */
 public class HBaseClient10 extends com.yahoo.ycsb.DB {
   private Configuration config = HBaseConfiguration.create();
+  private static final AtomicInteger THREAD_COUNT = new AtomicInteger(0);
 
   private boolean debug = false;
 
   private String tableName = "";
-  private Connection connection = null;
+  private static Connection connection = null;
 
   // Depending on the value of clientSideBuffering, either bufferedMutator
   // (clientSideBuffering) or currentTable (!clientSideBuffering) will be used.
@@ -130,7 +132,10 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
     }
 
     try {
-      connection = ConnectionFactory.createConnection(config);
+      THREAD_COUNT.getAndIncrement();
+      synchronized(THREAD_COUNT) {
+        connection = ConnectionFactory.createConnection(config);
+      }
     } catch (java.io.IOException e) {
       throw new DBException(e);
     }
@@ -185,7 +190,12 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
       long en = System.nanoTime();
       final String type = clientSideBuffering ? "UPDATE" : "CLEANUP";
       measurements.measure(type, (int) ((en - st) / 1000));
-      connection.close();
+      synchronized(THREAD_COUNT) {
+        int threadCount = THREAD_COUNT.decrementAndGet();
+        if (threadCount <= 0 && connection != null) {
+          connection.close();
+        }
+      }
     } catch (IOException e) {
       throw new DBException(e);
     }
