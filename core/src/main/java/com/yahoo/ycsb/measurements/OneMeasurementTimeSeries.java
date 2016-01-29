@@ -76,7 +76,7 @@ public class OneMeasurementTimeSeries extends OneMeasurement
     _measurements=new Vector<SeriesUnit>();
   }
 
-  void checkEndOfUnit(boolean forceend)
+  synchronized void checkEndOfUnit(boolean forceend)
   {
     long now=System.currentTimeMillis();
 
