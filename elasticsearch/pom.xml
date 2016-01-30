@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 
-Copyright (c) 2012 - 2015 YCSB contributors. All rights reserved.
+Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -57,28 +57,4 @@ LICENSE file.
             <scope>test</scope>
         </dependency>
     </dependencies>
-    <build>
-      <plugins>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-checkstyle-plugin</artifactId>
-          <version>2.15</version>
-          <configuration>
-            <consoleOutput>true</consoleOutput>
-            <configLocation>../checkstyle.xml</configLocation>
-            <failOnViolation>true</failOnViolation>
-            <failsOnError>true</failsOnError>
-          </configuration>
-          <executions>
-            <execution>
-              <id>validate</id>
-              <phase>validate</phase>
-              <goals>
-                <goal>checkstyle</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
-      </plugins>
-    </build>
 </project>
