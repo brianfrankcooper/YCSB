@@ -24,6 +24,7 @@ import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.measurements.Measurements;
 
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
@@ -50,6 +51,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * HBase 1.0 client for YCSB framework.
@@ -62,11 +64,12 @@ import java.util.Vector;
  */
 public class HBaseClient10 extends com.yahoo.ycsb.DB {
   private Configuration config = HBaseConfiguration.create();
+  private static final AtomicInteger THREAD_COUNT = new AtomicInteger(0);
 
   private boolean debug = false;
 
   private String tableName = "";
-  private Connection connection = null;
+  private static Connection connection = null;
 
   // Depending on the value of clientSideBuffering, either bufferedMutator
   // (clientSideBuffering) or currentTable (!clientSideBuffering) will be used.
@@ -112,8 +115,27 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
           Durability.valueOf(getProperties().getProperty("durability"));
     }
 
+    if ("kerberos".equalsIgnoreCase(config.get("hbase.security.authentication"))) {
+      config.set("hadoop.security.authentication", "Kerberos");
+      UserGroupInformation.setConfiguration(config);
+    }
+
+    if ((getProperties().getProperty("principal")!=null) 
+        && (getProperties().getProperty("keytab")!=null)) {
+      try {
+        UserGroupInformation.loginUserFromKeytab(getProperties().getProperty("principal"), 
+              getProperties().getProperty("keytab"));
+      } catch (IOException e) {
+        System.err.println("Keytab file is not readable or not found");
+        throw new DBException(e);
+      }
+    }
+
     try {
-      connection = ConnectionFactory.createConnection(config);
+      THREAD_COUNT.getAndIncrement();
+      synchronized(THREAD_COUNT) {
+        connection = ConnectionFactory.createConnection(config);
+      }
     } catch (java.io.IOException e) {
       throw new DBException(e);
     }
@@ -168,7 +190,12 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
       long en = System.nanoTime();
       final String type = clientSideBuffering ? "UPDATE" : "CLEANUP";
       measurements.measure(type, (int) ((en - st) / 1000));
-      connection.close();
+      synchronized(THREAD_COUNT) {
+        int threadCount = THREAD_COUNT.decrementAndGet();
+        if (threadCount <= 0 && connection != null) {
+          connection.close();
+        }
+      }
     } catch (IOException e) {
       throw new DBException(e);
     }

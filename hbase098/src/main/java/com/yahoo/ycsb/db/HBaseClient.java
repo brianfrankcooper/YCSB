@@ -23,10 +23,14 @@ import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.measurements.Measurements;
 
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.HConnectionManager;
+import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTable;
@@ -46,6 +50,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * HBase client for YCSB framework
@@ -55,11 +60,13 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     // BFC: Change to fix broken build (with HBase 0.20.6)
     //private static final Configuration config = HBaseConfiguration.create();
     private static final Configuration config = HBaseConfiguration.create(); //new HBaseConfiguration();
+    private static final AtomicInteger THREAD_COUNT = new AtomicInteger(0);
 
     public boolean _debug=false;
 
     public String _table="";
-    public HTable _hTable=null;
+    private static HConnection _hConn=null;
+    public HTableInterface _hTable=null;
     public String _columnFamily="";
     public byte _columnFamilyBytes[];
     public boolean _clientSideBuffering = false;
@@ -94,7 +101,29 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         if ("false".equals(getProperties().getProperty("hbase.usepagefilter", "true"))) {
           _usePageFilter = false;
         }
-
+        if ("kerberos".equalsIgnoreCase(config.get("hbase.security.authentication"))) {
+          config.set("hadoop.security.authentication", "Kerberos");
+          UserGroupInformation.setConfiguration(config);
+        }
+        if ( (getProperties().getProperty("principal")!=null) && (getProperties().getProperty("keytab")!=null) ){
+            try {
+                UserGroupInformation.loginUserFromKeytab(getProperties().getProperty("principal"), getProperties().getProperty("keytab"));
+            } catch (IOException e) {
+                System.err.println("Keytab file is not readable or not found");
+                throw new DBException(e);
+            }
+        }
+        try {
+            THREAD_COUNT.getAndIncrement();
+            synchronized(THREAD_COUNT) {
+              if (_hConn == null){
+                _hConn = HConnectionManager.createConnection(config);
+              }
+            }
+        } catch (IOException e) {
+            System.err.println("Connection to HBase was not successful");
+            throw new DBException(e);  
+        }
         _columnFamily = getProperties().getProperty("columnfamily");
         if (_columnFamily == null)
         {
@@ -109,7 +138,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
       String table = com.yahoo.ycsb.workloads.CoreWorkload.table;
       try
 	  {
-	      HTable ht = new HTable(config, table);
+	      HTableInterface ht = _hConn.getTable(table);
 	      ht.getTableDescriptor();
 	  }
       catch (IOException e)
@@ -132,6 +161,12 @@ public class HBaseClient extends com.yahoo.ycsb.DB
             if (_hTable != null) {
                 _hTable.flushCommits();
             }
+            synchronized(THREAD_COUNT) {
+              int threadCount = THREAD_COUNT.decrementAndGet();
+              if (threadCount <= 0 && _hConn != null) {
+                 _hConn.close();
+              }
+            }
             long en=System.nanoTime();
             _measurements.measure("UPDATE", (int)((en-st)/1000));
         } catch (IOException e) {
@@ -142,7 +177,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     public void getHTable(String table) throws IOException
     {
         synchronized (tableLock) {
-            _hTable = new HTable(config, table);
+            _hTable = _hConn.getTable(table);
             //2 suggestions from http://ryantwopointoh.blogspot.com/2009/01/performance-of-hbase-importing.html
             _hTable.setAutoFlush(!_clientSideBuffering, true);
             _hTable.setWriteBufferSize(_writeBufferSize);
