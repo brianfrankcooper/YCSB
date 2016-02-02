@@ -39,6 +39,15 @@ Then, run the workload:
 
 See the next section for the list of configuration parameters for OrientDB.
 
+## DB creation with the OrientDBClient
+This client will create a database for you if the connection database you specify does not exists. You can also specify connection information to a preexisting database.
+
+You can use the ```orientdb.newdb=true``` property to allow this client to drop and create a new database instance during the ```load``` phase.
+
+NOTE: understand that using the ```orientdb.newdb=true``` property will drop and recreate databases even if it was a preexisting instance.
+
+WARNING: Creating a new database will be done safely with multiple threads on a single YCSB instance, but is not guaranteed to work when launching multiple YCSB instances. In that scenario it is suggested that you create the db before hand, or run the ```load``` phase with a single YCSB instance.
+
 ## OrientDB Configuration Parameters
 
 * ```orientdb.url``` - (required) The address to your database.
