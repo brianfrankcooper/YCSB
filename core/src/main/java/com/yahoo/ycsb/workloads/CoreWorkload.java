@@ -24,11 +24,10 @@ import com.yahoo.ycsb.generator.AcknowledgedCounterGenerator;
 import com.yahoo.ycsb.generator.CounterGenerator;
 import com.yahoo.ycsb.generator.DiscreteGenerator;
 import com.yahoo.ycsb.generator.ExponentialGenerator;
-import com.yahoo.ycsb.generator.Generator;
 import com.yahoo.ycsb.generator.ConstantIntegerGenerator;
 import com.yahoo.ycsb.generator.HotspotIntegerGenerator;
 import com.yahoo.ycsb.generator.HistogramGenerator;
-import com.yahoo.ycsb.generator.IntegerGenerator;
+import com.yahoo.ycsb.generator.NumberGenerator;
 import com.yahoo.ycsb.generator.ScrambledZipfianGenerator;
 import com.yahoo.ycsb.generator.SkewedLatestGenerator;
 import com.yahoo.ycsb.generator.UniformIntegerGenerator;
@@ -138,7 +137,7 @@ public class CoreWorkload extends Workload {
    * Generator object that produces field lengths.  The value of this depends on the properties that
    * start with "FIELD_LENGTH_".
    */
-  IntegerGenerator fieldlengthgenerator;
+  NumberGenerator fieldlengthgenerator;
 
   /**
    * The name of the property for deciding whether to read one field (false) or all fields (true) of
@@ -308,17 +307,17 @@ public class CoreWorkload extends Workload {
   public static final String INSERTION_RETRY_INTERVAL = "core_workload_insertion_retry_interval";
   public static final String INSERTION_RETRY_INTERVAL_DEFAULT = "3";
 
-  IntegerGenerator keysequence;
+  NumberGenerator keysequence;
 
   DiscreteGenerator operationchooser;
 
-  IntegerGenerator keychooser;
+  NumberGenerator keychooser;
 
-  Generator fieldchooser;
+  NumberGenerator fieldchooser;
 
   AcknowledgedCounterGenerator transactioninsertkeysequence;
 
-  IntegerGenerator scanlength;
+  NumberGenerator scanlength;
 
   boolean orderedinserts;
 
@@ -329,8 +328,8 @@ public class CoreWorkload extends Workload {
 
   private Measurements _measurements = Measurements.getMeasurements();
 
-  protected static IntegerGenerator getFieldLengthGenerator(Properties p) throws WorkloadException {
-    IntegerGenerator fieldlengthgenerator;
+  protected static NumberGenerator getFieldLengthGenerator(Properties p) throws WorkloadException {
+    NumberGenerator fieldlengthgenerator;
     String fieldlengthdistribution = p.getProperty(
         FIELD_LENGTH_DISTRIBUTION_PROPERTY, FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
     int fieldlength =
@@ -361,6 +360,7 @@ public class CoreWorkload extends Workload {
    * Initialize the scenario.
    * Called once, in the main client thread, before any operations are started.
    */
+  @Override
   public void init(Properties p) throws WorkloadException {
     table = p.getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
 
@@ -511,13 +511,13 @@ public class CoreWorkload extends Workload {
   private HashMap<String, ByteIterator> buildSingleValue(String key) {
     HashMap<String, ByteIterator> value = new HashMap<String, ByteIterator>();
 
-    String fieldkey = fieldnames.get(Integer.parseInt(fieldchooser.nextString()));
+    String fieldkey = fieldnames.get(fieldchooser.nextValue().intValue());
     ByteIterator data;
     if (dataintegrity) {
       data = new StringByteIterator(buildDeterministicValue(key, fieldkey));
     } else {
       // fill with random data
-      data = new RandomByteIterator(fieldlengthgenerator.nextInt());
+      data = new RandomByteIterator(fieldlengthgenerator.nextValue().longValue());
     }
     value.put(fieldkey, data);
 
@@ -536,7 +536,7 @@ public class CoreWorkload extends Workload {
         data = new StringByteIterator(buildDeterministicValue(key, fieldkey));
       } else {
         // fill with random data
-        data = new RandomByteIterator(fieldlengthgenerator.nextInt());
+        data = new RandomByteIterator(fieldlengthgenerator.nextValue().longValue());
       }
       values.put(fieldkey, data);
     }
@@ -547,7 +547,7 @@ public class CoreWorkload extends Workload {
    * Build a deterministic value given the key information.
    */
   private String buildDeterministicValue(String key, String fieldkey) {
-    int size = fieldlengthgenerator.nextInt();
+    int size = fieldlengthgenerator.nextValue().intValue();
     StringBuilder sb = new StringBuilder(size);
     sb.append(key);
     sb.append(':');
@@ -567,8 +567,9 @@ public class CoreWorkload extends Workload {
    * for each other, and it will be difficult to reach the target throughput. Ideally, this function would
    * have no side effects other than DB operations.
    */
+  @Override
   public boolean doInsert(DB db, Object threadstate) {
-    int keynum = keysequence.nextInt();
+    int keynum = keysequence.nextValue().intValue();
     String dbkey = buildKeyName(keynum);
     HashMap<String, ByteIterator> values = buildValues(dbkey);
 
@@ -609,20 +610,25 @@ public class CoreWorkload extends Workload {
    * for each other, and it will be difficult to reach the target throughput. Ideally, this function would
    * have no side effects other than DB operations.
    */
+  @Override
   public boolean doTransaction(DB db, Object threadstate) {
-    String op = operationchooser.nextString();
-
-    if (op.compareTo("READ") == 0) {
-      doTransactionRead(db);
-    } else if (op.compareTo("UPDATE") == 0) {
-      doTransactionUpdate(db);
-    } else if (op.compareTo("INSERT") == 0) {
-      doTransactionInsert(db);
-    } else if (op.compareTo("SCAN") == 0) {
-      doTransactionScan(db);
-    } else {
-      doTransactionReadModifyWrite(db);
-    }
+    switch (operationchooser.nextString()) {
+    
+      case "READ":
+        doTransactionRead(db);
+        break;
+      case "UPDATE":
+        doTransactionUpdate(db);
+        break;
+      case "INSERT": 
+        doTransactionInsert(db);
+        break;
+      case "SCAN":
+        doTransactionScan(db);
+        break;
+      default:
+        doTransactionReadModifyWrite(db);
+    } 
 
     return true;
   }
@@ -657,12 +663,12 @@ public class CoreWorkload extends Workload {
     int keynum;
     if (keychooser instanceof ExponentialGenerator) {
       do {
-        keynum = transactioninsertkeysequence.lastInt() - keychooser.nextInt();
+        keynum = transactioninsertkeysequence.lastValue() - keychooser.nextValue().intValue();
       } while (keynum < 0);
     } else {
       do {
-        keynum = keychooser.nextInt();
-      } while (keynum > transactioninsertkeysequence.lastInt());
+        keynum = keychooser.nextValue().intValue();
+      } while (keynum > transactioninsertkeysequence.lastValue());
     }
     return keynum;
   }
@@ -677,7 +683,7 @@ public class CoreWorkload extends Workload {
 
     if (!readallfields) {
       // read a random field
-      String fieldname = fieldnames.get(Integer.parseInt(fieldchooser.nextString()));
+      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
 
       fields = new HashSet<String>();
       fields.add(fieldname);
@@ -693,7 +699,7 @@ public class CoreWorkload extends Workload {
       verifyRow(keyname, cells);
     }
   }
-
+  
   public void doTransactionReadModifyWrite(DB db) {
     // choose a random key
     int keynum = nextKeynum();
@@ -704,7 +710,7 @@ public class CoreWorkload extends Workload {
 
     if (!readallfields) {
       // read a random field
-      String fieldname = fieldnames.get(Integer.parseInt(fieldchooser.nextString()));
+      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
 
       fields = new HashSet<String>();
       fields.add(fieldname);
@@ -748,13 +754,13 @@ public class CoreWorkload extends Workload {
     String startkeyname = buildKeyName(keynum);
 
     // choose a random scan length
-    int len = scanlength.nextInt();
+    int len = scanlength.nextValue().intValue();
 
     HashSet<String> fields = null;
 
     if (!readallfields) {
       // read a random field
-      String fieldname = fieldnames.get(Integer.parseInt(fieldchooser.nextString()));
+      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
 
       fields = new HashSet<String>();
       fields.add(fieldname);
@@ -784,7 +790,7 @@ public class CoreWorkload extends Workload {
 
   public void doTransactionInsert(DB db) {
     // choose the next key
-    int keynum = transactioninsertkeysequence.nextInt();
+    int keynum = transactioninsertkeysequence.nextValue();
 
     try {
       String dbkey = buildKeyName(keynum);

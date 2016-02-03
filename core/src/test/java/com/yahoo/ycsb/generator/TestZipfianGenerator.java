@@ -30,7 +30,7 @@ public class TestZipfianGenerator {
         ZipfianGenerator zipfian = new ZipfianGenerator(min, max);
 
         for (int i = 0; i < 10000; i++) {
-            long rnd = zipfian.nextLong();
+            long rnd = zipfian.nextValue();
             assertFalse(rnd < min);
             assertFalse(rnd > max);
         }

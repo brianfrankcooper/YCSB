@@ -17,16 +17,14 @@
 
 package com.yahoo.ycsb.generator;
 
-import java.util.Random;
-
 import com.yahoo.ycsb.Utils;
 
 /**
  * Generates integers randomly uniform from an interval.
  */
-public class UniformIntegerGenerator extends IntegerGenerator 
+public class UniformIntegerGenerator extends NumberGenerator 
 {
-	int _lb,_ub,_interval;
+	private final int _lb,_ub,_interval;
 	
 	/**
 	 * Creates a generator that will return integers uniformly randomly from the interval [lb,ub] inclusive (that is, lb and ub are possible values)
@@ -42,16 +40,16 @@ public class UniformIntegerGenerator extends IntegerGenerator
 	}
 	
 	@Override
-	public int nextInt() 
+	public Integer nextValue() 
 	{
 		int ret=Utils.random().nextInt(_interval)+_lb;
-		setLastInt(ret);
+		setLastValue(ret);
 		
 		return ret;
 	}
 
 	@Override
 	public double mean() {
-		return ((double)((long)(_lb + (long)_ub))) / 2.0;
+		return ((_lb + (long)_ub)) / 2.0;
 	}
 }
