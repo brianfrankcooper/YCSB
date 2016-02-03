@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2013 Yahoo! Inc. All rights reserved.
+ * Copyright (c) 2013 - 2016 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -23,7 +23,6 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.gson.*;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
@@ -39,7 +38,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.StringWriter;
 import java.io.Writer;
-import java.lang.reflect.Type;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -76,6 +74,13 @@ public class CouchbaseClient extends DB {
   public static final String PERSIST_PROPERTY = "couchbase.persistTo";
   public static final String REPLICATE_PROPERTY = "couchbase.replicateTo";
   public static final String JSON_PROPERTY = "couchbase.json";
+  public static final String DESIGN_DOC_PROPERTY = "couchbase.ddoc";
+  public static final String VIEW_PROPERTY = "couchbase.view";
+  public static final String STALE_PROPERTY = "couchbase.stale";
+  public static final String SCAN_PROPERTY = "scanproportion";
+
+  public static final String STALE_PROPERTY_DEFAULT = Stale.OK.name();
+  public static final String SCAN_PROPERTY_DEFAULT = "0.0";
 
   protected static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
@@ -84,44 +89,11 @@ public class CouchbaseClient extends DB {
   private ReplicateTo replicateTo;
   private boolean checkFutures;
   private boolean useJson;
+  private String designDoc;
+  private String viewName;
+  private Stale stale;
+  private View view;
   private final Logger log = LoggerFactory.getLogger(getClass());
-  private volatile Stale stale;
-  public final ThreadLocal<Gson> gson = new ThreadLocal<Gson>() {
-    public Gson get() {
-      return GSON_BUILDER
-        .create();
-    }
-  };
-
-  /**
-   * {@link Gson} instance builder
-   */
-  private static GsonBuilder GSON_BUILDER = new GsonBuilder().registerTypeAdapter(
-    ByteIterator.class,
-    new JsonSerializer<ByteIterator>() {
-
-      @Override
-      public JsonElement serialize(
-        ByteIterator arg0,
-        Type arg1,
-        JsonSerializationContext arg2) {
-        return new JsonPrimitive(
-          arg0.toString());
-      }
-    })
-    .registerTypeAdapter(
-      ByteIterator.class,
-      new JsonDeserializer<ByteIterator>() {
-        @Override
-        public ByteIterator deserialize(
-          JsonElement arg0,
-          Type arg1,
-          JsonDeserializationContext arg2)
-          throws JsonParseException {
-          return new StringByteIterator(
-            arg0.toString());
-        }
-      });
 
   @Override
   public void init() throws DBException {
@@ -137,6 +109,12 @@ public class CouchbaseClient extends DB {
     persistTo = parsePersistTo(props.getProperty(PERSIST_PROPERTY, "0"));
     replicateTo = parseReplicateTo(props.getProperty(REPLICATE_PROPERTY, "0"));
 
+    designDoc = getProperties().getProperty(DESIGN_DOC_PROPERTY);
+    viewName = getProperties().getProperty(VIEW_PROPERTY);
+    stale = Stale.valueOf(getProperties().getProperty(STALE_PROPERTY, STALE_PROPERTY_DEFAULT).toUpperCase());
+
+    Double scanproportion = Double.valueOf(props.getProperty(SCAN_PROPERTY, SCAN_PROPERTY_DEFAULT));
+
     Properties systemProperties = System.getProperties();
     systemProperties.put("net.spy.log.LoggerImpl", "net.spy.memcached.compat.log.SLF4JLogger");
     System.setProperties(systemProperties);
@@ -149,6 +127,15 @@ public class CouchbaseClient extends DB {
       );
     } catch (Exception e) {
       throw new DBException("Could not create CouchbaseClient object.", e);
+    }
+
+    if (scanproportion > 0) {
+      try {
+        view = client.getView(designDoc, viewName);
+      } catch (Exception e) {
+        throw new DBException(String.format("%s=%s and %s=%s provided, unable to connect to view.",
+          DESIGN_DOC_PROPERTY, designDoc, VIEW_PROPERTY, viewName), e.getCause());
+      }
     }
   }
 
@@ -234,38 +221,24 @@ public class CouchbaseClient extends DB {
    * @return Status.ERROR, because not implemented yet.
    */
   @Override
-  public Status scan(final String table, final String startkey, final int recordcount,
-    final Set<String> fields, final Vector<HashMap<String, ByteIterator>> result) {
-    String designDoc = getProperties().getProperty("ddoc");
-    String viewName = getProperties().getProperty("view");
-
-    if (designDoc == null || viewName == null) {
-      System.err.println("Scan requires [ddoc, view] params");
-      return Status.ERROR;
-    }
-
+  public Status scan(final String table, final String startkey, final int recordcount, final Set<String> fields,
+                     final Vector<HashMap<String, ByteIterator>> result) {
     try {
-      final View view = client.getView(designDoc, viewName);
       Query query = new Query().setRangeStart(startkey)
-        .setLimit(recordcount).setIncludeDocs(Boolean.TRUE)
+        .setLimit(recordcount)
+        .setIncludeDocs(true)
         .setStale(stale);
-
       ViewResponse response = client.query(view, query);
 
-      HashMap<String, ByteIterator> resultMap = new HashMap<String, ByteIterator>();
       for (ViewRow row : response) {
-        Object obj = row.getDocument();
-        if (obj == null) {
-          continue;
-        }
-        ByteIterator recVal = gson.get().fromJson(obj.toString(),
-          ByteIterator.class);
-        resultMap.put(row.getKey(), recVal);
+        HashMap<String, ByteIterator> rowMap = new HashMap();
+        decode(row.getDocument(), fields, rowMap);
+        result.add(rowMap);
       }
-      result.add(resultMap);
+
       return Status.OK;
     } catch (Exception e) {
-      System.err.println(e.getMessage());
+      log.error(e.getMessage());
     }
 
     return Status.ERROR;
