@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2013 Yahoo! Inc. All rights reserved.
+ * Copyright (c) 2013 - 2016 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -17,6 +17,7 @@
 
 package com.yahoo.ycsb.db;
 
+import com.couchbase.client.protocol.views.*;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -73,6 +74,13 @@ public class CouchbaseClient extends DB {
   public static final String PERSIST_PROPERTY = "couchbase.persistTo";
   public static final String REPLICATE_PROPERTY = "couchbase.replicateTo";
   public static final String JSON_PROPERTY = "couchbase.json";
+  public static final String DESIGN_DOC_PROPERTY = "couchbase.ddoc";
+  public static final String VIEW_PROPERTY = "couchbase.view";
+  public static final String STALE_PROPERTY = "couchbase.stale";
+  public static final String SCAN_PROPERTY = "scanproportion";
+
+  public static final String STALE_PROPERTY_DEFAULT = Stale.OK.name();
+  public static final String SCAN_PROPERTY_DEFAULT = "0.0";
 
   protected static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
@@ -81,6 +89,10 @@ public class CouchbaseClient extends DB {
   private ReplicateTo replicateTo;
   private boolean checkFutures;
   private boolean useJson;
+  private String designDoc;
+  private String viewName;
+  private Stale stale;
+  private View view;
   private final Logger log = LoggerFactory.getLogger(getClass());
 
   @Override
@@ -97,6 +109,12 @@ public class CouchbaseClient extends DB {
     persistTo = parsePersistTo(props.getProperty(PERSIST_PROPERTY, "0"));
     replicateTo = parseReplicateTo(props.getProperty(REPLICATE_PROPERTY, "0"));
 
+    designDoc = getProperties().getProperty(DESIGN_DOC_PROPERTY);
+    viewName = getProperties().getProperty(VIEW_PROPERTY);
+    stale = Stale.valueOf(getProperties().getProperty(STALE_PROPERTY, STALE_PROPERTY_DEFAULT).toUpperCase());
+
+    Double scanproportion = Double.valueOf(props.getProperty(SCAN_PROPERTY, SCAN_PROPERTY_DEFAULT));
+
     Properties systemProperties = System.getProperties();
     systemProperties.put("net.spy.log.LoggerImpl", "net.spy.memcached.compat.log.SLF4JLogger");
     System.setProperties(systemProperties);
@@ -109,6 +127,15 @@ public class CouchbaseClient extends DB {
       );
     } catch (Exception e) {
       throw new DBException("Could not create CouchbaseClient object.", e);
+    }
+
+    if (scanproportion > 0) {
+      try {
+        view = client.getView(designDoc, viewName);
+      } catch (Exception e) {
+        throw new DBException(String.format("%s=%s and %s=%s provided, unable to connect to view.",
+          DESIGN_DOC_PROPERTY, designDoc, VIEW_PROPERTY, viewName), e.getCause());
+      }
     }
   }
 
@@ -194,8 +221,26 @@ public class CouchbaseClient extends DB {
    * @return Status.ERROR, because not implemented yet.
    */
   @Override
-  public Status scan(final String table, final String startkey, final int recordcount,
-    final Set<String> fields, final Vector<HashMap<String, ByteIterator>> result) {
+  public Status scan(final String table, final String startkey, final int recordcount, final Set<String> fields,
+                     final Vector<HashMap<String, ByteIterator>> result) {
+    try {
+      Query query = new Query().setRangeStart(startkey)
+        .setLimit(recordcount)
+        .setIncludeDocs(true)
+        .setStale(stale);
+      ViewResponse response = client.query(view, query);
+
+      for (ViewRow row : response) {
+        HashMap<String, ByteIterator> rowMap = new HashMap();
+        decode(row.getDocument(), fields, rowMap);
+        result.add(rowMap);
+      }
+
+      return Status.OK;
+    } catch (Exception e) {
+      log.error(e.getMessage());
+    }
+
     return Status.ERROR;
   }
 
