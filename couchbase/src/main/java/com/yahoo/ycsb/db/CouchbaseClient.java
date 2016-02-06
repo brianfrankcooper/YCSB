@@ -18,20 +18,6 @@
 package com.yahoo.ycsb.db;
 
 import com.couchbase.client.protocol.views.*;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.net.URI;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -47,33 +33,25 @@ import net.spy.memcached.PersistTo;
 import net.spy.memcached.ReplicateTo;
 import net.spy.memcached.internal.OperationFuture;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.StringWriter;
+import java.io.Writer;
+import java.net.URI;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.Vector;
+
 /**
- * A class that wraps the CouchbaseClient to allow it to be interfaced with
- * YCSB. This class extends {@link DB} and implements the database interface
- * used by YCSB client.
- *
- * <p>
- * The following options must be passed when using this database client.
- *
- * <ul>
- * <li><b>couchbase.url=http://127.0.0.1:8091/pools</b> The connection URL from
- * one server.</li>
- * <li><b>couchbase.bucket=default</b> The bucket name to use./li>
- * <li><b>couchbase.password=</b> The password of the bucket.</li>
- * <li><b>couchbase.checkFutures=true</b> If the futures should be inspected
- * (makes ops sync).</li>
- * <li><b>couchbase.persistTo=0</b> Observe Persistence ("PersistTo" constraint)
- * </li>
- * <li><b>couchbase.replicateTo=0</b> Observe Replication ("ReplicateTo"
- * constraint)</li>
- * <li><b>couchbase.json=true</b> Use json or java serialization as target
- * format.</li>
- * </ul>
- *
- * @author Michael Nitschinger
+ * A class that wraps the CouchbaseClient to allow it to be interfaced with YCSB.
+ * This class extends {@link DB} and implements the database interface used by YCSB client.
  */
 public class CouchbaseClient extends DB {
-
   public static final String URL_PROPERTY = "couchbase.url";
   public static final String BUCKET_PROPERTY = "couchbase.bucket";
   public static final String PASSWORD_PROPERTY = "couchbase.password";
@@ -123,13 +101,11 @@ public class CouchbaseClient extends DB {
     Double scanproportion = Double.valueOf(props.getProperty(SCAN_PROPERTY, SCAN_PROPERTY_DEFAULT));
 
     Properties systemProperties = System.getProperties();
-    systemProperties.put("net.spy.log.LoggerImpl",
-        "net.spy.memcached.compat.log.SLF4JLogger");
+    systemProperties.put("net.spy.log.LoggerImpl", "net.spy.memcached.compat.log.SLF4JLogger");
     System.setProperties(systemProperties);
 
     try {
-      client = new com.couchbase.client.CouchbaseClient(
-          Arrays.asList(new URI(url)), bucket, password);
+      client = new com.couchbase.client.CouchbaseClient(Arrays.asList(new URI(url)), bucket, password);
     } catch (Exception e) {
       throw new DBException("Could not create CouchbaseClient object.", e);
     }
@@ -147,14 +123,11 @@ public class CouchbaseClient extends DB {
   /**
    * Parse the replicate property into the correct enum.
    *
-   * @param property
-   *          the stringified property value.
-   * @throws DBException
-   *           if parsing the property did fail.
+   * @param property the stringified property value.
+   * @throws DBException if parsing the property did fail.
    * @return the correct enum.
    */
-  private ReplicateTo parseReplicateTo(final String property)
-      throws DBException {
+  private ReplicateTo parseReplicateTo(final String property) throws DBException {
     int value = Integer.parseInt(property);
 
     switch (value) {
@@ -174,10 +147,8 @@ public class CouchbaseClient extends DB {
   /**
    * Parse the persist property into the correct enum.
    *
-   * @param property
-   *          the stringified property value.
-   * @throws DBException
-   *           if parsing the property did fail.
+   * @param property the stringified property value.
+   * @throws DBException if parsing the property did fail.
    * @return the correct enum.
    */
   private PersistTo parsePersistTo(final String property) throws DBException {
@@ -208,8 +179,8 @@ public class CouchbaseClient extends DB {
   }
 
   @Override
-  public Status read(final String table, final String key,
-      final Set<String> fields, final HashMap<String, ByteIterator> result) {
+  public Status read(final String table, final String key, final Set<String> fields,
+                     final HashMap<String, ByteIterator> result) {
     String formattedKey = formatKey(table, key);
 
     try {
@@ -229,30 +200,14 @@ public class CouchbaseClient extends DB {
     }
   }
 
-  /**
-   * Scan is currently not implemented.
-   *
-   * @param table
-   *          The name of the table
-   * @param startkey
-   *          The record key of the first record to read.
-   * @param recordcount
-   *          The number of records to read
-   * @param fields
-   *          The list of fields to read, or null for all of them
-   * @param result
-   *          A Vector of HashMaps, where each HashMap is a set field/value
-   *          pairs for one record
-   * @return Status.ERROR, because not implemented yet.
-   */
   @Override
   public Status scan(final String table, final String startkey, final int recordcount, final Set<String> fields,
                      final Vector<HashMap<String, ByteIterator>> result) {
     try {
       Query query = new Query().setRangeStart(startkey)
-        .setLimit(recordcount)
-        .setIncludeDocs(true)
-        .setStale(stale);
+          .setLimit(recordcount)
+          .setIncludeDocs(true)
+          .setStale(stale);
       ViewResponse response = client.query(view, query);
 
       for (ViewRow row : response) {
@@ -270,13 +225,11 @@ public class CouchbaseClient extends DB {
   }
 
   @Override
-  public Status update(final String table, final String key,
-      final HashMap<String, ByteIterator> values) {
+  public Status update(final String table, final String key, final HashMap<String, ByteIterator> values) {
     String formattedKey = formatKey(table, key);
 
     try {
-      final OperationFuture<Boolean> future =
-          client.replace(formattedKey, encode(values), persistTo, replicateTo);
+      final OperationFuture<Boolean> future = client.replace(formattedKey, encode(values), persistTo, replicateTo);
       return checkFutureStatus(future);
     } catch (Exception e) {
       if (log.isErrorEnabled()) {
@@ -287,13 +240,11 @@ public class CouchbaseClient extends DB {
   }
 
   @Override
-  public Status insert(final String table, final String key,
-      final HashMap<String, ByteIterator> values) {
+  public Status insert(final String table, final String key, final HashMap<String, ByteIterator> values) {
     String formattedKey = formatKey(table, key);
 
     try {
-      final OperationFuture<Boolean> future =
-          client.add(formattedKey, encode(values), persistTo, replicateTo);
+      final OperationFuture<Boolean> future = client.add(formattedKey, encode(values), persistTo, replicateTo);
       return checkFutureStatus(future);
     } catch (Exception e) {
       if (log.isErrorEnabled()) {
@@ -308,8 +259,7 @@ public class CouchbaseClient extends DB {
     String formattedKey = formatKey(table, key);
 
     try {
-      final OperationFuture<Boolean> future =
-          client.delete(formattedKey, persistTo, replicateTo);
+      final OperationFuture<Boolean> future = client.delete(formattedKey, persistTo, replicateTo);
       return checkFutureStatus(future);
     } catch (Exception e) {
       if (log.isErrorEnabled()) {
@@ -322,10 +272,8 @@ public class CouchbaseClient extends DB {
   /**
    * Prefix the key with the given prefix, to establish a unique namespace.
    *
-   * @param prefix
-   *          the prefix to use.
-   * @param key
-   *          the actual key.
+   * @param prefix the prefix to use.
+   * @param key the actual key.
    * @return the formatted and prefixed key.
    */
   private String formatKey(final String prefix, final String key) {
@@ -335,8 +283,7 @@ public class CouchbaseClient extends DB {
   /**
    * Wrapper method that either inspects the future or not.
    *
-   * @param future
-   *          the future to potentially verify.
+   * @param future the future to potentially verify.
    * @return the status of the future result.
    */
   private Status checkFutureStatus(final OperationFuture<?> future) {
@@ -350,15 +297,11 @@ public class CouchbaseClient extends DB {
   /**
    * Decode the object from server into the storable result.
    *
-   * @param source
-   *          the loaded object.
-   * @param fields
-   *          the fields to check.
-   * @param dest
-   *          the result passed back to the ycsb core.
+   * @param source the loaded object.
+   * @param fields the fields to check.
+   * @param dest the result passed back to the ycsb core.
    */
-  private void decode(final Object source, final Set<String> fields,
-      final HashMap<String, ByteIterator> dest) {
+  private void decode(final Object source, final Set<String> fields, final HashMap<String, ByteIterator> dest) {
     if (useJson) {
       try {
         JsonNode json = JSON_MAPPER.readTree((String) source);
@@ -388,8 +331,7 @@ public class CouchbaseClient extends DB {
   /**
    * Encode the object for couchbase storage.
    *
-   * @param source
-   *          the source value.
+   * @param source the source value.
    * @return the storable object.
    */
   private Object encode(final HashMap<String, ByteIterator> source) {
@@ -412,5 +354,4 @@ public class CouchbaseClient extends DB {
     }
     return writer.toString();
   }
-
 }
