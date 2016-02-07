@@ -50,23 +50,8 @@ import java.util.Vector;
 /**
  * A class that wraps the CouchbaseClient to allow it to be interfaced with YCSB.
  * This class extends {@link DB} and implements the database interface used by YCSB client.
- *
- * <p> The following options must be passed when using this database client.
- *
- * <ul>
- * <li><b>couchbase.url=http://127.0.0.1:8091/pools</b> The connection URL from one server.</li>
- * <li><b>couchbase.bucket=default</b> The bucket name to use./li>
- * <li><b>couchbase.password=</b> The password of the bucket.</li>
- * <li><b>couchbase.checkFutures=true</b> If the futures should be inspected (makes ops sync).</li>
- * <li><b>couchbase.persistTo=0</b> Observe Persistence ("PersistTo" constraint)</li>
- * <li><b>couchbase.replicateTo=0</b> Observe Replication ("ReplicateTo" constraint)</li>
- * <li><b>couchbase.json=true</b> Use json or java serialization as target format.</li>
- * </ul>
- *
- * @author Michael Nitschinger
  */
 public class CouchbaseClient extends DB {
-
   public static final String URL_PROPERTY = "couchbase.url";
   public static final String BUCKET_PROPERTY = "couchbase.bucket";
   public static final String PASSWORD_PROPERTY = "couchbase.password";
@@ -120,11 +105,7 @@ public class CouchbaseClient extends DB {
     System.setProperties(systemProperties);
 
     try {
-      client = new com.couchbase.client.CouchbaseClient(
-        Arrays.asList(new URI(url)),
-        bucket,
-        password
-      );
+      client = new com.couchbase.client.CouchbaseClient(Arrays.asList(new URI(url)), bucket, password);
     } catch (Exception e) {
       throw new DBException("Could not create CouchbaseClient object.", e);
     }
@@ -150,12 +131,16 @@ public class CouchbaseClient extends DB {
     int value = Integer.parseInt(property);
 
     switch (value) {
-      case 0: return ReplicateTo.ZERO;
-      case 1: return ReplicateTo.ONE;
-      case 2: return ReplicateTo.TWO;
-      case 3: return ReplicateTo.THREE;
-      default:
-        throw new DBException(REPLICATE_PROPERTY + " must be between 0 and 3");
+    case 0:
+      return ReplicateTo.ZERO;
+    case 1:
+      return ReplicateTo.ONE;
+    case 2:
+      return ReplicateTo.TWO;
+    case 3:
+      return ReplicateTo.THREE;
+    default:
+      throw new DBException(REPLICATE_PROPERTY + " must be between 0 and 3");
     }
   }
 
@@ -170,13 +155,18 @@ public class CouchbaseClient extends DB {
     int value = Integer.parseInt(property);
 
     switch (value) {
-      case 0: return PersistTo.ZERO;
-      case 1: return PersistTo.ONE;
-      case 2: return PersistTo.TWO;
-      case 3: return PersistTo.THREE;
-      case 4: return PersistTo.FOUR;
-      default:
-        throw new DBException(PERSIST_PROPERTY + " must be between 0 and 4");
+    case 0:
+      return PersistTo.ZERO;
+    case 1:
+      return PersistTo.ONE;
+    case 2:
+      return PersistTo.TWO;
+    case 3:
+      return PersistTo.THREE;
+    case 4:
+      return PersistTo.FOUR;
+    default:
+      throw new DBException(PERSIST_PROPERTY + " must be between 0 and 4");
     }
   }
 
@@ -190,7 +180,7 @@ public class CouchbaseClient extends DB {
 
   @Override
   public Status read(final String table, final String key, final Set<String> fields,
-    final HashMap<String, ByteIterator> result) {
+                     final HashMap<String, ByteIterator> result) {
     String formattedKey = formatKey(table, key);
 
     try {
@@ -210,24 +200,14 @@ public class CouchbaseClient extends DB {
     }
   }
 
-  /**
-   * Scan is currently not implemented.
-   *
-   * @param table The name of the table
-   * @param startkey The record key of the first record to read.
-   * @param recordcount The number of records to read
-   * @param fields The list of fields to read, or null for all of them
-   * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
-   * @return Status.ERROR, because not implemented yet.
-   */
   @Override
   public Status scan(final String table, final String startkey, final int recordcount, final Set<String> fields,
                      final Vector<HashMap<String, ByteIterator>> result) {
     try {
       Query query = new Query().setRangeStart(startkey)
-        .setLimit(recordcount)
-        .setIncludeDocs(true)
-        .setStale(stale);
+          .setLimit(recordcount)
+          .setIncludeDocs(true)
+          .setStale(stale);
       ViewResponse response = client.query(view, query);
 
       for (ViewRow row : response) {
@@ -249,12 +229,7 @@ public class CouchbaseClient extends DB {
     String formattedKey = formatKey(table, key);
 
     try {
-      final OperationFuture<Boolean> future = client.replace(
-        formattedKey,
-        encode(values),
-        persistTo,
-        replicateTo
-      );
+      final OperationFuture<Boolean> future = client.replace(formattedKey, encode(values), persistTo, replicateTo);
       return checkFutureStatus(future);
     } catch (Exception e) {
       if (log.isErrorEnabled()) {
@@ -269,12 +244,7 @@ public class CouchbaseClient extends DB {
     String formattedKey = formatKey(table, key);
 
     try {
-      final OperationFuture<Boolean> future = client.add(
-        formattedKey,
-        encode(values),
-        persistTo,
-        replicateTo
-      );
+      final OperationFuture<Boolean> future = client.add(formattedKey, encode(values), persistTo, replicateTo);
       return checkFutureStatus(future);
     } catch (Exception e) {
       if (log.isErrorEnabled()) {
@@ -331,8 +301,7 @@ public class CouchbaseClient extends DB {
    * @param fields the fields to check.
    * @param dest the result passed back to the ycsb core.
    */
-  private void decode(final Object source, final Set<String> fields,
-    final HashMap<String, ByteIterator> dest) {
+  private void decode(final Object source, final Set<String> fields, final HashMap<String, ByteIterator> dest) {
     if (useJson) {
       try {
         JsonNode json = JSON_MAPPER.readTree((String) source);
@@ -385,6 +354,4 @@ public class CouchbaseClient extends DB {
     }
     return writer.toString();
   }
-
-
 }
