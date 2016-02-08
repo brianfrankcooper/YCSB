@@ -1,18 +1,18 @@
 /**
  * Copyright (c) 2010 - 2016 Yahoo! Inc. All rights reserved.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"); you 
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
- * may obtain a copy of the License at 
- * 
+ * may obtain a copy of the License at
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing, software 
- * distributed under the License is distributed on an "AS IS" BASIS, 
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or 
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
  * implied. See the License for the specific language governing
- * permissions and limitations under the License. See accompanying 
- * LICENSE file. 
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
  */
 package com.yahoo.ycsb.db;
 
@@ -31,11 +31,11 @@ import java.util.concurrent.ConcurrentMap;
  * A class that wraps a JDBC compliant database to allow it to be interfaced
  * with YCSB. This class extends {@link DB} and implements the database
  * interface used by YCSB client.
- * 
+ *
  * <br>
  * Each client will have its own instance of this class. This client is not
  * thread safe.
- * 
+ *
  * <br>
  * This interface expects a schema <key> <field1> <field2> <field3> ... All
  * attributes are of type VARCHAR. All accesses are through the primary key.
@@ -140,6 +140,38 @@ public class JdbcDBClient extends DB {
       this.shardIndex = shardIndex;
     }
 
+    @Override
+	  public void start() throws DBException {
+	  	super.start();
+	  	try {
+	  		conns.get(0).setAutoCommit(false);
+	  	} catch (SQLException e) {
+	  		e.printStackTrace();
+	  		throw new DBException(e);
+	  	}
+	  }
+
+	  @Override
+	  public void commit() throws DBException {
+	  	super.commit();
+	  	try {
+	  		conns.get(0).commit();
+	  	} catch (SQLException e) {
+	  		e.printStackTrace();
+	  		throw new DBException(e);
+	  	}
+	  }
+
+	  @Override
+	  public void abort() throws DBException {
+	  	super.abort();
+	  	try {
+	  		conns.get(0).rollback();
+	  	} catch (SQLException e) {
+	  		e.printStackTrace();
+	  		throw new DBException(e);
+	  	}
+	  }
     @Override
     public int hashCode() {
       final int prime = 31;

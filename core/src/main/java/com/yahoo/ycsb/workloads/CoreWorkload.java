@@ -37,6 +37,7 @@ import com.yahoo.ycsb.measurements.Measurements;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Vector;
 import java.util.List;
 import java.util.Map;
@@ -294,7 +295,6 @@ public class CoreWorkload extends Workload {
    * Default value of the percentage operations accessing the hot set.
    */
   public static final String HOTSPOT_OPN_FRACTION_DEFAULT = "0.8";
-
   /**
    * How many times to retry when insertion of a single item to a DB fails.
    */
@@ -306,6 +306,14 @@ public class CoreWorkload extends Workload {
    */
   public static final String INSERTION_RETRY_INTERVAL = "core_workload_insertion_retry_interval";
   public static final String INSERTION_RETRY_INTERVAL_DEFAULT = "3";
+
+  private Hashtable<String, String> _operations = new Hashtable<String, String>() {{
+	  	put("READ", "TX-READ");
+	  	put("UPDATE", "TX-UPDATE");
+	  	put("INSERT", "TX-INSERT");
+	  	put("SCAN", "TX-SCAN");
+	  	put("READMODIFYWRITE","TX-READMODIFYWRITE");
+  	}};
 
   NumberGenerator keysequence;
 
@@ -561,6 +569,7 @@ public class CoreWorkload extends Workload {
     return sb.toString();
   }
 
+<<<<<<< HEAD
   /**
    * Do one insert operation. Because it will be called concurrently from multiple client threads,
    * this function must be thread safe. However, avoid synchronized, or the threads will block waiting
@@ -612,25 +621,36 @@ public class CoreWorkload extends Workload {
    */
   @Override
   public boolean doTransaction(DB db, Object threadstate) {
+    boolean ret = true;
+    long st = System.nanoTime();
+
     switch (operationchooser.nextString()) {
-    
+
       case "READ":
-        doTransactionRead(db);
+        ret = doTransactionRead(db);
         break;
       case "UPDATE":
-        doTransactionUpdate(db);
+        ret = doTransactionUpdate(db);
         break;
-      case "INSERT": 
-        doTransactionInsert(db);
+      case "INSERT":
+        ret = doTransactionInsert(db);
         break;
       case "SCAN":
-        doTransactionScan(db);
+        ret = doTransactionScan(db);
         break;
       default:
-        doTransactionReadModifyWrite(db);
-    } 
+        ret = doTransactionReadModifyWrite(db);
+    }
 
-    return true;
+		long en = System.nanoTime();
+		_measurements.measure(_operations.get(op), (int) ((en - st) / 1000));
+		if (ret)
+			_measurements.reportReturnCode(_operations.get(op), -1);
+		else {
+			_measurements.reportReturnCode(_operations.get(op), 0);
+		}
+
+		return ret;
   }
 
   /**
@@ -673,7 +693,7 @@ public class CoreWorkload extends Workload {
     return keynum;
   }
 
-  public void doTransactionRead(DB db) {
+  public boolean doTransactionRead(DB db) {
     // choose a random key
     int keynum = nextKeynum();
 
@@ -693,14 +713,16 @@ public class CoreWorkload extends Workload {
     }
 
     HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
-    db.read(table, keyname, fields, cells);
+    boolean status = db.read(table, keyname, fields, cells);
 
     if (dataintegrity) {
       verifyRow(keyname, cells);
     }
+
+    return status;
   }
-  
-  public void doTransactionReadModifyWrite(DB db) {
+
+  public boolean doTransactionReadModifyWrite(DB db) {
     // choose a random key
     int keynum = nextKeynum();
 
@@ -733,21 +755,23 @@ public class CoreWorkload extends Workload {
 
     long ist = _measurements.getIntendedtartTimeNs();
     long st = System.nanoTime();
-    db.read(table, keyname, fields, cells);
+    boolean ret = db.read(table, keyname, fields, cells);
 
-    db.update(table, keyname, values);
+    ret &= db.update(table, keyname, values);
 
     long en = System.nanoTime();
 
-    if (dataintegrity) {
-      verifyRow(keyname, cells);
-    }
+                if (dataintegrity) {
+                    verifyRow(keyname, cells);
+                }
 
     _measurements.measure("READ-MODIFY-WRITE", (int) ((en - st) / 1000));
     _measurements.measureIntended("READ-MODIFY-WRITE", (int) ((en - ist) / 1000));
+
+    return ret;
   }
 
-  public void doTransactionScan(DB db) {
+  public boolean doTransactionScan(DB db) {
     // choose a random key
     int keynum = nextKeynum();
 
@@ -766,10 +790,10 @@ public class CoreWorkload extends Workload {
       fields.add(fieldname);
     }
 
-    db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
+    return db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
   }
 
-  public void doTransactionUpdate(DB db) {
+  public boolean doTransactionUpdate(DB db) {
     // choose a random key
     int keynum = nextKeynum();
 
@@ -785,20 +809,23 @@ public class CoreWorkload extends Workload {
       values = buildSingleValue(keyname);
     }
 
-    db.update(table, keyname, values);
+    return db.update(table, keyname, values);
   }
 
-  public void doTransactionInsert(DB db) {
+  public boolean doTransactionInsert(DB db) {
     // choose the next key
     int keynum = transactioninsertkeysequence.nextValue();
+    boolean ret = false;
 
     try {
       String dbkey = buildKeyName(keynum);
 
       HashMap<String, ByteIterator> values = buildValues(dbkey);
-      db.insert(table, dbkey, values);
+      ret = db.insert(table, dbkey, values);
     } finally {
       transactioninsertkeysequence.acknowledge(keynum);
     }
+
+    return ret;
   }
 }

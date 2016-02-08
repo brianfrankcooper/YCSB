@@ -107,6 +107,52 @@ public class DBWrapper extends DB
     measure("CLEANUP", Status.OK, ist, st, en);
   }
 
+	public void start() throws DBException
+	{
+		long st=System.nanoTime();
+		try {
+			_db.start();
+			long en = System.nanoTime();
+			_measurements.measure("START", (int) ((en - st) / 1000));
+			_measurements.reportReturnCode("START", 0);
+		} catch (DBException e) {
+			long en=System.nanoTime();
+			_measurements.measure("START",(int)((en-st)/1000));
+			_measurements.reportReturnCode("START", -1);
+			throw e;
+		}
+	}
+	
+	public void commit() throws DBException
+	{
+		long st=System.nanoTime();
+		try {
+			_db.commit();
+			long en = System.nanoTime();
+			_measurements.measure("COMMIT", (int) ((en - st) / 1000));
+			_measurements.reportReturnCode("COMMIT", 0);
+		} catch (DBException e) {
+			long en = System.nanoTime();
+			_measurements.measure("ABORT", (int) ((en - st) / 1000));
+			_measurements.reportReturnCode("ABORT", -1);
+		}
+	}
+
+	public void abort() throws DBException
+	{
+		long st=System.nanoTime();
+		try {
+			_db.abort();
+			long en = System.nanoTime();
+			_measurements.measure("ABORT", (int) ((en - st) / 1000));
+			_measurements.reportReturnCode("ABORT", 0);
+		} catch (DBException e) {
+			long en=System.nanoTime();
+			_measurements.measure("ABORT",(int)((en-st)/1000));
+			_measurements.reportReturnCode("ABORT", -1);			
+		}
+	}
+
   /**
    * Read a record from the database. Each field/value pair from the result
    * will be stored in a HashMap.

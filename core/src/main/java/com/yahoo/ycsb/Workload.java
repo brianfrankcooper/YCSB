@@ -80,8 +80,9 @@ public abstract class Workload
        * other, and it will be difficult to reach the target throughput. Ideally, this function would have no side
        * effects other than DB operations and mutations on threadstate. Mutations to threadstate do not need to be
        * synchronized, since each thread has its own threadstate instance.
+       * @throws WorkloadException 
        */
-      public abstract boolean doInsert(DB db, Object threadstate);
+      public abstract boolean doInsert(DB db, Object threadstate) throws WorkloadException;
       
       /**
        * Do one transaction operation. Because it will be called concurrently from multiple client threads, this 
@@ -91,9 +92,11 @@ public abstract class Workload
        * synchronized, since each thread has its own threadstate instance.
        * 
        * @return false if the workload knows it is done for this thread. Client will terminate the thread. Return true otherwise. Return true for workloads that rely on operationcount. For workloads that read traces from a file, return true when there are more to do, false when you are done.
+       * @throws WorkloadException 
        */
-      public abstract boolean doTransaction(DB db, Object threadstate);
-      
+      public abstract boolean doTransaction(DB db, Object threadstate) throws WorkloadException;
+
+
       /**
        * Allows scheduling a request to stop the workload.
        */
@@ -109,4 +112,14 @@ public abstract class Workload
         if (stopRequested.get() == true) return true;
         else return false;
       }
+
+     /**
+      * Perform validation of the database db after the workload has executed.
+      * 
+      * @return false if the workload left the database in an inconsistent state, true if it is consistent.
+      * @throws WorkloadException 
+      */
+     public boolean validate(DB db) throws WorkloadException {
+    	 return true;
+     }
 }

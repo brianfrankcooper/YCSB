@@ -82,6 +82,27 @@ public abstract class DB
 	}
 
 	/**
+	 * Start a database transaction. 
+	 */
+	public void start() throws DBException
+	{
+	}
+	
+	/**
+	 * Commit the current database transaction. 
+	 */
+	public void commit() throws DBException
+	{
+	}
+
+	/**
+	 * Abort the current database transaction. 
+	 */
+	public void abort() throws DBException
+	{
+	}
+
+	/**
 	 * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
 	 *
 	 * @param table The name of the table
