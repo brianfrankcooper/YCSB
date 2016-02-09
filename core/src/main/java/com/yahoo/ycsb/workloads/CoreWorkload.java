@@ -569,7 +569,6 @@ public class CoreWorkload extends Workload {
     return sb.toString();
   }
 
-<<<<<<< HEAD
   /**
    * Do one insert operation. Because it will be called concurrently from multiple client threads,
    * this function must be thread safe. However, avoid synchronized, or the threads will block waiting
@@ -621,10 +620,12 @@ public class CoreWorkload extends Workload {
    */
   @Override
   public boolean doTransaction(DB db, Object threadstate) {
-    boolean ret = true;
+    boolean ret;
     long st = System.nanoTime();
 
-    switch (operationchooser.nextString()) {
+    String op = operationchooser.nextString();
+
+    switch (op) {
 
       case "READ":
         ret = doTransactionRead(db);
@@ -645,9 +646,9 @@ public class CoreWorkload extends Workload {
 		long en = System.nanoTime();
 		_measurements.measure(_operations.get(op), (int) ((en - st) / 1000));
 		if (ret)
-			_measurements.reportReturnCode(_operations.get(op), -1);
+			_measurements.reportStatus(_operations.get(op), Status.OK);
 		else {
-			_measurements.reportReturnCode(_operations.get(op), 0);
+			_measurements.reportStatus(_operations.get(op), Status.ERROR);
 		}
 
 		return ret;
@@ -713,13 +714,13 @@ public class CoreWorkload extends Workload {
     }
 
     HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
-    boolean status = db.read(table, keyname, fields, cells);
+    Status status = db.read(table, keyname, fields, cells);
 
     if (dataintegrity) {
       verifyRow(keyname, cells);
     }
 
-    return status;
+    return (status == Status.OK);
   }
 
   public boolean doTransactionReadModifyWrite(DB db) {
@@ -755,9 +756,9 @@ public class CoreWorkload extends Workload {
 
     long ist = _measurements.getIntendedtartTimeNs();
     long st = System.nanoTime();
-    boolean ret = db.read(table, keyname, fields, cells);
+    Status readStatus = db.read(table, keyname, fields, cells);
 
-    ret &= db.update(table, keyname, values);
+    Status updateStatus = db.update(table, keyname, values);
 
     long en = System.nanoTime();
 
@@ -768,7 +769,7 @@ public class CoreWorkload extends Workload {
     _measurements.measure("READ-MODIFY-WRITE", (int) ((en - st) / 1000));
     _measurements.measureIntended("READ-MODIFY-WRITE", (int) ((en - ist) / 1000));
 
-    return ret;
+    return (readStatus == updateStatus) && (updateStatus == Status.OK);
   }
 
   public boolean doTransactionScan(DB db) {
@@ -790,7 +791,9 @@ public class CoreWorkload extends Workload {
       fields.add(fieldname);
     }
 
-    return db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
+    Status status = db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
+
+    return (status == Status.OK);
   }
 
   public boolean doTransactionUpdate(DB db) {
@@ -809,23 +812,23 @@ public class CoreWorkload extends Workload {
       values = buildSingleValue(keyname);
     }
 
-    return db.update(table, keyname, values);
+    return (db.update(table, keyname, values) == Status.OK);
   }
 
   public boolean doTransactionInsert(DB db) {
     // choose the next key
     int keynum = transactioninsertkeysequence.nextValue();
-    boolean ret = false;
+    Status status = Status.ERROR;
 
     try {
       String dbkey = buildKeyName(keynum);
 
       HashMap<String, ByteIterator> values = buildValues(dbkey);
-      ret = db.insert(table, dbkey, values);
+      status = db.insert(table, dbkey, values);
     } finally {
       transactioninsertkeysequence.acknowledge(keynum);
     }
 
-    return ret;
+    return (status == Status.OK);
   }
 }

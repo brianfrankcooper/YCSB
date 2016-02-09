@@ -114,15 +114,15 @@ public class DBWrapper extends DB
 			_db.start();
 			long en = System.nanoTime();
 			_measurements.measure("START", (int) ((en - st) / 1000));
-			_measurements.reportReturnCode("START", 0);
+			_measurements.reportStatus("START", Status.OK);
 		} catch (DBException e) {
 			long en=System.nanoTime();
 			_measurements.measure("START",(int)((en-st)/1000));
-			_measurements.reportReturnCode("START", -1);
+			_measurements.reportStatus("START", Status.ERROR);
 			throw e;
 		}
 	}
-	
+
 	public void commit() throws DBException
 	{
 		long st=System.nanoTime();
@@ -130,11 +130,11 @@ public class DBWrapper extends DB
 			_db.commit();
 			long en = System.nanoTime();
 			_measurements.measure("COMMIT", (int) ((en - st) / 1000));
-			_measurements.reportReturnCode("COMMIT", 0);
+			_measurements.reportStatus("COMMIT", Status.OK);
 		} catch (DBException e) {
 			long en = System.nanoTime();
 			_measurements.measure("ABORT", (int) ((en - st) / 1000));
-			_measurements.reportReturnCode("ABORT", -1);
+			_measurements.reportStatus("ABORT", Status.ERROR);
 		}
 	}
 
@@ -145,11 +145,11 @@ public class DBWrapper extends DB
 			_db.abort();
 			long en = System.nanoTime();
 			_measurements.measure("ABORT", (int) ((en - st) / 1000));
-			_measurements.reportReturnCode("ABORT", 0);
+			_measurements.reportStatus("ABORT", Status.OK);
 		} catch (DBException e) {
 			long en=System.nanoTime();
 			_measurements.measure("ABORT",(int)((en-st)/1000));
-			_measurements.reportReturnCode("ABORT", -1);			
+			_measurements.reportStatus("ABORT", Status.ERROR);
 		}
 	}
 
