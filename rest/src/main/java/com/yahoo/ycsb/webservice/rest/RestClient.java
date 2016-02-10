@@ -36,7 +36,7 @@ import com.yahoo.ycsb.StringByteIterator;
  * and provides better functionality. For example HttpClient can automatically
  * handle Redirects and Proxy Authentication which the standard Java API don't.
  * 
- * @author shivam.maharshi
+ * @author shivam.maharshi 
  */
 public class RestClient extends DB {
 
