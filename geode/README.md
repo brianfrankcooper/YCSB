@@ -21,15 +21,7 @@ This section describes how to run YCSB on Apache Geode (incubating).
 
 ### Get Apache Geode
 
-You can clone Geode source from apache or the github mirror and build
-
-```
-$ git clone https://github.com/apache/incubator-geode
-$ cd incubator-geode
-$ ./gradlew build installDist
-```
-You can also get the latest release (once it is available) from
-http://geode.incubator.apache.org/download/
+You can download Geode from http://geode.incubator.apache.org/releases/
 
 #### Start Geode Cluster
 
@@ -40,7 +32,7 @@ Geode servers.
 Launch gfsh:
 
 ```
-$ cd gemfire-assembly/build/install/apache-geode
+$ cd $GEODE_HOME
 $ ./bin/gfsh
 ```
 
