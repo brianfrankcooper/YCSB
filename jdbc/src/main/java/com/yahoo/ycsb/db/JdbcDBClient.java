@@ -186,37 +186,37 @@ public class JdbcDBClient extends DB {
   }
 
   @Override
-	public void start() throws DBException {
-		super.start();
-		try {
-			conns.get(0).setAutoCommit(false);
-		} catch (SQLException e) {
-			e.printStackTrace();
-			throw new DBException(e);
-		}
-	}
+  public void start() throws DBException {
+    super.start();
+    try {
+      conns.get(0).setAutoCommit(false);
+    } catch (SQLException e) {
+      e.printStackTrace();
+      throw new DBException(e);
+    }
+  }
 
-	@Override
-	public void commit() throws DBException {
-		super.commit();
-		try {
-			conns.get(0).commit();
-		} catch (SQLException e) {
-			e.printStackTrace();
-			throw new DBException(e);
-		}
-	}
+  @Override
+  public void commit() throws DBException {
+    super.commit();
+    try {
+      conns.get(0).commit();
+    } catch (SQLException e) {
+      e.printStackTrace();
+      throw new DBException(e);
+    }
+  }
 
-	@Override
-	public void abort() throws DBException {
-		super.abort();
-		try {
-			conns.get(0).rollback();
-		} catch (SQLException e) {
-			e.printStackTrace();
-			throw new DBException(e);
-		}
-	}
+  @Override
+  public void abort() throws DBException {
+    super.abort();
+    try {
+      conns.get(0).rollback();
+    } catch (SQLException e) {
+      e.printStackTrace();
+      throw new DBException(e);
+    }
+  }
 
   /**
    * For the given key, returns what shard contains data for this key.
