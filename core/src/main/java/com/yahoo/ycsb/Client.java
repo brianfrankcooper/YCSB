@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved.
+ * Copyright (c) 2010 - 2016 Yahoo! Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -488,6 +488,11 @@ public class Client
    */
   public static final String MAX_EXECUTION_TIME = "maxexecutiontime";
 
+  /**
+   * Whether or not this is the transaction phase (run) or not (load).
+   */
+  public static final String DO_TRANSACTIONS_PROPERTY = "dotransactions";
+
 
   public static void usageMessage()
   {
@@ -610,7 +615,7 @@ public class Client
           System.exit(0);
         }
         int tcount=Integer.parseInt(args[argindex]);
-        props.setProperty(THREAD_COUNT_PROPERTY, tcount+"");
+        props.setProperty(THREAD_COUNT_PROPERTY, String.valueOf(tcount));
         argindex++;
       }
       else if (args[argindex].compareTo("-target")==0)
@@ -622,7 +627,7 @@ public class Client
           System.exit(0);
         }
         int ttarget=Integer.parseInt(args[argindex]);
-        props.setProperty(TARGET_PROPERTY, ttarget+"");
+        props.setProperty(TARGET_PROPERTY, String.valueOf(ttarget));
         argindex++;
       }
       else if (args[argindex].compareTo("-load")==0)
@@ -752,6 +757,8 @@ public class Client
     {
       System.exit(0);
     }
+
+    props.setProperty(DO_TRANSACTIONS_PROPERTY, String.valueOf(dotransactions));
 
     long maxExecutionTime = Integer.parseInt(props.getProperty(MAX_EXECUTION_TIME, "0"));
 

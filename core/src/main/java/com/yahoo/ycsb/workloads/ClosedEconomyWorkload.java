@@ -26,7 +26,7 @@ import com.yahoo.ycsb.generator.Generator;
 import com.yahoo.ycsb.generator.ConstantIntegerGenerator;
 import com.yahoo.ycsb.generator.HotspotIntegerGenerator;
 import com.yahoo.ycsb.generator.HistogramGenerator;
-import com.yahoo.ycsb.generator.IntegerGenerator;
+import com.yahoo.ycsb.generator.NumberGenerator;
 import com.yahoo.ycsb.generator.ScrambledZipfianGenerator;
 import com.yahoo.ycsb.generator.SkewedLatestGenerator;
 import com.yahoo.ycsb.generator.UniformIntegerGenerator;
@@ -144,7 +144,7 @@ public class ClosedEconomyWorkload extends Workload {
      * Generator object that produces field lengths. The value of this depends
      * on the properties that start with "FIELD_LENGTH_".
      */
-    IntegerGenerator fieldlengthgenerator;
+    NumberGenerator fieldlengthgenerator;
 
     /**
      * The name of the property for deciding whether to read one field (false)
@@ -301,19 +301,19 @@ public class ClosedEconomyWorkload extends Workload {
         }
     };
 
-    IntegerGenerator keysequence;
+    NumberGenerator keysequence;
 
-    IntegerGenerator validation_keysequence;
+    NumberGenerator validation_keysequence;
 
     DiscreteGenerator operationchooser;
 
-    IntegerGenerator keychooser;
+    NumberGenerator keychooser;
 
     Generator fieldchooser;
 
     CounterGenerator transactioninsertkeysequence;
 
-    IntegerGenerator scanlength;
+    NumberGenerator scanlength;
 
     boolean orderedinserts;
 
@@ -325,9 +325,9 @@ public class ClosedEconomyWorkload extends Workload {
     private int currentcount;
     private int initialvalue;
 
-    protected static IntegerGenerator getFieldLengthGenerator(Properties p)
+    protected static NumberGenerator getFieldLengthGenerator(Properties p)
             throws WorkloadException {
-        IntegerGenerator fieldlengthgenerator;
+        NumberGenerator fieldlengthgenerator;
         String fieldlengthdistribution = p.getProperty(FIELD_LENGTH_DISTRIBUTION_PROPERTY, FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
 
         int num_records = Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY));
@@ -473,7 +473,7 @@ public class ClosedEconomyWorkload extends Workload {
         HashMap<String, ByteIterator> values = new HashMap<String, ByteIterator>();
         String fieldname = "field" + fieldchooser.nextString();
         ByteIterator data = new RandomByteIterator(
-                fieldlengthgenerator.nextInt());
+                fieldlengthgenerator.nextValue().intValue());
         values.put(fieldname, data);
         return values;
     }
@@ -488,10 +488,10 @@ public class ClosedEconomyWorkload extends Workload {
      * @throws WorkloadException
      */
     public boolean doInsert(DB db, Object threadstate) throws WorkloadException {
-        int keynum = keysequence.nextInt();
+        int keynum = keysequence.nextValue().intValue();
         String dbkey = buildKeyName(keynum);
         HashMap<String, ByteIterator> values = buildValues();
-        if (db.insert(table, dbkey, values) == 0) {
+        if (db.insert(table, dbkey, values) == Status.OK) {
             actualopcount.addAndGet(1);
             return true;
         } else {
@@ -530,9 +530,9 @@ public class ClosedEconomyWorkload extends Workload {
         long en = System.nanoTime();
         _measurements.measure(_operations.get(op), (int) ((en - st) / 1000));
         if (ret)
-            _measurements.reportReturnCode(_operations.get(op), -1);
+            _measurements.reportStatus(_operations.get(op), Status.OK);
         else {
-            _measurements.reportReturnCode(_operations.get(op), 0);
+            _measurements.reportStatus(_operations.get(op), Status.ERROR);
         }
         actualopcount.addAndGet(1);
 
@@ -543,13 +543,13 @@ public class ClosedEconomyWorkload extends Workload {
         int keynum;
         if (keychooser instanceof ExponentialGenerator) {
             do {
-                keynum = transactioninsertkeysequence.lastInt()
-                        - keychooser.nextInt();
+                keynum = transactioninsertkeysequence.lastValue()
+                        - keychooser.nextValue().intValue();
             } while (keynum < 0);
         } else {
             do {
-                keynum = keychooser.nextInt();
-            } while (keynum > transactioninsertkeysequence.lastInt());
+                keynum = keychooser.nextValue().intValue();
+            } while (keynum > transactioninsertkeysequence.lastValue());
         }
         return keynum;
     }
@@ -572,7 +572,7 @@ public class ClosedEconomyWorkload extends Workload {
 
         HashMap<String, ByteIterator> firstvalues = new HashMap<String, ByteIterator>();
 
-        return (db.read(table, keyname, fields, firstvalues) == 0);
+        return (db.read(table, keyname, fields, firstvalues) == Status.OK);
     }
 
     public boolean doTransactionReadModifyWrite(DB db) {
@@ -611,7 +611,7 @@ public class ClosedEconomyWorkload extends Workload {
         // do the transaction
         long st = System.currentTimeMillis();
 
-        if (db.read(table, firstkey, fields, firstvalues) == 0 && db.read(table, secondkey, fields, secondvalues) == 0) {
+        if (db.read(table, firstkey, fields, firstvalues) == Status.OK && db.read(table, secondkey, fields, secondvalues) == Status.OK) {
             try {
                 int firstamount = Integer.parseInt(firstvalues.get("field0")
                         .toString());
@@ -628,8 +628,8 @@ public class ClosedEconomyWorkload extends Workload {
                 secondvalues.put("field0",
                         new StringByteIterator(Integer.toString(secondamount)));
 
-                if (db.update(table, firstkey, firstvalues) != 0 ||
-                    db.update(table, secondkey, secondvalues) != 0) {
+                if (db.update(table, firstkey, firstvalues) != Status.OK ||
+                    db.update(table, secondkey, secondvalues) != Status.OK) {
                     return false;
                 }
 
@@ -652,7 +652,7 @@ public class ClosedEconomyWorkload extends Workload {
         String startkeyname = buildKeyName(keynum);
 
         // choose a random scan length
-        int len = scanlength.nextInt();
+        int len = scanlength.nextValue().intValue();
 
         HashSet<String> fields = null;
 
@@ -665,7 +665,7 @@ public class ClosedEconomyWorkload extends Workload {
         }
 
         return (db.scan(table, startkeyname, len, fields,
-                new Vector<HashMap<String, ByteIterator>>()) == 0);
+                new Vector<HashMap<String, ByteIterator>>()) == Status.OK);
     }
 
     public boolean doTransactionUpdate(DB db) {
@@ -684,17 +684,17 @@ public class ClosedEconomyWorkload extends Workload {
             values = buildUpdate();
         }
 
-        return (db.update(table, keyname, values) == 0);
+        return (db.update(table, keyname, values) == Status.OK);
     }
 
     public boolean doTransactionInsert(DB db) {
         // choose the next key
-        int keynum = transactioninsertkeysequence.nextInt();
+        int keynum = transactioninsertkeysequence.nextValue().intValue();
 
         String dbkey = buildKeyName(keynum);
 
         HashMap<String, ByteIterator> values = buildValues();
-        return (db.insert(table, dbkey, values) == 0);
+        return (db.insert(table, dbkey, values) == Status.OK);
     }
 
     /**
@@ -710,7 +710,7 @@ public class ClosedEconomyWorkload extends Workload {
         HashMap<String, ByteIterator> values = new HashMap<String, ByteIterator>();
         int counted_sum = 0;
         for (int i = 0; i < recordcount; i++) {
-            String keyname = buildKeyName(validation_keysequence.nextInt());
+            String keyname = buildKeyName(validation_keysequence.nextValue().intValue());
             try {
                 db.start();
                 db.read(table, keyname, fields, values);

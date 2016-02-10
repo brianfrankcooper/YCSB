@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 
-Copyright (c) 2012 - 2015 YCSB contributors. All rights reserved.
+Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -21,7 +21,7 @@ LICENSE file.
     <parent>
         <groupId>com.yahoo.ycsb</groupId>
         <artifactId>binding-parent</artifactId>
-        <version>0.4.0-SNAPSHOT</version>
+        <version>0.7.0-SNAPSHOT</version>
         <relativePath>../binding-parent</relativePath>
     </parent>
 
@@ -29,16 +29,16 @@ LICENSE file.
     <name>ElasticSearch Binding</name>
     <packaging>jar</packaging>
     <properties>
-        <elasticsearch-version>0.19.8</elasticsearch-version>
+        <elasticsearch-version>2.1.1</elasticsearch-version>
     </properties>
-    <repositories>
-        <repository>
-            <id>sonatype-nexus-snapshots</id>
-            <name>Sonatype releases</name>
-            <url>https://oss.sonatype.org/content/repositories/releases</url>
-        </repository>
-    </repositories>
     <dependencies>
+        <dependency>
+        <!-- jna is supported in ES and will be used when provided 
+             otherwise a fallback is used -->    
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>4.1.0</version>
+        </dependency>
         <dependency>
             <groupId>com.yahoo.ycsb</groupId>
             <artifactId>core</artifactId>

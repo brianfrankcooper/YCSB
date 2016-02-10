@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2015 YCSB contributors. All rights reserved.
+Copyright (c) 2015 - 2016 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -51,6 +51,13 @@ Please see the general instructions in the `doc` folder if you are not sure how 
 bin/ycsb run couchbase -s -P workloads/workloada -p couchbase.useJson=false
 ```
 
+## Scans in the CouchbaseClient
+The scan operation in the CouchbaseClient requires a Couchbase View to be created manually. To do this:
+1. Go to the Couchbase UI, then to Views
+2. Create a new development view, specify a ddoc and view name, use these in your YCSB properties. See Configuration Options below.
+3. The default map code is sufficient.
+4. Save, and publish this View.
+
 ## Configuration Options
 Since no setup is the same and the goal of YCSB is to deliver realistic benchmarks, here are some setups that you can tune. Note that if you need more flexibility (let's say a custom transcoder), you still need to extend this driver and implement the facilities on your own.
 
@@ -59,9 +66,11 @@ You can set the following properties (with the default settings applied):
  - couchbase.url=http://127.0.0.1:8091/pools => The connection URL from one server.
  - couchbase.bucket=default => The bucket name to use.
  - couchbase.password= => The password of the bucket.
-
  - couchbase.checkFutures=true => If the futures should be inspected (makes ops sync).
  - couchbase.persistTo=0 => Observe Persistence ("PersistTo" constraint).
  - couchbase.replicateTo=0 => Observe Replication ("ReplicateTo" constraint).
+ - couchbase.ddoc => The ddoc name used for scanning
+ - couchbase.view => The view name used for scanning
+ - couchbase.stale => How to deal with stale values in View Query for scanning. (OK, FALSE, UPDATE_AFTER)
  - couchbase.json=true => Use json or java serialization as target format.
 

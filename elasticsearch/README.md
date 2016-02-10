@@ -80,3 +80,11 @@ otherwise you will run out of memory.
 If you wish to change the default index name you can set the following property:
 
     es.index.key=my_index_key
+
+### Troubleshoot
+If you encounter error messages such as :
+"Primary shard is not active or isn't assigned is a known node."
+
+Try removing /tmp/esdata/ folder. 
+    rm -rf /tmp/esdata
+

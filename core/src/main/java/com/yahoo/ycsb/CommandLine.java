@@ -295,8 +295,8 @@ public class CommandLine
 		  }
 		  
 		  HashMap<String,ByteIterator> result=new HashMap<String,ByteIterator>();
-		  int ret=db.read(table,tokens[1],fields,result);
-		  System.out.println("Return code: "+ret);
+		  Status ret=db.read(table,tokens[1],fields,result);
+		  System.out.println("Return code: "+ret.getName());
 		  for (Map.Entry<String,ByteIterator> ent : result.entrySet())
 		  {
 		     System.out.println(ent.getKey()+"="+ent.getValue());
@@ -324,10 +324,10 @@ public class CommandLine
 		  }
 		  
 		  Vector<HashMap<String,ByteIterator>> results=new Vector<HashMap<String,ByteIterator>>();
-		  int ret=db.scan(table,tokens[1],Integer.parseInt(tokens[2]),fields,results);
-		  System.out.println("Return code: "+ret);
+		  Status ret=db.scan(table,tokens[1],Integer.parseInt(tokens[2]),fields,results);
+		  System.out.println("Result: "+ret.getName());
 		  int record=0;
-		  if (results.size()==0)
+		  if (results.isEmpty())
 		  {
 		     System.out.println("0 records");
 		  }
@@ -362,8 +362,8 @@ public class CommandLine
 		     values.put(nv[0],new StringByteIterator(nv[1]));
 		  }
 
-		  int ret=db.update(table,tokens[1],values);
-		  System.out.println("Return code: "+ret);
+		  Status ret=db.update(table,tokens[1],values);
+		  System.out.println("Result: "+ret.getName());
 	       }		  
 	    }
 	    else if (tokens[0].compareTo("insert")==0)
@@ -382,8 +382,8 @@ public class CommandLine
 		     values.put(nv[0],new StringByteIterator(nv[1]));
 		  }
 
-		  int ret=db.insert(table,tokens[1],values);
-		  System.out.println("Return code: "+ret);
+		  Status ret=db.insert(table,tokens[1],values);
+		  System.out.println("Result: "+ret.getName());
 	       }		  
 	    }
 	    else if (tokens[0].compareTo("delete")==0)
@@ -394,8 +394,8 @@ public class CommandLine
 	       }
 	       else 
 	       {
-		  int ret=db.delete(table,tokens[1]);
-		  System.out.println("Return code: "+ret);
+		  Status ret=db.delete(table,tokens[1]);
+		  System.out.println("Return result: "+ret.getName());
 	       }		  
 	    }
 	    else

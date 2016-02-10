@@ -17,20 +17,18 @@
 
 package com.yahoo.ycsb.generator;
 
-import java.util.Random;
-
 import com.yahoo.ycsb.Utils;
 
 /**
  * A generator of an exponential distribution. It produces a sequence
- * of time intervals (integers) according to an exponential
+ * of time intervals according to an exponential
  * distribution.  Smaller intervals are more frequent than larger
  * ones, and there is no bound on the length of an interval.  When you
  * construct an instance of this class, you specify a parameter gamma,
  * which corresponds to the rate at which events occur.
  * Alternatively, 1/gamma is the average length of an interval.
  */
-public class ExponentialGenerator extends IntegerGenerator
+public class ExponentialGenerator extends NumberGenerator
 {
     // What percentage of the readings should be within the most recent exponential.frac portion of the dataset?
     public static final String EXPONENTIAL_PERCENTILE_PROPERTY="exponential.percentile";
@@ -43,7 +41,7 @@ public class ExponentialGenerator extends IntegerGenerator
 	/**
 	 * The exponential constant to use.
 	 */
-	double _gamma;	
+	private double _gamma;	
 
 	/******************************* Constructors **************************************/
 
@@ -62,27 +60,16 @@ public class ExponentialGenerator extends IntegerGenerator
 
 	/****************************************************************************************/
 	
-	/** 
-	 * Generate the next item. this distribution will be skewed toward lower integers; e.g. 0 will
-	 * be the most popular, 1 the next most popular, etc.
-	 * @param itemcount The number of items in the distribution.
-	 * @return The next item in the sequence.
-	 */
-	@Override
-	public int nextInt()
-	{
-		return (int)nextLong();
-	}
 
 	/**
-	 * Generate the next item as a long.
-	 * 
-	 * @param itemcount The number of items in the distribution.
-	 * @return The next item in the sequence.
-	 */
-	public long nextLong()
+	 * Generate the next item as a long. This distribution will be skewed toward lower values; e.g. 0 will
+     * be the most popular, 1 the next most popular, etc.
+     * @return The next item in the sequence.
+     */
+	@Override
+    public Double nextValue()
 	{
-		return (long) (-Math.log(Utils.random().nextDouble()) / _gamma);
+		return -Math.log(Utils.random().nextDouble()) / _gamma;
 	}
 
 	@Override
@@ -93,7 +80,7 @@ public class ExponentialGenerator extends IntegerGenerator
         ExponentialGenerator e = new ExponentialGenerator(90, 100);
         int j = 0;
         for(int i = 0; i < 1000; i++) {
-            if(e.nextInt() < 100) {
+            if(e.nextValue() < 100) {
                 j++;
             }
         }

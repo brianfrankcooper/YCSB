@@ -68,9 +68,9 @@ Reload bash and test mvn
 
 Download the YCSB zip file and compile:
 
-    git clone git://github.com/brianfrankcooper/YCSB.git
-    cd YCSB
-    mvn -pl com.yahoo.ycsb:mongodb-binding -am clean package
+    curl -O --location https://github.com/brianfrankcooper/YCSB/releases/download/0.5.0/ycsb-0.5.0.tar.gz
+    tar xfvz ycsb-0.5.0.tar.gz
+    cd ycsb-0.5.0
 
 ### 4. Run YCSB
 
@@ -108,8 +108,14 @@ See the next section for the list of configuration parameters for MongoDB.
   - Useful for the insert workload as it will submit the inserts in batches inproving throughput.
   - Default value is `1`.
 
+- `mongodb.upsert`
+  - Determines if the insert operation performs an update with the upsert operation or a insert. 
+    Upserts have the advantage that they will continue to work for a partially loaded data set.
+  - Setting to `true` uses updates, `false` uses insert operations.
+  - Default value is `false`.
+
 - `mongodb.writeConcern`
-  - **Deprecated** - Use the `w` and `journal` options on the MongoDB URI provided by the `mongodb.uri`.
+  - **Deprecated** - Use the `w` and `journal` options on the MongoDB URI provided by the `mongodb.url`.
   - Allowed values are :
     - `errors_ignored`
     - `unacknowledged`
@@ -120,7 +126,7 @@ See the next section for the list of configuration parameters for MongoDB.
   - Default value is `acknowledged`.
  
 - `mongodb.readPreference`
-  - **Deprecated** - Use the `readPreference` options on the MongoDB URI provided by the `mongodb.uri`.
+  - **Deprecated** - Use the `readPreference` options on the MongoDB URI provided by the `mongodb.url`.
   - Allowed values are :
     - `primary`
     - `primary_preferred`
@@ -130,11 +136,11 @@ See the next section for the list of configuration parameters for MongoDB.
   - Default value is `primary`.
  
 - `mongodb.maxconnections`
-  - **Deprecated** - Use the `maxPoolSize` options on the MongoDB URI provided by the `mongodb.uri`.
+  - **Deprecated** - Use the `maxPoolSize` options on the MongoDB URI provided by the `mongodb.url`.
   - Default value is `100`.
 
 - `mongodb.threadsAllowedToBlockForConnectionMultiplier`
-  - **Deprecated** - Use the `waitQueueMultiple` options on the MongoDB URI provided by the `mongodb.uri`.
+  - **Deprecated** - Use the `waitQueueMultiple` options on the MongoDB URI provided by the `mongodb.url`.
   - Default value is `5`.
 
 For example:

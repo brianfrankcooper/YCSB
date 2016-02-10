@@ -17,20 +17,21 @@
 
 package com.yahoo.ycsb.measurements;
 
-import java.io.IOException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A single measured metric (such as READ LATENCY)
  */
 public abstract class OneMeasurement {
 
-  String _name;
-  final ConcurrentHashMap<Integer, AtomicInteger> returncodes;
+  private final String _name;
+  private  final ConcurrentHashMap<Status, AtomicInteger> _returncodes;
 
   public String getName() {
     return _name;
@@ -41,7 +42,7 @@ public abstract class OneMeasurement {
    */
   public OneMeasurement(String _name) {
     this._name = _name;
-    this.returncodes = new ConcurrentHashMap<Integer, AtomicInteger>();
+    this._returncodes = new ConcurrentHashMap<Status, AtomicInteger>();
   }
 
   public abstract void measure(int latency);
@@ -51,12 +52,11 @@ public abstract class OneMeasurement {
   /**
    * No need for synchronization, using CHM to deal with that
    */
-  public void reportReturnCode(int code) {
-    Integer Icode = code;
-    AtomicInteger counter = returncodes.get(Icode);
+  public void reportStatus(Status status) {
+    AtomicInteger counter = _returncodes.get(status);
 
     if (counter == null) {
-      AtomicInteger other = returncodes.putIfAbsent(Icode, counter = new AtomicInteger());
+      AtomicInteger other = _returncodes.putIfAbsent(status, counter = new AtomicInteger());
       if (other != null) {
         counter = other;
       }
@@ -73,4 +73,9 @@ public abstract class OneMeasurement {
    */
   public abstract void exportMeasurements(MeasurementsExporter exporter) throws IOException;
 
+  protected final void exportStatusCounts(MeasurementsExporter exporter) throws IOException {
+    for (Map.Entry<Status, AtomicInteger> entry : _returncodes.entrySet()) {
+      exporter.write(getName(), "Return=" + entry.getKey().getName(), entry.getValue().get());
+    }
+  }
 }

@@ -21,7 +21,6 @@ import static org.junit.Assume.assumeNoException;
 import java.util.Properties;
 
 import org.junit.After;
-import org.junit.Before;
 
 import com.yahoo.ycsb.DB;
 
@@ -31,20 +30,10 @@ import com.yahoo.ycsb.DB;
 public class MongoDbClientTest extends AbstractDBTestCases {
 
   /** The client to use. */
-  private MongoDbClient myClient = null;
+  private DB myClient = null;
 
-  /**
-   * Start a test client.
-   */
-  @Before
-  public void setUp() {
-    myClient = new MongoDbClient();
-    myClient.setProperties(new Properties());
-    try {
-      myClient.init();
-    } catch (Exception error) {
-      assumeNoException(error);
-    }
+  protected DB instantiateClient() {
+    return new MongoDbClient();
   }
 
   /**
@@ -64,11 +53,20 @@ public class MongoDbClientTest extends AbstractDBTestCases {
   /**
    * {@inheritDoc}
    * <p>
-   * Overriden to return the {@link MongoDbClient}.
+   * Overridden to return the {@link MongoDbClient}.
    * </p>
    */
   @Override
-  protected DB getDB() {
+  protected DB getDB(Properties props) {
+    if( myClient == null ) {
+      myClient = instantiateClient();
+      myClient.setProperties(props);
+      try {
+        myClient.init();
+      } catch (Exception error) {
+        assumeNoException(error);
+      }
+    }
     return myClient;
   }
 }

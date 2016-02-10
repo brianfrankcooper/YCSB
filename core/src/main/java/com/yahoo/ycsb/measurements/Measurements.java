@@ -17,11 +17,12 @@
 
 package com.yahoo.ycsb.measurements;
 
+import com.yahoo.ycsb.Status;
+import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
+
 import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
-
-import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 
 /**
  * Collects latency measurements, and reports them when requested.
@@ -29,12 +30,23 @@ import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
  * @author cooperb
  *
  */
-public class Measurements
-{
+public class Measurements {
+  /**
+   * All supported measurement types are defined in this enum.
+   *
+   */
+  public enum MeasurementType {
+    HISTOGRAM,
+    HDRHISTOGRAM,
+    HDRHISTOGRAM_AND_HISTOGRAM,
+    HDRHISTOGRAM_AND_RAW,
+    TIMESERIES,
+    RAW
+  }
 
   public static final String MEASUREMENT_TYPE_PROPERTY = "measurementtype";
-
-  private static final String MEASUREMENT_TYPE_PROPERTY_DEFAULT = "histogram";
+  private static final String MEASUREMENT_TYPE_PROPERTY_DEFAULT = "hdrhistogram";
+  
   public static final String MEASUREMENT_INTERVAL = "measurement.interval";
   private static final String MEASUREMENT_INTERVAL_DEFAULT = "op";
 
@@ -60,7 +72,7 @@ public class Measurements
 
   final ConcurrentHashMap<String,OneMeasurement> _opToMesurementMap;
   final ConcurrentHashMap<String,OneMeasurement> _opToIntendedMesurementMap;
-  final int _measurementType;
+  final MeasurementType _measurementType;
   final int _measurementInterval;
   private Properties _props;
 
@@ -77,19 +89,27 @@ public class Measurements
     String mTypeString = _props.getProperty(MEASUREMENT_TYPE_PROPERTY, MEASUREMENT_TYPE_PROPERTY_DEFAULT);
     if (mTypeString.equals("histogram"))
     {
-      _measurementType = 0;
+      _measurementType = MeasurementType.HISTOGRAM;
     }
     else if (mTypeString.equals("hdrhistogram"))
     {
-      _measurementType = 1;
+      _measurementType = MeasurementType.HDRHISTOGRAM;
     }
     else if (mTypeString.equals("hdrhistogram+histogram"))
     {
-      _measurementType = 2;
+      _measurementType = MeasurementType.HDRHISTOGRAM_AND_HISTOGRAM;
+    }
+    else if (mTypeString.equals("hdrhistogram+raw"))
+    {
+      _measurementType = MeasurementType.HDRHISTOGRAM_AND_RAW;
     }
     else if (mTypeString.equals("timeseries"))
     {
-      _measurementType = 3;
+      _measurementType = MeasurementType.TIMESERIES;
+    }
+    else if (mTypeString.equals("raw"))
+    {
+      _measurementType = MeasurementType.RAW;
     }
     else {
       throw new IllegalArgumentException("unknown "+MEASUREMENT_TYPE_PROPERTY+"="+mTypeString);
@@ -117,16 +137,24 @@ public class Measurements
   {
     switch (_measurementType)
     {
-    case 0:
+    case HISTOGRAM:
       return new OneMeasurementHistogram(name, _props);
-    case 1:
+    case HDRHISTOGRAM:
       return new OneMeasurementHdrHistogram(name, _props);
-    case 2:
+    case HDRHISTOGRAM_AND_HISTOGRAM:
       return new TwoInOneMeasurement(name,
               new OneMeasurementHdrHistogram("Hdr"+name, _props),
               new OneMeasurementHistogram("Bucket"+name, _props));
-    default:
+    case HDRHISTOGRAM_AND_RAW:
+      return new TwoInOneMeasurement(name,
+          new OneMeasurementHdrHistogram("Hdr"+name, _props),
+          new OneMeasurementHistogram("Raw"+name, _props));
+    case TIMESERIES:
       return new OneMeasurementTimeSeries(name, _props);
+    case RAW:
+      return new OneMeasurementRaw(name, _props);
+    default:
+      throw new AssertionError("Impossible to be here. Dead code reached. Bugs?");
     }
   }
 
@@ -146,7 +174,7 @@ public class Measurements
   ThreadLocal<StartTimeHolder> tlIntendedStartTime = new ThreadLocal<Measurements.StartTimeHolder>() {
     protected StartTimeHolder initialValue() {
       return new StartTimeHolder();
-    };
+    }
   };
 
   public void setIntendedStartTimeNs(long time) {
@@ -237,12 +265,12 @@ public class Measurements
   /**
    * Report a return code for a single DB operation.
    */
-  public void reportReturnCode(String operation, int code)
+  public void reportStatus(final String operation, final Status status)
   {
     OneMeasurement m = _measurementInterval==1 ?
           getOpIntendedMeasurement(operation) :
           getOpMeasurement(operation);
-    m.reportReturnCode(code);
+    m.reportStatus(status);
   }
 
   /**

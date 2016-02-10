@@ -31,7 +31,7 @@ import com.yahoo.ycsb.Utils;
  * @author sudipto
  *
  */
-public class HotspotIntegerGenerator extends IntegerGenerator {
+public class HotspotIntegerGenerator extends NumberGenerator {
 
   private final int lowerBound;
   private final int upperBound;
@@ -75,7 +75,7 @@ public class HotspotIntegerGenerator extends IntegerGenerator {
   }
   
   @Override
-  public int nextInt() {
+  public Integer nextValue() {
     int value = 0;
     Random random = Utils.random();
     if (random.nextDouble() < hotOpnFraction) {
@@ -85,7 +85,7 @@ public class HotspotIntegerGenerator extends IntegerGenerator {
       // Choose a value from the cold set.
       value = lowerBound + hotInterval + random.nextInt(coldInterval);
     }
-    setLastInt(value);
+    setLastValue(value);
     return value;
   }
 
