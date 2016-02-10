@@ -80,30 +80,35 @@ public class OrientDBClient extends DB {
   private static final String ORIENTDB_MASSIVEREAD = "massiveread";
   private static final String ORIENTDB_NOCACHE = "nocache";
 
-  private final Logger log = LoggerFactory.getLogger(getClass());
+  private static final Logger LOG = LoggerFactory.getLogger(OrientDBClient.class);
 
-  @Override
-  public void init() throws DBException {
-    Properties props = getProperties();
-
+  /**
+   * This method abstracts the administration of OrientDB namely creating and connecting to a database.
+   * Creating a database needs to be done in a synchronized method so that multiple threads do not all try
+   * to run the creation operation simultaneously, this ends in failure.
+   *
+   * @param props Workload properties object
+   * @return a usable ODatabaseDocumentTx object
+   * @throws DBException
+   */
+  private static synchronized ODatabaseDocumentTx initDB(Properties props) throws DBException {
     String url = props.getProperty(URL_PROPERTY);
     String user = props.getProperty(USER_PROPERTY, USER_PROPERTY_DEFAULT);
     String password = props.getProperty(PASSWORD_PROPERTY, PASSWORD_PROPERTY_DEFAULT);
     Boolean newdb = Boolean.parseBoolean(props.getProperty(NEWDB_PROPERTY, NEWDB_PROPERTY_DEFAULT));
     String remoteStorageType = props.getProperty(STORAGE_TYPE_PROPERTY);
-    String intent = props.getProperty(INTENT_PROPERTY, INTENT_PROPERTY_DEFAULT);
-    Boolean dotransactions = Boolean.parseBoolean(
-        props.getProperty(DO_TRANSACTIONS_PROPERTY, DO_TRANSACTIONS_PROPERTY_DEFAULT));
+    Boolean isrun = Boolean.parseBoolean(props.getProperty(DO_TRANSACTIONS_PROPERTY, DO_TRANSACTIONS_PROPERTY_DEFAULT));
+
+    ODatabaseDocumentTx dbconn;
 
     if (url == null) {
       throw new DBException(String.format("Required property \"%s\" missing for OrientDBClient", URL_PROPERTY));
     }
 
-    log.info("OrientDB loading database url = " + url);
+    LOG.info("OrientDB loading database url = " + url);
 
     // If using a remote database, use the OServerAdmin interface to connect
     if (url.startsWith(OEngineRemote.NAME)) {
-      isRemote = true;
       if (remoteStorageType == null) {
         throw new DBException("When connecting to a remote OrientDB instance, " +
           "specify a database storage type (plocal or memory) with " + STORAGE_TYPE_PROPERTY);
@@ -113,54 +118,73 @@ public class OrientDBClient extends DB {
         OServerAdmin server = new OServerAdmin(url).connect(user, password);
 
         if (server.existsDatabase()) {
-          if (newdb && !dotransactions) {
-            log.info("OrientDB dropping and recreating fresh db on remote server.");
+          if (newdb && !isrun) {
+            LOG.info("OrientDB dropping and recreating fresh db on remote server.");
             server.dropDatabase(remoteStorageType);
             server.createDatabase(server.getURL(), ORIENTDB_DOCUMENT_TYPE, remoteStorageType);
           }
         } else {
-          log.info("OrientDB database not found, creating fresh db");
+          LOG.info("OrientDB database not found, creating fresh db");
           server.createDatabase(server.getURL(), ORIENTDB_DOCUMENT_TYPE, remoteStorageType);
         }
 
         server.close();
-        db = new ODatabaseDocumentTx(url).open(user, password);
+        dbconn = new ODatabaseDocumentTx(url).open(user, password);
       } catch (IOException | OException e) {
         throw new DBException(String.format("Error interfacing with %s", url), e);
       }
     } else {
       try {
-        db = new ODatabaseDocumentTx(url);
-        if (db.exists()) {
-          db.open(user, password);
-          if (newdb && !dotransactions) {
-            log.info("OrientDB dropping and recreating fresh db.");
-            db.drop();
-            db.create();
+        dbconn = new ODatabaseDocumentTx(url);
+        if (dbconn.exists()) {
+          dbconn.open(user, password);
+          if (newdb && !isrun) {
+            LOG.info("OrientDB dropping and recreating fresh db.");
+            dbconn.drop();
+            dbconn.create();
           }
         } else {
-          log.info("OrientDB database not found, creating fresh db");
-          db.create();
+          LOG.info("OrientDB database not found, creating fresh db");
+          dbconn.create();
         }
       } catch (ODatabaseException e) {
         throw new DBException(String.format("Error interfacing with %s", url), e);
       }
     }
 
-    log.info("OrientDB connection created with " + url);
+    if (dbconn == null) {
+      throw new DBException("Could not establish connection to: " + url);
+    }
+
+    LOG.info("OrientDB connection created with " + url);
+    return dbconn;
+  }
+
+  @Override
+  public void init() throws DBException {
+    Properties props = getProperties();
+
+    String intent = props.getProperty(INTENT_PROPERTY, INTENT_PROPERTY_DEFAULT);
+
+    db = initDB(props);
+
+    if (db.getURL().startsWith(OEngineRemote.NAME)) {
+      isRemote = true;
+    }
+
     dictionary = db.getMetadata().getIndexManager().getDictionary();
     if (!db.getMetadata().getSchema().existsClass(CLASS)) {
       db.getMetadata().getSchema().createClass(CLASS);
     }
 
     if (intent.equals(ORIENTDB_MASSIVEINSERT)) {
-      log.info("Declaring intent of MassiveInsert.");
+      LOG.info("Declaring intent of MassiveInsert.");
       db.declareIntent(new OIntentMassiveInsert());
     } else if (intent.equals(ORIENTDB_MASSIVEREAD)) {
-      log.info("Declaring intent of MassiveRead.");
+      LOG.info("Declaring intent of MassiveRead.");
       db.declareIntent(new OIntentMassiveRead());
     } else if (intent.equals(ORIENTDB_NOCACHE)) {
-      log.info("Declaring intent of NoCache.");
+      LOG.info("Declaring intent of NoCache.");
       db.declareIntent(new OIntentNoCache());
     }
   }
@@ -248,7 +272,7 @@ public class OrientDBClient extends DB {
                      Vector<HashMap<String, ByteIterator>> result) {
     if (isRemote) {
       // Iterator methods needed for scanning are Unsupported for remote database connections.
-      log.warn("OrientDB scan operation is not implemented for remote database connections.");
+      LOG.warn("OrientDB scan operation is not implemented for remote database connections.");
       return Status.NOT_IMPLEMENTED;
     }
 
