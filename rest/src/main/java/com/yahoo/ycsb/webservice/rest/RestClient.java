@@ -40,8 +40,8 @@ import com.yahoo.ycsb.StringByteIterator;
  */
 public class RestClient extends DB {
 
-	private static final String URL_PREFIX = "url.prefix";
-	private static final String LOG_ENABLED = "log.enabled";
+	private static final String URL_PREFIX = "urlprefix";
+	private static final String LOG_ENABLED = "enablelog";
 	private static boolean logEnabled = false;
 	private String urlPrefix;
 	private Properties props;
@@ -57,8 +57,9 @@ public class RestClient extends DB {
 
 	private void setupClient() {
 		RequestConfig.Builder requestBuilder = RequestConfig.custom();
-		requestBuilder = requestBuilder.setConnectTimeout(10000);
-		requestBuilder = requestBuilder.setConnectionRequestTimeout(10000);
+		requestBuilder = requestBuilder.setConnectTimeout(200);
+		requestBuilder = requestBuilder.setConnectionRequestTimeout(200);
+		requestBuilder = requestBuilder.setSocketTimeout(200);
 		HttpClientBuilder clientBuilder = HttpClientBuilder.create().setDefaultRequestConfig(requestBuilder.build());
 		this.client = clientBuilder.setUserAgent("Mozilla/5.0").build();
 	}
@@ -71,6 +72,8 @@ public class RestClient extends DB {
 		} catch (IOException e) {
 			responseCode = handleExceptions(e);
 		}
+		if (logEnabled)
+			System.out.println("GET Request : " + urlPrefix + endpoint + " | Response Code : " + responseCode);
 		return getStatus(responseCode);
 	}
 
@@ -82,6 +85,8 @@ public class RestClient extends DB {
 		} catch (IOException e) {
 			responseCode = handleExceptions(e);
 		}
+		if (logEnabled)
+			System.out.println("POST Request : " + urlPrefix + endpoint + " | Response Code : " + responseCode);
 		return getStatus(responseCode);
 	}
 
@@ -93,19 +98,21 @@ public class RestClient extends DB {
 		} catch (IOException e) {
 			responseCode = handleExceptions(e);
 		}
+		if (logEnabled)
+			System.out.println("DELETE Request : " + urlPrefix + endpoint + " | Response Code : " + responseCode);
 		return getStatus(responseCode);
-	}
-
-	@Override
-	public Status scan(String table, String startkey, int recordcount, Set<String> fields,
-			Vector<HashMap<String, ByteIterator>> result) {
-		System.out.println("Scan not implemented.");
-		return Status.OK;
 	}
 
 	@Override
 	public Status update(String table, String key, HashMap<String, ByteIterator> values) {
 		System.out.println("Update not implemented.");
+		return Status.OK;
+	}
+	
+	@Override
+	public Status scan(String table, String startkey, int recordcount, Set<String> fields,
+			Vector<HashMap<String, ByteIterator>> result) {
+		System.out.println("Scan operation is not supported for RESTFul Web Services client.");
 		return Status.OK;
 	}
 
@@ -199,12 +206,16 @@ public class RestClient extends DB {
 		postData += "&title=" + URLEncoder.encode("Αγορά", "UTF-8");
 		postData += "&appendtext=" + data;
 		postData += "&token=%2B%5C";
-		
+
 		RestClient rc = new RestClient();
 		HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
 		try {
 			rc.init();
-			rc.httpPost("http://10.0.0.91/mediawiki2/api.php?action=edit&format=json", postData);
+			// rc.httpPost("http://10.0.0.91/mediawiki2/api.php?action=edit&format=json", postData);
+			System.out.println(System.currentTimeMillis());
+			rc.httpGet("http://10.0.0.91/mediawiki2/index.php/Facebook", result);
+			System.out.println(result.get("response").toArray().toString());
+			System.out.println(System.currentTimeMillis());
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
