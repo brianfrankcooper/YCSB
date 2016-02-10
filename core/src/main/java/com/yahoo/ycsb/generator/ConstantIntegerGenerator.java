@@ -22,7 +22,7 @@ package com.yahoo.ycsb.generator;
  * @author sears
  *
  */
-public class ConstantIntegerGenerator extends IntegerGenerator {
+public class ConstantIntegerGenerator extends NumberGenerator {
 	private final int i;
 	/**
 	 * @param i The integer that this generator will always return.
@@ -32,7 +32,7 @@ public class ConstantIntegerGenerator extends IntegerGenerator {
 	}
 
 	@Override
-	public int nextInt() {
+	public Integer nextValue() {
 		return i;
 	}
 

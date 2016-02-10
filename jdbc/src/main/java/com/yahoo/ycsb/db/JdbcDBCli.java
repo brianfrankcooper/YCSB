@@ -1,17 +1,17 @@
 /**
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved.                                                                                                                             
- *                                                                                                                                                                                 
- * Licensed under the Apache License, Version 2.0 (the "License"); you                                                                                                             
- * may not use this file except in compliance with the License. You                                                                                                                
- * may obtain a copy of the License at                                                                                                                                             
- *                                                                                                                                                                                 
- * http://www.apache.org/licenses/LICENSE-2.0                                                                                                                                      
- *                                                                                                                                                                                 
- * Unless required by applicable law or agreed to in writing, software                                                                                                             
- * distributed under the License is distributed on an "AS IS" BASIS,                                                                                                               
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or                                                                                                                 
- * implied. See the License for the specific language governing                                                                                                                    
- * permissions and limitations under the License. See accompanying                                                                                                                 
+ * Copyright (c) 2010 - 2016 Yahoo! Inc. All rights reserved.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you 
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at 
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software 
+ * distributed under the License is distributed on an "AS IS" BASIS, 
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or 
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying 
  * LICENSE file. 
  */
 package com.yahoo.ycsb.db;
@@ -29,32 +29,30 @@ import java.util.Properties;
  * Execute a JDBC command line.
  * 
  * @author sudipto
- *
  */
-public class JdbcDBCli implements JdbcDBClientConstants {
-  
+public final class JdbcDBCli {
+
   private static void usageMessage() {
     System.out.println("JdbcCli. Options:");
     System.out.println("  -p   key=value properties defined.");
     System.out.println("  -P   location of the properties file to load.");
     System.out.println("  -c   SQL command to execute.");
   }
-  
-  private static void executeCommand(Properties props, String sql)
-  throws SQLException {
-    String driver = props.getProperty(DRIVER_CLASS);
-    String username = props.getProperty(CONNECTION_USER);
-    String password = props.getProperty(CONNECTION_PASSWD, "");
-    String url = props.getProperty(CONNECTION_URL);
+
+  private static void executeCommand(Properties props, String sql) throws SQLException {
+    String driver = props.getProperty(JdbcDBClient.DRIVER_CLASS);
+    String username = props.getProperty(JdbcDBClient.CONNECTION_USER);
+    String password = props.getProperty(JdbcDBClient.CONNECTION_PASSWD, "");
+    String url = props.getProperty(JdbcDBClient.CONNECTION_URL);
     if (driver == null || username == null || url == null) {
       throw new SQLException("Missing connection information.");
     }
-    
+
     Connection conn = null;
-    
+
     try {
       Class.forName(driver);
-      
+
       conn = DriverManager.getConnection(url, username, password);
       Statement stmt = conn.createStatement();
       stmt.execute(sql);
@@ -73,12 +71,12 @@ public class JdbcDBCli implements JdbcDBClientConstants {
    * @param args
    */
   public static void main(String[] args) {
-    
+
     if (args.length == 0) {
       usageMessage();
       System.exit(0);
     }
-    
+
     Properties props = new Properties();
     Properties fileprops = new Properties();
     String sql = null;
@@ -105,8 +103,7 @@ public class JdbcDBCli implements JdbcDBClientConstants {
 
         // Issue #5 - remove call to stringPropertyNames to make compilable
         // under Java 1.5
-        for (Enumeration<?> e = myfileprops.propertyNames(); e
-            .hasMoreElements();) {
+        for (Enumeration<?> e = myfileprops.propertyNames(); e.hasMoreElements();) {
           String prop = (String) e.nextElement();
 
           fileprops.setProperty(prop, myfileprops.getProperty(prop));
@@ -160,13 +157,13 @@ public class JdbcDBCli implements JdbcDBClientConstants {
 
       fileprops.setProperty(prop, props.getProperty(prop));
     }
-    
+
     if (sql == null) {
       System.err.println("Missing command.");
       usageMessage();
       System.exit(1);
     }
-    
+
     try {
       executeCommand(fileprops, sql);
     } catch (SQLException e) {
@@ -175,4 +172,10 @@ public class JdbcDBCli implements JdbcDBClientConstants {
     }
   }
 
+  /**
+   * Hidden constructor.
+   */
+  private JdbcDBCli() {
+    super();
+  }
 }

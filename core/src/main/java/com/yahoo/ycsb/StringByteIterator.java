@@ -29,7 +29,7 @@ public class StringByteIterator extends ByteIterator {
 	 * String values into ByteIterators.
 	 */
 	public static void putAllAsByteIterators(Map<String, ByteIterator> out, Map<String, String> in) {
-	       for(String s: in.keySet()) { out.put(s, new StringByteIterator(in.get(s))); }
+	       for(Map.Entry<String, String> entry : in.entrySet()) { out.put(entry.getKey(), new StringByteIterator(entry.getValue())); }
 	} 
 
 	/**
@@ -37,7 +37,7 @@ public class StringByteIterator extends ByteIterator {
 	 * ByteIterator values into Strings.
 	 */
 	public static void putAllAsStrings(Map<String, String> out, Map<String, ByteIterator> in) {
-	       for(String s: in.keySet()) { out.put(s, in.get(s).toString()); }
+	       for(Map.Entry<String, ByteIterator> entry : in.entrySet()) { out.put(entry.getKey(), entry.getValue().toString()); }
 	} 
 
 	/**
@@ -48,8 +48,8 @@ public class StringByteIterator extends ByteIterator {
 		HashMap<String, ByteIterator> ret =
 			new HashMap<String,ByteIterator>();
 
-		for(String s: m.keySet()) {
-			ret.put(s, new StringByteIterator(m.get(s)));
+		for(Map.Entry<String, String> entry : m.entrySet()) {
+			ret.put(entry.getKey(), new StringByteIterator(entry.getValue()));
 		}
 		return ret;
 	}
@@ -61,8 +61,8 @@ public class StringByteIterator extends ByteIterator {
 	public static HashMap<String, String> getStringMap(Map<String, ByteIterator> m) {
 		HashMap<String, String> ret = new HashMap<String,String>();
 
-		for(String s: m.keySet()) {
-			ret.put(s, m.get(s).toString());;
+		for(Map.Entry<String, ByteIterator> entry : m.entrySet()) {
+			ret.put(entry.getKey(), entry.getValue().toString());
 		}
 		return ret;
 	}

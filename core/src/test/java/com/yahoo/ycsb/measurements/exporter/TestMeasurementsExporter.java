@@ -32,7 +32,9 @@ import static org.testng.AssertJUnit.assertTrue;
 public class TestMeasurementsExporter {
     @Test
     public void testJSONArrayMeasurementsExporter() throws IOException {
-        Measurements mm = new Measurements(new Properties());
+        Properties props = new Properties();
+        props.put(Measurements.MEASUREMENT_TYPE_PROPERTY, "histogram");
+        Measurements mm = new Measurements(props);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         JSONArrayMeasurementsExporter export = new JSONArrayMeasurementsExporter(out);
 
@@ -40,7 +42,7 @@ public class TestMeasurementsExporter {
         long max = 100000;
         ZipfianGenerator zipfian = new ZipfianGenerator(min, max);
         for (int i = 0; i < 1000; i++) {
-            int rnd = zipfian.nextInt();
+            int rnd = zipfian.nextValue().intValue();
             mm.measure("UPDATE", rnd);
         }
         mm.exportMeasurements(export);
@@ -50,7 +52,7 @@ public class TestMeasurementsExporter {
         JsonNode  json = mapper.readTree(out.toString("UTF-8"));
         assertTrue(json.isArray());
         assertEquals(json.get(0).get("measurement").asText(), "Operations");
-        assertEquals(json.get(3).get("measurement").asText(), "MaxLatency(us)");
-        assertEquals(json.get(11).get("measurement").asText(), "5");
+        assertEquals(json.get(4).get("measurement").asText(), "MaxLatency(us)");
+        assertEquals(json.get(11).get("measurement").asText(), "4");
     }
 }

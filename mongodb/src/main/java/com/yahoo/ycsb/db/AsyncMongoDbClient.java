@@ -18,14 +18,6 @@ package com.yahoo.ycsb.db;
 
 import static com.allanbank.mongodb.builder.QueryBuilder.where;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import com.allanbank.mongodb.Durability;
 import com.allanbank.mongodb.LockType;
 import com.allanbank.mongodb.MongoClient;
@@ -49,6 +41,15 @@ import com.allanbank.mongodb.builder.Sort;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.Vector;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * MongoDB asynchronous client for YCSB framework using the <a
@@ -96,6 +97,9 @@ public class AsyncMongoDbClient extends DB {
 
   /** The batch size to use for inserts. */
   private static int batchSize;
+  
+  /** If true then use updates with the upsert option for inserts. */
+  private static boolean useUpsert;
 
   /** The bulk inserts pending for the thread. */
   private final BatchedWrite.Builder batchedWrite = BatchedWrite.builder()
@@ -136,19 +140,19 @@ public class AsyncMongoDbClient extends DB {
    *         description for a discussion of error codes.
    */
   @Override
-  public final int delete(final String table, final String key) {
+  public final Status delete(final String table, final String key) {
     try {
       final MongoCollection collection = database.getCollection(table);
       final Document q = BuilderFactory.start().add("_id", key).build();
       final long res = collection.delete(q, writeConcern);
       if (res == 0) {
         System.err.println("Nothing deleted for key " + key);
-        return 1;
+        return Status.NOT_FOUND;
       }
-      return 0;
+      return Status.OK;
     } catch (final Exception e) {
       System.err.println(e.toString());
-      return 1;
+      return Status.ERROR;
     }
   }
 
@@ -178,7 +182,11 @@ public class AsyncMongoDbClient extends DB {
 
       // Set insert batchsize, default 1 - to be YCSB-original equivalent
       batchSize = Integer.parseInt(props.getProperty("mongodb.batchsize", "1"));
-
+      
+      // Set is inserts are done as upserts. Defaults to false.
+      useUpsert = Boolean.parseBoolean(
+          props.getProperty("mongodb.upsert", "false"));
+      
       // Just use the standard connection format URL
       // http://docs.mongodb.org/manual/reference/connection-string/
       // to configure the client.
@@ -242,7 +250,7 @@ public class AsyncMongoDbClient extends DB {
    *         class's description for a discussion of error codes.
    */
   @Override
-  public final int insert(final String table, final String key,
+  public final Status insert(final String table, final String key,
       final HashMap<String, ByteIterator> values) {
     try {
       final MongoCollection collection = database.getCollection(table);
@@ -255,42 +263,53 @@ public class AsyncMongoDbClient extends DB {
 
       // Do an upsert.
       if (batchSize <= 1) {
-        long result = collection.update(query, toInsert,
-        /* multi= */false, /* upsert= */true, writeConcern);
-
-        return result == 1 ? 0 : 1;
+        long result;
+        if (useUpsert) {
+          result = collection.update(query, toInsert,
+              /* multi= */false, /* upsert= */true, writeConcern);
+        } else {
+          // Return is not stable pre-SERVER-4381. No exception is success.
+          collection.insert(writeConcern, toInsert);
+          result = 1;
+        }
+        return result == 1 ? Status.OK : Status.NOT_FOUND;
       }
 
       // Use a bulk insert.
       try {
-        batchedWrite.insert(toInsert);
+        if (useUpsert) {
+          batchedWrite.update(query, toInsert, /* multi= */false, 
+              /* upsert= */true);
+        } else {
+          batchedWrite.insert(toInsert);
+        }
         batchedWriteCount += 1;
 
         if (batchedWriteCount < batchSize) {
-          return 0;
+          return OptionsSupport.BATCHED_OK;
         }
 
         long count = collection.write(batchedWrite);
         if (count == batchedWriteCount) {
           batchedWrite.reset().mode(BatchedWriteMode.REORDERED);
           batchedWriteCount = 0;
-          return 0;
+          return Status.OK;
         }
 
         System.err.println("Number of inserted documents doesn't match the "
             + "number sent, " + count + " inserted, sent " + batchedWriteCount);
         batchedWrite.reset().mode(BatchedWriteMode.REORDERED);
         batchedWriteCount = 0;
-        return 1;
+        return Status.ERROR;
       } catch (Exception e) {
         System.err.println("Exception while trying bulk insert with "
             + batchedWriteCount);
         e.printStackTrace();
-        return 1;
+        return Status.ERROR;
       }
     } catch (final Exception e) {
       e.printStackTrace();
-      return 1;
+      return Status.ERROR;
     }
   }
 
@@ -309,7 +328,7 @@ public class AsyncMongoDbClient extends DB {
    * @return Zero on success, a non-zero error code on error or "not found".
    */
   @Override
-  public final int read(final String table, final String key,
+  public final Status read(final String table, final String key,
       final Set<String> fields, final HashMap<String, ByteIterator> result) {
     try {
       final MongoCollection collection = database.getCollection(table);
@@ -342,10 +361,10 @@ public class AsyncMongoDbClient extends DB {
       if (queryResult != null) {
         fillMap(result, queryResult);
       }
-      return queryResult != null ? 0 : 1;
+      return queryResult != null ? Status.OK : Status.NOT_FOUND;
     } catch (final Exception e) {
       System.err.println(e.toString());
-      return 1;
+      return Status.ERROR;
     }
 
   }
@@ -369,7 +388,7 @@ public class AsyncMongoDbClient extends DB {
    *         class's description for a discussion of error codes.
    */
   @Override
-  public final int scan(final String table, final String startkey,
+  public final Status scan(final String table, final String startkey,
       final int recordcount, final Set<String> fields,
       final Vector<HashMap<String, ByteIterator>> result) {
     try {
@@ -394,7 +413,7 @@ public class AsyncMongoDbClient extends DB {
       final MongoIterator<Document> cursor = collection.find(find);
       if (!cursor.hasNext()) {
         System.err.println("Nothing found in scan for key " + startkey);
-        return 1;
+        return Status.NOT_FOUND;
       }
       while (cursor.hasNext()) {
         // toMap() returns a Map but result.add() expects a
@@ -408,10 +427,10 @@ public class AsyncMongoDbClient extends DB {
         result.add(docAsMap);
       }
 
-      return 0;
+      return Status.OK;
     } catch (final Exception e) {
       System.err.println(e.toString());
-      return 1;
+      return Status.ERROR;
     }
   }
 
@@ -430,7 +449,7 @@ public class AsyncMongoDbClient extends DB {
    *         class's description for a discussion of error codes.
    */
   @Override
-  public final int update(final String table, final String key,
+  public final Status update(final String table, final String key,
       final HashMap<String, ByteIterator> values) {
     try {
       final MongoCollection collection = database.getCollection(table);
@@ -443,10 +462,10 @@ public class AsyncMongoDbClient extends DB {
       }
       final long res =
           collection.update(query, update, false, false, writeConcern);
-      return res == 1 ? 0 : 1;
+      return res == 1 ? Status.OK : Status.NOT_FOUND;
     } catch (final Exception e) {
       System.err.println(e.toString());
-      return 1;
+      return Status.ERROR;
     }
   }
 

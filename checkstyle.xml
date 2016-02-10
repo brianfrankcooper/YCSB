@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!-- 
-Copyright (c) 2012 - 2015 YCSB contributors. All rights reserved.
+Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -115,7 +115,9 @@ LICENSE file.
 
         <!-- Checks for Size Violations.                    -->
         <!-- See http://checkstyle.sf.net/config_sizes.html -->
-        <module name="LineLength"/>
+        <module name="LineLength">
+            <property name="max" value="120"/>
+        </module>
         <module name="MethodLength"/>
         <module name="ParameterNumber"/>
 
@@ -178,7 +180,7 @@ LICENSE file.
             <property name="basicOffset" value="2" />
             <property name="caseIndent" value="0" />
         </module> 
-        <module name="TodoComment"/>
+        <!-- <module name="TodoComment"/> -->
         <module name="UpperEll"/>
 
     </module>

@@ -115,9 +115,57 @@ table=usertable
 # How the latency measurements are presented
 measurementtype=histogram
 #measurementtype=timeseries
+#measurementtype=raw
+# When measurementtype is set to raw, measurements will be output
+# as RAW datapoints in the following csv format:
+# "operation, timestamp of the measurement, latency in us"
+#
+# Raw datapoints are collected in-memory while the test is running. Each
+# data point consumes about 50 bytes (including java object overhead).
+# For a typical run of 1 million to 10 million operations, this should
+# fit into memory most of the time. If you plan to do 100s of millions of
+# operations per run, consider provisioning a machine with larger RAM when using
+# the RAW measurement type, or split the run into multiple runs.
+#
+# Optionally, you can specify an output file to save raw datapoints.
+# Otherwise, raw datapoints will be written to stdout.
+# The output file will be appended to if it already exists, otherwise
+# a new output file will be created.
+#measurement.raw.output_file = /tmp/your_output_file_for_this_run
 
 # The range of latencies to track in the histogram (milliseconds)
 histogram.buckets=1000
 
 # Granularity for time series (in milliseconds)
 timeseries.granularity=1000
+
+# Latency reporting.
+#
+# YCSB records latency of failed operations separately from successful ones.
+# Latency of all OK operations will be reported under their operation name,
+# such as [READ], [UPDATE], etc.
+#
+# For failed operations:
+# By default we don't track latency numbers of specific error status.
+# We just report latency of all failed operation under one measurement name
+# such as [READ-FAILED]. But optionally, user can configure to have either:
+# 1. Record and report latency for each and every error status code by
+#    setting reportLatencyForEachError to true, or
+# 2. Record and report latency for a select set of error status codes by
+#    providing a CSV list of Status codes via the "latencytrackederrors"
+#    property.
+# reportlatencyforeacherror=false
+# latencytrackederrors="<comma separated strings of error codes>"
+
+# Insertion error retry for the core workload.
+#
+# By default, the YCSB core workload does not retry any operations.
+# However, during the load process, if any insertion fails, the entire
+# load process is terminated.
+# If a user desires to have more robust behavior during this phase, they can
+# enable retry for insertion by setting the following property to a positive
+# number.
+# core_workload_insertion_retry_limit = 0
+#
+# the following number controls the interval between retries (in seconds):
+# core_workload_insertion_retry_interval = 3
