@@ -43,57 +43,69 @@ import java.util.Vector;
 
 /**
  * VMware vFabric GemFire client for the YCSB benchmark.<br />
- * <p>By default acts as a GemFire client and tries to connect
- * to GemFire cache server running on localhost with default
- * cache server port. Hostname and port of a GemFire cacheServer
- * can be provided using <code>gemfire.serverport=port</code> and <code>
- * gemfire.serverhost=host</code> properties on YCSB command line.
- * A locator may also be used for discovering a cacheServer
- * by using the property <code>gemfire.locator=host[port]</code></p>
+ * <p>
+ * By default acts as a GemFire client and tries to connect to GemFire cache
+ * server running on localhost with default cache server port. Hostname and port
+ * of a GemFire cacheServer can be provided using
+ * <code>gemfire.serverport=port</code> and <code>
+ * gemfire.serverhost=host</code> properties on YCSB command line. A locator may
+ * also be used for discovering a cacheServer by using the property
+ * <code>gemfire.locator=host[port]</code>
+ * </p>
  * 
- * <p>To run this client in a peer-to-peer topology with other GemFire
- * nodes, use the property <code>gemfire.topology=p2p</code>. Running
- * in p2p mode will enable embedded caching in this client.</p>
+ * <p>
+ * To run this client in a peer-to-peer topology with other GemFire nodes, use
+ * the property <code>gemfire.topology=p2p</code>. Running in p2p mode will
+ * enable embedded caching in this client.
+ * </p>
  * 
- * <p>YCSB by default does its operations against "usertable". When running
- * as a client this is a <code>ClientRegionShortcut.PROXY</code> region,
- * when running in p2p mode it is a <code>RegionShortcut.PARTITION</code>
- * region. A cache.xml defining "usertable" region can be placed in the
- * working directory to override these region definitions.</p>
+ * <p>
+ * YCSB by default does its operations against "usertable". When running as a
+ * client this is a <code>ClientRegionShortcut.PROXY</code> region, when running
+ * in p2p mode it is a <code>RegionShortcut.PARTITION</code> region. A cache.xml
+ * defining "usertable" region can be placed in the working directory to
+ * override these region definitions.
+ * </p>
  * 
  * @author Swapnil Bawaskar (sbawaska at vmware)
  *
  */
 public class GemFireClient extends DB {
 
-  /** property name of the port where GemFire server is listening for connections */
+  /**
+   * Property name of the port where GemFire server is listening for
+   * connections.
+   */
   private static final String SERVERPORT_PROPERTY_NAME = "gemfire.serverport";
 
-  /** property name of the host where GemFire server is running */
+  /** Property name of the host where GemFire server is running. */
   private static final String SERVERHOST_PROPERTY_NAME = "gemfire.serverhost";
 
-  /** default value of {@link #SERVERHOST_PROPERTY_NAME} */
+  /** Default value of {@link #SERVERHOST_PROPERTY_NAME}. */
   private static final String SERVERHOST_PROPERTY_DEFAULT = "localhost";
 
-  /** property name to specify a GemFire locator. This property can be used in both
-   * client server and p2p topology */
+  /**
+   * Property name to specify a GemFire locator. This property can be used in
+   * both client server and p2p topology
+   */
   private static final String LOCATOR_PROPERTY_NAME = "gemfire.locator";
 
-  /** property name to specify GemFire topology */
+  /** Property name to specify GemFire topology. */
   private static final String TOPOLOGY_PROPERTY_NAME = "gemfire.topology";
 
-  /** value of {@value #TOPOLOGY_PROPERTY_NAME} when peer to peer topology should be used.
-   *  (client-server topology is default) */
+  /**
+   * Value of {@value #TOPOLOGY_PROPERTY_NAME} when peer to peer topology should
+   * be used. (client-server topology is default)
+   */
   private static final String TOPOLOGY_P2P_VALUE = "p2p";
 
   private GemFireCache cache;
 
   /**
-   * true if ycsb client runs as a client to a
-   * GemFire cache server
+   * True if ycsb client runs as a client to a GemFire cache server.
    */
   private boolean isClient;
-  
+
   @Override
   public void init() throws DBException {
     Properties props = getProperties();
@@ -108,9 +120,10 @@ public class GemFireClient extends DB {
       if (serverPortStr != null) {
         serverPort = Integer.parseInt(serverPortStr);
       }
-      serverHost = props.getProperty(SERVERHOST_PROPERTY_NAME, SERVERHOST_PROPERTY_DEFAULT);
+      serverHost = props.getProperty(SERVERHOST_PROPERTY_NAME,
+          SERVERHOST_PROPERTY_DEFAULT);
       locatorStr = props.getProperty(LOCATOR_PROPERTY_NAME);
-      
+
       String topology = props.getProperty(TOPOLOGY_PROPERTY_NAME);
       if (topology != null && topology.equals(TOPOLOGY_P2P_VALUE)) {
         CacheFactory cf = new CacheFactory();
@@ -131,11 +144,12 @@ public class GemFireClient extends DB {
     if (serverPort != 0) {
       ccf.addPoolServer(serverHost, serverPort);
     } else if (locator != null) {
-      ccf.addPoolLocator(locator.getHost().getCanonicalHostName(), locator.getPort());
+      ccf.addPoolLocator(locator.getHost().getCanonicalHostName(),
+          locator.getPort());
     }
     cache = ccf.create();
   }
-  
+
   @Override
   public Status read(String table, String key, Set<String> fields,
       HashMap<String, ByteIterator> result) {
@@ -164,13 +178,15 @@ public class GemFireClient extends DB {
   }
 
   @Override
-  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key,
+      HashMap<String, ByteIterator> values) {
     getRegion(table).put(key, convertToBytearrayMap(values));
     return Status.OK;
   }
 
   @Override
-  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key,
+      HashMap<String, ByteIterator> values) {
     getRegion(table).put(key, convertToBytearrayMap(values));
     return Status.OK;
   }
@@ -181,23 +197,27 @@ public class GemFireClient extends DB {
     return Status.OK;
   }
 
-  private Map<String, byte[]> convertToBytearrayMap(Map<String,ByteIterator> values) {
+  private Map<String, byte[]> convertToBytearrayMap(
+      Map<String, ByteIterator> values) {
     Map<String, byte[]> retVal = new HashMap<String, byte[]>();
     for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
       retVal.put(entry.getKey(), entry.getValue().toArray());
     }
     return retVal;
   }
-  
+
   private Region<String, Map<String, byte[]>> getRegion(String table) {
     Region<String, Map<String, byte[]>> r = cache.getRegion(table);
     if (r == null) {
       try {
         if (isClient) {
-          ClientRegionFactory<String, Map<String, byte[]>> crf = ((ClientCache) cache).createClientRegionFactory(ClientRegionShortcut.PROXY);
+          ClientRegionFactory<String, Map<String, byte[]>> crf =
+              ((ClientCache) cache)
+                  .createClientRegionFactory(ClientRegionShortcut.PROXY);
           r = crf.create(table);
         } else {
-          RegionFactory<String, Map<String, byte[]>> rf = ((Cache)cache).createRegionFactory(RegionShortcut.PARTITION);
+          RegionFactory<String, Map<String, byte[]>> rf =
+              ((Cache) cache).createRegionFactory(RegionShortcut.PARTITION);
           r = rf.create(table);
         }
       } catch (RegionExistsException e) {
