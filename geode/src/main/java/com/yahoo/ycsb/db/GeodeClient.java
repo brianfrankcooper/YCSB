@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2013 - 2014 YCSB Contributors. All rights reserved.
+ * Copyright (c) 2013 - 2016 YCSB Contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -42,17 +42,17 @@ import java.util.Set;
 import java.util.Vector;
 
 /**
- * VMware vFabric GemFire client for the YCSB benchmark.<br />
- * <p>By default acts as a GemFire client and tries to connect
- * to GemFire cache server running on localhost with default
- * cache server port. Hostname and port of a GemFire cacheServer
- * can be provided using <code>gemfire.serverport=port</code> and <code>
- * gemfire.serverhost=host</code> properties on YCSB command line.
+ * Apache Geode (incubating) client for the YCSB benchmark.<br /> 
+ * <p>By default acts as a Geode client and tries to connect
+ * to Geode cache server running on localhost with default
+ * cache server port. Hostname and port of a Geode cacheServer
+ * can be provided using <code>geode.serverport=port</code> and <code>
+ * geode.serverhost=host</code> properties on YCSB command line.
  * A locator may also be used for discovering a cacheServer
- * by using the property <code>gemfire.locator=host[port]</code></p>
+ * by using the property <code>geode.locator=host[port]</code></p>
  * 
- * <p>To run this client in a peer-to-peer topology with other GemFire
- * nodes, use the property <code>gemfire.topology=p2p</code>. Running
+ * <p>To run this client in a peer-to-peer topology with other Geode
+ * nodes, use the property <code>geode.topology=p2p</code>. Running
  * in p2p mode will enable embedded caching in this client.</p>
  * 
  * <p>YCSB by default does its operations against "usertable". When running
@@ -61,26 +61,24 @@ import java.util.Vector;
  * region. A cache.xml defining "usertable" region can be placed in the
  * working directory to override these region definitions.</p>
  * 
- * @author Swapnil Bawaskar (sbawaska at vmware)
- *
  */
-public class GemFireClient extends DB {
+public class GeodeClient extends DB {
 
-  /** property name of the port where GemFire server is listening for connections */
-  private static final String SERVERPORT_PROPERTY_NAME = "gemfire.serverport";
+  /** property name of the port where Geode server is listening for connections */
+  private static final String SERVERPORT_PROPERTY_NAME = "geode.serverport";
 
-  /** property name of the host where GemFire server is running */
-  private static final String SERVERHOST_PROPERTY_NAME = "gemfire.serverhost";
+  /** property name of the host where Geode server is running */
+  private static final String SERVERHOST_PROPERTY_NAME = "geode.serverhost";
 
   /** default value of {@link #SERVERHOST_PROPERTY_NAME} */
   private static final String SERVERHOST_PROPERTY_DEFAULT = "localhost";
 
-  /** property name to specify a GemFire locator. This property can be used in both
+  /** property name to specify a Geode locator. This property can be used in both
    * client server and p2p topology */
-  private static final String LOCATOR_PROPERTY_NAME = "gemfire.locator";
+  private static final String LOCATOR_PROPERTY_NAME = "geode.locator";
 
-  /** property name to specify GemFire topology */
-  private static final String TOPOLOGY_PROPERTY_NAME = "gemfire.topology";
+  /** property name to specify Geode topology */
+  private static final String TOPOLOGY_PROPERTY_NAME = "geode.topology";
 
   /** value of {@value #TOPOLOGY_PROPERTY_NAME} when peer to peer topology should be used.
    *  (client-server topology is default) */
@@ -90,16 +88,16 @@ public class GemFireClient extends DB {
 
   /**
    * true if ycsb client runs as a client to a
-   * GemFire cache server
+   * Geode cache server
    */
   private boolean isClient;
   
   @Override
   public void init() throws DBException {
     Properties props = getProperties();
-    // hostName where GemFire cacheServer is running
+    // hostName where Geode cacheServer is running
     String serverHost = null;
-    // port of GemFire cacheServer
+    // port of Geode cacheServer
     int serverPort = 0;
     String locatorStr = null;
 
@@ -159,7 +157,7 @@ public class GemFireClient extends DB {
   @Override
   public Status scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-    // GemFire does not support scan
+    // Geode does not support scan
     return Status.ERROR;
   }
 
