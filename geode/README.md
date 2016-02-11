@@ -53,7 +53,10 @@ gfsh has tab autocompletion, so you can play around with various options.
 ### Start YCSB workload
 
 From your YCSB directory, you can run the ycsb workload as follows
-`./bin/ycsb load geode -P workloads/workloada -p geode.locator=host[port]`
+```
+./bin/ycsb load geode -P workloads/workloada -p geode.locator=host[port]
+```
+(default port of locator is 10334).
 
 In the default mode, ycsb geode driver will connect as a client to the geode
 cluster. To make the ycsb driver a peer member of the distributed system
