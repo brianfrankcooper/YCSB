@@ -282,8 +282,8 @@ public class OrientDBClient extends DB {
 
       if (fields != null && !fields.isEmpty()) {
         while (entries.hasNext() && entrycount < recordcount) {
-          final Entry<Object, OIdentifiable> entry = entries.nextEntry();
-          final ODocument document = entry.getValue().getRecord();
+          final OIdentifiable entry = entries.next();
+          final ODocument document = entry.getRecord();
 
           final HashMap<String, ByteIterator> map = new HashMap<String, ByteIterator>();
           result.add(map);
