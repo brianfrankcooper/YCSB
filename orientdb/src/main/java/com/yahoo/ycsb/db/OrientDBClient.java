@@ -280,19 +280,20 @@ public class OrientDBClient extends DB {
       int entrycount = 0;
       final OIndexCursor entries = dictionary.getIndex().iterateEntriesMajor(startkey, true, true);
 
-      while (entries.hasNext() && entrycount < recordcount) {
-        final Entry<Object, OIdentifiable> entry = entries.nextEntry();
-        final ODocument document = entry.getValue().getRecord();
+      if (fields != null && !fields.isEmpty()) {
+        while (entries.hasNext() && entrycount < recordcount) {
+          final Entry<Object, OIdentifiable> entry = entries.nextEntry();
+          final ODocument document = entry.getValue().getRecord();
 
-        final HashMap<String, ByteIterator> map =
-            new HashMap<String, ByteIterator>();
-        result.add(map);
+          final HashMap<String, ByteIterator> map = new HashMap<String, ByteIterator>();
+          result.add(map);
 
-        for (String field : fields) {
-          map.put(field, new StringByteIterator((String) document.field(field)));
+          for (String field : fields) {
+            map.put(field, new StringByteIterator((String) document.field(field)));
+          }
+
+          entrycount++;
         }
-
-        entrycount++;
       }
 
       return Status.OK;
