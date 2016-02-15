@@ -66,7 +66,7 @@ class StatusThread extends Thread
    * @param statusIntervalSeconds The number of seconds between status updates.
    */
   public StatusThread(CountDownLatch completeLatch, List<ClientThread> clients,
-      String label, boolean standardstatus, int statusIntervalSeconds)
+                      String label, boolean standardstatus, int statusIntervalSeconds)
   {
     _completeLatch=completeLatch;
     _clients=clients;
@@ -117,7 +117,7 @@ class StatusThread extends Thread
    * @return The current operation count.
    */
   private long computeStats(final long startTimeMs, long startIntervalMs, long endIntervalMs,
-      long lastTotalOps) {
+                            long lastTotalOps) {
     SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
 
     long totalops=0;
@@ -147,7 +147,7 @@ class StatusThread extends Thread
       msg.append(d.format(curthroughput)).append(" current ops/sec; ");
     }
     if (todoops != 0) {
-        msg.append("est completion in ").append(RemainingFormatter.format(estremaining));
+      msg.append("est completion in ").append(RemainingFormatter.format(estremaining));
     }
 
     msg.append(Measurements.getMeasurements().getSummary());
@@ -194,32 +194,32 @@ class StatusThread extends Thread
  * i.e. if there are hours or days worth of seconds, use them.
  */
 class RemainingFormatter {
-	public static StringBuilder format(long seconds) {
-		StringBuilder time = new StringBuilder();
-		long days = TimeUnit.SECONDS.toDays(seconds);
-		if (days > 0) {
-			time.append(days).append(" days ");
-			seconds -= TimeUnit.DAYS.toSeconds(days);
-		}
-		long hours = TimeUnit.SECONDS.toHours(seconds);
-		if (hours > 0) {
-			time.append(hours).append(" hours ");
-			seconds -= TimeUnit.HOURS.toSeconds(hours);
-		}
-		/* Only include minute granularity if we're < 1 day. */
-		if (days < 1) {
-			long minutes = TimeUnit.SECONDS.toMinutes(seconds);
-			if (minutes > 0) {
-				time.append(minutes).append(" minutes ");
-				seconds -= TimeUnit.MINUTES.toSeconds(seconds);
-			}
-		}
-		/* Only bother to include seconds if we're < 1 minute */
-		if (time.length() == 0) {
-			time.append(seconds).append(" seconds ");
-		}
-		return time;
-	}
+  public static StringBuilder format(long seconds) {
+    StringBuilder time = new StringBuilder();
+    long days = TimeUnit.SECONDS.toDays(seconds);
+    if (days > 0) {
+      time.append(days).append(" days ");
+      seconds -= TimeUnit.DAYS.toSeconds(days);
+    }
+    long hours = TimeUnit.SECONDS.toHours(seconds);
+    if (hours > 0) {
+      time.append(hours).append(" hours ");
+      seconds -= TimeUnit.HOURS.toSeconds(hours);
+    }
+    /* Only include minute granularity if we're < 1 day. */
+    if (days < 1) {
+      long minutes = TimeUnit.SECONDS.toMinutes(seconds);
+      if (minutes > 0) {
+        time.append(minutes).append(" minutes ");
+        seconds -= TimeUnit.MINUTES.toSeconds(seconds);
+      }
+    }
+    /* Only bother to include seconds if we're < 1 minute */
+    if (time.length() == 0) {
+      time.append(seconds).append(" seconds ");
+    }
+    return time;
+  }
 }
 
 /**
@@ -480,13 +480,13 @@ public class Client
     System.out.println("Usage: java com.yahoo.ycsb.Client [options]");
     System.out.println("Options:");
     System.out.println("  -threads n: execute using n threads (default: 1) - can also be specified as the \n" +
-        "        \"threadcount\" property using -p");
+                       "        \"threadcount\" property using -p");
     System.out.println("  -target n: attempt to do n operations per second (default: unlimited) - can also\n" +
-        "       be specified as the \"target\" property using -p");
+                       "       be specified as the \"target\" property using -p");
     System.out.println("  -load:  run the loading phase of the workload");
     System.out.println("  -t:  run the transactions phase of the workload (default)");
     System.out.println("  -db dbname: specify the name of the DB to use (default: com.yahoo.ycsb.BasicDB) - \n" +
-        "        can also be specified as the \"db\" property using -p");
+                       "        can also be specified as the \"db\" property using -p");
     System.out.println("  -P propertyfile: load properties from the given file. Multiple files can");
     System.out.println("           be specified, and will be processed in the order specified");
     System.out.println("  -p name=value:  specify a property to be passed to the DB and workloads;");
@@ -521,7 +521,7 @@ public class Client
    * @throws IOException Either failed to write to output stream or failed to close it.
    */
   private static void exportMeasurements(Properties props, int opcount, long runtime)
-      throws IOException
+    throws IOException
   {
     MeasurementsExporter exporter = null;
     try
@@ -545,7 +545,7 @@ public class Client
       } catch (Exception e)
       {
         System.err.println("Could not find exporter " + exporterStr
-            + ", will use default text reporter.");
+                           + ", will use default text reporter.");
         e.printStackTrace();
         exporter = new TextMeasurementsExporter(out);
       }
@@ -582,6 +582,7 @@ public class Client
     if (args.length==0)
     {
       usageMessage();
+      System.out.println("At least one argument specifying a workload is required.");
       System.exit(0);
     }
 
@@ -593,6 +594,7 @@ public class Client
         if (argindex>=args.length)
         {
           usageMessage();
+          System.out.println("Missing argument value for -threads.");
           System.exit(0);
         }
         int tcount=Integer.parseInt(args[argindex]);
@@ -605,6 +607,7 @@ public class Client
         if (argindex>=args.length)
         {
           usageMessage();
+          System.out.println("Missing argument value for -target.");
           System.exit(0);
         }
         int ttarget=Integer.parseInt(args[argindex]);
@@ -632,6 +635,7 @@ public class Client
         if (argindex>=args.length)
         {
           usageMessage();
+          System.out.println("Missing argument value for -db.");
           System.exit(0);
         }
         props.setProperty(DB_PROPERTY,args[argindex]);
@@ -643,6 +647,7 @@ public class Client
         if (argindex>=args.length)
         {
           usageMessage();
+          System.out.println("Missing argument value for -l.");
           System.exit(0);
         }
         label=args[argindex];
@@ -654,6 +659,7 @@ public class Client
         if (argindex>=args.length)
         {
           usageMessage();
+          System.out.println("Missing argument value for -P.");
           System.exit(0);
         }
         String propfile=args[argindex];
@@ -666,6 +672,7 @@ public class Client
         }
         catch (IOException e)
         {
+          System.out.println("Unable to open the properties file " + propfile);
           System.out.println(e.getMessage());
           System.exit(0);
         }
@@ -685,12 +692,14 @@ public class Client
         if (argindex>=args.length)
         {
           usageMessage();
+          System.out.println("Missing argument value for -p");
           System.exit(0);
         }
         int eq=args[argindex].indexOf('=');
         if (eq<0)
         {
           usageMessage();
+          System.out.println("Argument '-p' expected to be in key=value format (e.g., -p operationcount=99999)");
           System.exit(0);
         }
 
@@ -702,8 +711,8 @@ public class Client
       }
       else
       {
-        System.out.println("Unknown option "+args[argindex]);
         usageMessage();
+        System.out.println("Unknown option " + args[argindex]);
         System.exit(0);
       }
 
@@ -713,9 +722,15 @@ public class Client
       }
     }
 
-    if (argindex!=args.length)
+    if (argindex != args.length)
     {
       usageMessage();
+      if (argindex < args.length) {
+        System.out.println("An argument value without corresponding argument specifier (e.g., -p, -s) was found. "
+                           + "We expected an argument specifier and instead found " + args[argindex]);
+      } else {
+        System.out.println("An argument specifier without corresponding value was found at the end of the supplied command line arguments.");
+      }
       System.exit(0);
     }
 
@@ -736,6 +751,7 @@ public class Client
 
     if (!checkRequiredProperties(props))
     {
+      System.out.println("Failed check required properties.");
       System.exit(0);
     }
 
@@ -769,21 +785,21 @@ public class Client
     //but only do so if it is taking longer than 2 seconds
     //(showing the message right away if the setup wasn't taking very long was confusing people)
     Thread warningthread=new Thread()
-    {
-      @Override
-      public void run()
       {
-        try
+        @Override
+        public void run()
         {
-          sleep(2000);
+          try
+          {
+            sleep(2000);
+          }
+          catch (InterruptedException e)
+          {
+            return;
+          }
+          System.err.println(" (might take a few minutes for large data sets)");
         }
-        catch (InterruptedException e)
-        {
-          return;
-        }
-        System.err.println(" (might take a few minutes for large data sets)");
-      }
-    };
+      };
 
     warningthread.start();
 
