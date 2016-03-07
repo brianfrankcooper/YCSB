@@ -42,9 +42,9 @@ import java.util.Vector;
  *
  * @author saden
  */
-public class ElasticSearchClientTest {
+public class ElasticsearchClientTest {
 
-    protected final static ElasticSearchClient instance = new ElasticSearchClient();
+    protected final static ElasticsearchClient instance = new ElasticsearchClient();
     protected final static HashMap<String, ByteIterator> MOCK_DATA;
     protected final static String MOCK_TABLE = "MOCK_TABLE";
     protected final static String MOCK_KEY0 = "0";
@@ -81,7 +81,7 @@ public class ElasticSearchClientTest {
     }
 
     /**
-     * Test of insert method, of class ElasticSearchClient.
+     * Test of insert method, of class ElasticsearchClient.
      */
     @Test
     public void testInsert() {
@@ -91,7 +91,7 @@ public class ElasticSearchClientTest {
     }
 
     /**
-     * Test of delete method, of class ElasticSearchClient.
+     * Test of delete method, of class ElasticsearchClient.
      */
     @Test
     public void testDelete() {
@@ -101,7 +101,7 @@ public class ElasticSearchClientTest {
     }
 
     /**
-     * Test of read method, of class ElasticSearchClient.
+     * Test of read method, of class ElasticsearchClient.
      */
     @Test
     public void testRead() {
@@ -113,7 +113,7 @@ public class ElasticSearchClientTest {
     }
 
     /**
-     * Test of update method, of class ElasticSearchClient.
+     * Test of update method, of class ElasticsearchClient.
      */
     @Test
     public void testUpdate() {
@@ -139,7 +139,7 @@ public class ElasticSearchClientTest {
     }
 
     /**
-     * Test of scan method, of class ElasticSearchClient.
+     * Test of scan method, of class ElasticsearchClient.
      */
     @Test
     public void testScan() {
