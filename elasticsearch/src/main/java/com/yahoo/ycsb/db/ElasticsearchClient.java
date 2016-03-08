@@ -51,7 +51,7 @@ import java.util.Set;
 import java.util.Vector;
 
 /**
- * ElasticSearch client for YCSB framework.
+ * Elasticsearch client for YCSB framework.
  *
  * <p>
  * Default properties to set:
@@ -65,7 +65,7 @@ import java.util.Vector;
  * @author Sharmarke Aden
  *
  */
-public class ElasticSearchClient extends DB {
+public class ElasticsearchClient extends DB {
 
   public static final String DEFAULT_CLUSTER_NAME = "es.ycsb.cluster";
   public static final String DEFAULT_INDEX_KEY = "es.ycsb";
@@ -105,10 +105,10 @@ public class ElasticSearchClient extends DB {
     // add it to the settings file (will overwrite the defaults).
     settings.put(props);
     System.out.println(
-        "ElasticSearch starting node = " + settings.get("cluster.name"));
+        "Elasticsearch starting node = " + settings.get("cluster.name"));
     System.out
-        .println("ElasticSearch node data path = " + settings.get("path.data"));
-    System.out.println("ElasticSearch Remote Mode = " + remoteMode);
+        .println("Elasticsearch node data path = " + settings.get("path.data"));
+    System.out.println("Elasticsearch Remote Mode = " + remoteMode);
     // Remote mode support for connecting to remote elasticsearch cluster
     if (remoteMode) {
       settings.put("client.transport.sniff", true)
@@ -119,7 +119,7 @@ public class ElasticSearchClient extends DB {
       String[] nodeList =
           props.getProperty("elasticsearch.hosts.list", DEFAULT_REMOTE_HOST)
               .split(",");
-      System.out.println("ElasticSearch Remote Hosts = "
+      System.out.println("Elasticsearch Remote Hosts = "
           + props.getProperty("elasticsearch.hosts.list", DEFAULT_REMOTE_HOST));
       TransportClient tClient = TransportClient.builder()
                                   .settings(settings).build();
