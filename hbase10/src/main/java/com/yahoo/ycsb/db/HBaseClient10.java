@@ -51,7 +51,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * HBase 1.0 client for YCSB framework.
@@ -64,7 +63,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class HBaseClient10 extends com.yahoo.ycsb.DB {
   private Configuration config = HBaseConfiguration.create();
-  private static final AtomicInteger THREAD_COUNT = new AtomicInteger(0);
+  
+  // Must be an object for synchronization and tracking running thread counts. 
+  private static Integer threadCount = 0;
 
   private boolean debug = false;
 
@@ -132,9 +133,11 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
     }
 
     try {
-      THREAD_COUNT.getAndIncrement();
-      synchronized(THREAD_COUNT) {
-        connection = ConnectionFactory.createConnection(config);
+      synchronized(threadCount) {
+        ++threadCount;
+        if (connection == null) {
+          connection = ConnectionFactory.createConnection(config);
+        }
       }
     } catch (java.io.IOException e) {
       throw new DBException(e);
@@ -190,10 +193,11 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
       long en = System.nanoTime();
       final String type = clientSideBuffering ? "UPDATE" : "CLEANUP";
       measurements.measure(type, (int) ((en - st) / 1000));
-      synchronized(THREAD_COUNT) {
-        int threadCount = THREAD_COUNT.decrementAndGet();
+      synchronized(threadCount) {
+        --threadCount;
         if (threadCount <= 0 && connection != null) {
           connection.close();
+          connection = null;
         }
       }
     } catch (IOException e) {
