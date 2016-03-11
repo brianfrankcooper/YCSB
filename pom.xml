@@ -93,6 +93,7 @@ LICENSE file.
     <tarantool.version>1.6.5</tarantool.version>
     <aerospike.version>3.1.2</aerospike.version>
     <solr.version>5.4.0</solr.version>
+    <rados.version>0.2.0</rados.version>
   </properties>
 
   <modules>
@@ -127,6 +128,7 @@ LICENSE file.
     <module>solr</module>
     <module>tarantool</module>
     <!--<module>voldemort</module>-->
+    <module>rados</module>
   </modules>
 
   <build>
