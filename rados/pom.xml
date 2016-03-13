@@ -24,5 +24,10 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+	    <groupId>org.json</groupId>
+		<artifactId>json</artifactId>
+		<version>${json.version}</version>
+	</dependency>
   </dependencies>
 </project>

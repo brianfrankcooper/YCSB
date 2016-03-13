@@ -1,20 +1,25 @@
 package com.yahoo.ycsb.db;
 
+import com.ceph.rados.Rados;
+import com.ceph.rados.IoCTX;
+import com.ceph.rados.jna.RadosObjectInfo;
+import com.ceph.rados.ReadOp;
+import com.ceph.rados.ReadOp.ReadResult;
+import com.ceph.rados.exceptions.RadosException;
+
+
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.Protocol;
-
+import java.io.File;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
+
+import org.json.JSONObject;
 
 /**
  * YCSB binding for <a href="http://redis.io/">Redis</a>.
@@ -23,114 +28,99 @@ import java.util.Vector;
  */
 public class RadosClient extends DB {
 
-  private static String ENV_CONFIG_FILE = System.getenv("RADOS_JAVA_CONFIG_FILE");
-  private static String ENV_ID = System.getenv("RADOS_JAVA_ID");
-  private static String ENV_POOL = System.getenv("RADOS_JAVA_POOL");
+  // TODO: use conf file
+  private static String envCONFIGFILE = System.getenv("RADOS_JAVA_CONFIG_FILE");
+  private static String envID = System.getenv("RADOS_JAVA_ID");
+  private static String envPOOL = System.getenv("RADOS_JAVA_POOL");
 
-  private static final String CONFIG_FILE = ENV_CONFIG_FILE == null ? "/etc/ceph/ceph.conf" : ENV_CONFIG_FILE;
-  private static final String ID = ENV_ID == null ? "admin" : ENV_ID;
-  private static final String POOL = ENV_POOL == null ? "data" : ENV_POOL;
+  private static final String CONFIG_FILE = envCONFIGFILE == null ? "/etc/ceph/ceph.conf" : envCONFIGFILE;
+  private static final String ID = envID == null ? "admin" : envID;
+  private static final String POOL = envPOOL == null ? "data" : envPOOL;
 
   private static Rados rados;
   private static IoCTX ioctx;
 
   public void init() throws DBException {
-    Properties props = getProperties();
-    int port;
-
-    String portString = props.getProperty(PORT_PROPERTY);
-    if (portString != null) {
-      port = Integer.parseInt(portString);
-    } else {
-      port = Protocol.DEFAULT_PORT;
-    }
-    String host = props.getProperty(HOST_PROPERTY);
-
-    jedis = new Jedis(host, port);
-    jedis.connect();
-
-    String password = props.getProperty(PASSWORD_PROPERTY);
-    if (password != null) {
-      jedis.auth(password);
+    rados = new Rados(ID);
+    try {
+      rados.confReadFile(new File(CONFIG_FILE));
+      rados.connect();
+      ioctx = rados.ioCtxCreate(POOL);
+    } catch (RadosException e) {
+      throw new DBException(e.getMessage() + ": " + e.getReturnValue());
     }
   }
 
   public void cleanup() throws DBException {
-    jedis.disconnect();
+    rados.shutDown();
+    rados.ioCtxDestroy(ioctx);
   }
-
-  /*
-   * Calculate a hash for a key to store it in an index. The actual return value
-   * of this function is not interesting -- it primarily needs to be fast and
-   * scattered along the whole space of doubles. In a real world scenario one
-   * would probably use the ASCII values of the keys.
-   */
-  private double hash(String key) {
-    return key.hashCode();
-  }
-
-  // XXX jedis.select(int index) to switch to `table`
 
   @Override
-  public Status read(String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
-    if (fields == null) {
-      StringByteIterator.putAllAsByteIterators(result, jedis.hgetAll(key));
-    } else {
-      String[] fieldArray =
-          (String[]) fields.toArray(new String[fields.size()]);
-      List<String> values = jedis.hmget(key, fieldArray);
+  public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+    byte[] buffer;
 
-      Iterator<String> fieldIterator = fields.iterator();
-      Iterator<String> valueIterator = values.iterator();
+    try {
+      RadosObjectInfo info = ioctx.stat(key);
+      buffer = new byte[(int)info.getSize()];
 
-      while (fieldIterator.hasNext() && valueIterator.hasNext()) {
-        result.put(fieldIterator.next(),
-            new StringByteIterator(valueIterator.next()));
+      ReadOp rop = ioctx.readOpCreate();
+      ReadResult readResult = rop.queueRead(0, info.getSize());
+      // TODO: more size than byte length possible;
+      rop.operate(key, Rados.OPERATION_NOFLAG);
+      readResult.raiseExceptionOnError("Error ReadOP(%d)", readResult.getRVal());
+      if (info.getSize() != readResult.getBytesRead()) {
+        return new Status("ERROR", "Error the object size read");
       }
-      assert !fieldIterator.hasNext() && !valueIterator.hasNext();
+      readResult.getBuffer().get(buffer);
+    } catch (RadosException e) {
+      return new Status("ERROR-" + e.getReturnValue(), e.getMessage());
     }
+
+    JSONObject json = new JSONObject(new String(buffer, java.nio.charset.StandardCharsets.UTF_8));
+    Set<String> fieldsToReturn = (fields == null ? json.keySet() : fields);
+
+    for (String name : fieldsToReturn) {
+      result.put(name, new StringByteIterator(json.getString(name)));
+    }
+
     return result.isEmpty() ? Status.ERROR : Status.OK;
   }
 
   @Override
-  public Status insert(String table, String key,
-      HashMap<String, ByteIterator> values) {
-    if (jedis.hmset(key, StringByteIterator.getStringMap(values))
-        .equals("OK")) {
-      jedis.zadd(INDEX_KEY, hash(key), key);
-      return Status.OK;
+  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
+    JSONObject json = new JSONObject(values);
+
+    try {
+      ioctx.write(key, json.toString());
+    } catch (RadosException e) {
+      return new Status("ERROR-" + e.getReturnValue(), e.getMessage());
     }
-    return Status.ERROR;
+    return Status.OK;
   }
 
   @Override
   public Status delete(String table, String key) {
-    return jedis.del(key) == 0 && jedis.zrem(INDEX_KEY, key) == 0 ? Status.ERROR
-        : Status.OK;
-  }
-
-  @Override
-  public Status update(String table, String key,
-      HashMap<String, ByteIterator> values) {
-    return jedis.hmset(key, StringByteIterator.getStringMap(values))
-        .equals("OK") ? Status.OK : Status.ERROR;
-  }
-
-  @Override
-  public Status scan(String table, String startkey, int recordcount,
-      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-    Set<String> keys = jedis.zrangeByScore(INDEX_KEY, hash(startkey),
-        Double.POSITIVE_INFINITY, 0, recordcount);
-
-    HashMap<String, ByteIterator> values;
-    for (String key : keys) {
-      values = new HashMap<String, ByteIterator>();
-      read(table, key, fields, values);
-      result.add(values);
+    try {
+      ioctx.remove(key);
+    } catch (RadosException e) {
+      return new Status("ERROR-" + e.getReturnValue(), e.getMessage());
     }
-
     return Status.OK;
   }
 
+  @Override
+  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+    Status rtn = delete(table, key);
+    if (rtn.equals(Status.OK)) {
+      return insert(table, key, values);
+    }
+    return rtn;
+  }
+
+  @Override
+  public Status scan(String table, String startkey, int recordcount, Set<String> fields,
+      Vector<HashMap<String, ByteIterator>> result) {
+    return Status.NOT_IMPLEMENTED;
+  }
 }
