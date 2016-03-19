@@ -46,8 +46,9 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>org.cassandraunit</groupId>
-      <artifactId>cassandra-unit-shaded</artifactId>
-      <version>2.1.9.2</version>
+      <artifactId>cassandra-unit</artifactId>
+      <version>3.0.0.1</version>
+      <classifier>shaded</classifier>
       <scope>test</scope>
     </dependency>
     <dependency>
