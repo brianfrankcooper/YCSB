@@ -22,12 +22,11 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.json.JSONObject;
-// import org.json.JSONString;
 
 /**
- * YCSB binding for <a href="http://redis.io/">Redis</a>.
+ * YCSB binding for <a href="http://ceph.org/">RADOS of Ceph</a>.
  *
- * See {@code redis/README.md} for details.
+ * See {@code rados/README.md} for details.
  */
 public class RadosClient extends DB {
 
@@ -100,7 +99,6 @@ public class RadosClient extends DB {
 
     for (String name : fieldsToReturn) {
       result.put(name, new StringByteIterator(json.getString(name)));
-      // result.put(name, new StringByteIterator(json.getJSONString(name).getString()));
     }
 
     return result.isEmpty() ? Status.ERROR : Status.OK;
@@ -108,8 +106,6 @@ public class RadosClient extends DB {
 
   @Override
   public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
-    // JSONObject json = new JSONObject(values);
-
     JSONObject json = new JSONObject();
     for (final Entry<String, ByteIterator> e : values.entrySet()) {
       json.put(e.getKey(), e.getValue().toString());
