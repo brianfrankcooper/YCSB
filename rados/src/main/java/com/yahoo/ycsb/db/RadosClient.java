@@ -16,6 +16,7 @@ import com.yahoo.ycsb.StringByteIterator;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
@@ -28,24 +29,39 @@ import org.json.JSONObject;
  */
 public class RadosClient extends DB {
 
-  // TODO: use conf file
-  private static String envCONFIGFILE = System.getenv("RADOS_JAVA_CONFIG_FILE");
-  private static String envID = System.getenv("RADOS_JAVA_ID");
-  private static String envPOOL = System.getenv("RADOS_JAVA_POOL");
-
-  private static final String CONFIG_FILE = envCONFIGFILE == null ? "/etc/ceph/ceph.conf" : envCONFIGFILE;
-  private static final String ID = envID == null ? "admin" : envID;
-  private static final String POOL = envPOOL == null ? "data" : envPOOL;
-
   private static Rados rados;
   private static IoCTX ioctx;
 
+  public static final String CONFIG_FILE_PROPERTY = "rados.configfile";
+  public static final String CONFIG_FILE_DEFAULT = "/etc/ceph/ceph.conf";
+  public static final String ID_PROPERTY = "rados.id";
+  public static final String ID_DEFAULT = "admin";
+  public static final String POOL_PROPERTY = "rados.pool";
+  public static final String POOL_DEFAULT = "data";
+
   public void init() throws DBException {
-    rados = new Rados(ID);
+    Properties props = getProperties();
+
+    String configfile = props.getProperty(CONFIG_FILE_PROPERTY);
+    if (configfile == null) {
+      configfile = CONFIG_FILE_DEFAULT;
+    }
+
+    String id = props.getProperty(ID_PROPERTY);
+    if (id == null) {
+      id = ID_DEFAULT;
+    }
+
+    String pool = props.getProperty(POOL_PROPERTY);
+    if (pool == null) {
+      pool = POOL_DEFAULT;
+    }
+
+    rados = new Rados(id);
     try {
-      rados.confReadFile(new File(CONFIG_FILE));
+      rados.confReadFile(new File(configfile));
       rados.connect();
-      ioctx = rados.ioCtxCreate(POOL);
+      ioctx = rados.ioCtxCreate(pool);
     } catch (RadosException e) {
       throw new DBException(e.getMessage() + ": " + e.getReturnValue());
     }
