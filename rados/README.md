@@ -19,9 +19,9 @@ LICENSE file.
 
 This section describes how to run YCSB on RADOS of Ceph.
 
-### 1. Start Ceph
+### 1. Start RADOS
 
-After you start your Ceph cluster, check your cluster’s health first. You can check on the health of your Ceph cluster with the following:
+After you start your Ceph cluster, check your cluster’s health first. You can check on the health of your cluster with the following:
 
     ceph health
 
@@ -38,18 +38,18 @@ Git clone YCSB and compile:
 ### 4. Configuration Parameters
 
 - `rados.configfile`
-  - The Path of Ceph configuration file
-  - Default is '/etc/ceph/ceph.conf'
+  - The path of the Ceph configuration file
+  - Default value is '/etc/ceph/ceph.conf'
 
 - `rados.id`
-  - The user ID to access to pools in order to read and write data
-  - Default is 'admin'
+  - The user id to access the RADOS service
+  - Default value is 'admin'
 
 - `rados.pool`
-  - The pool name to be used for the benchmark
-  - Default is 'data'
+  - The pool name to be used for benchmark
+  - Default value is 'data'
 
-Or, you can set configs with the shell command, EG:
+You can set configurations with the shell command, EG:
 
     ./bin/ycsb load rados -s -P workloads/workloada -p "rados.configfile=/etc/ceph/ceph.conf" -p "rados.id=admin" -p "rados.pool=data" > outputLoad.txt
 
@@ -57,8 +57,8 @@ Or, you can set configs with the shell command, EG:
 
 Load the data:
 
-    ./bin/ycsb load redis -s -P workloads/workloada > outputLoad.txt
+    ./bin/ycsb load rados -s -P workloads/workloada > outputLoad.txt
 
 Run the workload test:
 
-    ./bin/ycsb run redis -s -P workloads/workloada > outputRun.txt
+    ./bin/ycsb run rados -s -P workloads/workloada > outputRun.txt
