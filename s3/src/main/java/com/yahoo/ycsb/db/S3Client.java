@@ -432,6 +432,7 @@ public class S3Client extends DB {
       objectData.read(inputStreamToByte, 0, sizeOfFile);
       result.put(key, new ByteArrayByteIterator(inputStreamToByte));
       objectData.close();
+      objectAndMetadata.getKey().close();
     } catch (Exception e){
       System.err.println("Not possible to get the object "+key);
       e.printStackTrace();
