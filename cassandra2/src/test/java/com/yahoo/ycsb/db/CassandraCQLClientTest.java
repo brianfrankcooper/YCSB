@@ -41,7 +41,6 @@ import com.yahoo.ycsb.workloads.CoreWorkload;
 import org.cassandraunit.CassandraCQLUnit;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -68,10 +67,6 @@ public class CassandraCQLClientTest {
 
   @Before
   public void setUp() throws Exception {
-    // check that this is Java 8+
-    int javaVersion = Integer.parseInt(System.getProperty("java.version").split("\\.")[1]);
-    Assume.assumeTrue(javaVersion >= 8);
-
     session = cassandraUnit.getSession();
 
     Properties p = new Properties();

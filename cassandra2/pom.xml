@@ -31,6 +31,11 @@ LICENSE file.
   <name>Cassandra 2.1+ DB Binding</name>
   <packaging>jar</packaging>
 
+  <properties>
+    <!-- Skip tests by default. will be activated by jdk8 profile -->
+    <skipTests>true</skipTests>
+  </properties>
+
   <dependencies>
     <!-- CQL driver -->
     <dependency>
@@ -58,4 +63,19 @@ LICENSE file.
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <profiles>
+    <!-- Cassandra 2.2+ requires JDK8 to run, so none of our tests
+         will work unless we're using jdk8.
+      -->
+    <profile>
+      <id>jdk8-tests</id>
+      <activation>
+        <jdk>1.8</jdk>
+      </activation>
+      <properties>
+        <skipTests>false</skipTests>
+      </properties>
+    </profile>
+  </profiles>
 </project>
