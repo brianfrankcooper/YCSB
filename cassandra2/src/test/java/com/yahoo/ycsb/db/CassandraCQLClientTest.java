@@ -41,6 +41,7 @@ import com.yahoo.ycsb.workloads.CoreWorkload;
 import org.cassandraunit.CassandraCQLUnit;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -63,11 +64,16 @@ public class CassandraCQLClientTest {
   private Session session;
 
   @ClassRule
-  public static CassandraCQLUnit cassandraUnit =
-      new CassandraCQLUnit(new ClassPathCQLDataSet("ycsb.cql", "ycsb"));
+  public static CassandraCQLUnit cassandraUnit = new CassandraCQLUnit(new ClassPathCQLDataSet("ycsb.cql", "ycsb"));
 
   @Before
-  public void setUpClient() throws Exception {
+  public void setUp() throws Exception {
+    // check that this is Java 8+
+    int javaVersion = Integer.parseInt(System.getProperty("java.version").split("\\.")[1]);
+    Assume.assumeTrue(javaVersion >= 8);
+
+    session = cassandraUnit.getSession();
+
     Properties p = new Properties();
     p.setProperty("hosts", HOST);
     p.setProperty("port", Integer.toString(PORT));
@@ -81,14 +87,11 @@ public class CassandraCQLClientTest {
     client.init();
   }
 
-  @Before
-  public void setSession() {
-    session = cassandraUnit.getSession();
-  }
-
   @After
   public void tearDownClient() throws Exception {
-    client.cleanup();
+    if (client != null) {
+      client.cleanup();
+    }
     client = null;
   }
 
@@ -96,7 +99,9 @@ public class CassandraCQLClientTest {
   public void clearTable() throws Exception {
     // Clear the table so that each test starts fresh.
     final Statement truncate = QueryBuilder.truncate(TABLE);
-    cassandraUnit.getSession().execute(truncate);
+    if (cassandraUnit != null) {
+      cassandraUnit.getSession().execute(truncate);
+    }
   }
 
   @Test
