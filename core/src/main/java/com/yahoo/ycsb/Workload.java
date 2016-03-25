@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public abstract class Workload
 {
 	public static final String INSERT_START_PROPERTY="insertstart";
+	public static final String INSERT_COUNT_PROPERTY="insertcount";
 	
 	public static final String INSERT_START_PROPERTY_DEFAULT="0";
 	

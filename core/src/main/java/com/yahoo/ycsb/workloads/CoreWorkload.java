@@ -32,6 +32,7 @@ import com.yahoo.ycsb.generator.ScrambledZipfianGenerator;
 import com.yahoo.ycsb.generator.SkewedLatestGenerator;
 import com.yahoo.ycsb.generator.UniformIntegerGenerator;
 import com.yahoo.ycsb.generator.ZipfianGenerator;
+import com.yahoo.ycsb.generator.SequentialGenerator;
 import com.yahoo.ycsb.measurements.Measurements;
 
 import java.io.IOException;
@@ -61,7 +62,7 @@ import java.util.ArrayList;
  * <LI><b>readmodifywriteproportion</b>: what proportion of operations should be read a record,
  * modify it, write it back (default: 0)
  * <LI><b>requestdistribution</b>: what distribution should be used to select the records to operate
- * on - uniform, zipfian, hotspot, or latest (default: uniform)
+ * on - uniform, zipfian, hotspot, ordered or latest (default: uniform)
  * <LI><b>maxscanlength</b>: for scans, what is the maximum number of records to scan (default: 1000)
  * <LI><b>scanlengthdistribution</b>: for scans, what distribution should be used to choose the
  * number of records to scan, for each scan, between 1 and maxscanlength (default: uniform)
@@ -393,8 +394,8 @@ public class CoreWorkload extends Workload {
     String scanlengthdistrib =
         p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY, SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
 
-    int insertstart =
-        Integer.parseInt(p.getProperty(INSERT_START_PROPERTY, INSERT_START_PROPERTY_DEFAULT));
+	int insertstart=Integer.parseInt(p.getProperty(INSERT_START_PROPERTY,INSERT_START_PROPERTY_DEFAULT));
+	int insertcount=Integer.parseInt(p.getProperty(INSERT_COUNT_PROPERTY,String.valueOf(recordcount-insertstart)));
 
     readallfields = Boolean.parseBoolean(
         p.getProperty(READ_ALL_FIELDS_PROPERTY, READ_ALL_FIELDS_PROPERTY_DEFAULT));
@@ -452,8 +453,10 @@ public class CoreWorkload extends Workload {
 
     transactioninsertkeysequence = new AcknowledgedCounterGenerator(recordcount);
     if (requestdistrib.compareTo("uniform") == 0) {
-      keychooser = new UniformIntegerGenerator(0, recordcount - 1);
-    } else if (requestdistrib.compareTo("zipfian") == 0) {
+      keychooser=new UniformIntegerGenerator(insertstart,insertstart+insertcount-1);
+    } else if (requestdistrib.compareTo("ordered")==0)	{
+			keychooser=new SequentialGenerator(insertstart,insertstart+insertcount-1);
+	}else if (requestdistrib.compareTo("zipfian") == 0) {
       // it does this by generating a random "next key" in part by taking the modulus over the
       // number of keys.
       // If the number of keys changes, this would shift the modulus, and we don't want that to
@@ -467,7 +470,7 @@ public class CoreWorkload extends Workload {
       int opcount = Integer.parseInt(p.getProperty(Client.OPERATION_COUNT_PROPERTY));
       int expectednewkeys = (int) ((opcount) * insertproportion * 2.0); // 2 is fudge factor
 
-      keychooser = new ScrambledZipfianGenerator(recordcount + expectednewkeys);
+      keychooser=new ScrambledZipfianGenerator(insertstart,insertstart+insertcount+expectednewkeys);
     } else if (requestdistrib.compareTo("latest") == 0) {
       keychooser = new SkewedLatestGenerator(transactioninsertkeysequence);
     } else if (requestdistrib.equals("hotspot")) {
@@ -475,7 +478,7 @@ public class CoreWorkload extends Workload {
           Double.parseDouble(p.getProperty(HOTSPOT_DATA_FRACTION, HOTSPOT_DATA_FRACTION_DEFAULT));
       double hotopnfraction =
           Double.parseDouble(p.getProperty(HOTSPOT_OPN_FRACTION, HOTSPOT_OPN_FRACTION_DEFAULT));
-      keychooser = new HotspotIntegerGenerator(0, recordcount - 1, hotsetfraction, hotopnfraction);
+      keychooser = new HotspotIntegerGenerator(insertstart, insertstart+insertcount-1,  hotsetfraction, hotopnfraction);
     } else {
       throw new WorkloadException("Unknown request distribution \"" + requestdistrib + "\"");
     }
