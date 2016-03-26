@@ -101,8 +101,12 @@ public class RadosClient extends DB {
       ReadOp rop = ioctx.readOpCreate();
       ReadResult readResult = rop.queueRead(0, info.getSize());
       // TODO: more size than byte length possible;
-      rop.operate(key, Rados.OPERATION_NOFLAG);
-      readResult.raiseExceptionOnError("Error ReadOP(%d)", readResult.getRVal());
+      // rop.operate(key, Rados.OPERATION_NOFLAG); // for rados-java 0.3.0
+      rop.operate(key, 0);
+      // readResult.raiseExceptionOnError("Error ReadOP(%d)", readResult.getRVal()); // for rados-java 0.3.0
+      if (readResult.getRVal() < 0) {
+        throw new RadosException("Error ReadOP", readResult.getRVal());
+      }
       if (info.getSize() != readResult.getBytesRead()) {
         return new Status("ERROR", "Error the object size read");
       }

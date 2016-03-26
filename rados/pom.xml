@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
+<!--
 Copyright (c) 2016 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -24,16 +24,17 @@ LICENSE file.
     <version>0.8.0-SNAPSHOT</version>
     <relativePath>../binding-parent</relativePath>
   </parent>
-  
+
   <artifactId>rados-binding</artifactId>
   <name>rados of Ceph FS binding</name>
   <packaging>jar</packaging>
-  
+
   <dependencies>
     <dependency>
       <groupId>com.ceph</groupId>
       <artifactId>rados</artifactId>
-      <version>${rados.version}</version>
+      <!-- <version>${rados.version}</version> -->
+      <version>0.2.0</version>
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
@@ -47,7 +48,7 @@ LICENSE file.
 		<version>${json.version}</version>
 	</dependency>
   </dependencies>
-  
+
   <properties>
   	<rados.version>0.3.0-SNAPSHOT</rados.version>
   	<json.version>20160212</json.version>
