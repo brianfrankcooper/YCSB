@@ -62,10 +62,16 @@ import java.util.ArrayList;
  * <LI><b>readmodifywriteproportion</b>: what proportion of operations should be read a record,
  * modify it, write it back (default: 0)
  * <LI><b>requestdistribution</b>: what distribution should be used to select the records to operate
- * on - uniform, zipfian, hotspot, ordered or latest (default: uniform)
+ * on - uniform, zipfian, hotspot, ordered, exponential or latest (default: uniform)
  * <LI><b>maxscanlength</b>: for scans, what is the maximum number of records to scan (default: 1000)
  * <LI><b>scanlengthdistribution</b>: for scans, what distribution should be used to choose the
  * number of records to scan, for each scan, between 1 and maxscanlength (default: uniform)
+ * <LI><b>insertstart</b>: for parallel loads and runs, defines the starting record for this
+ * YCSB instance (default: 0)
+ * <LI><b>insertcount</b>: for parallel loads and runs, defines the ending record for this
+ * YCSB instance (default: recordcount)
+ * <LI><b>zeropadding</b>: for generating a record sequence compatible with string sort order by
+ * 0 padding the record number. Controls the number of 0s to use for padding. (default: 1)
  * <LI><b>insertorder</b>: should records be inserted in order by key ("ordered"), or in hashed
  * order ("hashed") (default: hashed)
  * </ul>
@@ -245,6 +251,18 @@ public class CoreWorkload extends Workload {
    */
   public static final String REQUEST_DISTRIBUTION_PROPERTY_DEFAULT = "uniform";
 
+   /**
+   * The name of the property for adding zero padding to record numbers in order to match 
+   * string sort order. Controls the number of 0s to left pad with.
+   */
+  public static final String ZERO_PADDING_PROPERTY = "zeropadding";
+
+  /**
+   * The default zero padding value. Matches integer sort order
+   */
+  public static final String ZERO_PADDING_PROPERTY_DEFAULT = "1";
+
+  
   /**
    * The name of the property for the max scan length (number of records)
    */
@@ -323,6 +341,7 @@ public class CoreWorkload extends Workload {
   boolean orderedinserts;
 
   int recordcount;
+  int zeropadding;
 
   int insertionRetryLimit;
   int insertionRetryInterval;
@@ -396,6 +415,7 @@ public class CoreWorkload extends Workload {
 
 	int insertstart=Integer.parseInt(p.getProperty(INSERT_START_PROPERTY,INSERT_START_PROPERTY_DEFAULT));
 	int insertcount=Integer.parseInt(p.getProperty(INSERT_COUNT_PROPERTY,String.valueOf(recordcount-insertstart)));
+	zeropadding=Integer.parseInt(p.getProperty(ZERO_PADDING_PROPERTY,ZERO_PADDING_PROPERTY_DEFAULT));
 
     readallfields = Boolean.parseBoolean(
         p.getProperty(READ_ALL_FIELDS_PROPERTY, READ_ALL_FIELDS_PROPERTY_DEFAULT));
@@ -505,7 +525,7 @@ public class CoreWorkload extends Workload {
     if (!orderedinserts) {
       keynum = Utils.hash(keynum);
     }
-    return "user" + keynum;
+	return "user"+String.format("%0"+zeropadding+"d",keynum);
   }
 
   /**
