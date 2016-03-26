@@ -47,6 +47,7 @@ LICENSE file.
 		<version>${json.version}</version>
 	</dependency>
   </dependencies>
+  
   <properties>
   	<rados.version>0.3.0-SNAPSHOT</rados.version>
   	<json.version>20160212</json.version>

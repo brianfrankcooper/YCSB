@@ -122,12 +122,12 @@ LICENSE file.
     <module>mongodb</module>
     <module>nosqldb</module>
     <module>orientdb</module>
+    <module>rados</module>
     <module>redis</module>
     <module>s3</module>
     <module>solr</module>
     <module>tarantool</module>
     <!--<module>voldemort</module>-->
-    <module>rados</module>
   </modules>
 
   <build>
