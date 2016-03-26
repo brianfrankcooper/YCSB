@@ -93,8 +93,6 @@ LICENSE file.
     <tarantool.version>1.6.5</tarantool.version>
     <aerospike.version>3.1.2</aerospike.version>
     <solr.version>5.4.0</solr.version>
-    <rados.version>0.3.0-SNAPSHOT</rados.version>
-    <json.version>20160212</json.version>
   </properties>
 
   <modules>
