@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2014 - 2015 YCSB contributors. All rights reserved.
+Copyright (c) 2016 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -31,7 +31,7 @@ After you start your Ceph cluster, check your cluster’s health first. You can 
 
 Git clone YCSB and compile:
 
-    git clone -b dev-ceph-rados https://github.com/jaemyoun/YCSB.git
+    git clone http://github.com/brianfrankcooper/YCSB.git
     cd YCSB
     mvn -pl com.yahoo.ycsb:rados-binding -am clean package
 
