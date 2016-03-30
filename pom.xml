@@ -74,7 +74,7 @@ LICENSE file.
     <accumulo.version>1.6.0</accumulo.version>
     <cassandra.version>1.2.9</cassandra.version>
     <cassandra.cql.version>1.0.3</cassandra.cql.version>
-    <cassandra2.cql.version>2.1.8</cassandra2.cql.version>
+    <cassandra2.cql.version>3.0.0</cassandra2.cql.version>
     <geode.version>1.0.0-incubating.M1</geode.version>
     <infinispan.version>7.2.2.Final</infinispan.version>
     <kudu.version>0.6.0</kudu.version>
