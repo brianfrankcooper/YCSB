@@ -33,8 +33,7 @@ LICENSE file.
     <dependency>
       <groupId>com.ceph</groupId>
       <artifactId>rados</artifactId>
-      <!-- <version>${rados.version}</version> -->
-      <version>0.2.0</version>
+      <version>${rados.version}</version>
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
@@ -50,7 +49,7 @@ LICENSE file.
   </dependencies>
 
   <properties>
-  	<rados.version>0.3.0-SNAPSHOT</rados.version>
+  	<rados.version>0.2.0</rados.version>
   	<json.version>20160212</json.version>
   </properties>
 </project>
