@@ -17,7 +17,7 @@ LICENSE file.
 
 ## Quick Start
 
-This section describes how to run YCSB on ElasticSearch running locally. 
+This section describes how to run YCSB on Elasticsearch running locally. 
 
 ### 1. Set Up YCSB
 
@@ -40,7 +40,7 @@ Then, run the workload:
 For further configuration see below: 
 
 ### Defaults Configuration
-The default setting for the ElasticSearch node that is created is as follows:
+The default setting for the Elasticsearch node that is created is as follows:
 
     cluster.name=es.ycsb.cluster
     node.local=true
@@ -54,14 +54,14 @@ The default setting for the ElasticSearch node that is created is as follows:
     es.index.key=es.ycsb
 
 ### Custom Configuration
-If you wish to customize the settings used to create the ElasticSerach node
-you can created a new property file that contains your desired ElasticSearch 
+If you wish to customize the settings used to create the Elasticsearch node
+you can created a new property file that contains your desired Elasticsearch 
 node settings and pass it in via the parameter to 'bin/ycsb' script. Note that 
 the default properties will be kept if you don't explicitly overwrite them.
 
 Assuming that we have a properties file named "myproperties.data" that contains 
-custom ElasticSearch node configuration you can execute the following to
-pass it into the ElasticSearch client:
+custom Elasticsearch node configuration you can execute the following to
+pass it into the Elasticsearch client:
 
 
     ./bin/ycsb run elasticsearch -P workloads/workloada -P myproperties.data -s

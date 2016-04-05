@@ -771,16 +771,7 @@ public class Client
       double targetperthread=((double)target)/((double)threadcount);
       targetperthreadperms=targetperthread/1000.0;
     }
-
-    System.out.println("YCSB Client 0.1");
-    System.out.print("Command line:");
-    for (int i=0; i<args.length; i++)
-    {
-      System.out.print(" "+args[i]);
-    }
-    System.out.println();
-    System.err.println("Loading workload...");
-
+    
     //show a warning message that creating the workload is taking a while
     //but only do so if it is taking longer than 2 seconds
     //(showing the message right away if the setup wasn't taking very long was confusing people)
@@ -808,6 +799,22 @@ public class Client
 
     //load the workload
     ClassLoader classLoader = Client.class.getClassLoader();
+
+    try {
+      Properties projectProp = new Properties();
+      projectProp.load(classLoader.getResourceAsStream("project.properties"));
+      System.err.println("YCSB Client " + projectProp.getProperty("version"));
+    } catch (IOException e) {
+      System.err.println("Unable to retrieve client version.");
+    }
+
+    System.err.print("Command line:");
+    for (int i=0; i<args.length; i++)
+    {
+      System.err.print(" "+args[i]);
+    }
+    System.err.println();
+    System.err.println("Loading workload...");
 
     Workload workload=null;
 
