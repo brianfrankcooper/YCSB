@@ -397,6 +397,10 @@ public class CassandraClient8 extends DB {
     }
 
     for (int i = 0; i < operationRetries; i++) {
+      mutations.clear();
+      mutationMap.clear();
+      record.clear();
+
       if (debug) {
         System.out.println("Inserting key: " + key);
       }
@@ -422,10 +426,6 @@ public class CassandraClient8 extends DB {
         record.put(wrappedKey, mutationMap);
 
         client.batch_mutate(record, ConsistencyLevel.ONE);
-
-        mutations.clear();
-        mutationMap.clear();
-        record.clear();
 
         return Status.OK;
       } catch (Exception e) {

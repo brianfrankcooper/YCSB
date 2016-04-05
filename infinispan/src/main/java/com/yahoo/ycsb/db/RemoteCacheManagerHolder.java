@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 YCSB contributors. All rights reserved.
+ * Copyright (c) 2015-2016 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -21,22 +21,27 @@ import java.util.Properties;
 
 import org.infinispan.client.hotrod.RemoteCacheManager;
 
-public class RemoteCacheManagerHolder {
-	
-	private static volatile RemoteCacheManager cacheManager = null;
-	
-	private RemoteCacheManagerHolder() {}
-	
-	public static RemoteCacheManager getInstance(Properties props){
-		RemoteCacheManager result = cacheManager;
-		if(result == null){
-			synchronized (RemoteCacheManagerHolder.class) {
-				result = cacheManager;
-				if (result == null) {
-					cacheManager = result = new RemoteCacheManager(props);
-				}
-			}
-		}
-		return result;
-	}
+/**
+ * Utility class to ensure only a single RemoteCacheManager is created.
+ */
+final class RemoteCacheManagerHolder {
+
+  private static volatile RemoteCacheManager cacheManager = null;
+
+  private RemoteCacheManagerHolder() {
+  }
+
+  static RemoteCacheManager getInstance(Properties props) {
+    RemoteCacheManager result = cacheManager;
+    if (result == null) {
+      synchronized (RemoteCacheManagerHolder.class) {
+        result = cacheManager;
+        if (result == null) {
+          result = new RemoteCacheManager(props);
+          cacheManager = new RemoteCacheManager(props);
+        }
+      }
+    }
+    return result;
+  }
 }
