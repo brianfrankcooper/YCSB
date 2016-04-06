@@ -95,7 +95,6 @@ public class ElasticsearchClient extends DB {
         .put("node.local", "true")
         .put("path.data", System.getProperty("java.io.tmpdir") + "/esdata")
         .put("index.mapping._id.indexed", "true")
-        .put("index.gateway.type", "none")
         .put("index.number_of_shards", "1")
         .put("index.number_of_replicas", "0")
         .put("path.home", System.getProperty("java.io.tmpdir"));
