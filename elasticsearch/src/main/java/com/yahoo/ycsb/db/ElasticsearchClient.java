@@ -93,7 +93,7 @@ public class ElasticsearchClient extends DB {
     Boolean newdb =
         Boolean.parseBoolean(props.getProperty("elasticsearch.newdb", "false"));
     Builder settings = Settings.settingsBuilder()
-        .put("node.local", "true")
+        .put("node.local", Boolean.toString(!remoteMode))
         .put("path.data", System.getProperty("java.io.tmpdir") + "/esdata")
         .put("path.home", System.getProperty("java.io.tmpdir"));
 
