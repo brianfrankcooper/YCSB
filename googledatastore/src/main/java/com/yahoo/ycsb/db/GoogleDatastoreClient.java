@@ -242,6 +242,7 @@ public class GoogleDatastoreClient extends DB {
   @Override
   public Status update(String table, String key,
       HashMap<String, ByteIterator> values) {
+
     return doSingleItemMutation(table, key, values, MutationType.UPDATE);
   }
 
@@ -285,8 +286,10 @@ public class GoogleDatastoreClient extends DB {
     // for multi-item mutation, or Read-modify-write operation.
     CommitRequest.Builder commitRequest = CommitRequest.newBuilder();
     commitRequest.setMode(Mode.NON_TRANSACTIONAL);
+
     if (mutationType == MutationType.DELETE) {
       commitRequest.addMutationsBuilder().setDelete(datastoreKey);
+
     } else {
       // If this is not for delete, build the entity.
       Entity.Builder entityBuilder = Entity.newBuilder();
