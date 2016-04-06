@@ -58,13 +58,9 @@ import java.util.Vector;
  * Default properties to set:
  * </p>
  * <ul>
- * <li>es.cluster.name = es.ycsb.cluster
- * <li>es.client = true
+ * <li>cluster.name = es.ycsb.cluster
  * <li>es.index.key = es.ycsb
  * </ul>
- *
- * @author Sharmarke Aden
- *
  */
 public class ElasticsearchClient extends DB {
 
