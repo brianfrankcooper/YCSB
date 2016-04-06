@@ -60,6 +60,8 @@ import java.util.Vector;
  * <ul>
  * <li>cluster.name = es.ycsb.cluster
  * <li>es.index.key = es.ycsb
+ * <li>elasticsearch.number_of_shards = 1
+ * <li>elasticsearch.number_of_replicas = 0
  * </ul>
  */
 public class ElasticsearchClient extends DB {
@@ -67,6 +69,8 @@ public class ElasticsearchClient extends DB {
   private static final String DEFAULT_CLUSTER_NAME = "es.ycsb.cluster";
   private static final String DEFAULT_INDEX_KEY = "es.ycsb";
   private static final String DEFAULT_REMOTE_HOST = "localhost:9300";
+  private static final int NUMBER_OF_SHARDS = 1;
+  private static final int NUMBER_OF_REPLICAS = 0;
   private Node node;
   private Client client;
   private String indexKey;
@@ -82,6 +86,10 @@ public class ElasticsearchClient extends DB {
     this.indexKey = props.getProperty("es.index.key", DEFAULT_INDEX_KEY);
     String clusterName =
         props.getProperty("cluster.name", DEFAULT_CLUSTER_NAME);
+
+    int numberOfShards = parseIntegerProperty(props, "elasticsearch.number_of_shards", NUMBER_OF_SHARDS);
+    int numberOfReplicas = parseIntegerProperty(props, "elasticsearch.number_of_replicas", NUMBER_OF_REPLICAS);
+
     // Check if transport client needs to be used (To connect to multiple
     // elasticsearch nodes)
     remoteMode = Boolean
@@ -146,12 +154,17 @@ public class ElasticsearchClient extends DB {
               new CreateIndexRequest(indexKey)
                       .settings(
                               Settings.builder()
-                                      .put("index.number_of_shards", 1)
-                                      .put("index.number_of_replicas", 0)
+                                      .put("index.number_of_shards", numberOfShards)
+                                      .put("index.number_of_replicas", numberOfReplicas)
                                       .put("index.mapping._id.indexed", true)
                       )).actionGet();
       client.admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet();
     }
+  }
+
+  private int parseIntegerProperty(Properties properties, String key, int defaultValue) {
+    String value = properties.getProperty(key);
+    return value == null ? defaultValue : Integer.parseInt(value);
   }
 
   @Override
