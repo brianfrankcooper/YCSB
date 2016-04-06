@@ -94,7 +94,6 @@ public class ElasticsearchClient extends DB {
         Boolean.parseBoolean(props.getProperty("elasticsearch.newdb", "false"));
     Builder settings = Settings.settingsBuilder()
         .put("node.local", Boolean.toString(!remoteMode))
-        .put("path.data", System.getProperty("java.io.tmpdir") + "/esdata")
         .put("path.home", System.getProperty("java.io.tmpdir"));
 
     // if properties file contains elasticsearch user defined properties
@@ -103,7 +102,7 @@ public class ElasticsearchClient extends DB {
     System.out.println(
         "Elasticsearch starting node = " + settings.get("cluster.name"));
     System.out
-        .println("Elasticsearch node data path = " + settings.get("path.data"));
+        .println("Elasticsearch node path.home = " + settings.get("path.home"));
     System.out.println("Elasticsearch Remote Mode = " + remoteMode);
     // Remote mode support for connecting to remote elasticsearch cluster
     if (remoteMode) {
