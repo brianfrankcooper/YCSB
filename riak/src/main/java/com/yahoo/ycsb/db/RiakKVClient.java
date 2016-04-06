@@ -1,0 +1,493 @@
+/*
+ * Copyright 2016 nygard_89
+ * Copyright 2014 Basho Technologies, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.yahoo.ycsb.db;
+
+import com.basho.riak.client.api.commands.kv.UpdateValue;
+import com.basho.riak.client.core.RiakFuture;
+import com.yahoo.ycsb.DB;
+import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
+import com.yahoo.ycsb.ByteIterator;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import com.basho.riak.client.api.RiakClient;
+import com.basho.riak.client.api.cap.Quorum;
+import com.basho.riak.client.api.commands.indexes.IntIndexQuery;
+import com.basho.riak.client.api.commands.kv.DeleteValue;
+import com.basho.riak.client.api.commands.kv.FetchValue;
+import com.basho.riak.client.api.commands.kv.StoreValue;
+import com.basho.riak.client.api.commands.kv.StoreValue.Option;
+import com.basho.riak.client.core.RiakCluster;
+import com.basho.riak.client.core.RiakNode;
+import com.basho.riak.client.core.query.Location;
+import com.basho.riak.client.core.query.Namespace;
+import com.basho.riak.client.core.query.RiakObject;
+import com.basho.riak.client.core.query.indexes.LongIntIndex;
+import com.basho.riak.client.core.util.BinaryValue;
+
+import static com.yahoo.ycsb.db.RiakUtils.getKeyAsLong;
+import static com.yahoo.ycsb.db.RiakUtils.serializeTable;
+
+
+/**
+ * @author nygard_89
+ * @author Basho Technologies, Inc.
+ *
+ */
+public final class RiakKVClient extends DB {
+  private static final String HOST_PROPERTY = "riak.hosts";
+  private static final String PORT_PROPERTY = "riak.port";
+  private static final String BUCKET_TYPE_PROPERTY = "riak.bucket_type";
+  private static final String R_VALUE_PROPERTY = "riak.r_val";
+  private static final String W_VALUE_PROPERTY = "riak.w_val";
+  private static final String READ_RETRY_COUNT_PROPERTY = "riak.read_retry_count";
+  private static final String WAIT_TIME_BEFORE_RETRY_PROPERTY = "riak.wait_time_before_retry";
+  private static final String TRANSACTION_TIME_LIMIT_PROPERTY = "riak.transaction_time_limit";
+  private static final String STRONG_CONSISTENCY_PROPERTY = "riak.strong_consistency";
+  private static final String DEBUG_PROPERTY = "riak.debug";
+
+  private static final Status TIME_OUT = new Status("TIME_OUT", "Cluster didn't respond after maximum wait time " +
+      "for transaction indicated");
+
+  private String[] hosts;
+  private int port;
+  private String bucketType;
+  private Quorum rQuorumValue;
+  private Quorum wQuorumValue;
+  private int readRetryCount;
+  private int waitTimeBeforeRetry;
+  private int transactionTimeLimit;
+  private boolean strongConsistency;
+  private boolean debug;
+
+  private RiakClient riakClient;
+  private RiakCluster riakCluster;
+
+  private void loadDefaultProperties() {
+    InputStream propFile = RiakKVClient.class.getClassLoader().getResourceAsStream("riak.properties");
+    Properties propsPF = new Properties(System.getProperties());
+
+    try {
+      propsPF.load(propFile);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    hosts = propsPF.getProperty(HOST_PROPERTY).split(",");
+    port = Integer.parseInt(propsPF.getProperty(PORT_PROPERTY));
+    bucketType = propsPF.getProperty(BUCKET_TYPE_PROPERTY);
+    rQuorumValue = new Quorum(Integer.parseInt(propsPF.getProperty(R_VALUE_PROPERTY)));
+    wQuorumValue = new Quorum(Integer.parseInt(propsPF.getProperty(W_VALUE_PROPERTY)));
+    readRetryCount = Integer.parseInt(propsPF.getProperty(READ_RETRY_COUNT_PROPERTY));
+    waitTimeBeforeRetry = Integer.parseInt(propsPF.getProperty(WAIT_TIME_BEFORE_RETRY_PROPERTY));
+    transactionTimeLimit = Integer.parseInt(propsPF.getProperty(TRANSACTION_TIME_LIMIT_PROPERTY));
+    strongConsistency = Boolean.parseBoolean(propsPF.getProperty(STRONG_CONSISTENCY_PROPERTY));
+    debug = Boolean.parseBoolean(propsPF.getProperty(DEBUG_PROPERTY));
+  }
+
+  private void loadProperties() {
+    loadDefaultProperties();
+
+    Properties props = getProperties();
+
+    String portString = props.getProperty(PORT_PROPERTY);
+    if (portString != null) {
+      port = Integer.parseInt(portString);
+    }
+
+    String hostsString = props.getProperty(HOST_PROPERTY);
+    if (hostsString != null) {
+      hosts = hostsString.split(",");
+    }
+
+    String bucketTypeString = props.getProperty(BUCKET_TYPE_PROPERTY);
+    if (bucketTypeString != null) {
+      bucketType = bucketTypeString;
+    }
+
+    String rQuorumValueString = props.getProperty(R_VALUE_PROPERTY);
+    if (rQuorumValueString != null) {
+      rQuorumValue = new Quorum(Integer.parseInt(rQuorumValueString));
+    }
+
+    String wQuorumValueString = props.getProperty(W_VALUE_PROPERTY);
+    if (wQuorumValueString != null) {
+      wQuorumValue = new Quorum(Integer.parseInt(wQuorumValueString));
+    }
+
+    String readRetryCountString = props.getProperty(READ_RETRY_COUNT_PROPERTY);
+    if (readRetryCountString != null) {
+      readRetryCount = Integer.parseInt(readRetryCountString);
+    }
+
+    String waitTimeBeforeRetryString = props.getProperty(WAIT_TIME_BEFORE_RETRY_PROPERTY);
+    if (waitTimeBeforeRetryString != null) {
+      waitTimeBeforeRetry = Integer.parseInt(waitTimeBeforeRetryString);
+    }
+
+    String transactionTimeLimitString = props.getProperty(TRANSACTION_TIME_LIMIT_PROPERTY);
+    if (transactionTimeLimitString != null) {
+      transactionTimeLimit = Integer.parseInt(transactionTimeLimitString);
+    }
+
+    String strongConsistencyString = props.getProperty(STRONG_CONSISTENCY_PROPERTY);
+    if (strongConsistencyString != null) {
+      strongConsistency = Boolean.parseBoolean(strongConsistencyString);
+    }
+
+    String debugString = props.getProperty(DEBUG_PROPERTY);
+    if (debugString != null) {
+      debug = Boolean.parseBoolean(debugString);
+    }
+  }
+
+  public void init() throws DBException {
+    loadProperties();
+
+    if (debug) {
+      System.out.println("DEBUG ENABLED. Configuration parameters:");
+      System.out.println("-----------------------------------------");
+      System.out.println("Hosts: " + Arrays.toString(hosts));
+      System.out.println("Port: " + port);
+      System.out.println("Bucket Type: " + bucketType);
+      System.out.println("R Quorum Value: " + rQuorumValue.toString());
+      System.out.println("W Quorum Value: " + wQuorumValue.toString());
+      System.out.println("Read Retry Count: " + readRetryCount);
+      System.out.println("Wait Time Before Retry: " + waitTimeBeforeRetry + " ms");
+      System.out.println("Transaction Time Limit: " + transactionTimeLimit + " s");
+      System.out.println("Consistency model: " + (strongConsistency ? "Strong" : "Eventual"));
+    }
+
+    RiakNode.Builder builder = new RiakNode.Builder().withRemotePort(port);
+    List<RiakNode> nodes = RiakNode.Builder.buildNodes(builder, Arrays.asList(hosts));
+    riakCluster = new RiakCluster.Builder(nodes).build();
+
+    try {
+      riakCluster.start();
+      riakClient = new RiakClient(riakCluster);
+    } catch (Exception e) {
+      System.err.println("Unable to properly start up the cluster. Reason: " + e.toString());
+      throw new DBException(e);
+    }
+  }
+
+  /**
+   * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
+   *
+   * @param table  The name of the table (Riak bucket)
+   * @param key    The record key of the record to read.
+   * @param fields The list of fields to read, or null for all of them
+   * @param result A HashMap of field/value pairs for the result
+   * @return Zero on success, a non-zero error code on error
+   */
+  @Override
+  public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+    Location location = new Location(new Namespace(bucketType, table), key);
+    FetchValue fv = new FetchValue.Builder(location).withOption(FetchValue.Option.R, rQuorumValue).build();
+
+    try {
+      FetchValue.Response response = fetch(fv);
+
+      if (response.isNotFound()) {
+        if (debug) {
+          System.err.println("Unable to read key " + key + ". Reason: NOT FOUND");
+        }
+
+        return Status.NOT_FOUND;
+      }
+    } catch (TimeoutException e) {
+      if (debug) {
+        System.err.println("Unable to read key " + key + ". Reason: TIME OUT");
+      }
+
+      return TIME_OUT;
+    } catch (Exception e) {
+      if (debug) {
+        System.err.println("Unable to read key " + key + ". Reason: " + e.toString());
+      }
+
+      return Status.ERROR;
+    }
+
+    return Status.OK;
+  }
+
+
+  /**
+   * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in
+   * a HashMap.
+   * <p>
+   * Note: The scan operation requires the use of secondary indexes (2i) and LevelDB.
+   *
+   * @param table       The name of the table (Riak bucket)
+   * @param startkey    The record key of the first record to read.
+   * @param recordcount The number of records to read
+   * @param fields      The list of fields to read, or null for all of them
+   * @param result      A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
+   * @return Zero on success, a non-zero error code on error
+   */
+  @Override
+  public Status scan(String table, String startkey, int recordcount, Set<String> fields,
+                     Vector<HashMap<String, ByteIterator>> result) {
+    Namespace ns = new Namespace(bucketType, table);
+
+    IntIndexQuery iiq = new IntIndexQuery
+        .Builder(ns, "key", getKeyAsLong(startkey), 999999999999999999L)
+        .withMaxResults(recordcount)
+        .withPaginationSort(true)
+        .build();
+
+    RiakFuture<IntIndexQuery.Response, IntIndexQuery> future = riakClient.executeAsync(iiq);
+
+    try {
+      IntIndexQuery.Response response = future.get(transactionTimeLimit, TimeUnit.SECONDS);
+      List<IntIndexQuery.Response.Entry> entries = response.getEntries();
+
+      for (IntIndexQuery.Response.Entry entry : entries) {
+        Location location = entry.getRiakObjectLocation();
+        FetchValue fv = new FetchValue.Builder(location)
+            .withOption(FetchValue.Option.R, rQuorumValue)
+            .build();
+
+        FetchValue.Response keyResponse = fetch(fv);
+
+        if (keyResponse.isNotFound()) {
+          if (debug) {
+            System.err.println("Unable to scan starting from key " + startkey + ", aborting transaction. Reason: NOT " +
+                "FOUND");
+          }
+
+          return Status.NOT_FOUND;
+        }
+      }
+    } catch (TimeoutException e) {
+      if (debug) {
+        System.err.println("Unable to scan starting from key " + startkey + ", aborting transaction. Reason: TIME OUT");
+      }
+
+      return TIME_OUT;
+    } catch (Exception e) {
+      if (debug) {
+        System.err.println("Unable to scan starting from key " + startkey + ", aborting transaction. Reason: " +
+            e.toString());
+      }
+
+      return Status.ERROR;
+    }
+
+    return Status.OK;
+  }
+
+  /**
+   * Tries to perform a read and, whenever it fails, retries to do it. It actually does try as many time as indicated,
+   * even if the function riakClient.execute(fv) throws an exception. This is needed for those situation in which the
+   * cluster is unable to respond properly due to overload. Note however that if the cluster doesn't respond after
+   * transactionTimeLimit, the transaction is discarded immediately.
+   *
+   * @param fv The value to fetch from the cluster.
+   */
+  private FetchValue.Response fetch(FetchValue fv) throws TimeoutException {
+    FetchValue.Response response = null;
+
+    for (int i = 0; i < readRetryCount; i++) {
+      RiakFuture<FetchValue.Response, Location> future = riakClient.executeAsync(fv);
+
+      try {
+        response = future.get(transactionTimeLimit, TimeUnit.SECONDS);
+
+        if (!response.isNotFound()) {
+          break;
+        }
+      } catch (TimeoutException e) {
+        // Let the callee decide how to handle this exception...
+        throw new TimeoutException();
+      } catch (Exception e) {
+        // Sleep for a few ms before retrying...
+        try {
+          Thread.sleep(waitTimeBeforeRetry);
+        } catch (InterruptedException e1) {
+          e1.printStackTrace();
+        }
+      }
+    }
+
+    return response;
+  }
+
+  /**
+   * Insert a record in the database. Any field/value pairs in the specified values HashMap
+   * will be written into the record with the specified record key. Also creates a
+   * secondary index (2i) for each record consisting of the key converted to long to be used
+   * for the scan operation
+   *
+   * @param table  The name of the table (Riak bucket)
+   * @param key    The record key of the record to insert.
+   * @param values A HashMap of field/value pairs to insert in the record
+   * @return Zero on success, a non-zero error code on error
+   */
+  @Override
+  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
+    Location location = new Location(new Namespace(bucketType, table), key);
+    RiakObject object = new RiakObject();
+
+    object.setValue(BinaryValue.create(serializeTable(values)));
+    object.getIndexes().getIndex(LongIntIndex.named("key_int")).add(getKeyAsLong(key));
+
+    StoreValue store = new StoreValue.Builder(object)
+        .withLocation(location)
+        .withOption(Option.W, wQuorumValue)
+        .build();
+
+    RiakFuture<StoreValue.Response, Location> future = riakClient.executeAsync(store);
+
+    try {
+      future.get(transactionTimeLimit, TimeUnit.SECONDS);
+    } catch (TimeoutException e) {
+      if (debug) {
+        System.err.println("Unable to " + (Thread.currentThread().getStackTrace()[2]
+            .getMethodName().equals("update") ? "update" : "insert") + " key " + key + ". Reason: TIME OUT");
+      }
+
+      return TIME_OUT;
+    } catch (Exception e) {
+      if (debug) {
+        System.err.println("Unable to " + (Thread.currentThread().getStackTrace()[2]
+            .getMethodName().equals("update") ? "update" : "insert") + " key " + key + ". Reason: " + e.toString());
+      }
+
+      return Status.ERROR;
+    }
+
+    return Status.OK;
+  }
+
+  /**
+   * Define a class to permit object substitution within the update operation, following the same, identical steps
+   * made in an insert operation. This is needed for strong-consistent updates.
+   */
+  private static final class UpdateEntity extends UpdateValue.Update<RiakObject> {
+    private final RiakObject object;
+
+    private UpdateEntity(RiakObject e) {
+      this.object = e;
+    }
+
+    /* Simply returns the object.
+     */
+    @Override
+    public RiakObject apply(RiakObject original) {
+      return object;
+    }
+  }
+
+  /**
+   * Update a record in the database. Any field/value pairs in the specified values
+   * HashMap will be written into the record with the specified
+   * record key, overwriting any existing values with the same field name.
+   *
+   * @param table  The name of the table (Riak bucket)
+   * @param key    The record key of the record to write.
+   * @param values A HashMap of field/value pairs to update in the record
+   * @return Zero on success, a non-zero error code on error
+   */
+  @Override
+  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+    if (!strongConsistency) {
+      return insert(table, key, values);
+    }
+
+    Location location = new Location(new Namespace(bucketType, table), key);
+    RiakObject object = new RiakObject();
+
+    object.setValue(BinaryValue.create(serializeTable(values)));
+    object.getIndexes().getIndex(LongIntIndex.named("key_int")).add(getKeyAsLong(key));
+
+    UpdateValue update = new UpdateValue.Builder(location)
+        .withFetchOption(FetchValue.Option.DELETED_VCLOCK, true)
+        .withStoreOption(Option.W, wQuorumValue)
+        .withUpdate(new UpdateEntity(object))
+        .build();
+
+    RiakFuture<UpdateValue.Response, Location> future = riakClient.executeAsync(update);
+
+    try {
+      future.get(transactionTimeLimit, TimeUnit.SECONDS);
+    } catch (TimeoutException e) {
+      if (debug) {
+        System.err.println("Unable to update key " + key + ". Reason: TIME OUT");
+      }
+
+      return TIME_OUT;
+    } catch (Exception e) {
+      if (debug) {
+        System.err.println("Unable to update key " + key + ". Reason: " + e.toString());
+      }
+
+      return Status.ERROR;
+    }
+
+    return Status.OK;
+  }
+
+
+  /**
+   * Delete a record from the database.
+   *
+   * @param table The name of the table (Riak bucket)
+   * @param key   The record key of the record to delete.
+   * @return Zero on success, a non-zero error code on error
+   */
+  @Override
+  public Status delete(String table, String key) {
+    Location location = new Location(new Namespace(bucketType, table), key);
+    DeleteValue dv = new DeleteValue.Builder(location).build();
+
+    RiakFuture<Void, Location> future = riakClient.executeAsync(dv);
+
+    try {
+      future.get(transactionTimeLimit, TimeUnit.SECONDS);
+    } catch (TimeoutException e) {
+      if (debug) {
+        System.err.println("Unable to delete key " + key + ". Reason: TIME OUT");
+      }
+
+      return TIME_OUT;
+    } catch (Exception e) {
+      if (debug) {
+        System.err.println("Unable to delete key " + key + ". Reason: " + e.toString());
+      }
+
+      return Status.ERROR;
+    }
+
+    return Status.OK;
+  }
+
+  public void cleanup() throws DBException {
+    try {
+      riakCluster.shutdown();
+    } catch (Exception e) {
+      System.err.println("Unable to properly shutdown the cluster. Reason: " + e.toString());
+      throw new DBException(e);
+    }
+  }
+}

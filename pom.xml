@@ -91,6 +91,7 @@ LICENSE file.
     <hypertable.version>0.9.5.6</hypertable.version>
     <couchbase.version>1.4.10</couchbase.version>
     <tarantool.version>1.6.5</tarantool.version>
+    <riak.version>2.0.5</riak.version>
     <aerospike.version>3.1.2</aerospike.version>
     <solr.version>5.4.0</solr.version>
   </properties>
@@ -105,7 +106,6 @@ LICENSE file.
     <module>cassandra</module>
     <module>cassandra2</module>
     <module>couchbase</module>
-    <module>distribution</module>
     <module>dynamodb</module>
     <module>elasticsearch</module>
     <module>geode</module>
@@ -123,9 +123,11 @@ LICENSE file.
     <module>nosqldb</module>
     <module>orientdb</module>
     <module>redis</module>
+    <module>riak</module>
     <module>s3</module>
     <module>solr</module>
     <module>tarantool</module>
+    <module>distribution</module>
     <!--<module>voldemort</module>-->
   </modules>
 
