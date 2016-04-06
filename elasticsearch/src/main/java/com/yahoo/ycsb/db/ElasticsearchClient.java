@@ -58,10 +58,10 @@ import java.util.Vector;
  * Default properties to set:
  * </p>
  * <ul>
- * <li>cluster.name = es.ycsb.cluster
+ * <li>es.cluster.name = es.ycsb.cluster
  * <li>es.index.key = es.ycsb
- * <li>elasticsearch.number_of_shards = 1
- * <li>elasticsearch.number_of_replicas = 0
+ * <li>es.number_of_shards = 1
+ * <li>es.number_of_replicas = 0
  * </ul>
  */
 public class ElasticsearchClient extends DB {
@@ -85,18 +85,19 @@ public class ElasticsearchClient extends DB {
     Properties props = getProperties();
     this.indexKey = props.getProperty("es.index.key", DEFAULT_INDEX_KEY);
     String clusterName =
-        props.getProperty("cluster.name", DEFAULT_CLUSTER_NAME);
+        props.getProperty("es.cluster.name", DEFAULT_CLUSTER_NAME);
 
-    int numberOfShards = parseIntegerProperty(props, "elasticsearch.number_of_shards", NUMBER_OF_SHARDS);
-    int numberOfReplicas = parseIntegerProperty(props, "elasticsearch.number_of_replicas", NUMBER_OF_REPLICAS);
+    int numberOfShards = parseIntegerProperty(props, "es.number_of_shards", NUMBER_OF_SHARDS);
+    int numberOfReplicas = parseIntegerProperty(props, "es.number_of_replicas", NUMBER_OF_REPLICAS);
 
     // Check if transport client needs to be used (To connect to multiple
     // elasticsearch nodes)
     remoteMode = Boolean
-        .parseBoolean(props.getProperty("elasticsearch.remote", "false"));
+        .parseBoolean(props.getProperty("es.remote", "false"));
     Boolean newdb =
-        Boolean.parseBoolean(props.getProperty("elasticsearch.newdb", "false"));
+        Boolean.parseBoolean(props.getProperty("es.newdb", "false"));
     Builder settings = Settings.settingsBuilder()
+        .put("cluster.name", clusterName)
         .put("node.local", Boolean.toString(!remoteMode))
         .put("path.home", System.getProperty("java.io.tmpdir"));
 
@@ -116,10 +117,10 @@ public class ElasticsearchClient extends DB {
           .put("client.transport.nodes_sampler_interval", "30s");
       // Default it to localhost:9300
       String[] nodeList =
-          props.getProperty("elasticsearch.hosts.list", DEFAULT_REMOTE_HOST)
+          props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST)
               .split(",");
       System.out.println("Elasticsearch Remote Hosts = "
-          + props.getProperty("elasticsearch.hosts.list", DEFAULT_REMOTE_HOST));
+          + props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST));
       TransportClient tClient = TransportClient.builder()
                                   .settings(settings).build();
       for (String h : nodeList) {
