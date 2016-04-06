@@ -22,7 +22,6 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.elasticsearch.index.query.QueryBuilders.rangeQuery;
 import static org.elasticsearch.node.NodeBuilder.nodeBuilder;
 
-
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
@@ -84,18 +83,15 @@ public class ElasticsearchClient extends DB {
   public void init() throws DBException {
     Properties props = getProperties();
     this.indexKey = props.getProperty("es.index.key", DEFAULT_INDEX_KEY);
-    String clusterName =
-        props.getProperty("es.cluster.name", DEFAULT_CLUSTER_NAME);
+    String clusterName = props.getProperty("es.cluster.name", DEFAULT_CLUSTER_NAME);
 
     int numberOfShards = parseIntegerProperty(props, "es.number_of_shards", NUMBER_OF_SHARDS);
     int numberOfReplicas = parseIntegerProperty(props, "es.number_of_replicas", NUMBER_OF_REPLICAS);
 
     // Check if transport client needs to be used (To connect to multiple
     // elasticsearch nodes)
-    remoteMode = Boolean
-        .parseBoolean(props.getProperty("es.remote", "false"));
-    Boolean newdb =
-        Boolean.parseBoolean(props.getProperty("es.newdb", "false"));
+    remoteMode = Boolean.parseBoolean(props.getProperty("es.remote", "false"));
+    Boolean newdb = Boolean.parseBoolean(props.getProperty("es.newdb", "false"));
     Builder settings = Settings.settingsBuilder()
         .put("cluster.name", clusterName)
         .put("node.local", Boolean.toString(!remoteMode))
@@ -104,10 +100,8 @@ public class ElasticsearchClient extends DB {
     // if properties file contains elasticsearch user defined properties
     // add it to the settings file (will overwrite the defaults).
     settings.put(props);
-    System.out.println(
-        "Elasticsearch starting node = " + settings.get("cluster.name"));
-    System.out
-        .println("Elasticsearch node path.home = " + settings.get("path.home"));
+    System.out.println("Elasticsearch starting node = " + settings.get("cluster.name"));
+    System.out.println("Elasticsearch node path.home = " + settings.get("path.home"));
     System.out.println("Elasticsearch Remote Mode = " + remoteMode);
     // Remote mode support for connecting to remote elasticsearch cluster
     if (remoteMode) {
@@ -116,13 +110,9 @@ public class ElasticsearchClient extends DB {
           .put("client.transport.ping_timeout", "30s")
           .put("client.transport.nodes_sampler_interval", "30s");
       // Default it to localhost:9300
-      String[] nodeList =
-          props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST)
-              .split(",");
-      System.out.println("Elasticsearch Remote Hosts = "
-          + props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST));
-      TransportClient tClient = TransportClient.builder()
-                                  .settings(settings).build();
+      String[] nodeList = props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST).split(",");
+      System.out.println("Elasticsearch Remote Hosts = " + props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST));
+      TransportClient tClient = TransportClient.builder().settings(settings).build();
       for (String h : nodeList) {
         String[] nodes = h.split(":");
         try {
@@ -200,15 +190,13 @@ public class ElasticsearchClient extends DB {
     try {
       final XContentBuilder doc = jsonBuilder().startObject();
 
-      for (Entry<String, String> entry : StringByteIterator.getStringMap(values)
-          .entrySet()) {
+      for (Entry<String, String> entry : StringByteIterator.getStringMap(values).entrySet()) {
         doc.field(entry.getKey(), entry.getValue());
       }
 
       doc.endObject();
 
-      client.prepareIndex(indexKey, table, key).setSource(doc).execute()
-          .actionGet();
+      client.prepareIndex(indexKey, table, key).setSource(doc).execute().actionGet();
 
       return Status.OK;
     } catch (Exception e) {
@@ -256,8 +244,7 @@ public class ElasticsearchClient extends DB {
   public Status read(String table, String key, Set<String> fields,
       HashMap<String, ByteIterator> result) {
     try {
-      final GetResponse response =
-          client.prepareGet(indexKey, table, key).execute().actionGet();
+      final GetResponse response = client.prepareGet(indexKey, table, key).execute().actionGet();
 
       if (response.isExists()) {
         if (fields != null) {
@@ -297,17 +284,14 @@ public class ElasticsearchClient extends DB {
   public Status update(String table, String key,
       HashMap<String, ByteIterator> values) {
     try {
-      final GetResponse response =
-          client.prepareGet(indexKey, table, key).execute().actionGet();
+      final GetResponse response = client.prepareGet(indexKey, table, key).execute().actionGet();
 
       if (response.isExists()) {
-        for (Entry<String, String> entry : StringByteIterator
-            .getStringMap(values).entrySet()) {
+        for (Entry<String, String> entry : StringByteIterator.getStringMap(values).entrySet()) {
           response.getSource().put(entry.getKey(), entry.getValue());
         }
 
-        client.prepareIndex(indexKey, table, key)
-            .setSource(response.getSource()).execute().actionGet();
+        client.prepareIndex(indexKey, table, key).setSource(response.getSource()).execute().actionGet();
 
         return Status.OK;
       }
@@ -351,11 +335,10 @@ public class ElasticsearchClient extends DB {
       HashMap<String, ByteIterator> entry;
 
       for (SearchHit hit : response.getHits()) {
-        entry = new HashMap<String, ByteIterator>(fields.size());
+        entry = new HashMap<>(fields.size());
 
         for (String field : fields) {
-          entry.put(field,
-              new StringByteIterator((String) hit.getSource().get(field)));
+          entry.put(field, new StringByteIterator((String) hit.getSource().get(field)));
         }
 
         result.add(entry);
