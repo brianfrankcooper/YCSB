@@ -94,7 +94,6 @@ public class ElasticsearchClient extends DB {
     Builder settings = Settings.settingsBuilder()
         .put("node.local", "true")
         .put("path.data", System.getProperty("java.io.tmpdir") + "/esdata")
-        .put("discovery.zen.ping.multicast.enabled", "false")
         .put("index.mapping._id.indexed", "true")
         .put("index.gateway.type", "none")
         .put("index.number_of_shards", "1")
