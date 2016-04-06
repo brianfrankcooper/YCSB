@@ -30,6 +30,7 @@ import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
@@ -94,9 +95,6 @@ public class ElasticsearchClient extends DB {
     Builder settings = Settings.settingsBuilder()
         .put("node.local", "true")
         .put("path.data", System.getProperty("java.io.tmpdir") + "/esdata")
-        .put("index.mapping._id.indexed", "true")
-        .put("index.number_of_shards", "1")
-        .put("index.number_of_replicas", "0")
         .put("path.home", System.getProperty("java.io.tmpdir"));
 
     // if properties file contains elasticsearch user defined properties
@@ -141,20 +139,23 @@ public class ElasticsearchClient extends DB {
       client = node.client();
     }
 
-    //wait for shards to be ready
-    client.admin().cluster()
-      .health(new ClusterHealthRequest("lists").waitForActiveShards(1))
-      .actionGet();
-    if (newdb) {
+    final boolean exists =
+            client.admin().indices()
+                    .exists(Requests.indicesExistsRequest(indexKey)).actionGet()
+                    .isExists();
+    if (exists && newdb) {
       client.admin().indices().prepareDelete(indexKey).execute().actionGet();
-      client.admin().indices().prepareCreate(indexKey).execute().actionGet();
-    } else {
-      boolean exists = client.admin().indices()
-          .exists(Requests.indicesExistsRequest(indexKey)).actionGet()
-          .isExists();
-      if (!exists) {
-        client.admin().indices().prepareCreate(indexKey).execute().actionGet();
-      }
+    }
+    if (!exists || newdb) {
+      client.admin().indices().create(
+              new CreateIndexRequest(indexKey)
+                      .settings(
+                              Settings.builder()
+                                      .put("index.number_of_shards", 1)
+                                      .put("index.number_of_replicas", 0)
+                                      .put("index.mapping._id.indexed", true)
+                      )).actionGet();
+      client.admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet();
     }
   }
 
