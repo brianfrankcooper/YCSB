@@ -64,9 +64,9 @@ import java.util.Vector;
  */
 public class ElasticsearchClient extends DB {
 
-  public static final String DEFAULT_CLUSTER_NAME = "es.ycsb.cluster";
-  public static final String DEFAULT_INDEX_KEY = "es.ycsb";
-  public static final String DEFAULT_REMOTE_HOST = "localhost:9300";
+  private static final String DEFAULT_CLUSTER_NAME = "es.ycsb.cluster";
+  private static final String DEFAULT_INDEX_KEY = "es.ycsb";
+  private static final String DEFAULT_REMOTE_HOST = "localhost:9300";
   private Node node;
   private Client client;
   private String indexKey;
