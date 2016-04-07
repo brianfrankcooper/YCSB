@@ -100,9 +100,9 @@ public class ElasticsearchClient extends DB {
     // add it to the settings file (will overwrite the defaults).
     settings.put(props);
     final String clusterName = settings.get("cluster.name");
-    System.out.println("Elasticsearch starting node = " + clusterName);
-    System.out.println("Elasticsearch node path.home = " + settings.get("path.home"));
-    System.out.println("Elasticsearch Remote Mode = " + remoteMode);
+    System.err.println("Elasticsearch starting node = " + clusterName);
+    System.err.println("Elasticsearch node path.home = " + settings.get("path.home"));
+    System.err.println("Elasticsearch Remote Mode = " + remoteMode);
     // Remote mode support for connecting to remote elasticsearch cluster
     if (remoteMode) {
       settings.put("client.transport.sniff", true)
