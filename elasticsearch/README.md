@@ -42,7 +42,7 @@ For further configuration see below:
 ### Defaults Configuration
 The default setting for the Elasticsearch node that is created is as follows:
 
-    es.cluster.name=es.ycsb.cluster
+    cluster.name=es.ycsb.cluster
     es.index.key=es.ycsb
     es.number_of_shards=1
     es.number_of_replicas=0

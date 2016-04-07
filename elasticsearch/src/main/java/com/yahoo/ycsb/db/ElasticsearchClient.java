@@ -57,7 +57,7 @@ import java.util.Vector;
  * Default properties to set:
  * </p>
  * <ul>
- * <li>es.cluster.name = es.ycsb.cluster
+ * <li>cluster.name = es.ycsb.cluster
  * <li>es.index.key = es.ycsb
  * <li>es.number_of_shards = 1
  * <li>es.number_of_replicas = 0
@@ -83,7 +83,6 @@ public class ElasticsearchClient extends DB {
   public void init() throws DBException {
     Properties props = getProperties();
     this.indexKey = props.getProperty("es.index.key", DEFAULT_INDEX_KEY);
-    String clusterName = props.getProperty("es.cluster.name", DEFAULT_CLUSTER_NAME);
 
     int numberOfShards = parseIntegerProperty(props, "es.number_of_shards", NUMBER_OF_SHARDS);
     int numberOfReplicas = parseIntegerProperty(props, "es.number_of_replicas", NUMBER_OF_REPLICAS);
@@ -93,14 +92,15 @@ public class ElasticsearchClient extends DB {
     remoteMode = Boolean.parseBoolean(props.getProperty("es.remote", "false"));
     Boolean newdb = Boolean.parseBoolean(props.getProperty("es.newdb", "false"));
     Builder settings = Settings.settingsBuilder()
-        .put("cluster.name", clusterName)
+        .put("cluster.name", DEFAULT_CLUSTER_NAME)
         .put("node.local", Boolean.toString(!remoteMode))
         .put("path.home", System.getProperty("java.io.tmpdir"));
 
     // if properties file contains elasticsearch user defined properties
     // add it to the settings file (will overwrite the defaults).
     settings.put(props);
-    System.out.println("Elasticsearch starting node = " + settings.get("cluster.name"));
+    final String clusterName = settings.get("cluster.name");
+    System.out.println("Elasticsearch starting node = " + clusterName);
     System.out.println("Elasticsearch node path.home = " + settings.get("path.home"));
     System.out.println("Elasticsearch Remote Mode = " + remoteMode);
     // Remote mode support for connecting to remote elasticsearch cluster
