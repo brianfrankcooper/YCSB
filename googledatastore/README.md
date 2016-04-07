@@ -20,7 +20,7 @@ LICENSE file.
 
 https://cloud.google.com/datastore/docs/concepts/overview?hl=en
 
-Please refer to https://cloud.google.com/datastore/docs/apis/overview for more information on
+Please refer [here] (https://cloud.google.com/datastore/docs/apis/overview) for more information on
 Google Cloud Datastore API.
 
 ## Configure
