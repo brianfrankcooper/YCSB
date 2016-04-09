@@ -61,6 +61,7 @@ DATABASES = {
     "dynamodb"     : "com.yahoo.ycsb.db.DynamoDBClient",
     "elasticsearch": "com.yahoo.ycsb.db.ElasticsearchClient",
     "geode"        : "com.yahoo.ycsb.db.GeodeClient",
+    "googlebigtable"  : "com.yahoo.ycsb.db.GoogleBigtableClient",
     "googledatastore" : "com.yahoo.ycsb.db.GoogleDatastoreClient",
     "hbase094"     : "com.yahoo.ycsb.db.HBaseClient",
     "hbase098"     : "com.yahoo.ycsb.db.HBaseClient",
