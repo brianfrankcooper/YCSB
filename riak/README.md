@@ -36,6 +36,7 @@ Create a bucket type named "ycsb"<sup id="a1">[1](#f1)</sup> by logging into one
 Then, if you want to use the <i>strong consistency model</i> (default), you have to follow the next two steps.
 
 1) In every `riak.conf` file, search for the `##strong_consistency=on` line and uncomment it. It is important that you do this <b>before you start your cluster</b>!
+
 2) Run the following riak-admin commands:
 
     ```
