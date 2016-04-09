@@ -1,27 +1,26 @@
-/*
- * Copyright 2016 nygard_89
+/**
+ * Copyright (c) 2016 YCSB contributors All rights reserved.
  * Copyright 2014 Basho Technologies, Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
  */
+
 package com.yahoo.ycsb.db;
 
 import com.basho.riak.client.api.commands.kv.UpdateValue;
 import com.basho.riak.client.core.RiakFuture;
-import com.yahoo.ycsb.DB;
-import com.yahoo.ycsb.DBException;
-import com.yahoo.ycsb.Status;
-import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,13 +43,12 @@ import com.basho.riak.client.core.query.RiakObject;
 import com.basho.riak.client.core.query.indexes.LongIntIndex;
 import com.basho.riak.client.core.util.BinaryValue;
 
+import static com.yahoo.ycsb.db.RiakUtils.deserializeTable;
 import static com.yahoo.ycsb.db.RiakUtils.getKeyAsLong;
 import static com.yahoo.ycsb.db.RiakUtils.serializeTable;
 
-
 /**
- * @author nygard_89
- * @author Basho Technologies, Inc.
+ * Riak KV 2.0.x client for YCSB framework.
  *
  */
 public final class RiakKVClient extends DB {
@@ -71,8 +69,8 @@ public final class RiakKVClient extends DB {
   private String[] hosts;
   private int port;
   private String bucketType;
-  private Quorum rQuorumValue;
-  private Quorum wQuorumValue;
+  private Quorum rvalue;
+  private Quorum wvalue;
   private int readRetryCount;
   private int waitTimeBeforeRetry;
   private int transactionTimeLimit;
@@ -95,8 +93,8 @@ public final class RiakKVClient extends DB {
     hosts = propsPF.getProperty(HOST_PROPERTY).split(",");
     port = Integer.parseInt(propsPF.getProperty(PORT_PROPERTY));
     bucketType = propsPF.getProperty(BUCKET_TYPE_PROPERTY);
-    rQuorumValue = new Quorum(Integer.parseInt(propsPF.getProperty(R_VALUE_PROPERTY)));
-    wQuorumValue = new Quorum(Integer.parseInt(propsPF.getProperty(W_VALUE_PROPERTY)));
+    rvalue = new Quorum(Integer.parseInt(propsPF.getProperty(R_VALUE_PROPERTY)));
+    wvalue = new Quorum(Integer.parseInt(propsPF.getProperty(W_VALUE_PROPERTY)));
     readRetryCount = Integer.parseInt(propsPF.getProperty(READ_RETRY_COUNT_PROPERTY));
     waitTimeBeforeRetry = Integer.parseInt(propsPF.getProperty(WAIT_TIME_BEFORE_RETRY_PROPERTY));
     transactionTimeLimit = Integer.parseInt(propsPF.getProperty(TRANSACTION_TIME_LIMIT_PROPERTY));
@@ -124,14 +122,14 @@ public final class RiakKVClient extends DB {
       bucketType = bucketTypeString;
     }
 
-    String rQuorumValueString = props.getProperty(R_VALUE_PROPERTY);
-    if (rQuorumValueString != null) {
-      rQuorumValue = new Quorum(Integer.parseInt(rQuorumValueString));
+    String rValueString = props.getProperty(R_VALUE_PROPERTY);
+    if (rValueString != null) {
+      rvalue = new Quorum(Integer.parseInt(rValueString));
     }
 
-    String wQuorumValueString = props.getProperty(W_VALUE_PROPERTY);
-    if (wQuorumValueString != null) {
-      wQuorumValue = new Quorum(Integer.parseInt(wQuorumValueString));
+    String wValueString = props.getProperty(W_VALUE_PROPERTY);
+    if (wValueString != null) {
+      wvalue = new Quorum(Integer.parseInt(wValueString));
     }
 
     String readRetryCountString = props.getProperty(READ_RETRY_COUNT_PROPERTY);
@@ -164,17 +162,17 @@ public final class RiakKVClient extends DB {
     loadProperties();
 
     if (debug) {
-      System.out.println("DEBUG ENABLED. Configuration parameters:");
-      System.out.println("-----------------------------------------");
-      System.out.println("Hosts: " + Arrays.toString(hosts));
-      System.out.println("Port: " + port);
-      System.out.println("Bucket Type: " + bucketType);
-      System.out.println("R Quorum Value: " + rQuorumValue.toString());
-      System.out.println("W Quorum Value: " + wQuorumValue.toString());
-      System.out.println("Read Retry Count: " + readRetryCount);
-      System.out.println("Wait Time Before Retry: " + waitTimeBeforeRetry + " ms");
-      System.out.println("Transaction Time Limit: " + transactionTimeLimit + " s");
-      System.out.println("Consistency model: " + (strongConsistency ? "Strong" : "Eventual"));
+      System.err.println("DEBUG ENABLED. Configuration parameters:");
+      System.err.println("-----------------------------------------");
+      System.err.println("Hosts: " + Arrays.toString(hosts));
+      System.err.println("Port: " + port);
+      System.err.println("Bucket Type: " + bucketType);
+      System.err.println("R Val: " + rvalue.toString());
+      System.err.println("W Val: " + wvalue.toString());
+      System.err.println("Read Retry Count: " + readRetryCount);
+      System.err.println("Wait Time Before Retry: " + waitTimeBeforeRetry + " ms");
+      System.err.println("Transaction Time Limit: " + transactionTimeLimit + " s");
+      System.err.println("Consistency model: " + (strongConsistency ? "Strong" : "Eventual"));
     }
 
     RiakNode.Builder builder = new RiakNode.Builder().withRemotePort(port);
@@ -202,10 +200,11 @@ public final class RiakKVClient extends DB {
   @Override
   public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
     Location location = new Location(new Namespace(bucketType, table), key);
-    FetchValue fv = new FetchValue.Builder(location).withOption(FetchValue.Option.R, rQuorumValue).build();
+    FetchValue fv = new FetchValue.Builder(location).withOption(FetchValue.Option.R, rvalue).build();
+    FetchValue.Response response;
 
     try {
-      FetchValue.Response response = fetch(fv);
+      response = fetch(fv);
 
       if (response.isNotFound()) {
         if (debug) {
@@ -228,9 +227,10 @@ public final class RiakKVClient extends DB {
       return Status.ERROR;
     }
 
+    result.put(key, getFields(fields, response));
+
     return Status.OK;
   }
-
 
   /**
    * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in
@@ -251,7 +251,7 @@ public final class RiakKVClient extends DB {
     Namespace ns = new Namespace(bucketType, table);
 
     IntIndexQuery iiq = new IntIndexQuery
-        .Builder(ns, "key", getKeyAsLong(startkey), 999999999999999999L)
+        .Builder(ns, "key", getKeyAsLong(startkey), Long.MAX_VALUE)
         .withMaxResults(recordcount)
         .withPaginationSort(true)
         .build();
@@ -264,31 +264,37 @@ public final class RiakKVClient extends DB {
 
       for (IntIndexQuery.Response.Entry entry : entries) {
         Location location = entry.getRiakObjectLocation();
+
         FetchValue fv = new FetchValue.Builder(location)
-            .withOption(FetchValue.Option.R, rQuorumValue)
+            .withOption(FetchValue.Option.R, rvalue)
             .build();
 
         FetchValue.Response keyResponse = fetch(fv);
 
         if (keyResponse.isNotFound()) {
           if (debug) {
-            System.err.println("Unable to scan starting from key " + startkey + ", aborting transaction. Reason: NOT " +
-                "FOUND");
+            System.err.println("Unable to scan all records starting from key " + startkey + ", aborting transaction. " +
+                "Reason: NOT FOUND");
           }
 
           return Status.NOT_FOUND;
         }
+
+        HashMap<String, ByteIterator> partialResult = new HashMap<>();
+        partialResult.put(location.getKeyAsString(), getFields(fields, keyResponse));
+        result.add(partialResult);
       }
     } catch (TimeoutException e) {
       if (debug) {
-        System.err.println("Unable to scan starting from key " + startkey + ", aborting transaction. Reason: TIME OUT");
+        System.err.println("Unable to scan all records starting from key " + startkey + ", aborting transaction. " +
+            "Reason: TIME OUT");
       }
 
       return TIME_OUT;
     } catch (Exception e) {
       if (debug) {
-        System.err.println("Unable to scan starting from key " + startkey + ", aborting transaction. Reason: " +
-            e.toString());
+        System.err.println("Unable to scan all records starting from key " + startkey + ", aborting transaction. " +
+            "Reason: " + e.toString());
       }
 
       return Status.ERROR;
@@ -334,6 +340,49 @@ public final class RiakKVClient extends DB {
   }
 
   /**
+   * Function that retrieves all the fields searched within a read or scan operation.
+   *
+   * @param fields   The list of fields to read, or null for all of them
+   * @param response A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
+   * @return A ByteIterator containing all the values that correspond to the fields provided.
+   */
+  private ByteIterator getFields(Set<String> fields, FetchValue.Response response) {
+    // If everything went fine, then a result must be given. Such an object is an hash table containing the (key,
+    // value) pairs based on the requested fields. Note that in a read operation, ONLY ONE OBJECT IS RETRIEVED!
+    byte[] responseFieldsAndValues = response.getValues().get(0).getValue().getValue();
+    ByteIterator valuesToPut;
+
+    // If only specific field are requested, then only these should be put in the result object!
+    if (fields != null) {
+      HashMap<String, ByteIterator> deserializedTable = new HashMap<>();
+      deserializeTable(responseFieldsAndValues, deserializedTable);
+
+      // Instantiate a new HashMap for returning only the requested fields.
+      HashMap<String, ByteIterator> returnMap = new HashMap<>();
+
+      // Build the return HashMap to provide as result.
+      for (Object field : fields.toArray()) {
+        // Comparison between a requested field and the ones retrieved: if they're equal, then proceed to store the
+        // couple in the returnMap.
+        ByteIterator value = deserializedTable.get(field);
+
+        if (value != null) {
+          returnMap.put((String) field, value);
+        }
+      }
+
+      // Finally, convert the returnMap to a byte array.
+      valuesToPut = new ByteArrayByteIterator(serializeTable(returnMap));
+    } else {
+      // If, instead, no field is specified, then all the ones retrieved must be provided as result.
+      valuesToPut = new ByteArrayByteIterator(responseFieldsAndValues);
+    }
+
+    // Results.
+    return valuesToPut;
+  }
+
+  /**
    * Insert a record in the database. Any field/value pairs in the specified values HashMap
    * will be written into the record with the specified record key. Also creates a
    * secondary index (2i) for each record consisting of the key converted to long to be used
@@ -354,7 +403,7 @@ public final class RiakKVClient extends DB {
 
     StoreValue store = new StoreValue.Builder(object)
         .withLocation(location)
-        .withOption(Option.W, wQuorumValue)
+        .withOption(Option.W, wvalue)
         .build();
 
     RiakFuture<StoreValue.Response, Location> future = riakClient.executeAsync(store);
@@ -423,7 +472,7 @@ public final class RiakKVClient extends DB {
 
     UpdateValue update = new UpdateValue.Builder(location)
         .withFetchOption(FetchValue.Option.DELETED_VCLOCK, true)
-        .withStoreOption(Option.W, wQuorumValue)
+        .withStoreOption(Option.W, wvalue)
         .withUpdate(new UpdateEntity(object))
         .build();
 

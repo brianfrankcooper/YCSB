@@ -106,6 +106,7 @@ LICENSE file.
     <module>cassandra</module>
     <module>cassandra2</module>
     <module>couchbase</module>
+    <module>distribution</module>
     <module>dynamodb</module>
     <module>elasticsearch</module>
     <module>geode</module>
@@ -127,7 +128,6 @@ LICENSE file.
     <module>s3</module>
     <module>solr</module>
     <module>tarantool</module>
-    <module>distribution</module>
     <!--<module>voldemort</module>-->
   </modules>
 

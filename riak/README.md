@@ -1,3 +1,21 @@
+<!--
+Copyright (c) 2016 YCSB contributors. All rights reserved.
+Copyright 2014 Basho Technologies, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you
+may not use this file except in compliance with the License. You
+may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+implied. See the License for the specific language governing
+permissions and limitations under the License. See accompanying
+LICENSE file.
+-->
+
 Riak KV Client for Yahoo! Cloud System Benchmark (YCSB)
 --------------------------------------------------------
 
@@ -8,25 +26,28 @@ Creating a <i>bucket type</i> to use with YCSB
 
 Perform the following operations on your Riak cluster to configure it for the benchmarks.
 
-Set the default backend for Riak to <i>LevelDB</i> in `riak.conf` (required to support <i>secondary indexes</i> used for the <b>scan</b> workloads):
+Set the default backend for Riak to <i>LevelDB</i> in the `riak.conf` file of every node of your cluster. This is required to support <i>secondary indexes</i>, which are used for the `scan` transactions. You can do this by modifying the proper line as shown below.
 
 ```
 storage_backend = leveldb
 ```
 
-Create a bucket type named "ycsb"<sup id="a1">[1](#f1)</sup> by logging into one of the nodes in your cluster. Then if you want to use the
+Create a bucket type named "ycsb"<sup id="a1">[1](#f1)</sup> by logging into one of the nodes in your cluster. 
+Then, if you want to use the <i>strong consistency model</i> (default), you have to follow the next two steps.
 
-* <i>default consistency model</i> (i.e. eventual), run the following riak-admin commands:
+1) In every `riak.conf` file, search for the `##strong_consistency=on` line and uncomment it. It is important that you do this <b>before you start your cluster</b>!
+2) Run the following riak-admin commands:
+
+    ```
+    riak-admin bucket-type create ycsb '{"props":{"allow_mult":"false","consistent":true}}'
+    riak-admin bucket-type activate ycsb
+    ```
+    
+
+If instead you want to use the <i>eventual consistency model</i> implemented in Riak, then type:
 
 ```
 riak-admin bucket-type create ycsb '{"props":{"allow_mult":"false"}}'
-riak-admin bucket-type activate ycsb
-```
-
-* <i>strong consistency model</i>, type:
-
-```
-riak-admin bucket-type create ycsb '{"props":{"allow_mult":"false","consistent":true}}'
 riak-admin bucket-type activate ycsb
 ```
 Note that you may want to specify the number of replicas to create for each object. To do so, you can add `"n_val":N` to the list of properties shown above (by default `N` is set to 3).
