@@ -149,8 +149,8 @@ public class ElasticsearchClient extends DB {
                                       .put("index.number_of_replicas", numberOfReplicas)
                                       .put("index.mapping._id.indexed", true)
                       )).actionGet();
-      client.admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet();
     }
+    client.admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet();
   }
 
   private int parseIntegerProperty(Properties properties, String key, int defaultValue) {
