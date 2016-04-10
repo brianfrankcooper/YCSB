@@ -74,8 +74,8 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
   private static final String ASYNC_MAX_INFLIGHT_RPCS = "mutatorMaxInflightRPCs";
   private static final String CLIENT_SIDE_BUFFERING = "clientbuffering";
   
-  /** Must be an object for synchronization and tracking running thread counts. */ 
-  private static Integer threadCount = 0;
+  /** Tracks running thread counts so we know when to close the session. */ 
+  private static int threadCount = 0;
   
   /** This will load the hbase-site.xml config file and/or store CLI options. */
   private static final Configuration CONFIG = HBaseConfiguration.create();
@@ -125,7 +125,7 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
     System.err.println("Running Google Bigtable with Proto API" +
          (clientSideBuffering ? " and client side buffering." : "."));
     
-    synchronized (threadCount) {
+    synchronized (CONFIG) {
       ++threadCount;
       if (session == null) {
         try {
@@ -176,7 +176,7 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
         throw new DBException(e);
       }
     }
-    synchronized (threadCount) {
+    synchronized (CONFIG) {
       --threadCount;
       if (threadCount <= 0) {
         try {
