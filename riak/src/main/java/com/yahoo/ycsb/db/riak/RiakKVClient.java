@@ -16,7 +16,7 @@
  * LICENSE file.
  */
 
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.riak;
 
 import com.basho.riak.client.api.commands.kv.UpdateValue;
 import com.basho.riak.client.core.RiakFuture;
@@ -43,9 +43,9 @@ import com.basho.riak.client.core.query.RiakObject;
 import com.basho.riak.client.core.query.indexes.LongIntIndex;
 import com.basho.riak.client.core.util.BinaryValue;
 
-import static com.yahoo.ycsb.db.RiakUtils.deserializeTable;
-import static com.yahoo.ycsb.db.RiakUtils.getKeyAsLong;
-import static com.yahoo.ycsb.db.RiakUtils.serializeTable;
+import static com.yahoo.ycsb.db.riak.RiakUtils.deserializeTable;
+import static com.yahoo.ycsb.db.riak.RiakUtils.getKeyAsLong;
+import static com.yahoo.ycsb.db.riak.RiakUtils.serializeTable;
 
 /**
  * Riak KV 2.0.x client for YCSB framework.
@@ -479,7 +479,10 @@ public final class RiakKVClient extends DB {
     RiakFuture<UpdateValue.Response, Location> future = riakClient.executeAsync(update);
 
     try {
-      future.get(transactionTimeLimit, TimeUnit.SECONDS);
+      // For some reason, the update transaction doesn't throw any exception when no cluster has been started, so one
+      // needs to check whether it was done or not. When calling the wasUpdated() function with no nodes available, a
+      // NullPointerException is thrown.
+      future.get(transactionTimeLimit, TimeUnit.SECONDS).wasUpdated();
     } catch (TimeoutException e) {
       if (debug) {
         System.err.println("Unable to update key " + key + ". Reason: TIME OUT");

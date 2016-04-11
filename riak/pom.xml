@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 Copyright (c) 2016 YCSB contributors. All rights reserved.
+Copyright 2014 Basho Technologies, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -47,12 +48,6 @@ LICENSE file.
             <artifactId>google-collections</artifactId>
             <version>1.0</version>
         </dependency>
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.12</version>
-        <scope>test</scope>
-      </dependency>
     </dependencies>
 
 </project>

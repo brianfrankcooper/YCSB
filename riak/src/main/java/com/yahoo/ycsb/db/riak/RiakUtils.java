@@ -16,7 +16,7 @@
  * LICENSE file.
  */
 
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.riak;
 
 import java.io.*;
 import java.util.Map;
