@@ -43,12 +43,7 @@ LICENSE file.
     <dependency>
       <groupId>com.google.cloud.datastore</groupId>
       <artifactId>datastore-v1beta3-proto-client</artifactId>
-      <version>0.0.1-SNAPSHOT</version>
-    </dependency>
-    <dependency>
-      <groupId>com.google.cloud.datastore</groupId>
-      <artifactId>datastore-v1beta3-protos</artifactId>
-      <version>0.0.1-SNAPSHOT</version>
+      <version>1.0.0-beta</version>
     </dependency>
     <dependency>
       <groupId>log4j</groupId>
