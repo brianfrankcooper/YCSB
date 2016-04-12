@@ -468,7 +468,7 @@ public final class RiakKVClient extends DB {
     object.getIndexes().getIndex(LongIntIndex.named("key_int")).add(getKeyAsLong(key));
 
     UpdateValue update = new UpdateValue.Builder(location)
-        .withFetchOption(FetchValue.Option.DELETED_VCLOCK, true)
+        .withFetchOption(FetchValue.Option.R, rvalue)
         .withStoreOption(Option.W, wvalue)
         .withUpdate(new UpdateEntity(object))
         .build();
@@ -479,6 +479,9 @@ public final class RiakKVClient extends DB {
       // For some reason, the update transaction doesn't throw any exception when no cluster has been started, so one
       // needs to check whether it was done or not. When calling the wasUpdated() function with no nodes available, a
       // NullPointerException is thrown.
+      // Moreover, such exception could be thrown when more threads are trying to update the same key or, more
+      // generally, when the system is being queried by many clients (i.e. overloaded). This is a known limitation of
+      // Riak KV's strong consistency implementation.
       future.get(transactionTimeLimit, TimeUnit.SECONDS).wasUpdated();
     } catch (TimeoutException e) {
       if (debug) {
