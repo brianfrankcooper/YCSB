@@ -38,10 +38,6 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.Vector;
 
-/**
- *
- * @author saden
- */
 public class ElasticsearchClientTest {
 
     protected final static ElasticsearchClient instance = new ElasticsearchClient();
