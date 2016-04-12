@@ -70,6 +70,12 @@ final class RiakUtils {
     }
   }
 
+  /**
+   * Serializes a Map, transforming the contained list of (String, ByteIterator) couples into a byte array.
+   *
+   * @param aTable A Map to serialize.
+   * @return A byte array containng the serialized table.
+     */
   static byte[] serializeTable(Map<String, ByteIterator> aTable) {
     final ByteArrayOutputStream anOutputStream = new ByteArrayOutputStream();
     final Set<Map.Entry<String, ByteIterator>> theEntries = aTable.entrySet();
@@ -94,6 +100,12 @@ final class RiakUtils {
     }
   }
 
+  /**
+   * Deserializes an input byte array, transforming it into a list of (String, ByteIterator) couples (i.e. a Map).
+   *
+   * @param aValue    A byte array containing the table to deserialize.
+   * @param theResult A Map containing the deserialized table.
+     */
   static void deserializeTable(final byte[] aValue, final Map<String, ByteIterator> theResult) {
     final ByteArrayInputStream anInputStream = new ByteArrayInputStream(aValue);
     byte[] aSizeBuffer = new byte[4];
@@ -121,6 +133,12 @@ final class RiakUtils {
     }
   }
 
+  /**
+   * Obtains a Long number from a key string. This will be the key used by Riak for all the transactions.
+   *
+   * @param key The key to convert from String to Long.
+   * @return A Long number parsed from the key String.
+     */
   static Long getKeyAsLong(String key) {
     String keyString = key.replaceFirst("[a-zA-Z]*", "");
 

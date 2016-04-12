@@ -235,7 +235,6 @@ public final class RiakKVClient extends DB {
   /**
    * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in
    * a HashMap.
-   * <p>
    * Note: The scan operation requires the use of secondary indexes (2i) and LevelDB.
    *
    * @param table       The name of the table (Riak bucket)
@@ -347,12 +346,12 @@ public final class RiakKVClient extends DB {
    * @return A ByteIterator containing all the values that correspond to the fields provided.
    */
   private ByteIterator getFields(Set<String> fields, FetchValue.Response response) {
-    // If everything went fine, then a result must be given. Such an object is an hash table containing the (key,
-    // value) pairs based on the requested fields. Note that in a read operation, ONLY ONE OBJECT IS RETRIEVED!
+    // If everything went fine, then a result must be given. Such an object is a hash table containing the (key, value)
+    // pairs based on the requested fields. Note that in a read operation, ONLY ONE OBJECT IS RETRIEVED!
     byte[] responseFieldsAndValues = response.getValues().get(0).getValue().getValue();
     ByteIterator valuesToPut;
 
-    // If only specific field are requested, then only these should be put in the result object!
+    // If only specific fields are requested, then only these should be put in the result object!
     if (fields != null) {
       HashMap<String, ByteIterator> deserializedTable = new HashMap<>();
       deserializeTable(responseFieldsAndValues, deserializedTable);
@@ -378,7 +377,7 @@ public final class RiakKVClient extends DB {
       valuesToPut = new ByteArrayByteIterator(responseFieldsAndValues);
     }
 
-    // Results.
+    // Return the results.
     return valuesToPut;
   }
 
@@ -430,18 +429,17 @@ public final class RiakKVClient extends DB {
   }
 
   /**
-   * Define a class to permit object substitution within the update operation, following the same, identical steps
-   * made in an insert operation. This is needed for strong-consistent updates.
+   * Auxiliary class needed for object substitution within the update operation. It is a fundamental part of the
+   * fetch-update (locally)-store cycle described by Basho to properly perform a strong-consistent update.
    */
   private static final class UpdateEntity extends UpdateValue.Update<RiakObject> {
     private final RiakObject object;
 
-    private UpdateEntity(RiakObject e) {
-      this.object = e;
+    private UpdateEntity(RiakObject object) {
+      this.object = object;
     }
 
-    /* Simply returns the object.
-     */
+    //Simply returns the object.
     @Override
     public RiakObject apply(RiakObject original) {
       return object;
@@ -449,9 +447,8 @@ public final class RiakKVClient extends DB {
   }
 
   /**
-   * Update a record in the database. Any field/value pairs in the specified values
-   * HashMap will be written into the record with the specified
-   * record key, overwriting any existing values with the same field name.
+   * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the
+   * record with the specified record key, overwriting any existing values with the same field name.
    *
    * @param table  The name of the table (Riak bucket)
    * @param key    The record key of the record to write.
