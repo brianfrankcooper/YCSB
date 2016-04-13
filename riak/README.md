@@ -19,7 +19,7 @@ LICENSE file.
 Riak KV Client for Yahoo! Cloud System Benchmark (YCSB)
 --------------------------------------------------------
 
-The Riak KV YCSB client is designed to work with the Yahoo! Cloud System Benchmark (YCSB) project (https://github.com/brianfrankcooper/YCSB) to support performance testing for the 2.0.X line of the Riak KV database.
+The Riak KV YCSB client is designed to work with the Yahoo! Cloud System Benchmark (YCSB) project (https://github.com/brianfrankcooper/YCSB) to support performance testing for the 2.x.y line of the Riak KV database.
 
 Creating a <i>bucket type</i> to use with YCSB
 ----------------------------
@@ -33,7 +33,14 @@ storage_backend = leveldb
 ```
 
 Create a bucket type named "ycsb"<sup id="a1">[1](#f1)</sup> by logging into one of the nodes in your cluster. 
-Then, if you want to use the <i>strong consistency model</i> (default), you have to follow the next two steps.
+Then, if you want to use the <i>eventual consistency model</i> (default), you have to follow the next two steps.
+
+```
+riak-admin bucket-type create ycsb '{"props":{"allow_mult":"false"}}'
+riak-admin bucket-type activate ycsb
+```
+
+If instead you want to use the <i>strong consistency model</i> implemented in Riak, then type:
 
 1) In every `riak.conf` file, search for the `##strong_consistency=on` line and uncomment it. It is important that you do this <b>before you start your cluster</b>!
 
@@ -43,14 +50,7 @@ Then, if you want to use the <i>strong consistency model</i> (default), you have
     riak-admin bucket-type create ycsb '{"props":{"allow_mult":"false","consistent":true}}'
     riak-admin bucket-type activate ycsb
     ```
-    
 
-If instead you want to use the <i>eventual consistency model</i> implemented in Riak, then type:
-
-```
-riak-admin bucket-type create ycsb '{"props":{"allow_mult":"false"}}'
-riak-admin bucket-type activate ycsb
-```
 Note that you may want to specify the number of replicas to create for each object. To do so, you can add `"n_val":N` to the list of properties shown above (by default `N` is set to 3).
 
 Riak KV configuration parameters

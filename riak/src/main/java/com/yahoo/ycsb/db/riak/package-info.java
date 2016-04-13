@@ -17,7 +17,7 @@
  */
 
 /**
- * The YCSB binding for <a href="http://basho.com/products/riak-kv/">Riak KV</a> 2.0.x.
+ * The YCSB binding for <a href="http://basho.com/products/riak-kv/">Riak KV</a> 2.x.y.
  *
  */
 package com.yahoo.ycsb.db.riak;

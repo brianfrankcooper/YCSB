@@ -48,7 +48,7 @@ import static com.yahoo.ycsb.db.riak.RiakUtils.getKeyAsLong;
 import static com.yahoo.ycsb.db.riak.RiakUtils.serializeTable;
 
 /**
- * Riak KV 2.0.x client for YCSB framework.
+ * Riak KV 2.x.y client for YCSB framework.
  *
  */
 public final class RiakKVClient extends DB {
@@ -89,6 +89,9 @@ public final class RiakKVClient extends DB {
     } catch (IOException e) {
       e.printStackTrace();
     }
+
+    // For testing purposes.
+    this.setProperties(propsPF);
 
     hosts = propsPF.getProperty(HOST_PROPERTY).split(",");
     port = Integer.parseInt(propsPF.getProperty(PORT_PROPERTY));
@@ -227,7 +230,8 @@ public final class RiakKVClient extends DB {
       return Status.ERROR;
     }
 
-    result.put(key, getFields(fields, response));
+    // Create the result HashMap.
+    createResultHashMap(fields, response, result);
 
     return Status.OK;
   }
@@ -236,6 +240,8 @@ public final class RiakKVClient extends DB {
    * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in
    * a HashMap.
    * Note: The scan operation requires the use of secondary indexes (2i) and LevelDB.
+   * IMPORTANT NOTE: the 2i queries DO NOT WORK in conjunction with strong consistency (ref: http://docs.basho
+   * .com/riak/kv/2.1.4/developing/usage/secondary-indexes/)!
    *
    * @param table       The name of the table (Riak bucket)
    * @param startkey    The record key of the first record to read.
@@ -247,6 +253,13 @@ public final class RiakKVClient extends DB {
   @Override
   public Status scan(String table, String startkey, int recordcount, Set<String> fields,
                      Vector<HashMap<String, ByteIterator>> result) {
+    // As of 2.1.4 Riak KV version, strong consistency does not support any suitable mean capable of searching
+    // consecutive stored keys, as requested by a scan transaction. So, the latter WILL NOT BE PERFORMED AT ALL!
+    // More info at http://docs.basho.com/riak/kv/2.1.4/developing/app-guide/strong-consistency/
+    if (strongConsistency) {
+      return Status.NOT_IMPLEMENTED;
+    }
+
     Namespace ns = new Namespace(bucketType, table);
 
     IntIndexQuery iiq = new IntIndexQuery
@@ -280,7 +293,7 @@ public final class RiakKVClient extends DB {
         }
 
         HashMap<String, ByteIterator> partialResult = new HashMap<>();
-        partialResult.put(location.getKeyAsString(), getFields(fields, keyResponse));
+        createResultHashMap(fields, keyResponse, partialResult);
         result.add(partialResult);
       }
     } catch (TimeoutException e) {
@@ -339,46 +352,42 @@ public final class RiakKVClient extends DB {
   }
 
   /**
-   * Function that retrieves all the fields searched within a read or scan operation.
+   * Function that retrieves all the fields searched within a read or scan operation and puts them in the result
+   * HashMap.
    *
-   * @param fields   The list of fields to read, or null for all of them
-   * @param response A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
-   * @return A ByteIterator containing all the values that correspond to the fields provided.
+   * @param fields        The list of fields to read, or null for all of them.
+   * @param response      A Vector of HashMaps, where each HashMap is a set field/value pairs for one record.
+   * @param resultHashMap The HashMap to return as result.
    */
-  private ByteIterator getFields(Set<String> fields, FetchValue.Response response) {
-    // If everything went fine, then a result must be given. Such an object is a hash table containing the (key, value)
-    // pairs based on the requested fields. Note that in a read operation, ONLY ONE OBJECT IS RETRIEVED!
+  private void createResultHashMap(Set<String> fields, FetchValue.Response response, HashMap<String, ByteIterator>
+      resultHashMap) {
+    // If everything went fine, then a result must be given. Such an object is a hash table containing the (field,
+    // value) pairs based on the requested fields. Note that in a read operation, ONLY ONE OBJECT IS RETRIEVED!
+    // The following line retrieves the previously serialized table which was store with an insert transaction.
     byte[] responseFieldsAndValues = response.getValues().get(0).getValue().getValue();
-    ByteIterator valuesToPut;
+
+    // Deserialize the stored response table.
+    HashMap<String, ByteIterator> deserializedTable = new HashMap<>();
+    deserializeTable(responseFieldsAndValues, deserializedTable);
 
     // If only specific fields are requested, then only these should be put in the result object!
     if (fields != null) {
-      HashMap<String, ByteIterator> deserializedTable = new HashMap<>();
-      deserializeTable(responseFieldsAndValues, deserializedTable);
-
-      // Instantiate a new HashMap for returning only the requested fields.
-      HashMap<String, ByteIterator> returnMap = new HashMap<>();
-
-      // Build the return HashMap to provide as result.
+      // Populate the HashMap to provide as result.
       for (Object field : fields.toArray()) {
-        // Comparison between a requested field and the ones retrieved: if they're equal, then proceed to store the
-        // couple in the returnMap.
+        // Comparison between a requested field and the ones retrieved. If they're equal (i.e. the get() operation
+        // DOES NOT return a null value), then  proceed to store the pair in the resultHashMap.
         ByteIterator value = deserializedTable.get(field);
 
         if (value != null) {
-          returnMap.put((String) field, value);
+          resultHashMap.put((String) field, value);
         }
       }
-
-      // Finally, convert the returnMap to a byte array.
-      valuesToPut = new ByteArrayByteIterator(serializeTable(returnMap));
     } else {
       // If, instead, no field is specified, then all the ones retrieved must be provided as result.
-      valuesToPut = new ByteArrayByteIterator(responseFieldsAndValues);
+      for (String field : deserializedTable.keySet()) {
+        resultHashMap.put(field, deserializedTable.get(field));
+      }
     }
-
-    // Return the results.
-    return valuesToPut;
   }
 
   /**
@@ -541,5 +550,9 @@ public final class RiakKVClient extends DB {
       System.err.println("Unable to properly shutdown the cluster. Reason: " + e.toString());
       throw new DBException(e);
     }
+  }
+
+  RiakCluster getRiakCluster() {
+    return this.riakCluster;
   }
 }
