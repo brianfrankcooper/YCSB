@@ -18,6 +18,7 @@
 
 package com.yahoo.ycsb.db.riak;
 
+import com.basho.riak.client.api.commands.buckets.StoreBucketProperties;
 import com.basho.riak.client.api.commands.kv.UpdateValue;
 import com.basho.riak.client.core.RiakFuture;
 import com.yahoo.ycsb.*;
@@ -547,5 +548,23 @@ public final class RiakKVClient extends DB {
       System.err.println("Unable to properly shutdown the cluster. Reason: " + e.toString());
       throw new DBException(e);
     }
+  }
+
+  /**
+   * Auxiliary function needed for testing. It configures the default bucket-type to take care of the consistency
+   * problem by disallowing the siblings creation. Moreover, it disables strong consistency, as the scan transaction
+   * test would otherwise fail.
+   *
+   * @param bucket     The bucket name.
+   * @throws Exception Thrown if something bad happens.
+     */
+  void setTestEnvironment(String bucket) throws Exception {
+    bucketType = "default";
+    strongConsistency = false;
+
+    Namespace ns = new Namespace(bucketType, bucket);
+    StoreBucketProperties newBucketProperties = new StoreBucketProperties.Builder(ns).withAllowMulti(false).build();
+
+    riakClient.execute(newBucketProperties);
   }
 }

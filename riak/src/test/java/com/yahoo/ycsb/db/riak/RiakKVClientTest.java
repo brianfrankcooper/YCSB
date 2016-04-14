@@ -29,8 +29,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeNoException;
 import static org.junit.Assume.assumeThat;
 
 /**
@@ -57,10 +57,17 @@ public class RiakKVClientTest {
     riakClient = new RiakKVClient();
     riakClient.init();
 
+    // Set the test bucket environment with the appropriate parameters.
+    try {
+      riakClient.setTestEnvironment(bucket);
+    } catch(Exception e) {
+      assumeNoException("Unable to configure Riak KV for test, aborting.", e);
+    }
+
     // Just add some records to work on...
     for (int i = 0; i < recordsToInsert; i++) {
       // Abort the entire test whenever the dataset population operation fails.
-      assumeThat("Riak KV is NOT RUNNING, aborting test!",
+      assumeThat("Riak KV is NOT RUNNING, aborting test.",
           riakClient.insert(bucket, keyPrefix + String.valueOf(i), StringByteIterator.getByteIteratorMap(
               createExpectedHashMap(i))),
               is(Status.OK));
@@ -129,18 +136,11 @@ public class RiakKVClientTest {
     // Prepare a HashMap vector to store the scan transaction results.
     Vector<HashMap<String, ByteIterator>> scannedValues = new Vector<>();
 
-    // If strong consistency is to be used, then it is not possible to perform a scan transaction  (check
-    // RiakKVClient.java for further info).
-    Status status = riakClient.scan(bucket, keyPrefix + Integer.toString(startScanKeyNumber), recordsToScan, null,
-        scannedValues);
-
-    assumeThat("Scan transaction NOT SUPPORTED when using strong consistency. Test skipped.",
-        status,
-        not(Status.NOT_IMPLEMENTED));
-
+    // Check whether the scan transaction is correctly performed or not.
     assertEquals("Scan transaction FAILED.",
         Status.OK,
-        status);
+        riakClient.scan(bucket, keyPrefix + Integer.toString(startScanKeyNumber), recordsToScan, null,
+            scannedValues));
 
     // After the scan transaction completes, compare the obtained results with the expected ones.
     for (int i = 0; i < recordsToScan; i++) {
