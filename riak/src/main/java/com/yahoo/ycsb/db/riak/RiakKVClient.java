@@ -90,9 +90,6 @@ public final class RiakKVClient extends DB {
       e.printStackTrace();
     }
 
-    // For testing purposes.
-    this.setProperties(propsPF);
-
     hosts = propsPF.getProperty(HOST_PROPERTY).split(",");
     port = Integer.parseInt(propsPF.getProperty(PORT_PROPERTY));
     bucketType = propsPF.getProperty(BUCKET_TYPE_PROPERTY);
@@ -550,9 +547,5 @@ public final class RiakKVClient extends DB {
       System.err.println("Unable to properly shutdown the cluster. Reason: " + e.toString());
       throw new DBException(e);
     }
-  }
-
-  RiakCluster getRiakCluster() {
-    return this.riakCluster;
   }
 }
