@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2015 YCSB contributors. All rights reserved.
+Copyright (c) 2015-2016 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -77,3 +77,6 @@ Following options can be configurable using `-p`.
 * `principal`: If testing need to be done against a secure HBase cluster using Kerberos Keytab, 
   this property can be used to pass the principal in the keytab file.
 * `keytab`: The Kerberos keytab file name and location can be passed through this property.
+* `writebuffersize`: The maximum amount, in bytes, of data to buffer on the client side before a flush is forced. The default is 12MB.
+
+Additional HBase settings should be provided in the `hbase-site.xml` file located in your `/HBASE-HOME-DIR/conf` directory. Typically this will be `/etc/hbase/conf`.
