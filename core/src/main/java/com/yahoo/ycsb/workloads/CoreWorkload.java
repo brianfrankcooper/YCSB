@@ -62,16 +62,18 @@ import java.util.ArrayList;
  * <LI><b>readmodifywriteproportion</b>: what proportion of operations should be read a record,
  * modify it, write it back (default: 0)
  * <LI><b>requestdistribution</b>: what distribution should be used to select the records to operate
- * on - uniform, zipfian, hotspot, ordered, exponential or latest (default: uniform)
+ * on - uniform, zipfian, hotspot, sequential, exponential or latest (default: uniform)
  * <LI><b>maxscanlength</b>: for scans, what is the maximum number of records to scan (default: 1000)
  * <LI><b>scanlengthdistribution</b>: for scans, what distribution should be used to choose the
  * number of records to scan, for each scan, between 1 and maxscanlength (default: uniform)
  * <LI><b>insertstart</b>: for parallel loads and runs, defines the starting record for this
  * YCSB instance (default: 0)
- * <LI><b>insertcount</b>: for parallel loads and runs, defines the ending record for this
+ * <LI><b>insertcount</b>: for parallel loads and runs, defines the number of records for this
  * YCSB instance (default: recordcount)
  * <LI><b>zeropadding</b>: for generating a record sequence compatible with string sort order by
  * 0 padding the record number. Controls the number of 0s to use for padding. (default: 1)
+ * For example for row 5, with zeropadding=1 you get 'user5' key and with zeropading=8 you get
+ * 'user00000005' key. 
  * <LI><b>insertorder</b>: should records be inserted in order by key ("ordered"), or in hashed
  * order ("hashed") (default: hashed)
  * </ul>
@@ -413,9 +415,12 @@ public class CoreWorkload extends Workload {
     String scanlengthdistrib =
         p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY, SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
 
-	int insertstart=Integer.parseInt(p.getProperty(INSERT_START_PROPERTY,INSERT_START_PROPERTY_DEFAULT));
-	int insertcount=Integer.parseInt(p.getProperty(INSERT_COUNT_PROPERTY,String.valueOf(recordcount-insertstart)));
-	zeropadding=Integer.parseInt(p.getProperty(ZERO_PADDING_PROPERTY,ZERO_PADDING_PROPERTY_DEFAULT));
+	int insertstart =
+		Integer.parseInt(p.getProperty(INSERT_START_PROPERTY,INSERT_START_PROPERTY_DEFAULT));
+	int insertcount =
+		Integer.parseInt(p.getProperty(INSERT_COUNT_PROPERTY,String.valueOf(recordcount-insertstart)));
+	zeropadding =
+		Integer.parseInt(p.getProperty(ZERO_PADDING_PROPERTY,ZERO_PADDING_PROPERTY_DEFAULT));
 
     readallfields = Boolean.parseBoolean(
         p.getProperty(READ_ALL_FIELDS_PROPERTY, READ_ALL_FIELDS_PROPERTY_DEFAULT));
@@ -474,7 +479,7 @@ public class CoreWorkload extends Workload {
     transactioninsertkeysequence = new AcknowledgedCounterGenerator(recordcount);
     if (requestdistrib.compareTo("uniform") == 0) {
       keychooser=new UniformIntegerGenerator(insertstart,insertstart+insertcount-1);
-    } else if (requestdistrib.compareTo("ordered")==0)	{
+    } else if (requestdistrib.compareTo("sequential")==0)	{
 			keychooser=new SequentialGenerator(insertstart,insertstart+insertcount-1);
 	}else if (requestdistrib.compareTo("zipfian") == 0) {
       // it does this by generating a random "next key" in part by taking the modulus over the
@@ -525,7 +530,11 @@ public class CoreWorkload extends Workload {
     if (!orderedinserts) {
       keynum = Utils.hash(keynum);
     }
-	return "user"+String.format("%0"+zeropadding+"d",keynum);
+	String value=Long.toString(keynum);
+	int fill=zeropadding - value.length();
+	String prekey="user";
+	for(int i=0; i<fill;i++) {prekey+='0';}
+	return prekey+value;
   }
 
   /**
