@@ -27,11 +27,15 @@ install: mvn install -q -DskipTests=true
 
 script: mvn test -q
 
+# Bucket-type to activate before running Riak KV tests.
+before_script:
+  - sudo riak-admin bucket-type create ycsb '{"props":{"allow_mult":"false"}}'
+  - sudo riak-admin bucket-type activate ycsb
+
 # Services to start for tests.
 services:
   - mongodb
   - riak
 
-
-# Use the Container based infrastructure.
-sudo: false
+# Sudo required for Riak KV test.
+sudo: required
