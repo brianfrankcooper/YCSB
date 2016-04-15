@@ -38,16 +38,17 @@ Now, create a bucket type named "ycsb"<sup id="a1">[1](#f1)</sup> by logging int
 2. Run the following `riak-admin` commands:
 
   ```
-  riak-admin bucket-type create ycsb '{"props":{"allow_mult":"false","consistent":true}}'
+  riak-admin bucket-type create ycsb '{"props":{"consistent":true}}'
   riak-admin bucket-type activate ycsb
   ```
+
+Note that when using the strong consistency model, you **may have to specify the number of replicas to create for each object**. The *R* and *W* parameters (see next section) will in fact be ignored. The only information needed by this consistency model is how many nodes the system has to successfully query to consider a transaction completed. To set this parameter, you can add `"n_val":N` to the list of properties shown above (by default `N` is set to 3).
 
 If instead you want to use the <i>eventual consistency model</i> implemented in Riak, then type: 
 ```
 riak-admin bucket-type create ycsb '{"props":{"allow_mult":"false"}}'
 riak-admin bucket-type activate ycsb
 ```
-Note that you may want to specify the number of replicas to create for each object. To do so, you can add `"n_val":N` to the list of properties shown above (by default `N` is set to 3).
 
 Riak KV configuration parameters
 ----------------------------
@@ -56,7 +57,7 @@ You can either specify these configuration parameters via command line or set th
 * `riak.hosts` - <b>string list</b>, comma separated list of IPs or FQDNs. For example: `riak.hosts=127.0.0.1,127.0.0.2,127.0.0.3` or `riak.hosts=riak1.mydomain.com,riak2.mydomain.com,riak3.mydomain.com`.
 * `riak.port` - <b>int</b>, the port on which every node is listening. It must match the one specified in the `riak.conf` file at the line `listener.protobuf.internal`.
 * `riak.bucket_type` - <b>string</b>, it must match the name of the bucket type created during setup (see section above).
-* `riak.r_val` - <b>int</b>, this value represents the number of Riak nodes that must return results for a read operation before the transaction is considered successfully completed.
+* `riak.r_val` - <b>int</b>, this value represents the number of Riak nodes that must return results for a read operation before the transaction is considered successfully completed. 
 * `riak.w_val` - <b>int</b>, this value represents the number of Riak nodes that must report success before an insert/update transaction is considered complete.
 * `riak.read_retry_count` - <b>int</b>, the number of times the client will try to read a key from Riak.
 * `riak.wait_time_before_retry` - <b>int</b>, the time (in milliseconds) before the client attempts to perform another read if the previous one failed.

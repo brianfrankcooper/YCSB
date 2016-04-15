@@ -473,8 +473,6 @@ public final class RiakKVClient extends DB {
     object.getIndexes().getIndex(LongIntIndex.named("key_int")).add(getKeyAsLong(key));
 
     UpdateValue update = new UpdateValue.Builder(location)
-        .withFetchOption(FetchValue.Option.R, rvalue)
-        .withStoreOption(Option.W, wvalue)
         .withUpdate(new UpdateEntity(object))
         .build();
 
