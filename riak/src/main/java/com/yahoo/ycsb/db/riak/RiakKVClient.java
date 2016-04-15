@@ -64,8 +64,7 @@ public final class RiakKVClient extends DB {
   private static final String STRONG_CONSISTENCY_PROPERTY = "riak.strong_consistency";
   private static final String DEBUG_PROPERTY = "riak.debug";
 
-  private static final Status TIME_OUT = new Status("TIME_OUT", "Cluster didn't respond after maximum wait time " +
-      "for transaction indicated");
+  private static final Status TIME_OUT = new Status("TIME_OUT", "Cluster didn't respond after maximum wait time.");
 
   private String[] hosts;
   private int port;
@@ -389,10 +388,9 @@ public final class RiakKVClient extends DB {
   }
 
   /**
-   * Insert a record in the database. Any field/value pairs in the specified values HashMap
-   * will be written into the record with the specified record key. Also creates a
-   * secondary index (2i) for each record consisting of the key converted to long to be used
-   * for the scan operation
+   * Insert a record in the database. Any field/value pairs in the specified values HashMap will be written into the
+   * record with the specified record key. Also creates a secondary index (2i) for each record consisting of the key
+   * converted to long to be used for the scan operation.
    *
    * @param table  The name of the table (Riak bucket)
    * @param key    The record key of the record to insert.

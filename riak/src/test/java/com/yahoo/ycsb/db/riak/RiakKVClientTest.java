@@ -94,7 +94,7 @@ public class RiakKVClientTest {
 
   /**
    * Test method for read transaction. It is designed to read two of the three fields stored for each key, to also test
-   * if the returnHashMap() function implemented in RiakKVClient.java works as expected.
+   * if the createResultHashMap() function implemented in RiakKVClient.java works as expected.
    */
   @Test
   public void testRead() {
@@ -111,11 +111,11 @@ public class RiakKVClientTest {
     expectedValue.put(firstField, Integer.toString(readKeyNumber));
     expectedValue.put(thirdField, Integer.toString(readKeyNumber * readKeyNumber));
 
-    // Define a HashMap to store the actual results.
+    // Define a HashMap to store the actual result.
     HashMap<String, ByteIterator> readValue = new HashMap<>();
 
     // If a read transaction has been properly done, then one has to receive a Status.OK return from the read()
-    // function. Moreover, actual returned results MUST match the expected ones.
+    // function. Moreover, the actual returned result MUST match the expected one.
     assertEquals("Read transaction FAILED.",
         Status.OK,
         riakClient.read(bucket, keyPrefix + Integer.toString(readKeyNumber), fields, readValue));
@@ -126,7 +126,9 @@ public class RiakKVClientTest {
   }
 
   /**
-   * Test method for scan transaction.
+   * Test method for scan transaction. A scan transaction has to be considered successfully completed only if all the
+   * requested values are read (i.e. scan transaction returns with Status.OK). Moreover, one has to check if the
+   * obtained results match the expected ones.
    */
   @Test
   public void testScan() {
@@ -218,8 +220,8 @@ public class RiakKVClientTest {
   }
 
   /**
-   * Test method for delete transaction. The test deletes a key, then performs a read that should give a NOT_FOUND
-   * status response. Finally, it restores the previously read key.
+   * Test method for delete transaction. The test deletes a key, then performs a read that should give a
+   * Status.NOT_FOUND response. Finally, it restores the previously read key.
    */
   @Test
   public void testDelete() {
