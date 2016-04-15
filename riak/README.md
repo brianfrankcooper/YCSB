@@ -36,10 +36,11 @@ Now, create a bucket type named "ycsb"<sup id="a1">[1](#f1)</sup> by logging int
 
 1. In every `riak.conf` file, search for the `##strong_consistency=on` line and uncomment it. It's important that you do this <b>before you start your cluster</b>!
 2. Run the following `riak-admin` commands:
-    ```
-    riak-admin bucket-type create ycsb '{"props":{"allow_mult":"false","consistent":true}}'
-    riak-admin bucket-type activate ycsb
-    ```
+
+  ```
+  riak-admin bucket-type create ycsb '{"props":{"allow_mult":"false","consistent":true}}'
+  riak-admin bucket-type activate ycsb
+  ```
 
 If instead you want to use the <i>eventual consistency model</i> implemented in Riak, then type: 
 ```
@@ -66,4 +67,5 @@ You can either specify these configuration parameters via command line or set th
 <b>Note</b>: For more information on workloads and how to run them please see: https://github.com/brianfrankcooper/YCSB/wiki/Running-a-Workload
 
 <b id="f1">1</b> As specified in the `riak.properties` file.  See parameters configuration section for further info. [↩](#a1)
+
 <b id="f2">2</b> <b>IMPORTANT NOTE:</b> Currently the `scan` transactions are <b>NOT SUPPORTED</b> for the benchmarks which use the strong consistency model! However this will not cause the benchmark to fail, it simply won't perform any scan transaction at all. These latter will immediately return with a `Status.NOT_IMPLEMENTED` code.  [↩](#a2)
