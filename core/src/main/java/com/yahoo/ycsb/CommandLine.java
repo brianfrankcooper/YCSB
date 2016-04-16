@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.Vector;
 
+import com.yahoo.ycsb.Client;
 import com.yahoo.ycsb.workloads.*;
 
 /**
@@ -89,7 +90,7 @@ public class CommandLine
 		  usageMessage();
 		  System.exit(0);
 	       }
-	       props.setProperty("db",args[argindex]);
+	       props.setProperty(Client.DB_PROPERTY, args[argindex]);
 	       argindex++;
 	    }
 	    else if (args[argindex].compareTo("-P")==0)
@@ -187,7 +188,7 @@ public class CommandLine
 	 System.out.println("Start with \"-help\" for usage info");
 
 	 //create a DB
-	 String dbname=props.getProperty("db",DEFAULT_DB);
+	 String dbname=props.getProperty(Client.DB_PROPERTY, DEFAULT_DB);
 
 	 ClassLoader classLoader = CommandLine.class.getClassLoader();
 
@@ -294,8 +295,8 @@ public class CommandLine
 		  }
 		  
 		  HashMap<String,ByteIterator> result=new HashMap<String,ByteIterator>();
-		  int ret=db.read(table,tokens[1],fields,result);
-		  System.out.println("Return code: "+ret);
+		  Status ret=db.read(table,tokens[1],fields,result);
+		  System.out.println("Return code: "+ret.getName());
 		  for (Map.Entry<String,ByteIterator> ent : result.entrySet())
 		  {
 		     System.out.println(ent.getKey()+"="+ent.getValue());
@@ -323,10 +324,10 @@ public class CommandLine
 		  }
 		  
 		  Vector<HashMap<String,ByteIterator>> results=new Vector<HashMap<String,ByteIterator>>();
-		  int ret=db.scan(table,tokens[1],Integer.parseInt(tokens[2]),fields,results);
-		  System.out.println("Return code: "+ret);
+		  Status ret=db.scan(table,tokens[1],Integer.parseInt(tokens[2]),fields,results);
+		  System.out.println("Result: "+ret.getName());
 		  int record=0;
-		  if (results.size()==0)
+		  if (results.isEmpty())
 		  {
 		     System.out.println("0 records");
 		  }
@@ -361,8 +362,8 @@ public class CommandLine
 		     values.put(nv[0],new StringByteIterator(nv[1]));
 		  }
 
-		  int ret=db.update(table,tokens[1],values);
-		  System.out.println("Return code: "+ret);
+		  Status ret=db.update(table,tokens[1],values);
+		  System.out.println("Result: "+ret.getName());
 	       }		  
 	    }
 	    else if (tokens[0].compareTo("insert")==0)
@@ -381,8 +382,8 @@ public class CommandLine
 		     values.put(nv[0],new StringByteIterator(nv[1]));
 		  }
 
-		  int ret=db.insert(table,tokens[1],values);
-		  System.out.println("Return code: "+ret);
+		  Status ret=db.insert(table,tokens[1],values);
+		  System.out.println("Result: "+ret.getName());
 	       }		  
 	    }
 	    else if (tokens[0].compareTo("delete")==0)
@@ -393,8 +394,8 @@ public class CommandLine
 	       }
 	       else 
 	       {
-		  int ret=db.delete(table,tokens[1]);
-		  System.out.println("Return code: "+ret);
+		  Status ret=db.delete(table,tokens[1]);
+		  System.out.println("Return result: "+ret.getName());
 	       }		  
 	    }
 	    else

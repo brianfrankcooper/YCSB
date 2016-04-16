@@ -1,3 +1,20 @@
+/**
+ * Copyright (c) 2012 YCSB contributors. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
+ */
+
 package com.yahoo.ycsb.db;
 
 import java.nio.ByteBuffer;
@@ -57,19 +74,19 @@ public class MapKeeperClient extends DB {
 
     ByteBuffer encode(HashMap<String, ByteIterator> values) {
         int len = 0;
-        for(String k : values.keySet()) {
-            len += (k.length() + 1 + values.get(k).bytesLeft() + 1);
+        for(Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+            len += (entry.getKey().length() + 1 + entry.getValue().bytesLeft() + 1);
         }
         byte[] array = new byte[len];
         int i = 0;
-        for(String k : values.keySet()) {
-            for(int j = 0; j < k.length(); j++) {
-                array[i] = (byte)k.charAt(j);
+        for(Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+            for(int j = 0; j < entry.getKey().length(); j++) {
+                array[i] = (byte)entry.getKey().charAt(j);
                 i++;
             }
             array[i] = '\t'; // XXX would like to use sane delimiter (null, 254, 255, ...) but java makes this nearly impossible
             i++;
-            ByteIterator v = values.get(k);
+            ByteIterator v = entry.getValue();
             i = v.nextBuf(array, i);
             array[i] = '\t';
             i++;
@@ -165,8 +182,8 @@ public class MapKeeperClient extends DB {
             if(!writeallfields) {
                 HashMap<String, ByteIterator> oldval = new HashMap<String, ByteIterator>();
                 read(table, key, null, oldval);
-                for(String k: values.keySet()) {
-                    oldval.put(k, values.get(k));
+                for(Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+                    oldval.put(entry.getKey(), entry.getValue()));
                 }
                 values = oldval;
             }

@@ -17,8 +17,6 @@
 
 package com.yahoo.ycsb.generator;
 
-import java.util.Random;
-
 import com.yahoo.ycsb.Utils;
 
 /**
@@ -39,34 +37,34 @@ import com.yahoo.ycsb.Utils;
  *
  * The algorithm used here is from "Quickly Generating Billion-Record Synthetic Databases", Jim Gray et al, SIGMOD 1994.
  */
-public class ZipfianGenerator extends IntegerGenerator
+public class ZipfianGenerator extends NumberGenerator
 {     
 	public static final double ZIPFIAN_CONSTANT=0.99;
 
 	/**
 	 * Number of items.
 	 */
-	long items;
+	private final long items;
 	
 	/**
 	 * Min item to generate.
 	 */
-	long base;
+	private final long base;
 	
 	/**
 	 * The zipfian constant to use.
 	 */
-	double zipfianconstant;
+	private final double zipfianconstant;
 	
 	/**
 	 * Computed parameters for generating the distribution.
 	 */
-	double alpha,zetan,eta,theta,zeta2theta;
+	private double alpha,zetan,eta,theta,zeta2theta;
 	
 	/**
 	 * The number of items used to compute zetan the last time.
 	 */
-	long countforzeta;
+	private long countforzeta;
 	
 	/**
 	 * Flag to prevent problems. If you increase the number of items the zipfian generator is allowed to choose from, this code will incrementally compute a new zeta
@@ -76,7 +74,7 @@ public class ZipfianGenerator extends IntegerGenerator
 	 * did the second thread think there were only 1000 items? maybe it read the item count before the first thread incremented it. So this flag allows you to say if you really do
 	 * want that recomputation. If true, then the code will recompute zeta if the itemcount goes down. If false, the code will assume itemcount only goes up, and never recompute. 
 	 */
-	boolean allowitemcountdecrease=false;
+	private boolean allowitemcountdecrease=false;
 
 	/******************************* Constructors **************************************/
 
@@ -148,7 +146,7 @@ public class ZipfianGenerator extends IntegerGenerator
 		eta=(1-Math.pow(2.0/items,1-theta))/(1-zeta2theta/zetan);
 		
 		//System.out.println("XXXX 3 XXXX");
-		nextInt();
+		nextValue();
 		//System.out.println("XXXX 4 XXXX");
 	}
 	
@@ -219,16 +217,6 @@ public class ZipfianGenerator extends IntegerGenerator
 
 	/****************************************************************************************/
 	
-	/** 
-	 * Generate the next item. this distribution will be skewed toward lower integers; e.g. 0 will
-	 * be the most popular, 1 the next most popular, etc.
-	 * @param itemcount The number of items in the distribution.
-	 * @return The next item in the sequence.
-	 */
-	public int nextInt(int itemcount)
-	{
-		return (int)nextLong(itemcount);
-	}
 
 	/**
 	 * Generate the next item as a long.
@@ -236,7 +224,7 @@ public class ZipfianGenerator extends IntegerGenerator
 	 * @param itemcount The number of items in the distribution.
 	 * @return The next item in the sequence.
 	 */
-	public long nextLong(long itemcount)
+	long nextLong(long itemcount)
 	{
 		//from "Quickly Generating Billion-Record Synthetic Databases", Jim Gray et al, SIGMOD 1994
 
@@ -276,16 +264,16 @@ public class ZipfianGenerator extends IntegerGenerator
 
 		if (uz<1.0)
 		{
-			return 0;
+			return base;
 		}
 
 		if (uz<1.0+Math.pow(0.5,theta)) 
 		{
-			return 1;
+			return base + 1;
 		}
 
 		long ret=base+(long)((itemcount) * Math.pow(eta*u - eta + 1, alpha));
-		setLastInt((int)ret);
+		setLastValue(ret);
 		return ret;
 	}
 
@@ -295,17 +283,7 @@ public class ZipfianGenerator extends IntegerGenerator
 	 * popular items scattered throughout the item space, use ScrambledZipfianGenerator instead.
 	 */
 	@Override
-	public int nextInt() 
-	{
-		return (int)nextLong(items);
-	}
-
-	/**
-	 * Return the next value, skewed by the Zipfian distribution. The 0th item will be the most popular, followed by the 1st, followed
-	 * by the 2nd, etc. (Or, if min != 0, the min-th item is the most popular, the min+1th item the next most popular, etc.) If you want the
-	 * popular items scattered throughout the item space, use ScrambledZipfianGenerator instead.
-	 */
-	public long nextLong()
+	public Long nextValue() 
 	{
 		return nextLong(items);
 	}

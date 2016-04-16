@@ -28,14 +28,14 @@ import com.yahoo.ycsb.Utils;
  * Unlike @ZipfianGenerator, this class scatters the "popular" items across the itemspace. Use this, instead of @ZipfianGenerator, if you
  * don't want the head of the distribution (the popular items) clustered together.
  */
-public class ScrambledZipfianGenerator extends IntegerGenerator 
+public class ScrambledZipfianGenerator extends NumberGenerator
 {
 	public static final double ZETAN=26.46902820178302;
         public static final double USED_ZIPFIAN_CONSTANT=0.99;
 	public static final long ITEM_COUNT=10000000000L;
 	
-	ZipfianGenerator gen;
-	long _min,_max,_itemcount;
+	private ZipfianGenerator gen;
+	private final long _min,_max,_itemcount;
 	
 	/******************************* Constructors **************************************/
 
@@ -95,21 +95,14 @@ public class ScrambledZipfianGenerator extends IntegerGenerator
 	/**************************************************************************************************/
 	
 	/**
-	 * Return the next int in the sequence.
-	 */
-	@Override
-	public int nextInt() {
-		return (int)nextLong();
-	}
-
-	/**
 	 * Return the next long in the sequence.
 	 */
-	public long nextLong()
+	@Override
+  public Long nextValue()
 	{
-		long ret=gen.nextLong();
+		long ret=gen.nextValue();
 		ret=_min+Utils.FNVhash64(ret)%_itemcount;
-		setLastInt((int)ret);
+		setLastValue(ret);
 		return ret;
 	}
 	
@@ -123,7 +116,7 @@ public class ScrambledZipfianGenerator extends IntegerGenerator
 		
 		for (int i=0; i<1000000; i++)
 		{
-			System.out.println(""+gen.nextInt());
+			System.out.println(""+gen.nextValue());
 		}
 	}
 
@@ -132,6 +125,6 @@ public class ScrambledZipfianGenerator extends IntegerGenerator
 	 */
 	@Override
 	public double mean() {
-		return ((double)(((long)_min) +(long)_max))/2.0;
+		return ((_min) +_max)/2.0;
 	}
 }
