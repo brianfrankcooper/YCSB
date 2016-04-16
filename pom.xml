@@ -93,6 +93,7 @@ LICENSE file.
     <couchbase.version>1.4.10</couchbase.version>
     <couchbase2.version>2.2.6</couchbase2.version>
     <tarantool.version>1.6.5</tarantool.version>
+    <riak.version>2.0.5</riak.version>
     <aerospike.version>3.1.2</aerospike.version>
     <solr.version>5.4.0</solr.version>
   </properties>
@@ -127,6 +128,7 @@ LICENSE file.
     <module>nosqldb</module>
     <module>orientdb</module>
     <module>redis</module>
+    <module>riak</module>
     <module>s3</module>
     <module>solr</module>
     <module>tarantool</module>
