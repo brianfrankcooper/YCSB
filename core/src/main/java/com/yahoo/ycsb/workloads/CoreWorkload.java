@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved.
+ * Copyright (c) 2010 Yahoo! Inc., 2016 YCSB Contributors All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -21,27 +21,28 @@ import java.util.Properties;
 
 import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.generator.AcknowledgedCounterGenerator;
+import com.yahoo.ycsb.generator.ConstantIntegerGenerator;
 import com.yahoo.ycsb.generator.CounterGenerator;
 import com.yahoo.ycsb.generator.DiscreteGenerator;
 import com.yahoo.ycsb.generator.ExponentialGenerator;
-import com.yahoo.ycsb.generator.ConstantIntegerGenerator;
-import com.yahoo.ycsb.generator.HotspotIntegerGenerator;
 import com.yahoo.ycsb.generator.HistogramGenerator;
+import com.yahoo.ycsb.generator.HotspotIntegerGenerator;
 import com.yahoo.ycsb.generator.NumberGenerator;
 import com.yahoo.ycsb.generator.ScrambledZipfianGenerator;
+import com.yahoo.ycsb.generator.SequentialGenerator;
 import com.yahoo.ycsb.generator.SkewedLatestGenerator;
 import com.yahoo.ycsb.generator.UniformIntegerGenerator;
 import com.yahoo.ycsb.generator.ZipfianGenerator;
-import com.yahoo.ycsb.generator.SequentialGenerator;
 import com.yahoo.ycsb.measurements.Measurements;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Vector;
 import java.util.List;
 import java.util.Map;
-import java.util.ArrayList;
+import java.util.Vector;
+
 
 /**
  * The core benchmark scenario. Represents a set of clients doing simple CRUD operations. The
@@ -415,12 +416,18 @@ public class CoreWorkload extends Workload {
     String scanlengthdistrib =
         p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY, SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
 
-	int insertstart =
-		Integer.parseInt(p.getProperty(INSERT_START_PROPERTY,INSERT_START_PROPERTY_DEFAULT));
-	int insertcount =
-		Integer.parseInt(p.getProperty(INSERT_COUNT_PROPERTY,String.valueOf(recordcount-insertstart)));
-	zeropadding =
-		Integer.parseInt(p.getProperty(ZERO_PADDING_PROPERTY,ZERO_PADDING_PROPERTY_DEFAULT));
+  int insertstart =
+    Integer.parseInt(p.getProperty(INSERT_START_PROPERTY,INSERT_START_PROPERTY_DEFAULT));
+  int insertcount =
+    Integer.parseInt(p.getProperty(INSERT_COUNT_PROPERTY,String.valueOf(recordcount-insertstart)));
+  // Confirm valid values for insertstart and insertcount in relation to recordcount
+  if (recordcount < (insertstart + insertcount) ) {
+      System.err.println("Invalid combination of insertstart, insertcount and recordcount.");
+      System.err.println("recordcount must be bigger than insertstart + insertcount.");
+      System.exit(-1);
+  }
+  zeropadding =
+    Integer.parseInt(p.getProperty(ZERO_PADDING_PROPERTY,ZERO_PADDING_PROPERTY_DEFAULT));
 
     readallfields = Boolean.parseBoolean(
         p.getProperty(READ_ALL_FIELDS_PROPERTY, READ_ALL_FIELDS_PROPERTY_DEFAULT));
@@ -479,9 +486,9 @@ public class CoreWorkload extends Workload {
     transactioninsertkeysequence = new AcknowledgedCounterGenerator(recordcount);
     if (requestdistrib.compareTo("uniform") == 0) {
       keychooser=new UniformIntegerGenerator(insertstart,insertstart+insertcount-1);
-    } else if (requestdistrib.compareTo("sequential")==0)	{
-			keychooser=new SequentialGenerator(insertstart,insertstart+insertcount-1);
-	}else if (requestdistrib.compareTo("zipfian") == 0) {
+    } else if (requestdistrib.compareTo("sequential")==0) {
+      keychooser=new SequentialGenerator(insertstart,insertstart+insertcount-1);
+  }else if (requestdistrib.compareTo("zipfian") == 0) {
       // it does this by generating a random "next key" in part by taking the modulus over the
       // number of keys.
       // If the number of keys changes, this would shift the modulus, and we don't want that to
@@ -530,11 +537,11 @@ public class CoreWorkload extends Workload {
     if (!orderedinserts) {
       keynum = Utils.hash(keynum);
     }
-	String value=Long.toString(keynum);
-	int fill=zeropadding - value.length();
-	String prekey="user";
-	for(int i=0; i<fill;i++) {prekey+='0';}
-	return prekey+value;
+  String value = Long.toString(keynum);
+  int fill = zeropadding - value.length();
+  String prekey = "user";
+  for(int i=0; i<fill;i++) {prekey += '0';}
+  return prekey + value;
   }
 
   /**

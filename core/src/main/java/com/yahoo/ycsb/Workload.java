@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * done by init().
  * 
  * If you extend this class, you should support the "insertstart" property. This 
- * allows the load phase to proceed from multiple clients on different machines, in case
+ * allows the Client to proceed from multiple clients on different machines, in case
  * the client is the bottleneck. For example, if we want to load 1 million records from
  * 2 machines, the first machine should have insertstart=0 and the second insertstart=500000. Additionally,
  * the "insertcount" property, which is interpreted by Client, can be used to tell each instance of the
@@ -36,13 +36,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public abstract class Workload
 {
-	public static final String INSERT_START_PROPERTY="insertstart";
-	public static final String INSERT_COUNT_PROPERTY="insertcount";
-	
-	public static final String INSERT_START_PROPERTY_DEFAULT="0";
-	
-	private volatile AtomicBoolean stopRequested = new AtomicBoolean(false);
-	
+  public static final String INSERT_START_PROPERTY = "insertstart";
+  public static final String INSERT_COUNT_PROPERTY = "insertcount";
+  
+  public static final String INSERT_START_PROPERTY_DEFAULT = "0";
+  
+  private volatile AtomicBoolean stopRequested = new AtomicBoolean(false);
+  
       /**
        * Initialize the scenario. Create any generators and other shared objects here.
        * Called once, in the main client thread, before any operations are started.
@@ -65,7 +65,7 @@ public abstract class Workload
        */
       public Object initThread(Properties p, int mythreadid, int threadcount) throws WorkloadException
       {
-	 return null;
+   return null;
       }
       
       /**

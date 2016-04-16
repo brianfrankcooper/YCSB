@@ -1,5 +1,5 @@
 /**                                                                                                                                                                                
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved.                                                                                                                             
+ * Copyright (c) 2016 YCSB Contributors All rights reserved.                                                                                                                             
  *                                                                                                                                                                                 
  * Licensed under the Apache License, Version 2.0 (the "License"); you                                                                                                             
  * may not use this file except in compliance with the License. You                                                                                                                
@@ -22,46 +22,41 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Generates a sequence of integers 0, 1, ...
  */
-public class SequentialGenerator extends NumberGenerator
-{
-	final AtomicInteger counter;
-	int _interval,_countstart;
+public class SequentialGenerator extends NumberGenerator {
+  final AtomicInteger counter;
+  int _interval,_countstart;
 
-	/**
-	 * Create a counter that starts at countstart
-	 */
-	public SequentialGenerator(int countstart, int countend)
-	{
-		counter=new AtomicInteger();
-		setLastValue(counter.get());
-		_countstart=countstart;
-		_interval=countend-countstart+1;
-	}
-	
-	/**
-	 * If the generator returns numeric (integer) values, return the next value as an int. Default is to return -1, which
-	 * is appropriate for generators that do not return numeric values.
-	 */
-	public int nextInt() 
-	{
-		int ret = _countstart + counter.getAndIncrement()%_interval;
-		setLastValue(ret);
-		return ret;
-	}
-	@Override
-	public Number nextValue() 
-	{
-		int ret = _countstart + counter.getAndIncrement()%_interval;
-		setLastValue(ret);
-		return ret;
-	}
-	@Override
-	public Number lastValue()
-	{
-	                return counter.get() + 1;
-	}
-	@Override
-	public double mean() {
-		throw new UnsupportedOperationException("Can't compute mean of non-stationary distribution!");
-	}
+  /**
+   * Create a counter that starts at countstart
+   */
+  public SequentialGenerator(int countstart, int countend) {
+    counter = new AtomicInteger();
+    setLastValue(counter.get());
+    _countstart = countstart;
+    _interval = countend - countstart + 1;
+  }
+  
+  /**
+   * If the generator returns numeric (integer) values, return the next value as an int. Default is to return -1, which
+   * is appropriate for generators that do not return numeric values.
+   */
+  public int nextInt() {
+    int ret = _countstart + counter.getAndIncrement()%_interval;
+    setLastValue(ret);
+    return ret;
+  }
+  @Override
+  public Number nextValue() {
+    int ret = _countstart + counter.getAndIncrement()%_interval;
+    setLastValue(ret);
+    return ret;
+  }
+  @Override
+  public Number lastValue() {
+                  return counter.get() + 1;
+  }
+  @Override
+  public double mean() {
+    throw new UnsupportedOperationException("Can't compute mean of non-stationary distribution!");
+  }
 }
