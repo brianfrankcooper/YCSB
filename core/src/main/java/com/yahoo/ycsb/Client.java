@@ -47,6 +47,12 @@ class StatusThread extends Thread
   /** Counts down each of the clients completing. */
   private final CountDownLatch _completeLatch;
 
+  /** Stores the measurements for the run. */
+  private final Measurements _measurements;
+  
+  /** Whether or not to track the JVM stats per run */
+  private final boolean _trackJVMStats;
+  
   /** The clients that are running. */
   private final List<ClientThread> _clients;
 
@@ -56,8 +62,17 @@ class StatusThread extends Thread
   /** The interval for reporting status. */
   private long _sleeptimeNs;
 
+  /** JVM max/mins */
+  private int _maxThreads;
+  private int _minThreads = Integer.MAX_VALUE;
+  private long _maxUsedMem;
+  private long _minUsedMem = Long.MAX_VALUE;
+  private double _maxLoadAvg;
+  private double _minLoadAvg = Double.MAX_VALUE;
+  private long lastGCCount = 0;
+
   /**
-   * Creates a new StatusThread.
+   * Creates a new StatusThread without JVM stat tracking.
    *
    * @param completeLatch The latch that each client thread will {@link CountDownLatch#countDown()} as they complete.
    * @param clients The clients to collect metrics from.
@@ -68,13 +83,32 @@ class StatusThread extends Thread
   public StatusThread(CountDownLatch completeLatch, List<ClientThread> clients,
                       String label, boolean standardstatus, int statusIntervalSeconds)
   {
+    this(completeLatch, clients, label, standardstatus, statusIntervalSeconds, false);
+  }
+  
+  /**
+   * Creates a new StatusThread.
+   *
+   * @param completeLatch The latch that each client thread will {@link CountDownLatch#countDown()} as they complete.
+   * @param clients The clients to collect metrics from.
+   * @param label The label for the status.
+   * @param standardstatus If true the status is printed to stdout in addition to stderr.
+   * @param statusIntervalSeconds The number of seconds between status updates.
+   * @param trackJVMStats Whether or not to track JVM stats.
+   */
+  public StatusThread(CountDownLatch completeLatch, List<ClientThread> clients,
+                      String label, boolean standardstatus, int statusIntervalSeconds,
+                      boolean trackJVMStats)
+  {
     _completeLatch=completeLatch;
     _clients=clients;
     _label=label;
     _standardstatus=standardstatus;
     _sleeptimeNs=TimeUnit.SECONDS.toNanos(statusIntervalSeconds);
+    _measurements = Measurements.getMeasurements();
+    _trackJVMStats = trackJVMStats;
   }
-
+  
   /**
    * Run and periodically report status.
    */
@@ -94,6 +128,10 @@ class StatusThread extends Thread
       long nowMs=System.currentTimeMillis();
 
       lastTotalOps = computeStats(startTimeMs, startIntervalMs, nowMs, lastTotalOps);
+      
+      if (_trackJVMStats) {
+        measureJVM();
+      }
 
       alldone = waitForClientsUntil(deadline);
 
@@ -102,6 +140,9 @@ class StatusThread extends Thread
     }
     while (!alldone);
 
+    if (_trackJVMStats) {
+      measureJVM();
+    }
     // Print the final stats.
     computeStats(startTimeMs, startIntervalMs, System.currentTimeMillis(), lastTotalOps);
   }
@@ -186,6 +227,83 @@ class StatusThread extends Thread
     }
 
     return alldone;
+  }
+
+  /** Executes the JVM measurements. */
+  private void measureJVM() {
+    final int threads = Utils.getActiveThreadCount();
+    if (threads < _minThreads) {
+      _minThreads = threads;
+    }
+    if (threads > _maxThreads) {
+      _maxThreads = threads;
+    }
+    _measurements.measure("THREAD_COUNT", threads);
+    
+    // TODO - once measurements allow for other number types, switch to using
+    // the raw bytes. Otherwise we can track in MB to avoid negative values 
+    // when faced with huge heaps.
+    final int usedMem = Utils.getUsedMemoryMegaBytes();
+    if (usedMem < _minUsedMem) {
+      _minUsedMem = usedMem;
+    }
+    if (usedMem > _maxUsedMem) {
+      _maxUsedMem = usedMem;
+    }
+    _measurements.measure("USED_MEM_MB", usedMem);
+    
+    // Some JVMs may not implement this feature so if the value is less than
+    // zero, just ommit it.
+    final double systemLoad = Utils.getSystemLoadAverage();
+    if (systemLoad >= 0) {
+      // TODO - store the double if measurements allows for them
+      _measurements.measure("SYS_LOAD_AVG", (int)systemLoad);
+      if (systemLoad > _maxLoadAvg) {
+        _maxLoadAvg = systemLoad;
+      }
+      if (systemLoad < _minLoadAvg) {
+        _minLoadAvg = systemLoad;
+      }
+    }
+     
+    final long gcs = Utils.getGCTotalCollectionCount();
+    _measurements.measure("GCS", (int)(gcs - lastGCCount));
+    lastGCCount = gcs;
+  }
+  
+  /** @return The maximum threads running during the test. */
+  public int getMaxThreads() {
+    return _maxThreads;
+  }
+  
+  /** @return The minimum threads running during the test. */
+  public int getMinThreads() {
+    return _minThreads;
+  }
+  
+  /** @return The maximum memory used during the test. */
+  public long getMaxUsedMem() {
+    return _maxUsedMem;
+  }
+  
+  /** @return The minimum memory used during the test. */
+  public long getMinUsedMem() {
+    return _minUsedMem;
+  }
+  
+  /** @return The maximum load average during the test. */
+  public double getMaxLoadAvg() {
+    return _maxLoadAvg;
+  }
+  
+  /** @return The minimum load average during the test. */
+  public double getMinLoadAvg() {
+    return _minLoadAvg;
+  }
+
+  /** @return Whether or not the thread is tracking JVM stats. */
+  public boolean trackJVMStats() {
+    return _trackJVMStats;
   }
 }
 
@@ -474,6 +592,8 @@ public class Client
    */
   public static final String DO_TRANSACTIONS_PROPERTY = "dotransactions";
 
+  /** An optional thread used to track progress and measure JVM stats. */
+  private static StatusThread statusthread = null;
 
   public static void usageMessage()
   {
@@ -553,6 +673,16 @@ public class Client
       exporter.write("OVERALL", "RunTime(ms)", runtime);
       double throughput = 1000.0 * (opcount) / (runtime);
       exporter.write("OVERALL", "Throughput(ops/sec)", throughput);
+      
+      exporter.write("TOTAL_GCs", "Count", Utils.getGCTotalCollectionCount());
+      if (statusthread != null && statusthread.trackJVMStats()) {
+        exporter.write("MAX_MEM_USED", "MBs", statusthread.getMaxUsedMem());
+        exporter.write("MIN_MEM_USED", "MBs", statusthread.getMinUsedMem());
+        exporter.write("MAX_THREADS", "Count", statusthread.getMaxThreads());
+        exporter.write("MIN_THREADS", "Count", statusthread.getMinThreads());
+        exporter.write("MAX_SYS_LOAD_AVG", "Load", statusthread.getMaxLoadAvg());
+        exporter.write("MIN_SYS_LOAD_AVG", "Load", statusthread.getMinLoadAvg());
+      }
 
       Measurements.getMeasurements().exportMeasurements(exporter);
     } finally
@@ -894,8 +1024,6 @@ public class Client
       clients.add(t);
     }
 
-    StatusThread statusthread=null;
-
     if (status)
     {
       boolean standardstatus=false;
@@ -904,7 +1032,9 @@ public class Client
         standardstatus=true;
       }
       int statusIntervalSeconds = Integer.parseInt(props.getProperty("status.interval","10"));
-      statusthread=new StatusThread(completeLatch,clients,label,standardstatus,statusIntervalSeconds);
+      boolean trackJVMStats = props.getProperty(Measurements.MEASUREMENT_TRACK_JVM_PROPERTY, 
+          Measurements.MEASUREMENT_TRACK_JVM_PROPERTY_DEFAULT).equals("true");
+      statusthread=new StatusThread(completeLatch,clients,label,standardstatus,statusIntervalSeconds,trackJVMStats);
       statusthread.start();
     }
 
