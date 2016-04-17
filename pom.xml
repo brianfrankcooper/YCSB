@@ -95,7 +95,7 @@ LICENSE file.
     <tarantool.version>1.6.5</tarantool.version>
     <riak.version>2.0.5</riak.version>
     <aerospike.version>3.1.2</aerospike.version>
-    <solr.version>5.4.0</solr.version>
+    <solr.version>6.0.0</solr.version>
   </properties>
 
   <modules>
