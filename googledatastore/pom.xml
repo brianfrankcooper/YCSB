@@ -29,21 +29,11 @@ LICENSE file.
   <name>Google Cloud Datastore Binding</name>
   <url>https://github.com/GoogleCloudPlatform/google-cloud-datastore</url>
 
-  <repositories>
-    <repository>
-      <id>sonatype-snapshots</id>
-      <name>sonatype-snapshots</name>
-      <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
   <dependencies>
     <dependency>
       <groupId>com.google.cloud.datastore</groupId>
       <artifactId>datastore-v1beta3-proto-client</artifactId>
-      <version>1.0.0-beta</version>
+      <version>1.0.0-beta.1</version>
     </dependency>
     <dependency>
       <groupId>log4j</groupId>
