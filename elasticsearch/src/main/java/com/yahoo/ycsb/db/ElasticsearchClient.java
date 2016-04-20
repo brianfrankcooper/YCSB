@@ -30,6 +30,7 @@ import com.yahoo.ycsb.StringByteIterator;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
@@ -185,8 +186,7 @@ public class ElasticsearchClient extends DB {
    *         description for a discussion of error codes.
    */
   @Override
-  public Status insert(String table, String key,
-      HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
     try {
       final XContentBuilder doc = jsonBuilder().startObject();
 
@@ -201,8 +201,8 @@ public class ElasticsearchClient extends DB {
       return Status.OK;
     } catch (Exception e) {
       e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
   }
 
   /**
@@ -218,12 +218,16 @@ public class ElasticsearchClient extends DB {
   @Override
   public Status delete(String table, String key) {
     try {
-      client.prepareDelete(indexKey, table, key).execute().actionGet();
-      return Status.OK;
+      DeleteResponse response = client.prepareDelete(indexKey, table, key).execute().actionGet();
+      if (response.isFound()) {
+        return Status.OK;
+      } else {
+        return Status.NOT_FOUND;
+      }
     } catch (Exception e) {
       e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
   }
 
   /**
@@ -241,8 +245,7 @@ public class ElasticsearchClient extends DB {
    * @return Zero on success, a non-zero error code on error or "not found".
    */
   @Override
-  public Status read(String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
     try {
       final GetResponse response = client.prepareGet(indexKey, table, key).execute().actionGet();
 
@@ -259,11 +262,13 @@ public class ElasticsearchClient extends DB {
           }
         }
         return Status.OK;
+      } else {
+        return Status.NOT_FOUND;
       }
     } catch (Exception e) {
       e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
   }
 
   /**
@@ -281,8 +286,7 @@ public class ElasticsearchClient extends DB {
    *         description for a discussion of error codes.
    */
   @Override
-  public Status update(String table, String key,
-      HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
     try {
       final GetResponse response = client.prepareGet(indexKey, table, key).execute().actionGet();
 
@@ -294,12 +298,13 @@ public class ElasticsearchClient extends DB {
         client.prepareIndex(indexKey, table, key).setSource(response.getSource()).execute().actionGet();
 
         return Status.OK;
+      } else {
+        return Status.NOT_FOUND;
       }
-
     } catch (Exception e) {
       e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
   }
 
   /**
@@ -321,8 +326,12 @@ public class ElasticsearchClient extends DB {
    *         description for a discussion of error codes.
    */
   @Override
-  public Status scan(String table, String startkey, int recordcount,
-      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+  public Status scan(
+          String table,
+          String startkey,
+          int recordcount,
+          Set<String> fields,
+          Vector<HashMap<String, ByteIterator>> result) {
     try {
       final RangeQueryBuilder rangeQuery = rangeQuery("_id").gte(startkey);
       final SearchResponse response = client.prepareSearch(indexKey)
@@ -336,18 +345,16 @@ public class ElasticsearchClient extends DB {
 
       for (SearchHit hit : response.getHits()) {
         entry = new HashMap<>(fields.size());
-
         for (String field : fields) {
           entry.put(field, new StringByteIterator((String) hit.getSource().get(field)));
         }
-
         result.add(entry);
       }
 
       return Status.OK;
     } catch (Exception e) {
       e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
   }
 }
