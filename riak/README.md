@@ -55,10 +55,10 @@ However, a possible workaround has been provided: considering that Riak doesn't 
 riak-admin bucket-type create fakeBucketType '{"props":{"allow_mult":"false","n_val":1,"dvv_enabled":false,"last_write_wins":true}}'
 riak-admin bucket-type activate fakeBucketType
 ```
-A bucket-type so defined isn't allowed to _create siblings_ (`allow_mult":"false"`) and it'll have just _one replica_ (`"n_val":1`) which'll store the _last value provided_ (`"last_write_wins":true`). Note that setting `"n_val":1` means that the `scan` transactions won't be much *fault-tolerant*. You could increase this value, but this will necessarily require the cluster more work. So, the choice is yours to make!  
+A bucket-type so defined isn't allowed to _create siblings_ (`allow_mult":"false"`), it'll have just _one replica_ (`"n_val":1`) which'll store the _last value provided_ (`"last_write_wins":true`) and _vector clocks_ will be used instead of _dotted version vectors_ (`"dvv_enabled":false`). Note that setting `"n_val":1` means that the `scan` transactions won't be much *fault-tolerant*, considering that if a node fails then a lot of them could potentially fail. You may indeed increase this value, but this choice will necessarily load the cluster with more work. So, the choice is yours to make!
 Then you have to set the `riak.strong_consistent_scans_bucket_type` property (see next section) equal to the name you gave to the aforementioned "fake bucket-type" (e.g. `fakeBucketType` in this case).
 
-Please note that this workaround involves a **double store operation for each insert transaction**, one to store the actual object and another one to save the corresponding 2i index. In practice, the client won't notice any difference, as the latter operation is performed asynchronously. However, the cluster will be obviously more loaded, and this is why the proposed "fake bucket-type" to create is as less _resource-demanding_ as possible.
+Please note that this workaround involves a **double store operation for each insert transaction**, one to store the actual object and another one to save the corresponding 2i index. In practice, the client won't notice any difference, as the latter operation is performed asynchronously. However, the cluster will be obviously loaded more, and this is why the proposed "fake bucket-type" to create is as less _resource-demanding_ as possible.
 
 ###Eventual consistency model
 
