@@ -63,11 +63,12 @@ public class CassandraCQLClientTest {
   private Session session;
 
   @ClassRule
-  public static CassandraCQLUnit cassandraUnit =
-      new CassandraCQLUnit(new ClassPathCQLDataSet("ycsb.cql", "ycsb"));
+  public static CassandraCQLUnit cassandraUnit = new CassandraCQLUnit(new ClassPathCQLDataSet("ycsb.cql", "ycsb"));
 
   @Before
-  public void setUpClient() throws Exception {
+  public void setUp() throws Exception {
+    session = cassandraUnit.getSession();
+
     Properties p = new Properties();
     p.setProperty("hosts", HOST);
     p.setProperty("port", Integer.toString(PORT));
@@ -81,14 +82,11 @@ public class CassandraCQLClientTest {
     client.init();
   }
 
-  @Before
-  public void setSession() {
-    session = cassandraUnit.getSession();
-  }
-
   @After
   public void tearDownClient() throws Exception {
-    client.cleanup();
+    if (client != null) {
+      client.cleanup();
+    }
     client = null;
   }
 
@@ -96,7 +94,9 @@ public class CassandraCQLClientTest {
   public void clearTable() throws Exception {
     // Clear the table so that each test starts fresh.
     final Statement truncate = QueryBuilder.truncate(TABLE);
-    cassandraUnit.getSession().execute(truncate);
+    if (cassandraUnit != null) {
+      cassandraUnit.getSession().execute(truncate);
+    }
   }
 
   @Test
