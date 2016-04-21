@@ -91,6 +91,26 @@ to just "drive load" and disable the waiting. Note that when the "-p couchbase.s
 used, the measured results by YCSB can basically be thrown away. Still helpful sometimes during load phases to speed
 them up :)
 
+## Debugging Latency
+The Couchbase Java SDK has the ability to collect and dump different kinds of metrics which allow you to analyze
+performance during benchmarking and production. By default this option is disabled in the benchmark, but by setting
+`couchbase.networkMetricsInterval` and/or `couchbase.runtimeMetricsInterval` to something greater than 0 it will
+output the information as JSON into the configured logger. The number provides is the interval in seconds. If you are
+unsure what interval to pick, start with 10 or 30 seconds, depending on your runtime length.
+
+This is how such logs look like:
+
+```
+INFO: {"heap.used":{"init":268435456,"used":36500912,"committed":232259584,"max":3817865216},"gc.ps marksweep.collectionTime":0,"gc.ps scavenge.collectionTime":54,"gc.ps scavenge.collectionCount":17,"thread.count":26,"offHeap.used":{"init":2555904,"used":30865944,"committed":31719424,"max":-1},"gc.ps marksweep.collectionCount":0,"heap.pendingFinalize":0,"thread.peakCount":26,"event":{"name":"RuntimeMetrics","type":"METRIC"},"thread.startedCount":28}
+INFO: {"localhost/127.0.0.1:11210":{"BINARY":{"ReplaceRequest":{"SUCCESS":{"metrics":{"percentiles":{"50.0":102,"90.0":136,"95.0":155,"99.0":244,"99.9":428},"min":55,"max":1564,"count":35787,"timeUnit":"MICROSECONDS"}}},"GetRequest":{"SUCCESS":{"metrics":{"percentiles":{"50.0":74,"90.0":98,"95.0":110,"99.0":158,"99.9":358},"min":34,"max":2310,"count":35604,"timeUnit":"MICROSECONDS"}}},"GetBucketConfigRequest":{"SUCCESS":{"metrics":{"percentiles":{"50.0":462,"90.0":462,"95.0":462,"99.0":462,"99.9":462},"min":460,"max":462,"count":1,"timeUnit":"MICROSECONDS"}}}}},"event":{"name":"NetworkLatencyMetrics","type":"METRIC"}}
+```
+
+It is recommended to either feed it into a program which can analyze and visualize JSON or just dump it into a JSON
+pretty printer and look at it manually. Since the output can be changed (only by changing the code at the moment), you
+can even configure to put those messages into another couchbase bucket and then analyze it through N1QL! You can learn
+more about this in general [in the official docs](http://developer.couchbase.com/documentation/server/4.0/sdks/java-2.2/event-bus-metrics.html).
+
+
 ## Configuration Options
 Since no setup is the same and the goal of YCSB is to deliver realistic benchmarks, here are some setups that you can
 tune. Note that if you need more flexibility (let's say a custom transcoder), you still need to extend this driver and
@@ -113,3 +133,5 @@ You can set the following properties (with the default settings applied):
  - couchbase.epoll=false: If Epoll instead of NIO should be used (only available for linux.
  - couchbase.boost=3: If > 0 trades CPU for higher throughput. N is the number of event loops, ideally
    set to the number of physical cores. Setting higher than that will likely degrade performance.
+ - couchbase.networkMetricsInterval=0: The interval in seconds when latency metrics will be logged.
+ - couchbase.runtimeMetricsInterval=0: The interval in seconds when runtime metrics will be logged.

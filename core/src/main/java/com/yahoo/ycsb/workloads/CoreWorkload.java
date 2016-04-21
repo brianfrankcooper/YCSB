@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010 Yahoo! Inc., 2016 YCSB Contributors All rights reserved.
+ * Copyright (c) 2010 Yahoo! Inc., Copyright (c) 2016 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -113,7 +113,7 @@ public class CoreWorkload extends Workload {
    * (favouring short records), "constant", and "histogram".
    *
    * If "uniform", "zipfian" or "constant", the maximum field length will be that specified by the
-   * fieldlength property.  If "histogram", then the histogram will be read from the filename
+   * fieldlength property. If "histogram", then the histogram will be read from the filename
    * specified in the "fieldlengthhistogram" property.
    */
   public static final String FIELD_LENGTH_DISTRIBUTION_PROPERTY = "fieldlengthdistribution";
@@ -256,7 +256,7 @@ public class CoreWorkload extends Workload {
   public static final String REQUEST_DISTRIBUTION_PROPERTY_DEFAULT = "uniform";
 
    /**
-   * The name of the property for adding zero padding to record numbers in order to match 
+   * The name of the property for adding zero padding to record numbers in order to match
    * string sort order. Controls the number of 0s to left pad with.
    */
   public static final String ZERO_PADDING_PROPERTY = "zeropadding";
@@ -395,17 +395,7 @@ public class CoreWorkload extends Workload {
       fieldnames.add("field" + i);
     }
     fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
-
-    double readproportion = Double.parseDouble(
-        p.getProperty(READ_PROPORTION_PROPERTY, READ_PROPORTION_PROPERTY_DEFAULT));
-    double updateproportion = Double.parseDouble(
-        p.getProperty(UPDATE_PROPORTION_PROPERTY, UPDATE_PROPORTION_PROPERTY_DEFAULT));
-    double insertproportion = Double.parseDouble(
-        p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
-    double scanproportion = Double.parseDouble(
-        p.getProperty(SCAN_PROPORTION_PROPERTY, SCAN_PROPORTION_PROPERTY_DEFAULT));
-    double readmodifywriteproportion = Double.parseDouble(p.getProperty(
-        READMODIFYWRITE_PROPORTION_PROPERTY, READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT));
+    
     recordcount =
         Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
     if (recordcount == 0) {
@@ -462,26 +452,7 @@ public class CoreWorkload extends Workload {
     }
 
     keysequence = new CounterGenerator(insertstart);
-    operationchooser = new DiscreteGenerator();
-    if (readproportion > 0) {
-      operationchooser.addValue(readproportion, "READ");
-    }
-
-    if (updateproportion > 0) {
-      operationchooser.addValue(updateproportion, "UPDATE");
-    }
-
-    if (insertproportion > 0) {
-      operationchooser.addValue(insertproportion, "INSERT");
-    }
-
-    if (scanproportion > 0) {
-      operationchooser.addValue(scanproportion, "SCAN");
-    }
-
-    if (readmodifywriteproportion > 0) {
-      operationchooser.addValue(readmodifywriteproportion, "READMODIFYWRITE");
-    }
+    operationchooser = createOperationGenerator(p);
 
     transactioninsertkeysequence = new AcknowledgedCounterGenerator(recordcount);
     if (requestdistrib.compareTo("uniform") == 0) {
@@ -493,13 +464,13 @@ public class CoreWorkload extends Workload {
       // number of keys.
       // If the number of keys changes, this would shift the modulus, and we don't want that to
       // change which keys are popular so we'll actually construct the scrambled zipfian generator
-      // with a keyspace that is larger than exists at the beginning of the test. that is, we'll 
-      // predict the number of inserts, and tell the scrambled zipfian generator the number of 
-      // existing keys plus the number of predicted keys as the total keyspace. then, if the 
-      // generator picks a key that hasn't been inserted yet, will just ignore it and pick another
-      // key. this way, the size ofthe keyspace doesn't change from the perspective of the scrambled
-      // zipfian generator.
-
+      // with a keyspace that is larger than exists at the beginning of the test. that is, we'll predict
+      // the number of inserts, and tell the scrambled zipfian generator the number of existing keys
+      // plus the number of predicted keys as the total keyspace. then, if the generator picks a key
+      // that hasn't been inserted yet, will just ignore it and pick another key. this way, the size of
+      // the keyspace doesn't change from the perspective of the scrambled zipfian generator
+      final double insertproportion = Double.parseDouble(
+          p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
       int opcount = Integer.parseInt(p.getProperty(Client.OPERATION_COUNT_PROPERTY));
       int expectednewkeys = (int) ((opcount) * insertproportion * 2.0); // 2 is fudge factor
 
@@ -511,7 +482,7 @@ public class CoreWorkload extends Workload {
           Double.parseDouble(p.getProperty(HOTSPOT_DATA_FRACTION, HOTSPOT_DATA_FRACTION_DEFAULT));
       double hotopnfraction =
           Double.parseDouble(p.getProperty(HOTSPOT_OPN_FRACTION, HOTSPOT_OPN_FRACTION_DEFAULT));
-      keychooser = new HotspotIntegerGenerator(insertstart, insertstart + insertcount - 1,  
+      keychooser = new HotspotIntegerGenerator(insertstart, insertstart + insertcount - 1,
           hotsetfraction, hotopnfraction);
     } else {
       throw new WorkloadException("Unknown request distribution \"" + requestdistrib + "\"");
@@ -661,7 +632,7 @@ public class CoreWorkload extends Workload {
     case "UPDATE":
       doTransactionUpdate(db);
       break;
-    case "INSERT": 
+    case "INSERT":
       doTransactionInsert(db);
       break;
     case "SCAN":
@@ -841,5 +812,52 @@ public class CoreWorkload extends Workload {
     } finally {
       transactioninsertkeysequence.acknowledge(keynum);
     }
+  }
+
+  /**
+   * Creates a weighted discrete values with database operations for a workload to perform.
+   * Weights/proportions are read from the properties list and defaults are used
+   * when values are not configured.
+   * Current operations are "READ", "UPDATE", "INSERT", "SCAN" and "READMODIFYWRITE".
+   * @param p The properties list to pull weights from.
+   * @return A generator that can be used to determine the next operation to perform.
+   * @throws IllegalArgumentException if the properties object was null.
+   */
+  public static DiscreteGenerator createOperationGenerator(final Properties p) {
+    if (p == null) {
+      throw new IllegalArgumentException("Properties object cannot be null");
+    }
+    final double readproportion = Double.parseDouble(
+        p.getProperty(READ_PROPORTION_PROPERTY, READ_PROPORTION_PROPERTY_DEFAULT));
+    final double updateproportion = Double.parseDouble(
+        p.getProperty(UPDATE_PROPORTION_PROPERTY, UPDATE_PROPORTION_PROPERTY_DEFAULT));
+    final double insertproportion = Double.parseDouble(
+        p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
+    final double scanproportion = Double.parseDouble(
+        p.getProperty(SCAN_PROPORTION_PROPERTY, SCAN_PROPORTION_PROPERTY_DEFAULT));
+    final double readmodifywriteproportion = Double.parseDouble(p.getProperty(
+        READMODIFYWRITE_PROPORTION_PROPERTY, READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT));
+    
+    final DiscreteGenerator operationchooser = new DiscreteGenerator();
+    if (readproportion > 0) {
+      operationchooser.addValue(readproportion, "READ");
+    }
+
+    if (updateproportion > 0) {
+      operationchooser.addValue(updateproportion, "UPDATE");
+    }
+
+    if (insertproportion > 0) {
+      operationchooser.addValue(insertproportion, "INSERT");
+    }
+
+    if (scanproportion > 0) {
+      operationchooser.addValue(scanproportion, "SCAN");
+    }
+
+    if (readmodifywriteproportion > 0) {
+      operationchooser.addValue(readmodifywriteproportion, "READMODIFYWRITE");
+    }
+    return operationchooser;
   }
 }

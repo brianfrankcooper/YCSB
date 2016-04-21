@@ -1,12 +1,12 @@
 /**
  * Copyright (c) 2016 YCSB Contributors All rights reserved.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"); you 
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
  * may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
@@ -37,7 +37,7 @@ public class SequentialGenerator extends NumberGenerator {
   }
   
   /**
-   * If the generator returns numeric (integer) values, return the next value as an int. 
+   * If the generator returns numeric (integer) values, return the next value as an int.
    * Default is to return -1, which is appropriate for generators that do not return numeric values.
    */
   public int nextInt() {
@@ -45,16 +45,19 @@ public class SequentialGenerator extends NumberGenerator {
     setLastValue(ret);
     return ret;
   }
+  
   @Override
   public Number nextValue() {
     int ret = _countstart + counter.getAndIncrement() % _interval;
     setLastValue(ret);
     return ret;
   }
+  
   @Override
   public Number lastValue() {
     return counter.get() + 1;
   }
+  
   @Override
   public double mean() {
     throw new UnsupportedOperationException("Can't compute mean of non-stationary distribution!");

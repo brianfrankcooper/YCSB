@@ -21,6 +21,10 @@ import com.couchbase.client.core.env.DefaultCoreEnvironment;
 import com.couchbase.client.core.env.resources.IoPoolShutdownHook;
 import com.couchbase.client.core.logging.CouchbaseLogger;
 import com.couchbase.client.core.logging.CouchbaseLoggerFactory;
+import com.couchbase.client.core.metrics.DefaultLatencyMetricsCollectorConfig;
+import com.couchbase.client.core.metrics.DefaultMetricsCollectorConfig;
+import com.couchbase.client.core.metrics.LatencyMetricsCollectorConfig;
+import com.couchbase.client.core.metrics.MetricsCollectorConfig;
 import com.couchbase.client.deps.com.fasterxml.jackson.core.JsonFactory;
 import com.couchbase.client.deps.com.fasterxml.jackson.core.JsonGenerator;
 import com.couchbase.client.deps.com.fasterxml.jackson.databind.JsonNode;
@@ -87,6 +91,8 @@ import java.util.concurrent.locks.LockSupport;
  * <li><b>couchbase.epoll=false</b> If Epoll instead of NIO should be used (only available for linux.</li>
  * <li><b>couchbase.boost=3</b> If > 0 trades CPU for higher throughput. N is the number of event loops, ideally
  *      set to the number of physical cores. Setting higher than that will likely degrade performance.</li>
+ * <li><b>couchbase.networkMetricsInterval=0</b> The interval in seconds when latency metrics will be logged.</li>
+ * <li><b>couchbase.runtimeMetricsInterval=0</b> The interval in seconds when runtime metrics will be logged.</li>
  * </ul>
  */
 public class Couchbase2Client extends DB {
@@ -117,6 +123,8 @@ public class Couchbase2Client extends DB {
   private int kvEndpoints;
   private int queryEndpoints;
   private int boost;
+  private int networkMetricsInterval;
+  private int runtimeMetricsInterval;
 
   @Override
   public void init() throws DBException {
@@ -137,14 +145,31 @@ public class Couchbase2Client extends DB {
     queryEndpoints = Integer.parseInt(props.getProperty("couchbase.queryEndpoints", "5"));
     epoll = props.getProperty("couchbase.epoll", "false").equals("true");
     boost = Integer.parseInt(props.getProperty("couchbase.boost", "3"));
+    networkMetricsInterval = Integer.parseInt(props.getProperty("couchbase.networkMetricsInterval", "0"));
+    runtimeMetricsInterval = Integer.parseInt(props.getProperty("couchbase.runtimeMetricsInterval", "0"));
 
     try {
       synchronized (INIT_COORDINATOR) {
         if (env == null) {
+
+          LatencyMetricsCollectorConfig latencyConfig = networkMetricsInterval <= 0
+              ? DefaultLatencyMetricsCollectorConfig.disabled()
+              : DefaultLatencyMetricsCollectorConfig
+                  .builder()
+                  .emitFrequency(networkMetricsInterval)
+                  .emitFrequencyUnit(TimeUnit.SECONDS)
+                  .build();
+
+          MetricsCollectorConfig runtimeConfig = runtimeMetricsInterval <= 0
+              ? DefaultMetricsCollectorConfig.disabled()
+              : DefaultMetricsCollectorConfig.create(runtimeMetricsInterval, TimeUnit.SECONDS);
+
           DefaultCouchbaseEnvironment.Builder builder = DefaultCouchbaseEnvironment
               .builder()
               .queryEndpoints(queryEndpoints)
               .callbacksOnIoPool(true)
+              .runtimeMetricsCollectorConfig(runtimeConfig)
+              .networkLatencyMetricsCollectorConfig(latencyConfig)
               .kvEndpoints(kvEndpoints);
 
           // Tune boosting and epoll based on settings
@@ -197,6 +222,8 @@ public class Couchbase2Client extends DB {
     sb.append(", queryEndpoints=").append(queryEndpoints);
     sb.append(", epoll=").append(epoll);
     sb.append(", boost=").append(boost);
+    sb.append(", networkMetricsInterval=").append(networkMetricsInterval);
+    sb.append(", runtimeMetricsInterval=").append(runtimeMetricsInterval);
 
     LOGGER.info("===> Using Params: " + sb.toString());
   }
