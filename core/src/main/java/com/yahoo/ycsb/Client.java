@@ -309,57 +309,76 @@ class ClientThread extends Thread
     //NOTE: Switching to using nanoTime and parkNanos for time management here such that the measurements
     // and the client thread have the same view on time.
 
-    //spread the thread operations out so they don't all hit the DB at the same time
-    // GH issue 4 - throws exception if _target>1 because random.nextInt argument must be >0
-    // and the sleep() doesn't make sense for granularities < 1 ms anyway
-    if ((_targetOpsPerMs > 0) && (_targetOpsPerMs <= 1.0))
-    {
-      long randomMinorDelay = Utils.random().nextInt((int) _targetOpsTickNs);
-      sleepUntil(System.nanoTime() + randomMinorDelay);
-    }
-    try
-    {
-      if (_dotransactions)
-      {
-        long startTimeNanos = System.nanoTime();
+		//spread the thread operations out so they don't all hit the DB at the same time
+		try
+		{
+		   //GH issue 4 - throws exception if _target>1 because random.nextInt argument must be >0
+		   //and the sleep() doesn't make sense for granularities < 1 ms anyway
+		   if ( (_targetOpsPerMs>0) && (_targetOpsPerMs<=1.0) ) 
+		   {
+		      sleep(Utils.random().nextInt((int)(1.0/_targetOpsTickNs)));
+		   }
+		}
+		catch (InterruptedException e)
+		{
+		  // do nothing.
+		}
+		
+		try
+		{
+			if (_dotransactions)
+			{
+                                long startTimeNanos = System.nanoTime();
 
-        while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
-        {
+				while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
+				{
 
-          if (!_workload.doTransaction(_db,_workloadstate))
-          {
-            break;
-          }
+					try {
+						_db.start();
+						if (_workload.doTransaction(_db,_workloadstate)) {
+							_db.commit();
+						} else {
+							_db.abort();							
+						}
+					} catch (DBException e) {
+						throw new WorkloadException(e);
+					}
 
-          _opsdone++;
+					_opsdone++;
 
-          throttleNanos(startTimeNanos);
-        }
-      }
-      else
-      {
-        long startTimeNanos = System.nanoTime();
+                                        throttleNanos(startTimeNanos);
+				}
+			}
+			else
+			{
+                                long startTimeNanos = System.nanoTime();
 
-        while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
-        {
+				while (((_opcount == 0) || (_opsdone < _opcount)) && !_workload.isStopRequested())
+				{
 
-          if (!_workload.doInsert(_db,_workloadstate))
-          {
-            break;
-          }
+					try {
+						_db.start();
+						if (_workload.doInsert(_db,_workloadstate)) {
+							_db.commit();
+						} else {
+							_db.abort();
+						}
+					} catch (DBException e) {
+						throw new WorkloadException(e);
+					}
 
-          _opsdone++;
+					_opsdone++;
 
-          throttleNanos(startTimeNanos);
-        }
-      }
-    }
-    catch (Exception e)
-    {
-      e.printStackTrace();
-      e.printStackTrace(System.out);
-      System.exit(0);
-    }
+                                        throttleNanos(startTimeNanos);
+				}
+			}
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+			e.printStackTrace(System.out);
+			System.exit(0);
+		}
 
     try
     {
@@ -953,16 +972,32 @@ public class Client
       }
     }
 
-    try
-    {
-      workload.cleanup();
-    }
-    catch (WorkloadException e)
-    {
-      e.printStackTrace();
-      e.printStackTrace(System.out);
-      System.exit(0);
-    }
+		try {
+			DB db = DBFactory.newDB(dbname,props);
+			db.init();
+			if (workload.validate(db))
+				System.out.println("Database validation succeeded");
+			else
+				System.out.println("Database validation failed");
+		} catch (WorkloadException e) {
+			System.out.println("Database validation failed with error: " + e.getMessage());
+		} catch (UnknownDBException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (DBException e) {
+			e.printStackTrace();
+		}
+		
+		try
+		{
+			workload.cleanup();
+		}
+		catch (WorkloadException e)
+		{
+			e.printStackTrace();
+			e.printStackTrace(System.out);
+			System.exit(0);
+		}
 
     try
     {
