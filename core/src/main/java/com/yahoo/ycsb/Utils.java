@@ -17,6 +17,10 @@
 
 package com.yahoo.ycsb;
 
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -173,5 +177,50 @@ public class Utils
        */
       public static byte[] doubleToBytes(final double val) {
         return longToBytes(Double.doubleToRawLongBits(val));
+      }
+      
+      /**
+       * Measure the estimated active thread count in the current thread group.
+       * Since this calls {@link Thread.activeCount} it should be called from the
+       * main thread or one started by the main thread. Threads included in the
+       * count can be in any state. 
+       * For a more accurate count we could use {@link Thread.getAllStackTraces().size()} 
+       * but that freezes the JVM and incurs a high overhead.
+       * @return An estimated thread count, good for showing the thread count
+       * over time.
+       */
+      public static int getActiveThreadCount() {
+        return Thread.activeCount();
+      }
+      
+      /** @return The currently used memory in bytes */
+      public static long getUsedMemoryBytes() {
+        final Runtime runtime = Runtime.getRuntime();
+        return runtime.totalMemory() - runtime.freeMemory();
+      }
+      
+      /** @return The currently used memory in megabytes. */
+      public static int getUsedMemoryMegaBytes() {
+        return (int)(getUsedMemoryBytes() / 1024 / 1024);
+      }
+      
+      /** @return The current system load average if supported by the JDK. 
+       * If it's not supported, the value will be negative. */
+      public static double getSystemLoadAverage() {
+        final OperatingSystemMXBean osBean = 
+            ManagementFactory.getOperatingSystemMXBean();
+        return osBean.getSystemLoadAverage();
+      }
+      
+      /** @return The total number of garbage collections executed for all 
+       * memory pools. */ 
+      public static long getGCTotalCollectionCount() {
+        final List<GarbageCollectorMXBean> gcBeans = 
+            ManagementFactory.getGarbageCollectorMXBeans();
+        long count = 0;
+        for (final GarbageCollectorMXBean bean : gcBeans) {
+          count += bean.getCollectionCount();
+        }
+        return count;
       }
 }
