@@ -219,8 +219,25 @@ public class Utils
             ManagementFactory.getGarbageCollectorMXBeans();
         long count = 0;
         for (final GarbageCollectorMXBean bean : gcBeans) {
+          if (bean.getCollectionCount() < 0) {
+            continue;
+          }
           count += bean.getCollectionCount();
         }
         return count;
+      }
+      
+      /** @return The total time, in milliseconds, spent in GC. */ 
+      public static long getGCTotalTime() {
+        final List<GarbageCollectorMXBean> gcBeans = 
+            ManagementFactory.getGarbageCollectorMXBeans();
+        long time = 0;
+        for (final GarbageCollectorMXBean bean : gcBeans) {
+          if (bean.getCollectionTime() < 0) {
+            continue;
+          }
+          time += bean.getCollectionTime();
+        }
+        return time;
       }
 }

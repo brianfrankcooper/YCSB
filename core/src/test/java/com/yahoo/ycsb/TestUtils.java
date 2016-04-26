@@ -110,6 +110,8 @@ public class TestUtils {
     Utils.getSystemLoadAverage();
     // This will probably be zero but should never be negative.
     assertTrue(Utils.getGCTotalCollectionCount() >= 0);
+    // Could be zero similar to GC total collection count
+    assertTrue(Utils.getGCTotalTime() >= 0);
   }
   
   /**

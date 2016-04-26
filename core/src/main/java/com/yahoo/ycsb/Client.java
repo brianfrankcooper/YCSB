@@ -76,6 +76,7 @@ class StatusThread extends Thread
   private double _maxLoadAvg;
   private double _minLoadAvg = Double.MAX_VALUE;
   private long lastGCCount = 0;
+  private long lastGCTime = 0;
 
   /**
    * Creates a new StatusThread without JVM stat tracking.
@@ -274,7 +275,10 @@ class StatusThread extends Thread
      
     final long gcs = Utils.getGCTotalCollectionCount();
     _measurements.measure("GCS", (int)(gcs - lastGCCount));
+    final long gcTime = Utils.getGCTotalTime();
+    _measurements.measure("GCS_TIME", (int)(gcTime - lastGCTime));
     lastGCCount = gcs;
+    lastGCTime = gcTime;
   }
   
   /** @return The maximum threads running during the test. */
@@ -693,6 +697,9 @@ public class Client
       exporter.write("OVERALL", "Throughput(ops/sec)", throughput);
       
       exporter.write("TOTAL_GCs", "Count", Utils.getGCTotalCollectionCount());
+      final long gcTime = Utils.getGCTotalTime();
+      exporter.write("TOTAL_GC_TIME", "Time(ms)", gcTime);
+      exporter.write("TOTAL_GC_TIME_%", "Time(%)", ((double)gcTime / runtime) * (double)100);
       if (statusthread != null && statusthread.trackJVMStats()) {
         exporter.write("MAX_MEM_USED", "MBs", statusthread.getMaxUsedMem());
         exporter.write("MIN_MEM_USED", "MBs", statusthread.getMinUsedMem());
