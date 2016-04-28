@@ -47,8 +47,8 @@ import org.json.JSONObject;
  */
 public class RadosClient extends DB {
 
-  private static Rados rados;
-  private static IoCTX ioctx;
+  private Rados rados;
+  private IoCTX ioctx;
 
   public static final String CONFIG_FILE_PROPERTY = "rados.configfile";
   public static final String CONFIG_FILE_DEFAULT = "/etc/ceph/ceph.conf";
