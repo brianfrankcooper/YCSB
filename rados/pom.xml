@@ -43,9 +43,15 @@ LICENSE file.
     </dependency>
     <dependency>
 	    <groupId>org.json</groupId>
-		<artifactId>json</artifactId>
-		<version>${json.version}</version>
-	</dependency>
+  		<artifactId>json</artifactId>
+  		<version>${json.version}</version>
+  	</dependency>
+    <dependency>
+        <groupId>org.testng</groupId>
+        <artifactId>testng</artifactId>
+        <version>6.1.1</version>
+        <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <properties>
