@@ -9,16 +9,16 @@ import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.Client;
 import com.yahoo.ycsb.DB;
+import com.yahoo.ycsb.RandomByteIterator;
 import com.yahoo.ycsb.Workload;
 import com.yahoo.ycsb.WorkloadException;
-import com.yahoo.ycsb.generator.AcknowledgedCounterGenerator;
+import com.yahoo.ycsb.generator.ConstantIntegerGenerator;
 import com.yahoo.ycsb.generator.DiscreteGenerator;
 import com.yahoo.ycsb.generator.ExponentialGenerator;
+import com.yahoo.ycsb.generator.HistogramGenerator;
 import com.yahoo.ycsb.generator.HotspotIntegerGenerator;
 import com.yahoo.ycsb.generator.NumberGenerator;
-import com.yahoo.ycsb.generator.SkewedLatestGenerator;
 import com.yahoo.ycsb.generator.UniformIntegerGenerator;
 import com.yahoo.ycsb.generator.ZipfianGenerator;
 
@@ -109,36 +109,109 @@ public class RestWorkload extends Workload {
 	 */
 	public static final String HOTSPOT_OPN_FRACTION_DEFAULT = "0.8";
 
+	public static final String FIELD_LENGTH_DISTRIBUTION_PROPERTY = "fieldlengthdistribution";
+
+	/**
+	 * The default field length distribution.
+	 */
+	public static final String FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT = "constant";
+
+	/**
+	 * The name of the property for the length of a field in bytes.
+	 */
+	public static final String FIELD_LENGTH_PROPERTY = "fieldlength";
+
+	/**
+	 * The default maximum length of a field in bytes.
+	 */
+	public static final String FIELD_LENGTH_PROPERTY_DEFAULT = "100";
+
+	/**
+	 * The name of a property that specifies the filename containing the field
+	 * length histogram (only used if fieldlengthdistribution is "histogram").
+	 */
+	public static final String FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY = "fieldlengthhistogram";
+
+	/**
+	 * The default filename containing a field length histogram.
+	 */
+	public static final String FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY_DEFAULT = "hist.txt";
+	public static final String FIELD_LENGTH_DISTRIBUTION_FILE_PROPERTY = "fieldlengthdistfile";
+	public static final String FIELD_LENGTH_DISTRIBUTION_FILE_PROPERTY_DEFAULT = "fieldLengthDistFile.txt";
+
 	/**
 	 * Generator object that produces field lengths. The value of this depends
 	 * on the properties that start with "FIELD_LENGTH_".
 	 */
-	private NumberGenerator fieldlengthgenerator;
+	private static NumberGenerator fieldLengthGenerator;
 
-	public static final String TRACE_FILE = "urltrace";
+	/**
+	 * In web services even though the CRUD operations follow the same request
+	 * distribution, they have different traces and distribution parameter
+	 * values. Hence configuring the parameters of these operations separately
+	 * makes the benchmark more flexible and capable of generating better
+	 * realistic workloads.
+	 */
+	// Read related properties.
+	private static final String READ_TRACE_FILE = "url.trace.read";
+	private static final String READ_TRACE_FILE_DEFAULT = "readtrace.txt";
+	private static final String READ_ZIPFIAN_CONSTANT = "readzipfconstant";
+	private static final String READ_ZIPFIAN_CONSTANT_DEAFULT = "0.99";
+	private static final String READ_RECORD_COUNT_PROPERTY = "readrecordcount";
+	// Insert related properties.
+	private static final String INSERT_TRACE_FILE = "url.trace.insert";
+	private static final String INSERT_TRACE_FILE_DEFAULT = "inserttrace.txt";
+	private static final String INSERT_ZIPFIAN_CONSTANT = "insertzipfconstant";
+	private static final String INSERT_ZIPFIAN_CONSTANT_DEAFULT = "0.99";
+	private static final String INSERT_SIZE_ZIPFIAN_CONSTANT = "insertsizezipfconstant";
+	private static final String INSERT_SIZE_ZIPFIAN_CONSTANT_DEAFULT = "0.99";
+	private static final String INSERT_RECORD_COUNT_PROPERTY = "insertrecordcount";
+	// Delete related properties.
+	private static final String DELETE_TRACE_FILE = "url.trace.delete";
+	private static final String DELETE_TRACE_FILE_DEFAULT = "deletetrace.txt";
+	private static final String DELETE_ZIPFIAN_CONSTANT = "deletezipfconstant";
+	private static final String DELETE_ZIPFIAN_CONSTANT_DEAFULT = "0.99";
+	private static final String DELETE_RECORD_COUNT_PROPERTY = "deleterecordcount";
+	// Delete related properties.
+	private static final String UPDATE_TRACE_FILE = "url.trace.update";
+	private static final String UPDATE_TRACE_FILE_DEFAULT = "updatetrace.txt";
+	private static final String UPDATE_ZIPFIAN_CONSTANT = "updatezipfconstant";
+	private static final String UPDATE_ZIPFIAN_CONSTANT_DEAFULT = "0.99";
+	private static final String UPDATE_RECORD_COUNT_PROPERTY = "updaterecordcount";
 
-	public static final String TRACE_FILE_DEFAULT = "trace.txt";
-
-	public static final String ZIPFIAN_CONSTANT = "zipfconstant";
-	public static final String ZIPFIAN_CONSTANT_DEAFULT = "0.99";
-
-	private static Map<Long, String> urlMap;
-	private static int recordcount;
-	private NumberGenerator keychooser;
-	private AcknowledgedCounterGenerator transactioninsertkeysequence;
-	private DiscreteGenerator operationchooser;
+	private static Map<Integer, String> readUrlMap;
+	private static Map<Integer, String> insertUrlMap;
+	private static Map<Integer, String> deleteUrlMap;
+	private static Map<Integer, String> updateUrlMap;
+	private static int readRecordCount;
+	private static int insertRecordCount;
+	private static int deleteRecordCount;
+	private static int updateRecordCount;
+	private NumberGenerator readKeyChooser;
+	private NumberGenerator insertKeyChooser;
+	private NumberGenerator deleteKeyChooser;
+	private NumberGenerator updateKeyChooser;
+	private DiscreteGenerator operationChooser;
 
 	@Override
 	public void init(Properties p) throws WorkloadException {
 
-		recordcount = Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
+		readRecordCount = Integer.parseInt(p.getProperty(READ_RECORD_COUNT_PROPERTY, String.valueOf(Long.MAX_VALUE)));
+		insertRecordCount = Integer
+				.parseInt(p.getProperty(INSERT_RECORD_COUNT_PROPERTY, String.valueOf(Long.MAX_VALUE)));
+		deleteRecordCount = Integer
+				.parseInt(p.getProperty(DELETE_RECORD_COUNT_PROPERTY, String.valueOf(Long.MAX_VALUE)));
+		updateRecordCount = Integer
+				.parseInt(p.getProperty(UPDATE_RECORD_COUNT_PROPERTY, String.valueOf(Long.MAX_VALUE)));
 
-		if (urlMap == null) {
-			String traceFile = p.getProperty(TRACE_FILE, TRACE_FILE_DEFAULT);
-			urlMap = getTrace(traceFile, recordcount);
-		}
-
-		operationchooser = new DiscreteGenerator();
+		if (readUrlMap == null)
+			readUrlMap = getTrace(p.getProperty(READ_TRACE_FILE, READ_TRACE_FILE_DEFAULT), readRecordCount);
+		if (insertUrlMap == null)
+			insertUrlMap = getTrace(p.getProperty(INSERT_TRACE_FILE, INSERT_TRACE_FILE_DEFAULT), insertRecordCount);
+		if (deleteUrlMap == null)
+			deleteUrlMap = getTrace(p.getProperty(DELETE_TRACE_FILE, DELETE_TRACE_FILE_DEFAULT), deleteRecordCount);
+		if (updateUrlMap == null)
+			updateUrlMap = getTrace(p.getProperty(UPDATE_TRACE_FILE, UPDATE_TRACE_FILE_DEFAULT), updateRecordCount);
 
 		double readproportion = Double
 				.parseDouble(p.getProperty(READ_PROPORTION_PROPERTY, READ_PROPORTION_PROPERTY_DEFAULT));
@@ -149,59 +222,103 @@ public class RestWorkload extends Workload {
 		double deleteproportion = Double
 				.parseDouble(p.getProperty(DELETE_PROPORTION_PROPERTY, DELETE_PROPORTION_PROPERTY_DEFAULT));
 
-		if (readproportion > 0) {
-			operationchooser.addValue(readproportion, "READ");
-		}
+		operationChooser = new DiscreteGenerator();
 
-		if (updateproportion > 0) {
-			operationchooser.addValue(updateproportion, "UPDATE");
-		}
+		if (readproportion > 0)
+			operationChooser.addValue(readproportion, "READ");
+		if (updateproportion > 0)
+			operationChooser.addValue(updateproportion, "UPDATE");
+		if (insertproportion > 0)
+			operationChooser.addValue(insertproportion, "INSERT");
+		if (deleteproportion > 0)
+			operationChooser.addValue(insertproportion, "DELETE");
 
-		if (insertproportion > 0) {
-			operationchooser.addValue(insertproportion, "INSERT");
-		}
+		// Common distribution for all operations.
+		String requestDistrib = p.getProperty(REQUEST_DISTRIBUTION_PROPERTY, REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
 
-		if (deleteproportion > 0) {
-			operationchooser.addValue(insertproportion, "DELETE");
-		}
+		double readZipfconstant = Double
+				.parseDouble(p.getProperty(READ_ZIPFIAN_CONSTANT, READ_ZIPFIAN_CONSTANT_DEAFULT));
+		readKeyChooser = getKeyChooser(requestDistrib, readRecordCount, readZipfconstant, p);
+		double updateZipfconstant = Double
+				.parseDouble(p.getProperty(UPDATE_ZIPFIAN_CONSTANT, UPDATE_ZIPFIAN_CONSTANT_DEAFULT));
+		updateKeyChooser = getKeyChooser(requestDistrib, updateRecordCount, updateZipfconstant, p);
+		double insertZipfconstant = Double
+				.parseDouble(p.getProperty(INSERT_ZIPFIAN_CONSTANT, INSERT_ZIPFIAN_CONSTANT_DEAFULT));
+		insertKeyChooser = getKeyChooser(requestDistrib, insertRecordCount, insertZipfconstant, p);
+		double deleteZipfconstant = Double
+				.parseDouble(p.getProperty(DELETE_ZIPFIAN_CONSTANT, DELETE_ZIPFIAN_CONSTANT_DEAFULT));
+		deleteKeyChooser = getKeyChooser(requestDistrib, deleteRecordCount, deleteZipfconstant, p);
 
-		String requestdistrib = p.getProperty(REQUEST_DISTRIBUTION_PROPERTY, REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
-		transactioninsertkeysequence = new AcknowledgedCounterGenerator(recordcount);
-		if (requestdistrib.compareTo("exponential") == 0) {
+		fieldLengthGenerator = getFieldLengthGenerator(p);
+	}
+
+	private static NumberGenerator getKeyChooser(String requestDistrib, int recordCount, double zipfContant,
+			Properties p) throws WorkloadException {
+		NumberGenerator keychooser = null;
+		if (requestDistrib.compareTo("exponential") == 0) {
 			double percentile = Double.parseDouble(p.getProperty(ExponentialGenerator.EXPONENTIAL_PERCENTILE_PROPERTY,
 					ExponentialGenerator.EXPONENTIAL_PERCENTILE_DEFAULT));
 			double frac = Double.parseDouble(p.getProperty(ExponentialGenerator.EXPONENTIAL_FRAC_PROPERTY,
 					ExponentialGenerator.EXPONENTIAL_FRAC_DEFAULT));
-			keychooser = new ExponentialGenerator(percentile, recordcount * frac);
-		} else if (requestdistrib.compareTo("uniform") == 0) {
-			keychooser = new UniformIntegerGenerator(0, recordcount - 1);
-		} else if (requestdistrib.compareTo("zipfian") == 0) {
-			double readzipfconstant = Double.parseDouble(p.getProperty(ZIPFIAN_CONSTANT, ZIPFIAN_CONSTANT_DEAFULT));
-			keychooser = new ZipfianGenerator(recordcount, readzipfconstant);
-		} else if (requestdistrib.compareTo("latest") == 0) {
-			keychooser = new SkewedLatestGenerator(transactioninsertkeysequence);
-		} else if (requestdistrib.equals("hotspot")) {
+			keychooser = new ExponentialGenerator(percentile, recordCount * frac);
+		} else if (requestDistrib.compareTo("uniform") == 0) {
+			keychooser = new UniformIntegerGenerator(0, recordCount - 1);
+		} else if (requestDistrib.compareTo("zipfian") == 0) {
+			keychooser = new ZipfianGenerator(recordCount, zipfContant);
+		} else if (requestDistrib.compareTo("latest") == 0) {
+			// TODO: To be implemented.
+			System.out.println("Latest not supported");
+		} else if (requestDistrib.equals("hotspot")) {
 			double hotsetfraction = Double
 					.parseDouble(p.getProperty(HOTSPOT_DATA_FRACTION, HOTSPOT_DATA_FRACTION_DEFAULT));
 			double hotopnfraction = Double
 					.parseDouble(p.getProperty(HOTSPOT_OPN_FRACTION, HOTSPOT_OPN_FRACTION_DEFAULT));
-			keychooser = new HotspotIntegerGenerator(0, recordcount - 1, hotsetfraction, hotopnfraction);
+			keychooser = new HotspotIntegerGenerator(0, recordCount - 1, hotsetfraction, hotopnfraction);
+		} else {
+			throw new WorkloadException("Unknown request distribution \"" + requestDistrib + "\"");
 		}
-	};
+		return keychooser;
+	}
+
+	private static NumberGenerator getFieldLengthGenerator(Properties p) throws WorkloadException {
+		NumberGenerator fieldLengthGenerator;
+		String fieldlengthdistribution = p.getProperty(FIELD_LENGTH_DISTRIBUTION_PROPERTY,
+				FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
+		int fieldlength = Integer.parseInt(p.getProperty(FIELD_LENGTH_PROPERTY, FIELD_LENGTH_PROPERTY_DEFAULT));
+		String fieldlengthhistogram = p.getProperty(FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY,
+				FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY_DEFAULT);
+		if (fieldlengthdistribution.compareTo("constant") == 0) {
+			fieldLengthGenerator = new ConstantIntegerGenerator(fieldlength);
+		} else if (fieldlengthdistribution.compareTo("uniform") == 0) {
+			fieldLengthGenerator = new UniformIntegerGenerator(1, fieldlength);
+		} else if (fieldlengthdistribution.compareTo("zipfian") == 0) {
+			double insertsizezipfconstant = Double
+					.parseDouble(p.getProperty(INSERT_SIZE_ZIPFIAN_CONSTANT, INSERT_SIZE_ZIPFIAN_CONSTANT_DEAFULT));
+			fieldLengthGenerator = new ZipfianGenerator(1, fieldlength, insertsizezipfconstant);
+		} else if (fieldlengthdistribution.compareTo("histogram") == 0) {
+			try {
+				fieldLengthGenerator = new HistogramGenerator(fieldlengthhistogram);
+			} catch (IOException e) {
+				throw new WorkloadException("Couldn't read field length histogram file: " + fieldlengthhistogram, e);
+			}
+		} else {
+			throw new WorkloadException("Unknown field length distribution \"" + fieldlengthdistribution + "\"");
+		}
+		return fieldLengthGenerator;
+	}
 
 	// Reads the trace file and returns a URL map.
-	private static synchronized Map<Long, String> getTrace(String filePath, int recordCount) throws WorkloadException {
-		if (urlMap != null)
-			return urlMap;
-		Map<Long, String> urlMap = new ConcurrentHashMap<Long, String>();
-		long count = 0;
+	private static synchronized Map<Integer, String> getTrace(String filePath, int recordCount)
+			throws WorkloadException {
+		Map<Integer, String> urlMap = new ConcurrentHashMap<Integer, String>();
+		int count = 0;
 		String line;
 		try {
 			FileReader inputFile = new FileReader(filePath);
 			BufferedReader bufferReader = new BufferedReader(inputFile);
 			while ((line = bufferReader.readLine()) != null) {
 				urlMap.put(count++, line.trim());
-				if (count == recordCount)
+				if (count >= recordCount)
 					break;
 			}
 			bufferReader.close();
@@ -213,9 +330,11 @@ public class RestWorkload extends Workload {
 		return urlMap;
 	}
 
+	/**
+	 * Not required for Rest Clients as data population is service specific.
+	 */
 	@Override
 	public boolean doInsert(DB db, Object threadstate) {
-		// Not required for Rest Clients.
 		return false;
 	}
 
@@ -228,7 +347,7 @@ public class RestWorkload extends Workload {
 	 */
 	@Override
 	public boolean doTransaction(DB db, Object threadstate) {
-		switch (operationchooser.nextString()) {
+		switch (operationChooser.nextString()) {
 		case "UPDATE":
 			doTransactionUpdate(db);
 			break;
@@ -244,31 +363,39 @@ public class RestWorkload extends Workload {
 		return true;
 	}
 
-	public String getNextURL() {
-		return urlMap.get(keychooser.nextValue().longValue());
+	private String getNextURL(int opType) {
+		if (opType == 1)
+			return readUrlMap.get(readKeyChooser.nextValue().intValue());
+		else if (opType == 2)
+			return insertUrlMap.get(insertKeyChooser.nextValue().intValue());
+		else if (opType == 3)
+			return deleteUrlMap.get(deleteKeyChooser.nextValue().intValue());
+		else
+			return updateUrlMap.get(updateKeyChooser.nextValue().intValue());
 	}
 
 	private HashMap<String, ByteIterator> getInsertData() {
-		// TODO:
-		return null;
+		HashMap<String, ByteIterator> data = new HashMap<String, ByteIterator>();
+		data.put("data", new RandomByteIterator(fieldLengthGenerator.nextValue().intValue()));
+		return data;
 	}
 
 	public void doTransactionUpdate(DB db) {
 		HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
-		db.update(null, getNextURL(), result);
+		db.update(null, getNextURL(4), result);
 	}
 
 	public void doTransactionInsert(DB db) {
-		db.insert(null, getNextURL(), getInsertData());
+		db.insert(null, getNextURL(2), getInsertData());
 	}
 
 	public void doTransactionDelete(DB db) {
 		HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
-		db.read(null, getNextURL(), null, result);
+		db.read(null, getNextURL(3), null, result);
 	}
 
 	public void doTransactionRead(DB db) {
 		HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
-		db.read(null, getNextURL(), null, result);
+		db.read(null, getNextURL(1), null, result);
 	}
 }

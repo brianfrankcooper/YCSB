@@ -44,7 +44,8 @@ maxexecutiontime=720
 
 #	Custom Properties
 url.prefix=http://127.0.0.1:8080/myService/
-url.trace=trace.txt
+url.trace.read=trace.txt
+url.trace.write=trace.txt
 # Header must be separated by space. Other delimiters might occur as header values and hence can not be used.
 headers=Accept */* Accept-Language en-US,en;q=0.5 Content-Type application/x-www-form-urlencoded user-agent Mozilla/5.0
 response.compression=false
@@ -52,7 +53,9 @@ timeout.con=10
 timeout.read=10
 timeout.exec=1
 log.enable=false
-recordcount=10000
+readrecordcount=10000
+insertrecordcount=5000
+deleterecordcount=1000
 zipfconstant=0.9
 
 #	Measurement Properties

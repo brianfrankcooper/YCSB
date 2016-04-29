@@ -96,7 +96,7 @@ public class RestClientTest {
 	@Test
 	public void read_403() {
 		stubFor(get(urlEqualTo("/myService/1")).withHeader("Accept", equalTo("*/*")).willReturn(
-				aResponse().withStatus(404).withHeader("Content-Type", "text/xml")));
+				aResponse().withStatus(403).withHeader("Content-Type", "text/xml")));
 		HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
 		Status status = rc.read(null, resource, null, result);
 		assertEquals(Status.FORBIDDEN, status);
@@ -140,7 +140,7 @@ public class RestClientTest {
 		stubFor(delete(urlEqualTo("/myService/1")).withHeader("Accept", equalTo("*/*")).willReturn(
 				aResponse().withStatus(500).withHeader("Content-Type", "text/xml")));
 		Status status = rc.delete(null, resource);
-		assertEquals(Status.OK, status);
+		assertEquals(Status.ERROR, status);
 	}
 
 	@Test
