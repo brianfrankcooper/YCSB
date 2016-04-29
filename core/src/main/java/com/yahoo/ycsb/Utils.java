@@ -20,7 +20,9 @@ package com.yahoo.ycsb;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 /**
@@ -239,5 +241,33 @@ public class Utils
           time += bean.getCollectionTime();
         }
         return time;
+      }
+
+      /**
+       * Returns a map of garbage collectors and their stats.
+       * The first object in the array is the total count since JVM start and the
+       * second is the total time (ms) since JVM start. 
+       * If a garbage collectors does not support the collector MXBean, then it
+       * will not be represented in the map.
+       * @return A non-null map of garbage collectors and their metrics. The map
+       * may be empty.
+       */ 
+      public static Map<String, Long[]> getGCStatst() {
+        final List<GarbageCollectorMXBean> gcBeans = 
+            ManagementFactory.getGarbageCollectorMXBeans();
+        final Map<String, Long[]> map = new HashMap<String, Long[]>(gcBeans.size());
+        for (final GarbageCollectorMXBean bean : gcBeans) {
+          if (!bean.isValid() || bean.getCollectionCount() < 0 || 
+              bean.getCollectionTime() < 0) {
+            continue;
+          }
+          
+          final Long[] measurements = new Long[] {
+              bean.getCollectionCount(),
+              bean.getCollectionTime()
+          };
+          map.put(bean.getName().replace(" ", "_"), measurements);
+        }
+        return map;
       }
 }

@@ -30,6 +30,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -696,10 +697,20 @@ public class Client
       double throughput = 1000.0 * (opcount) / (runtime);
       exporter.write("OVERALL", "Throughput(ops/sec)", throughput);
       
-      exporter.write("TOTAL_GCs", "Count", Utils.getGCTotalCollectionCount());
-      final long gcTime = Utils.getGCTotalTime();
-      exporter.write("TOTAL_GC_TIME", "Time(ms)", gcTime);
-      exporter.write("TOTAL_GC_TIME_%", "Time(%)", ((double)gcTime / runtime) * (double)100);
+      final Map<String, Long[]> gcs = Utils.getGCStatst();
+      long totalGCCount = 0;
+      long totalGCTime = 0;
+      for (final Entry<String, Long[]> entry : gcs.entrySet()) {
+        exporter.write("TOTAL_GCS_" + entry.getKey(), "Count", entry.getValue()[0]);
+        exporter.write("TOTAL_GC_TIME_" + entry.getKey(), "Time(ms)", entry.getValue()[1]);
+        exporter.write("TOTAL_GC_TIME_%_" + entry.getKey(), "Time(%)",((double)entry.getValue()[1] / runtime) * (double)100);
+        totalGCCount += entry.getValue()[0];
+        totalGCTime += entry.getValue()[1];
+      }
+      exporter.write("TOTAL_GCs", "Count", totalGCCount);
+      
+      exporter.write("TOTAL_GC_TIME", "Time(ms)", totalGCTime);
+      exporter.write("TOTAL_GC_TIME_%", "Time(%)", ((double)totalGCTime / runtime) * (double)100);
       if (statusthread != null && statusthread.trackJVMStats()) {
         exporter.write("MAX_MEM_USED", "MBs", statusthread.getMaxUsedMem());
         exporter.write("MIN_MEM_USED", "MBs", statusthread.getMinUsedMem());

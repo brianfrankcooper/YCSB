@@ -112,8 +112,10 @@ public class TestUtils {
     assertTrue(Utils.getGCTotalCollectionCount() >= 0);
     // Could be zero similar to GC total collection count
     assertTrue(Utils.getGCTotalTime() >= 0);
+    // Could be empty
+    assertTrue(Utils.getGCStatst().size() >= 0);
   }
-  
+   
   /**
    * Since this version of TestNG doesn't appear to have an assertArrayEquals,
    * this will compare the two to make sure they're the same. 
