@@ -47,6 +47,11 @@
 			<version>4.12</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.github.tomakehurst</groupId>
+			<artifactId>wiremock</artifactId>
+			<version>1.57</version>
+		</dependency>
 	</dependencies>
 	<build>
 		<plugins>
@@ -71,4 +76,5 @@
 			</plugin>
 		</plugins>
 	</build>
+
 </project>

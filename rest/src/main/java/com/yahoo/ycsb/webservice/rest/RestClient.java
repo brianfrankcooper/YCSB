@@ -5,12 +5,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
+import java.util.zip.GZIPInputStream;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.client.ClientProtocolException;
@@ -23,6 +22,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
 
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
@@ -36,32 +36,48 @@ import com.yahoo.ycsb.StringByteIterator;
  * and provides better functionality. For example HttpClient can automatically
  * handle Redirects and Proxy Authentication which the standard Java API don't.
  * 
- * @author shivam.maharshi 
+ * @author shivam.maharshi
  */
 public class RestClient extends DB {
 
-	private static final String URL_PREFIX = "urlprefix";
-	private static final String LOG_ENABLED = "enablelog";
-	private static boolean logEnabled = false;
+	private static final String URL_PREFIX = "url.prefix";
+	private static final String CON_TIMEOUT = "timeout.con";
+	private static final String READ_TIMEOUT = "timeout.read";
+	private static final String EXEC_TIMEOUT = "timeout.exec";
+	private static final String LOG_ENABLED = "log.enable";
+	private static final String HEADERS = "headers";
+	private static final String COMPRESSED_RESPONSE = "response.compression";
+	private static boolean compressedResponse;
+	private static boolean logEnabled;
 	private String urlPrefix;
 	private Properties props;
+	private String[] headers;
 	private CloseableHttpClient client;
+	private static int conTimeout = 10000;
+	private static int readTimeout = 10000;
+	private static int execTimeout = 10000;
+	private volatile Criteria requestTimedout = new Criteria(false);
 
 	@Override
 	public void init() throws DBException {
 		props = getProperties();
-		urlPrefix = props.getProperty(URL_PREFIX, "");
+		urlPrefix = props.getProperty(URL_PREFIX, "127.0.0.1:8080");
+		conTimeout = Integer.valueOf(props.getProperty(CON_TIMEOUT, "10")) * 1000;
+		readTimeout = Integer.valueOf(props.getProperty(READ_TIMEOUT, "10")) * 1000;
+		execTimeout = Integer.valueOf(props.getProperty(EXEC_TIMEOUT, "10")) * 1000;
 		logEnabled = Boolean.valueOf(props.getProperty(LOG_ENABLED, "false").trim());
+		compressedResponse = Boolean.valueOf(props.getProperty(COMPRESSED_RESPONSE, "false").trim());
+		headers = props.getProperty(HEADERS, "Accept */* Content-Type application/xml user-agent Mozilla/5.0 ").trim().split(" ");
 		setupClient();
 	}
 
 	private void setupClient() {
 		RequestConfig.Builder requestBuilder = RequestConfig.custom();
-		requestBuilder = requestBuilder.setConnectTimeout(200);
-		requestBuilder = requestBuilder.setConnectionRequestTimeout(200);
-		requestBuilder = requestBuilder.setSocketTimeout(200);
+		requestBuilder = requestBuilder.setConnectTimeout(conTimeout);
+		requestBuilder = requestBuilder.setConnectionRequestTimeout(readTimeout);
+		requestBuilder = requestBuilder.setSocketTimeout(readTimeout);
 		HttpClientBuilder clientBuilder = HttpClientBuilder.create().setDefaultRequestConfig(requestBuilder.build());
-		this.client = clientBuilder.setUserAgent("Mozilla/5.0").build();
+		this.client = clientBuilder.setConnectionManagerShared(true).build();
 	}
 
 	@Override
@@ -69,11 +85,12 @@ public class RestClient extends DB {
 		int responseCode;
 		try {
 			responseCode = httpGet(urlPrefix + endpoint, result);
-		} catch (IOException e) {
+		} catch (Exception e) {
 			responseCode = handleExceptions(e);
 		}
 		if (logEnabled)
-			System.out.println("GET Request : " + urlPrefix + endpoint + " | Response Code : " + responseCode);
+			System.out.println(new StringBuilder("GET Request: ").append(urlPrefix).append(endpoint)
+					.append(" | Response Code: ").append(responseCode).toString());
 		return getStatus(responseCode);
 	}
 
@@ -82,11 +99,12 @@ public class RestClient extends DB {
 		int responseCode;
 		try {
 			responseCode = httpPost(urlPrefix + endpoint, values.get("data").toString());
-		} catch (IOException e) {
+		} catch (Exception e) {
 			responseCode = handleExceptions(e);
 		}
 		if (logEnabled)
-			System.out.println("POST Request : " + urlPrefix + endpoint + " | Response Code : " + responseCode);
+			System.out.println(new StringBuilder("POST Request: ").append(urlPrefix).append(endpoint)
+					.append(" | Response Code: ").append(responseCode).toString());
 		return getStatus(responseCode);
 	}
 
@@ -95,74 +113,102 @@ public class RestClient extends DB {
 		int responseCode;
 		try {
 			responseCode = httpDelete(urlPrefix + endpoint);
-		} catch (IOException e) {
+		} catch (Exception e) {
 			responseCode = handleExceptions(e);
 		}
 		if (logEnabled)
-			System.out.println("DELETE Request : " + urlPrefix + endpoint + " | Response Code : " + responseCode);
+			System.out.println(new StringBuilder("DELETE Request: ").append(urlPrefix).append(endpoint)
+					.append(" | Response Code: ").append(responseCode).toString());
 		return getStatus(responseCode);
 	}
 
 	@Override
 	public Status update(String table, String key, HashMap<String, ByteIterator> values) {
-		System.out.println("Update not implemented.");
-		return Status.OK;
+		return Status.NOT_IMPLEMENTED;
 	}
-	
+
 	@Override
 	public Status scan(String table, String startkey, int recordcount, Set<String> fields,
 			Vector<HashMap<String, ByteIterator>> result) {
-		System.out.println("Scan operation is not supported for RESTFul Web Services client.");
-		return Status.OK;
+		return Status.NOT_IMPLEMENTED;
 	}
 
+	// Maps HTTP status codes to YCSB status codes.
 	private Status getStatus(int responseCode) {
-		if (responseCode / 100 == 5) {
+		int rc = responseCode / 100;
+		if (responseCode == 400)
+			return Status.BAD_REQUEST;
+		if (responseCode == 403)
+			return Status.FORBIDDEN;
+		if (responseCode == 404)
+			return Status.NOT_FOUND;
+		if (responseCode == 501)
+			return Status.NOT_IMPLEMENTED;
+		if (responseCode == 503)
+			return Status.SERVICE_UNAVAILABLE;
+		if (rc == 5)
 			return Status.ERROR;
-		}
 		return Status.OK;
 	}
 
-	private int handleExceptions(IOException e) {
+	private int handleExceptions(Exception e) {
 		if (e instanceof ClientProtocolException)
 			return 400;
 		return 500;
 	}
 
 	// Connection is automatically released back in case of an exception.
-	private int httpGet(String endpoint, HashMap<String, ByteIterator> result) throws IOException {
+	private int httpGet(String endpoint, HashMap<String, ByteIterator> result) throws IOException, TimeoutException {
+		requestTimedout.setSatisfied(false);
+		Thread timer = new Thread(new Timer(execTimeout, requestTimedout));
+		timer.start();
 		int responseCode = 200;
 		HttpGet request = new HttpGet(endpoint);
-		request.setHeader("Accept", "*/*");
+		for (int i = 0; i < headers.length; i = i + 2)
+			request.setHeader(headers[i], headers[i + 1]);
 		CloseableHttpResponse response = client.execute(request);
 		responseCode = response.getStatusLine().getStatusCode();
 		HttpEntity responseEntity = response.getEntity();
 		// If null entity don't bother about connection release.
 		if (responseEntity != null) {
 			InputStream stream = responseEntity.getContent();
+			if (compressedResponse)
+				stream = new GZIPInputStream(stream);
 			BufferedReader reader = new BufferedReader(new InputStreamReader(stream, "UTF-8"));
 			StringBuffer responseContent = new StringBuffer();
 			String line = "";
 			while ((line = reader.readLine()) != null) {
+				if (requestTimedout.isSatisfied()) {
+					// Must avoid memory leak.
+					reader.close();
+					stream.close();
+					EntityUtils.consumeQuietly(responseEntity);
+					response.close();
+					client.close();
+					throw new TimeoutException();
+				}
 				responseContent.append(line);
 			}
+			timer.interrupt();
 			result.put("response", new StringByteIterator(responseContent.toString()));
 			// Closing the input stream will trigger connection release.
 			stream.close();
 		}
-		if (response != null)
-			response.close();
+		EntityUtils.consumeQuietly(responseEntity);
+		response.close();
 		client.close();
 		return responseCode;
 	}
 
 	// Connection is automatically released back in case of an exception.
-	private int httpPost(String endpoint, String postData) throws IOException {
+	private int httpPost(String endpoint, String postData) throws IOException, TimeoutException {
+		requestTimedout.setSatisfied(false);
+		Thread timer = new Thread(new Timer(execTimeout, requestTimedout));
+		timer.start();
 		int responseCode = 200;
 		HttpPost request = new HttpPost(endpoint);
-		request.setHeader("Accept", "*/*");
-		request.setHeader("Accept-Language", "en-US,en;q=0.5");
-		request.setHeader("Content-Type", "application/x-www-form-urlencoded");
+		for (int i = 0; i < headers.length; i = i + 2)
+			request.setHeader(headers[i], headers[i + 1]);
 		InputStreamEntity reqEntity = new InputStreamEntity(new ByteArrayInputStream(postData.getBytes()),
 				ContentType.APPLICATION_FORM_URLENCODED);
 		reqEntity.setChunked(true);
@@ -173,56 +219,93 @@ public class RestClient extends DB {
 		// If null entity don't bother about connection release.
 		if (responseEntity != null) {
 			InputStream stream = responseEntity.getContent();
+			if (compressedResponse)
+				stream = new GZIPInputStream(stream);
 			BufferedReader reader = new BufferedReader(new InputStreamReader(stream, "UTF-8"));
 			StringBuffer responseContent = new StringBuffer();
 			String line = "";
 			while ((line = reader.readLine()) != null) {
+				if (requestTimedout.isSatisfied()) {
+					// Must avoid memory leak.
+					reader.close();
+					stream.close();
+					EntityUtils.consumeQuietly(responseEntity);
+					response.close();
+					client.close();
+					throw new TimeoutException();
+				}
 				responseContent.append(line);
 			}
+			timer.interrupt();
 			// Closing the input stream will trigger connection release.
 			stream.close();
 		}
-		if (response != null)
-			response.close();
+		EntityUtils.consumeQuietly(responseEntity);
+		response.close();
 		client.close();
 		return responseCode;
 	}
 
 	// Connection is automatically released back in case of an exception.
 	private int httpDelete(String endpoint) throws IOException {
+		requestTimedout.setSatisfied(false);
+		Thread timer = new Thread(new Timer(execTimeout, requestTimedout));
+		timer.start();
 		int responseCode = 200;
 		HttpDelete request = new HttpDelete(endpoint);
+		for (int i = 0; i < headers.length; i = i + 2)
+			request.setHeader(headers[i], headers[i + 1]);
 		CloseableHttpResponse response = client.execute(request);
 		responseCode = response.getStatusLine().getStatusCode();
-		if (response != null)
-			response.close();
+		response.close();
 		client.close();
 		return responseCode;
 	}
 
-	public static void main(String[] args) throws UnsupportedEncodingException {
-		String data = "Miusov, as a man man of breeding and deilcacy, could not but feel some inwrd qualms, when he reached the Father Superior's with Ivan: he felt ashamed of havin lost his temper. He felt that he ought to have disdaimed that despicable wretch, Fyodor Pavlovitch, too much to have been upset by him in Father Zossima's cell, and so to have forgotten himself. Teh monks were not to blame, in any case, he reflceted, on the steps.And if they're decent people here (and the Father Superior, I understand, is a nobleman) why not be friendly and courteous withthem? I won't argue, I'll fall in with everything, I'll win them by politness, and show them that I've nothing to do with that Aesop, thta buffoon, that Pierrot, and have merely been takken in over this affair, just as they have.";
-		String postData = "section=0";
-		postData += "&title=" + URLEncoder.encode("Αγορά", "UTF-8");
-		postData += "&appendtext=" + data;
-		postData += "&token=%2B%5C";
+	class Timer implements Runnable {
 
-		RestClient rc = new RestClient();
-		HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
-		try {
-			rc.init();
-			// rc.httpPost("http://10.0.0.91/mediawiki2/api.php?action=edit&format=json", postData);
-			System.out.println(System.currentTimeMillis());
-			rc.httpGet("http://10.0.0.91/mediawiki2/index.php/Facebook", result);
-			System.out.println(result.get("response").toArray().toString());
-			System.out.println(System.currentTimeMillis());
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		private long timeout;
+		private Criteria timedout;
+
+		public Timer(long timeout, Criteria timedout) {
+			this.timedout = timedout;
+			this.timeout = timeout;
 		}
 
-		// w.sendPost("http://52.34.20.119/mediawiki/api.php?action=edit&format=json",
-		// params);
+		@Override
+		public void run() {
+			try {
+				Thread.sleep(timeout);
+				this.timedout.setSatisfied(true);
+			} catch (InterruptedException e) {
+				// Do nothing.
+			}
+		}
+
+	}
+
+	class Criteria {
+
+		private boolean isSatisfied;
+
+		public Criteria(boolean isSatisfied) {
+			this.isSatisfied = isSatisfied;
+		}
+
+		public boolean isSatisfied() {
+			return isSatisfied;
+		}
+
+		public void setSatisfied(boolean isSatisfied) {
+			this.isSatisfied = isSatisfied;
+		}
+
+	}
+
+	class TimeoutException extends RuntimeException {
+
+		private static final long serialVersionUID = 1L;
+
 	}
 
 }
