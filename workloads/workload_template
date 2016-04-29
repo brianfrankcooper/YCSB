@@ -179,3 +179,25 @@ timeseries.granularity=1000
 #
 # the following number controls the interval between retries (in seconds):
 # core_workload_insertion_retry_interval = 3
+
+# Distributed Tracing via Apache HTrace (http://htrace.incubator.apache.org/)
+#
+# Defaults to blank / no tracing
+# Below sends to a local file, sampling at 0.1%
+#
+# htrace.sampler.classes=ProbabilitySampler
+# htrace.sampler.fraction=0.001
+# htrace.span.receiver.classes=org.apache.htrace.core.LocalFileSpanReceiver
+# htrace.local.file.span.receiver.path=/some/path/to/local/file
+#
+# To capture all spans, use the AlwaysSampler
+#
+# htrace.sampler.classes=AlwaysSampler
+#
+# To send spans to an HTraced receiver, use the below and ensure
+# your classpath contains the htrace-htraced jar (i.e. when invoking the ycsb
+# command add -cp /path/to/htrace-htraced.jar)
+#
+# htrace.span.receiver.classes=org.apache.htrace.impl.HTracedSpanReceiver
+# htrace.htraced.receiver.address=example.com:9075
+# htrace.htraced.error.log.period.ms=10000
