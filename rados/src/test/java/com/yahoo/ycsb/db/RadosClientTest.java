@@ -53,13 +53,18 @@ public class RadosClientTest {
 
   private static final String TABLE_NAME = "table0";
   private static final String KEY0 = "key0";
-  private static final String KEY1 = "key0";
+  private static final String KEY1 = "key1";
+  private static final String KEY2 = "key2";
   private static final HashMap<String, ByteIterator> DATA;
+  private static final HashMap<String, ByteIterator> DATA_UPDATED;
 
   static {
     DATA = new HashMap<String, ByteIterator>(10);
+    DATA_UPDATED = new HashMap<String, ByteIterator>(10);
     for (int i = 0; i < 10; i++) {
-      DATA.put("key" + UUID.randomUUID(), new StringByteIterator("data" + UUID.randomUUID()));
+      String key = "key" + UUID.randomUUID();
+      DATA.put(key, new StringByteIterator("data" + UUID.randomUUID()));
+      DATA_UPDATED.put(key, new StringByteIterator("data" + UUID.randomUUID()));
     }
   }
 
@@ -99,17 +104,16 @@ public class RadosClientTest {
 
   @Test
   public void updateTest() {
-    HashMap<String, ByteIterator> newDATA = new HashMap<String, ByteIterator>(10);
-    for (int i = 0; i < 10; i++) {
-      newDATA.put("key" + UUID.randomUUID(), new StringByteIterator("new data" + UUID.randomUUID()));
-    }
+    radosclient.insert(TABLE_NAME, KEY2, DATA);
 
-    Status result = radosclient.update(TABLE_NAME, KEY0, newDATA);
+    Status result = radosclient.update(TABLE_NAME, KEY2, DATA_UPDATED);
     assertEquals(Status.OK, result);
 
     HashMap<String, ByteIterator> ret = new HashMap<String, ByteIterator>(10);
-    radosclient.read(TABLE_NAME, KEY0, DATA.keySet(), ret);
-    compareMap(ret);
+    radosclient.read(TABLE_NAME, KEY2, DATA.keySet(), ret);
+    compareMap(DATA_UPDATED, ret);
+
+    radosclient.delete(TABLE_NAME, KEY2);
   }
 
   @Test
@@ -117,19 +121,17 @@ public class RadosClientTest {
     HashMap<String, ByteIterator> ret = new HashMap<String, ByteIterator>(10);
     Status result = radosclient.read(TABLE_NAME, KEY0, DATA.keySet(), ret);
     assertEquals(Status.OK, result);
-    compareMap(ret);
+    compareMap(DATA, ret);
   }
 
-  private void compareMap(HashMap<String, ByteIterator> ret) {
-    Set setDATA = DATA.entrySet();
-    Set setReturn = ret.entrySet();
-    Iterator itDATA = setDATA.iterator();
-    Iterator itReturn = setReturn.iterator();
+  private void compareMap(HashMap<String, ByteIterator> src, HashMap<String, ByteIterator> dest) {
+    assertEquals(src.size(), dest.size());
+
+    Set setSrc = src.entrySet();
+    Iterator<Map.Entry> itSrc = setSrc.iterator();
     for (int i = 0; i < 10; i++) {
-      Map.Entry entryDATA = (Map.Entry)itDATA.next();
-      Map.Entry entryReturn = (Map.Entry)itReturn.next();
-      assertEquals(entryDATA.getKey(), entryReturn.getKey());
-      assertEquals(entryDATA.getValue(), entryReturn.getValue());
+      Map.Entry<String, ByteIterator> entrySrc = itSrc.next();
+      assertEquals(entrySrc.getValue().toString(), dest.get(entrySrc.getKey()).toString());
     }
   }
 
