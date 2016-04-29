@@ -33,7 +33,15 @@ Git clone YCSB and compile:
 
     git clone http://github.com/brianfrankcooper/YCSB.git
     cd YCSB
+    mvn clean package
+
+You can compile only RADOS-binding, EG:
+
     mvn -pl com.yahoo.ycsb:rados-binding -am clean package
+
+You can skip the test, EG:
+
+    mvn -pl com.yahoo.ycsb:rados-binding -am clean package -DskipTests
 
 ### 4. Configuration Parameters
 
