@@ -67,7 +67,8 @@ public class RestClient extends DB {
 		execTimeout = Integer.valueOf(props.getProperty(EXEC_TIMEOUT, "10")) * 1000;
 		logEnabled = Boolean.valueOf(props.getProperty(LOG_ENABLED, "false").trim());
 		compressedResponse = Boolean.valueOf(props.getProperty(COMPRESSED_RESPONSE, "false").trim());
-		headers = props.getProperty(HEADERS, "Accept */* Content-Type application/xml user-agent Mozilla/5.0 ").trim().split(" ");
+		headers = props.getProperty(HEADERS, "Accept */* Content-Type application/xml user-agent Mozilla/5.0 ").trim()
+				.split(" ");
 		setupClient();
 	}
 
@@ -172,8 +173,14 @@ public class RestClient extends DB {
 		// If null entity don't bother about connection release.
 		if (responseEntity != null) {
 			InputStream stream = responseEntity.getContent();
-			if (compressedResponse)
-				stream = new GZIPInputStream(stream);
+
+			/*
+			 * TODO: Gzip Compression must be supported in the future. Header[]
+			 * header = response.getAllHeaders();
+			 * if(response.getHeaders("Content-Encoding")[0].getValue().contains
+			 * ("gzip")) stream = new GZIPInputStream(stream);
+			 */
+
 			BufferedReader reader = new BufferedReader(new InputStreamReader(stream, "UTF-8"));
 			StringBuffer responseContent = new StringBuffer();
 			String line = "";
