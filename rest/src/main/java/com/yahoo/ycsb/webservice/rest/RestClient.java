@@ -293,7 +293,7 @@ public class RestClient extends DB {
         this.timedout.setIsSatisfied(true);
       } catch (InterruptedException e) { 
         // Do nothing. Kept just to remove Check-style build error.
-        int a = 1;
+        byte a = 0;
       }
     }
 

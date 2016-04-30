@@ -30,6 +30,7 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
+import com.yahoo.ycsb.webservice.rest.Utils;
 
 /**
  * Mocking REST services with the easiest and the most straight forward usage
