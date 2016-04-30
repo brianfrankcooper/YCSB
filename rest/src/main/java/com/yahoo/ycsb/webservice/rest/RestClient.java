@@ -314,8 +314,8 @@ public class RestClient extends DB {
       return isSatisfied;
     }
 
-    public void setIsSatisfied(boolean isSatisfied) {
-      this.isSatisfied = isSatisfied;
+    public void setIsSatisfied(boolean satisfied) {
+      this.isSatisfied = satisfied;
     }
 
   }
