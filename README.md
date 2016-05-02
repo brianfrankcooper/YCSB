@@ -41,10 +41,17 @@ Getting Started
    directory.
 
 3. Run YCSB command. 
-    
+
+    On Linux:
     ```sh
-    bin/ycsb load basic -P workloads/workloada
-    bin/ycsb run basic -P workloads/workloada
+    bin/ycsb.sh load basic -P workloads/workloada
+    bin/ycsb.sh run basic -P workloads/workloada
+    ```
+
+    On Windows:
+    ```bat
+    bin/ycsb.bat load basic -P workloads\workloada
+    bin/ycsb.bat run basic -P workloads\workloada
     ```
 
   Running the `ycsb` command without any argument will print the usage. 
