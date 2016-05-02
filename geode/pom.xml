@@ -36,7 +36,7 @@ LICENSE file.
   <dependencies>
     <dependency>
       <groupId>org.apache.geode</groupId>
-      <artifactId>gemfire-core</artifactId>
+      <artifactId>geode-core</artifactId>
       <version>${geode.version}</version>
     </dependency>
     <dependency>
