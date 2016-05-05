@@ -130,6 +130,7 @@ LICENSE file.
     <module>s3</module>
     <module>solr</module>
     <module>tarantool</module>
+    <module>arangodb</module>
     <!--<module>voldemort</module>-->
   </modules>
 

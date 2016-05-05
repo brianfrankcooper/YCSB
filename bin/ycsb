@@ -82,7 +82,8 @@ DATABASES = {
     "s3"           : "com.yahoo.ycsb.db.S3Client",
     "solr"         : "com.yahoo.ycsb.db.SolrClient",
     "tarantool"    : "com.yahoo.ycsb.db.TarantoolClient",
-    "voldemort"    : "com.yahoo.ycsb.db.VoldemortClient"
+    "voldemort"    : "com.yahoo.ycsb.db.VoldemortClient",
+    "arangodb"     : "com.yahoo.ycsb.db.ArangoDBClient"
 }
 
 OPTIONS = {
@@ -177,7 +178,7 @@ def get_classpath_from_maven(module):
               "Maven follows, try running "
               "'mvn -DskipTests package dependency:build=classpath' on your "
               "own and correct errors." + os.linesep + os.linesep + "mvn output:" + os.linesep
-              + err.output)
+              + str(err.output))
         sys.exit(err.returncode)
 
 def main():
