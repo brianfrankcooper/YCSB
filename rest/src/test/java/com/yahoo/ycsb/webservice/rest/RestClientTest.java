@@ -39,8 +39,6 @@ import com.yahoo.ycsb.webservice.rest.Utils;
  * on the server. 3. Compares the response received with the expected response.
  * Various cases like - success, failure, timeout, non-implemented etc have been
  * demonstrated.
- * 
- * @author shivam.maharshi
  */
 public class RestClientTest {
 

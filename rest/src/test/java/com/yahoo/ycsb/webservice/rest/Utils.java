@@ -6,8 +6,6 @@ import java.net.ServerSocket;
 
 /**
  * Holds the common utility methods.
- * 
- * @author shivam.maharshi
  */
 public class Utils {
 

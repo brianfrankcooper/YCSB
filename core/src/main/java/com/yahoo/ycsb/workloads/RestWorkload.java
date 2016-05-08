@@ -29,8 +29,6 @@ import com.yahoo.ycsb.generator.ZipfianGenerator;
  * designed for databases benchmarking. However due to the huge overlapping
  * functionality, a major portion of the code in this class is extracted from
  * {@link CoreWorkload} class.
- * 
- * @author shivam.maharshi
  */
 public class RestWorkload extends Workload {
 
