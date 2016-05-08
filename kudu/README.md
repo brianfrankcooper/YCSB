@@ -42,3 +42,15 @@ Then, you can run the workload:
 ```
 bin/ycsb run kudu -P workloads/workloada
 ```
+
+## Using a previous client version
+
+If you wish to use a different Kudu client version than the one shipped with YCSB, you can specify on the
+command line with `-Dkudu.version=x`. For example:
+
+```
+mvn -pl com.yahoo.ycsb:kudu-binding -am package -DskipTests -Dkudu.version=0.7.1
+```
+
+Note that prior to 1.0, Kudu doesn't guarantee wire or API compability between versions and only the latest
+one is officially supported.

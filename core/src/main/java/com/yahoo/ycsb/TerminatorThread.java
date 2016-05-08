@@ -16,12 +16,11 @@
  */
 package com.yahoo.ycsb;
 
-import java.util.List;
-import java.util.Vector;
+import java.util.Collection;
 
 /**
  * A thread that waits for the maximum specified time and then interrupts all the client
- * threads passed as the Vector at initialization of this thread.
+ * threads passed at initialization of this thread.
  * 
  * The maximum execution time passed is assumed to be in seconds.
  * 
@@ -30,12 +29,12 @@ import java.util.Vector;
  */
 public class TerminatorThread extends Thread {
   
-  private final List<? extends Thread> threads;
+  private final Collection<? extends Thread> threads;
   private long maxExecutionTime;
   private Workload workload;
   private long waitTimeOutInMS;
   
-  public TerminatorThread(long maxExecutionTime, List<? extends Thread> threads, 
+  public TerminatorThread(long maxExecutionTime, Collection<? extends Thread> threads,
       Workload workload) {
     this.maxExecutionTime = maxExecutionTime;
     this.threads = threads;

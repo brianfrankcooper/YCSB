@@ -49,6 +49,9 @@ public class Measurements {
   
   public static final String MEASUREMENT_INTERVAL = "measurement.interval";
   private static final String MEASUREMENT_INTERVAL_DEFAULT = "op";
+  
+  public static final String MEASUREMENT_TRACK_JVM_PROPERTY = "measurement.trackjvm";
+  public static final String MEASUREMENT_TRACK_JVM_PROPERTY_DEFAULT = "false";
 
   static Measurements singleton=null;
   static Properties measurementproperties=null;

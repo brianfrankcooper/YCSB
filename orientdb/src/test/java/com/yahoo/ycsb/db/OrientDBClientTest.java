@@ -224,7 +224,7 @@ public class OrientDBClientTest {
      * Track the issue here: https://github.com/orientechnologies/orientdb/issues/5541
      * This fix was implemented for orientechnologies:orientdb-client:2.1.8
      */
-    int testIndex = startIndex + 1; // <-- Remove the +1 when the known issue of broken iterator is fixed.
+    int testIndex = startIndex;
 
     // Check each vector row to make sure we have the correct fields
     for (HashMap<String, ByteIterator> result: resultVector) {

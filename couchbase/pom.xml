@@ -15,13 +15,14 @@ implied. See the License for the specific language governing
 permissions and limitations under the License. See accompanying
 LICENSE file.
 -->
-
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" 
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.yahoo.ycsb</groupId>
         <artifactId>binding-parent</artifactId>
-        <version>0.7.0-SNAPSHOT</version>
+        <version>0.10.0-SNAPSHOT</version>
         <relativePath>../binding-parent</relativePath>
     </parent>
 
@@ -29,13 +30,9 @@ LICENSE file.
     <name>Couchbase Binding</name>
     <packaging>jar</packaging>
 
-    <properties>
-      <checkstyle.failOnViolation>false</checkstyle.failOnViolation>
-    </properties>
-
     <dependencies>
         <dependency>
-            <groupId>couchbase</groupId>
+            <groupId>com.couchbase.client</groupId>
             <artifactId>couchbase-client</artifactId>
             <version>${couchbase.version}</version>
         </dependency>
@@ -55,12 +52,4 @@ LICENSE file.
             <artifactId>slf4j-api</artifactId>
         </dependency>
     </dependencies>
-
-    <repositories>
-        <repository>
-            <id>couchbase</id>
-            <name>Couchbase Maven Repository</name>
-            <url>http://files.couchbase.com/maven2/</url>
-        </repository>
-    </repositories>
 </project>

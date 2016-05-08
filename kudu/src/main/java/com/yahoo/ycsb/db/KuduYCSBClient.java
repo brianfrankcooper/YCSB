@@ -233,17 +233,20 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
         scannerBuilder.setProjectedColumnNames(querySchema);
       }
 
-      PartialRow lowerBound = schema.newPartialRow();
-      lowerBound.addString(0, startkey);
-      scannerBuilder.lowerBound(lowerBound);
+      KuduPredicate.ComparisonOp comparisonOp;
       if (recordcount == 1) {
-        PartialRow upperBound = schema.newPartialRow();
-        // Keys are fixed length, just adding something at the end is safe.
-        upperBound.addString(0, startkey.concat(" "));
-        scannerBuilder.exclusiveUpperBound(upperBound);
+        comparisonOp = KuduPredicate.ComparisonOp.EQUAL;
+      } else {
+        comparisonOp = KuduPredicate.ComparisonOp.GREATER_EQUAL;
       }
+      KuduPredicate keyPredicate = KuduPredicate.newComparisonPredicate(
+          schema.getColumnByIndex(0),
+          comparisonOp,
+          startkey);
 
-      KuduScanner scanner = scannerBuilder.limit(recordcount) // currently noop
+      KuduScanner scanner = scannerBuilder
+          .addPredicate(keyPredicate)
+          .limit(recordcount) // currently noop
           .build();
 
       while (scanner.hasMoreRows()) {

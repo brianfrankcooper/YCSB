@@ -17,7 +17,7 @@ LICENSE file.
 
 ## Quick Start
 
-This section describes how to run YCSB on ElasticSearch running locally. 
+This section describes how to run YCSB on Elasticsearch running locally. 
 
 ### 1. Set Up YCSB
 
@@ -40,51 +40,40 @@ Then, run the workload:
 For further configuration see below: 
 
 ### Defaults Configuration
-The default setting for the ElasticSearch node that is created is as follows:
+The default setting for the Elasticsearch node that is created is as follows:
 
     cluster.name=es.ycsb.cluster
-    node.local=true
-    path.data=$TEMP_DIR/esdata
-    discovery.zen.ping.multicast.enabled=false
-    index.mapping._id.indexed=true
-    index.gateway.type=none
-    gateway.type=none
-    index.number_of_shards=1
-    index.number_of_replicas=0
     es.index.key=es.ycsb
+    es.number_of_shards=1
+    es.number_of_replicas=0
+    es.remote=false
+    es.newdb=false
+    es.hosts.list=localhost:9200 (only applies if es.remote=true)
 
 ### Custom Configuration
-If you wish to customize the settings used to create the ElasticSerach node
-you can created a new property file that contains your desired ElasticSearch 
+If you wish to customize the settings used to create the Elasticsearch node
+you can created a new property file that contains your desired Elasticsearch 
 node settings and pass it in via the parameter to 'bin/ycsb' script. Note that 
 the default properties will be kept if you don't explicitly overwrite them.
 
 Assuming that we have a properties file named "myproperties.data" that contains 
-custom ElasticSearch node configuration you can execute the following to
-pass it into the ElasticSearch client:
+custom Elasticsearch node configuration you can execute the following to
+pass it into the Elasticsearch client:
 
 
     ./bin/ycsb run elasticsearch -P workloads/workloada -P myproperties.data -s
-
-
-If you wish to use a in-memory store type rather than the default disk store add 
-the following properties to your custom properties file. For a large number of 
-insert operations insure that you have sufficient memory on your test system 
-otherwise you will run out of memory.
-
-    index.store.type=memory
-    index.store.fs.memory.enabled=true
-    cache.memory.small_buffer_size=4mb
-    cache.memory.large_cache_size=1024mb
 
 If you wish to change the default index name you can set the following property:
 
     es.index.key=my_index_key
 
-### Troubleshoot
-If you encounter error messages such as :
-"Primary shard is not active or isn't assigned is a known node."
+If you wish to run against a remote cluster you can set the following property:
 
-Try removing /tmp/esdata/ folder. 
-    rm -rf /tmp/esdata
+    es.remote=true
 
+By default this will use localhost:9300 as a seed node to discover the cluster.
+You can also specify
+
+    es.hosts.list=(\w+:\d+)+
+
+(a comma-separated list of host/port pairs) to change this.

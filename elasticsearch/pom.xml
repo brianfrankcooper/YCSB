@@ -21,15 +21,15 @@ LICENSE file.
     <parent>
         <groupId>com.yahoo.ycsb</groupId>
         <artifactId>binding-parent</artifactId>
-        <version>0.7.0-SNAPSHOT</version>
+        <version>0.10.0-SNAPSHOT</version>
         <relativePath>../binding-parent</relativePath>
     </parent>
 
     <artifactId>elasticsearch-binding</artifactId>
-    <name>ElasticSearch Binding</name>
+    <name>Elasticsearch Binding</name>
     <packaging>jar</packaging>
     <properties>
-        <elasticsearch-version>2.1.1</elasticsearch-version>
+        <elasticsearch-version>2.3.2</elasticsearch-version>
     </properties>
     <dependencies>
         <dependency>

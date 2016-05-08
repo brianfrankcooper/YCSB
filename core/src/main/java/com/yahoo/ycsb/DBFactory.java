@@ -18,6 +18,7 @@
 package com.yahoo.ycsb;
 
 import java.util.Properties;
+import org.apache.htrace.core.Tracer;
 
 /**
  * Creates a DB layer by dynamically classloading the specified DB class.
@@ -25,7 +26,7 @@ import java.util.Properties;
 public class DBFactory
 {
       @SuppressWarnings("unchecked")
-	public static DB newDB(String dbname, Properties properties) throws UnknownDBException
+	public static DB newDB(String dbname, Properties properties, final Tracer tracer) throws UnknownDBException
       {
 	 ClassLoader classLoader = DBFactory.class.getClassLoader();
 
@@ -46,7 +47,7 @@ public class DBFactory
 	 
 	 ret.setProperties(properties);
 
-	 return new DBWrapper(ret);
+	 return new DBWrapper(ret, tracer);
       }
       
 }

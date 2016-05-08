@@ -20,6 +20,9 @@ LICENSE file.
 
 https://cloud.google.com/datastore/docs/concepts/overview?hl=en
 
+Please refer [here] (https://cloud.google.com/datastore/docs/apis/overview) for more information on
+Google Cloud Datastore API.
+
 ## Configure
 
     YCSB_HOME - YCSB home directory
@@ -44,7 +47,7 @@ A. Configuration and setup:
 See this link for instructions about setting up Google Cloud Datastore and
 authentication:
 
-https://cloud.google.com/datastore/docs/getstarted/start_java/
+https://cloud.google.com/datastore/docs/activate#accessing_the_datastore_api_from_another_platform
 
 After you setup your environment, you will have 3 pieces of information ready:
 - datasetId,

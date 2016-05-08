@@ -21,6 +21,7 @@ package com.yahoo.ycsb.db.accumulo;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -70,8 +71,16 @@ public class AccumuloTest {
   private DB client;
   private Properties workloadProps;
 
+  private static boolean isWindows() {
+    final String os = System.getProperty("os.name");
+    return os.startsWith("Windows");
+  }
+
   @BeforeClass
   public static void setup() throws Exception {
+    // Minicluster setup fails on Windows with an UnsatisfiedLinkError.
+    // Skip if windows.
+    assumeTrue(!isWindows());
     cluster = new MiniAccumuloCluster(workingDir.newFolder("accumulo").getAbsoluteFile(), "protectyaneck");
     LOG.debug("starting minicluster");
     cluster.start();

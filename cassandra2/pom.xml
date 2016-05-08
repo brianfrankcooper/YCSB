@@ -23,13 +23,18 @@ LICENSE file.
   <parent>
     <groupId>com.yahoo.ycsb</groupId>
     <artifactId>binding-parent</artifactId>
-    <version>0.7.0-SNAPSHOT</version>
+    <version>0.10.0-SNAPSHOT</version>
     <relativePath>../binding-parent</relativePath>
   </parent>
 
   <artifactId>cassandra2-binding</artifactId>
   <name>Cassandra 2.1+ DB Binding</name>
   <packaging>jar</packaging>
+
+  <properties>
+    <!-- Skip tests by default. will be activated by jdk8 profile -->
+    <skipTests>true</skipTests>
+  </properties>
 
   <dependencies>
     <!-- CQL driver -->
@@ -46,8 +51,9 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>org.cassandraunit</groupId>
-      <artifactId>cassandra-unit-shaded</artifactId>
-      <version>2.1.9.2</version>
+      <artifactId>cassandra-unit</artifactId>
+      <version>3.0.0.1</version>
+      <classifier>shaded</classifier>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -57,4 +63,19 @@ LICENSE file.
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <profiles>
+    <!-- Cassandra 2.2+ requires JDK8 to run, so none of our tests
+         will work unless we're using jdk8.
+      -->
+    <profile>
+      <id>jdk8-tests</id>
+      <activation>
+        <jdk>1.8</jdk>
+      </activation>
+      <properties>
+        <skipTests>false</skipTests>
+      </properties>
+    </profile>
+  </profiles>
 </project>

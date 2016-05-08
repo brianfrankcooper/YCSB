@@ -24,6 +24,9 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.htrace.core.Tracer;
+import org.apache.htrace.core.TraceScope;
+
 import com.yahoo.ycsb.measurements.Measurements;
 
 /**
@@ -32,8 +35,9 @@ import com.yahoo.ycsb.measurements.Measurements;
  */
 public class DBWrapper extends DB
 {
-  private DB _db;
-  private Measurements _measurements;
+  private final DB _db;
+  private final Measurements _measurements;
+  private final Tracer _tracer;
 
   private boolean reportLatencyForEachError = false;
   private HashSet<String> latencyTrackedErrors = new HashSet<String>();
@@ -46,10 +50,27 @@ public class DBWrapper extends DB
   private static final String LATENCY_TRACKED_ERRORS_PROPERTY =
       "latencytrackederrors";
 
-  public DBWrapper(DB db)
+  private final String SCOPE_STRING_CLEANUP;
+  private final String SCOPE_STRING_DELETE;
+  private final String SCOPE_STRING_INIT;
+  private final String SCOPE_STRING_INSERT;
+  private final String SCOPE_STRING_READ;
+  private final String SCOPE_STRING_SCAN;
+  private final String SCOPE_STRING_UPDATE;
+
+  public DBWrapper(final DB db, final Tracer tracer)
   {
     _db=db;
     _measurements=Measurements.getMeasurements();
+    _tracer = tracer;
+    final String simple = db.getClass().getSimpleName();
+    SCOPE_STRING_CLEANUP = simple + "#cleanup";
+    SCOPE_STRING_DELETE = simple + "#delete";
+    SCOPE_STRING_INIT = simple + "#init";
+    SCOPE_STRING_INSERT = simple + "#insert";
+    SCOPE_STRING_READ = simple + "#read";
+    SCOPE_STRING_SCAN = simple + "#scan";
+    SCOPE_STRING_UPDATE = simple + "#update";
   }
 
   /**
@@ -74,24 +95,26 @@ public class DBWrapper extends DB
    */
   public void init() throws DBException
   {
-    _db.init();
+    try (final TraceScope span = _tracer.newScope(SCOPE_STRING_INIT)) {
+      _db.init();
 
-    this.reportLatencyForEachError = Boolean.parseBoolean(getProperties().
-        getProperty(REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY,
-            REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY_DEFAULT));
+      this.reportLatencyForEachError = Boolean.parseBoolean(getProperties().
+          getProperty(REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY,
+              REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY_DEFAULT));
 
-    if (!reportLatencyForEachError) {
-      String latencyTrackedErrors = getProperties().getProperty(
-          LATENCY_TRACKED_ERRORS_PROPERTY, null);
-      if (latencyTrackedErrors != null) {
-        this.latencyTrackedErrors = new HashSet<String>(Arrays.asList(
-            latencyTrackedErrors.split(",")));
+      if (!reportLatencyForEachError) {
+        String latencyTrackedErrors = getProperties().getProperty(
+            LATENCY_TRACKED_ERRORS_PROPERTY, null);
+        if (latencyTrackedErrors != null) {
+          this.latencyTrackedErrors = new HashSet<String>(Arrays.asList(
+              latencyTrackedErrors.split(",")));
+        }
       }
-    }
 
-    System.err.println("DBWrapper: report latency for each error is " +
-        this.reportLatencyForEachError + " and specific error codes to track" +
-        " for latency are: " + this.latencyTrackedErrors.toString());
+      System.err.println("DBWrapper: report latency for each error is " +
+          this.reportLatencyForEachError + " and specific error codes to track" +
+          " for latency are: " + this.latencyTrackedErrors.toString());
+    }
   }
 
   /**
@@ -100,11 +123,13 @@ public class DBWrapper extends DB
    */
   public void cleanup() throws DBException
   {
-    long ist=_measurements.getIntendedtartTimeNs();
-    long st = System.nanoTime();
-    _db.cleanup();
-    long en=System.nanoTime();
-    measure("CLEANUP", Status.OK, ist, st, en);
+    try (final TraceScope span = _tracer.newScope(SCOPE_STRING_CLEANUP)) {
+      long ist=_measurements.getIntendedtartTimeNs();
+      long st = System.nanoTime();
+      _db.cleanup();
+      long en=System.nanoTime();
+      measure("CLEANUP", Status.OK, ist, st, en);
+    }
   }
 
   /**
@@ -120,13 +145,15 @@ public class DBWrapper extends DB
   public Status read(String table, String key, Set<String> fields,
       HashMap<String,ByteIterator> result)
   {
-    long ist=_measurements.getIntendedtartTimeNs();
-    long st = System.nanoTime();
-    Status res=_db.read(table,key,fields,result);
-    long en=System.nanoTime();
-    measure("READ", res, ist, st, en);
-    _measurements.reportStatus("READ", res);
-    return res;
+    try (final TraceScope span = _tracer.newScope(SCOPE_STRING_READ)) {
+      long ist=_measurements.getIntendedtartTimeNs();
+      long st = System.nanoTime();
+      Status res=_db.read(table,key,fields,result);
+      long en=System.nanoTime();
+      measure("READ", res, ist, st, en);
+      _measurements.reportStatus("READ", res);
+      return res;
+    }
   }
 
   /**
@@ -143,13 +170,15 @@ public class DBWrapper extends DB
   public Status scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
   {
-    long ist=_measurements.getIntendedtartTimeNs();
-    long st = System.nanoTime();
-    Status res=_db.scan(table,startkey,recordcount,fields,result);
-    long en=System.nanoTime();
-    measure("SCAN", res, ist, st, en);
-    _measurements.reportStatus("SCAN", res);
-    return res;
+    try (final TraceScope span = _tracer.newScope(SCOPE_STRING_SCAN)) {
+      long ist=_measurements.getIntendedtartTimeNs();
+      long st = System.nanoTime();
+      Status res=_db.scan(table,startkey,recordcount,fields,result);
+      long en=System.nanoTime();
+      measure("SCAN", res, ist, st, en);
+      _measurements.reportStatus("SCAN", res);
+      return res;
+    }
   }
 
   private void measure(String op, Status result, long intendedStartTimeNanos,
@@ -181,13 +210,15 @@ public class DBWrapper extends DB
   public Status update(String table, String key,
       HashMap<String,ByteIterator> values)
   {
-    long ist=_measurements.getIntendedtartTimeNs();
-    long st = System.nanoTime();
-    Status res=_db.update(table,key,values);
-    long en=System.nanoTime();
-    measure("UPDATE", res, ist, st, en);
-    _measurements.reportStatus("UPDATE", res);
-    return res;
+    try (final TraceScope span = _tracer.newScope(SCOPE_STRING_UPDATE)) {
+      long ist=_measurements.getIntendedtartTimeNs();
+      long st = System.nanoTime();
+      Status res=_db.update(table,key,values);
+      long en=System.nanoTime();
+      measure("UPDATE", res, ist, st, en);
+      _measurements.reportStatus("UPDATE", res);
+      return res;
+    }
   }
 
   /**
@@ -203,13 +234,15 @@ public class DBWrapper extends DB
   public Status insert(String table, String key,
       HashMap<String,ByteIterator> values)
   {
-    long ist=_measurements.getIntendedtartTimeNs();
-    long st = System.nanoTime();
-    Status res=_db.insert(table,key,values);
-    long en=System.nanoTime();
-    measure("INSERT", res, ist, st, en);
-    _measurements.reportStatus("INSERT", res);
-    return res;
+    try (final TraceScope span = _tracer.newScope(SCOPE_STRING_INSERT)) {
+      long ist=_measurements.getIntendedtartTimeNs();
+      long st = System.nanoTime();
+      Status res=_db.insert(table,key,values);
+      long en=System.nanoTime();
+      measure("INSERT", res, ist, st, en);
+      _measurements.reportStatus("INSERT", res);
+      return res;
+    }
   }
 
   /**
@@ -221,12 +254,14 @@ public class DBWrapper extends DB
    */
   public Status delete(String table, String key)
   {
-    long ist=_measurements.getIntendedtartTimeNs();
-    long st = System.nanoTime();
-    Status res=_db.delete(table,key);
-    long en=System.nanoTime();
-    measure("DELETE", res, ist, st, en);
-    _measurements.reportStatus("DELETE", res);
-    return res;
+    try (final TraceScope span = _tracer.newScope(SCOPE_STRING_DELETE)) {
+      long ist=_measurements.getIntendedtartTimeNs();
+      long st = System.nanoTime();
+      Status res=_db.delete(table,key);
+      long en=System.nanoTime();
+      measure("DELETE", res, ist, st, en);
+      _measurements.reportStatus("DELETE", res);
+      return res;
+    }
   }
 }

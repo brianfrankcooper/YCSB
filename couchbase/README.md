@@ -53,6 +53,7 @@ bin/ycsb run couchbase -s -P workloads/workloada -p couchbase.useJson=false
 
 ## Scans in the CouchbaseClient
 The scan operation in the CouchbaseClient requires a Couchbase View to be created manually. To do this:
+
 1. Go to the Couchbase UI, then to Views
 2. Create a new development view, specify a ddoc and view name, use these in your YCSB properties. See Configuration Options below.
 3. The default map code is sufficient.

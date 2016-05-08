@@ -39,6 +39,15 @@ Then, run the workload:
 
 See the next section for the list of configuration parameters for OrientDB.
 
+## DB creation with the OrientDBClient
+This client will create a database for you if the connection database you specify does not exists. You can also specify connection information to a preexisting database.
+
+You can use the ```orientdb.newdb=true``` property to allow this client to drop and create a new database instance during the ```load``` phase.
+
+NOTE: understand that using the ```orientdb.newdb=true``` property will drop and recreate databases even if it was a preexisting instance.
+
+WARNING: Creating a new database will be done safely with multiple threads on a single YCSB instance, but is not guaranteed to work when launching multiple YCSB instances. In that scenario it is suggested that you create the db before hand, or run the ```load``` phase with a single YCSB instance.
+
 ## OrientDB Configuration Parameters
 
 * ```orientdb.url``` - (required) The address to your database.
@@ -63,5 +72,4 @@ See the next section for the list of configuration parameters for OrientDB.
 ## Known Issues
 
 * There is a performance issue around the scan operation. This binding uses OIndex.iterateEntriesMajor() which will return unnecessarily large iterators. This has a performance impact as the recordcount goes up. There are ideas in the works to fix it, track it here: [#568](https://github.com/brianfrankcooper/YCSB/issues/568).
-* The OIndexCursor used to run the scan operation currently seems to be broken. Because of this, if the startkey and recordcount combination on a particular operation were to cause the iterator to go to the end, a NullPointerException is thrown. With sufficiently high record counts, this does not happen very often, but it could cause false negatives. Track that issue here: https://github.com/orientechnologies/orientdb/issues/5541.
 * Iterator methods needed to perform scans are Unsupported in the OrientDB API for remote database connections and so will return NOT_IMPLEMENTED status if attempted.
