@@ -130,6 +130,7 @@ LICENSE file.
     <module>nosqldb</module>
     <module>orientdb</module>
     <module>redis</module>
+	<module>rest</module>
     <module>riak</module>
     <module>s3</module>
     <module>solr</module>
