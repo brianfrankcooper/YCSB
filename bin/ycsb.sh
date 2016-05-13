@@ -37,33 +37,43 @@
 #   WARNING!!! YCSB home must be located in a directory path that doesn't
 #   contain spaces.
 #
+#        www.shellcheck.net was used to validate this script
 
 # Cygwin support
 CYGWIN=false
-case "`uname`" in
+case "$(uname)" in
 CYGWIN*) CYGWIN=true;;
 esac
 
 # Get script path
-SCRIPT_DIR=`dirname "$0" 2>/dev/null`
+SCRIPT_DIR=$(dirname "$0" 2>/dev/null)
 
 # Only set YCSB_HOME if not already set
-[ -z "$YCSB_HOME" ] && YCSB_HOME=`cd "$SCRIPT_DIR/.." 2>/dev/null; pwd`
+[ -z "$YCSB_HOME" ] && YCSB_HOME=$(cd "$SCRIPT_DIR/.." || exit; pwd)
 
 # Ensure that any extra CLASSPATH variables are set via setenv.sh
 CLASSPATH=
 
 # Pull in customization options
 if [ -r "$YCSB_HOME/bin/setenv.sh" ]; then
+  # Shellcheck wants a source, but this directive only runs if available
+  #   So, tell shellcheck to ignore
+  # shellcheck source=/dev/null
   . "$YCSB_HOME/bin/setenv.sh"
 fi
 
 # Attempt to find the available JAVA, if JAVA_HOME not set
 if [ -z "$JAVA_HOME" ]; then
-  JAVA_PATH=`which java 2>/dev/null`
+  JAVA_PATH=$(which java 2>/dev/null)
   if [ "x$JAVA_PATH" != "x" ]; then
-    JAVA_HOME=`dirname $(dirname "$JAVA_PATH" 2>/dev/null)`
+    JAVA_HOME=$(dirname "$(dirname "$JAVA_PATH" 2>/dev/null)")
   fi
+fi
+
+# If JAVA_HOME still not set, error
+if [ -z "$JAVA_HOME" ]; then
+  echo "[ERROR] Java executable not found. Exiting."
+  exit 1;
 fi
 
 # Determine YCSB command argument
@@ -83,31 +93,31 @@ else
 fi
 
 # Find binding information
-BINDING_LINE=`grep "^$2:" "$YCSB_HOME/bin/bindings.properties" -m 1`
+BINDING_LINE=$(grep "^$2:" "$YCSB_HOME/bin/bindings.properties" -m 1)
 
-if [ -z $BINDING_LINE ] ; then
+if [ -z "$BINDING_LINE" ] ; then
   echo "[ERROR] The specified binding '$2' was not found.  Exiting."
   exit 1;
 fi
 
 # Get binding name and class
-BINDING_NAME=`echo $BINDING_LINE | cut -d':' -f1`
-BINDING_CLASS=`echo $BINDING_LINE | cut -d':' -f2`
+BINDING_NAME=$(echo "$BINDING_LINE" | cut -d':' -f1)
+BINDING_CLASS=$(echo "$BINDING_LINE" | cut -d':' -f2)
 
 # Some bindings have multiple versions that are managed in the same directory.
 #   They are noted with a '-' after the binding name.
 #   (e.g. cassandra-7 & cassandra-8)
-BINDING_DIR=`echo $BINDING_NAME | cut -d'-' -f1`
+BINDING_DIR=$(echo "$BINDING_NAME" | cut -d'-' -f1)
 
 # The 'basic' binding is core functionality
-if [ $BINDING_NAME = "basic" ] ; then
+if [ "$BINDING_NAME" = "basic" ] ; then
   BINDING_DIR=core
 fi
 
 # For Cygwin, ensure paths are in UNIX format before anything is touched
 if $CYGWIN; then
-  [ -n "$JAVA_HOME" ] && JAVA_HOME=`cygpath --unix "$JAVA_HOME"`
-  [ -n "$CLASSPATH" ] && CLASSPATH=`cygpath --path --unix "$CLASSPATH"`
+  [ -n "$JAVA_HOME" ] && JAVA_HOME=$(cygpath --unix "$JAVA_HOME")
+  [ -n "$CLASSPATH" ] && CLASSPATH=$(cygpath --path --unix "$CLASSPATH")
 fi
 
 # Check if source checkout, or release distribution
@@ -124,46 +134,82 @@ else
 fi
 
 # Build classpath
+#   The "if" check after the "for" is because glob may just return the pattern
+#   when no files are found.  The "if" makes sure the file is really there.
 if $DISTRIBUTION; then
   # Core libraries
-  for f in `ls "$YCSB_HOME"/lib/*.jar`; do
-    CLASSPATH="$CLASSPATH:$f"
+  for f in "$YCSB_HOME"/lib/*.jar ; do
+    if [ -r "$f" ] ; then
+      CLASSPATH="$CLASSPATH:$f"
+    fi
   done
 
   # Database conf dir
-  if [ -r "$YCSB_HOME/$BINDING_DIR-binding/conf" ] ; then
+  if [ -r "$YCSB_HOME"/"$BINDING_DIR"-binding/conf ] ; then
     CLASSPATH="$CLASSPATH:$YCSB_HOME/$BINDING_DIR-binding/conf"
   fi
 
   # Database libraries
-  for f in `ls "$YCSB_HOME"/$BINDING_DIR-binding/lib/*.jar 2>/dev/null`; do
-    CLASSPATH="$CLASSPATH:$f"
+  for f in "$YCSB_HOME"/"$BINDING_DIR"-binding/lib/*.jar ; do
+    if [ -r "$f" ] ; then
+      CLASSPATH="$CLASSPATH:$f"
+    fi
   done
 
+# Source checkout
 else
+  # Check for some basic libraries to see if the source has been built.
+  for f in "$YCSB_HOME"/"$BINDING_DIR"/target/*.jar ; do
+
+    # Call mvn to build source checkout.
+    if [ ! -e "$f" ] ; then
+      if [ "$BINDING_NAME" = "basic" ] ; then
+        MVN_PROJECT=core
+      else
+        MVN_PROJECT="$BINDING_DIR"-binding
+      fi
+
+      echo "[WARN] YCSB libraries not found.  Attempting to build..."
+      mvn -pl com.yahoo.ycsb:"$MVN_PROJECT" -am package -DskipTests
+      if [ "$?" -ne 0 ] ; then
+        echo "[ERROR] Error trying to build project. Exiting."
+        exit 1;
+      fi
+    fi
+
+  done
+
   # Core libraries
-  for f in `ls "$YCSB_HOME"/core/target/*.jar`; do
-    CLASSPATH="$CLASSPATH:$f"
+  for f in "$YCSB_HOME"/core/target/*.jar ; do
+    if [ -r "$f" ] ; then
+      CLASSPATH="$CLASSPATH:$f"
+    fi
   done
 
   # Database conf (need to find because location is not consistent)
-  for f in `find "$YCSB_HOME"/$BINDING_DIR -name "conf"`; do
-    CLASSPATH="$CLASSPATH:$f"
-  done
+  CLASSPATH_CONF=$(find "$YCSB_HOME"/$BINDING_DIR -name "conf" | while IFS="" read -r file; do echo ":$file"; done)
+  if [ "x$CLASSPATH_CONF" != "x" ]; then
+    CLASSPATH="$CLASSPATH$CLASSPATH_CONF"
+  fi
+
 
   # Database libraries
-  for f in `ls "$YCSB_HOME"/$BINDING_DIR/target/*.jar`; do
-    CLASSPATH="$CLASSPATH:$f"
+  for f in "$YCSB_HOME"/"$BINDING_DIR"/target/*.jar ; do
+    if [ -r "$f" ] ; then
+      CLASSPATH="$CLASSPATH:$f"
+    fi
   done
 
   # Database dependency libraries
-  for f in `ls "$YCSB_HOME"/$BINDING_DIR/target/dependency/*.jar 2>/dev/null`; do
-    CLASSPATH="$CLASSPATH:$f"
+  for f in "$YCSB_HOME"/"$BINDING_DIR"/target/dependency/*.jar ; do
+    if [ -r "$f" ] ; then
+      CLASSPATH="$CLASSPATH:$f"
+    fi
   done
 fi
 
 # Cassandra deprecation message
-if [ $BINDING_DIR = "cassandra" ] ; then
+if [ "$BINDING_DIR" = "cassandra" ] ; then
   echo "[WARN] The 'cassandra-7', 'cassandra-8', 'cassandra-10', and \
 cassandra-cql' clients are deprecated. If you are using \
 Cassandra 2.X try using the 'cassandra2-cql' client instead."
@@ -171,13 +217,20 @@ fi
 
 # For Cygwin, switch paths to Windows format before running java
 if $CYGWIN; then
-  JAVA_HOME=`cygpath --absolute --windows "$JAVA_HOME"`
-  CLASSPATH=`cygpath --path --windows "$CLASSPATH"`
+  [ -n "$JAVA_HOME" ] && JAVA_HOME=$(cygpath --unix "$JAVA_HOME")
+  [ -n "$CLASSPATH" ] && CLASSPATH=$(cygpath --path --windows "$CLASSPATH")
 fi
 
 # Get the rest of the arguments
-YCSB_ARGS=`echo $* | cut -d' ' -f3-`
+YCSB_ARGS=$(echo "$@" | cut -d' ' -f3-)
+
+# About to run YCSB
+echo "$JAVA_HOME/bin/java $JAVA_OPTS -classpath $CLASSPATH $YCSB_CLASS $YCSB_COMMAND -db $BINDING_CLASS $YCSB_ARGS"
 
 # Run YCSB
-echo \"$JAVA_HOME/bin/java\" $JAVA_OPTS -classpath \"$CLASSPATH\" $YCSB_CLASS $YCSB_COMMAND -db $BINDING_CLASS $YCSB_ARGS
+# Shellcheck reports the following line as needing double quotes to prevent
+# globbing and word splitting.  However, word splitting is the desired effect
+# here.  So, the shellcheck error is disabled for this line.
+# shellcheck disable=SC2086
 "$JAVA_HOME/bin/java" $JAVA_OPTS -classpath "$CLASSPATH" $YCSB_CLASS $YCSB_COMMAND -db $BINDING_CLASS $YCSB_ARGS
+
