@@ -20,9 +20,10 @@
 language: java
 
 jdk:
+  - oraclejdk8
   - oraclejdk7
-  - openjdk7  
-  
+  - openjdk7
+
 install: mvn install -q -DskipTests=true
 
 script: mvn test -q
@@ -30,6 +31,7 @@ script: mvn test -q
 # Services to start for tests.
 services:
   - mongodb
+  - riak
 
 
 # Use the Container based infrastructure.

@@ -22,7 +22,6 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.elasticsearch.index.query.QueryBuilders.rangeQuery;
 import static org.elasticsearch.node.NodeBuilder.nodeBuilder;
 
-
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
@@ -30,6 +29,8 @@ import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
@@ -57,19 +58,19 @@ import java.util.Vector;
  * Default properties to set:
  * </p>
  * <ul>
- * <li>es.cluster.name = es.ycsb.cluster
- * <li>es.client = true
+ * <li>cluster.name = es.ycsb.cluster
  * <li>es.index.key = es.ycsb
+ * <li>es.number_of_shards = 1
+ * <li>es.number_of_replicas = 0
  * </ul>
- *
- * @author Sharmarke Aden
- *
  */
 public class ElasticsearchClient extends DB {
 
-  public static final String DEFAULT_CLUSTER_NAME = "es.ycsb.cluster";
-  public static final String DEFAULT_INDEX_KEY = "es.ycsb";
-  public static final String DEFAULT_REMOTE_HOST = "localhost:9300";
+  private static final String DEFAULT_CLUSTER_NAME = "es.ycsb.cluster";
+  private static final String DEFAULT_INDEX_KEY = "es.ycsb";
+  private static final String DEFAULT_REMOTE_HOST = "localhost:9300";
+  private static final int NUMBER_OF_SHARDS = 1;
+  private static final int NUMBER_OF_REPLICAS = 0;
   private Node node;
   private Client client;
   private String indexKey;
@@ -83,32 +84,26 @@ public class ElasticsearchClient extends DB {
   public void init() throws DBException {
     Properties props = getProperties();
     this.indexKey = props.getProperty("es.index.key", DEFAULT_INDEX_KEY);
-    String clusterName =
-        props.getProperty("cluster.name", DEFAULT_CLUSTER_NAME);
+
+    int numberOfShards = parseIntegerProperty(props, "es.number_of_shards", NUMBER_OF_SHARDS);
+    int numberOfReplicas = parseIntegerProperty(props, "es.number_of_replicas", NUMBER_OF_REPLICAS);
+
     // Check if transport client needs to be used (To connect to multiple
     // elasticsearch nodes)
-    remoteMode = Boolean
-        .parseBoolean(props.getProperty("elasticsearch.remote", "false"));
-    Boolean newdb =
-        Boolean.parseBoolean(props.getProperty("elasticsearch.newdb", "false"));
+    remoteMode = Boolean.parseBoolean(props.getProperty("es.remote", "false"));
+    Boolean newdb = Boolean.parseBoolean(props.getProperty("es.newdb", "false"));
     Builder settings = Settings.settingsBuilder()
-        .put("node.local", "true")
-        .put("path.data", System.getProperty("java.io.tmpdir") + "/esdata")
-        .put("discovery.zen.ping.multicast.enabled", "false")
-        .put("index.mapping._id.indexed", "true")
-        .put("index.gateway.type", "none")
-        .put("index.number_of_shards", "1")
-        .put("index.number_of_replicas", "0")
+        .put("cluster.name", DEFAULT_CLUSTER_NAME)
+        .put("node.local", Boolean.toString(!remoteMode))
         .put("path.home", System.getProperty("java.io.tmpdir"));
 
     // if properties file contains elasticsearch user defined properties
     // add it to the settings file (will overwrite the defaults).
     settings.put(props);
-    System.out.println(
-        "Elasticsearch starting node = " + settings.get("cluster.name"));
-    System.out
-        .println("Elasticsearch node data path = " + settings.get("path.data"));
-    System.out.println("Elasticsearch Remote Mode = " + remoteMode);
+    final String clusterName = settings.get("cluster.name");
+    System.err.println("Elasticsearch starting node = " + clusterName);
+    System.err.println("Elasticsearch node path.home = " + settings.get("path.home"));
+    System.err.println("Elasticsearch Remote Mode = " + remoteMode);
     // Remote mode support for connecting to remote elasticsearch cluster
     if (remoteMode) {
       settings.put("client.transport.sniff", true)
@@ -116,13 +111,9 @@ public class ElasticsearchClient extends DB {
           .put("client.transport.ping_timeout", "30s")
           .put("client.transport.nodes_sampler_interval", "30s");
       // Default it to localhost:9300
-      String[] nodeList =
-          props.getProperty("elasticsearch.hosts.list", DEFAULT_REMOTE_HOST)
-              .split(",");
-      System.out.println("Elasticsearch Remote Hosts = "
-          + props.getProperty("elasticsearch.hosts.list", DEFAULT_REMOTE_HOST));
-      TransportClient tClient = TransportClient.builder()
-                                  .settings(settings).build();
+      String[] nodeList = props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST).split(",");
+      System.out.println("Elasticsearch Remote Hosts = " + props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST));
+      TransportClient tClient = TransportClient.builder().settings(settings).build();
       for (String h : nodeList) {
         String[] nodes = h.split(":");
         try {
@@ -143,21 +134,29 @@ public class ElasticsearchClient extends DB {
       client = node.client();
     }
 
-    //wait for shards to be ready
-    client.admin().cluster()
-      .health(new ClusterHealthRequest("lists").waitForActiveShards(1))
-      .actionGet();
-    if (newdb) {
+    final boolean exists =
+            client.admin().indices()
+                    .exists(Requests.indicesExistsRequest(indexKey)).actionGet()
+                    .isExists();
+    if (exists && newdb) {
       client.admin().indices().prepareDelete(indexKey).execute().actionGet();
-      client.admin().indices().prepareCreate(indexKey).execute().actionGet();
-    } else {
-      boolean exists = client.admin().indices()
-          .exists(Requests.indicesExistsRequest(indexKey)).actionGet()
-          .isExists();
-      if (!exists) {
-        client.admin().indices().prepareCreate(indexKey).execute().actionGet();
-      }
     }
+    if (!exists || newdb) {
+      client.admin().indices().create(
+              new CreateIndexRequest(indexKey)
+                      .settings(
+                              Settings.builder()
+                                      .put("index.number_of_shards", numberOfShards)
+                                      .put("index.number_of_replicas", numberOfReplicas)
+                                      .put("index.mapping._id.indexed", true)
+                      )).actionGet();
+    }
+    client.admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet();
+  }
+
+  private int parseIntegerProperty(Properties properties, String key, int defaultValue) {
+    String value = properties.getProperty(key);
+    return value == null ? defaultValue : Integer.parseInt(value);
   }
 
   @Override
@@ -187,26 +186,23 @@ public class ElasticsearchClient extends DB {
    *         description for a discussion of error codes.
    */
   @Override
-  public Status insert(String table, String key,
-      HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
     try {
       final XContentBuilder doc = jsonBuilder().startObject();
 
-      for (Entry<String, String> entry : StringByteIterator.getStringMap(values)
-          .entrySet()) {
+      for (Entry<String, String> entry : StringByteIterator.getStringMap(values).entrySet()) {
         doc.field(entry.getKey(), entry.getValue());
       }
 
       doc.endObject();
 
-      client.prepareIndex(indexKey, table, key).setSource(doc).execute()
-          .actionGet();
+      client.prepareIndex(indexKey, table, key).setSource(doc).execute().actionGet();
 
       return Status.OK;
     } catch (Exception e) {
       e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
   }
 
   /**
@@ -222,12 +218,16 @@ public class ElasticsearchClient extends DB {
   @Override
   public Status delete(String table, String key) {
     try {
-      client.prepareDelete(indexKey, table, key).execute().actionGet();
-      return Status.OK;
+      DeleteResponse response = client.prepareDelete(indexKey, table, key).execute().actionGet();
+      if (response.isFound()) {
+        return Status.OK;
+      } else {
+        return Status.NOT_FOUND;
+      }
     } catch (Exception e) {
       e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
   }
 
   /**
@@ -245,11 +245,9 @@ public class ElasticsearchClient extends DB {
    * @return Zero on success, a non-zero error code on error or "not found".
    */
   @Override
-  public Status read(String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
     try {
-      final GetResponse response =
-          client.prepareGet(indexKey, table, key).execute().actionGet();
+      final GetResponse response = client.prepareGet(indexKey, table, key).execute().actionGet();
 
       if (response.isExists()) {
         if (fields != null) {
@@ -264,11 +262,13 @@ public class ElasticsearchClient extends DB {
           }
         }
         return Status.OK;
+      } else {
+        return Status.NOT_FOUND;
       }
     } catch (Exception e) {
       e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
   }
 
   /**
@@ -286,28 +286,25 @@ public class ElasticsearchClient extends DB {
    *         description for a discussion of error codes.
    */
   @Override
-  public Status update(String table, String key,
-      HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
     try {
-      final GetResponse response =
-          client.prepareGet(indexKey, table, key).execute().actionGet();
+      final GetResponse response = client.prepareGet(indexKey, table, key).execute().actionGet();
 
       if (response.isExists()) {
-        for (Entry<String, String> entry : StringByteIterator
-            .getStringMap(values).entrySet()) {
+        for (Entry<String, String> entry : StringByteIterator.getStringMap(values).entrySet()) {
           response.getSource().put(entry.getKey(), entry.getValue());
         }
 
-        client.prepareIndex(indexKey, table, key)
-            .setSource(response.getSource()).execute().actionGet();
+        client.prepareIndex(indexKey, table, key).setSource(response.getSource()).execute().actionGet();
 
         return Status.OK;
+      } else {
+        return Status.NOT_FOUND;
       }
-
     } catch (Exception e) {
       e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
   }
 
   /**
@@ -329,8 +326,12 @@ public class ElasticsearchClient extends DB {
    *         description for a discussion of error codes.
    */
   @Override
-  public Status scan(String table, String startkey, int recordcount,
-      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+  public Status scan(
+          String table,
+          String startkey,
+          int recordcount,
+          Set<String> fields,
+          Vector<HashMap<String, ByteIterator>> result) {
     try {
       final RangeQueryBuilder rangeQuery = rangeQuery("_id").gte(startkey);
       final SearchResponse response = client.prepareSearch(indexKey)
@@ -343,20 +344,17 @@ public class ElasticsearchClient extends DB {
       HashMap<String, ByteIterator> entry;
 
       for (SearchHit hit : response.getHits()) {
-        entry = new HashMap<String, ByteIterator>(fields.size());
-
+        entry = new HashMap<>(fields.size());
         for (String field : fields) {
-          entry.put(field,
-              new StringByteIterator((String) hit.getSource().get(field)));
+          entry.put(field, new StringByteIterator((String) hit.getSource().get(field)));
         }
-
         result.add(entry);
       }
 
       return Status.OK;
     } catch (Exception e) {
       e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
   }
 }
