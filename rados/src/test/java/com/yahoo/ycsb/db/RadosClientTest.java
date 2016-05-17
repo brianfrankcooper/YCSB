@@ -19,6 +19,8 @@ package com.yahoo.ycsb.db;
 
 import static org.testng.AssertJUnit.assertEquals;
 
+import static org.junit.Assume.assumeNoException;
+
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
@@ -75,8 +77,13 @@ public class RadosClientTest {
     Properties p = new Properties();
     p.setProperty(POOL_PROPERTY, POOL_TEST);
 
-    radosclient.setProperties(p);
-    radosclient.init();
+    try {
+      radosclient.setProperties(p);
+      radosclient.init();
+    }
+    catch (DBException e) {
+      assumeNoException("Ceph cluster is not running. Skipping tests.", e);
+    }
   }
 
   @AfterClass
