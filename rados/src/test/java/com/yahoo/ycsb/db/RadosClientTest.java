@@ -81,7 +81,7 @@ public class RadosClientTest {
       radosclient.setProperties(p);
       radosclient.init();
     }
-    catch (DBException e) {
+    catch (DBException|UnsatisfiedLinkError e) {
       assumeNoException("Ceph cluster is not running. Skipping tests.", e);
     }
   }
