@@ -24,7 +24,6 @@ import com.ceph.rados.ReadOp;
 import com.ceph.rados.ReadOp.ReadResult;
 import com.ceph.rados.exceptions.RadosException;
 
-
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
@@ -57,6 +56,8 @@ public class RadosClient extends DB {
   public static final String POOL_PROPERTY = "rados.pool";
   public static final String POOL_DEFAULT = "data";
 
+  private boolean isInited = false;
+
   public void init() throws DBException {
     Properties props = getProperties();
 
@@ -75,6 +76,11 @@ public class RadosClient extends DB {
       pool = POOL_DEFAULT;
     }
 
+    // try {
+    // } catch (UnsatisfiedLinkError e) {
+    //   throw new DBException("RADOS library is not loaded.");
+    // }
+
     rados = new Rados(id);
     try {
       rados.confReadFile(new File(configfile));
@@ -83,11 +89,16 @@ public class RadosClient extends DB {
     } catch (RadosException e) {
       throw new DBException(e.getMessage() + ": " + e.getReturnValue());
     }
+
+    isInited = true;
   }
 
   public void cleanup() throws DBException {
-    rados.shutDown();
-    rados.ioCtxDestroy(ioctx);
+    if (isInited) {
+      rados.shutDown();
+      rados.ioCtxDestroy(ioctx);
+      isInited = false;
+    }
   }
 
   @Override
