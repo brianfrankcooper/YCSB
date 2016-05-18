@@ -86,7 +86,7 @@ public class RadosClientTest {
   }
 
   @AfterClass
-  public void teardownClass() throws DBException {
+  public static void teardownClass() throws DBException {
     if (radosclient != null) {
       radosclient.cleanup();
     }
