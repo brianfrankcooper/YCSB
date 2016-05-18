@@ -17,8 +17,7 @@
 
 package com.yahoo.ycsb.db;
 
-import static org.testng.AssertJUnit.assertEquals;
-
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeNoException;
 
 import com.yahoo.ycsb.ByteIterator;
@@ -26,11 +25,11 @@ import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
+import org.junit.AfterClass;
+import org.junit.After;
+import org.junit.BeforeClass;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -71,7 +70,7 @@ public class RadosClientTest {
   }
 
   @BeforeClass
-  public void setupClass() throws DBException {
+  public static void setupClass() throws DBException {
     radosclient = new RadosClient();
 
     Properties p = new Properties();
@@ -93,12 +92,12 @@ public class RadosClientTest {
     }
   }
 
-  @BeforeMethod
+  @Before
   public void setUp() {
     radosclient.insert(TABLE_NAME, KEY0, DATA);
   }
 
-  @AfterMethod
+  @After
   public void tearDown() {
     radosclient.delete(TABLE_NAME, KEY0);
   }
