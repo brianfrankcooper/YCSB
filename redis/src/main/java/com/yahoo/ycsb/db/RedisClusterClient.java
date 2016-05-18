@@ -33,25 +33,20 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
-import org.apache.commons.pool2.ObjectPool;
-import org.apache.commons.pool2.impl.GenericObjectPool;
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-
-import com.fabahaba.jedipus.IJedis;
-import com.fabahaba.jedipus.RESP;
-import com.fabahaba.jedipus.cluster.ClusterNode;
-import com.fabahaba.jedipus.cluster.JedisClusterExecutor;
-import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
-import com.fabahaba.jedipus.primitive.JedisFactory;
-import com.yahoo.ycsb.ByteArrayByteIterator;
+import com.fabahaba.jedipus.client.RedisClient;
+import com.fabahaba.jedipus.cluster.CRC16;
+import com.fabahaba.jedipus.cluster.Node;
+import com.fabahaba.jedipus.cluster.RedisClusterExecutor;
+import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
+import com.fabahaba.jedipus.cmds.Cmds;
+import com.fabahaba.jedipus.cmds.RESP;
+import com.fabahaba.jedipus.pool.ClientPool;
+import com.fabahaba.jedipus.primitive.RedisClientFactory;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
-
-import redis.clients.jedis.Protocol;
-import redis.clients.jedis.Protocol.Command;
-import redis.clients.util.JedisClusterCRC16;
+import com.yahoo.ycsb.StringByteIterator;
 
 /**
  * YCSB binding for <a href="http://redis.io/topics/cluster-spec">Redis Cluster</a>.
@@ -60,7 +55,7 @@ import redis.clients.util.JedisClusterCRC16;
  */
 public class RedisClusterClient extends DB {
 
-  private JedisClusterExecutor jce;
+  private RedisClusterExecutor rce;
 
   public static final String HOST_PROP = "redis.cluster.host";
   public static final String PORT_PROP = "redis.cluster.port";
@@ -70,7 +65,7 @@ public class RedisClusterClient extends DB {
 
   public static final String INDEX_KEY = "_indices";
   private static final byte[] INDEX_KEY_BYTES = RESP.toBytes("_indices");
-  private static final int INDEX_SLOT = JedisClusterCRC16.getSlot(INDEX_KEY_BYTES);
+  private static final int INDEX_SLOT = CRC16.getSlot(INDEX_KEY_BYTES);
 
   @Override
   public void init() throws DBException {
@@ -86,41 +81,32 @@ public class RedisClusterClient extends DB {
 
     String host = props.getProperty(HOST_PROP);
     if (host == null) {
-      host = Protocol.DEFAULT_HOST;
+      host = "localhost";
     }
 
-    final GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
-    poolConfig.setBlockWhenExhausted(true);
+    final ClientPool.Builder poolBuilder = ClientPool.startBuilding().withBlockWhenExhausted(true);
 
     final String maxPoolSize = props.getProperty(MAX_POOL_SIZE_PROP);
     if (maxPoolSize != null) {
-      poolConfig.setMaxTotal(Integer.parseInt(maxPoolSize));
-    } else {
-      poolConfig.setMaxTotal(Runtime.getRuntime().availableProcessors());
+      poolBuilder.withMaxTotal(Integer.parseInt(maxPoolSize));
     }
 
-    final JedisFactory.Builder jedisFactory = JedisFactory.startBuilding();
+    final RedisClientFactory.Builder clientFactory = RedisClientFactory.startBuilding();
     final String password = props.getProperty(PASSWORD_PROP);
     if (password != null) {
-      jedisFactory.withAuth(password);
+      clientFactory.withAuth(password);
     }
 
-    final Function<ClusterNode, ObjectPool<IJedis>> masterPoolFactory =
-        node -> new GenericObjectPool<>(jedisFactory.createPooled(node), poolConfig);
+    final Function<Node, ClientPool<RedisClient>> masterPoolFactory =
+        node -> poolBuilder.create(clientFactory.createPooled(node));
 
     final boolean readOnly = true;
-    final Function<ClusterNode, ObjectPool<IJedis>> slavePoolFactory =
-        node -> new GenericObjectPool<>(jedisFactory.createPooled(node, readOnly), poolConfig);
+    final Function<Node, ClientPool<RedisClient>> slavePoolFactory =
+        node -> poolBuilder.create(clientFactory.createPooled(node, readOnly));
 
-    jce = JedisClusterExecutor.startBuilding(ClusterNode.create(host, port))
-        .withReadMode(ReadMode.MIXED).withMasterPoolFactory(masterPoolFactory)
-        .withSlavePoolFactory(slavePoolFactory).withNodeUnknownFactory(jedisFactory::create)
-        .create();
-  }
-
-  @Override
-  public void cleanup() throws DBException {
-    jce.close();
+    rce = RedisClusterExecutor.startBuilding(Node.create(host, port)).withReadMode(ReadMode.MIXED)
+        .withMasterPoolFactory(masterPoolFactory).withSlavePoolFactory(slavePoolFactory)
+        .withNodeUnknownFactory(clientFactory::create).create();
   }
 
   /*
@@ -128,78 +114,30 @@ public class RedisClusterClient extends DB {
    * not interesting -- it primarily needs to be fast and scattered along the whole space of
    * doubles. In a real world scenario one would probably use the ASCII values of the keys.
    */
-  private static double hash(final String key) {
-    return key.hashCode();
+  private static String hash(final String key) {
+
+    return Integer.toString(key.hashCode());
   }
 
   @Override
-  public Status read(final String table, final String key, final Set<String> fields,
-      final HashMap<String, ByteIterator> result) {
-
-    final byte[] keyBytes = RESP.toBytes(key);
-    final int slot = JedisClusterCRC16.getSlot(keyBytes);
-
-    if (fields == null) {
-
-      jce.applyJedis(slot, jedis -> jedis.hgetAll(keyBytes)).forEach(
-          (field, value) -> result.put(RESP.toString(field), new ByteArrayByteIterator(value)));
-      return result.isEmpty() ? Status.ERROR : Status.OK;
-    }
-
-    final String[] orderedFields = new String[fields.size()];
-    final byte[][] fieldBytesArray = new byte[orderedFields.length][];
-    int fieldIndex = 0;
-
-    for (final String field : fields) {
-      orderedFields[fieldIndex] = field;
-      fieldBytesArray[fieldIndex++] = RESP.toBytes(field);
-    }
-
-    final List<byte[]> values =
-        jce.applyJedis(slot, jedis -> jedis.hmget(keyBytes, fieldBytesArray));
-
-    fieldIndex = 0;
-    for (final byte[] value : values) {
-      result.put(orderedFields[fieldIndex++], new ByteArrayByteIterator(value));
-    }
-
-    return fieldIndex == orderedFields.length ? Status.OK : Status.ERROR;
-  }
-
-  @Override
-  public Status insert(final String table, final String key,
-      final HashMap<String, ByteIterator> values) {
-
-    final byte[] keyBytes = RESP.toBytes(key);
-    final int slot = JedisClusterCRC16.getSlot(keyBytes);
-
-    final byte[][] args = createKeyFieldValueArgs(keyBytes, values);
-
-    final String response = jce.applyJedis(ReadMode.MASTER, slot,
-        jedis -> jedis.cmdWithStatusCodeReply(Command.HMSET, args));
-
-    if (response.equals("OK")) {
-      final byte[][] zaddArgs = new byte[][] {INDEX_KEY_BYTES, RESP.toBytes(hash(key)), keyBytes};
-      jce.acceptJedis(ReadMode.MASTER, INDEX_SLOT,
-          jedis -> jedis.cmdWithIntegerReply(Command.ZADD, zaddArgs));
-      return Status.OK;
-    }
-    return Status.ERROR;
+  public void cleanup() throws DBException {
+    rce.close();
   }
 
   @Override
   public Status delete(final String table, final String key) {
 
     final byte[] keyBytes = RESP.toBytes(key);
-    final int slot = JedisClusterCRC16.getSlot(keyBytes);
+    final int slot = CRC16.getSlot(keyBytes);
 
-    final long keyRemoved = jce.applyJedis(slot, jedis -> jedis.del(keyBytes));
+    final long keyRemoved =
+        rce.apply(ReadMode.MASTER, slot, client -> client.sendCmd(Cmds.DEL.prim(), keyBytes));
     if (keyRemoved == 0) {
       return Status.ERROR;
     }
 
-    final long indexRemoval = jce.applyJedis(ReadMode.MASTER, INDEX_SLOT,
-        jedis -> jedis.cmdWithIntegerReply(Command.ZREM, INDEX_KEY_BYTES, keyBytes));
+    final long indexRemoval = rce.apply(ReadMode.MASTER, INDEX_SLOT,
+        client -> client.sendCmd(Cmds.ZREM.prim(), INDEX_KEY_BYTES, keyBytes));
 
     if (indexRemoval == 0) {
       return Status.ERROR;
@@ -209,33 +147,79 @@ public class RedisClusterClient extends DB {
   }
 
   @Override
-  public Status update(final String table, final String key,
+  public Status insert(final String table, final String key,
       final HashMap<String, ByteIterator> values) {
 
     final byte[] keyBytes = RESP.toBytes(key);
-    final int slot = JedisClusterCRC16.getSlot(keyBytes);
+    final int slot = CRC16.getSlot(keyBytes);
 
     final byte[][] args = createKeyFieldValueArgs(keyBytes, values);
 
-    final String response = jce.applyJedis(ReadMode.MASTER, slot,
-        jedis -> jedis.cmdWithStatusCodeReply(Command.HMSET, args));
+    final String response =
+        rce.apply(ReadMode.MASTER, slot, client -> client.sendCmd(Cmds.HMSET, args));
 
-    return response.equals("OK") ? Status.OK : Status.ERROR;
+    if (response.equals("OK")) {
+      final byte[][] zaddArgs = new byte[][] {INDEX_KEY_BYTES, RESP.toBytes(hash(key)), keyBytes};
+      rce.accept(ReadMode.MASTER, INDEX_SLOT, client -> client.sendCmd(Cmds.ZADD.prim(), zaddArgs));
+      return Status.OK;
+    }
+    return Status.ERROR;
+  }
+
+  @Override
+  public Status read(final String table, final String key, final Set<String> fields,
+      final HashMap<String, ByteIterator> result) {
+
+    final byte[] keyBytes = RESP.toBytes(key);
+    final int slot = CRC16.getSlot(keyBytes);
+
+    if (fields == null) {
+
+      final Object[] fieldValues =
+          rce.apply(slot, client -> client.sendCmd(Cmds.HGETALL, keyBytes));
+
+      for (int i = 0; i < fieldValues.length;) {
+        final String field = (String) fieldValues[i++];
+        final String value = (String) fieldValues[i++];
+        result.put(field, new StringByteIterator(value));
+      }
+
+      return result.isEmpty() ? Status.ERROR : Status.OK;
+    }
+
+    final String[] orderedFields = new String[fields.size()];
+    final byte[][] fieldBytesArray = new byte[orderedFields.length + 1][];
+    fieldBytesArray[0] = keyBytes;
+    int fieldIndex = 1;
+
+    for (final String field : fields) {
+      orderedFields[fieldIndex] = field;
+      fieldBytesArray[fieldIndex++] = RESP.toBytes(field);
+    }
+
+    final Object[] values = rce.apply(slot, client -> client.sendCmd(Cmds.HMGET, fieldBytesArray));
+
+    fieldIndex = 0;
+    for (final Object value : values) {
+      result.put(orderedFields[fieldIndex++], new StringByteIterator((String) value));
+    }
+
+    return fieldIndex == orderedFields.length ? Status.OK : Status.ERROR;
   }
 
   @Override
   public Status scan(final String table, final String startkey, final int recordcount,
       final Set<String> fields, final Vector<HashMap<String, ByteIterator>> result) {
 
-    final Set<String> keys = jce.applyJedis(INDEX_SLOT, jedis -> jedis.zrangeByScore(INDEX_KEY,
-        hash(startkey), Double.POSITIVE_INFINITY, 0, recordcount));
+    final Object[] keys = rce.apply(INDEX_SLOT, client -> client.sendCmd(Cmds.ZRANGEBYSCORE,
+        INDEX_KEY, hash(startkey), "+inf", "0", RESP.toString(recordcount)));
 
-    final List<Future<?>> readFutures = new ArrayList<>(keys.size());
+    final List<Future<?>> readFutures = new ArrayList<>(keys.length);
 
-    for (final String key : keys) {
+    for (final Object key : keys) {
       final HashMap<String, ByteIterator> values = new HashMap<>();
-      // read(table, key, fields, values);
-      readFutures.add(ForkJoinPool.commonPool().submit(() -> read(table, key, fields, values)));
+      readFutures.add(
+          ForkJoinPool.commonPool().submit(() -> read(table, RESP.toString(key), fields, values)));
       result.add(values);
     }
 
@@ -251,6 +235,21 @@ public class RedisClusterClient extends DB {
     }
 
     return Status.OK;
+  }
+
+  @Override
+  public Status update(final String table, final String key,
+      final HashMap<String, ByteIterator> values) {
+
+    final byte[] keyBytes = RESP.toBytes(key);
+    final int slot = CRC16.getSlot(keyBytes);
+
+    final byte[][] args = createKeyFieldValueArgs(keyBytes, values);
+
+    final String response =
+        rce.apply(ReadMode.MASTER, slot, client -> client.sendCmd(Cmds.HMSET, args));
+
+    return response.equals("OK") ? Status.OK : Status.ERROR;
   }
 
   private static byte[][] createKeyFieldValueArgs(final byte[] keyBytes,
