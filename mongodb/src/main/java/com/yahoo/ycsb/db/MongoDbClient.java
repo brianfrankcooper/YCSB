@@ -96,6 +96,8 @@ public class MongoDbClient extends DB {
   /** A singleton Mongo instance. */
   private static MongoClient mongoClient;
 
+  private static Boolean dropDBBeforeRun;
+  
   /** The default read preference for the test. */
   private static ReadPreference readPreference;
 
@@ -175,6 +177,10 @@ public class MongoDbClient extends DB {
 
       Properties props = getProperties();
 
+      // If clear db before run
+      String dropDBBeforeRunStr = props.getProperty("mongodb.dropDBBeforeRun", "false");
+      dropDBBeforeRun = Boolean.parseBoolean(dropDBBeforeRunStr);
+      
       // Set insert batchsize, default 1 - to be YCSB-original equivalent
       batchSize = Integer.parseInt(props.getProperty("batchsize", "1"));
 
@@ -199,7 +205,6 @@ public class MongoDbClient extends DB {
             + "'. Must be of the form "
             + "'mongodb://<host1>:<port1>,<host2>:<port2>/database?options'. "
             + "http://docs.mongodb.org/manual/reference/connection-string/");
-        System.exit(1);
       }
 
       try {
@@ -219,6 +224,15 @@ public class MongoDbClient extends DB {
         writeConcern = uri.getOptions().getWriteConcern();
 
         mongoClient = new MongoClient(uri);
+        if (dropDBBeforeRun) {
+          // Try delete first
+          try {
+            mongoClient.dropDatabase(databaseName);
+          } catch (Exception e) {
+            System.out.println("Fail to delete db, but will keep going: " + e);
+          }
+        }
+        
         database =
             mongoClient.getDatabase(databaseName)
                 .withReadPreference(readPreference)
