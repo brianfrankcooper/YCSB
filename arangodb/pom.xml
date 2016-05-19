@@ -31,11 +31,11 @@ LICENSE file.
   <packaging>jar</packaging>
 
   <dependencies>
-	<dependency>
-		<groupId>com.arangodb</groupId>
-		<artifactId>arangodb-java-driver</artifactId>
-		<version>2.7.3</version>
-	</dependency>
+    <dependency>
+      <groupId>com.arangodb</groupId>
+      <artifactId>arangodb-java-driver</artifactId>
+      <version>${arangodb.version}</version>
+    </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>core</artifactId>
