@@ -205,6 +205,7 @@ public class MongoDbClient extends DB {
             + "'. Must be of the form "
             + "'mongodb://<host1>:<port1>,<host2>:<port2>/database?options'. "
             + "http://docs.mongodb.org/manual/reference/connection-string/");
+        System.exit(1);
       }
 
       try {
