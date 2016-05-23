@@ -83,7 +83,7 @@ public class HistogramGenerator extends NumberGenerator {
 	private void init() {
 		for(int i = 0; i < buckets.length; i++) {
 			area += buckets[i];
-			weighted_area = i * buckets[i];
+			weighted_area += i * buckets[i];
 		}
 		// calculate average file size
 		mean_size = ((double)block_size) * ((double)weighted_area) / (area);
