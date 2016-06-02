@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2012 - 2015 YCSB contributors. All rights reserved.
+Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -91,6 +91,13 @@ Then, run the workload:
     ./bin/ycsb run mongodb -s -P workloads/workloada > outputRun.txt
     
 See the next section for the list of configuration parameters for MongoDB.
+
+## Log Level Control
+Due to the mongodb driver defaulting to a log level of DEBUG, a logback.xml file is included with this module that restricts the org.mongodb logging to WARN. You can control this by overriding the logback.xml and defining it in your ycsb command by adding this flag:
+
+```
+bin/ycsb run mongodb -jvm-args="-Dlogback.configurationFile=/path/to/logback.xml"
+```
 
 ## MongoDB Configuration Parameters
 
