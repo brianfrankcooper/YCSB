@@ -26,6 +26,7 @@ import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import com.yahoo.ycsb.db.flavors.DBFlavor;
 
 /**
  * A class that wraps a JDBC compliant database to allow it to be interfaced
@@ -64,6 +65,8 @@ public class JdbcDBClient extends DB {
   /** The JDBC connection auto-commit property for the driver. */
   public static final String JDBC_AUTO_COMMIT = "jdbc.autocommit";
 
+  public static final String JDBC_BATCH_UPDATES = "jdbc.batchupdateapi";
+
   /** The name of the property for the number of fields in a record. */
   public static final String FIELD_COUNT_PROPERTY = "fieldcount";
 
@@ -84,6 +87,8 @@ public class JdbcDBClient extends DB {
   private Properties props;
   private int jdbcFetchSize;
   private int batchSize;
+  private boolean autoCommit;
+  private boolean batchUpdates;
   private static final String DEFAULT_PROP = "";
   private ConcurrentMap<StatementType, PreparedStatement> cachedStatements;
   private long numRowsInBatch = 0;
@@ -113,136 +118,6 @@ public class JdbcDBClient extends DB {
   }
 
   /**
-   * DBFlavor captures minor differences in syntax and behavior among JDBC implementations and SQL
-   * dialects.
-   */
-  private abstract static class DBFlavor {
-    enum DBName {
-      DEFAULT,
-      PHOENIX
-    }
-
-    private final DBName dbName;
-
-    public DBFlavor(DBName dbName) {
-      this.dbName = dbName;
-    }
-
-    public static DBFlavor fromJdbcUrl(String url) {
-      if (url.startsWith("jdbc:phoenix")) {
-        return new PhoenixDBFlavor();
-      }
-      return new DefaultDBFlavor();
-    }
-
-    /**
-     * Create and return a SQL statement for inserting data.
-     */
-    abstract String createInsertStatement(StatementType insertType, String key);
-
-    /**
-     * Create and return a SQL statement for reading data.
-     */
-    abstract String createReadStatement(StatementType readType, String key);
-
-    /**
-     * Create and return a SQL statement for deleting data.
-     */
-    abstract String createDeleteStatement(StatementType deleteType, String key);
-
-    /**
-     * Create and return a SQL statement for updating data.
-     */
-    abstract String createUpdateStatement(StatementType updateType, String key);
-
-    /**
-     * Create and return a SQL statement for scanning data.
-     */
-    abstract String createScanStatement(StatementType scanType, String key);
-  }
-
-  /**
-   * The statement type for the prepared statements.
-   */
-  private static class StatementType {
-
-    enum Type {
-      INSERT(1), DELETE(2), READ(3), UPDATE(4), SCAN(5);
-
-      private final int internalType;
-
-      private Type(int type) {
-        internalType = type;
-      }
-
-      int getHashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + internalType;
-        return result;
-      }
-    }
-
-    private Type type;
-    private int shardIndex;
-    private int numFields;
-    private String tableName;
-    private String fieldString;
-
-    StatementType(Type type, String tableName, int numFields, String fieldString, int shardIndex) {
-      this.type = type;
-      this.tableName = tableName;
-      this.numFields = numFields;
-      this.fieldString = fieldString;
-      this.shardIndex = shardIndex;
-    }
-
-    @Override
-    public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + numFields + 100 * shardIndex;
-      result = prime * result + ((tableName == null) ? 0 : tableName.hashCode());
-      result = prime * result + ((type == null) ? 0 : type.getHashCode());
-      return result;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
-        return false;
-      }
-      StatementType other = (StatementType) obj;
-      if (numFields != other.numFields) {
-        return false;
-      }
-      if (shardIndex != other.shardIndex) {
-        return false;
-      }
-      if (tableName == null) {
-        if (other.tableName != null) {
-          return false;
-        }
-      } else if (!tableName.equals(other.tableName)) {
-        return false;
-      }
-      if (type != other.type) {
-        return false;
-      }
-      if (!fieldString.equals(other.fieldString)) {
-        return false;
-      }
-      return true;
-    }
-  }
-
-  /**
    * For the given key, returns what shard contains data for this key.
    *
    * @param key Data key to do operation on
@@ -266,6 +141,9 @@ public class JdbcDBClient extends DB {
 
   private void cleanupAllConnections() throws SQLException {
     for (Connection conn : conns) {
+      if (!autoCommit) {
+        conn.commit();
+      }
       conn.close();
     }
   }
@@ -308,7 +186,8 @@ public class JdbcDBClient extends DB {
     this.jdbcFetchSize = getIntProperty(props, JDBC_FETCH_SIZE);
     this.batchSize = getIntProperty(props, DB_BATCH_SIZE);
 
-    boolean autoCommit = getBoolProperty(props, JDBC_AUTO_COMMIT, true);
+    this.autoCommit = getBoolProperty(props, JDBC_AUTO_COMMIT, true);
+    this.batchUpdates = getBoolProperty(props, JDBC_BATCH_UPDATES, false);
 
     try {
       if (driver != null) {
@@ -316,7 +195,7 @@ public class JdbcDBClient extends DB {
       }
       int shardCount = 0;
       conns = new ArrayList<Connection>(3);
-      String[] urlArr = urls.split(",");
+      final String[] urlArr = urls.split(",");
       for (String url : urlArr) {
         System.out.println("Adding shard node URL: " + url);
         Connection conn = DriverManager.getConnection(url, user, passwd);
@@ -432,104 +311,6 @@ public class JdbcDBClient extends DB {
     return stmt;
   }
 
-  private static class DefaultDBFlavor extends DBFlavor {
-    public DefaultDBFlavor() {
-      super(DBName.DEFAULT);
-    }
-    public DefaultDBFlavor(DBName dbName) {
-      super(dbName);
-    }
-
-    @Override
-    String createInsertStatement(StatementType insertType, String key) {
-      StringBuilder insert = new StringBuilder("INSERT INTO ");
-      insert.append(insertType.tableName);
-      insert.append(" (" + PRIMARY_KEY + "," + insertType.fieldString + ")");
-      insert.append(" VALUES(?");
-      for (int i = 0; i < insertType.numFields; i++) {
-        insert.append(",?");
-      }
-      insert.append(")");
-      return insert.toString();
-    }
-
-    @Override
-    String createReadStatement(StatementType readType, String key) {
-      StringBuilder read = new StringBuilder("SELECT * FROM ");
-      read.append(readType.tableName);
-      read.append(" WHERE ");
-      read.append(PRIMARY_KEY);
-      read.append(" = ");
-      read.append("?");
-      return read.toString();
-    }
-
-    @Override
-    String createDeleteStatement(StatementType deleteType, String key) {
-      StringBuilder delete = new StringBuilder("DELETE FROM ");
-      delete.append(deleteType.tableName);
-      delete.append(" WHERE ");
-      delete.append(PRIMARY_KEY);
-      delete.append(" = ?");
-      return delete.toString();
-    }
-
-    @Override
-    String createUpdateStatement(StatementType updateType, String key) {
-      String[] fieldKeys = updateType.fieldString.split(",");
-      StringBuilder update = new StringBuilder("UPDATE ");
-      update.append(updateType.tableName);
-      update.append(" SET ");
-      for (int i = 0; i < fieldKeys.length; i++) {
-        update.append(fieldKeys[i]);
-        update.append("=?");
-        if (i < fieldKeys.length - 1) {
-          update.append(", ");
-        }
-      }
-      update.append(" WHERE ");
-      update.append(PRIMARY_KEY);
-      update.append(" = ?");
-      return update.toString();
-    }
-
-    @Override
-    String createScanStatement(StatementType scanType, String key) {
-      StringBuilder select = new StringBuilder("SELECT * FROM ");
-      select.append(scanType.tableName);
-      select.append(" WHERE ");
-      select.append(PRIMARY_KEY);
-      select.append(" >= ?");
-      select.append(" ORDER BY ");
-      select.append(PRIMARY_KEY);
-      select.append(" LIMIT ?");
-      return select.toString();
-    }
-  }
-
-  /**
-   * Database flavor for Apache Phoenix. Captures syntax differences used by Phoenix.
-   */
-  private static class PhoenixDBFlavor extends DefaultDBFlavor {
-    public PhoenixDBFlavor() {
-      super(DBName.PHOENIX);
-    }
-
-    @Override
-    String createInsertStatement(StatementType insertType, String key) {
-      // Phoenix uses UPSERT syntax
-      StringBuilder insert = new StringBuilder("UPSERT INTO ");
-      insert.append(insertType.tableName);
-      insert.append(" (" + PRIMARY_KEY + "," + insertType.fieldString + ")");
-      insert.append(" VALUES(?");
-      for (int i = 0; i < insertType.numFields; i++) {
-        insert.append(",?");
-      }
-      insert.append(")");
-      return insert.toString();
-    }
-  }
-
   @Override
   public Status read(String tableName, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
     try {
@@ -631,24 +412,49 @@ public class JdbcDBClient extends DB {
       for (String value: fieldInfo.getFieldValues()) {
         insertStatement.setString(index++, value);
       }
-      int result;
-      if (batchSize > 0) {
+      // Using the batch insert API
+      if (batchUpdates) {
         insertStatement.addBatch();
-        if (++numRowsInBatch % batchSize == 0) {
-          int[] results = insertStatement.executeBatch();
-          for (int r : results) {
-            if (r != 1) {
-              return Status.ERROR;
+        // Check for a sane batch size
+        if (batchSize > 0) {
+          // Commit the batch after it grows beyond the configured size
+          if (++numRowsInBatch % batchSize == 0) {
+            int[] results = insertStatement.executeBatch();
+            for (int r : results) {
+              if (r != 1) {
+                return Status.ERROR;
+              }
             }
-          }
-          return Status.OK;
-        }
+            // If autoCommit is off, make sure we commit the batch
+            if (!autoCommit) {
+              getShardConnectionByKey(key).commit();
+            }
+            return Status.OK;
+          } // else, the default value of -1 or a nonsense. Treat it as an infinitely large batch.
+        } // else, we let the batch accumulate
+        // Added element to the batch, potentially committing the batch too.
         return Status.BATCHED_OK;
       } else {
-        result = insertStatement.executeUpdate();
-      }
-      if (result == 1) {
-        return Status.OK;
+        // Normal update
+        int result = insertStatement.executeUpdate();
+        // If we are not autoCommit, we might have to commit now
+        if (!autoCommit) {
+          // Let updates be batcher locally
+          if (batchSize > 0) {
+            if (++numRowsInBatch % batchSize == 0) {
+              // Send the batch of updates
+              getShardConnectionByKey(key).commit();
+            }
+            // uhh
+            return Status.OK;
+          } else {
+            // Commit each update
+            getShardConnectionByKey(key).commit();
+          }
+        }
+        if (result == 1) {
+          return Status.OK;
+        }
       }
       return Status.UNEXPECTED_STATE;
     } catch (SQLException e) {
@@ -679,7 +485,7 @@ public class JdbcDBClient extends DB {
 
   private OrderedFieldInfo getFieldInfo(HashMap<String, ByteIterator> values) {
     String fieldKeys = "";
-    List<String> fieldValues = new ArrayList();
+    List<String> fieldValues = new ArrayList<>();
     int count = 0;
     for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
       fieldKeys += entry.getKey();
