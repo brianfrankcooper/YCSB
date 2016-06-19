@@ -92,7 +92,7 @@ LICENSE file.
     <thrift.version>0.8.0</thrift.version>
     <hypertable.version>0.9.5.6</hypertable.version>
     <couchbase.version>1.4.10</couchbase.version>
-    <couchbase2.version>2.2.6</couchbase2.version>
+    <couchbase2.version>2.3.1</couchbase2.version>
     <tarantool.version>1.6.5</tarantool.version>
     <riak.version>2.0.5</riak.version>
     <aerospike.version>3.1.2</aerospike.version>
