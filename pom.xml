@@ -129,6 +129,7 @@ LICENSE file.
     <module>mongodb</module>
     <module>nosqldb</module>
     <module>orientdb</module>
+    <module>rados</module>
     <module>redis</module>
     <module>riak</module>
     <module>s3</module>
