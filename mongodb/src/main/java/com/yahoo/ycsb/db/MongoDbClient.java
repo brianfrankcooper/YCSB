@@ -286,7 +286,7 @@ public class MongoDbClient extends DB {
           }
           bulkInserts.clear();
         } else {
-          return OptionsSupport.BATCHED_OK;
+          return Status.BATCHED_OK;
         }
       }
       return Status.OK;
