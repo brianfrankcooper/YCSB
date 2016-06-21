@@ -286,7 +286,7 @@ public class AsyncMongoDbClient extends DB {
         batchedWriteCount += 1;
 
         if (batchedWriteCount < batchSize) {
-          return OptionsSupport.BATCHED_OK;
+          return Status.BATCHED_OK;
         }
 
         long count = collection.write(batchedWrite);
