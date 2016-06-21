@@ -462,7 +462,7 @@ public class AsyncMongoDbClient extends DB {
       }
       final long res =
           collection.update(query, update, false, false, writeConcern);
-      return res == 1 ? Status.OK : Status.NOT_FOUND;
+      return writeConcern == Durability.NONE || res == 1 ? Status.OK : Status.NOT_FOUND;
     } catch (final Exception e) {
       System.err.println(e.toString());
       return Status.ERROR;
