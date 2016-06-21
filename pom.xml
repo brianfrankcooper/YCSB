@@ -131,6 +131,7 @@ LICENSE file.
     <module>orientdb</module>
     <module>rados</module>
     <module>redis</module>
+    <module>redis-cluster</module>
     <module>riak</module>
     <module>s3</module>
     <module>solr</module>

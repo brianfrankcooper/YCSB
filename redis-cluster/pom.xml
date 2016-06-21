@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
+Copyright (c) 2016 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -25,15 +25,22 @@ LICENSE file.
     <relativePath>../binding-parent</relativePath>
   </parent>
 
-  <artifactId>redis-binding</artifactId>
-  <name>Redis DB Binding</name>
+  <artifactId>redis-cluster-binding</artifactId>
+  <name>Redis Cluster DB Binding</name>
   <packaging>jar</packaging>
-  
+
+  <repositories>
+    <repository>
+      <id>jcenter</id>
+      <url>http://jcenter.bintray.com/</url>
+    </repository>
+  </repositories>
+
   <dependencies>
     <dependency>
-      <groupId>redis.clients</groupId>
-      <artifactId>jedis</artifactId>
-      <version>${jedis.version}</version>
+      <groupId>com.fabahaba</groupId>
+      <artifactId>jedipus</artifactId>
+      <version>2.6.42</version>
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
@@ -42,4 +49,18 @@ LICENSE file.
       <scope>provided</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.5.1</version>
+        <configuration>
+          <source>1.8</source>
+          <target>1.8</target>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
