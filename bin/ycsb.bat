@@ -52,7 +52,7 @@ if exist "%YCSB_HOME%\bin\setenv.bat" call "%YCSB_HOME%\bin\setenv.bat"
 
 @REM Check if we have a usable JDK
 IF "%JAVA_HOME%." == "." GOTO noJavaHome
-if not exist "%JAVA_HOME%\bin\java.exe" goto noJavaHome
+IF NOT EXIST "%JAVA_HOME%\bin\java.exe" GOTO noJavaHome
 GOTO okJava
 :noJavaHome
 ECHO The JAVA_HOME environment variable is not defined correctly.
@@ -118,7 +118,7 @@ SET CLASSPATH=%YCSB_HOME%\conf
 :confAdded
 
 @REM Build classpath according to source checkout or release distribution
-IF EXIST "%YCSB_HOME%\pom.xml" GOTO gotRelease
+IF EXIST "%YCSB_HOME%\pom.xml" GOTO gotSource
 
 @REM Core libraries
 FOR %%F IN (%YCSB_HOME%\lib\*.jar) DO (
@@ -136,7 +136,26 @@ FOR %%F IN (%YCSB_HOME%\%BINDING_DIR%-binding\lib\*.jar) DO (
 )
 GOTO classpathComplete
 
-:gotRelease
+:gotSource
+@REM Check for some basic libraries to see if the source has been built.
+IF EXIST "%YCSB_HOME%\%BINDING_DIR%\target\*.jar" GOTO gotJars
+
+@REM Call mvn to build source checkout.
+IF "%BINDING_NAME%" == "basic" GOTO buildCore
+SET MVN_PROJECT=%BINDING_DIR%-binding
+goto gotMvnProject
+:buildCore
+SET MVN_PROJECT=core
+:gotMvnProject
+
+ECHO [WARN] YCSB libraries not found.  Attempting to build...
+CALL mvn -pl com.yahoo.ycsb:%MVN_PROJECT% -am package -DskipTests
+IF %ERRORLEVEL% NEQ 0 (
+  ECHO [ERROR] Error trying to build project. Exiting.
+  GOTO exit
+)
+
+:gotJars
 @REM Core libraries
 FOR %%F IN (%YCSB_HOME%\core\target\*.jar) DO (
   SET CLASSPATH=!CLASSPATH!;%%F%
