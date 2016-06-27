@@ -65,7 +65,14 @@ For `workloade` and the default `readallfields=true` we recommend creating the f
 Server 4.5 or later with the "Memory Optimized Index" setting on the bucket.
 
 ```
-CREATE INDEX wle_idx ON `bucketname`(meta().id);
+CREATE PRIMARY INDEX ON `bucketname`;
+```
+
+Couchbase Server prior to 4.5 may need a slightly different index to deliver the best performance.  In those releases
+additional covering information may be added to the index with this form.
+
+```
+-CREATE INDEX wle_idx ON `bucketname`(meta().id);
 ```
 
 For other workloads, different index setups might be even more performant.
