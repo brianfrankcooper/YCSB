@@ -151,7 +151,7 @@ public class Measurements {
     case HDRHISTOGRAM_AND_RAW:
       return new TwoInOneMeasurement(name,
           new OneMeasurementHdrHistogram("Hdr"+name, _props),
-          new OneMeasurementHistogram("Raw"+name, _props));
+          new OneMeasurementRaw("Raw"+name, _props));
     case TIMESERIES:
       return new OneMeasurementTimeSeries(name, _props);
     case RAW:
