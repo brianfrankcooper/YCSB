@@ -183,6 +183,11 @@ IF NOT "%BINDING_DIR%" == "cassandra" GOTO notOldCassandra
 echo [WARN] The 'cassandra-7', 'cassandra-8', 'cassandra-10', and cassandra-cql' clients are deprecated. If you are using Cassandra 2.X try using the 'cassandra2-cql' client instead.
 :notOldCassandra
 
+@REM Couchbase deprecation message
+IF NOT "%BINDING_DIR%" == "couchbase" GOTO notOldCouchbase
+echo [WARN] The 'couchbase' client is deprecated. If you are using Couchbase 4.0+ try using the 'couchbase2' client instead.
+:notOldCouchbase
+
 @REM Get the rest of the arguments, skipping the first 2
 FOR /F "tokens=2*" %%G IN ("%*") DO (
   SET YCSB_ARGS=%%H
