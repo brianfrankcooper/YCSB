@@ -856,7 +856,7 @@ public class Couchbase2Client extends DB {
       for (Iterator<Map.Entry<String, JsonNode>> jsonFields = json.fields(); jsonFields.hasNext();) {
         Map.Entry<String, JsonNode> jsonField = jsonFields.next();
         String name = jsonField.getKey();
-        if (checkFields && fields.contains(name)) {
+        if (checkFields && !fields.contains(name)) {
           continue;
         }
         JsonNode jsonValue = jsonField.getValue();
