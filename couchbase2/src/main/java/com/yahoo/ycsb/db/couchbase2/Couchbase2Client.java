@@ -608,7 +608,6 @@ public class Couchbase2Client extends DB {
   private Status scanAllFields(final String table, final String startkey, final int recordcount,
       final Vector<HashMap<String, ByteIterator>> result) {
     final List<HashMap<String, ByteIterator>> data = new ArrayList<HashMap<String, ByteIterator>>(recordcount);
-
     bucket.async()
         .query(N1qlQuery.parameterized(
           scanAllQuery,
@@ -633,7 +632,8 @@ public class Couchbase2Client extends DB {
         .flatMap(new Func1<AsyncN1qlQueryRow, Observable<RawJsonDocument>>() {
           @Override
           public Observable<RawJsonDocument> call(AsyncN1qlQueryRow row) {
-            return bucket.async().get(new String(row.byteValue()), RawJsonDocument.class);
+            String id = new String(row.byteValue()).trim();
+            return bucket.async().get(id.substring(1, id.length()-1), RawJsonDocument.class);
           }
         })
         .map(new Func1<RawJsonDocument, HashMap<String, ByteIterator>>() {
