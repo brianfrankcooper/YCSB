@@ -68,7 +68,7 @@ public final class JdbcDBCreateTable {
 
       sql = new StringBuilder("CREATE TABLE ");
       sql.append(tablename);
-      sql.append(" (KEY VARCHAR PRIMARY KEY");
+      sql.append(" (YCSB_KEY VARCHAR PRIMARY KEY");
 
       for (int idx = 0; idx < fieldcount; idx++) {
         sql.append(", FIELD");
