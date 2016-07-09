@@ -145,9 +145,8 @@ See the next section for the list of configuration parameters for MongoDB.
 
 For example:
 
-    ./bin/ycsb load mongodb-async -s -P workloads/workloada -p mongodb.url=mongodb://localhost:27017/ycsb?w=1
-    (w=1 means: https://docs.mongodb.org/manual/reference/write-concern/#wc-w)
+    ./bin/ycsb load mongodb-async -s -P workloads/workloada -p mongodb.url=mongodb://localhost:27017/ycsb?w=0
 
 To run with the synchronous driver from MongoDB Inc.:
 
-    ./bin/ycsb load mongodb -s -P workloads/workloada -p mongodb.url=mongodb://localhost:27017/ycsb?w=1
+    ./bin/ycsb load mongodb -s -P workloads/workloada -p mongodb.url=mongodb://localhost:27017/ycsb?w=0
