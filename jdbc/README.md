@@ -98,6 +98,7 @@ db.driver=com.mysql.jdbc.Driver				# The JDBC driver class to use.
 db.url=jdbc:mysql://127.0.0.1:3306/ycsb		# The Database connection URL.
 db.user=admin								# User name for the connection.
 db.passwd=admin								# Password for the connection.
+db.batchsize=1000             # The batch size for doing batched inserts. Defaults to 0. Set to >0 to use batching.
 jdbc.fetchsize=10							# The JDBC fetch size hinted to the driver.
 jdbc.autocommit=true						# The JDBC connection auto-commit property for the driver.
 ```

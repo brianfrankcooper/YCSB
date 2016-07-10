@@ -149,7 +149,8 @@ public class Couchbase2Client extends DB {
     boost = Integer.parseInt(props.getProperty("couchbase.boost", "3"));
     networkMetricsInterval = Integer.parseInt(props.getProperty("couchbase.networkMetricsInterval", "0"));
     runtimeMetricsInterval = Integer.parseInt(props.getProperty("couchbase.runtimeMetricsInterval", "0"));
-    scanAllQuery =  "SELECT meta().id as id FROM `" + bucketName + "` WHERE meta().id >= '$1' LIMIT $2";
+    scanAllQuery =  "SELECT RAW meta().id FROM `" + bucketName +
+      "` WHERE meta().id >= '$1' ORDER BY meta().id LIMIT $2";
 
     try {
       synchronized (INIT_COORDINATOR) {
@@ -607,7 +608,6 @@ public class Couchbase2Client extends DB {
   private Status scanAllFields(final String table, final String startkey, final int recordcount,
       final Vector<HashMap<String, ByteIterator>> result) {
     final List<HashMap<String, ByteIterator>> data = new ArrayList<HashMap<String, ByteIterator>>(recordcount);
-
     bucket.async()
         .query(N1qlQuery.parameterized(
           scanAllQuery,
@@ -632,11 +632,8 @@ public class Couchbase2Client extends DB {
         .flatMap(new Func1<AsyncN1qlQueryRow, Observable<RawJsonDocument>>() {
           @Override
           public Observable<RawJsonDocument> call(AsyncN1qlQueryRow row) {
-            String id = new String(row.byteValue());
-            return bucket.async().get(
-              id.substring(id.indexOf(table + SEPARATOR), id.lastIndexOf('"')),
-              RawJsonDocument.class
-            );
+            String id = new String(row.byteValue()).trim();
+            return bucket.async().get(id.substring(1, id.length()-1), RawJsonDocument.class);
           }
         })
         .map(new Func1<RawJsonDocument, HashMap<String, ByteIterator>>() {
@@ -859,7 +856,7 @@ public class Couchbase2Client extends DB {
       for (Iterator<Map.Entry<String, JsonNode>> jsonFields = json.fields(); jsonFields.hasNext();) {
         Map.Entry<String, JsonNode> jsonField = jsonFields.next();
         String name = jsonField.getKey();
-        if (checkFields && fields.contains(name)) {
+        if (checkFields && !fields.contains(name)) {
           continue;
         }
         JsonNode jsonValue = jsonField.getValue();
