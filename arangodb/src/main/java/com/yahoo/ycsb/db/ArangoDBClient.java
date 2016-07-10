@@ -1,7 +1,18 @@
-/*
- * Arango client binding for YCSB.
+/**
+ * Copyright (c) 2012 - 2015 YCSB contributors. All rights reserved.
  *
- * By Yemin, Sui
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
  */
 package com.yahoo.ycsb.db;
 
@@ -12,7 +23,6 @@ import com.arangodb.ArangoHost;
 import com.arangodb.DocumentCursor;
 import com.arangodb.ErrorNums;
 import com.arangodb.entity.BaseDocument;
-import com.arangodb.entity.CollectionOptions;
 import com.arangodb.entity.DocumentEntity;
 import com.arangodb.entity.EntityFactory;
 import com.arangodb.entity.TransactionEntity;
@@ -36,11 +46,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This's thread-safe.
- * Assume the table is the same during whole procedure.
- * The data will be transfered from ByteIterator into String before sent to DB.
+ * ArangoDB binding for YCSB framework using the ArangoDB Inc. <a
+ * href="https://github.com/arangodb/arangodb-java-driver">driver</a>
+ * <p>
+ * See the <code>README.md</code> for configuration information.
+ * </p>
  * 
- * @author ysui
+ * @author smallsmallc
+ * @see <a href="https://github.com/arangodb/arangodb-java-driver">ArangoDB Inc.
+ *      driver</a>
  */
 public class ArangoDBClient extends DB {
 
@@ -58,13 +72,10 @@ public class ArangoDBClient extends DB {
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
   /** ArangoDB Driver related, Singleton. */
-  private static ArangoConfigure arangoConfigure;
   private static ArangoDriver arangoDriver;
   private static Boolean dropDBBeforeRun;
-  private static Boolean waitForSync = false;
+  private static Boolean waitForSync = true;
   private static Boolean transactionUpdate = false;
-  // For creating collection manually with waitForSync param.
-  private static String defaultCollection = null;
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is
@@ -77,7 +88,7 @@ public class ArangoDBClient extends DB {
   public void init() throws DBException {
     INIT_COUNT.incrementAndGet();
     synchronized (ArangoDBClient.class) {
-      if (arangoDriver != null || arangoConfigure != null) {
+      if (arangoDriver != null) {
         return;
       }
 
@@ -101,10 +112,15 @@ public class ArangoDBClient extends DB {
       transactionUpdate = Boolean.parseBoolean(transactionUpdateStr);
       
       // Init ArangoDB connection
-      arangoConfigure = new ArangoConfigure();
-      arangoConfigure.setArangoHost(new ArangoHost(ip, port));
-      arangoConfigure.init();
-      arangoDriver = new ArangoDriver(arangoConfigure);
+      try {
+        ArangoConfigure arangoConfigure = new ArangoConfigure();
+        arangoConfigure.setArangoHost(new ArangoHost(ip, port));
+        arangoConfigure.init();
+        arangoDriver = new ArangoDriver(arangoConfigure);
+      } catch (Exception e) {
+        logger.error("Failed to initialize ArangoDB", e);
+        System.exit(-1);
+      }
 
       // Init the database
       if (dropDBBeforeRun) {
@@ -113,10 +129,10 @@ public class ArangoDBClient extends DB {
           arangoDriver.deleteDatabase(databaseName);
         } catch (ArangoException e) {
           if (e.getErrorNumber() != ErrorNums.ERROR_ARANGO_DATABASE_NOT_FOUND) {
-            logger.error("Failed to delete database: " + databaseName, e);
+            logger.error("Failed to delete database: {} with ex: {}", databaseName, e.toString());
             System.exit(-1);
           } else {
-            logger.info("Fail to delete DB, already not exists: {}", databaseName);
+            logger.info("Fail to delete DB, already deleted: {}", databaseName);
           }
         }
       }
@@ -125,7 +141,7 @@ public class ArangoDBClient extends DB {
         logger.info("Database created: " + databaseName);
       } catch (ArangoException e) {
         if (e.getErrorNumber() != ErrorNums.ERROR_ARANGO_DUPLICATE_NAME) {
-          logger.error("Failed to create database: " + databaseName, e);
+          logger.error("Failed to create database: {} with ex: {}", databaseName, e.toString());
           System.exit(-1);
         } else {
           logger.info("DB already exists: {}", databaseName);
@@ -133,44 +149,15 @@ public class ArangoDBClient extends DB {
       }
       // Always set the default db
       arangoDriver.setDefaultDatabase(databaseName);
-      logger.info("ArangoDB client connection created to " + ip + ":" + port);
+      logger.info("ArangoDB client connection created to {}:{}", ip, port);
       
       // Log the configuration
-      StringBuilder configStr = new StringBuilder("Arango Configuration: ");
-      configStr.append(String.format("dropDBBeforeRun: %s; ", dropDBBeforeRun));
-      configStr.append(String.format("address: %s:%s; ", ip, port));
-      configStr.append(String.format("databaseName: %s; ", databaseName));
-      configStr.append(String.format("waitForSync: %s; ", waitForSync));
-      configStr.append(String.format("transactionUpdate: %s; ", transactionUpdate));
-      logger.info(configStr.toString());
+      logger.info("Arango Configuration: dropDBBeforeRun: {}; address: {}:{}; databaseName: {};"
+                  + " waitForSync: {}; transactionUpdate: {};",
+                  dropDBBeforeRun, ip, port, databaseName, waitForSync, transactionUpdate);
     }
   }
 
-  /**
-   * Can't create automatically during inserting, so create one if necessary.
-   * @param table
-   */
-  private void createCollection(String table) {
-    synchronized(ArangoDBClient.class) {
-      if (defaultCollection == null) {
-        try {
-          CollectionOptions options = new CollectionOptions();
-          options.setWaitForSync(waitForSync);
-          arangoDriver.createCollection(table, options);
-          logger.info("New collection created: {} waitForSync: {}", table, waitForSync);
-        } catch (ArangoException e) {
-          if (e.getErrorNumber() != ErrorNums.ERROR_ARANGO_DUPLICATE_NAME) {
-            logger.error("Fail to create collection", e);
-            System.exit(-1);
-          } else {
-            logger.info("Collection already exists: {}", table);
-          }
-        }
-        defaultCollection = table;
-      }
-    }
-  }
-  
   /**
    * Cleanup any state for this DB. Called once per DB instance; there is one
    * DB instance per client thread.
@@ -181,7 +168,6 @@ public class ArangoDBClient extends DB {
   @Override
   public void cleanup() throws DBException {
     if (INIT_COUNT.decrementAndGet() == 0) {
-      arangoConfigure = null;
       arangoDriver = null;
       logger.info("Local cleaned up.");
     }
@@ -204,9 +190,6 @@ public class ArangoDBClient extends DB {
   @Override
   public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
     try {
-      if (defaultCollection == null) {
-        createCollection(table);
-      }
       BaseDocument toInsert = new BaseDocument(key);
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
         toInsert.addAttribute(entry.getKey(), byteIteratorToString(entry.getValue()));
@@ -216,13 +199,13 @@ public class ArangoDBClient extends DB {
       return Status.OK;
     } catch (ArangoException e) {
       if (e.getErrorNumber() != ErrorNums.ERROR_ARANGO_UNIQUE_CONSTRAINT_VIOLATED) {
-        logger.error("Fail to insert: " + table + " " + key,  e);
+        logger.error("Fail to insert: {} {} with ex {}", table, key, e.toString());
       } else {
         logger.debug("Trying to create document with duplicate key: {} {}", table, key);
         return Status.BAD_REQUEST;
       }
-    }  catch (Exception e) {
-      logger.error("Exception while trying insert " + table + " " + key, e);
+    }  catch (RuntimeException e) {
+      logger.error("Exception while trying insert {} {} with ex {}", table, key, e.toString());
     }
     return Status.ERROR;
   }
@@ -244,29 +227,22 @@ public class ArangoDBClient extends DB {
   @SuppressWarnings("unchecked")
   @Override
   public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
-    DocumentCursor<BaseDocument> cursor = null;
     try {
       DocumentEntity<BaseDocument> targetDoc = arangoDriver.getDocument(table, key, BaseDocument.class);
       BaseDocument aDocument = targetDoc.getEntity();
-      this.fillMap(result, aDocument.getProperties(), fields);
+      if (!this.fillMap(result, aDocument.getProperties(), fields)) {
+        return Status.ERROR;
+      }
       return Status.OK;
     } catch (ArangoException e) {
       if (e.getErrorNumber() != ErrorNums.ERROR_ARANGO_DOCUMENT_NOT_FOUND) {
-        logger.error("Fail to read: " + table + " " + key,  e);
+        logger.error("Fail to read: {} {} with ex {}", table, key, e.toString());
       } else {
         logger.debug("Trying to read document not exist: {} {}", table, key);
         return Status.NOT_FOUND;
       }
-    } catch (Exception e) {
-      logger.error("Exception while trying read " + table + " " + key, e);
-    } finally {
-      if (cursor != null) {
-        try {
-          cursor.close();
-        } catch (ArangoException e) {
-          logger.error("Fail to close cursor", e);
-        }
-      }
+    } catch (RuntimeException e) {
+      logger.error("Exception while trying read {} {} with ex {}", table, key, e.toString());
     }
     return Status.ERROR;
   }
@@ -312,13 +288,13 @@ public class ArangoDBClient extends DB {
       }
     } catch (ArangoException e) {
       if (e.getErrorNumber() != ErrorNums.ERROR_ARANGO_DOCUMENT_NOT_FOUND) {
-        logger.error("Fail to update: " + table + " " + key,  e);
+        logger.error("Fail to update: {} {} with ex {}", table, key, e.toString());
       } else {
         logger.debug("Trying to update document not exist: {} {}", table, key);
         return Status.NOT_FOUND;
       }
-    } catch (Exception e) {
-      logger.error("Exception while trying update " + table + " " + key, e);
+    } catch (RuntimeException e) {
+      logger.error("Exception while trying update {} {} with ex {}", table, key, e.toString());
     }
     return Status.ERROR;
   }
@@ -340,13 +316,13 @@ public class ArangoDBClient extends DB {
       return Status.OK;
     } catch (ArangoException e) {
       if (e.getErrorNumber() != ErrorNums.ERROR_ARANGO_DOCUMENT_NOT_FOUND) {
-        logger.error("Fail to delete: " + table + " " + key,  e);
+        logger.error("Fail to delete: {} {} with ex {}", table, key, e.toString());
       } else {
         logger.debug("Trying to delete document not exist: {} {}", table, key);
         return Status.NOT_FOUND;
       }
-    } catch (Exception e) {
-      logger.error("Exception while trying delete " + table + " " + key, e);
+    } catch (RuntimeException e) {
+      logger.error("Exception while trying delete {} {} with ex {}", table, key, e.toString());
     }
     return Status.ERROR;
   }
@@ -384,12 +360,14 @@ public class ArangoDBClient extends DB {
       while (iterator.hasNext()) {
         BaseDocument aDocument = iterator.next();
         HashMap<String, ByteIterator> aMap = new HashMap<String, ByteIterator>(aDocument.getProperties().size());
-        this.fillMap(aMap, aDocument.getProperties());
+        if (!this.fillMap(aMap, aDocument.getProperties())) {
+          return Status.ERROR;
+        }
         result.add(aMap);
       }
       return Status.OK;
     } catch (Exception e) {
-      logger.error("Exception while trying scan " + table + " " + startkey + " " + recordcount, e);
+      logger.error("Exception while trying scan {} {} {} with ex {}", table, startkey, recordcount, e.toString());
     } finally {
       if (cursor != null) {
         try {
@@ -430,9 +408,8 @@ public class ArangoDBClient extends DB {
     return resultDes;
   }
   
-
-  private void fillMap(Map<String, ByteIterator> resultMap, Map<String, Object> properties) {
-    fillMap(resultMap, properties, null);
+  private boolean fillMap(Map<String, ByteIterator> resultMap, Map<String, Object> properties) {
+    return fillMap(resultMap, properties, null);
   }
   
   /**
@@ -442,9 +419,10 @@ public class ArangoDBClient extends DB {
    *      The map to fill/
    * @param obj
    *      The object to copy values from.
+   * @return isSuccess
    */
   @SuppressWarnings("unchecked")
-  private void fillMap(Map<String, ByteIterator> resultMap, Map<String, Object> properties, Set<String> fields) {
+  private boolean fillMap(Map<String, ByteIterator> resultMap, Map<String, Object> properties, Set<String> fields) {
     if (fields == null || fields.size() == 0) {
       for (Map.Entry<String, Object> entry : properties.entrySet()) {
         if (entry.getValue() instanceof String) {
@@ -453,7 +431,7 @@ public class ArangoDBClient extends DB {
         } else {
           logger.error("Error! Not the format expected! Actually is {}",
               entry.getValue().getClass().getName());
-          System.exit(-1);
+          return false;
         }
       }
     } else {
@@ -463,10 +441,11 @@ public class ArangoDBClient extends DB {
         } else {
           logger.error("Error! Not the format expected! Actually is {}",
               properties.get(field).getClass().getName());
-          System.exit(-1);
+          return false;
         }
       }
     }
+    return true;
   }
   
   private String byteIteratorToString(ByteIterator byteIter) {

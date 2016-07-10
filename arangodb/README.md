@@ -57,7 +57,7 @@ Reload bash and test mvn
 
 Clone this YCSB source code:
 
-    git clone https://***/YCSB.git
+    git clone https://github.com/brianfrankcooper/YCSB.git
 
 ### 4. Run YCSB
 
@@ -84,7 +84,7 @@ See the next section for the list of configuration parameters for ArangoDB.
   - Default value is `8529`.
   
 - `arangodb.waitForSync`
-  - Default value is `false`.
+  - Default value is `true`.
   
 - `arangodb.transactionUpdate`
   - Default value is `false`.
