@@ -38,7 +38,7 @@ import java.util.concurrent.ConcurrentMap;
  *
  * <br>
  * This interface expects a schema <key> <field1> <field2> <field3> ... All
- * attributes are of type VARCHAR. All accesses are through the primary key.
+ * attributes are of type TEXT. All accesses are through the primary key.
  * Therefore, only one index on the primary key is needed.
  */
 public class JdbcDBClient extends DB {
