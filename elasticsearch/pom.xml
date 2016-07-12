@@ -29,7 +29,7 @@ LICENSE file.
     <name>Elasticsearch Binding</name>
     <packaging>jar</packaging>
     <properties>
-        <elasticsearch-version>2.3.2</elasticsearch-version>
+        <elasticsearch-version>2.3.4</elasticsearch-version>
     </properties>
     <dependencies>
         <dependency>
