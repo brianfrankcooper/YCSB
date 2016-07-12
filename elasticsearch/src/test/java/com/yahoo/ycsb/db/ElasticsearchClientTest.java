@@ -21,22 +21,21 @@
  */
 package com.yahoo.ycsb.db;
 
-import static org.testng.AssertJUnit.assertEquals;
-
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
-
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Set;
 import java.util.Vector;
+
+import static org.junit.Assert.assertEquals;
 
 public class ElasticsearchClientTest {
 
@@ -64,13 +63,13 @@ public class ElasticsearchClientTest {
         instance.cleanup();
     }
 
-    @BeforeMethod
+    @Before
     public void setUp() {
         instance.insert(MOCK_TABLE, MOCK_KEY1, MOCK_DATA);
         instance.insert(MOCK_TABLE, MOCK_KEY2, MOCK_DATA);
     }
 
-    @AfterMethod
+    @After
     public void tearDown() {
         instance.delete(MOCK_TABLE, MOCK_KEY1);
         instance.delete(MOCK_TABLE, MOCK_KEY2);
