@@ -29,7 +29,7 @@ LICENSE file.
     <name>Elasticsearch Binding</name>
     <packaging>jar</packaging>
     <properties>
-        <elasticsearch-version>2.3.2</elasticsearch-version>
+        <elasticsearch-version>2.3.4</elasticsearch-version>
     </properties>
     <dependencies>
         <dependency>
@@ -51,9 +51,9 @@ LICENSE file.
             <version>${elasticsearch-version}</version>
         </dependency>
         <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-            <version>6.1.1</version>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
