@@ -249,6 +249,10 @@ def main():
              "cassandra-cql' clients are deprecated. If you are using "
              "Cassandra 2.X try using the 'cassandra2-cql' client instead.")
 
+    if binding == "couchbase":
+        warn("The 'couchbase' client has been deprecated. If you are using "
+             "Couchbase 4.0+ try using the 'couchbase2' client instead.")
+
     if is_distribution():
         db_dir = os.path.join(ycsb_home, binding + "-binding")
         # include top-level conf for when we're a binding-specific artifact.
