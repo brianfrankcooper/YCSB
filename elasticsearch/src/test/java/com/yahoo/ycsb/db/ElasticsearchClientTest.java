@@ -29,9 +29,13 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.util.HashMap;
+import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
@@ -39,6 +43,7 @@ import static org.junit.Assert.assertEquals;
 
 public class ElasticsearchClientTest {
 
+    @ClassRule public final static TemporaryFolder temp = new TemporaryFolder();
     protected final static ElasticsearchClient instance = new ElasticsearchClient();
     protected final static HashMap<String, ByteIterator> MOCK_DATA;
     protected final static String MOCK_TABLE = "MOCK_TABLE";
@@ -55,6 +60,9 @@ public class ElasticsearchClientTest {
 
     @BeforeClass
     public static void setUpClass() throws DBException {
+        final Properties props = new Properties();
+        props.put("path.home", temp.getRoot().toString());
+        instance.setProperties(props);
         instance.init();
     }
 

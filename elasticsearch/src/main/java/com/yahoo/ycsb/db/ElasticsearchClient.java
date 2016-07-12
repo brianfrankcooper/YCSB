@@ -82,20 +82,29 @@ public class ElasticsearchClient extends DB {
    */
   @Override
   public void init() throws DBException {
-    Properties props = getProperties();
+    final Properties props = getProperties();
+
+    // Check if transport client needs to be used (To connect to multiple
+    // elasticsearch nodes)
+    remoteMode = Boolean.parseBoolean(props.getProperty("es.remote", "false"));
+
+    final String pathHome = props.getProperty("path.home");
+
+    // when running in embedded mode, require path.home
+    if (!remoteMode && (pathHome == null || pathHome.isEmpty())) {
+      throw new IllegalArgumentException("path.home must be specified when running in embedded mode");
+    }
+
     this.indexKey = props.getProperty("es.index.key", DEFAULT_INDEX_KEY);
 
     int numberOfShards = parseIntegerProperty(props, "es.number_of_shards", NUMBER_OF_SHARDS);
     int numberOfReplicas = parseIntegerProperty(props, "es.number_of_replicas", NUMBER_OF_REPLICAS);
 
-    // Check if transport client needs to be used (To connect to multiple
-    // elasticsearch nodes)
-    remoteMode = Boolean.parseBoolean(props.getProperty("es.remote", "false"));
     Boolean newdb = Boolean.parseBoolean(props.getProperty("es.newdb", "false"));
     Builder settings = Settings.settingsBuilder()
         .put("cluster.name", DEFAULT_CLUSTER_NAME)
         .put("node.local", Boolean.toString(!remoteMode))
-        .put("path.home", System.getProperty("java.io.tmpdir"));
+        .put("path.home", pathHome);
 
     // if properties file contains elasticsearch user defined properties
     // add it to the settings file (will overwrite the defaults).
