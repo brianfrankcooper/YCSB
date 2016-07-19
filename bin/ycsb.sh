@@ -208,13 +208,6 @@ else
   done
 fi
 
-# Cassandra deprecation message
-if [ "$BINDING_DIR" = "cassandra" ] ; then
-  echo "[WARN] The 'cassandra-7', 'cassandra-8', 'cassandra-10', and \
-cassandra-cql' clients are deprecated. If you are using \
-Cassandra 2.X try using the 'cassandra2-cql' client instead."
-fi
-
 # Couchbase deprecation message
 if [ "${BINDING_DIR}" = "couchbase" ] ; then
   echo "[WARN] The 'couchbase' client is deprecated. If you are using \

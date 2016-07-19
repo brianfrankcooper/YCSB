@@ -56,7 +56,7 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>cassandra-binding</artifactId>
+      <artifactId>cassandra2-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
