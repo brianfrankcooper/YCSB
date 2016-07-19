@@ -93,7 +93,7 @@ import java.util.concurrent.locks.LockSupport;
  *      set to the number of physical cores. Setting higher than that will likely degrade performance.</li>
  * <li><b>couchbase.networkMetricsInterval=0</b> The interval in seconds when latency metrics will be logged.</li>
  * <li><b>couchbase.runtimeMetricsInterval=0</b> The interval in seconds when runtime metrics will be logged.</li>
- * <li><b>couchbase.timeToLive=0</b> Time to live (TTL) is the amount of time until a document expires in Couchbase.</li>
+ * <li><b>couchbase.timeToLive=0</b>Time to live is the amount of time until a document expires in Couchbase.</li>
  * </ul>
  */
 public class Couchbase2Client extends DB {
