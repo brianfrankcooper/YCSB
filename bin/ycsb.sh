@@ -133,6 +133,14 @@ else
   CLASSPATH="$CLASSPATH:$YCSB_HOME/conf"
 fi
 
+# Cassandra2 deprecation message
+if [ "${BINDING_DIR}" = "cassandra2" ] ; then
+  echo "[WARN] The 'cassandra2-cql' client has been deprecated. It has been \
+renamed to simply 'cassandra-cql'. This alias will be removed  in the next \
+YCSB release."
+  BINDING_DIR="cassandra"
+fi
+
 # Build classpath
 #   The "if" check after the "for" is because glob may just return the pattern
 #   when no files are found.  The "if" makes sure the file is really there.

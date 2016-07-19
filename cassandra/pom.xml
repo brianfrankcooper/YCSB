@@ -27,7 +27,7 @@ LICENSE file.
     <relativePath>../binding-parent</relativePath>
   </parent>
 
-  <artifactId>cassandra2-binding</artifactId>
+  <artifactId>cassandra-binding</artifactId>
   <name>Cassandra 2.1+ DB Binding</name>
   <packaging>jar</packaging>
 
@@ -41,7 +41,7 @@ LICENSE file.
     <dependency>
       <groupId>com.datastax.cassandra</groupId>
       <artifactId>cassandra-driver-core</artifactId>
-      <version>${cassandra2.cql.version}</version>
+      <version>${cassandra.cql.version}</version>
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>

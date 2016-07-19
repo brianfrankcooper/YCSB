@@ -55,6 +55,7 @@ DATABASES = {
     "aerospike"    : "com.yahoo.ycsb.db.AerospikeClient",
     "asynchbase"   : "com.yahoo.ycsb.db.AsyncHBaseClient",
     "basic"        : "com.yahoo.ycsb.BasicDB",
+    "cassandra-cql": "com.yahoo.ycsb.db.CassandraCQLClient",
     "cassandra2-cql": "com.yahoo.ycsb.db.CassandraCQLClient",
     "couchbase"    : "com.yahoo.ycsb.db.CouchbaseClient",
     "couchbase2"   : "com.yahoo.ycsb.db.couchbase2.Couchbase2Client",
@@ -238,6 +239,12 @@ def main():
 
     # Classpath set up
     binding = args.database.split("-")[0]
+
+    if binding == "cassandra2":
+        warn("The 'cassandra2-cql' client has been deprecated. It has been "
+             "renamed to simply 'cassandra-cql'. This alias will be removed"
+             " in the next YCSB release.")
+        binding = "cassandra"
 
     if binding == "couchbase":
         warn("The 'couchbase' client has been deprecated. If you are using "
