@@ -97,6 +97,7 @@ LICENSE file.
     <riak.version>2.0.5</riak.version>
     <aerospike.version>3.1.2</aerospike.version>
     <solr.version>5.4.0</solr.version>
+    <neo4j.version>3.0.3</neo4j.version>
   </properties>
 
   <modules>
@@ -127,6 +128,7 @@ LICENSE file.
     <!--<module>mapkeeper</module>-->
     <module>memcached</module>
     <module>mongodb</module>
+    <module>neo4j</module>
     <module>nosqldb</module>
     <module>orientdb</module>
     <module>rados</module>
