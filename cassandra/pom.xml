@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
-Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
+
+<!--
+Copyright (c) 2012-2016 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -16,36 +17,65 @@ permissions and limitations under the License. See accompanying
 LICENSE file.
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-     <groupId>com.yahoo.ycsb</groupId>
-     <artifactId>binding-parent</artifactId>
-     <version>0.11.0-SNAPSHOT</version>
-     <relativePath>../binding-parent</relativePath>
+    <groupId>com.yahoo.ycsb</groupId>
+    <artifactId>binding-parent</artifactId>
+    <version>0.11.0-SNAPSHOT</version>
+    <relativePath>../binding-parent</relativePath>
   </parent>
-  
+
   <artifactId>cassandra-binding</artifactId>
-  <name>Cassandra DB Binding</name>
+  <name>Cassandra 2.1+ DB Binding</name>
   <packaging>jar</packaging>
 
+  <properties>
+    <!-- Skip tests by default. will be activated by jdk8 profile -->
+    <skipTests>true</skipTests>
+  </properties>
+
   <dependencies>
-     <dependency>
-       <groupId>org.apache.cassandra</groupId>
-       <artifactId>cassandra-all</artifactId>
-       <version>${cassandra.version}</version>
-     </dependency>
-     <!-- CQL driver -->
-     <dependency>
-       <groupId>com.datastax.cassandra</groupId>
-       <artifactId>cassandra-driver-core</artifactId>
-       <version>${cassandra.cql.version}</version>
-     </dependency>
-     <dependency>
-       <groupId>com.yahoo.ycsb</groupId>
-       <artifactId>core</artifactId>
-       <version>${project.version}</version>
-       <scope>provided</scope>
-     </dependency>
+    <!-- CQL driver -->
+    <dependency>
+      <groupId>com.datastax.cassandra</groupId>
+      <artifactId>cassandra-driver-core</artifactId>
+      <version>${cassandra.cql.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>core</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.cassandraunit</groupId>
+      <artifactId>cassandra-unit</artifactId>
+      <version>3.0.0.1</version>
+      <classifier>shaded</classifier>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
+
+  <profiles>
+    <!-- Cassandra 2.2+ requires JDK8 to run, so none of our tests
+         will work unless we're using jdk8.
+      -->
+    <profile>
+      <id>jdk8-tests</id>
+      <activation>
+        <jdk>1.8</jdk>
+      </activation>
+      <properties>
+        <skipTests>false</skipTests>
+      </properties>
+    </profile>
+  </profiles>
 </project>

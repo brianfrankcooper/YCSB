@@ -117,6 +117,12 @@ GOTO confAdded
 SET CLASSPATH=%YCSB_HOME%\conf
 :confAdded
 
+@REM Cassandra2 deprecation message
+IF NOT "%BINDING_DIR%" == "cassandra2" GOTO notAliasCassandra
+echo [WARN] The 'cassandra2-cql' client has been deprecated. It has been renamed to simply 'cassandra-cql'. This alias will be removed in the next YCSB release.
+SET BINDING_DIR=cassandra
+:notAliasCassandra
+
 @REM Build classpath according to source checkout or release distribution
 IF EXIST "%YCSB_HOME%\pom.xml" GOTO gotSource
 
@@ -177,11 +183,6 @@ FOR %%F IN (%YCSB_HOME%\%BINDING_DIR%\target\dependency\*.jar) DO (
 )
 
 :classpathComplete
-
-@REM Cassandra deprecation message
-IF NOT "%BINDING_DIR%" == "cassandra" GOTO notOldCassandra
-echo [WARN] The 'cassandra-7', 'cassandra-8', 'cassandra-10', and cassandra-cql' clients are deprecated. If you are using Cassandra 2.X try using the 'cassandra2-cql' client instead.
-:notOldCassandra
 
 @REM Couchbase deprecation message
 IF NOT "%BINDING_DIR%" == "couchbase" GOTO notOldCouchbase
