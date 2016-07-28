@@ -95,6 +95,7 @@ LICENSE file.
     <riak.version>2.0.5</riak.version>
     <aerospike.version>3.1.2</aerospike.version>
     <solr.version>5.4.0</solr.version>
+    <bangdb.version>1.0.0</bangdb.version>
   </properties>
 
   <modules>
@@ -105,6 +106,7 @@ LICENSE file.
     <module>accumulo</module>
     <module>aerospike</module>
     <module>asynchbase</module>
+    <module>bangdb</module>
     <module>cassandra</module>
     <module>couchbase</module>
     <module>couchbase2</module>
