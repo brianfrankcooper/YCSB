@@ -64,34 +64,6 @@ LICENSE file.
     <!-- Neo4j 3.0+ requires JDK8 to run, so none of our tests and builds
          will work unless we're using jdk8.
       -->
-    <profiles>
-        <profile>
-            <id>jdk8plus</id>
-            <activation>
-                <jdk>1.8</jdk>
-            </activation>
-            <properties>
-                <skipTests>true</skipTests>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <configuration>
-                            <source>1.8</source>
-                            <target>1.8</target>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
-
-    <properties>
-        <skipTests>true</skipTests>
-    </properties>
-
     <build>
         <plugins>
             <plugin>
@@ -103,6 +75,35 @@ LICENSE file.
             </plugin>
         </plugins>
     </build>
+    <properties>
+        <skipTests>true</skipTests>
+    </properties>
 
 
+
+    <!-- building and testing only if jdk >= 1.8. -->
+    <profiles>
+        <profile>
+            <id>jdk7</id>
+            <activation>
+                <jdk>1.8</jdk>
+            </activation>
+            <properties>
+                <skipTests>false</skipTests>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <source>1.8</source>
+                            <target>1.8</target>
+                            <skip>false</skip>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
