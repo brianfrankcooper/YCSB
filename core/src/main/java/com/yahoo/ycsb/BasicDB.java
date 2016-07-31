@@ -80,7 +80,7 @@ public class BasicDB extends DB
 		verbose=Boolean.parseBoolean(getProperties().getProperty(VERBOSE, VERBOSE_DEFAULT));
 		todelay=Integer.parseInt(getProperties().getProperty(SIMULATE_DELAY, SIMULATE_DELAY_DEFAULT));
 		randomizedelay=Boolean.parseBoolean(getProperties().getProperty(RANDOMIZE_DELAY, RANDOMIZE_DELAY_DEFAULT));
-		if (verbose)
+		if (verbose) synchronized(System.out)
 		{
 			System.out.println("***************** properties *****************");
 			Properties p=getProperties();
@@ -109,7 +109,7 @@ public class BasicDB extends DB
 	{
 		delay();
 
-		if (verbose)
+		if (verbose) synchronized(System.out)
 		{
 			System.out.print("READ "+table+" "+key+" [ ");
 			if (fields!=null)
@@ -144,7 +144,7 @@ public class BasicDB extends DB
 	{
 		delay();
 
-		if (verbose)
+		if (verbose) synchronized(System.out)
 		{
 			System.out.print("SCAN "+table+" "+startkey+" "+recordcount+" [ ");
 			if (fields!=null)
@@ -178,7 +178,7 @@ public class BasicDB extends DB
 	{
 		delay();
 
-		if (verbose)
+		if (verbose) synchronized(System.out)
 		{
 			System.out.print("UPDATE "+table+" "+key+" [ ");
 			if (values!=null)
@@ -207,7 +207,7 @@ public class BasicDB extends DB
 	{
 		delay();
 
-		if (verbose)
+		if (verbose) synchronized(System.out)
 		{
 			System.out.print("INSERT "+table+" "+key+" [ ");
 			if (values!=null)
