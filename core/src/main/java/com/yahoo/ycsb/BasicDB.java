@@ -96,6 +96,19 @@ public class BasicDB extends DB
 		}
 	}
 
+  static final ThreadLocal<StringBuilder>  TL_STRING_BUILDER = new ThreadLocal<StringBuilder>() {
+    @Override
+    protected StringBuilder initialValue() {
+      return new StringBuilder();
+    }
+  };
+
+  static StringBuilder getStringBuilder() {
+    StringBuilder sb = TL_STRING_BUILDER.get();
+    sb.setLength(0);
+    return sb;
+  }
+
 	/**
 	 * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
 	 *
@@ -109,23 +122,25 @@ public class BasicDB extends DB
 	{
 		delay();
 
-		if (verbose) synchronized(System.out)
+		if (verbose)
 		{
-			System.out.print("READ "+table+" "+key+" [ ");
+      StringBuilder sb = getStringBuilder();
+			sb.append("READ ").append(table).append(" ").append(key).append(" [ ");
 			if (fields!=null)
 			{
 				for (String f : fields)
 				{
-					System.out.print(f+" ");
+          sb.append(f).append(" ");
 				}
 			}
 			else
 			{
-				System.out.print("<all fields>");
+        sb.append("<all fields>");
 			}
 
-			System.out.println("]");
-		}
+      sb.append("]");
+      System.out.println(sb);
+    }
 
 		return Status.OK;
 	}
@@ -144,23 +159,25 @@ public class BasicDB extends DB
 	{
 		delay();
 
-		if (verbose) synchronized(System.out)
+		if (verbose)
 		{
-			System.out.print("SCAN "+table+" "+startkey+" "+recordcount+" [ ");
+      StringBuilder sb = getStringBuilder();
+      sb.append("SCAN ").append(table).append(" ").append(startkey).append(" ").append(recordcount).append(" [ ");
 			if (fields!=null)
 			{
 				for (String f : fields)
 				{
-					System.out.print(f+" ");
+          sb.append(f).append(" ");
 				}
 			}
 			else
 			{
-				System.out.print("<all fields>");
+        sb.append("<all fields>");
 			}
 
-			System.out.println("]");
-		}
+      sb.append("]");
+      System.out.println(sb);
+    }
 
 		return Status.OK;
 	}
@@ -178,17 +195,19 @@ public class BasicDB extends DB
 	{
 		delay();
 
-		if (verbose) synchronized(System.out)
+		if (verbose)
 		{
-			System.out.print("UPDATE "+table+" "+key+" [ ");
+      StringBuilder sb = getStringBuilder();
+      sb.append("UPDATE ").append(table).append(" ").append(key).append(" [ ");
 			if (values!=null)
 			{
 				for (Map.Entry<String, ByteIterator> entry : values.entrySet())
 				{
-					System.out.print(entry.getKey() +"="+ entry.getValue() +" ");
+          sb.append(entry.getKey()).append("=").append(entry.getValue()).append(" ");
 				}
 			}
-			System.out.println("]");
+      sb.append("]");
+      System.out.println(sb);
 		}
 
 		return Status.OK;
@@ -207,18 +226,20 @@ public class BasicDB extends DB
 	{
 		delay();
 
-		if (verbose) synchronized(System.out)
+		if (verbose)
 		{
-			System.out.print("INSERT "+table+" "+key+" [ ");
+      StringBuilder sb = getStringBuilder();
+      sb.append("INSERT ").append(table).append(" ").append(key).append(" [ ");
 			if (values!=null)
 			{
 				for (Map.Entry<String, ByteIterator> entry : values.entrySet())
 				{
-					System.out.print(entry.getKey() +"="+ entry.getValue() +" ");
+          sb.append(entry.getKey()).append("=").append(entry.getValue()).append(" ");
 				}
 			}
 
-			System.out.println("]");
+      sb.append("]");
+      System.out.println(sb);
 		}
 
 		return Status.OK;
@@ -238,7 +259,9 @@ public class BasicDB extends DB
 
 		if (verbose)
 		{
-			System.out.println("DELETE "+table+" "+key);
+      StringBuilder sb = getStringBuilder();
+      sb.append("DELETE ").append(table).append(" ").append(key);
+      System.out.println(sb);
 		}
 
 		return Status.OK;
