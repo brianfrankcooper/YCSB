@@ -52,7 +52,6 @@ import org.slf4j.LoggerFactory;
  * See the <code>README.md</code> for configuration information.
  * </p>
  * 
- * @author smallsmallc
  * @see <a href="https://github.com/arangodb/arangodb-java-driver">ArangoDB Inc.
  *      driver</a>
  */
