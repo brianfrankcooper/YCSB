@@ -95,6 +95,7 @@ LICENSE file.
     <riak.version>2.0.5</riak.version>
     <aerospike.version>3.1.2</aerospike.version>
     <solr.version>5.4.0</solr.version>
+    <arangodb.version>2.7.3</arangodb.version>
   </properties>
 
   <modules>
@@ -104,6 +105,7 @@ LICENSE file.
     <!-- all the datastore bindings, lex sorted please -->
     <module>accumulo</module>
     <module>aerospike</module>
+    <module>arangodb</module>
     <module>asynchbase</module>
     <module>cassandra</module>
     <module>couchbase</module>
