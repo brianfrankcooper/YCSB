@@ -70,11 +70,13 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
   private static final int MAX_TABLETS = 9000;
   private static final long DEFAULT_SLEEP = 60000;
   private static final String SYNC_OPS_OPT = "kudu_sync_ops";
+  private static final String BUFFER_NUM_OPS_OPT = "kudu_buffer_num_ops";
   private static final String PRE_SPLIT_NUM_TABLETS_OPT = "kudu_pre_split_num_tablets";
   private static final String TABLE_NUM_REPLICAS = "kudu_table_num_replicas";
   private static final String BLOCK_SIZE_OPT = "kudu_block_size";
   private static final String MASTER_ADDRESSES_OPT = "kudu_master_addresses";
   private static final int BLOCK_SIZE_DEFAULT = 4096;
+  private static final int BUFFER_NUM_OPS_DEFAULT = 2000;
   private static final List<String> COLUMN_NAMES = new ArrayList<>();
   private static KuduClient client;
   private static Schema schema;
@@ -89,7 +91,8 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
     if (getProperties().getProperty(SYNC_OPS_OPT) != null
         && getProperties().getProperty(SYNC_OPS_OPT).equals("false")) {
       this.session.setFlushMode(KuduSession.FlushMode.AUTO_FLUSH_BACKGROUND);
-      this.session.setMutationBufferSpace(100);
+      this.session.setMutationBufferSpace(
+          getIntFromProp(getProperties(), BUFFER_NUM_OPS_OPT, BUFFER_NUM_OPS_DEFAULT));
     } else {
       this.session.setFlushMode(KuduSession.FlushMode.AUTO_FLUSH_SYNC);
     }
