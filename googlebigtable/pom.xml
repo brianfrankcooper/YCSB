@@ -35,6 +35,11 @@ LICENSE file.
       <artifactId>bigtable-hbase-1.0</artifactId>
       <version>${googlebigtable.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-tcnative-boringssl-static</artifactId>
+      <version>${tcnative.boringssl.version}</version>
+    </dependency>
     
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
