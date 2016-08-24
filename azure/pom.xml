@@ -40,7 +40,7 @@ LICENSE file.
         <dependency>
     		<groupId>com.microsoft.azure</groupId>
     		<artifactId>azure-storage</artifactId>
-    		<version>4.0.0</version>
+    		<version>${azure.version}</version>
 		</dependency>
     </dependencies>
 </project>

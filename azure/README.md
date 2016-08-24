@@ -47,11 +47,11 @@ Or, you can set configs with the shell command, EG:
 
 Load the data:
 
-    ./bin/ycsb load azure -s -P workloads/workloada > outputLoad.txt
+    ./bin/ycsb load azure -s -P workloads/workloada -p azure.account=YourAccountName -p azure.key=YourAccessKey > outputLoad.txt
 
 Run the workload test:
 
-    ./bin/ycsb run azure -s -P workloads/workloada > outputRun.txt
+    ./bin/ycsb run azure -s -P workloads/workloada -p azure.account=YourAccountName -p azure.key=YourAccessKey > outputRun.txt
 	
 ### 6. Optional Azure Storage parameters
 
