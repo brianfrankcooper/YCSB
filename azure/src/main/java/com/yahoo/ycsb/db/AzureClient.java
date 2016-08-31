@@ -27,16 +27,15 @@ import com.microsoft.azure.storage.table.TableBatchOperation;
 import com.microsoft.azure.storage.table.TableOperation;
 import com.microsoft.azure.storage.table.TableQuery;
 import com.microsoft.azure.storage.table.TableServiceEntity;
-
+import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
-import com.yahoo.ycsb.StringByteIterator;
 
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
@@ -50,6 +49,7 @@ public class AzureClient extends DB {
 
   public static final String PROTOCOL = "azure.protocal";
   public static final String PROTOCOL_DEFAULT = "https";
+  public static final String TABLE_ENDPOINT = "azure.endpoint";
   public static final String ACCOUNT = "azure.account";
   public static final String KEY = "azure.key";
   public static final String TABLE = "azure.table";
@@ -61,9 +61,9 @@ public class AzureClient extends DB {
   private static final int BATCHSIZE_UPPERBOUND = 100;
   private static final TableBatchOperation BATCH_OPERATION = new TableBatchOperation();
   private static String partitionKey;
-  private static CloudStorageAccount storageAccount = null;
-  private static CloudTableClient tableClient = null;
-  private static CloudTable cloudTable = null;
+  private CloudStorageAccount storageAccount = null;
+  private CloudTableClient tableClient = null;
+  private CloudTable cloudTable = null;
   private static int batchSize;
   private static int curIdx = 0;
 
@@ -83,7 +83,8 @@ public class AzureClient extends DB {
     }
     String account = props.getProperty(ACCOUNT);
     String key = props.getProperty(KEY);
-    String storageConnectionString = getStorageConnectionString(protocol, account, key);
+    String tableEndPoint = props.getProperty(TABLE_ENDPOINT);
+    String storageConnectionString = getStorageConnectionString(protocol, account, key, tableEndPoint);
     try {
       storageAccount = CloudStorageAccount.parse(storageConnectionString);
     } catch (Exception e)  {
@@ -125,12 +126,11 @@ public class AzureClient extends DB {
       for (DynamicTableEntity entity : cloudTable.execute(scanQuery)) {
         HashMap<String, EntityProperty> properties = entity.getProperties();
         HashMap<String, ByteIterator> cur = new HashMap<String, ByteIterator>();
-        Iterator<String> iter = properties.keySet().iterator();
-        while (iter.hasNext()) {
-          String fieldName = iter.next();
-          String fieldVal = properties.get(fieldName).getValueAsString();
+        for (Entry<String, EntityProperty> entry : properties.entrySet()) {
+          String fieldName = entry.getKey();
+          ByteIterator fieldVal = new ByteArrayByteIterator(entry.getValue().getValueAsByteArray());
           if (fields == null || fields.contains(fieldName)) {
-            cur.put(fieldName, new StringByteIterator(fieldVal));
+            cur.put(fieldName, fieldVal);
           }
         }
         result.add(cur);
@@ -174,10 +174,13 @@ public class AzureClient extends DB {
     }
   }
 
-  private String getStorageConnectionString(String protocol, String account, String key) {
+  private String getStorageConnectionString(String protocol, String account, String key, String tableEndPoint) {
     String res = 
         String.format("DefaultEndpointsProtocol=%s;AccountName=%s;AccountKey=%s", 
         protocol, account, key);
+    if (tableEndPoint != null) {
+      res = String.format("%s;TableEndpoint=%s", res, tableEndPoint);
+    }
     return res;
   }
 
@@ -195,22 +198,20 @@ public class AzureClient extends DB {
           public HashMap<String, ByteIterator> resolve(String partitionkey, String rowKey, 
               Date timeStamp, HashMap<String, EntityProperty> properties, String etag) {
             HashMap<String, ByteIterator> tmp = new HashMap<String, ByteIterator>();
-            Iterator<String> iter = properties.keySet().iterator();
-            while (iter.hasNext()) {
-              String key = iter.next();
-              String val = properties.get(key).getValueAsString();
-              tmp.put(key, new StringByteIterator(val));
-        }
-        return tmp;
+            for (Entry<String, EntityProperty> entry : properties.entrySet()) {
+              String key = entry.getKey();
+              ByteIterator val = new ByteArrayByteIterator(entry.getValue().getValueAsByteArray());
+              tmp.put(key, val);
+            }
+            return tmp;
       }
     };
     try {
       for (HashMap<String, ByteIterator> tmp : cloudTable.execute(projectionQuery, resolver)) {
-        Iterator<String> iter = tmp.keySet().iterator();
-        while (iter.hasNext()) {
-          String fieldName = iter.next();
-          ByteIterator val = tmp.get(fieldName);
-          result.put(fieldName, val);
+        for (Entry<String, ByteIterator> entry : tmp.entrySet()){
+          String fieldName = entry.getKey();
+          ByteIterator fieldVal = entry.getValue();
+          result.put(fieldName, fieldVal);
         }
       }
       return Status.OK;
@@ -226,11 +227,10 @@ public class AzureClient extends DB {
           TableOperation.retrieve(partitionKey, key, DynamicTableEntity.class);
       DynamicTableEntity entity = cloudTable.execute(retrieveOp).getResultAsType();
       HashMap<String, EntityProperty> properties = entity.getProperties();
-      Iterator<String> iter = properties.keySet().iterator();
-      while (iter.hasNext()) {
-        String fieldName = iter.next();
-        String fieldVal = properties.get(fieldName).getValueAsString();
-        result.put(fieldName, new StringByteIterator(fieldVal));
+      for (Entry<String, EntityProperty> entry: properties.entrySet()) {
+        String fieldName = entry.getKey();
+        ByteIterator fieldVal = new ByteArrayByteIterator(entry.getValue().getValueAsByteArray());
+        result.put(fieldName, fieldVal);
       }
       return Status.OK;
     } catch (Exception e) {
@@ -240,11 +240,9 @@ public class AzureClient extends DB {
 
   private Status insertBatch(String key, HashMap<String, ByteIterator> values) {
     HashMap<String, EntityProperty> properties = new HashMap<String, EntityProperty>();
-    HashMap<String, String> stringMap = StringByteIterator.getStringMap(values);
-    Iterator<String> iter = stringMap.keySet().iterator();
-    while (iter.hasNext()) {
-      String fieldName = iter.next();
-      String fieldVal = stringMap.get(fieldName);
+    for (Entry<String, ByteIterator> entry : values.entrySet()) {
+      String fieldName = entry.getKey();
+      byte[] fieldVal = entry.getValue().toArray();
       properties.put(fieldName, new EntityProperty(fieldVal));
     }
     DynamicTableEntity entity = new DynamicTableEntity(partitionKey, key, properties);
@@ -263,11 +261,9 @@ public class AzureClient extends DB {
   
   private Status insertOrUpdate(String key, HashMap<String, ByteIterator> values) {
     HashMap<String, EntityProperty> properties = new HashMap<String, EntityProperty>();
-    HashMap<String, String> stringMap = StringByteIterator.getStringMap(values);
-    Iterator<String> iter = stringMap.keySet().iterator();
-    while (iter.hasNext()) {
-      String fieldName = iter.next();
-      String fieldVal = stringMap.get(fieldName);
+    for (Entry<String, ByteIterator> entry : values.entrySet()) {
+      String fieldName = entry.getKey();
+      byte[] fieldVal = entry.getValue().toArray();
       properties.put(fieldName, new EntityProperty(fieldVal));
     }
     DynamicTableEntity entity = new DynamicTableEntity(partitionKey, key, properties);
