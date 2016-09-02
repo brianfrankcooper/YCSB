@@ -20,17 +20,30 @@ import java.util.Vector;
 import java.util.List;
 
 public class DocumentDBClient extends DB {
-  private static String HOST;
-  private static String MASTER_KEY;
-  private static String DATABASE_ID;
-  private static String COLLECTION_ID;
+  private static String host;
+  private static String masterKey;
+  private static String databaseId;
   private static Database database;
   private static DocumentClient documentClient;
   private static DocumentCollection collection;
 
   @Override
   public void init() throws DBException {
-    documentClient = new DocumentClient(HOST, MASTER_KEY,
+    host = getProperties().getProperty("documentdb.host", null);
+    masterKey = getProperties().getProperty("documentdb.masterKey", null);
+
+    if (host == null) {
+      System.err.println("ERROR: 'documentdb.host' must be set!");
+      System.exit(1);
+    }
+
+    if (masterKey == null) {
+      System.err.println("ERROR: 'documentdb.masterKey' must be set!");
+      System.exit(1);
+    }
+
+    databaseId = getProperties().getProperty("documentdb.databaseId", "ycsb");
+    documentClient = new DocumentClient(host, masterKey,
             ConnectionPolicy.GetDefault(), ConsistencyLevel.Session);
     // Initialize test database and collection.
     getDatabase();
