@@ -75,6 +75,7 @@ LICENSE file.
     <accumulo.version>1.6.0</accumulo.version>
     <cassandra.cql.version>3.0.0</cassandra.cql.version>
     <geode.version>1.0.0-incubating.M3</geode.version>
+    <documentdb.version>1.8.1</documentdb.version>
     <googlebigtable.version>0.2.3</googlebigtable.version>
     <infinispan.version>7.2.2.Final</infinispan.version>
     <kudu.version>1.1.0</kudu.version>
