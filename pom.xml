@@ -21,7 +21,7 @@ LICENSE file.
 
   <groupId>com.yahoo.ycsb</groupId>
   <artifactId>root</artifactId>
-  <version>0.11.0-SNAPSHOT</version>
+  <version>0.12.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>YCSB Root</name>
@@ -74,7 +74,7 @@ LICENSE file.
     <hbase10.version>1.0.2</hbase10.version>
     <accumulo.version>1.6.0</accumulo.version>
     <cassandra.cql.version>3.0.0</cassandra.cql.version>
-    <geode.version>1.0.0-incubating.M2</geode.version>
+    <geode.version>1.0.0-incubating.M3</geode.version>
     <googlebigtable.version>0.2.3</googlebigtable.version>
     <infinispan.version>7.2.2.Final</infinispan.version>
     <kudu.version>0.9.0</kudu.version>
@@ -95,6 +95,7 @@ LICENSE file.
     <riak.version>2.0.5</riak.version>
     <aerospike.version>3.1.2</aerospike.version>
     <solr.version>5.4.0</solr.version>
+    <arangodb.version>2.7.3</arangodb.version>
     <neo4j.version>3.0.3</neo4j.version>
   </properties>
 
@@ -105,6 +106,7 @@ LICENSE file.
     <!-- all the datastore bindings, lex sorted please -->
     <module>accumulo</module>
     <module>aerospike</module>
+    <module>arangodb</module>
     <module>asynchbase</module>
     <module>cassandra</module>
     <module>couchbase</module>

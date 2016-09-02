@@ -32,14 +32,23 @@ public class RandomByteIterator extends ByteIterator {
 
   private void fillBytesImpl(byte[] buffer, int base) {
     int bytes = Utils.random().nextInt();
-    try {
-      buffer[base+0] = (byte)(((bytes) & 31) + ' ');
-      buffer[base+1] = (byte)(((bytes >> 5) & 63) + ' ');
-      buffer[base+2] = (byte)(((bytes >> 10) & 95) + ' ');
-      buffer[base+3] = (byte)(((bytes >> 15) & 31) + ' ');
-      buffer[base+4] = (byte)(((bytes >> 20) & 63) + ' ');
-      buffer[base+5] = (byte)(((bytes >> 25) & 95) + ' ');
-    } catch (ArrayIndexOutOfBoundsException e) { /* ignore it */ }
+
+    switch(buffer.length - base) {
+      default:
+        buffer[base+5] = (byte)(((bytes >> 25) & 95) + ' ');
+      case 5:
+        buffer[base+4] = (byte)(((bytes >> 20) & 63) + ' ');
+      case 4:
+        buffer[base+3] = (byte)(((bytes >> 15) & 31) + ' ');
+      case 3:
+        buffer[base+2] = (byte)(((bytes >> 10) & 95) + ' ');
+      case 2:
+        buffer[base+1] = (byte)(((bytes >> 5) & 63) + ' ');
+      case 1:
+        buffer[base+0] = (byte)(((bytes) & 31) + ' ');
+      case 0:
+        break;
+    }
   }
 
   private void fillBytes() {

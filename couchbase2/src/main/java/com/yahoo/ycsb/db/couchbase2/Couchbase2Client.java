@@ -93,6 +93,8 @@ import java.util.concurrent.locks.LockSupport;
  *      set to the number of physical cores. Setting higher than that will likely degrade performance.</li>
  * <li><b>couchbase.networkMetricsInterval=0</b> The interval in seconds when latency metrics will be logged.</li>
  * <li><b>couchbase.runtimeMetricsInterval=0</b> The interval in seconds when runtime metrics will be logged.</li>
+ * <li><b>couchbase.documentExpiry=0</b> Document Expiry is the amount of time until a document expires in
+ *      Couchbase.</li>
  * </ul>
  */
 public class Couchbase2Client extends DB {
@@ -127,7 +129,8 @@ public class Couchbase2Client extends DB {
   private int networkMetricsInterval;
   private int runtimeMetricsInterval;
   private String scanAllQuery;
-
+  private int documentExpiry;
+  
   @Override
   public void init() throws DBException {
     Properties props = getProperties();
@@ -149,6 +152,7 @@ public class Couchbase2Client extends DB {
     boost = Integer.parseInt(props.getProperty("couchbase.boost", "3"));
     networkMetricsInterval = Integer.parseInt(props.getProperty("couchbase.networkMetricsInterval", "0"));
     runtimeMetricsInterval = Integer.parseInt(props.getProperty("couchbase.runtimeMetricsInterval", "0"));
+    documentExpiry = Integer.parseInt(props.getProperty("couchbase.documentExpiry", "0"));
     scanAllQuery =  "SELECT RAW meta().id FROM `" + bucketName +
       "` WHERE meta().id >= '$1' ORDER BY meta().id LIMIT $2";
 
@@ -342,7 +346,7 @@ public class Couchbase2Client extends DB {
    */
   private Status updateKv(final String docId, final HashMap<String, ByteIterator> values) {
     waitForMutationResponse(bucket.async().replace(
-        RawJsonDocument.create(docId, encode(values)),
+        RawJsonDocument.create(docId, documentExpiry, encode(values)),
         persistTo,
         replicateTo
     ));
@@ -412,7 +416,7 @@ public class Couchbase2Client extends DB {
     for(int i = 0; i < tries; i++) {
       try {
         waitForMutationResponse(bucket.async().insert(
-            RawJsonDocument.create(docId, encode(values)),
+            RawJsonDocument.create(docId, documentExpiry, encode(values)),
             persistTo,
             replicateTo
         ));
@@ -491,7 +495,7 @@ public class Couchbase2Client extends DB {
    */
   private Status upsertKv(final String docId, final HashMap<String, ByteIterator> values) {
     waitForMutationResponse(bucket.async().upsert(
-        RawJsonDocument.create(docId, encode(values)),
+        RawJsonDocument.create(docId, documentExpiry, encode(values)),
         persistTo,
         replicateTo
     ));

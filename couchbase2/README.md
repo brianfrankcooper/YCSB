@@ -142,3 +142,4 @@ You can set the following properties (with the default settings applied):
    set to the number of physical cores. Setting higher than that will likely degrade performance.
  - couchbase.networkMetricsInterval=0: The interval in seconds when latency metrics will be logged.
  - couchbase.runtimeMetricsInterval=0: The interval in seconds when runtime metrics will be logged.
+ - couchbase.documentExpiry=0: Document Expiry is the amount of time(second) until a document expires in Couchbase.
