@@ -18,4 +18,4 @@
 /**
  * YCSB binding for Neo4J.
  */
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.neo4j;

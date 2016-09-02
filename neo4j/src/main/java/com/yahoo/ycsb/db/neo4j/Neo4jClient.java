@@ -1,12 +1,12 @@
 /**
  * Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
- * <p/>
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
  * may obtain a copy of the License at
- * <p/>
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p/>
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
@@ -14,7 +14,7 @@
  * permissions and limitations under the License. See accompanying
  * LICENSE file.
  */
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.neo4j;
 
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
@@ -23,44 +23,64 @@ import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.graphdb.Label;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.helpers.collection.Iterators;
-
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Neo4j client for YCSB framework.
  */
 public class Neo4jClient extends DB {
-  private Properties props;
   public static final String DEFAULT_PROP = "";
+  /** Path used to create the database directory. */
   public static final String BASE_PATH = "db.path";
+  /** Default path used to create the database directory, if no arguments are given. */
+  public static final String DEFAULT_PATH = "neo4j.db";
+  /** The name of the node identifier field. */
   private static final String NODE_ID = "_key";
-
-  private GraphDatabaseService graphDb;
+  /** The graph database instance, initialized only once. */
+  private static GraphDatabaseService graphDbInstance;
+  /** Integer used to keep track of current threads. */
+  private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
   /**
-   * Creates (if not existing yet) a graph database, and initializes it.
+   * Initializes the graph database, only once per DB instance.
    *
    * @throws DBException
    */
   @Override
   public void init() throws DBException {
-    // getting database path
-    props = getProperties();
-    String basePath = props.getProperty(BASE_PATH, DEFAULT_PROP);
+    INIT_COUNT.incrementAndGet();
 
-    graphDb = new GraphDatabaseFactory().newEmbeddedDatabase(new File(basePath));
+    // syncing all threads
+    synchronized (Neo4jClient.class) {
+      // instantiating graph db only once
+      if (graphDbInstance == null) {
+        String path = getProperties().getProperty(BASE_PATH, DEFAULT_PROP);
+        if (path == null) {
+          graphDbInstance = new GraphDatabaseFactory().newEmbeddedDatabase(new File(DEFAULT_PATH));
+        } else {
+          graphDbInstance = new GraphDatabaseFactory().newEmbeddedDatabase(new File(path));
+        }
+      }
+    }
   }
 
   /**
-   * Shuts down neo4j graph database.
+   * Shuts down the Neo4j graph database, called once per DB instance.
    *
    * @throws DBException
    */
   @Override
   public void cleanup() throws DBException {
-    graphDb.shutdown();
+    // making sure that all threads are done working
+    if (INIT_COUNT.decrementAndGet() == 0) {
+      graphDbInstance.shutdown();
+    }
   }
 
   /**
@@ -76,8 +96,8 @@ public class Neo4jClient extends DB {
   @Override
   public Status read(String label, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
     // starting transaction
-    try (Transaction tx = graphDb.beginTx()) {
-      Node n = graphDb.findNode(Label.label(label), NODE_ID, key);
+    try (Transaction tx = graphDbInstance.beginTx()) {
+      Node n = graphDbInstance.findNode(Label.label(label), NODE_ID, key);
       // searching for properties with fields names, and putting their values in result
       if (fields != null) {
         for (String field : fields) {
@@ -88,6 +108,7 @@ public class Neo4jClient extends DB {
       tx.success();
       return Status.OK;
     } catch (Exception e) {
+      System.out.println(e);
       return Status.ERROR;
     }
   }
@@ -108,10 +129,10 @@ public class Neo4jClient extends DB {
   public Status scan(String label, String startkey, int recordcount, Set<String> fields,
                      Vector<HashMap<String, ByteIterator>> result) {
     // starting transaction
-    try (Transaction tx = graphDb.beginTx()) {
+    try (Transaction tx = graphDbInstance.beginTx()) {
       // finding nodes to scan
-      Result cypherResult = graphDb.execute("match (n:" + label + ") where n." + NODE_ID + " >= '"
-          + startkey + "' return n limit " + recordcount);
+      Result cypherResult = graphDbInstance.execute("match (n:" + label + ") where n." + NODE_ID + " >= '"
+              + startkey + "' return n limit " + recordcount);
       Iterator<Node> nColumn = cypherResult.columnAs("n");
 
       for (Node node : Iterators.asIterable(nColumn)) {
@@ -146,9 +167,9 @@ public class Neo4jClient extends DB {
   @Override
   public Status update(String label, String key, HashMap<String, ByteIterator> values) {
     // starting transaction
-    try (Transaction tx = graphDb.beginTx()) {
+    try (Transaction tx = graphDbInstance.beginTx()) {
       // finding node
-      Node n = graphDb.findNode(Label.label(label), NODE_ID, key);
+      Node n = graphDbInstance.findNode(Label.label(label), NODE_ID, key);
       // updating/inserting values in node
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
         n.setProperty(entry.getKey().toString(), entry.getValue().toString());
@@ -175,9 +196,9 @@ public class Neo4jClient extends DB {
   @Override
   public Status insert(String label, String key, HashMap<String, ByteIterator> values) {
     // starting transaction
-    try (Transaction tx = graphDb.beginTx()) {
+    try (Transaction tx = graphDbInstance.beginTx()) {
       // inserting node and setting up identifier
-      Node n = graphDb.createNode(Label.label(label));
+      Node n = graphDbInstance.createNode(Label.label(label));
       n.setProperty(NODE_ID, key);
       // inserting values in current node
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
@@ -201,9 +222,9 @@ public class Neo4jClient extends DB {
   @Override
   public Status delete(String label, String key) {
     // starting transaction
-    try (Transaction tx = graphDb.beginTx()) {
+    try (Transaction tx = graphDbInstance.beginTx()) {
       // inserting node and setting up identifier
-      Node n = graphDb.findNode(Label.label(label), NODE_ID, key);
+      Node n = graphDbInstance.findNode(Label.label(label), NODE_ID, key);
       n.delete();
       tx.success();
       return Status.OK;

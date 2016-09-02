@@ -21,15 +21,24 @@ This section describes how to run YCSB on Neo4J running locally.
 
 ### 1. Set Up YCSB
 
-Clone the YCSB git repository and compile:
+First, clone the YCSB git repository:
 
     git clone https://github.com/brianfrankcooper/YCSB.git
     cd YCSB
+
+You can now compile the project:
+
     mvn clean package
+
+If you want to only compile the Neo4J binding, use:
+
+    mvn -pl com.yahoo.ycsb:neo4j-binding -am clean package
 
 ### 2. DB creation with Neo4J
 
-You need to specify a folder via the  ```db.path=path/to/database``` property : the client will create the Neo4J database in it.
+By default, the client will create the Neo4J database in a folder named ```'neo4j.db'```.
+To specify another folder, use the  ```db.path=path/to/database``` property.
+
 
 ## 3. Run YCSB
 

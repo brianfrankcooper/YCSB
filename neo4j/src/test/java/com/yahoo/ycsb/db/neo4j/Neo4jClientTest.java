@@ -19,7 +19,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.neo4j;
 
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
