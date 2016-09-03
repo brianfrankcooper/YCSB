@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
+Copyright (c) 2016 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -21,22 +21,20 @@ LICENSE file.
   <parent>
     <groupId>com.yahoo.ycsb</groupId>
     <artifactId>binding-parent</artifactId>
-    <version>0.11.0-SNAPSHOT</version>
-    <relativePath>../binding-parent/</relativePath>
+    <version>0.12.0-SNAPSHOT</version>
+    <relativePath>../binding-parent</relativePath>
   </parent>
 
-  <artifactId>documentdb-binding</artifactId>
-  <name>DocumentDB Binding</name>
-
+  <artifactId>azuredocumentdb-binding</artifactId>
+  <name>Azure DocumentDB Binding</name>
   <properties>
-    <checkstyle.failOnViolation>false</checkstyle.failOnViolation>
+      <checkstyle.failOnViolation>false</checkstyle.failOnViolation>
   </properties>
-
   <dependencies>
     <dependency>
       <groupId>com.microsoft.azure</groupId>
       <artifactId>azure-documentdb</artifactId>
-      <version>${documentdb.version}</version>
+      <version>${azuredocumentdb.version}</version>
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>

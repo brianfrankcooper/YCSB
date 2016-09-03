@@ -1,5 +1,15 @@
-
-package com.yahoo.ycsb.db;
+/*
+ * Copyright 2016 YCSB Contributors. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License").
+ * You may not use this file except in compliance with the License.
+ *
+ * This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License
+ * for the specific language governing permissions and limitations under
+ * the License.
+ */
+package com.yahoo.ycsb.db.azuredocumentdb;
 
 import com.yahoo.ycsb.*;
 
@@ -11,21 +21,23 @@ import com.microsoft.azure.documentdb.Document;
 import com.microsoft.azure.documentdb.DocumentClient;
 import com.microsoft.azure.documentdb.DocumentClientException;
 import com.microsoft.azure.documentdb.DocumentCollection;
+import com.microsoft.azure.documentdb.FeedOptions;
 
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Vector;
 import java.util.List;
 
-public class DocumentDBClient extends DB {
+public class AzureDocumentDBClient extends DB {
   private static String host;
   private static String masterKey;
   private static String databaseId;
+  private static String collectionId;
   private static Database database;
   private static DocumentClient documentClient;
   private static DocumentCollection collection;
+  private static FeedOptions feedOptions;
 
   @Override
   public void init() throws DBException {
@@ -43,10 +55,14 @@ public class DocumentDBClient extends DB {
     }
 
     databaseId = getProperties().getProperty("documentdb.databaseId", "ycsb");
+    collectionId = getProperties().getProperty("documentdb.collectionId", "usertable");
     documentClient = new DocumentClient(host, masterKey,
             ConnectionPolicy.GetDefault(), ConsistencyLevel.Session);
     // Initialize test database and collection.
-    getDatabase();
+    getCollection(collectionId);
+
+    feedOptions = new FeedOptions();
+    feedOptions.setEmitVerboseTracesInQuery(false);
   }
 
   @Override
@@ -57,6 +73,9 @@ public class DocumentDBClient extends DB {
       Set<String> fieldsToReturn = (fields == null ? record.getHashMap().keySet() : fields);
 
       for (String field : fieldsToReturn) {
+        if (field.startsWith("_")) {
+          continue;
+        }
         result.put(field, new StringByteIterator(record.getString(field)));  
       }
       return Status.OK;
@@ -92,6 +111,8 @@ public class DocumentDBClient extends DB {
   @Override
   public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
     Document record = new Document();
+
+    record.set("id", key);
 
     for (Entry<String, ByteIterator> val : values.entrySet()) {
       record.set(val.getKey(), val.getValue().toString());
@@ -133,7 +154,7 @@ public class DocumentDBClient extends DB {
         // Get the database if it exists
         List<Database> databaseList = documentClient
                 .queryDatabases(
-                        "SELECT * FROM root r WHERE r.id='" + DATABASE_ID
+                        "SELECT * FROM root r WHERE r.id='" + databaseId
                                 + "'", null).getQueryIterable().toList();
 
         if (databaseList.size() > 0) {
@@ -144,7 +165,7 @@ public class DocumentDBClient extends DB {
             // Create the database if it doesn't exist.
             try {
                 Database databaseDefinition = new Database();
-                databaseDefinition.setId(DATABASE_ID);
+                databaseDefinition.setId(databaseId);
 
                 database = documentClient.createDatabase(
                         databaseDefinition, null).getResource();
@@ -198,13 +219,12 @@ public class DocumentDBClient extends DB {
     // Retrieve the document using the DocumentClient.
     List<Document> documentList = documentClient
             .queryDocuments(getCollection(collectionId).getSelfLink(),
-                    "SELECT * FROM root r WHERE r.id='" + id + "'", null)
+                    "SELECT * FROM root r WHERE r.id='" + id + "'", feedOptions)
             .getQueryIterable().toList();
 
     if (documentList.size() > 0) {
       return documentList.get(0);
-    } else {
-      return null;
     }
+    return null;
   }
 }
