@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved.
+ * Copyright (c) 2010 Yahoo! Inc., 2016 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -184,7 +184,7 @@ public class DBWrapper extends DB
   private void measure(String op, Status result, long intendedStartTimeNanos,
       long startTimeNanos, long endTimeNanos) {
     String measurementName = op;
-    if (result != Status.OK) {
+    if (result == null || !result.isOk()) {
       if (this.reportLatencyForEachError ||
           this.latencyTrackedErrors.contains(result.getName())) {
         measurementName = op + "-" + result.getName();
