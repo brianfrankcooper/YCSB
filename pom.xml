@@ -96,6 +96,7 @@ LICENSE file.
     <aerospike.version>3.1.2</aerospike.version>
     <solr.version>5.4.0</solr.version>
     <arangodb.version>2.7.3</arangodb.version>
+	<azure.version>4.0.0</azure.version>
   </properties>
 
   <modules>
@@ -107,6 +108,7 @@ LICENSE file.
     <module>aerospike</module>
     <module>arangodb</module>
     <module>asynchbase</module>
+	<module>azure</module>
     <module>cassandra</module>
     <module>couchbase</module>
     <module>couchbase2</module>
