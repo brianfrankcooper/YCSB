@@ -1,12 +1,12 @@
 /**
  * Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
  * may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
@@ -17,197 +17,145 @@
 
 package com.yahoo.ycsb.db;
 
-import com.orientechnologies.common.exception.OException;
-import com.orientechnologies.orient.client.remote.OEngineRemote;
-import com.orientechnologies.orient.client.remote.OServerAdmin;
-import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
+import com.orientechnologies.orient.core.config.OGlobalConfiguration;
+import com.orientechnologies.orient.core.db.OPartitionedDatabasePool;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
 import com.orientechnologies.orient.core.dictionary.ODictionary;
-import com.orientechnologies.orient.core.exception.ODatabaseException;
+import com.orientechnologies.orient.core.exception.OConcurrentModificationException;
 import com.orientechnologies.orient.core.index.OIndexCursor;
-import com.orientechnologies.orient.core.intent.OIntentMassiveInsert;
-import com.orientechnologies.orient.core.intent.OIntentMassiveRead;
-import com.orientechnologies.orient.core.intent.OIntentNoCache;
 import com.orientechnologies.orient.core.record.ORecord;
 import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.DB;
-import com.yahoo.ycsb.DBException;
-import com.yahoo.ycsb.Status;
-import com.yahoo.ycsb.StringByteIterator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.yahoo.ycsb.*;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.io.File;
+import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * OrientDB client for YCSB framework.
+ * <p>
+ * Properties to set:
+ * <p>
+ * orientdb.url=local:C:/temp/databases or remote:localhost:2424 <br>
+ * orientdb.database=ycsb <br>
+ * orientdb.user=admin <br>
+ * orientdb.password=admin <br>
+ *
+ * @author Luca Garulli
  */
 public class OrientDBClient extends DB {
-
   private static final String CLASS = "usertable";
-  private ODatabaseDocumentTx db;
-  private ODictionary<ORecord> dictionary;
-  private boolean isRemote = false;
 
-  private static final String URL_PROPERTY = "orientdb.url";
-
-  private static final String USER_PROPERTY = "orientdb.user";
-  private static final String USER_PROPERTY_DEFAULT = "admin";
-
-  private static final String PASSWORD_PROPERTY = "orientdb.password";
-  private static final String PASSWORD_PROPERTY_DEFAULT = "admin";
-
-  private static final String NEWDB_PROPERTY = "orientdb.newdb";
-  private static final String NEWDB_PROPERTY_DEFAULT = "false";
-
-  private static final String STORAGE_TYPE_PROPERTY = "orientdb.remote.storagetype";
-
-  private static final String INTENT_PROPERTY = "orientdb.intent";
-  private static final String INTENT_PROPERTY_DEFAULT = "";
-
-  private static final String DO_TRANSACTIONS_PROPERTY = "dotransactions";
-  private static final String DO_TRANSACTIONS_PROPERTY_DEFAULT = "true";
-
-  private static final String ORIENTDB_DOCUMENT_TYPE = "document";
-  private static final String ORIENTDB_MASSIVEINSERT = "massiveinsert";
-  private static final String ORIENTDB_MASSIVEREAD = "massiveread";
-  private static final String ORIENTDB_NOCACHE = "nocache";
-
-  private static final Logger LOG = LoggerFactory.getLogger(OrientDBClient.class);
+  private static final Lock    INIT_LOCK = new ReentrantLock();
+  private static       boolean dbCreated = false;
+  private static volatile OPartitionedDatabasePool databasePool;
+  private static boolean initialized   = false;
+  private static int     clientCounter = 0;
 
   /**
-   * This method abstracts the administration of OrientDB namely creating and connecting to a database.
-   * Creating a database needs to be done in a synchronized method so that multiple threads do not all try
-   * to run the creation operation simultaneously, this ends in failure.
-   *
-   * @param props Workload properties object
-   * @return a usable ODatabaseDocumentTx object
-   * @throws DBException
+   * Initialize any state for this DB. Called once per DB instance; there is one DB instance per client thread.
    */
-  private static synchronized ODatabaseDocumentTx initDB(Properties props) throws DBException {
-    String url = props.getProperty(URL_PROPERTY);
-    String user = props.getProperty(USER_PROPERTY, USER_PROPERTY_DEFAULT);
-    String password = props.getProperty(PASSWORD_PROPERTY, PASSWORD_PROPERTY_DEFAULT);
-    Boolean newdb = Boolean.parseBoolean(props.getProperty(NEWDB_PROPERTY, NEWDB_PROPERTY_DEFAULT));
-    String remoteStorageType = props.getProperty(STORAGE_TYPE_PROPERTY);
-    Boolean isrun = Boolean.parseBoolean(props.getProperty(DO_TRANSACTIONS_PROPERTY, DO_TRANSACTIONS_PROPERTY_DEFAULT));
+  public void init() throws DBException {
+    // initialize OrientDB driver
+    final Properties props = getProperties();
+    String url = props.getProperty("orientdb.url",
+        "plocal:." + File.separator + "target" + File.separator + "databases" + File.separator + "ycsb");
 
-    ODatabaseDocumentTx dbconn;
+    String user = props.getProperty("orientdb.user", "admin");
+    String password = props.getProperty("orientdb.password", "admin");
+    Boolean newdb = Boolean.parseBoolean(props.getProperty("orientdb.newdb", "false"));
 
-    if (url == null) {
-      throw new DBException(String.format("Required property \"%s\" missing for OrientDBClient", URL_PROPERTY));
-    }
+    INIT_LOCK.lock();
+    try {
+      clientCounter++;
+      if (!initialized) {
+        OGlobalConfiguration.dumpConfiguration(System.out);
 
-    LOG.info("OrientDB loading database url = " + url);
+        System.out.println("OrientDB loading database url = " + url);
 
-    // If using a remote database, use the OServerAdmin interface to connect
-    if (url.startsWith(OEngineRemote.NAME)) {
-      if (remoteStorageType == null) {
-        throw new DBException("When connecting to a remote OrientDB instance, " +
-          "specify a database storage type (plocal or memory) with " + STORAGE_TYPE_PROPERTY);
-      }
+        ODatabaseDocumentTx db = new ODatabaseDocumentTx(url);
+        if (!dbCreated && newdb && db.exists()) {
+          db.open(user, password);
+          System.out.println("OrientDB drop and recreate fresh db");
 
-      try {
-        OServerAdmin server = new OServerAdmin(url).connect(user, password);
-
-        if (server.existsDatabase()) {
-          if (newdb && !isrun) {
-            LOG.info("OrientDB dropping and recreating fresh db on remote server.");
-            server.dropDatabase(remoteStorageType);
-            server.createDatabase(server.getURL(), ORIENTDB_DOCUMENT_TYPE, remoteStorageType);
-          }
-        } else {
-          LOG.info("OrientDB database not found, creating fresh db");
-          server.createDatabase(server.getURL(), ORIENTDB_DOCUMENT_TYPE, remoteStorageType);
+          db.drop();
         }
 
-        server.close();
-        dbconn = new ODatabaseDocumentTx(url).open(user, password);
-      } catch (IOException | OException e) {
-        throw new DBException(String.format("Error interfacing with %s", url), e);
-      }
-    } else {
-      try {
-        dbconn = new ODatabaseDocumentTx(url);
-        if (dbconn.exists()) {
-          dbconn.open(user, password);
-          if (newdb && !isrun) {
-            LOG.info("OrientDB dropping and recreating fresh db.");
-            dbconn.drop();
-            dbconn.create();
-          }
-        } else {
-          LOG.info("OrientDB database not found, creating fresh db");
-          dbconn.create();
+        if (!db.exists()) {
+          db.create();
+
+          dbCreated = true;
         }
-      } catch (ODatabaseException e) {
-        throw new DBException(String.format("Error interfacing with %s", url), e);
+
+        if (db.isClosed()) {
+          db.open(user, password);
+        }
+
+        if (!db.getMetadata().getSchema().existsClass(CLASS)) {
+          db.getMetadata().getSchema().createClass(CLASS);
+        }
+
+        db.close();
+
+        if (databasePool == null) {
+          databasePool = new OPartitionedDatabasePool(url, user, password);
+        }
+
+        initialized = true;
       }
+    } catch (Exception e) {
+      System.err.println("Could not initialize OrientDB connection pool for Loader: " + e.toString());
+      e.printStackTrace();
+    } finally {
+      INIT_LOCK.unlock();
     }
 
-    if (dbconn == null) {
-      throw new DBException("Could not establish connection to: " + url);
-    }
-
-    LOG.info("OrientDB connection created with " + url);
-    return dbconn;
   }
 
-  @Override
-  public void init() throws DBException {
-    Properties props = getProperties();
-
-    String intent = props.getProperty(INTENT_PROPERTY, INTENT_PROPERTY_DEFAULT);
-
-    db = initDB(props);
-
-    if (db.getURL().startsWith(OEngineRemote.NAME)) {
-      isRemote = true;
-    }
-
-    dictionary = db.getMetadata().getIndexManager().getDictionary();
-    if (!db.getMetadata().getSchema().existsClass(CLASS)) {
-      db.getMetadata().getSchema().createClass(CLASS);
-    }
-
-    if (intent.equals(ORIENTDB_MASSIVEINSERT)) {
-      LOG.info("Declaring intent of MassiveInsert.");
-      db.declareIntent(new OIntentMassiveInsert());
-    } else if (intent.equals(ORIENTDB_MASSIVEREAD)) {
-      LOG.info("Declaring intent of MassiveRead.");
-      db.declareIntent(new OIntentMassiveRead());
-    } else if (intent.equals(ORIENTDB_NOCACHE)) {
-      LOG.info("Declaring intent of NoCache.");
-      db.declareIntent(new OIntentNoCache());
-    }
+  OPartitionedDatabasePool getDatabasePool() {
+    return databasePool;
   }
 
   @Override
   public void cleanup() throws DBException {
-    // Set this thread's db reference (needed for thread safety in testing)
-    ODatabaseRecordThreadLocal.INSTANCE.set(db);
+    INIT_LOCK.lock();
+    try {
+      clientCounter--;
+      if (clientCounter == 0) {
+        databasePool.close();
+      }
 
-    if (db != null) {
-      db.close();
-      db = null;
+      databasePool = null;
+      initialized = false;
+    } finally {
+      INIT_LOCK.unlock();
     }
+
   }
 
+  /**
+   * Insert a record in the database. Any field/value pairs in the specified values
+   * HashMap will be written into the record with the specified
+   * record key.
+   *
+   * @param table  The name of the table
+   * @param key    The record key of the record to insert.
+   * @param values A HashMap of field/value pairs to insert in the record
+   * @return Zero on success, a non-zero error code on error.
+   * See this class's description for a discussion of error codes.
+   */
   @Override
   public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
-    try {
+    try (ODatabaseDocumentTx db = databasePool.acquire()) {
       final ODocument document = new ODocument(CLASS);
-      for (Entry<String, String> entry : StringByteIterator.getStringMap(values).entrySet()) {
+
+      for (Map.Entry<String, String> entry : StringByteIterator.getStringMap(values).entrySet()) {
         document.field(entry.getKey(), entry.getValue());
       }
+
       document.save();
+      final ODictionary<ORecord> dictionary = db.getMetadata().getIndexManager().getDictionary();
       dictionary.put(key, document);
 
       return Status.OK;
@@ -217,20 +165,43 @@ public class OrientDBClient extends DB {
     return Status.ERROR;
   }
 
+  /**
+   * Delete a record from the database.
+   *
+   * @param table The name of the table
+   * @param key   The record key of the record to delete.
+   * @return Zero on success, a non-zero error code on error.
+   * See this class's description for a discussion of error codes.
+   */
   @Override
   public Status delete(String table, String key) {
-    try {
-      dictionary.remove(key);
-      return Status.OK;
-    } catch (Exception e) {
-      e.printStackTrace();
+    while (true) {
+      try (ODatabaseDocumentTx db = databasePool.acquire()) {
+        final ODictionary<ORecord> dictionary = db.getMetadata().getIndexManager().getDictionary();
+        dictionary.remove(key);
+        return Status.OK;
+      } catch (OConcurrentModificationException cme) {
+        continue;
+      } catch (Exception e) {
+        e.printStackTrace();
+        return Status.ERROR;
+      }
     }
-    return Status.ERROR;
   }
 
+  /**
+   * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
+   *
+   * @param table  The name of the table
+   * @param key    The record key of the record to read.
+   * @param fields The list of fields to read, or null for all of them
+   * @param result A HashMap of field/value pairs for the result
+   * @return Zero on success, a non-zero error code on error or "not found".
+   */
   @Override
   public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
-    try {
+    try (ODatabaseDocumentTx db = databasePool.acquire()) {
+      final ODictionary<ORecord> dictionary = db.getMetadata().getIndexManager().getDictionary();
       final ODocument document = dictionary.get(key);
       if (document != null) {
         if (fields != null) {
@@ -250,50 +221,81 @@ public class OrientDBClient extends DB {
     return Status.ERROR;
   }
 
+  /**
+   * Update a record in the database. Any field/value pairs in the specified values
+   * HashMap will be written into the record with the specified
+   * record key, overwriting any existing values with the same field name.
+   *
+   * @param table  The name of the table
+   * @param key    The record key of the record to write.
+   * @param values A HashMap of field/value pairs to update in the record
+   * @return Zero on success, a non-zero error code on error. See this class's description f
+   * or a discussion of error codes.
+   */
   @Override
   public Status update(String table, String key, HashMap<String, ByteIterator> values) {
-    try {
-      final ODocument document = dictionary.get(key);
-      if (document != null) {
-        for (Entry<String, String> entry : StringByteIterator.getStringMap(values).entrySet()) {
-          document.field(entry.getKey(), entry.getValue());
+    while (true) {
+      try (ODatabaseDocumentTx db = databasePool.acquire()) {
+        final ODictionary<ORecord> dictionary = db.getMetadata().getIndexManager().getDictionary();
+        final ODocument document = dictionary.get(key);
+        if (document != null) {
+          for (Map.Entry<String, String> entry : StringByteIterator.getStringMap(values).entrySet()) {
+            document.field(entry.getKey(), entry.getValue());
+          }
+
+          document.save();
+          return Status.OK;
         }
-        document.save();
-        return Status.OK;
+      } catch (OConcurrentModificationException cme) {
+        continue;
+      } catch (Exception e) {
+        e.printStackTrace();
+        return Status.ERROR;
       }
-    } catch (Exception e) {
-      e.printStackTrace();
     }
-    return Status.ERROR;
   }
 
+  /**
+   * Perform a range scan for a set of records in the database.
+   * Each field/value pair from the result will be stored in a HashMap.
+   *
+   * @param table       The name of the table
+   * @param startkey    The record key of the first record to read.
+   * @param recordcount The number of records to read
+   * @param fields      The list of fields to read, or null for all of them
+   * @param result      A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
+   * @return Zero on success, a non-zero error code on error.
+   * See this class's description for a discussion of error codes.
+   */
   @Override
   public Status scan(String table, String startkey, int recordcount, Set<String> fields,
-                     Vector<HashMap<String, ByteIterator>> result) {
-    if (isRemote) {
-      // Iterator methods needed for scanning are Unsupported for remote database connections.
-      LOG.warn("OrientDB scan operation is not implemented for remote database connections.");
-      return Status.NOT_IMPLEMENTED;
-    }
-
-    try {
-      int entrycount = 0;
+      Vector<HashMap<String, ByteIterator>> result) {
+    try (ODatabaseDocumentTx db = databasePool.acquire()) {
+      final ODictionary<ORecord> dictionary = db.getMetadata().getIndexManager().getDictionary();
       final OIndexCursor entries = dictionary.getIndex().iterateEntriesMajor(startkey, true, true);
 
-      while (entries.hasNext() && entrycount < recordcount) {
-        final OIdentifiable entry = entries.next();
-        final ODocument document = entry.getRecord();
+      int currentCount = 0;
+      while (entries.hasNext()) {
+        final ODocument document = entries.next().getRecord();
 
-        final HashMap<String, ByteIterator> map = new HashMap<String, ByteIterator>();
+        final HashMap<String, ByteIterator> map = new HashMap<>();
         result.add(map);
 
-        if (fields != null && !fields.isEmpty()) {
+        if (fields != null) {
           for (String field : fields) {
+            map.put(field, new StringByteIterator((String) document.field(field)));
+          }
+        } else {
+          for (String field : document.fieldNames()) {
             map.put(field, new StringByteIterator((String) document.field(field)));
           }
         }
 
-        entrycount++;
+        currentCount++;
+
+        if (currentCount >= recordcount) {
+          break;
+        }
       }
 
       return Status.OK;
@@ -301,12 +303,5 @@ public class OrientDBClient extends DB {
       e.printStackTrace();
     }
     return Status.ERROR;
-  }
-
-  /**
-   * Access method to db variable for unit testing.
-   **/
-  ODatabaseDocumentTx getDB() {
-    return db;
   }
 }

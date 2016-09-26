@@ -1,12 +1,12 @@
 /**
  * Copyright (c) 2015 - 2016 YCSB contributors. All rights reserved.
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
  * may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
@@ -17,6 +17,8 @@
 
 package com.yahoo.ycsb.db;
 
+import com.orientechnologies.orient.core.db.OPartitionedDatabasePool;
+import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.dictionary.ODictionary;
 import com.orientechnologies.orient.core.record.ORecord;
 import com.orientechnologies.orient.core.record.impl.ODocument;
@@ -25,6 +27,7 @@ import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.StringByteIterator;
 
 import org.junit.*;
+
 import java.util.*;
 
 import static org.junit.Assert.*;
@@ -34,14 +37,13 @@ import static org.junit.Assert.*;
  */
 public class OrientDBClientTest {
   // TODO: This must be copied because it is private in OrientDBClient, but this should defer to table property.
-  private static final String CLASS = "usertable";
-  private static final int FIELD_LENGTH = 32;
+  private static final String CLASS        = "usertable";
+  private static final int    FIELD_LENGTH = 32;
   private static final String FIELD_PREFIX = "FIELD";
-  private static final String KEY_PREFIX = "user";
-  private static final int NUM_FIELDS = 3;
-  private static final String TEST_DB_URL = "memory:test";
+  private static final String KEY_PREFIX   = "user";
+  private static final int    NUM_FIELDS   = 3;
+  private static final String TEST_DB_URL  = "memory:test";
 
-  private static ODictionary<ORecord> orientDBDictionary;
   private static OrientDBClient orientDBClient = null;
 
   @Before
@@ -54,7 +56,6 @@ public class OrientDBClientTest {
 
     orientDBClient.setProperties(p);
     orientDBClient.init();
-    orientDBDictionary = orientDBClient.getDB().getDictionary();
   }
 
   @After
@@ -101,12 +102,20 @@ public class OrientDBClientTest {
     String insertKey = "user0";
     Map<String, ByteIterator> insertMap = insertRow(insertKey);
 
-    ODocument result = orientDBDictionary.get(insertKey);
+    OPartitionedDatabasePool pool = orientDBClient.getDatabasePool();
+    ODatabaseDocumentTx db = pool.acquire();
+    try {
+      ODictionary<ORecord> dictionary = db.getDictionary();
+      ODocument result = dictionary.get(insertKey);
 
-    assertTrue("Assert a row was inserted.", result != null);
+      assertTrue("Assert a row was inserted.", result != null);
 
-    for (int i = 0; i < NUM_FIELDS; i++) {
-      assertEquals("Assert all inserted columns have correct values.", result.field(FIELD_PREFIX + i), insertMap.get(FIELD_PREFIX + i).toString());
+      for (int i = 0; i < NUM_FIELDS; i++) {
+        assertEquals("Assert all inserted columns have correct values.", result.field(FIELD_PREFIX + i),
+            insertMap.get(FIELD_PREFIX + i).toString());
+      }
+    } finally {
+      db.close();
     }
   }
 
@@ -117,14 +126,22 @@ public class OrientDBClientTest {
     String user1 = "user1";
     String user2 = "user2";
 
-    // Manually insert three documents
-    for(String key: Arrays.asList(user0, user1, user2)) {
-      ODocument doc = new ODocument(CLASS);
-      for (int i = 0; i < NUM_FIELDS; i++) {
-        doc.field(FIELD_PREFIX + i, preupdateString);
+    OPartitionedDatabasePool pool = orientDBClient.getDatabasePool();
+    ODatabaseDocumentTx db = pool.acquire();
+    try {
+      // Manually insert three documents
+      for (String key : Arrays.asList(user0, user1, user2)) {
+        ODocument doc = new ODocument(CLASS);
+        for (int i = 0; i < NUM_FIELDS; i++) {
+          doc.field(FIELD_PREFIX + i, preupdateString);
+        }
+        doc.save();
+
+        ODictionary<ORecord> dictionary = db.getDictionary();
+        dictionary.put(key, doc);
       }
-      doc.save();
-      orientDBDictionary.put(key, doc);
+    } finally {
+      db.close();
     }
 
     HashMap<String, ByteIterator> updateMap = new HashMap<>();
@@ -134,22 +151,29 @@ public class OrientDBClientTest {
 
     orientDBClient.update(CLASS, user1, updateMap);
 
-    // Ensure that user0 record was not changed
-    ODocument result = orientDBDictionary.get(user0);
-    for (int i = 0; i < NUM_FIELDS; i++) {
-      assertEquals("Assert first row fields contain preupdateString", result.field(FIELD_PREFIX + i), preupdateString);
-    }
+    db = pool.acquire();
+    try {
+      ODictionary<ORecord> dictionary = db.getDictionary();
+      // Ensure that user0 record was not changed
+      ODocument result = dictionary.get(user0);
+      for (int i = 0; i < NUM_FIELDS; i++) {
+        assertEquals("Assert first row fields contain preupdateString", result.field(FIELD_PREFIX + i), preupdateString);
+      }
 
-    // Check that all the columns have expected values for user1 record
-    result = orientDBDictionary.get(user1);
-    for (int i = 0; i < NUM_FIELDS; i++) {
-      assertEquals("Assert updated row fields are correct", result.field(FIELD_PREFIX + i), updateMap.get(FIELD_PREFIX + i).toString());
-    }
+      // Check that all the columns have expected values for user1 record
+      result = dictionary.get(user1);
+      for (int i = 0; i < NUM_FIELDS; i++) {
+        assertEquals("Assert updated row fields are correct", result.field(FIELD_PREFIX + i),
+            updateMap.get(FIELD_PREFIX + i).toString());
+      }
 
-    // Ensure that user2 record was not changed
-    result = orientDBDictionary.get(user2);
-    for (int i = 0; i < NUM_FIELDS; i++) {
-      assertEquals("Assert third row fields contain preupdateString", result.field(FIELD_PREFIX + i), preupdateString);
+      // Ensure that user2 record was not changed
+      result = dictionary.get(user2);
+      for (int i = 0; i < NUM_FIELDS; i++) {
+        assertEquals("Assert third row fields contain preupdateString", result.field(FIELD_PREFIX + i), preupdateString);
+      }
+    } finally {
+      db.close();
     }
   }
 
@@ -164,7 +188,7 @@ public class OrientDBClientTest {
     readFields.add("FIELD0");
     orientDBClient.read(CLASS, insertKey, readFields, readResultMap);
     assertEquals("Assert that result has correct number of fields", readFields.size(), readResultMap.size());
-    for (String field: readFields) {
+    for (String field : readFields) {
       assertEquals("Assert " + field + " was read correctly", insertMap.get(field).toString(), readResultMap.get(field).toString());
     }
 
@@ -175,7 +199,7 @@ public class OrientDBClientTest {
     readFields.add("FIELD2");
     orientDBClient.read(CLASS, insertKey, readFields, readResultMap);
     assertEquals("Assert that result has correct number of fields", readFields.size(), readResultMap.size());
-    for (String field: readFields) {
+    for (String field : readFields) {
       assertEquals("Assert " + field + " was read correctly", insertMap.get(field).toString(), readResultMap.get(field).toString());
     }
   }
@@ -192,9 +216,17 @@ public class OrientDBClientTest {
 
     orientDBClient.delete(CLASS, user1);
 
-    assertNotNull("Assert user0 still exists", orientDBDictionary.get(user0));
-    assertNull("Assert user1 does not exist", orientDBDictionary.get(user1));
-    assertNotNull("Assert user2 still exists", orientDBDictionary.get(user2));
+    OPartitionedDatabasePool pool = orientDBClient.getDatabasePool();
+    ODatabaseDocumentTx db = pool.acquire();
+    try {
+      ODictionary<ORecord> dictionary = db.getDictionary();
+
+      assertNotNull("Assert user0 still exists", dictionary.get(user0));
+      assertNull("Assert user1 does not exist", dictionary.get(user1));
+      assertNotNull("Assert user2 still exists", dictionary.get(user2));
+    } finally {
+      db.close();
+    }
   }
 
   @Test
@@ -227,10 +259,11 @@ public class OrientDBClientTest {
     int testIndex = startIndex;
 
     // Check each vector row to make sure we have the correct fields
-    for (HashMap<String, ByteIterator> result: resultVector) {
+    for (HashMap<String, ByteIterator> result : resultVector) {
       assertEquals("Assert that this row has the correct number of fields", fieldSet.size(), result.size());
-      for (String field: fieldSet) {
-        assertEquals("Assert this field is correct in this row", keyMap.get(KEY_PREFIX + testIndex).get(field).toString(), result.get(field).toString());
+      for (String field : fieldSet) {
+        assertEquals("Assert this field is correct in this row", keyMap.get(KEY_PREFIX + testIndex).get(field).toString(),
+            result.get(field).toString());
       }
       testIndex++;
     }
