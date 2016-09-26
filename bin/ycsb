@@ -55,6 +55,7 @@ DATABASES = {
     "aerospike"    : "com.yahoo.ycsb.db.AerospikeClient",
     "arangodb"     : "com.yahoo.ycsb.db.ArangoDBClient",
     "asynchbase"   : "com.yahoo.ycsb.db.AsyncHBaseClient",
+    "bangdb"       : "com.yahoo.ycsb.db.BangdbClient",
     "basic"        : "com.yahoo.ycsb.BasicDB",
     "cassandra-cql": "com.yahoo.ycsb.db.CassandraCQLClient",
     "cassandra2-cql": "com.yahoo.ycsb.db.CassandraCQLClient",
