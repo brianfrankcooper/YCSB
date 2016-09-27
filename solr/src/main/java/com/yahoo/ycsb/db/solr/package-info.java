@@ -19,5 +19,5 @@
  * The YCSB binding for 
  * <a href="http://lucene.apache.org/solr/">Solr</a>.
  */
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.solr;
 

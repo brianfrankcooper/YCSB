@@ -15,7 +15,7 @@
  * LICENSE file.
  */
 
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.solr6;
 
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
