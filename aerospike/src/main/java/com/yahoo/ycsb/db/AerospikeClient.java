@@ -1,4 +1,34 @@
+/**
+ * Copyright (c) 2015 YCSB contributors. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
+ */
+
 package com.yahoo.ycsb.db;
+
+import com.aerospike.client.AerospikeException;
+import com.aerospike.client.Bin;
+import com.aerospike.client.Key;
+import com.aerospike.client.Record;
+import com.aerospike.client.policy.ClientPolicy;
+import com.aerospike.client.policy.Policy;
+import com.aerospike.client.policy.RecordExistsAction;
+import com.aerospike.client.policy.WritePolicy;
+import com.yahoo.ycsb.ByteArrayByteIterator;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -6,33 +36,14 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
-import com.aerospike.client.AerospikeException;
-import com.aerospike.client.Bin;
-import com.aerospike.client.Key;
-import com.aerospike.client.Record;
-import com.aerospike.client.ResultCode;
-import com.aerospike.client.policy.ClientPolicy;
-import com.aerospike.client.policy.Policy;
-import com.aerospike.client.policy.RecordExistsAction;
-import com.aerospike.client.policy.WritePolicy;
-
-import com.yahoo.ycsb.ByteArrayByteIterator;
-import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.DBException;
-
+/**
+ * YCSB binding for <a href="http://www.aerospike.com/">Areospike</a>.
+ */
 public class AerospikeClient extends com.yahoo.ycsb.DB {
-  private static final boolean DEBUG = false;
-
   private static final String DEFAULT_HOST = "localhost";
   private static final String DEFAULT_PORT = "3000";
   private static final String DEFAULT_TIMEOUT = "10000";
   private static final String DEFAULT_NAMESPACE = "ycsb";
-
-  private static final int RESULT_OK = 0;
-  private static final int RESULT_ERROR = -1;
-
-  private static final int WRITE_OVERLOAD_DELAY = 5;
-  private static final int WRITE_OVERLOAD_TRIES = 3;
 
   private String namespace = null;
 
@@ -86,7 +97,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
   }
 
   @Override
-  public int read(String table, String key, Set<String> fields,
+  public Status read(String table, String key, Set<String> fields,
       HashMap<String, ByteIterator> result) {
     try {
       Record record;
@@ -99,11 +110,8 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
       }
 
       if (record == null) {
-        if (DEBUG) {
-          System.err.println("Record key " + key + " not found (read)");
-        }
-
-        return RESULT_ERROR;
+        System.err.println("Record key " + key + " not found (read)");
+        return Status.ERROR;
       }
 
       for (Map.Entry<String, Object> entry: record.bins.entrySet()) {
@@ -111,21 +119,21 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
             new ByteArrayByteIterator((byte[])entry.getValue()));
       }
 
-      return RESULT_OK;
+      return Status.OK;
     } catch (AerospikeException e) {
       System.err.println("Error while reading key " + key + ": " + e);
-      return RESULT_ERROR;
+      return Status.ERROR;
     }
   }
 
   @Override
-  public int scan(String table, String start, int count, Set<String> fields,
+  public Status scan(String table, String start, int count, Set<String> fields,
       Vector<HashMap<String, ByteIterator>> result) {
     System.err.println("Scan not implemented");
-    return RESULT_ERROR;
+    return Status.ERROR;
   }
 
-  private int write(String table, String key, WritePolicy writePolicy,
+  private Status write(String table, String key, WritePolicy writePolicy,
       HashMap<String, ByteIterator> values) {
     Bin[] bins = new Bin[values.size()];
     int index = 0;
@@ -135,65 +143,41 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
       ++index;
     }
 
-    int delay = WRITE_OVERLOAD_DELAY;
     Key keyObj = new Key(namespace, table, key);
 
-    for (int tries = 0; tries < WRITE_OVERLOAD_TRIES; ++tries) {
-      try {
-        client.put(writePolicy, keyObj, bins);
-        return RESULT_OK;
-      } catch (AerospikeException e) {
-        if (e.getResultCode() != ResultCode.DEVICE_OVERLOAD) {
-          System.err.println("Error while writing key " + key + ": " + e);
-          return RESULT_ERROR;
-        }
-
-        try {
-          Thread.sleep(delay);
-        } catch (InterruptedException e2) {
-          if (DEBUG) {
-            System.err.println("Interrupted: " + e2);
-          }
-        }
-
-        delay *= 2;
-      }
+    try {
+      client.put(writePolicy, keyObj, bins);
+      return Status.OK;
+    } catch (AerospikeException e) {
+      System.err.println("Error while writing key " + key + ": " + e);
+      return Status.ERROR;
     }
-
-    if (DEBUG) {
-      System.err.println("Device overload");
-    }
-
-    return RESULT_ERROR;
   }
 
   @Override
-  public int update(String table, String key,
+  public Status update(String table, String key,
       HashMap<String, ByteIterator> values) {
     return write(table, key, updatePolicy, values);
   }
 
   @Override
-  public int insert(String table, String key,
+  public Status insert(String table, String key,
       HashMap<String, ByteIterator> values) {
     return write(table, key, insertPolicy, values);
   }
 
   @Override
-  public int delete(String table, String key) {
+  public Status delete(String table, String key) {
     try {
       if (!client.delete(deletePolicy, new Key(namespace, table, key))) {
-        if (DEBUG) {
-          System.err.println("Record key " + key + " not found (delete)");
-        }
-
-        return RESULT_ERROR;
+        System.err.println("Record key " + key + " not found (delete)");
+        return Status.ERROR;
       }
 
-      return RESULT_OK;
+      return Status.OK;
     } catch (AerospikeException e) {
       System.err.println("Error while deleting key " + key + ": " + e);
-      return RESULT_ERROR;
+      return Status.ERROR;
     }
   }
 }

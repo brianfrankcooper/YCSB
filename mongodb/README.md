@@ -1,3 +1,20 @@
+<!--
+Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you
+may not use this file except in compliance with the License. You
+may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+implied. See the License for the specific language governing
+permissions and limitations under the License. See accompanying
+LICENSE file.
+-->
+
 ## Quick Start
 
 This section describes how to run YCSB on MongoDB. 
@@ -51,9 +68,9 @@ Reload bash and test mvn
 
 Download the YCSB zip file and compile:
 
-    git clone git://github.com/brianfrankcooper/YCSB.git
-    cd YCSB
-    mvn -pl com.yahoo.ycsb:mongodb-binding -am clean package
+    curl -O --location https://github.com/brianfrankcooper/YCSB/releases/download/0.5.0/ycsb-0.5.0.tar.gz
+    tar xfvz ycsb-0.5.0.tar.gz
+    cd ycsb-0.5.0
 
 ### 4. Run YCSB
 
@@ -75,6 +92,13 @@ Then, run the workload:
     
 See the next section for the list of configuration parameters for MongoDB.
 
+## Log Level Control
+Due to the mongodb driver defaulting to a log level of DEBUG, a logback.xml file is included with this module that restricts the org.mongodb logging to WARN. You can control this by overriding the logback.xml and defining it in your ycsb command by adding this flag:
+
+```
+bin/ycsb run mongodb -jvm-args="-Dlogback.configurationFile=/path/to/logback.xml"
+```
+
 ## MongoDB Configuration Parameters
 
 - `mongodb.url`
@@ -91,8 +115,14 @@ See the next section for the list of configuration parameters for MongoDB.
   - Useful for the insert workload as it will submit the inserts in batches inproving throughput.
   - Default value is `1`.
 
+- `mongodb.upsert`
+  - Determines if the insert operation performs an update with the upsert operation or a insert. 
+    Upserts have the advantage that they will continue to work for a partially loaded data set.
+  - Setting to `true` uses updates, `false` uses insert operations.
+  - Default value is `false`.
+
 - `mongodb.writeConcern`
-  - **Deprecated** - Use the `w` and `journal` options on the MongoDB URI provided by the `mongodb.uri`.
+  - **Deprecated** - Use the `w` and `journal` options on the MongoDB URI provided by the `mongodb.url`.
   - Allowed values are :
     - `errors_ignored`
     - `unacknowledged`
@@ -103,7 +133,7 @@ See the next section for the list of configuration parameters for MongoDB.
   - Default value is `acknowledged`.
  
 - `mongodb.readPreference`
-  - **Deprecated** - Use the `readPreference` options on the MongoDB URI provided by the `mongodb.uri`.
+  - **Deprecated** - Use the `readPreference` options on the MongoDB URI provided by the `mongodb.url`.
   - Allowed values are :
     - `primary`
     - `primary_preferred`
@@ -113,11 +143,11 @@ See the next section for the list of configuration parameters for MongoDB.
   - Default value is `primary`.
  
 - `mongodb.maxconnections`
-  - **Deprecated** - Use the `maxPoolSize` options on the MongoDB URI provided by the `mongodb.uri`.
+  - **Deprecated** - Use the `maxPoolSize` options on the MongoDB URI provided by the `mongodb.url`.
   - Default value is `100`.
 
 - `mongodb.threadsAllowedToBlockForConnectionMultiplier`
-  - **Deprecated** - Use the `waitQueueMultiple` options on the MongoDB URI provided by the `mongodb.uri`.
+  - **Deprecated** - Use the `waitQueueMultiple` options on the MongoDB URI provided by the `mongodb.url`.
   - Default value is `5`.
 
 For example:

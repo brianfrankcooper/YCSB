@@ -19,10 +19,8 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Random;
-
 import com.yahoo.ycsb.Utils;
-import com.yahoo.ycsb.generator.IntegerGenerator;
+import com.yahoo.ycsb.generator.NumberGenerator;
 
 /**
  * Generate integers according to a histogram distribution.  The histogram
@@ -38,44 +36,43 @@ import com.yahoo.ycsb.generator.IntegerGenerator;
  * @author snjones
  *
  */
-public class HistogramGenerator extends IntegerGenerator {
+public class HistogramGenerator extends NumberGenerator {
 
-	long block_size;
-	long[] buckets;
-	long area;
-	long weighted_area = 0;
-	double mean_size = 0;
+	private final long block_size;
+	private final long[] buckets;
+	private long area;
+	private long weighted_area = 0;
+	private double mean_size = 0;
 	
 	public HistogramGenerator(String histogramfile) throws IOException {
-	BufferedReader in = new BufferedReader(new FileReader(histogramfile));
-	String str;
-	String[] line;
-	
-	ArrayList<Integer> a = new ArrayList<Integer>();
-
-	str = in.readLine();
-	if(str == null) {
-		throw new IOException("Empty input file!\n");
-	}
-	line = str.split("\t");
-	if(line[0].compareTo("BlockSize") != 0) {
-		throw new IOException("First line of histogram is not the BlockSize!\n");
-	}
-	block_size = Integer.parseInt(line[1]);
-	
-	while((str = in.readLine()) != null){
-		// [0] is the bucket, [1] is the value
-		line = str.split("\t");
-		
-		a.add(Integer.parseInt(line[0]), Integer.parseInt(line[1]));
-	}
-	buckets = new long[a.size()];
-	for(int i = 0; i < a.size(); i++) {
-		buckets[i] = a.get(i);
-	}
-
-	in.close();
-	init();
+	  try (BufferedReader in = new BufferedReader(new FileReader(histogramfile))) {
+    	String str;
+    	String[] line;
+    	
+    	ArrayList<Integer> a = new ArrayList<Integer>();
+    
+    	str = in.readLine();
+    	if(str == null) {
+    		throw new IOException("Empty input file!\n");
+    	}
+    	line = str.split("\t");
+    	if(line[0].compareTo("BlockSize") != 0) {
+    		throw new IOException("First line of histogram is not the BlockSize!\n");
+    	}
+    	block_size = Integer.parseInt(line[1]);
+    	
+    	while((str = in.readLine()) != null){
+    		// [0] is the bucket, [1] is the value
+    		line = str.split("\t");
+    		
+    		a.add(Integer.parseInt(line[0]), Integer.parseInt(line[1]));
+    	}
+    	buckets = new long[a.size()];
+    	for(int i = 0; i < a.size(); i++) {
+    		buckets[i] = a.get(i);
+    	}
+	  }
+	  init();
 	}
 
 	public HistogramGenerator(long[] buckets, int block_size) {
@@ -86,25 +83,25 @@ public class HistogramGenerator extends IntegerGenerator {
 	private void init() {
 		for(int i = 0; i < buckets.length; i++) {
 			area += buckets[i];
-			weighted_area = i * buckets[i];
+			weighted_area += i * buckets[i];
 		}
 		// calculate average file size
-		mean_size = ((double)block_size) * ((double)weighted_area) / (double)(area);
+		mean_size = ((double)block_size) * ((double)weighted_area) / (area);
 	}
 
 	@Override
-	public int nextInt() {
+	public Long nextValue() {
 		int number = Utils.random().nextInt((int)area);
 		int i;
 		
 		for(i = 0; i < (buckets.length - 1); i++){
 			number -= buckets[i];
 			if(number <= 0){
-				return (int)((i+1)*block_size);
+				return (i+1)*block_size;
 			}
 		}
 		
-		return (int)(i * block_size);
+		return i * block_size;
 	}
 
 	@Override

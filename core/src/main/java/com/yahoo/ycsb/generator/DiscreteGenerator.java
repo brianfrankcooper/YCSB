@@ -17,42 +17,42 @@
 
 package com.yahoo.ycsb.generator;
 
-import java.util.Vector;
-import java.util.Random;
+import java.util.ArrayList;
+import java.util.Collection;
+import static java.util.Objects.requireNonNull;
 
 import com.yahoo.ycsb.Utils;
-import com.yahoo.ycsb.WorkloadException;
 
 /**
  * Generates a distribution by choosing from a discrete set of values.
  */
-public class DiscreteGenerator extends Generator
+public class DiscreteGenerator extends Generator<String>
 {
-	class Pair
+	private static class Pair
 	{
-		public double _weight;
-		public String _value;
+		private double _weight;
+		private String _value;
 
 		Pair(double weight, String value)
 		{
 			_weight=weight;
-			_value=value;
+			_value = requireNonNull(value);
 		}
 	}
 
-	Vector<Pair> _values;
-	String _lastvalue;
+	private final Collection<Pair> _values = new ArrayList<>();
+	private String _lastvalue;
 
 	public DiscreteGenerator()
 	{
-		_values=new Vector<Pair>();
 		_lastvalue=null;
 	}
 
 	/**
 	 * Generate the next string in the distribution.
 	 */
-	public String nextString()
+	@Override
+    public String nextValue()
 	{
 		double sum=0;
 
@@ -65,31 +65,17 @@ public class DiscreteGenerator extends Generator
 
 		for (Pair p : _values)
 		{
-			if (val<p._weight/sum)
+		    double pw = p._weight / sum;
+			if (val < pw)
 			{
 				return p._value;
 			}
 
-			val-=p._weight/sum;
+			val -= pw;
 		}
 
-		//should never get here.
-		System.out.println("oops. should not get here.");
+		throw new AssertionError("oops. should not get here.");
 
-		System.exit(0);
-
-		return null;
-	}
-
-	/**
-	 * If the generator returns numeric (integer) values, return the next value as an int. Default is to return -1, which
-	 * is appropriate for generators that do not return numeric values.
-	 * 
-	 * @throws WorkloadException if this generator does not support integer values
-	 */
-	public int nextInt() throws WorkloadException
-	{
-		throw new WorkloadException("DiscreteGenerator does not support nextInt()");
 	}
 
 	/**
@@ -97,11 +83,12 @@ public class DiscreteGenerator extends Generator
 	 * Calling lastString() should not advance the distribution or have any side effects. If nextString() has not yet 
 	 * been called, lastString() should return something reasonable.
 	 */
-	public String lastString()
+	@Override
+    public String lastValue()
 	{
 		if (_lastvalue==null)
 		{
-			_lastvalue=nextString();
+			_lastvalue=nextValue();
 		}
 		return _lastvalue;
 	}

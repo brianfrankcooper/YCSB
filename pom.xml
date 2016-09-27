@@ -1,10 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you
+may not use this file except in compliance with the License. You
+may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+implied. See the License for the specific language governing
+permissions and limitations under the License. See accompanying
+LICENSE file.
+-->
+
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.yahoo.ycsb</groupId>
   <artifactId>root</artifactId>
-  <version>0.3.0-SNAPSHOT</version>
+  <version>0.12.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>YCSB Root</name>
@@ -20,7 +37,6 @@
   </scm>
   <dependencyManagement>
     <dependencies>
-      <!-- voldemort -->
       <dependency>
         <groupId>checkstyle</groupId>
         <artifactId>checkstyle</artifactId>
@@ -52,25 +68,34 @@
   <properties>
     <maven.assembly.version>2.5.5</maven.assembly.version>
     <maven.dependency.version>2.10</maven.dependency.version>
-    <hbase.version>1.0.0</hbase.version>
+    <asynchbase.version>1.7.1</asynchbase.version>
+    <hbase094.version>0.94.27</hbase094.version>
+    <hbase098.version>0.98.14-hadoop2</hbase098.version>
+    <hbase10.version>1.0.2</hbase10.version>
     <accumulo.version>1.6.0</accumulo.version>
-    <cassandra.version>1.2.9</cassandra.version>
-    <cassandra.cql.version>1.0.3</cassandra.cql.version>
-    <gemfire.version>8.1.0</gemfire.version>
+    <cassandra.cql.version>3.0.0</cassandra.cql.version>
+    <geode.version>1.0.0-incubating.M3</geode.version>
+    <googlebigtable.version>0.2.3</googlebigtable.version>
     <infinispan.version>7.2.2.Final</infinispan.version>
+    <kudu.version>0.9.0</kudu.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
     <!--<mapkeeper.version>1.0</mapkeeper.version>-->
-    <mongodb.version>3.0.2</mongodb.version>
+    <mongodb.version>3.0.3</mongodb.version>
     <mongodb.async.version>2.0.1</mongodb.async.version>
-    <orientdb.version>1.0.1</orientdb.version>
+    <orientdb.version>2.1.8</orientdb.version>
     <redis.version>2.0.0</redis.version>
+    <s3.version>1.10.20</s3.version>
     <voldemort.version>0.81</voldemort.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <thrift.version>0.8.0</thrift.version>
     <hypertable.version>0.9.5.6</hypertable.version>
-    <couchbase.version>1.1.8</couchbase.version>
-    <tarantool.version>1.6.1</tarantool.version>
+    <couchbase.version>1.4.10</couchbase.version>
+    <couchbase2.version>2.3.1</couchbase2.version>
+    <tarantool.version>1.6.5</tarantool.version>
+    <riak.version>2.0.5</riak.version>
     <aerospike.version>3.1.2</aerospike.version>
+    <solr.version>5.4.0</solr.version>
+    <arangodb.version>2.7.3</arangodb.version>
   </properties>
 
   <modules>
@@ -80,51 +105,71 @@
     <!-- all the datastore bindings, lex sorted please -->
     <module>accumulo</module>
     <module>aerospike</module>
+    <module>arangodb</module>
+    <module>asynchbase</module>
     <module>cassandra</module>
     <module>couchbase</module>
+    <module>couchbase2</module>
     <module>distribution</module>
     <module>dynamodb</module>
     <module>elasticsearch</module>
-    <module>gemfire</module>
-    <module>hbase</module>
+    <module>geode</module>
+    <module>googlebigtable</module>
+    <module>googledatastore</module>
+    <module>hbase094</module>
+    <module>hbase098</module>
+    <module>hbase10</module>
     <module>hypertable</module>
     <module>infinispan</module>
     <module>jdbc</module>
+    <module>kudu</module>
     <!--<module>mapkeeper</module>-->
+    <module>memcached</module>
     <module>mongodb</module>
-    <!--module>nosqldb</module-->
+    <module>nosqldb</module>
     <module>orientdb</module>
+    <module>rados</module>
     <module>redis</module>
+    <module>riak</module>
+    <module>s3</module>
+    <module>solr</module>
     <module>tarantool</module>
     <!--<module>voldemort</module>-->
   </modules>
 
   <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-checkstyle-plugin</artifactId>
+          <version>2.15</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.3</version>
         <configuration>
-          <source>1.6</source>
-          <target>1.6</target>
+          <source>1.7</source>
+          <target>1.7</target>
         </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>2.15</version>
-        <configuration>
-          <consoleOutput>true</consoleOutput>
-          <configLocation>checkstyle.xml</configLocation>
-        </configuration>
         <executions>
           <execution>
-          <id>validate</id>
+            <id>validate</id>
             <phase>validate</phase>
             <goals>
-              <goal>checkstyle</goal>
+              <goal>check</goal>
             </goals>
+            <configuration>
+              <configLocation>checkstyle.xml</configLocation>
+            </configuration>
           </execution>
         </executions>
       </plugin>

@@ -17,11 +17,7 @@
 
 package com.yahoo.ycsb;
 
-import java.util.HashMap;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Enumeration;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
@@ -84,7 +80,7 @@ public class BasicDB extends DB
 		verbose=Boolean.parseBoolean(getProperties().getProperty(VERBOSE, VERBOSE_DEFAULT));
 		todelay=Integer.parseInt(getProperties().getProperty(SIMULATE_DELAY, SIMULATE_DELAY_DEFAULT));
 		randomizedelay=Boolean.parseBoolean(getProperties().getProperty(RANDOMIZE_DELAY, RANDOMIZE_DELAY_DEFAULT));
-		if (verbose)
+		if (verbose) synchronized(System.out)
 		{
 			System.out.println("***************** properties *****************");
 			Properties p=getProperties();
@@ -100,6 +96,19 @@ public class BasicDB extends DB
 		}
 	}
 
+  static final ThreadLocal<StringBuilder>  TL_STRING_BUILDER = new ThreadLocal<StringBuilder>() {
+    @Override
+    protected StringBuilder initialValue() {
+      return new StringBuilder();
+    }
+  };
+
+  static StringBuilder getStringBuilder() {
+    StringBuilder sb = TL_STRING_BUILDER.get();
+    sb.setLength(0);
+    return sb;
+  }
+
 	/**
 	 * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
 	 *
@@ -109,29 +118,31 @@ public class BasicDB extends DB
 	 * @param result A HashMap of field/value pairs for the result
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
+	public Status read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
 	{
 		delay();
 
 		if (verbose)
 		{
-			System.out.print("READ "+table+" "+key+" [ ");
+      StringBuilder sb = getStringBuilder();
+			sb.append("READ ").append(table).append(" ").append(key).append(" [ ");
 			if (fields!=null)
 			{
 				for (String f : fields)
 				{
-					System.out.print(f+" ");
+          sb.append(f).append(" ");
 				}
 			}
 			else
 			{
-				System.out.print("<all fields>");
+        sb.append("<all fields>");
 			}
 
-			System.out.println("]");
-		}
+      sb.append("]");
+      System.out.println(sb);
+    }
 
-		return 0;
+		return Status.OK;
 	}
 	
 	/**
@@ -144,29 +155,31 @@ public class BasicDB extends DB
 	 * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
+	public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
 	{
 		delay();
 
 		if (verbose)
 		{
-			System.out.print("SCAN "+table+" "+startkey+" "+recordcount+" [ ");
+      StringBuilder sb = getStringBuilder();
+      sb.append("SCAN ").append(table).append(" ").append(startkey).append(" ").append(recordcount).append(" [ ");
 			if (fields!=null)
 			{
 				for (String f : fields)
 				{
-					System.out.print(f+" ");
+          sb.append(f).append(" ");
 				}
 			}
 			else
 			{
-				System.out.print("<all fields>");
+        sb.append("<all fields>");
 			}
 
-			System.out.println("]");
-		}
+      sb.append("]");
+      System.out.println(sb);
+    }
 
-		return 0;
+		return Status.OK;
 	}
 
 	/**
@@ -178,24 +191,26 @@ public class BasicDB extends DB
 	 * @param values A HashMap of field/value pairs to update in the record
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int update(String table, String key, HashMap<String,ByteIterator> values)
+	public Status update(String table, String key, HashMap<String,ByteIterator> values)
 	{
 		delay();
 
 		if (verbose)
 		{
-			System.out.print("UPDATE "+table+" "+key+" [ ");
+      StringBuilder sb = getStringBuilder();
+      sb.append("UPDATE ").append(table).append(" ").append(key).append(" [ ");
 			if (values!=null)
 			{
-				for (String k : values.keySet())
+				for (Map.Entry<String, ByteIterator> entry : values.entrySet())
 				{
-					System.out.print(k+"="+values.get(k)+" ");
+          sb.append(entry.getKey()).append("=").append(entry.getValue()).append(" ");
 				}
 			}
-			System.out.println("]");
+      sb.append("]");
+      System.out.println(sb);
 		}
 
-		return 0;
+		return Status.OK;
 	}
 
 	/**
@@ -207,25 +222,27 @@ public class BasicDB extends DB
 	 * @param values A HashMap of field/value pairs to insert in the record
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int insert(String table, String key, HashMap<String,ByteIterator> values)
+	public Status insert(String table, String key, HashMap<String,ByteIterator> values)
 	{
 		delay();
 
 		if (verbose)
 		{
-			System.out.print("INSERT "+table+" "+key+" [ ");
+      StringBuilder sb = getStringBuilder();
+      sb.append("INSERT ").append(table).append(" ").append(key).append(" [ ");
 			if (values!=null)
 			{
-				for (String k : values.keySet())
+				for (Map.Entry<String, ByteIterator> entry : values.entrySet())
 				{
-					System.out.print(k+"="+values.get(k)+" ");
+          sb.append(entry.getKey()).append("=").append(entry.getValue()).append(" ");
 				}
 			}
 
-			System.out.println("]");
+      sb.append("]");
+      System.out.println(sb);
 		}
 
-		return 0;
+		return Status.OK;
 	}
 
 
@@ -236,16 +253,18 @@ public class BasicDB extends DB
 	 * @param key The record key of the record to delete.
 	 * @return Zero on success, a non-zero error code on error
 	 */
-	public int delete(String table, String key)
+	public Status delete(String table, String key)
 	{
 		delay();
 
 		if (verbose)
 		{
-			System.out.println("DELETE "+table+" "+key);
+      StringBuilder sb = getStringBuilder();
+      sb.append("DELETE ").append(table).append(" ").append(key);
+      System.out.println(sb);
 		}
 
-		return 0;
+		return Status.OK;
 	}
 
 	/**
