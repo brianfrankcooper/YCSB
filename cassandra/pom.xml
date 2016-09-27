@@ -63,13 +63,13 @@ LICENSE file.
       <scope>test</scope>
     </dependency>
     <!-- only for Cassandra test (Cassandra 2.2+ uses Sigar for collecting system information, and Sigar requires some native lib files) -->
-	<dependency>
+	  <dependency>
 	    <groupId>org.hyperic</groupId>
 	    <artifactId>sigar-dist</artifactId>
 	    <version>1.6.4.129</version>
 	    <type>zip</type>
 	    <scope>test</scope>
-	</dependency>
+	  </dependency>
   </dependencies>
 
   <profiles>
