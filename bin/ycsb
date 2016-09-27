@@ -53,11 +53,9 @@ COMMANDS = {
 DATABASES = {
     "accumulo"     : "com.yahoo.ycsb.db.accumulo.AccumuloClient",
     "aerospike"    : "com.yahoo.ycsb.db.AerospikeClient",
+    "arangodb"     : "com.yahoo.ycsb.db.ArangoDBClient",
     "asynchbase"   : "com.yahoo.ycsb.db.AsyncHBaseClient",
     "basic"        : "com.yahoo.ycsb.BasicDB",
-    "cassandra-7"  : "com.yahoo.ycsb.db.CassandraClient7",
-    "cassandra-8"  : "com.yahoo.ycsb.db.CassandraClient8",
-    "cassandra-10" : "com.yahoo.ycsb.db.CassandraClient10",
     "cassandra-cql": "com.yahoo.ycsb.db.CassandraCQLClient",
     "cassandra2-cql": "com.yahoo.ycsb.db.CassandraCQLClient",
     "couchbase"    : "com.yahoo.ycsb.db.CouchbaseClient",
@@ -243,11 +241,15 @@ def main():
     # Classpath set up
     binding = args.database.split("-")[0]
 
-    # Deprecation message for the entire cassandra-binding
-    if binding == "cassandra":
-        warn("The 'cassandra-7', 'cassandra-8', 'cassandra-10', and "
-             "cassandra-cql' clients are deprecated. If you are using "
-             "Cassandra 2.X try using the 'cassandra2-cql' client instead.")
+    if binding == "cassandra2":
+        warn("The 'cassandra2-cql' client has been deprecated. It has been "
+             "renamed to simply 'cassandra-cql'. This alias will be removed"
+             " in the next YCSB release.")
+        binding = "cassandra"
+
+    if binding == "couchbase":
+        warn("The 'couchbase' client has been deprecated. If you are using "
+             "Couchbase 4.0+ try using the 'couchbase2' client instead.")
 
     if is_distribution():
         db_dir = os.path.join(ycsb_home, binding + "-binding")

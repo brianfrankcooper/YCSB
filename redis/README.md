@@ -17,7 +17,7 @@ LICENSE file.
 
 ## Quick Start
 
-This section describes how to run YCSB on Redis. 
+This section describes how to run YCSB on MongoDB. 
 
 ### 1. Start Redis
 

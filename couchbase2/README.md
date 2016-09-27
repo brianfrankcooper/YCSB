@@ -65,7 +65,14 @@ For `workloade` and the default `readallfields=true` we recommend creating the f
 Server 4.5 or later with the "Memory Optimized Index" setting on the bucket.
 
 ```
-CREATE INDEX wle_idx ON `bucketname`(meta().id);
+CREATE PRIMARY INDEX ON `bucketname`;
+```
+
+Couchbase Server prior to 4.5 may need a slightly different index to deliver the best performance.  In those releases
+additional covering information may be added to the index with this form.
+
+```
+-CREATE INDEX wle_idx ON `bucketname`(meta().id);
 ```
 
 For other workloads, different index setups might be even more performant.
@@ -135,3 +142,4 @@ You can set the following properties (with the default settings applied):
    set to the number of physical cores. Setting higher than that will likely degrade performance.
  - couchbase.networkMetricsInterval=0: The interval in seconds when latency metrics will be logged.
  - couchbase.runtimeMetricsInterval=0: The interval in seconds when runtime metrics will be logged.
+ - couchbase.documentExpiry=0: Document Expiry is the amount of time(second) until a document expires in Couchbase.

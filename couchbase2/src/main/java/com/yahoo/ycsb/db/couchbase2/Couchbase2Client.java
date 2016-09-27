@@ -93,6 +93,8 @@ import java.util.concurrent.locks.LockSupport;
  *      set to the number of physical cores. Setting higher than that will likely degrade performance.</li>
  * <li><b>couchbase.networkMetricsInterval=0</b> The interval in seconds when latency metrics will be logged.</li>
  * <li><b>couchbase.runtimeMetricsInterval=0</b> The interval in seconds when runtime metrics will be logged.</li>
+ * <li><b>couchbase.documentExpiry=0</b> Document Expiry is the amount of time until a document expires in
+ *      Couchbase.</li>
  * </ul>
  */
 public class Couchbase2Client extends DB {
@@ -127,7 +129,8 @@ public class Couchbase2Client extends DB {
   private int networkMetricsInterval;
   private int runtimeMetricsInterval;
   private String scanAllQuery;
-
+  private int documentExpiry;
+  
   @Override
   public void init() throws DBException {
     Properties props = getProperties();
@@ -149,7 +152,9 @@ public class Couchbase2Client extends DB {
     boost = Integer.parseInt(props.getProperty("couchbase.boost", "3"));
     networkMetricsInterval = Integer.parseInt(props.getProperty("couchbase.networkMetricsInterval", "0"));
     runtimeMetricsInterval = Integer.parseInt(props.getProperty("couchbase.runtimeMetricsInterval", "0"));
-    scanAllQuery =  "SELECT meta().id as id FROM `" + bucketName + "` WHERE meta().id >= '$1' LIMIT $2";
+    documentExpiry = Integer.parseInt(props.getProperty("couchbase.documentExpiry", "0"));
+    scanAllQuery =  "SELECT RAW meta().id FROM `" + bucketName +
+      "` WHERE meta().id >= '$1' ORDER BY meta().id LIMIT $2";
 
     try {
       synchronized (INIT_COORDINATOR) {
@@ -341,7 +346,7 @@ public class Couchbase2Client extends DB {
    */
   private Status updateKv(final String docId, final HashMap<String, ByteIterator> values) {
     waitForMutationResponse(bucket.async().replace(
-        RawJsonDocument.create(docId, encode(values)),
+        RawJsonDocument.create(docId, documentExpiry, encode(values)),
         persistTo,
         replicateTo
     ));
@@ -411,7 +416,7 @@ public class Couchbase2Client extends DB {
     for(int i = 0; i < tries; i++) {
       try {
         waitForMutationResponse(bucket.async().insert(
-            RawJsonDocument.create(docId, encode(values)),
+            RawJsonDocument.create(docId, documentExpiry, encode(values)),
             persistTo,
             replicateTo
         ));
@@ -490,7 +495,7 @@ public class Couchbase2Client extends DB {
    */
   private Status upsertKv(final String docId, final HashMap<String, ByteIterator> values) {
     waitForMutationResponse(bucket.async().upsert(
-        RawJsonDocument.create(docId, encode(values)),
+        RawJsonDocument.create(docId, documentExpiry, encode(values)),
         persistTo,
         replicateTo
     ));
@@ -607,7 +612,6 @@ public class Couchbase2Client extends DB {
   private Status scanAllFields(final String table, final String startkey, final int recordcount,
       final Vector<HashMap<String, ByteIterator>> result) {
     final List<HashMap<String, ByteIterator>> data = new ArrayList<HashMap<String, ByteIterator>>(recordcount);
-
     bucket.async()
         .query(N1qlQuery.parameterized(
           scanAllQuery,
@@ -632,11 +636,8 @@ public class Couchbase2Client extends DB {
         .flatMap(new Func1<AsyncN1qlQueryRow, Observable<RawJsonDocument>>() {
           @Override
           public Observable<RawJsonDocument> call(AsyncN1qlQueryRow row) {
-            String id = new String(row.byteValue());
-            return bucket.async().get(
-              id.substring(id.indexOf(table + SEPARATOR), id.lastIndexOf('"')),
-              RawJsonDocument.class
-            );
+            String id = new String(row.byteValue()).trim();
+            return bucket.async().get(id.substring(1, id.length()-1), RawJsonDocument.class);
           }
         })
         .map(new Func1<RawJsonDocument, HashMap<String, ByteIterator>>() {
@@ -859,7 +860,7 @@ public class Couchbase2Client extends DB {
       for (Iterator<Map.Entry<String, JsonNode>> jsonFields = json.fields(); jsonFields.hasNext();) {
         Map.Entry<String, JsonNode> jsonField = jsonFields.next();
         String name = jsonField.getKey();
-        if (checkFields && fields.contains(name)) {
+        if (checkFields && !fields.contains(name)) {
           continue;
         }
         JsonNode jsonValue = jsonField.getValue();

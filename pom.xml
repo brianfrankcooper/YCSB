@@ -21,7 +21,7 @@ LICENSE file.
 
   <groupId>com.yahoo.ycsb</groupId>
   <artifactId>root</artifactId>
-  <version>0.11.0-SNAPSHOT</version>
+  <version>0.12.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>YCSB Root</name>
@@ -73,10 +73,8 @@ LICENSE file.
     <hbase098.version>0.98.14-hadoop2</hbase098.version>
     <hbase10.version>1.0.2</hbase10.version>
     <accumulo.version>1.6.0</accumulo.version>
-    <cassandra.version>1.2.9</cassandra.version>
-    <cassandra.cql.version>1.0.3</cassandra.cql.version>
-    <cassandra2.cql.version>3.0.0</cassandra2.cql.version>
-    <geode.version>1.0.0-incubating.M2</geode.version>
+    <cassandra.cql.version>3.0.0</cassandra.cql.version>
+    <geode.version>1.0.0-incubating.M3</geode.version>
     <googlebigtable.version>0.2.3</googlebigtable.version>
     <infinispan.version>7.2.2.Final</infinispan.version>
     <kudu.version>0.9.0</kudu.version>
@@ -92,11 +90,12 @@ LICENSE file.
     <thrift.version>0.8.0</thrift.version>
     <hypertable.version>0.9.5.6</hypertable.version>
     <couchbase.version>1.4.10</couchbase.version>
-    <couchbase2.version>2.2.6</couchbase2.version>
+    <couchbase2.version>2.3.1</couchbase2.version>
     <tarantool.version>1.6.5</tarantool.version>
     <riak.version>2.0.5</riak.version>
     <aerospike.version>3.1.2</aerospike.version>
     <solr.version>5.4.0</solr.version>
+    <arangodb.version>2.7.3</arangodb.version>
   </properties>
 
   <modules>
@@ -106,9 +105,9 @@ LICENSE file.
     <!-- all the datastore bindings, lex sorted please -->
     <module>accumulo</module>
     <module>aerospike</module>
+    <module>arangodb</module>
     <module>asynchbase</module>
     <module>cassandra</module>
-    <module>cassandra2</module>
     <module>couchbase</module>
     <module>couchbase2</module>
     <module>distribution</module>

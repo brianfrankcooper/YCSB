@@ -18,14 +18,14 @@
 package com.yahoo.ycsb.db;
 
 import com.google.api.client.auth.oauth2.Credential;
-import com.google.datastore.v1beta3.*;
-import com.google.datastore.v1beta3.CommitRequest.Mode;
-import com.google.datastore.v1beta3.ReadOptions.ReadConsistency;
-import com.google.datastore.v1beta3.client.Datastore;
-import com.google.datastore.v1beta3.client.DatastoreException;
-import com.google.datastore.v1beta3.client.DatastoreFactory;
-import com.google.datastore.v1beta3.client.DatastoreHelper;
-import com.google.datastore.v1beta3.client.DatastoreOptions;
+import com.google.datastore.v1.*;
+import com.google.datastore.v1.CommitRequest.Mode;
+import com.google.datastore.v1.ReadOptions.ReadConsistency;
+import com.google.datastore.v1.client.Datastore;
+import com.google.datastore.v1.client.DatastoreException;
+import com.google.datastore.v1.client.DatastoreFactory;
+import com.google.datastore.v1.client.DatastoreHelper;
+import com.google.datastore.v1.client.DatastoreOptions;
 
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;

@@ -133,6 +133,14 @@ else
   CLASSPATH="$CLASSPATH:$YCSB_HOME/conf"
 fi
 
+# Cassandra2 deprecation message
+if [ "${BINDING_DIR}" = "cassandra2" ] ; then
+  echo "[WARN] The 'cassandra2-cql' client has been deprecated. It has been \
+renamed to simply 'cassandra-cql'. This alias will be removed  in the next \
+YCSB release."
+  BINDING_DIR="cassandra"
+fi
+
 # Build classpath
 #   The "if" check after the "for" is because glob may just return the pattern
 #   when no files are found.  The "if" makes sure the file is really there.
@@ -208,11 +216,10 @@ else
   done
 fi
 
-# Cassandra deprecation message
-if [ "$BINDING_DIR" = "cassandra" ] ; then
-  echo "[WARN] The 'cassandra-7', 'cassandra-8', 'cassandra-10', and \
-cassandra-cql' clients are deprecated. If you are using \
-Cassandra 2.X try using the 'cassandra2-cql' client instead."
+# Couchbase deprecation message
+if [ "${BINDING_DIR}" = "couchbase" ] ; then
+  echo "[WARN] The 'couchbase' client is deprecated. If you are using \
+Couchbase 4.0+ try using the 'couchbase2' client instead."
 fi
 
 # For Cygwin, switch paths to Windows format before running java
