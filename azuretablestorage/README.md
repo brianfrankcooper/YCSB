@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
+Copyright (c) 2016 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -30,7 +30,7 @@ Git clone YCSB and compile:
 
     git clone http://github.com/brianfrankcooper/YCSB.git
     cd YCSB
-    mvn -pl com.yahoo.ycsb:azure-binding -am clean package
+    mvn -pl com.yahoo.ycsb:azuretablestorage-binding -am clean package
 
 ### 4. Provide Azure Storage parameters
     
@@ -41,17 +41,17 @@ Set the account name and access key.
 
 Or, you can set configs with the shell command, EG:
 
-    ./bin/ycsb load azure -s -P workloads/workloada -p azure.account=YourAccountName -p azure.key=YourAccessKey > outputLoad.txt
+    ./bin/ycsb load azuretablestorage -s -P workloads/workloada -p azure.account=YourAccountName -p azure.key=YourAccessKey > outputLoad.txt
 
 ### 5. Load data and run tests
 
 Load the data:
 
-    ./bin/ycsb load azure -s -P workloads/workloada -p azure.account=YourAccountName -p azure.key=YourAccessKey > outputLoad.txt
+    ./bin/ycsb load azuretablestorage -s -P workloads/workloada -p azure.account=YourAccountName -p azure.key=YourAccessKey > outputLoad.txt
 
 Run the workload test:
 
-    ./bin/ycsb run azure -s -P workloads/workloada -p azure.account=YourAccountName -p azure.key=YourAccessKey > outputRun.txt
+    ./bin/ycsb run azuretablestorage -s -P workloads/workloada -p azure.account=YourAccountName -p azure.key=YourAccessKey > outputRun.txt
 	
 ### 6. Optional Azure Storage parameters
 
@@ -67,7 +67,7 @@ Run the workload test:
 	For Azure stack WOSS.
 	
 EG:
-    ./bin/ycsb load azure -s -P workloads/workloada -p azure.account=YourAccountName -p azure.key=YourAccessKey -p azure.batchsize=100 -p azure.protocol=http
+    ./bin/ycsb load azuretablestorage -s -P workloads/workloada -p azure.account=YourAccountName -p azure.key=YourAccessKey -p azure.batchsize=100 -p azure.protocol=http
 	
 	
 
