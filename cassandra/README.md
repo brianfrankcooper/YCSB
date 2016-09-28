@@ -78,3 +78,6 @@ For keyspace `ycsb`, table `usertable`:
 * `cassandra.connecttimeoutmillis`
 * `cassandra.readtimeoutmillis`
   * Defaults for connect and read timeouts can be found here: https://docs.datastax.com/en/drivers/java/2.0/com/datastax/driver/core/SocketOptions.html.
+* `cassandra.tracing`
+  * Default is false
+  * https://docs.datastax.com/en/cql/3.3/cql/cql_reference/tracing_r.html

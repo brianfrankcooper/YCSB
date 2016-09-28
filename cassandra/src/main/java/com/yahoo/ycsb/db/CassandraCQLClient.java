@@ -85,6 +85,9 @@ public class CassandraCQLClient extends DB {
   public static final String READ_TIMEOUT_MILLIS_PROPERTY =
       "cassandra.readtimeoutmillis";
 
+  public static final String TRACING_PROPERTY = "cassandra.tracing";
+  public static final String TRACING_PROPERTY_DEFAULT = "false";
+  
   /**
    * Count the number of times initialized to teardown on the last
    * {@link #cleanup()}.
@@ -93,6 +96,8 @@ public class CassandraCQLClient extends DB {
 
   private static boolean debug = false;
 
+  private static boolean trace = false;
+  
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
    * DB instance per client thread.
@@ -116,7 +121,8 @@ public class CassandraCQLClient extends DB {
 
         debug =
             Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
-
+        trace = Boolean.valueOf(getProperties().getProperty(TRACING_PROPERTY, TRACING_PROPERTY_DEFAULT));
+        
         String host = getProperties().getProperty(HOSTS_PROPERTY);
         if (host == null) {
           throw new DBException(String.format(
@@ -254,7 +260,10 @@ public class CassandraCQLClient extends DB {
       if (debug) {
         System.out.println(stmt.toString());
       }
-
+      if (trace) {
+        stmt.enableTracing();
+      }
+      
       ResultSet rs = session.execute(stmt);
 
       if (rs.isExhausted()) {
@@ -343,7 +352,10 @@ public class CassandraCQLClient extends DB {
       if (debug) {
         System.out.println(stmt.toString());
       }
-
+      if (trace) {
+        stmt.enableTracing();
+      }
+      
       ResultSet rs = session.execute(stmt);
 
       HashMap<String, ByteIterator> tuple;
@@ -432,7 +444,10 @@ public class CassandraCQLClient extends DB {
       if (debug) {
         System.out.println(insertStmt.toString());
       }
-
+      if (trace) {
+        insertStmt.enableTracing();
+      }
+      
       session.execute(insertStmt);
 
       return Status.OK;
@@ -465,7 +480,10 @@ public class CassandraCQLClient extends DB {
       if (debug) {
         System.out.println(stmt.toString());
       }
-
+      if (trace) {
+        stmt.enableTracing();
+      }
+      
       session.execute(stmt);
 
       return Status.OK;
