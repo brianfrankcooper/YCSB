@@ -54,6 +54,9 @@ import java.util.Set;
  * Integration tests for the Cassandra client
  */
 public class CassandraCQLClientTest {
+  // Change the default Cassandra timeout from 10s to 120s for slow CI machines
+  private final static long timeout = 120000L;
+
   private final static String TABLE = "usertable";
   private final static String HOST = "localhost";
   private final static int PORT = 9142;
@@ -63,7 +66,8 @@ public class CassandraCQLClientTest {
   private Session session;
 
   @ClassRule
-  public static CassandraCQLUnit cassandraUnit = new CassandraCQLUnit(new ClassPathCQLDataSet("ycsb.cql", "ycsb"));
+  public static CassandraCQLUnit cassandraUnit = new CassandraCQLUnit(
+    new ClassPathCQLDataSet("ycsb.cql", "ycsb"), null, timeout);
 
   @Before
   public void setUp() throws Exception {
