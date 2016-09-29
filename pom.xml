@@ -96,6 +96,7 @@ LICENSE file.
     <aerospike.version>3.1.2</aerospike.version>
     <solr.version>5.4.0</solr.version>
     <arangodb.version>2.7.3</arangodb.version>
+    <neo4j.version>3.0.3</neo4j.version>
   </properties>
 
   <modules>
@@ -126,6 +127,7 @@ LICENSE file.
     <!--<module>mapkeeper</module>-->
     <module>memcached</module>
     <module>mongodb</module>
+    <module>neo4j</module>
     <module>nosqldb</module>
     <module>orientdb</module>
     <module>rados</module>
