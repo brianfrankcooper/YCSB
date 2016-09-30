@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 - 2016 Yahoo! Inc. All rights reserved.
+ * Copyright (c) 2015 - 2016 Yahoo! Inc., 2016 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -46,10 +46,10 @@ public class JdbcDBClientTest {
 
     @BeforeClass
     public static void setup() {
-      setupWithBatch(1);
+      setupWithBatch(1, true);
     }
 
-    public static void setupWithBatch(int batchSize) {
+    public static void setupWithBatch(int batchSize, boolean autoCommit) {
       try {
         jdbcConnection = DriverManager.getConnection(TEST_DB_URL);
         jdbcDBClient = new JdbcDBClient();
@@ -59,6 +59,8 @@ public class JdbcDBClientTest {
         p.setProperty(JdbcDBClient.DRIVER_CLASS, TEST_DB_DRIVER);
         p.setProperty(JdbcDBClient.CONNECTION_USER, TEST_DB_USER);
         p.setProperty(JdbcDBClient.DB_BATCH_SIZE, Integer.toString(batchSize));
+        p.setProperty(JdbcDBClient.JDBC_BATCH_UPDATES, "true");
+        p.setProperty(JdbcDBClient.JDBC_AUTO_COMMIT, Boolean.toString(autoCommit));
 
         jdbcDBClient.setProperties(p);
         jdbcDBClient.init();
@@ -337,19 +339,18 @@ public class JdbcDBClientTest {
 
     public void insertBatchTest(int numRows) throws DBException {
       teardown();
-      setupWithBatch(10);
-
+      setupWithBatch(10, false);
       try {
         String insertKey = "user0";
         HashMap<String, ByteIterator> insertMap = insertRow(insertKey);
+        assertEquals(3, insertMap.size());
 
         ResultSet resultSet = jdbcConnection.prepareStatement(
           String.format("SELECT * FROM %s", TABLE_NAME)
             ).executeQuery();
 
-        // Check we do not have a result Row (because batch is not full yet
+        // Check we do not have a result Row (because batch is not full yet)
         assertFalse(resultSet.next());
-
         // insert more rows, completing 1 batch (still results are partial).
         for (int i = 1; i < numRows; i++) {
           insertMap = insertRow("user" + i);
@@ -360,6 +361,8 @@ public class JdbcDBClientTest {
 
         // call cleanup, which should insert the partial batch
         jdbcDBClient.cleanup();
+        // Prevent a teardown() from printing an error
+        jdbcDBClient = null;
 
         // Check that we have all rows
         assertNumRows(numRows);

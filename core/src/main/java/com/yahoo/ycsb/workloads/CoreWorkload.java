@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Vector;
 
 
@@ -590,7 +591,7 @@ public class CoreWorkload extends Workload {
     int numOfRetries = 0;
     do {
       status = db.insert(table, dbkey, values);
-      if (status == Status.OK) {
+      if (null != status && status.isOk()) {
         break;
       }
       // Retry if configured. Without retrying, the load process will fail
@@ -614,7 +615,7 @@ public class CoreWorkload extends Workload {
       }
     } while (true);
 
-    return (status == Status.OK);
+    return null != status && status.isOk();
   }
 
   /**
