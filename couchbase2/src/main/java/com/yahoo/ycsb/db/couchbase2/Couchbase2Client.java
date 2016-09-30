@@ -715,7 +715,7 @@ public class Couchbase2Client extends DB {
    */
   private void waitForMutationResponse(final Observable<? extends Document<?>> input) {
     if (!syncMutResponse) {
-      input.subscribe(new Subscriber<Document<?>>() {
+      ((Observable<Document<?>>)input).subscribe(new Subscriber<Document<?>>() {
         @Override
         public void onCompleted() {
         }

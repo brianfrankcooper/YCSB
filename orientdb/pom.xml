@@ -35,6 +35,10 @@ LICENSE file.
       <url>https://oss.sonatype.org/content/repositories/snapshots</url>
     </repository>
   </repositories>
+  <properties>
+    <!-- Tests do not run on jdk9 -->
+    <skipJDK9Tests>true</skipJDK9Tests>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>

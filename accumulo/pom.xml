@@ -30,6 +30,8 @@ LICENSE file.
   <properties>
     <!-- This should match up to the one from your Accumulo version -->
     <hadoop.version>2.2.0</hadoop.version>
+    <!-- Tests do not run on jdk9 -->
+    <skipJDK9Tests>true</skipJDK9Tests>
   </properties>
   <dependencies>
     <dependency>
