@@ -45,8 +45,6 @@ import java.util.concurrent.locks.ReentrantLock;
  * orientdb.user=admin <br>
  * orientdb.password=admin <br>
  *
- * @author Luca Garulli
- * @author Andrey Lomakin
  */
 public class OrientDBClient extends DB {
   private static final String URL_PROPERTY         = "orientdb.url";
