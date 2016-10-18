@@ -189,7 +189,7 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
     private String ordinal(Double i) {
       String[] suffixes = new String[] { "th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th" };
       Integer j = i.intValue();
-      if(i%1 == 0)
+      if (i%1 == 0)
       {
           switch (j % 100) {
             case 11:
