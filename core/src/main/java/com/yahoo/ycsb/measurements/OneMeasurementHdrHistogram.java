@@ -58,7 +58,7 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
    */
   public static final String PERCENTILES_PROPERTY_DEFAULT = "95,99";
 
-  List<Integer> percentiles;
+  List<Double> percentiles;
 
   public OneMeasurementHdrHistogram(String name, Properties props) {
     super(name);
@@ -114,7 +114,7 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
     exporter.write(getName(), "MinLatency(us)", totalHistogram.getMinValue());
     exporter.write(getName(), "MaxLatency(us)", totalHistogram.getMaxValue());
 
-    for (Integer percentile: percentiles) {
+    for (Double percentile: percentiles) {
       exporter.write(getName(), ordinal(percentile) + "PercentileLatency(us)", totalHistogram.getValueAtPercentile(percentile));
     }
     
@@ -162,12 +162,12 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
      * @param percentileString - comma delimited string of Integer values
      * @return An Integer List of percentile values
      */
-    private List<Integer> getPercentileValues(String percentileString) {
-      List<Integer> percentileValues = new ArrayList<Integer>();
+    private List<Double> getPercentileValues(String percentileString) {
+      List<Double> percentileValues = new ArrayList<Double>();
 
       try {
         for (String rawPercentile: percentileString.split(",")) {
-          percentileValues.add(Integer.parseInt(rawPercentile));
+          percentileValues.add(Double.parseDouble(rawPercentile));
         }
       } catch(Exception e) {
         // If the given hdrhistogram.percentiles value is unreadable for whatever reason,
@@ -186,15 +186,23 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
      * @param i
      * @return ordinal string
      */
-    private String ordinal(int i) {
+    private String ordinal(Double i) {
       String[] suffixes = new String[] { "th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th" };
-      switch (i % 100) {
-        case 11:
-        case 12:
-        case 13:
-          return i + "th";
-        default:
-          return i + suffixes[i % 10];
+      Integer j = i.intValue();
+      if (i%1 == 0)
+      {
+          switch (j % 100) {
+            case 11:
+            case 12:
+            case 13:
+              return j + "th";
+            default:
+              return j + suffixes[j % 10];
+          }
+      }
+      else
+      {
+          return i.toString();
       }
     }
 }
