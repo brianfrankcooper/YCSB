@@ -14,16 +14,17 @@
  * permissions and limitations under the License. See accompanying
  * LICENSE file.
  */
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.solr6;
 
 import com.yahoo.ycsb.DB;
+import org.apache.solr.client.solrj.embedded.JettySolrRunner;
 import org.junit.After;
 
 import java.util.Properties;
 
 import static org.junit.Assume.assumeNoException;
 
-public class SolrClientCloudTest extends SolrClientBaseTest {
+public class SolrClientTest extends SolrClientBaseTest {
 
   private SolrClient instance;
 
@@ -42,10 +43,15 @@ public class SolrClientCloudTest extends SolrClientBaseTest {
   protected DB getDB(Properties props) {
     instance = new SolrClient();
 
-    props.setProperty("solr.cloud", "true");
-    props.setProperty("solr.zookeeper.hosts", miniSolrCloudCluster.getSolrClient().getZkHost());
+    // Use the first Solr server in the cluster.
+    // Doesn't matter if there are more since requests will be forwarded properly by Solr.
+    JettySolrRunner jettySolrRunner = miniSolrCloudCluster.getJettySolrRunners().get(0);
+    String solrBaseUrl = String.format("http://localhost:%s%s", jettySolrRunner.getLocalPort(),
+      jettySolrRunner.getBaseUrl());
 
+    props.setProperty("solr.base.url", solrBaseUrl);
     instance.setProperties(props);
+
     try {
       instance.init();
     } catch (Exception error) {

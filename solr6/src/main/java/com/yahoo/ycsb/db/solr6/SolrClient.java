@@ -15,7 +15,7 @@
  * LICENSE file.
  */
 
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.solr6;
 
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
@@ -34,12 +34,8 @@ import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
 
 /**
  * Solr client for YCSB framework.
@@ -81,10 +77,10 @@ public class SolrClient extends DB {
     if (cloudMode) {
       System.err.println("Solr Zookeeper Remote Hosts = "
           + props.getProperty("solr.zookeeper.hosts", DEFAULT_ZOOKEEPER_HOSTS));
-      client = new CloudSolrClient(
-          props.getProperty("solr.zookeeper.hosts", DEFAULT_ZOOKEEPER_HOSTS));
+      client = new CloudSolrClient.Builder().withZkHost(
+        Arrays.asList(props.getProperty("solr.zookeeper.hosts", DEFAULT_ZOOKEEPER_HOSTS).split(","))).build();
     } else {
-      client = new HttpSolrClient(props.getProperty("solr.base.url", DEFAULT_SOLR_BASE_URL));
+      client = new HttpSolrClient.Builder(props.getProperty("solr.base.url", DEFAULT_SOLR_BASE_URL)).build();
     }
   }
 
@@ -283,7 +279,7 @@ public class SolrClient extends DB {
       HashMap<String, ByteIterator> entry;
 
       for (SolrDocument hit : results) {
-        entry = new HashMap<String, ByteIterator>((int) results.getNumFound());
+        entry = new HashMap<>((int) results.getNumFound());
         for (String field : hit.getFieldNames()) {
           entry.put(field, new StringByteIterator(String.valueOf(hit.getFirstValue(field))));
         }
