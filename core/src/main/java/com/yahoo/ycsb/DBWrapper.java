@@ -17,17 +17,11 @@
 
 package com.yahoo.ycsb;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
-
-import org.apache.htrace.core.Tracer;
-import org.apache.htrace.core.TraceScope;
-
 import com.yahoo.ycsb.measurements.Measurements;
+import org.apache.htrace.core.TraceScope;
+import org.apache.htrace.core.Tracer;
+
+import java.util.*;
 
 /**
  * Wrapper around a "real" DB that measures latencies and counts return codes.
@@ -56,6 +50,7 @@ public class DBWrapper extends DB
   private final String SCOPE_STRING_INSERT;
   private final String SCOPE_STRING_READ;
   private final String SCOPE_STRING_SCAN;
+  private final String SCOPE_STRING_FILTER;
   private final String SCOPE_STRING_UPDATE;
 
   public DBWrapper(final DB db, final Tracer tracer)
@@ -70,6 +65,7 @@ public class DBWrapper extends DB
     SCOPE_STRING_INSERT = simple + "#insert";
     SCOPE_STRING_READ = simple + "#read";
     SCOPE_STRING_SCAN = simple + "#scan";
+    SCOPE_STRING_FILTER = simple + "#filter";
     SCOPE_STRING_UPDATE = simple + "#update";
   }
 
@@ -177,6 +173,21 @@ public class DBWrapper extends DB
       long en=System.nanoTime();
       measure("SCAN", res, ist, st, en);
       _measurements.reportStatus("SCAN", res);
+      return res;
+    }
+  }
+
+  //TODO fiz o SCOPE_STRING_SCAN, depois implementar SCOPE_STRING_FILTER??
+  @Override
+//  public Status filter(String table, String startkey, int recordcount, String value, String compareOperation, Vector<HashMap<String, ByteIterator>> result) {
+  public Status filter(String table, String startkey, int recordcount, String value, String compareOperation, List<String> result) {
+    try (final TraceScope span = _tracer.newScope(SCOPE_STRING_FILTER)) {
+      long ist=_measurements.getIntendedtartTimeNs();
+      long st = System.nanoTime();
+      Status res=_db.filter(table,startkey,recordcount,value,compareOperation,result);
+      long en=System.nanoTime();
+      measure("FILTER", res, ist, st, en);
+      _measurements.reportStatus("FILTER", res);
       return res;
     }
   }

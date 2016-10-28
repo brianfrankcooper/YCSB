@@ -17,10 +17,7 @@
 
 package com.yahoo.ycsb;
 
-import java.util.HashMap;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * A layer for accessing a database to be benchmarked. Each thread in the client
@@ -103,8 +100,23 @@ public abstract class DB
 	 * @return The result of the operation.
 	 */
 	public abstract Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result);
-	
-	/**
+
+  /**
+   * Perform a range scan for a set of records, filtering them according to the Compare Operation specified and the value to compare.
+   * Each field/value pair from the result will be stored in a HashMap.
+   *
+   * @param table The name of the table
+   * @param startkey The record key of the first record to read
+   * @param recordcount The number of records to read
+   * @param value The record value to compare and perform the filter operation
+   * @param compareOperation The compare operation to apply in the filter
+   * @param result A Vector of HashMaps, where each HasMap is a set field/value pairs for one record
+   * @return The result of the operation.
+   */
+//  public abstract Status filter(String table, String startkey, int recordcount, String value, String compareOperation, Vector<HashMap<String, ByteIterator>> result);
+  public abstract Status filter(String table, String startkey, int recordcount, String value, String compareOperation, List<String> result);
+
+  /**
 	 * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
 	 * record key, overwriting any existing values with the same field name.
 	 *

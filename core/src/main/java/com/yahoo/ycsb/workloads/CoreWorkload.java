@@ -17,32 +17,12 @@
 
 package com.yahoo.ycsb.workloads;
 
-import java.util.Properties;
-
 import com.yahoo.ycsb.*;
-import com.yahoo.ycsb.generator.AcknowledgedCounterGenerator;
-import com.yahoo.ycsb.generator.ConstantIntegerGenerator;
-import com.yahoo.ycsb.generator.CounterGenerator;
-import com.yahoo.ycsb.generator.DiscreteGenerator;
-import com.yahoo.ycsb.generator.ExponentialGenerator;
-import com.yahoo.ycsb.generator.HistogramGenerator;
-import com.yahoo.ycsb.generator.HotspotIntegerGenerator;
-import com.yahoo.ycsb.generator.NumberGenerator;
-import com.yahoo.ycsb.generator.ScrambledZipfianGenerator;
-import com.yahoo.ycsb.generator.SequentialGenerator;
-import com.yahoo.ycsb.generator.SkewedLatestGenerator;
-import com.yahoo.ycsb.generator.UniformIntegerGenerator;
-import com.yahoo.ycsb.generator.ZipfianGenerator;
+import com.yahoo.ycsb.generator.*;
 import com.yahoo.ycsb.measurements.Measurements;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Vector;
+import java.util.*;
 
 
 /**
@@ -234,6 +214,16 @@ public class CoreWorkload extends Workload {
    * The default proportion of transactions that are scans.
    */
   public static final String SCAN_PROPORTION_PROPERTY_DEFAULT = "0.0";
+
+  /**
+   * The name of the property for the proportion of transactions that are filters.
+   */
+  public static final String FILTER_PROPORTION_PROPERTY = "filterproportion";
+
+  /**
+   * The default proportion of transactions that are filters.
+   */
+  public static final String FILTER_PROPORTION_PROPERTY_DEFAULT = "0.0";
 
   /**
    * The name of the property for the proportion of transactions that are read-modify-write.
@@ -639,6 +629,9 @@ public class CoreWorkload extends Workload {
     case "SCAN":
       doTransactionScan(db);
       break;
+    case "FILTER":
+      doTransactionFilter(db);
+      break;
     default:
       doTransactionReadModifyWrite(db);
     } 
@@ -782,6 +775,20 @@ public class CoreWorkload extends Workload {
     db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
   }
 
+  public void doTransactionFilter(DB db) {
+    int keynum = nextKeynum();
+
+//    String startkeyname = buildKeyName(keynum);
+    String startkeyname = "user";
+
+    // choose a random scan length
+    int len = scanlength.nextValue().intValue();
+
+    //TODO - Para já nao estou a usar a startkey, nem o compare operator, nem o value. ta tudo por default no hbase client
+    db.filter(table, startkeyname, len, "user8627391162697748212", "EQUAL", new ArrayList<String>());
+//    db.filter(table, startkeyname, len, "user8627391162697748212", "GREATER", new Vector<HashMap<String, ByteIterator>>());
+  }
+
   public void doTransactionUpdate(DB db) {
     // choose a random key
     int keynum = nextKeynum();
@@ -835,7 +842,9 @@ public class CoreWorkload extends Workload {
     final double insertproportion = Double.parseDouble(
         p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
     final double scanproportion = Double.parseDouble(
-        p.getProperty(SCAN_PROPORTION_PROPERTY, SCAN_PROPORTION_PROPERTY_DEFAULT));
+      p.getProperty(SCAN_PROPORTION_PROPERTY, SCAN_PROPORTION_PROPERTY_DEFAULT));
+    final double filterproportion = Double.parseDouble(
+      p.getProperty(FILTER_PROPORTION_PROPERTY, FILTER_PROPORTION_PROPERTY_DEFAULT));
     final double readmodifywriteproportion = Double.parseDouble(p.getProperty(
         READMODIFYWRITE_PROPORTION_PROPERTY, READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT));
     
@@ -854,6 +863,10 @@ public class CoreWorkload extends Workload {
 
     if (scanproportion > 0) {
       operationchooser.addValue(scanproportion, "SCAN");
+    }
+
+    if (filterproportion > 0) {
+      operationchooser.addValue(filterproportion, "FILTER");
     }
 
     if (readmodifywriteproportion > 0) {

@@ -1,0 +1,4 @@
+com/yahoo/ycsb/db/AbstractDBTestCases.class
+com/yahoo/ycsb/db/OptionsSupportTest.class
+com/yahoo/ycsb/db/AsyncMongoDbClientTest.class
+com/yahoo/ycsb/db/MongoDbClientTest.class

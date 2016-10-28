@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.yahoo.ycsb.webservice.rest.RestClientTest
+-------------------------------------------------------------------------------
+Tests run: 17, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 28.399 sec - in com.yahoo.ycsb.webservice.rest.RestClientTest

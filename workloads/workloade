@@ -35,6 +35,7 @@ readallfields=true
 readproportion=0
 updateproportion=0
 scanproportion=0.95
+filterproportion=0
 insertproportion=0.05
 
 requestdistribution=zipfian

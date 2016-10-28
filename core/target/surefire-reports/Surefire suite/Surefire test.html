@@ -1,0 +1,366 @@
+<html>
+<head>
+<title>TestNG:  Surefire test</title>
+<link href="../testng.css" rel="stylesheet" type="text/css" />
+<link href="../my-testng.css" rel="stylesheet" type="text/css" />
+
+<style type="text/css">
+.log { display: none;} 
+.stack-trace { display: none;} 
+</style>
+<script type="text/javascript">
+<!--
+function flip(e) {
+  current = e.style.display;
+  if (current == 'block') {
+    e.style.display = 'none';
+    return 0;
+  }
+  else {
+    e.style.display = 'block';
+    return 1;
+  }
+}
+
+function toggleBox(szDivId, elem, msg1, msg2)
+{
+  var res = -1;  if (document.getElementById) {
+    res = flip(document.getElementById(szDivId));
+  }
+  else if (document.all) {
+    // this is the way old msie versions work
+    res = flip(document.all[szDivId]);
+  }
+  if(elem) {
+    if(res == 0) elem.innerHTML = msg1; else elem.innerHTML = msg2;
+  }
+
+}
+
+function toggleAllBoxes() {
+  if (document.getElementsByTagName) {
+    d = document.getElementsByTagName('div');
+    for (i = 0; i < d.length; i++) {
+      if (d[i].className == 'log') {
+        flip(d[i]);
+      }
+    }
+  }
+}
+
+// -->
+</script>
+
+</head>
+<body>
+<h2 align='center'>Surefire test</h2><table border='1' align="center">
+<tr>
+<td>Tests passed/Failed/Skipped:</td><td>23/0/0</td>
+</tr><tr>
+<td>Started on:</td><td>Fri Oct 28 14:40:16 WEST 2016</td>
+</tr>
+<tr><td>Total time:</td><td>0 seconds (952 ms)</td>
+</tr><tr>
+<td>Included groups:</td><td></td>
+</tr><tr>
+<td>Excluded groups:</td><td></td>
+</tr>
+</table><p/>
+<small><i>(Hover the method name to see the test class name)</i></small><p/>
+<table width='100%' border='1' class='invocation-passed'>
+<tr><td colspan='4' align='center'><b>PASSED TESTS</b></td></tr>
+<tr><td><b>Test method</b></td>
+<td width="30%"><b>Exception</b></td>
+<td width="10%"><b>Time (seconds)</b></td>
+<td><b>Instance</b></td>
+</tr>
+<tr>
+<td title='com.yahoo.ycsb.TestUtils.bytesToDoubleTooShort()'><b>bytesToDoubleTooShort</b><br>Test class: com.yahoo.ycsb.TestUtils</td>
+<td><div><pre>java.lang.IllegalArgumentException: Byte array must be 8 bytes wide.
+	at com.yahoo.ycsb.Utils.bytesToDouble(Utils.java:170)
+	at com.yahoo.ycsb.TestUtils.bytesToDoubleTooShort(TestUtils.java:99)
+	at org.apache.maven.surefire.testng.TestNGExecutor.run(TestNGExecutor.java:115)
+	at org.apache.maven.surefire.testng.TestNGDirectoryTestSuite.executeMulti(TestNGDirectoryTestSuite.java:204)
+	at org.apache.maven.surefire.testng.TestNGDirectoryTestSuite.execute(TestNGDirectoryTestSuite.java:107)
+	at org.apache.maven.surefire.testng.TestNGProvider.invoke(TestNGProvider.java:112)
+	at org.apache.maven.surefire.booter.ForkedBooter.invokeProviderInSameClassLoader(ForkedBooter.java:200)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:153)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:103)
+... Removed 22 stack frames</pre></div><a href='#' onClick='toggleBox("stack-trace483422889", this, "Click to show all stack frames", "Click to hide stack frames")'>Click to show all stack frames</a>
+<div class='stack-trace' id='stack-trace483422889'><pre>java.lang.IllegalArgumentException: Byte array must be 8 bytes wide.
+	at com.yahoo.ycsb.Utils.bytesToDouble(Utils.java:170)
+	at com.yahoo.ycsb.TestUtils.bytesToDoubleTooShort(TestUtils.java:99)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at org.testng.internal.MethodInvocationHelper.invokeMethod(MethodInvocationHelper.java:80)
+	at org.testng.internal.Invoker.invokeMethod(Invoker.java:673)
+	at org.testng.internal.Invoker.invokeTestMethod(Invoker.java:842)
+	at org.testng.internal.Invoker.invokeTestMethods(Invoker.java:1166)
+	at org.testng.internal.TestMethodWorker.invokeTestMethods(TestMethodWorker.java:125)
+	at org.testng.internal.TestMethodWorker.run(TestMethodWorker.java:109)
+	at org.testng.TestRunner.runWorkers(TestRunner.java:1178)
+	at org.testng.TestRunner.privateRun(TestRunner.java:757)
+	at org.testng.TestRunner.run(TestRunner.java:608)
+	at org.testng.SuiteRunner.runTest(SuiteRunner.java:334)
+	at org.testng.SuiteRunner.runSequentially(SuiteRunner.java:329)
+	at org.testng.SuiteRunner.privateRun(SuiteRunner.java:291)
+	at org.testng.SuiteRunner.run(SuiteRunner.java:240)
+	at org.testng.SuiteRunnerWorker.runSuite(SuiteRunnerWorker.java:52)
+	at org.testng.SuiteRunnerWorker.run(SuiteRunnerWorker.java:86)
+	at org.testng.TestNG.runSuitesSequentially(TestNG.java:1158)
+	at org.testng.TestNG.runSuitesLocally(TestNG.java:1083)
+	at org.testng.TestNG.run(TestNG.java:999)
+	at org.apache.maven.surefire.testng.TestNGExecutor.run(TestNGExecutor.java:115)
+	at org.apache.maven.surefire.testng.TestNGDirectoryTestSuite.executeMulti(TestNGDirectoryTestSuite.java:204)
+	at org.apache.maven.surefire.testng.TestNGDirectoryTestSuite.execute(TestNGDirectoryTestSuite.java:107)
+	at org.apache.maven.surefire.testng.TestNGProvider.invoke(TestNGProvider.java:112)
+	at org.apache.maven.surefire.booter.ForkedBooter.invokeProviderInSameClassLoader(ForkedBooter.java:200)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:153)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:103)
+</pre></div></td>
+<td>0</td>
+<td>com.yahoo.ycsb.TestUtils@73035e27</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.TestUtils.bytesToFromDouble()'><b>bytesToFromDouble</b><br>Test class: com.yahoo.ycsb.TestUtils</td>
+<td></td>
+<td>0</td>
+<td>com.yahoo.ycsb.TestUtils@73035e27</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.TestUtils.bytesToFromLong()'><b>bytesToFromLong</b><br>Test class: com.yahoo.ycsb.TestUtils</td>
+<td></td>
+<td>0</td>
+<td>com.yahoo.ycsb.TestUtils@73035e27</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.TestUtils.bytesToLongNull()'><b>bytesToLongNull</b><br>Test class: com.yahoo.ycsb.TestUtils</td>
+<td><div><pre>java.lang.NullPointerException
+	at com.yahoo.ycsb.Utils.bytesToLong(Utils.java:131)
+	at com.yahoo.ycsb.TestUtils.bytesToLongNull(TestUtils.java:89)
+	at org.apache.maven.surefire.testng.TestNGExecutor.run(TestNGExecutor.java:115)
+	at org.apache.maven.surefire.testng.TestNGDirectoryTestSuite.executeMulti(TestNGDirectoryTestSuite.java:204)
+	at org.apache.maven.surefire.testng.TestNGDirectoryTestSuite.execute(TestNGDirectoryTestSuite.java:107)
+	at org.apache.maven.surefire.testng.TestNGProvider.invoke(TestNGProvider.java:112)
+	at org.apache.maven.surefire.booter.ForkedBooter.invokeProviderInSameClassLoader(ForkedBooter.java:200)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:153)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:103)
+... Removed 22 stack frames</pre></div><a href='#' onClick='toggleBox("stack-trace41903949", this, "Click to show all stack frames", "Click to hide stack frames")'>Click to show all stack frames</a>
+<div class='stack-trace' id='stack-trace41903949'><pre>java.lang.NullPointerException
+	at com.yahoo.ycsb.Utils.bytesToLong(Utils.java:131)
+	at com.yahoo.ycsb.TestUtils.bytesToLongNull(TestUtils.java:89)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at org.testng.internal.MethodInvocationHelper.invokeMethod(MethodInvocationHelper.java:80)
+	at org.testng.internal.Invoker.invokeMethod(Invoker.java:673)
+	at org.testng.internal.Invoker.invokeTestMethod(Invoker.java:842)
+	at org.testng.internal.Invoker.invokeTestMethods(Invoker.java:1166)
+	at org.testng.internal.TestMethodWorker.invokeTestMethods(TestMethodWorker.java:125)
+	at org.testng.internal.TestMethodWorker.run(TestMethodWorker.java:109)
+	at org.testng.TestRunner.runWorkers(TestRunner.java:1178)
+	at org.testng.TestRunner.privateRun(TestRunner.java:757)
+	at org.testng.TestRunner.run(TestRunner.java:608)
+	at org.testng.SuiteRunner.runTest(SuiteRunner.java:334)
+	at org.testng.SuiteRunner.runSequentially(SuiteRunner.java:329)
+	at org.testng.SuiteRunner.privateRun(SuiteRunner.java:291)
+	at org.testng.SuiteRunner.run(SuiteRunner.java:240)
+	at org.testng.SuiteRunnerWorker.runSuite(SuiteRunnerWorker.java:52)
+	at org.testng.SuiteRunnerWorker.run(SuiteRunnerWorker.java:86)
+	at org.testng.TestNG.runSuitesSequentially(TestNG.java:1158)
+	at org.testng.TestNG.runSuitesLocally(TestNG.java:1083)
+	at org.testng.TestNG.run(TestNG.java:999)
+	at org.apache.maven.surefire.testng.TestNGExecutor.run(TestNGExecutor.java:115)
+	at org.apache.maven.surefire.testng.TestNGDirectoryTestSuite.executeMulti(TestNGDirectoryTestSuite.java:204)
+	at org.apache.maven.surefire.testng.TestNGDirectoryTestSuite.execute(TestNGDirectoryTestSuite.java:107)
+	at org.apache.maven.surefire.testng.TestNGProvider.invoke(TestNGProvider.java:112)
+	at org.apache.maven.surefire.booter.ForkedBooter.invokeProviderInSameClassLoader(ForkedBooter.java:200)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:153)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:103)
+</pre></div></td>
+<td>0</td>
+<td>com.yahoo.ycsb.TestUtils@73035e27</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.TestUtils.bytesToLongTooShort()'><b>bytesToLongTooShort</b><br>Test class: com.yahoo.ycsb.TestUtils</td>
+<td><div><pre>java.lang.ArrayIndexOutOfBoundsException: 7
+	at com.yahoo.ycsb.Utils.bytesToLong(Utils.java:131)
+	at com.yahoo.ycsb.TestUtils.bytesToLongTooShort(TestUtils.java:94)
+	at org.apache.maven.surefire.testng.TestNGExecutor.run(TestNGExecutor.java:115)
+	at org.apache.maven.surefire.testng.TestNGDirectoryTestSuite.executeMulti(TestNGDirectoryTestSuite.java:204)
+	at org.apache.maven.surefire.testng.TestNGDirectoryTestSuite.execute(TestNGDirectoryTestSuite.java:107)
+	at org.apache.maven.surefire.testng.TestNGProvider.invoke(TestNGProvider.java:112)
+	at org.apache.maven.surefire.booter.ForkedBooter.invokeProviderInSameClassLoader(ForkedBooter.java:200)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:153)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:103)
+... Removed 22 stack frames</pre></div><a href='#' onClick='toggleBox("stack-trace488970385", this, "Click to show all stack frames", "Click to hide stack frames")'>Click to show all stack frames</a>
+<div class='stack-trace' id='stack-trace488970385'><pre>java.lang.ArrayIndexOutOfBoundsException: 7
+	at com.yahoo.ycsb.Utils.bytesToLong(Utils.java:131)
+	at com.yahoo.ycsb.TestUtils.bytesToLongTooShort(TestUtils.java:94)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at org.testng.internal.MethodInvocationHelper.invokeMethod(MethodInvocationHelper.java:80)
+	at org.testng.internal.Invoker.invokeMethod(Invoker.java:673)
+	at org.testng.internal.Invoker.invokeTestMethod(Invoker.java:842)
+	at org.testng.internal.Invoker.invokeTestMethods(Invoker.java:1166)
+	at org.testng.internal.TestMethodWorker.invokeTestMethods(TestMethodWorker.java:125)
+	at org.testng.internal.TestMethodWorker.run(TestMethodWorker.java:109)
+	at org.testng.TestRunner.runWorkers(TestRunner.java:1178)
+	at org.testng.TestRunner.privateRun(TestRunner.java:757)
+	at org.testng.TestRunner.run(TestRunner.java:608)
+	at org.testng.SuiteRunner.runTest(SuiteRunner.java:334)
+	at org.testng.SuiteRunner.runSequentially(SuiteRunner.java:329)
+	at org.testng.SuiteRunner.privateRun(SuiteRunner.java:291)
+	at org.testng.SuiteRunner.run(SuiteRunner.java:240)
+	at org.testng.SuiteRunnerWorker.runSuite(SuiteRunnerWorker.java:52)
+	at org.testng.SuiteRunnerWorker.run(SuiteRunnerWorker.java:86)
+	at org.testng.TestNG.runSuitesSequentially(TestNG.java:1158)
+	at org.testng.TestNG.runSuitesLocally(TestNG.java:1083)
+	at org.testng.TestNG.run(TestNG.java:999)
+	at org.apache.maven.surefire.testng.TestNGExecutor.run(TestNGExecutor.java:115)
+	at org.apache.maven.surefire.testng.TestNGDirectoryTestSuite.executeMulti(TestNGDirectoryTestSuite.java:204)
+	at org.apache.maven.surefire.testng.TestNGDirectoryTestSuite.execute(TestNGDirectoryTestSuite.java:107)
+	at org.apache.maven.surefire.testng.TestNGProvider.invoke(TestNGProvider.java:112)
+	at org.apache.maven.surefire.booter.ForkedBooter.invokeProviderInSameClassLoader(ForkedBooter.java:200)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:153)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:103)
+</pre></div></td>
+<td>0</td>
+<td>com.yahoo.ycsb.TestUtils@73035e27</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.workloads.TestCoreWorkload.createOperationChooser()'><b>createOperationChooser</b><br>Test class: com.yahoo.ycsb.workloads.TestCoreWorkload</td>
+<td></td>
+<td>0</td>
+<td>com.yahoo.ycsb.workloads.TestCoreWorkload@326de728</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.workloads.TestCoreWorkload.createOperationChooserNullProperties()'><b>createOperationChooserNullProperties</b><br>Test class: com.yahoo.ycsb.workloads.TestCoreWorkload</td>
+<td><div><pre>java.lang.IllegalArgumentException: Properties object cannot be null
+	at com.yahoo.ycsb.workloads.CoreWorkload.createOperationGenerator(CoreWorkload.java:836)
+	at com.yahoo.ycsb.workloads.TestCoreWorkload.createOperationChooserNullProperties(TestCoreWorkload.java:68)
+	at org.apache.maven.surefire.testng.TestNGExecutor.run(TestNGExecutor.java:115)
+	at org.apache.maven.surefire.testng.TestNGDirectoryTestSuite.executeMulti(TestNGDirectoryTestSuite.java:204)
+	at org.apache.maven.surefire.testng.TestNGDirectoryTestSuite.execute(TestNGDirectoryTestSuite.java:107)
+	at org.apache.maven.surefire.testng.TestNGProvider.invoke(TestNGProvider.java:112)
+	at org.apache.maven.surefire.booter.ForkedBooter.invokeProviderInSameClassLoader(ForkedBooter.java:200)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:153)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:103)
+... Removed 22 stack frames</pre></div><a href='#' onClick='toggleBox("stack-trace1773206895", this, "Click to show all stack frames", "Click to hide stack frames")'>Click to show all stack frames</a>
+<div class='stack-trace' id='stack-trace1773206895'><pre>java.lang.IllegalArgumentException: Properties object cannot be null
+	at com.yahoo.ycsb.workloads.CoreWorkload.createOperationGenerator(CoreWorkload.java:836)
+	at com.yahoo.ycsb.workloads.TestCoreWorkload.createOperationChooserNullProperties(TestCoreWorkload.java:68)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at org.testng.internal.MethodInvocationHelper.invokeMethod(MethodInvocationHelper.java:80)
+	at org.testng.internal.Invoker.invokeMethod(Invoker.java:673)
+	at org.testng.internal.Invoker.invokeTestMethod(Invoker.java:842)
+	at org.testng.internal.Invoker.invokeTestMethods(Invoker.java:1166)
+	at org.testng.internal.TestMethodWorker.invokeTestMethods(TestMethodWorker.java:125)
+	at org.testng.internal.TestMethodWorker.run(TestMethodWorker.java:109)
+	at org.testng.TestRunner.runWorkers(TestRunner.java:1178)
+	at org.testng.TestRunner.privateRun(TestRunner.java:757)
+	at org.testng.TestRunner.run(TestRunner.java:608)
+	at org.testng.SuiteRunner.runTest(SuiteRunner.java:334)
+	at org.testng.SuiteRunner.runSequentially(SuiteRunner.java:329)
+	at org.testng.SuiteRunner.privateRun(SuiteRunner.java:291)
+	at org.testng.SuiteRunner.run(SuiteRunner.java:240)
+	at org.testng.SuiteRunnerWorker.runSuite(SuiteRunnerWorker.java:52)
+	at org.testng.SuiteRunnerWorker.run(SuiteRunnerWorker.java:86)
+	at org.testng.TestNG.runSuitesSequentially(TestNG.java:1158)
+	at org.testng.TestNG.runSuitesLocally(TestNG.java:1083)
+	at org.testng.TestNG.run(TestNG.java:999)
+	at org.apache.maven.surefire.testng.TestNGExecutor.run(TestNGExecutor.java:115)
+	at org.apache.maven.surefire.testng.TestNGDirectoryTestSuite.executeMulti(TestNGDirectoryTestSuite.java:204)
+	at org.apache.maven.surefire.testng.TestNGDirectoryTestSuite.execute(TestNGDirectoryTestSuite.java:107)
+	at org.apache.maven.surefire.testng.TestNGProvider.invoke(TestNGProvider.java:112)
+	at org.apache.maven.surefire.booter.ForkedBooter.invokeProviderInSameClassLoader(ForkedBooter.java:200)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:153)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:103)
+</pre></div></td>
+<td>0</td>
+<td>com.yahoo.ycsb.workloads.TestCoreWorkload@326de728</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.generator.TestUnixEpochTimestampGenerator.ctorWithIntervalAndUnits()'><b>ctorWithIntervalAndUnits</b><br>Test class: com.yahoo.ycsb.generator.TestUnixEpochTimestampGenerator</td>
+<td></td>
+<td>0</td>
+<td>com.yahoo.ycsb.generator.TestUnixEpochTimestampGenerator@483bf400</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.generator.TestUnixEpochTimestampGenerator.ctorWithIntervalAndUnitsAndStart()'><b>ctorWithIntervalAndUnitsAndStart</b><br>Test class: com.yahoo.ycsb.generator.TestUnixEpochTimestampGenerator</td>
+<td></td>
+<td>0</td>
+<td>com.yahoo.ycsb.generator.TestUnixEpochTimestampGenerator@483bf400</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.generator.TestUnixEpochTimestampGenerator.defaultCtor()'><b>defaultCtor</b><br>Test class: com.yahoo.ycsb.generator.TestUnixEpochTimestampGenerator</td>
+<td></td>
+<td>0</td>
+<td>com.yahoo.ycsb.generator.TestUnixEpochTimestampGenerator@483bf400</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.generator.TestIncrementingPrintableStringGenerator.invalidCharacterSets()'><b>invalidCharacterSets</b><br>Test class: com.yahoo.ycsb.generator.TestIncrementingPrintableStringGenerator</td>
+<td></td>
+<td>0</td>
+<td>com.yahoo.ycsb.generator.TestIncrementingPrintableStringGenerator@3ecf72fd</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.generator.TestIncrementingPrintableStringGenerator.invalidLengths()'><b>invalidLengths</b><br>Test class: com.yahoo.ycsb.generator.TestIncrementingPrintableStringGenerator</td>
+<td></td>
+<td>0</td>
+<td>com.yahoo.ycsb.generator.TestIncrementingPrintableStringGenerator@3ecf72fd</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.TestUtils.jvmUtils()'><b>jvmUtils</b><br>Test class: com.yahoo.ycsb.TestUtils</td>
+<td></td>
+<td>0</td>
+<td>com.yahoo.ycsb.TestUtils@73035e27</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.generator.TestIncrementingPrintableStringGenerator.rolloverException()'><b>rolloverException</b><br>Test class: com.yahoo.ycsb.generator.TestIncrementingPrintableStringGenerator</td>
+<td></td>
+<td>0</td>
+<td>com.yahoo.ycsb.generator.TestIncrementingPrintableStringGenerator@3ecf72fd</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.generator.TestIncrementingPrintableStringGenerator.rolloverOK()'><b>rolloverOK</b><br>Test class: com.yahoo.ycsb.generator.TestIncrementingPrintableStringGenerator</td>
+<td></td>
+<td>0</td>
+<td>com.yahoo.ycsb.generator.TestIncrementingPrintableStringGenerator@3ecf72fd</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.generator.TestIncrementingPrintableStringGenerator.rolloverOneCharacterException()'><b>rolloverOneCharacterException</b><br>Test class: com.yahoo.ycsb.generator.TestIncrementingPrintableStringGenerator</td>
+<td></td>
+<td>0</td>
+<td>com.yahoo.ycsb.generator.TestIncrementingPrintableStringGenerator@3ecf72fd</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.generator.TestIncrementingPrintableStringGenerator.rolloverOneCharacterOK()'><b>rolloverOneCharacterOK</b><br>Test class: com.yahoo.ycsb.generator.TestIncrementingPrintableStringGenerator</td>
+<td></td>
+<td>0</td>
+<td>com.yahoo.ycsb.generator.TestIncrementingPrintableStringGenerator@3ecf72fd</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.TestStatus.testAcceptableStatus()'><b>testAcceptableStatus</b><br>Test class: com.yahoo.ycsb.TestStatus</td>
+<td></td>
+<td>0</td>
+<td>com.yahoo.ycsb.TestStatus@f5f2bb7</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.generator.AcknowledgedCounterGeneratorTest.testIncrementPastIntegerMaxValue()'><b>testIncrementPastIntegerMaxValue</b><br>Test class: com.yahoo.ycsb.generator.AcknowledgedCounterGeneratorTest</td>
+<td></td>
+<td>0</td>
+<td>com.yahoo.ycsb.generator.AcknowledgedCounterGeneratorTest@64c64813</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.measurements.exporter.TestMeasurementsExporter.testJSONArrayMeasurementsExporter()'><b>testJSONArrayMeasurementsExporter</b><br>Test class: com.yahoo.ycsb.measurements.exporter.TestMeasurementsExporter</td>
+<td></td>
+<td>0</td>
+<td>com.yahoo.ycsb.measurements.exporter.TestMeasurementsExporter@77f03bb1</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.generator.TestZipfianGenerator.testMinAndMaxParameter()'><b>testMinAndMaxParameter</b><br>Test class: com.yahoo.ycsb.generator.TestZipfianGenerator</td>
+<td></td>
+<td>0</td>
+<td>com.yahoo.ycsb.generator.TestZipfianGenerator@21a06946</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.TestByteIterator.testRandomByteIterator()'><b>testRandomByteIterator</b><br>Test class: com.yahoo.ycsb.TestByteIterator</td>
+<td></td>
+<td>0</td>
+<td>com.yahoo.ycsb.TestByteIterator@13b6d03</td></tr>
+<tr>
+<td title='com.yahoo.ycsb.generator.TestUnixEpochTimestampGenerator.variousIntervalsAndUnits()'><b>variousIntervalsAndUnits</b><br>Test class: com.yahoo.ycsb.generator.TestUnixEpochTimestampGenerator</td>
+<td></td>
+<td>0</td>
+<td>com.yahoo.ycsb.generator.TestUnixEpochTimestampGenerator@483bf400</td></tr>
+</table><p>
+</body>
+</html>

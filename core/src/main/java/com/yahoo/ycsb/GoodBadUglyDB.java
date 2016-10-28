@@ -17,17 +17,13 @@
 
 package com.yahoo.ycsb;
 
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
-
-import java.util.HashMap;
-import java.util.Random;
-import java.util.Set;
-import java.util.Vector;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
 
 /**
  * Basic DB that just prints out the requested operations, instead of doing them against a database.
@@ -119,7 +115,15 @@ public class GoodBadUglyDB extends DB {
         return Status.OK;
     }
 
-    /**
+  @Override
+//  public Status filter(String table, String startkey, int recordcount, String value, String compareOperation, Vector<HashMap<String, ByteIterator>> result) {
+  public Status filter(String table, String startkey, int recordcount, String value, String compareOperation, List<String> result) {
+    delay();
+
+    return Status.OK;
+  }
+
+  /**
      * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the
      * record with the specified record key, overwriting any existing values with the same field name.
      *

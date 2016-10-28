@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="6.2">
+<file name="/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/rados/src/main/java/com/yahoo/ycsb/db/RadosClient.java">
+</file>
+<file name="/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/rados/src/main/java/com/yahoo/ycsb/db/package-info.java">
+</file>
+</checkstyle>

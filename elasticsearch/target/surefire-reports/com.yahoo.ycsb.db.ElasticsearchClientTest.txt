@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.yahoo.ycsb.db.ElasticsearchClientTest
+-------------------------------------------------------------------------------
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 46.438 sec - in com.yahoo.ycsb.db.ElasticsearchClientTest

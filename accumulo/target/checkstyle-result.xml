@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="6.2">
+<file name="/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/accumulo/src/main/java/com/yahoo/ycsb/db/accumulo/AccumuloClient.java">
+</file>
+<file name="/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/accumulo/src/main/java/com/yahoo/ycsb/db/accumulo/package-info.java">
+</file>
+<file name="/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/accumulo/src/test/resources/log4j.properties">
+</file>
+</checkstyle>

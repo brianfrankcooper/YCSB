@@ -1,0 +1,10 @@
+com/yahoo/ycsb/db/flavors/DefaultDBFlavor.class
+com/yahoo/ycsb/db/JdbcDBCli.class
+com/yahoo/ycsb/db/flavors/DBFlavor$DBName.class
+com/yahoo/ycsb/db/StatementType$Type.class
+com/yahoo/ycsb/db/StatementType.class
+com/yahoo/ycsb/db/JdbcDBCreateTable.class
+com/yahoo/ycsb/db/flavors/DBFlavor.class
+com/yahoo/ycsb/db/flavors/PhoenixDBFlavor.class
+com/yahoo/ycsb/db/JdbcDBClient$OrderedFieldInfo.class
+com/yahoo/ycsb/db/JdbcDBClient.class

@@ -1,0 +1,11 @@
+#Fri Oct 28 09:28:35 WEST 2016
+/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/jdbc/src/main/java/com/yahoo/ycsb/db/package-info.java=1477641825000
+/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/jdbc/src/main/java/com/yahoo/ycsb/db/flavors/package-info.java=1477641825000
+/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/jdbc/src/main/java/com/yahoo/ycsb/db/JdbcDBClient.java=1477641825000
+/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/jdbc/src/main/java/com/yahoo/ycsb/db/flavors/DBFlavor.java=1477641825000
+/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/jdbc/src/main/java/com/yahoo/ycsb/db/JdbcDBCli.java=1477641825000
+/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/jdbc/src/main/java/com/yahoo/ycsb/db/flavors/DefaultDBFlavor.java=1477641825000
+/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/jdbc/src/main/java/com/yahoo/ycsb/db/StatementType.java=1477641825000
+/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/jdbc/src/main/java/com/yahoo/ycsb/db/flavors/PhoenixDBFlavor.java=1477641825000
+configuration*?=55F158DC50B958B9518345AA51B88508F2737B00
+/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/jdbc/src/main/java/com/yahoo/ycsb/db/JdbcDBCreateTable.java=1477641825000

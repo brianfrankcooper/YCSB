@@ -182,7 +182,23 @@ public class BasicDB extends DB
 		return Status.OK;
 	}
 
-	/**
+
+//  public Status filter(String table, String startkey, int recordcount, String value, String compareOperation, Vector<HashMap<String, ByteIterator>> result) {
+  public Status filter(String table, String startkey, int recordcount, String value, String compareOperation, List<String> result) {
+    delay();
+
+    if(verbose) {
+      StringBuilder sb = getStringBuilder();
+//      sb.append("FILTER ").append(table).append(" ").append(startkey).append(" ").append(recordcount).append(result.toString());
+      sb.append("FILTER ").append(table).append(" ").append("user8627391162697748212").append(" ").append(result.size()).append(result.toString());
+
+      System.out.println(sb);
+    }
+
+    return Status.OK;
+  }
+
+  /**
 	 * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
 	 * record key, overwriting any existing values with the same field name.
 	 *
