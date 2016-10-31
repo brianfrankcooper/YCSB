@@ -1,12 +1,12 @@
 /**
  * Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
- * <p>
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
  * may obtain a copy of the License at
- * <p>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
@@ -37,14 +37,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * OrientDB client for YCSB framework.
- * <p>
- * Properties to set:
- * <p>
- * orientdb.url=local:C:/temp/databases or remote:localhost:2424 <br>
- * orientdb.database=ycsb <br>
- * orientdb.user=admin <br>
- * orientdb.password=admin <br>
- *
  */
 public class OrientDBClient extends DB {
   private static final String URL_PROPERTY         = "orientdb.url";
@@ -199,17 +191,6 @@ public class OrientDBClient extends DB {
 
   }
 
-  /**
-   * Insert a record in the database. Any field/value pairs in the specified values
-   * HashMap will be written into the record with the specified
-   * record key.
-   *
-   * @param table  The name of the table
-   * @param key    The record key of the record to insert.
-   * @param values A HashMap of field/value pairs to insert in the record
-   * @return Zero on success, a non-zero error code on error.
-   * See this class's description for a discussion of error codes.
-   */
   @Override
   public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
     try (ODatabaseDocumentTx db = databasePool.acquire()) {
@@ -230,14 +211,6 @@ public class OrientDBClient extends DB {
     return Status.ERROR;
   }
 
-  /**
-   * Delete a record from the database.
-   *
-   * @param table The name of the table
-   * @param key   The record key of the record to delete.
-   * @return Zero on success, a non-zero error code on error.
-   * See this class's description for a discussion of error codes.
-   */
   @Override
   public Status delete(String table, String key) {
     while (true) {
@@ -254,15 +227,6 @@ public class OrientDBClient extends DB {
     }
   }
 
-  /**
-   * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
-   *
-   * @param table  The name of the table
-   * @param key    The record key of the record to read.
-   * @param fields The list of fields to read, or null for all of them
-   * @param result A HashMap of field/value pairs for the result
-   * @return Zero on success, a non-zero error code on error or "not found".
-   */
   @Override
   public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
     try (ODatabaseDocumentTx db = databasePool.acquire()) {
@@ -286,17 +250,6 @@ public class OrientDBClient extends DB {
     return Status.ERROR;
   }
 
-  /**
-   * Update a record in the database. Any field/value pairs in the specified values
-   * HashMap will be written into the record with the specified
-   * record key, overwriting any existing values with the same field name.
-   *
-   * @param table  The name of the table
-   * @param key    The record key of the record to write.
-   * @param values A HashMap of field/value pairs to update in the record
-   * @return Zero on success, a non-zero error code on error. See this class's description f
-   * or a discussion of error codes.
-   */
   @Override
   public Status update(String table, String key, HashMap<String, ByteIterator> values) {
     while (true) {
@@ -320,18 +273,6 @@ public class OrientDBClient extends DB {
     }
   }
 
-  /**
-   * Perform a range scan for a set of records in the database.
-   * Each field/value pair from the result will be stored in a HashMap.
-   *
-   * @param table       The name of the table
-   * @param startkey    The record key of the first record to read.
-   * @param recordcount The number of records to read
-   * @param fields      The list of fields to read, or null for all of them
-   * @param result      A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
-   * @return Zero on success, a non-zero error code on error.
-   * See this class's description for a discussion of error codes.
-   */
   @Override
   public Status scan(String table, String startkey, int recordcount, Set<String> fields,
       Vector<HashMap<String, ByteIterator>> result) {
