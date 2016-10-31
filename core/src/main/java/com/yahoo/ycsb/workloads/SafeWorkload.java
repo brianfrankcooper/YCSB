@@ -14,6 +14,10 @@ public class SafeWorkload extends CoreWorkload {
   public static final String START_KEY_NAME = "startkeyname";
   public static String startkeyname;
 
+  public static final String COMPARE_VALUE_DEFAULT = "hello_world";
+  public static final String COMPARE_VALUE = "comparevalue";
+  public static String comparevalue;
+
   int fieldcount;
 
   private List<String> fieldnames;
@@ -46,6 +50,9 @@ public class SafeWorkload extends CoreWorkload {
 
 //    Start key name
     startkeyname = p.getProperty(START_KEY_NAME, START_KEY_NAME_DEFAULT);
+
+//    Compare Value for Filter operations
+    comparevalue = p.getProperty(COMPARE_VALUE, COMPARE_VALUE_DEFAULT);
 
 //    get numero de campos
     fieldcount =
@@ -467,9 +474,7 @@ public class SafeWorkload extends CoreWorkload {
     // choose a random scan length
     int len = scanlength.nextValue().intValue();
 
-    //TODO - Para já nao estou a usar a startkey, nem o compare operator, nem o value. ta tudo por default no hbase client
-    db.filter(table, startk, len, "user8627391162697748212", "GREATER", new ArrayList<String>());
-//    db.filter(table, startkeyname, len, "user8627391162697748212", "GREATER", new Vector<HashMap<String, ByteIterator>>());
+    db.filter(table, startk, len, comparevalue, "GREATER", new ArrayList<String>());
   }
 
 //  public void doTransactionUpdate(DB db) {
