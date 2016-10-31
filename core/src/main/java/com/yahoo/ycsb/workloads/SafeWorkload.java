@@ -10,6 +10,10 @@ import java.util.*;
  * Created by rgmacedo on 10/28/16.
  */
 public class SafeWorkload extends CoreWorkload {
+  public static final String START_KEY_NAME_DEFAULT = "false";
+  public static final String START_KEY_NAME = "startkeyname";
+  public static String startkeyname;
+
   int fieldcount;
 
   private List<String> fieldnames;
@@ -37,16 +41,23 @@ public class SafeWorkload extends CoreWorkload {
    */
   @Override
   public void init(Properties p) throws WorkloadException {
+//    Tabela
     table = p.getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
 
+//    Start key name
+    startkeyname = p.getProperty(START_KEY_NAME, START_KEY_NAME_DEFAULT);
+
+//    get numero de campos
     fieldcount =
       Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
     fieldnames = new ArrayList<String>();
     for (int i = 0; i < fieldcount; i++) {
       fieldnames.add("field" + i);
     }
+//    gerador para o tamanho de cada campo
     fieldlengthgenerator = SafeWorkload.getFieldLengthGenerator(p);
 
+//    numero de records para fazer load inicialmente
     recordcount =
       Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
     if (recordcount == 0) {
@@ -54,8 +65,12 @@ public class SafeWorkload extends CoreWorkload {
     }
     String requestdistrib =
       p.getProperty(REQUEST_DISTRIBUTION_PROPERTY, REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
+
+//    max number of scan's to perform
     int maxscanlength =
       Integer.parseInt(p.getProperty(MAX_SCAN_LENGTH_PROPERTY, MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
+
+//    what distribution should be used for to choose the number of records to scan
     String scanlengthdistrib =
       p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY, SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
 
@@ -69,14 +84,20 @@ public class SafeWorkload extends CoreWorkload {
       System.err.println("recordcount must be bigger than insertstart + insertcount.");
       System.exit(-1);
     }
+
+//    number of padding to add on keys
     zeropadding =
       Integer.parseInt(p.getProperty(ZERO_PADDING_PROPERTY, ZERO_PADDING_PROPERTY_DEFAULT));
 
+//    ler todos os campos em scan's e get's
     readallfields = Boolean.parseBoolean(
       p.getProperty(READ_ALL_FIELDS_PROPERTY, READ_ALL_FIELDS_PROPERTY_DEFAULT));
+
+//    escrever em todos os campos nos insert's e update's
     writeallfields = Boolean.parseBoolean(
       p.getProperty(WRITE_ALL_FIELDS_PROPERTY, WRITE_ALL_FIELDS_PROPERTY_DEFAULT));
 
+//    check all returned results
     dataintegrity = Boolean.parseBoolean(
       p.getProperty(DATA_INTEGRITY_PROPERTY, DATA_INTEGRITY_PROPERTY_DEFAULT));
     // Confirm that fieldlengthgenerator returns a constant if data
@@ -87,6 +108,10 @@ public class SafeWorkload extends CoreWorkload {
       System.err.println("Must have constant field size to check data integrity.");
       System.exit(-1);
     }
+
+//    ordem com que os valores são inseridos:
+//    default == hashed , hashed order
+//    order == ordered by key("ordered")
 
     if (p.getProperty(INSERT_ORDER_PROPERTY, INSERT_ORDER_PROPERTY_DEFAULT).compareTo("hashed") == 0) {
       orderedinserts = false;
@@ -148,6 +173,7 @@ public class SafeWorkload extends CoreWorkload {
       INSERTION_RETRY_INTERVAL, INSERTION_RETRY_INTERVAL_DEFAULT));
   }
 
+  //TODO remover o "user" e por padding
   public String buildKeyName(long keynum) {
     if (!orderedinserts) {
       keynum = Utils.hash(keynum);
@@ -331,148 +357,153 @@ public class SafeWorkload extends CoreWorkload {
     return keynum;
   }
 
-  public void doTransactionRead(DB db) {
-    // choose a random key
-    int keynum = nextKeynum();
-
-    String keyname = buildKeyName(keynum);
-
-    HashSet<String> fields = null;
-
-    if (!readallfields) {
-      // read a random field
-      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
-
-      fields = new HashSet<String>();
-      fields.add(fieldname);
-    } else if (dataintegrity) {
-      // pass the full field list if dataintegrity is on for verification
-      fields = new HashSet<String>(fieldnames);
-    }
-
-    HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
-    db.read(table, keyname, fields, cells);
-
-    if (dataintegrity) {
-      verifyRow(keyname, cells);
-    }
-  }
-
-  public void doTransactionReadModifyWrite(DB db) {
-    // choose a random key
-    int keynum = nextKeynum();
-
-    String keyname = buildKeyName(keynum);
-
-    HashSet<String> fields = null;
-
-    if (!readallfields) {
-      // read a random field
-      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
-
-      fields = new HashSet<String>();
-      fields.add(fieldname);
-    }
-
-    HashMap<String, ByteIterator> values;
-
-    if (writeallfields) {
-      // new data for all the fields
-      values = buildValues(keyname);
-    } else {
-      // update a random field
-      values = buildSingleValue(keyname);
-    }
-
-    // do the transaction
-
-    HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
-
-
-    long ist = _measurements.getIntendedtartTimeNs();
-    long st = System.nanoTime();
-    db.read(table, keyname, fields, cells);
-
-    db.update(table, keyname, values);
-
-    long en = System.nanoTime();
-
-    if (dataintegrity) {
-      verifyRow(keyname, cells);
-    }
-
-    _measurements.measure("READ-MODIFY-WRITE", (int) ((en - st) / 1000));
-    _measurements.measureIntended("READ-MODIFY-WRITE", (int) ((en - ist) / 1000));
-  }
-
-  public void doTransactionScan(DB db) {
-    // choose a random key
-    int keynum = nextKeynum();
-
-    String startkeyname = buildKeyName(keynum);
-
-    // choose a random scan length
-    int len = scanlength.nextValue().intValue();
-
-    HashSet<String> fields = null;
-
-    if (!readallfields) {
-      // read a random field
-      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
-
-      fields = new HashSet<String>();
-      fields.add(fieldname);
-    }
-
-    db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
-  }
+//  public void doTransactionRead(DB db) {
+//    // choose a random key
+//    int keynum = nextKeynum();
+//
+//    String keyname = buildKeyName(keynum);
+//
+//    HashSet<String> fields = null;
+//
+//    if (!readallfields) {
+//      // read a random field
+//      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
+//
+//      fields = new HashSet<String>();
+//      fields.add(fieldname);
+//    } else if (dataintegrity) {
+//      // pass the full field list if dataintegrity is on for verification
+//      fields = new HashSet<String>(fieldnames);
+//    }
+//
+//    HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
+//    db.read(table, keyname, fields, cells);
+//
+//    if (dataintegrity) {
+//      verifyRow(keyname, cells);
+//    }
+//  }
+//
+//  public void doTransactionReadModifyWrite(DB db) {
+//    // choose a random key
+//    int keynum = nextKeynum();
+//
+//    String keyname = buildKeyName(keynum);
+//
+//    HashSet<String> fields = null;
+//
+//    if (!readallfields) {
+//      // read a random field
+//      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
+//
+//      fields = new HashSet<String>();
+//      fields.add(fieldname);
+//    }
+//
+//    HashMap<String, ByteIterator> values;
+//
+//    if (writeallfields) {
+//      // new data for all the fields
+//      values = buildValues(keyname);
+//    } else {
+//      // update a random field
+//      values = buildSingleValue(keyname);
+//    }
+//
+//    // do the transaction
+//
+//    HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
+//
+//
+//    long ist = _measurements.getIntendedtartTimeNs();
+//    long st = System.nanoTime();
+//    db.read(table, keyname, fields, cells);
+//
+//    db.update(table, keyname, values);
+//
+//    long en = System.nanoTime();
+//
+//    if (dataintegrity) {
+//      verifyRow(keyname, cells);
+//    }
+//
+//    _measurements.measure("READ-MODIFY-WRITE", (int) ((en - st) / 1000));
+//    _measurements.measureIntended("READ-MODIFY-WRITE", (int) ((en - ist) / 1000));
+//  }
+//
+//  public void doTransactionScan(DB db) {
+//    // choose a random key
+//    int keynum = nextKeynum();
+//
+//    String startkeyname = buildKeyName(keynum);
+//
+//    // choose a random scan length
+//    int len = scanlength.nextValue().intValue();
+//
+//    HashSet<String> fields = null;
+//
+//    if (!readallfields) {
+//      // read a random field
+//      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
+//
+//      fields = new HashSet<String>();
+//      fields.add(fieldname);
+//    }
+//
+//    db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
+//  }
 
   public void doTransactionFilter(DB db) {
-    int keynum = nextKeynum();
+    String startk = null;
 
-//    String startkeyname = buildKeyName(keynum);
-    String startkeyname = "user";
+    if(startkeyname.equals("true")) {
+//TODO - aqui acho que o nextKeyNum pode levar uma seed
+      int keynum = nextKeynum();
+      startk = buildKeyName(keynum);
+    }
+    else
+      startk = "false";
 
     // choose a random scan length
     int len = scanlength.nextValue().intValue();
 
     //TODO - Para já nao estou a usar a startkey, nem o compare operator, nem o value. ta tudo por default no hbase client
-    db.filter(table, startkeyname, len, "user8627391162697748212", "EQUAL", new ArrayList<String>());
+    db.filter(table, startk, len, "user8627391162697748212", "GREATER", new ArrayList<String>());
 //    db.filter(table, startkeyname, len, "user8627391162697748212", "GREATER", new Vector<HashMap<String, ByteIterator>>());
   }
 
-  public void doTransactionUpdate(DB db) {
-    // choose a random key
-    int keynum = nextKeynum();
-
-    String keyname = buildKeyName(keynum);
-
-    HashMap<String, ByteIterator> values;
-
-    if (writeallfields) {
-      // new data for all the fields
-      values = buildValues(keyname);
-    } else {
-      // update a random field
-      values = buildSingleValue(keyname);
-    }
-
-    db.update(table, keyname, values);
-  }
-
-  public void doTransactionInsert(DB db) {
-    // choose the next key
-    int keynum = transactioninsertkeysequence.nextValue();
-
-    try {
-      String dbkey = buildKeyName(keynum);
-
-      HashMap<String, ByteIterator> values = buildValues(dbkey);
-      db.insert(table, dbkey, values);
-    } finally {
-      transactioninsertkeysequence.acknowledge(keynum);
-    }
-  }
+//  public void doTransactionUpdate(DB db) {
+//    // choose a random key
+//    int keynum = nextKeynum();
+//
+//    String keyname = buildKeyName(keynum);
+//
+//    HashMap<String, ByteIterator> values;
+//
+//    if (writeallfields) {
+//      // new data for all the fields
+//      values = buildValues(keyname);
+//    } else {
+//      // update a random field
+//      values = buildSingleValue(keyname);
+//    }
+//
+//    db.update(table, keyname, values);
+//  }
+//
+//  public void doTransactionInsert(DB db) {
+//    // choose the next key
+//    int keynum = transactioninsertkeysequence.nextValue();
+//
+//    try {
+//      String dbkey = buildKeyName(keynum);
+//
+//      HashMap<String, ByteIterator> values = buildValues(dbkey);
+//      db.insert(table, dbkey, values);
+//    } finally {
+//      transactioninsertkeysequence.acknowledge(keynum);
+//    }
+//  }
 
   /**
    * Creates a weighted discrete values with database operations for a workload to perform.

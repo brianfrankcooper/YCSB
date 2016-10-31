@@ -328,11 +328,39 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         return Status.OK;
     }
 
+
+    public CompareFilter.CompareOp getCompareOperation(String compareOperation) {
+      CompareFilter.CompareOp compareOp;
+      switch (compareOperation) {
+        case "GREATER":
+          compareOp = CompareFilter.CompareOp.GREATER;
+          break;
+        case "EQUAL":
+          compareOp = CompareFilter.CompareOp.EQUAL;
+          break;
+        case "LESS":
+          compareOp = CompareFilter.CompareOp.LESS;
+          break;
+        case "GREATER_OR_EQUAL":
+          compareOp = CompareFilter.CompareOp.GREATER_OR_EQUAL;
+          break;
+        case "LESS_OR_EQUAL":
+          compareOp = CompareFilter.CompareOp.LESS_OR_EQUAL;
+          break;
+        case "NOT_EQUAL":
+          compareOp = CompareFilter.CompareOp.NOT_EQUAL;
+          break;
+        default:
+          compareOp = CompareFilter.CompareOp.NO_OP;
+          break;
+      }
+      return compareOp;
+    }
+
   /**
    * Filter
    */
     public Status filter(String table, String startkey, int recordcount, String value, String compareOperation, List<String> result) {
-      //if this is a "new" table, init HTable object.  Else, use existing one
       if (!_table.equals(table)) {
         _hTable = null;
         try
@@ -347,12 +375,15 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         }
       }
 
-//      Scan s = new Scan(Bytes.toBytes(startkey));
-      Scan s = new Scan();
+      Scan s;
+      if(startkey.equals("false"))
+        s = new Scan(Bytes.toBytes(startkey));
+      else
+        s = new Scan();
+
       s.setCaching(recordcount);
 
-      Filter filter = new RowFilter(CompareFilter.CompareOp.LESS, new BinaryComparator("user8627391162697748212".getBytes()));
-
+      Filter filter = new RowFilter(getCompareOperation(compareOperation), new BinaryComparator(value.getBytes()));
       s.setFilter(filter);
 
 
@@ -361,13 +392,14 @@ public class HBaseClient extends com.yahoo.ycsb.DB
       try {
         scanner = _hTable.getScanner(s);
 //        int numResults = 0;
+        System.out.println("START KEY NAME:: "+startkey);
         for (Result rr = scanner.next(); rr != null; rr = scanner.next())
         {
 
           String key = new String(rr.getRow());
           result.add(key);
 
-          System.out.println("Greater than user8627391162697748212: " +key);
+          System.out.println(compareOperation+" than "+value+": " +key);
 
 //          numResults++;
 
