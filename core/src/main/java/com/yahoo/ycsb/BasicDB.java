@@ -183,14 +183,13 @@ public class BasicDB extends DB
 	}
 
 
-//  public Status filter(String table, String startkey, int recordcount, String value, String compareOperation, Vector<HashMap<String, ByteIterator>> result) {
-  public Status filter(String table, String startkey, int recordcount, String value, String compareOperation, List<String> result) {
+  public Status filter(String table, String startkey, String value, String compareOperation, List<String> result) {
     delay();
 
     if(verbose) {
       StringBuilder sb = getStringBuilder();
 //      sb.append("FILTER ").append(table).append(" ").append(startkey).append(" ").append(recordcount).append(result.toString());
-      sb.append("FILTER ").append(table).append(" ").append("user8627391162697748212").append(" ").append(result.size()).append(result.toString());
+      sb.append("FILTER ").append(table).append(" ").append(value).append(" ").append(result.size()).append(result.toString());
 
       System.out.println(sb);
     }

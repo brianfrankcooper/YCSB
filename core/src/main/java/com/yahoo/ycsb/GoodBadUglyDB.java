@@ -115,9 +115,7 @@ public class GoodBadUglyDB extends DB {
         return Status.OK;
     }
 
-  @Override
-//  public Status filter(String table, String startkey, int recordcount, String value, String compareOperation, Vector<HashMap<String, ByteIterator>> result) {
-  public Status filter(String table, String startkey, int recordcount, String value, String compareOperation, List<String> result) {
+   public Status filter(String table, String startkey, String value, String compareOperation, List<String> result) {
     delay();
 
     return Status.OK;

@@ -107,14 +107,12 @@ public abstract class DB
    *
    * @param table The name of the table
    * @param startkey The record key of the first record to read
-   * @param recordcount The number of records to read
    * @param value The record value to compare and perform the filter operation
    * @param compareOperation The compare operation to apply in the filter
    * @param result A Vector of HashMaps, where each HasMap is a set field/value pairs for one record
    * @return The result of the operation.
    */
-//  public abstract Status filter(String table, String startkey, int recordcount, String value, String compareOperation, Vector<HashMap<String, ByteIterator>> result);
-  public abstract Status filter(String table, String startkey, int recordcount, String value, String compareOperation, List<String> result);
+  public abstract Status filter(String table, String startkey, String value, String compareOperation, List<String> result);
 
   /**
 	 * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified

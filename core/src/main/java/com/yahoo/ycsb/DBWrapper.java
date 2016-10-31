@@ -177,14 +177,11 @@ public class DBWrapper extends DB
     }
   }
 
-  //TODO fiz o SCOPE_STRING_SCAN, depois implementar SCOPE_STRING_FILTER??
-  @Override
-//  public Status filter(String table, String startkey, int recordcount, String value, String compareOperation, Vector<HashMap<String, ByteIterator>> result) {
-  public Status filter(String table, String startkey, int recordcount, String value, String compareOperation, List<String> result) {
+  public Status filter(String table, String startkey, String value, String compareOperation, List<String> result) {
     try (final TraceScope span = _tracer.newScope(SCOPE_STRING_FILTER)) {
       long ist=_measurements.getIntendedtartTimeNs();
       long st = System.nanoTime();
-      Status res=_db.filter(table,startkey,recordcount,value,compareOperation,result);
+      Status res=_db.filter(table,startkey,value,compareOperation,result);
       long en=System.nanoTime();
       measure("FILTER", res, ist, st, en);
       _measurements.reportStatus("FILTER", res);

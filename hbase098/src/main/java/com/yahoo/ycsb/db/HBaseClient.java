@@ -360,7 +360,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
   /**
    * Filter
    */
-    public Status filter(String table, String startkey, int recordcount, String value, String compareOperation, List<String> result) {
+    public Status filter(String table, String startkey, String value, String compareOperation, List<String> result) {
       if (!_table.equals(table)) {
         _hTable = null;
         try
@@ -381,8 +381,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
       else
         s = new Scan();
 
-      s.setCaching(recordcount);
-
       Filter filter = new RowFilter(getCompareOperation(compareOperation), new BinaryComparator(value.getBytes()));
       s.setFilter(filter);
 
@@ -391,7 +389,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
       ResultScanner scanner = null;
       try {
         scanner = _hTable.getScanner(s);
-//        int numResults = 0;
         System.out.println("START KEY NAME:: "+startkey);
         for (Result rr = scanner.next(); rr != null; rr = scanner.next())
         {
@@ -401,12 +398,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 
           System.out.println(compareOperation+" than "+value+": " +key);
 
-//          numResults++;
-
-//          if (numResults >= recordcount) //if hit recordcount, bail out
-//          {
-//            break;
-//          }
         }
 
       }

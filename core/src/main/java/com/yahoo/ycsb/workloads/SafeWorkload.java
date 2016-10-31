@@ -18,6 +18,21 @@ public class SafeWorkload extends CoreWorkload {
   public static final String COMPARE_VALUE = "comparevalue";
   public static String comparevalue;
 
+  public static final String GREAT_PROPORTION_PROPERTY = "greatproportion";
+  public static final String GREAT_PROPORTION_PROPERTY_DEFAULT = "0.25";
+
+  public static final String GREAT_OR_EQUAL_PROPORTION_PROPERTY = "greatorequalproportion";
+  public static final String GREAT_OR_EQUAL_PROPORTION_PROPERTY_DEFAULT = "0";
+
+  public static final String EQUAL_PROPORTION_PROPERTY = "equalproportion";
+  public static final String EQUAL_PROPORTION_PROPERTY_DEFAULT = "0.5";
+
+  public static final String LESS_PROPORTION_PROPERTY = "lessproportion";
+  public static final String LESS_PROPORTION_PROPERTY_DEFAULT = "0.25";
+
+  public static final String LESS_OR_EQUAL_PROPORTION_PROPERTY = "lessorequalproportion";
+  public static final String LESS_OR_EQUAL_PROPORTION_PROPERTY_DEFAULT = "0";
+
   int fieldcount;
 
   private List<String> fieldnames;
@@ -39,13 +54,15 @@ public class SafeWorkload extends CoreWorkload {
 
   private Measurements _measurements = Measurements.getMeasurements();
 
+  DiscreteGenerator compareOperationChooser;
+
   /**
    * Initialize the scenario.
    * Called once, in the main client thread, before any operations are started.
    */
   @Override
   public void init(Properties p) throws WorkloadException {
-//    Tabela
+//    Table
     table = p.getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
 
 //    Start key name
@@ -136,6 +153,9 @@ public class SafeWorkload extends CoreWorkload {
 
     keysequence = new CounterGenerator(insertstart);
     operationchooser = createOperationGenerator(p);
+//    compare operation chooser for filter operations
+    compareOperationChooser = createCompareOperationGenerator(p);
+
 
     transactioninsertkeysequence = new AcknowledgedCounterGenerator(recordcount);
     if (requestdistrib.compareTo("uniform") == 0) {
@@ -324,6 +344,10 @@ public class SafeWorkload extends CoreWorkload {
     return true;
   }
 
+  public String doCompareOperation() {
+    return compareOperationChooser.nextString();
+  }
+
   /**
    * Results are reported in the first three buckets of the histogram under
    * the label "VERIFY".
@@ -463,18 +487,18 @@ public class SafeWorkload extends CoreWorkload {
   public void doTransactionFilter(DB db) {
     String startk = null;
 
-    if(startkeyname.equals("true")) {
+//    generate star key name
 //TODO - aqui acho que o nextKeyNum pode levar uma seed
+    if(startkeyname.equals("true")) {
       int keynum = nextKeynum();
       startk = buildKeyName(keynum);
     }
     else
       startk = "false";
 
-    // choose a random scan length
-    int len = scanlength.nextValue().intValue();
+    String compOperation = doCompareOperation();
 
-    db.filter(table, startk, len, comparevalue, "GREATER", new ArrayList<String>());
+    db.filter(table, startk, comparevalue, compOperation, new ArrayList<String>());
   }
 
 //  public void doTransactionUpdate(DB db) {
@@ -562,4 +586,48 @@ public class SafeWorkload extends CoreWorkload {
     }
     return operationchooser;
   }
+
+  public DiscreteGenerator createCompareOperationGenerator(Properties p) {
+    if (p == null) {
+      throw new IllegalArgumentException("Properties object cannot be null");
+    }
+    final double greatProportion = Double.parseDouble(
+      p.getProperty(GREAT_PROPORTION_PROPERTY, GREAT_PROPORTION_PROPERTY_DEFAULT));
+    final double equalProportion = Double.parseDouble(
+      p.getProperty(EQUAL_PROPORTION_PROPERTY, EQUAL_PROPORTION_PROPERTY_DEFAULT));
+    final double lessProportion = Double.parseDouble(
+      p.getProperty(LESS_PROPORTION_PROPERTY, LESS_PROPORTION_PROPERTY_DEFAULT));
+    final double greatOrEqualProportion = Double.parseDouble(
+      p.getProperty(GREAT_OR_EQUAL_PROPORTION_PROPERTY, GREAT_OR_EQUAL_PROPORTION_PROPERTY_DEFAULT));
+
+    System.out.println("GREAT_OT_EQUAL:PROPORTION_PROPERTY: "+greatOrEqualProportion);
+
+    final double lessOrEqualProportion = Double.parseDouble(
+      p.getProperty(LESS_OR_EQUAL_PROPORTION_PROPERTY, LESS_OR_EQUAL_PROPORTION_PROPERTY_DEFAULT));
+
+    final DiscreteGenerator compareOperationChooser = new DiscreteGenerator();
+
+    if(greatProportion > 0) {
+      compareOperationChooser.addValue(greatProportion, "GREATER");
+    }
+
+    if(equalProportion > 0) {
+      compareOperationChooser.addValue(equalProportion, "EQUAL");
+    }
+
+    if(lessProportion > 0) {
+      compareOperationChooser.addValue(lessProportion, "LESS");
+    }
+
+    if(greatOrEqualProportion > 0) {
+      compareOperationChooser.addValue(greatOrEqualProportion, "GREATER_OR_EQUAL");
+    }
+
+    if(lessOrEqualProportion > 0) {
+      compareOperationChooser.addValue(lessOrEqualProportion, "LESS_OR_EQUAL");
+    }
+
+    return compareOperationChooser;
+  }
+
 }

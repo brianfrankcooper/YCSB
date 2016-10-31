@@ -27,7 +27,7 @@
 # key, and then request a number of records; this works fine even for hashed insertion.
 
 recordcount=1000
-operationcount=1
+operationcount=10
 workload=com.yahoo.ycsb.workloads.SafeWorkload
 
 readallfields=true
@@ -38,6 +38,11 @@ scanproportion=0
 filterproportion=1
 insertproportion=0
 
+greatproportion=0.20
+lessproportion=0.20
+equalproportion=0.20
+greatorequalproportion=0.20
+lessorequalproportion=0.20
 
 requestdistribution=zipfian
 
