@@ -13,6 +13,7 @@ com/yahoo/ycsb/StringByteIterator.class
 com/yahoo/ycsb/generator/SkewedLatestGenerator.class
 com/yahoo/ycsb/generator/HotspotIntegerGenerator.class
 com/yahoo/ycsb/generator/DiscreteGenerator$Pair.class
+com/yahoo/ycsb/workloads/SafeWorkload.class
 com/yahoo/ycsb/generator/NumberGenerator.class
 com/yahoo/ycsb/generator/SequentialGenerator.class
 com/yahoo/ycsb/measurements/Measurements$2.class

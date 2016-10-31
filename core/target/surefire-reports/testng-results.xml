@@ -2,12 +2,12 @@
 <testng-results skipped="0" failed="0" total="23" passed="23">
   <reporter-output>
   </reporter-output>
-  <suite name="Surefire suite" duration-ms="952" started-at="2016-10-28T14:40:16Z" finished-at="2016-10-28T14:40:17Z">
+  <suite name="Surefire suite" duration-ms="903" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
     <groups>
     </groups>
-    <test name="Surefire test" duration-ms="952" started-at="2016-10-28T14:40:16Z" finished-at="2016-10-28T14:40:17Z">
+    <test name="Surefire test" duration-ms="903" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
       <class name="com.yahoo.ycsb.TestUtils">
-        <test-method status="PASS" signature="bytesToDoubleTooShort()" name="bytesToDoubleTooShort" duration-ms="1" started-at="2016-10-28T14:40:16Z" finished-at="2016-10-28T14:40:16Z">
+        <test-method status="PASS" signature="bytesToDoubleTooShort()" name="bytesToDoubleTooShort" duration-ms="1" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
           <exception class="java.lang.IllegalArgumentException">
             <message>
               <![CDATA[Byte array must be 8 bytes wide.]]>
@@ -49,11 +49,11 @@
             </full-stacktrace>
           </exception>
         </test-method>
-        <test-method status="PASS" signature="bytesToFromDouble()" name="bytesToFromDouble" duration-ms="0" started-at="2016-10-28T14:40:16Z" finished-at="2016-10-28T14:40:16Z">
+        <test-method status="PASS" signature="bytesToFromDouble()" name="bytesToFromDouble" duration-ms="0" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
         </test-method>
-        <test-method status="PASS" signature="bytesToFromLong()" name="bytesToFromLong" duration-ms="0" started-at="2016-10-28T14:40:16Z" finished-at="2016-10-28T14:40:16Z">
+        <test-method status="PASS" signature="bytesToFromLong()" name="bytesToFromLong" duration-ms="0" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
         </test-method>
-        <test-method status="PASS" signature="bytesToLongNull()" name="bytesToLongNull" duration-ms="0" started-at="2016-10-28T14:40:16Z" finished-at="2016-10-28T14:40:16Z">
+        <test-method status="PASS" signature="bytesToLongNull()" name="bytesToLongNull" duration-ms="0" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
           <exception class="java.lang.NullPointerException">
             <full-stacktrace>
               <![CDATA[java.lang.NullPointerException
@@ -92,7 +92,9 @@
             </full-stacktrace>
           </exception>
         </test-method>
-        <test-method status="PASS" signature="bytesToLongTooShort()" name="bytesToLongTooShort" duration-ms="1" started-at="2016-10-28T14:40:16Z" finished-at="2016-10-28T14:40:16Z">
+        <test-method status="PASS" signature="jvmUtils()" name="jvmUtils" duration-ms="5" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
+        </test-method>
+        <test-method status="PASS" signature="bytesToLongTooShort()" name="bytesToLongTooShort" duration-ms="0" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
           <exception class="java.lang.ArrayIndexOutOfBoundsException">
             <message>
               <![CDATA[7]]>
@@ -134,57 +136,55 @@
             </full-stacktrace>
           </exception>
         </test-method>
-        <test-method status="PASS" signature="jvmUtils()" name="jvmUtils" duration-ms="3" started-at="2016-10-28T14:40:16Z" finished-at="2016-10-28T14:40:16Z">
-        </test-method>
       </class>
       <class name="com.yahoo.ycsb.TestByteIterator">
-        <test-method status="PASS" signature="testRandomByteIterator()" name="testRandomByteIterator" duration-ms="64" started-at="2016-10-28T14:40:16Z" finished-at="2016-10-28T14:40:16Z">
+        <test-method status="PASS" signature="testRandomByteIterator()" name="testRandomByteIterator" duration-ms="11" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
         </test-method>
       </class>
       <class name="com.yahoo.ycsb.generator.TestUnixEpochTimestampGenerator">
-        <test-method status="PASS" signature="ctorWithIntervalAndUnits()" name="ctorWithIntervalAndUnits" duration-ms="1" started-at="2016-10-28T14:40:17Z" finished-at="2016-10-28T14:40:17Z">
+        <test-method status="PASS" signature="ctorWithIntervalAndUnits()" name="ctorWithIntervalAndUnits" duration-ms="2" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
         </test-method>
-        <test-method status="PASS" signature="ctorWithIntervalAndUnitsAndStart()" name="ctorWithIntervalAndUnitsAndStart" duration-ms="0" started-at="2016-10-28T14:40:17Z" finished-at="2016-10-28T14:40:17Z">
+        <test-method status="PASS" signature="ctorWithIntervalAndUnitsAndStart()" name="ctorWithIntervalAndUnitsAndStart" duration-ms="0" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
         </test-method>
-        <test-method status="PASS" signature="defaultCtor()" name="defaultCtor" duration-ms="1" started-at="2016-10-28T14:40:17Z" finished-at="2016-10-28T14:40:17Z">
+        <test-method status="PASS" signature="defaultCtor()" name="defaultCtor" duration-ms="1" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
         </test-method>
-        <test-method status="PASS" signature="variousIntervalsAndUnits()" name="variousIntervalsAndUnits" duration-ms="0" started-at="2016-10-28T14:40:17Z" finished-at="2016-10-28T14:40:17Z">
+        <test-method status="PASS" signature="variousIntervalsAndUnits()" name="variousIntervalsAndUnits" duration-ms="0" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
         </test-method>
       </class>
       <class name="com.yahoo.ycsb.measurements.exporter.TestMeasurementsExporter">
-        <test-method status="PASS" signature="testJSONArrayMeasurementsExporter()" name="testJSONArrayMeasurementsExporter" duration-ms="196" started-at="2016-10-28T14:40:17Z" finished-at="2016-10-28T14:40:17Z">
+        <test-method status="PASS" signature="testJSONArrayMeasurementsExporter()" name="testJSONArrayMeasurementsExporter" duration-ms="215" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
         </test-method>
       </class>
       <class name="com.yahoo.ycsb.TestStatus">
-        <test-method status="PASS" signature="testAcceptableStatus()" name="testAcceptableStatus" duration-ms="4" started-at="2016-10-28T14:40:16Z" finished-at="2016-10-28T14:40:16Z">
+        <test-method status="PASS" signature="testAcceptableStatus()" name="testAcceptableStatus" duration-ms="4" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
         </test-method>
       </class>
       <class name="com.yahoo.ycsb.generator.AcknowledgedCounterGeneratorTest">
-        <test-method status="PASS" signature="testIncrementPastIntegerMaxValue()" name="testIncrementPastIntegerMaxValue" duration-ms="648" started-at="2016-10-28T14:40:16Z" finished-at="2016-10-28T14:40:17Z">
+        <test-method status="PASS" signature="testIncrementPastIntegerMaxValue()" name="testIncrementPastIntegerMaxValue" duration-ms="635" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
         </test-method>
       </class>
       <class name="com.yahoo.ycsb.generator.TestZipfianGenerator">
-        <test-method status="PASS" signature="testMinAndMaxParameter()" name="testMinAndMaxParameter" duration-ms="6" started-at="2016-10-28T14:40:17Z" finished-at="2016-10-28T14:40:17Z">
+        <test-method status="PASS" signature="testMinAndMaxParameter()" name="testMinAndMaxParameter" duration-ms="8" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
         </test-method>
       </class>
       <class name="com.yahoo.ycsb.generator.TestIncrementingPrintableStringGenerator">
-        <test-method status="PASS" signature="invalidCharacterSets()" name="invalidCharacterSets" duration-ms="1" started-at="2016-10-28T14:40:17Z" finished-at="2016-10-28T14:40:17Z">
+        <test-method status="PASS" signature="invalidCharacterSets()" name="invalidCharacterSets" duration-ms="1" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
         </test-method>
-        <test-method status="PASS" signature="invalidLengths()" name="invalidLengths" duration-ms="0" started-at="2016-10-28T14:40:17Z" finished-at="2016-10-28T14:40:17Z">
+        <test-method status="PASS" signature="invalidLengths()" name="invalidLengths" duration-ms="1" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
         </test-method>
-        <test-method status="PASS" signature="rolloverOneCharacterException()" name="rolloverOneCharacterException" duration-ms="1" started-at="2016-10-28T14:40:17Z" finished-at="2016-10-28T14:40:17Z">
+        <test-method status="PASS" signature="rolloverOneCharacterException()" name="rolloverOneCharacterException" duration-ms="1" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
         </test-method>
-        <test-method status="PASS" signature="rolloverOK()" name="rolloverOK" duration-ms="0" started-at="2016-10-28T14:40:17Z" finished-at="2016-10-28T14:40:17Z">
+        <test-method status="PASS" signature="rolloverOK()" name="rolloverOK" duration-ms="0" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
         </test-method>
-        <test-method status="PASS" signature="rolloverException()" name="rolloverException" duration-ms="0" started-at="2016-10-28T14:40:17Z" finished-at="2016-10-28T14:40:17Z">
+        <test-method status="PASS" signature="rolloverException()" name="rolloverException" duration-ms="0" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
         </test-method>
-        <test-method status="PASS" signature="rolloverOneCharacterOK()" name="rolloverOneCharacterOK" duration-ms="0" started-at="2016-10-28T14:40:17Z" finished-at="2016-10-28T14:40:17Z">
+        <test-method status="PASS" signature="rolloverOneCharacterOK()" name="rolloverOneCharacterOK" duration-ms="0" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
         </test-method>
       </class>
       <class name="com.yahoo.ycsb.workloads.TestCoreWorkload">
-        <test-method status="PASS" signature="createOperationChooser()" name="createOperationChooser" duration-ms="4" started-at="2016-10-28T14:40:17Z" finished-at="2016-10-28T14:40:17Z">
+        <test-method status="PASS" signature="createOperationChooser()" name="createOperationChooser" duration-ms="6" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
         </test-method>
-        <test-method status="PASS" signature="createOperationChooserNullProperties()" name="createOperationChooserNullProperties" duration-ms="0" started-at="2016-10-28T14:40:17Z" finished-at="2016-10-28T14:40:17Z">
+        <test-method status="PASS" signature="createOperationChooserNullProperties()" name="createOperationChooserNullProperties" duration-ms="0" started-at="2016-10-31T09:18:13Z" finished-at="2016-10-31T09:18:13Z">
           <exception class="java.lang.IllegalArgumentException">
             <message>
               <![CDATA[Properties object cannot be null]]>

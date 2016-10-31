@@ -55,7 +55,7 @@ import java.util.*;
  * <LI><b>zeropadding</b>: for generating a record sequence compatible with string sort order by
  * 0 padding the record number. Controls the number of 0s to use for padding. (default: 1)
  * For example for row 5, with zeropadding=1 you get 'user5' key and with zeropading=8 you get
- * 'user00000005' key. In order to see its impact, zeropadding needs to be bigger than number of 
+ * 'user00000005' key. In order to see its impact, zeropadding needs to be bigger than number of
  * digits in the record number.
  * <LI><b>insertorder</b>: should records be inserted in order by key ("ordered"), or in hashed
  * order ("hashed") (default: hashed)
@@ -257,7 +257,7 @@ public class CoreWorkload extends Workload {
    */
   public static final String ZERO_PADDING_PROPERTY_DEFAULT = "1";
 
-  
+
   /**
    * The name of the property for the max scan length (number of records).
    */
@@ -386,7 +386,7 @@ public class CoreWorkload extends Workload {
       fieldnames.add("field" + i);
     }
     fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
-    
+
     recordcount =
         Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
     if (recordcount == 0) {
@@ -629,12 +629,12 @@ public class CoreWorkload extends Workload {
     case "SCAN":
       doTransactionScan(db);
       break;
-    case "FILTER":
-      doTransactionFilter(db);
-      break;
+//    case "FILTER":
+//      doTransactionFilter(db);
+//      break;
     default:
       doTransactionReadModifyWrite(db);
-    } 
+    }
 
     return true;
   }
@@ -705,7 +705,7 @@ public class CoreWorkload extends Workload {
       verifyRow(keyname, cells);
     }
   }
-  
+
   public void doTransactionReadModifyWrite(DB db) {
     // choose a random key
     int keynum = nextKeynum();
@@ -775,19 +775,19 @@ public class CoreWorkload extends Workload {
     db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
   }
 
-  public void doTransactionFilter(DB db) {
-    int keynum = nextKeynum();
-
-//    String startkeyname = buildKeyName(keynum);
-    String startkeyname = "user";
-
-    // choose a random scan length
-    int len = scanlength.nextValue().intValue();
-
-    //TODO - Para já nao estou a usar a startkey, nem o compare operator, nem o value. ta tudo por default no hbase client
-    db.filter(table, startkeyname, len, "user8627391162697748212", "EQUAL", new ArrayList<String>());
-//    db.filter(table, startkeyname, len, "user8627391162697748212", "GREATER", new Vector<HashMap<String, ByteIterator>>());
-  }
+//  public void doTransactionFilter(DB db) {
+//    int keynum = nextKeynum();
+//
+////    String startkeyname = buildKeyName(keynum);
+//    String startkeyname = "user";
+//
+//    // choose a random scan length
+//    int len = scanlength.nextValue().intValue();
+//
+//    //TODO - Para já nao estou a usar a startkey, nem o compare operator, nem o value. ta tudo por default no hbase client
+//    db.filter(table, startkeyname, len, "user8627391162697748212", "EQUAL", new ArrayList<String>());
+////    db.filter(table, startkeyname, len, "user8627391162697748212", "GREATER", new Vector<HashMap<String, ByteIterator>>());
+//  }
 
   public void doTransactionUpdate(DB db) {
     // choose a random key
@@ -843,11 +843,11 @@ public class CoreWorkload extends Workload {
         p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
     final double scanproportion = Double.parseDouble(
       p.getProperty(SCAN_PROPORTION_PROPERTY, SCAN_PROPORTION_PROPERTY_DEFAULT));
-    final double filterproportion = Double.parseDouble(
-      p.getProperty(FILTER_PROPORTION_PROPERTY, FILTER_PROPORTION_PROPERTY_DEFAULT));
+//    final double filterproportion = Double.parseDouble(
+//      p.getProperty(FILTER_PROPORTION_PROPERTY, FILTER_PROPORTION_PROPERTY_DEFAULT));
     final double readmodifywriteproportion = Double.parseDouble(p.getProperty(
         READMODIFYWRITE_PROPORTION_PROPERTY, READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT));
-    
+
     final DiscreteGenerator operationchooser = new DiscreteGenerator();
     if (readproportion > 0) {
       operationchooser.addValue(readproportion, "READ");
@@ -865,9 +865,9 @@ public class CoreWorkload extends Workload {
       operationchooser.addValue(scanproportion, "SCAN");
     }
 
-    if (filterproportion > 0) {
-      operationchooser.addValue(filterproportion, "FILTER");
-    }
+//    if (filterproportion > 0) {
+//      operationchooser.addValue(filterproportion, "FILTER");
+//    }
 
     if (readmodifywriteproportion > 0) {
       operationchooser.addValue(readmodifywriteproportion, "READMODIFYWRITE");
