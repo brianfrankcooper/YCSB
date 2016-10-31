@@ -60,12 +60,6 @@ WARNING: Creating a new database will be done safely with multiple threads on a 
 * ```orientdb.newdb``` - Overwrite the database if it already exists.
     * Only effects the ```load``` phase.
     * Default: ```false```
-* ```orientdb.intent``` - Declare an Intent to the database.
-    * This is an optimization feature provided by OrientDB: http://orientdb.com/docs/2.1/Performance-Tuning.html#massive-insertion
-    * Possible values are:
-        * massiveinsert
-        * massiveread
-        * nocache
 * ```orientdb.remote.storagetype``` - Storage type of the database on remote server
     * This is only required if using a ```remote:``` connection url
 
