@@ -1,12 +1,12 @@
 /**
  * Copyright (c) 2015 - 2016 YCSB contributors. All rights reserved.
- * <p>
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
  * may obtain a copy of the License at
- * <p>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
@@ -103,8 +103,7 @@ public class OrientDBClientTest {
     Map<String, ByteIterator> insertMap = insertRow(insertKey);
 
     OPartitionedDatabasePool pool = orientDBClient.getDatabasePool();
-    ODatabaseDocumentTx db = pool.acquire();
-    try {
+    try(ODatabaseDocumentTx db = pool.acquire()) {
       ODictionary<ORecord> dictionary = db.getDictionary();
       ODocument result = dictionary.get(insertKey);
 
@@ -114,8 +113,6 @@ public class OrientDBClientTest {
         assertEquals("Assert all inserted columns have correct values.", result.field(FIELD_PREFIX + i),
             insertMap.get(FIELD_PREFIX + i).toString());
       }
-    } finally {
-      db.close();
     }
   }
 
@@ -127,8 +124,7 @@ public class OrientDBClientTest {
     String user2 = "user2";
 
     OPartitionedDatabasePool pool = orientDBClient.getDatabasePool();
-    ODatabaseDocumentTx db = pool.acquire();
-    try {
+    try(ODatabaseDocumentTx db = pool.acquire()) {
       // Manually insert three documents
       for (String key : Arrays.asList(user0, user1, user2)) {
         ODocument doc = new ODocument(CLASS);
@@ -140,8 +136,6 @@ public class OrientDBClientTest {
         ODictionary<ORecord> dictionary = db.getDictionary();
         dictionary.put(key, doc);
       }
-    } finally {
-      db.close();
     }
 
     HashMap<String, ByteIterator> updateMap = new HashMap<>();
@@ -151,8 +145,7 @@ public class OrientDBClientTest {
 
     orientDBClient.update(CLASS, user1, updateMap);
 
-    db = pool.acquire();
-    try {
+    try(ODatabaseDocumentTx db = pool.acquire()) {
       ODictionary<ORecord> dictionary = db.getDictionary();
       // Ensure that user0 record was not changed
       ODocument result = dictionary.get(user0);
@@ -172,8 +165,6 @@ public class OrientDBClientTest {
       for (int i = 0; i < NUM_FIELDS; i++) {
         assertEquals("Assert third row fields contain preupdateString", result.field(FIELD_PREFIX + i), preupdateString);
       }
-    } finally {
-      db.close();
     }
   }
 
@@ -217,15 +208,12 @@ public class OrientDBClientTest {
     orientDBClient.delete(CLASS, user1);
 
     OPartitionedDatabasePool pool = orientDBClient.getDatabasePool();
-    ODatabaseDocumentTx db = pool.acquire();
-    try {
+    try(ODatabaseDocumentTx db = pool.acquire()) {
       ODictionary<ORecord> dictionary = db.getDictionary();
 
       assertNotNull("Assert user0 still exists", dictionary.get(user0));
       assertNull("Assert user1 does not exist", dictionary.get(user1));
       assertNotNull("Assert user2 still exists", dictionary.get(user2));
-    } finally {
-      db.close();
     }
   }
 
@@ -240,7 +228,7 @@ public class OrientDBClientTest {
     Set<String> fieldSet = new HashSet<>();
     fieldSet.add("FIELD0");
     fieldSet.add("FIELD1");
-    int startIndex = 1;
+    int startIndex = 0;
     int resultRows = 3;
 
     Vector<HashMap<String, ByteIterator>> resultVector = new Vector<>();
@@ -249,13 +237,6 @@ public class OrientDBClientTest {
     // Check the resultVector is the correct size
     assertEquals("Assert the correct number of results rows were returned", resultRows, resultVector.size());
 
-    /**
-     * Part of the known issue about the broken iterator in orientdb is that the iterator
-     * starts at index 1 instead of index 0. Because of this, to test it we must increment
-     * the start index. When that known issue has been fixed, remove the increment below.
-     * Track the issue here: https://github.com/orientechnologies/orientdb/issues/5541
-     * This fix was implemented for orientechnologies:orientdb-client:2.1.8
-     */
     int testIndex = startIndex;
 
     // Check each vector row to make sure we have the correct fields
