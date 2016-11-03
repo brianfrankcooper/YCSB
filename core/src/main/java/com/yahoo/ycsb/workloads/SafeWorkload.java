@@ -14,7 +14,7 @@ public class SafeWorkload extends CoreWorkload {
   public static final String START_KEY_NAME = "startkeyname";
   public static String startkeyname;
 
-  public static final String COMPARE_VALUE_DEFAULT = "hello_world";
+  public static final String COMPARE_VALUE_DEFAULT = "false";
   public static final String COMPARE_VALUE = "comparevalue";
   public static String comparevalue;
 
@@ -32,6 +32,11 @@ public class SafeWorkload extends CoreWorkload {
 
   public static final String LESS_OR_EQUAL_PROPORTION_PROPERTY = "lessorequalproportion";
   public static final String LESS_OR_EQUAL_PROPORTION_PROPERTY_DEFAULT = "0";
+
+  public static final String SEED_PROPERTY = "seed";
+  public static final String SEED_PROPERTY_DEFAULT = "false";
+  public static String seed;
+
 
   int fieldcount;
 
@@ -107,6 +112,13 @@ public class SafeWorkload extends CoreWorkload {
       System.err.println("Invalid combination of insertstart, insertcount and recordcount.");
       System.err.println("recordcount must be bigger than insertstart + insertcount.");
       System.exit(-1);
+    }
+
+//    seed to generate pseudo-random values
+    seed = p.getProperty(SEED_PROPERTY, SEED_PROPERTY_DEFAULT);
+
+    if(!seed.equals("false")) {
+      Utils.setSeed(seed);
     }
 
 //    number of padding to add on keys
@@ -486,6 +498,7 @@ public class SafeWorkload extends CoreWorkload {
 
   public void doTransactionFilter(DB db) {
     String startk = null;
+    String comparable = null;
 
 //    generate star key name
 //TODO - aqui acho que o nextKeyNum pode levar uma seed
@@ -498,7 +511,14 @@ public class SafeWorkload extends CoreWorkload {
 
     String compOperation = doCompareOperation();
 
-    db.filter(table, startk, comparevalue, compOperation, new ArrayList<String>());
+    if (comparevalue.equals("false")) {
+      int keynum = nextKeynum();
+      comparable = buildKeyName(keynum);
+    }
+    else
+      comparable = comparevalue;
+
+    db.filter(table, startk, comparable, compOperation, new ArrayList<String>());
   }
 
 //  public void doTransactionUpdate(DB db) {

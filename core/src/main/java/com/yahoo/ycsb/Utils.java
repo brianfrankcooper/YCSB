@@ -32,11 +32,21 @@ public class Utils
 {
   private static final Random rand = new Random();
   private static final ThreadLocal<Random> rng = new ThreadLocal<Random>();
+  private static String seed = "false";
+
+  public static void setSeed(String s) {
+    seed = s;
+  }
 
   public static Random random() {
     Random ret = rng.get();
     if(ret == null) {
-      ret = new Random(rand.nextLong());
+      if(seed.equals("false")) {
+        ret = new Random(rand.nextLong());
+      }
+      else {
+        ret = new Random(Long.parseLong(seed));
+      }
       rng.set(ret);
     }
     return ret;

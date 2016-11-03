@@ -376,7 +376,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
       }
 
       Scan s;
-      if(startkey.equals("false"))
+      if(!startkey.equals("false"))
         s = new Scan(Bytes.toBytes(startkey));
       else
         s = new Scan();
