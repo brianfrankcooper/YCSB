@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<checkstyle version="6.2">
-<file name="/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/hbase10/src/main/java/com/yahoo/ycsb/db/HBaseClient10.java">
-</file>
-<file name="/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/hbase10/src/main/java/com/yahoo/ycsb/db/package-info.java">
-</file>
-<file name="/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/hbase10/src/test/resources/log4j.properties">
-</file>
-</checkstyle>

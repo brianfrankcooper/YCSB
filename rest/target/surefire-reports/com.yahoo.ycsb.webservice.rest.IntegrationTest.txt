@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.yahoo.ycsb.webservice.rest.IntegrationTest
--------------------------------------------------------------------------------
-Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 13.599 sec - in com.yahoo.ycsb.webservice.rest.IntegrationTest

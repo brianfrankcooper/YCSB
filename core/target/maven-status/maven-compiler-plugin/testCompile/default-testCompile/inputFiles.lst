@@ -1,9 +1,0 @@
-/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/test/java/com/yahoo/ycsb/generator/TestIncrementingPrintableStringGenerator.java
-/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/test/java/com/yahoo/ycsb/generator/TestUnixEpochTimestampGenerator.java
-/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/test/java/com/yahoo/ycsb/TestStatus.java
-/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/test/java/com/yahoo/ycsb/workloads/TestCoreWorkload.java
-/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/test/java/com/yahoo/ycsb/measurements/exporter/TestMeasurementsExporter.java
-/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/test/java/com/yahoo/ycsb/TestByteIterator.java
-/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/test/java/com/yahoo/ycsb/generator/AcknowledgedCounterGeneratorTest.java
-/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/test/java/com/yahoo/ycsb/generator/TestZipfianGenerator.java
-/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/test/java/com/yahoo/ycsb/TestUtils.java

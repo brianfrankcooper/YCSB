@@ -1,9 +1,0 @@
-/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/jdbc/src/main/java/com/yahoo/ycsb/db/package-info.java
-/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/jdbc/src/main/java/com/yahoo/ycsb/db/flavors/package-info.java
-/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/jdbc/src/main/java/com/yahoo/ycsb/db/JdbcDBCli.java
-/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/jdbc/src/main/java/com/yahoo/ycsb/db/JdbcDBCreateTable.java
-/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/jdbc/src/main/java/com/yahoo/ycsb/db/flavors/PhoenixDBFlavor.java
-/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/jdbc/src/main/java/com/yahoo/ycsb/db/flavors/DefaultDBFlavor.java
-/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/jdbc/src/main/java/com/yahoo/ycsb/db/flavors/DBFlavor.java
-/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/jdbc/src/main/java/com/yahoo/ycsb/db/StatementType.java
-/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/jdbc/src/main/java/com/yahoo/ycsb/db/JdbcDBClient.java

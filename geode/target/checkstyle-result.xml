@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<checkstyle version="6.1.1">
-<file name="/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/geode/src/main/java/com/yahoo/ycsb/db/GeodeClient.java">
-</file>
-<file name="/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/geode/src/main/java/com/yahoo/ycsb/db/package-info.java">
-</file>
-</checkstyle>

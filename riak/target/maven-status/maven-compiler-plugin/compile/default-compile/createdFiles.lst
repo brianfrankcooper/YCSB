@@ -1,4 +1,0 @@
-com/yahoo/ycsb/db/riak/RiakUtils.class
-com/yahoo/ycsb/db/riak/RiakKVClient.class
-com/yahoo/ycsb/db/riak/RiakKVClient$1.class
-com/yahoo/ycsb/db/riak/RiakKVClient$UpdateEntity.class

@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.yahoo.ycsb.db.solr.SolrClientCloudTest
--------------------------------------------------------------------------------
-Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 49.127 sec - in com.yahoo.ycsb.db.solr.SolrClientCloudTest
