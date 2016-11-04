@@ -216,16 +216,6 @@ public class CoreWorkload extends Workload {
   public static final String SCAN_PROPORTION_PROPERTY_DEFAULT = "0.0";
 
   /**
-   * The name of the property for the proportion of transactions that are filters.
-   */
-  public static final String FILTER_PROPORTION_PROPERTY = "filterproportion";
-
-  /**
-   * The default proportion of transactions that are filters.
-   */
-  public static final String FILTER_PROPORTION_PROPERTY_DEFAULT = "0.0";
-
-  /**
    * The name of the property for the proportion of transactions that are read-modify-write.
    */
   public static final String READMODIFYWRITE_PROPORTION_PROPERTY = "readmodifywriteproportion";
@@ -246,7 +236,7 @@ public class CoreWorkload extends Workload {
    */
   public static final String REQUEST_DISTRIBUTION_PROPERTY_DEFAULT = "uniform";
 
-   /**
+  /**
    * The name of the property for adding zero padding to record numbers in order to match
    * string sort order. Controls the number of 0s to left pad with.
    */
@@ -346,11 +336,11 @@ public class CoreWorkload extends Workload {
   protected static NumberGenerator getFieldLengthGenerator(Properties p) throws WorkloadException {
     NumberGenerator fieldlengthgenerator;
     String fieldlengthdistribution = p.getProperty(
-        FIELD_LENGTH_DISTRIBUTION_PROPERTY, FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
+      FIELD_LENGTH_DISTRIBUTION_PROPERTY, FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
     int fieldlength =
-        Integer.parseInt(p.getProperty(FIELD_LENGTH_PROPERTY, FIELD_LENGTH_PROPERTY_DEFAULT));
+      Integer.parseInt(p.getProperty(FIELD_LENGTH_PROPERTY, FIELD_LENGTH_PROPERTY_DEFAULT));
     String fieldlengthhistogram = p.getProperty(
-        FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY, FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY_DEFAULT);
+      FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY, FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY_DEFAULT);
     if (fieldlengthdistribution.compareTo("constant") == 0) {
       fieldlengthgenerator = new ConstantIntegerGenerator(fieldlength);
     } else if (fieldlengthdistribution.compareTo("uniform") == 0) {
@@ -362,11 +352,11 @@ public class CoreWorkload extends Workload {
         fieldlengthgenerator = new HistogramGenerator(fieldlengthhistogram);
       } catch (IOException e) {
         throw new WorkloadException(
-            "Couldn't read field length histogram file: " + fieldlengthhistogram, e);
+          "Couldn't read field length histogram file: " + fieldlengthhistogram, e);
       }
     } else {
       throw new WorkloadException(
-          "Unknown field length distribution \"" + fieldlengthdistribution + "\"");
+        "Unknown field length distribution \"" + fieldlengthdistribution + "\"");
     }
     return fieldlengthgenerator;
   }
@@ -380,7 +370,7 @@ public class CoreWorkload extends Workload {
     table = p.getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
 
     fieldcount =
-        Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
+      Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
     fieldnames = new ArrayList<String>();
     for (int i = 0; i < fieldcount; i++) {
       fieldnames.add("field" + i);
@@ -388,21 +378,21 @@ public class CoreWorkload extends Workload {
     fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
 
     recordcount =
-        Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
+      Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
     if (recordcount == 0) {
       recordcount = Integer.MAX_VALUE;
     }
     String requestdistrib =
-        p.getProperty(REQUEST_DISTRIBUTION_PROPERTY, REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
+      p.getProperty(REQUEST_DISTRIBUTION_PROPERTY, REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
     int maxscanlength =
-        Integer.parseInt(p.getProperty(MAX_SCAN_LENGTH_PROPERTY, MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
+      Integer.parseInt(p.getProperty(MAX_SCAN_LENGTH_PROPERTY, MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
     String scanlengthdistrib =
-        p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY, SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
+      p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY, SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
 
     int insertstart =
-        Integer.parseInt(p.getProperty(INSERT_START_PROPERTY, INSERT_START_PROPERTY_DEFAULT));
+      Integer.parseInt(p.getProperty(INSERT_START_PROPERTY, INSERT_START_PROPERTY_DEFAULT));
     int insertcount =
-        Integer.parseInt(p.getProperty(INSERT_COUNT_PROPERTY, String.valueOf(recordcount - insertstart)));
+      Integer.parseInt(p.getProperty(INSERT_COUNT_PROPERTY, String.valueOf(recordcount - insertstart)));
     // Confirm valid values for insertstart and insertcount in relation to recordcount
     if (recordcount < (insertstart + insertcount)) {
       System.err.println("Invalid combination of insertstart, insertcount and recordcount.");
@@ -410,20 +400,20 @@ public class CoreWorkload extends Workload {
       System.exit(-1);
     }
     zeropadding =
-        Integer.parseInt(p.getProperty(ZERO_PADDING_PROPERTY, ZERO_PADDING_PROPERTY_DEFAULT));
+      Integer.parseInt(p.getProperty(ZERO_PADDING_PROPERTY, ZERO_PADDING_PROPERTY_DEFAULT));
 
     readallfields = Boolean.parseBoolean(
-        p.getProperty(READ_ALL_FIELDS_PROPERTY, READ_ALL_FIELDS_PROPERTY_DEFAULT));
+      p.getProperty(READ_ALL_FIELDS_PROPERTY, READ_ALL_FIELDS_PROPERTY_DEFAULT));
     writeallfields = Boolean.parseBoolean(
-        p.getProperty(WRITE_ALL_FIELDS_PROPERTY, WRITE_ALL_FIELDS_PROPERTY_DEFAULT));
+      p.getProperty(WRITE_ALL_FIELDS_PROPERTY, WRITE_ALL_FIELDS_PROPERTY_DEFAULT));
 
     dataintegrity = Boolean.parseBoolean(
-        p.getProperty(DATA_INTEGRITY_PROPERTY, DATA_INTEGRITY_PROPERTY_DEFAULT));
+      p.getProperty(DATA_INTEGRITY_PROPERTY, DATA_INTEGRITY_PROPERTY_DEFAULT));
     // Confirm that fieldlengthgenerator returns a constant if data
     // integrity check requested.
     if (dataintegrity && !(p.getProperty(
-          FIELD_LENGTH_DISTRIBUTION_PROPERTY,
-          FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT)).equals("constant")) {
+      FIELD_LENGTH_DISTRIBUTION_PROPERTY,
+      FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT)).equals("constant")) {
       System.err.println("Must have constant field size to check data integrity.");
       System.exit(-1);
     }
@@ -432,11 +422,11 @@ public class CoreWorkload extends Workload {
       orderedinserts = false;
     } else if (requestdistrib.compareTo("exponential") == 0) {
       double percentile = Double.parseDouble(p.getProperty(
-          ExponentialGenerator.EXPONENTIAL_PERCENTILE_PROPERTY,
-          ExponentialGenerator.EXPONENTIAL_PERCENTILE_DEFAULT));
+        ExponentialGenerator.EXPONENTIAL_PERCENTILE_PROPERTY,
+        ExponentialGenerator.EXPONENTIAL_PERCENTILE_DEFAULT));
       double frac = Double.parseDouble(p.getProperty(
-          ExponentialGenerator.EXPONENTIAL_FRAC_PROPERTY,
-          ExponentialGenerator.EXPONENTIAL_FRAC_DEFAULT));
+        ExponentialGenerator.EXPONENTIAL_FRAC_PROPERTY,
+        ExponentialGenerator.EXPONENTIAL_FRAC_DEFAULT));
       keychooser = new ExponentialGenerator(percentile, recordcount * frac);
     } else {
       orderedinserts = true;
@@ -461,7 +451,7 @@ public class CoreWorkload extends Workload {
       // that hasn't been inserted yet, will just ignore it and pick another key. this way, the size of
       // the keyspace doesn't change from the perspective of the scrambled zipfian generator
       final double insertproportion = Double.parseDouble(
-          p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
+        p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
       int opcount = Integer.parseInt(p.getProperty(Client.OPERATION_COUNT_PROPERTY));
       int expectednewkeys = (int) ((opcount) * insertproportion * 2.0); // 2 is fudge factor
 
@@ -470,11 +460,11 @@ public class CoreWorkload extends Workload {
       keychooser = new SkewedLatestGenerator(transactioninsertkeysequence);
     } else if (requestdistrib.equals("hotspot")) {
       double hotsetfraction =
-          Double.parseDouble(p.getProperty(HOTSPOT_DATA_FRACTION, HOTSPOT_DATA_FRACTION_DEFAULT));
+        Double.parseDouble(p.getProperty(HOTSPOT_DATA_FRACTION, HOTSPOT_DATA_FRACTION_DEFAULT));
       double hotopnfraction =
-          Double.parseDouble(p.getProperty(HOTSPOT_OPN_FRACTION, HOTSPOT_OPN_FRACTION_DEFAULT));
+        Double.parseDouble(p.getProperty(HOTSPOT_OPN_FRACTION, HOTSPOT_OPN_FRACTION_DEFAULT));
       keychooser = new HotspotIntegerGenerator(insertstart, insertstart + insertcount - 1,
-          hotsetfraction, hotopnfraction);
+        hotsetfraction, hotopnfraction);
     } else {
       throw new WorkloadException("Unknown request distribution \"" + requestdistrib + "\"");
     }
@@ -487,13 +477,13 @@ public class CoreWorkload extends Workload {
       scanlength = new ZipfianGenerator(1, maxscanlength);
     } else {
       throw new WorkloadException(
-          "Distribution \"" + scanlengthdistrib + "\" not allowed for scan length");
+        "Distribution \"" + scanlengthdistrib + "\" not allowed for scan length");
     }
 
     insertionRetryLimit = Integer.parseInt(p.getProperty(
-        INSERTION_RETRY_LIMIT, INSERTION_RETRY_LIMIT_DEFAULT));
+      INSERTION_RETRY_LIMIT, INSERTION_RETRY_LIMIT_DEFAULT));
     insertionRetryInterval = Integer.parseInt(p.getProperty(
-        INSERTION_RETRY_INTERVAL, INSERTION_RETRY_INTERVAL_DEFAULT));
+      INSERTION_RETRY_INTERVAL, INSERTION_RETRY_INTERVAL_DEFAULT));
   }
 
   public String buildKeyName(long keynum) {
@@ -599,7 +589,7 @@ public class CoreWorkload extends Workload {
 
       } else {
         System.err.println("Error inserting, not retrying any more. number of attempts: " + numOfRetries +
-            "Insertion Retry Limit: " + insertionRetryLimit);
+          "Insertion Retry Limit: " + insertionRetryLimit);
         break;
 
       }
@@ -617,23 +607,20 @@ public class CoreWorkload extends Workload {
   @Override
   public boolean doTransaction(DB db, Object threadstate) {
     switch (operationchooser.nextString()) {
-    case "READ":
-      doTransactionRead(db);
-      break;
-    case "UPDATE":
-      doTransactionUpdate(db);
-      break;
-    case "INSERT":
-      doTransactionInsert(db);
-      break;
-    case "SCAN":
-      doTransactionScan(db);
-      break;
-//    case "FILTER":
-//      doTransactionFilter(db);
-//      break;
-    default:
-      doTransactionReadModifyWrite(db);
+      case "READ":
+        doTransactionRead(db);
+        break;
+      case "UPDATE":
+        doTransactionUpdate(db);
+        break;
+      case "INSERT":
+        doTransactionInsert(db);
+        break;
+      case "SCAN":
+        doTransactionScan(db);
+        break;
+      default:
+        doTransactionReadModifyWrite(db);
     }
 
     return true;
@@ -775,20 +762,6 @@ public class CoreWorkload extends Workload {
     db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
   }
 
-//  public void doTransactionFilter(DB db) {
-//    int keynum = nextKeynum();
-//
-////    String startkeyname = buildKeyName(keynum);
-//    String startkeyname = "user";
-//
-//    // choose a random scan length
-//    int len = scanlength.nextValue().intValue();
-//
-//    //TODO - Para já nao estou a usar a startkey, nem o compare operator, nem o value. ta tudo por default no hbase client
-//    db.filter(table, startkeyname, len, "user8627391162697748212", "EQUAL", new ArrayList<String>());
-////    db.filter(table, startkeyname, len, "user8627391162697748212", "GREATER", new Vector<HashMap<String, ByteIterator>>());
-//  }
-
   public void doTransactionUpdate(DB db) {
     // choose a random key
     int keynum = nextKeynum();
@@ -836,17 +809,15 @@ public class CoreWorkload extends Workload {
       throw new IllegalArgumentException("Properties object cannot be null");
     }
     final double readproportion = Double.parseDouble(
-        p.getProperty(READ_PROPORTION_PROPERTY, READ_PROPORTION_PROPERTY_DEFAULT));
+      p.getProperty(READ_PROPORTION_PROPERTY, READ_PROPORTION_PROPERTY_DEFAULT));
     final double updateproportion = Double.parseDouble(
-        p.getProperty(UPDATE_PROPORTION_PROPERTY, UPDATE_PROPORTION_PROPERTY_DEFAULT));
+      p.getProperty(UPDATE_PROPORTION_PROPERTY, UPDATE_PROPORTION_PROPERTY_DEFAULT));
     final double insertproportion = Double.parseDouble(
-        p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
+      p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
     final double scanproportion = Double.parseDouble(
       p.getProperty(SCAN_PROPORTION_PROPERTY, SCAN_PROPORTION_PROPERTY_DEFAULT));
-//    final double filterproportion = Double.parseDouble(
-//      p.getProperty(FILTER_PROPORTION_PROPERTY, FILTER_PROPORTION_PROPERTY_DEFAULT));
     final double readmodifywriteproportion = Double.parseDouble(p.getProperty(
-        READMODIFYWRITE_PROPORTION_PROPERTY, READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT));
+      READMODIFYWRITE_PROPORTION_PROPERTY, READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT));
 
     final DiscreteGenerator operationchooser = new DiscreteGenerator();
     if (readproportion > 0) {
@@ -864,10 +835,6 @@ public class CoreWorkload extends Workload {
     if (scanproportion > 0) {
       operationchooser.addValue(scanproportion, "SCAN");
     }
-
-//    if (filterproportion > 0) {
-//      operationchooser.addValue(filterproportion, "FILTER");
-//    }
 
     if (readmodifywriteproportion > 0) {
       operationchooser.addValue(readmodifywriteproportion, "READMODIFYWRITE");

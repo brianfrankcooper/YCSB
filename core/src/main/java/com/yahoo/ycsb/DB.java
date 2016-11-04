@@ -102,17 +102,16 @@ public abstract class DB
 	public abstract Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result);
 
   /**
-   * Perform a range scan for a set of records, filtering them according to the Compare Operation specified and the value to compare.
-   * Each field/value pair from the result will be stored in a HashMap.
+   * Perform a filtered scan for a set of records in the database.
    *
    * @param table The name of the table
    * @param startkey The record key of the first record to read
    * @param value The record value to compare and perform the filter operation
    * @param compareOperation The compare operation to apply in the filter
-   * @param result A Vector of HashMaps, where each HasMap is a set field/value pairs for one record
+   * @param values A Map of row identifier/qualifiers. The qualifiers HashMap corresponds to field/value.
    * @return The result of the operation.
    */
-  public abstract Status filter(String table, String startkey, String value, String compareOperation, List<String> result);
+  public abstract Status filter(String table, String startkey, String value, String compareOperation, Map<String, HashMap<String,ByteIterator>> values);
 
   /**
 	 * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified

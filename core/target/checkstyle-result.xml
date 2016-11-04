@@ -161,19 +161,21 @@
 <error line="113" severity="error" message="&apos;method def&apos; child have incorrect indentation level 8, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
 <error line="115" severity="error" message="&apos;method def&apos; child have incorrect indentation level 8, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
 <error line="116" severity="error" message="&apos;method def rcurly&apos; have incorrect indentation level 4, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="118" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 3, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="133" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 4, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="134" severity="error" message="&apos;method def&apos; child have incorrect indentation level 8, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="136" severity="error" message="&apos;method def&apos; child have incorrect indentation level 8, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="137" severity="error" message="&apos;method def rcurly&apos; have incorrect indentation level 4, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="148" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 4, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="149" severity="error" message="&apos;method def&apos; child have incorrect indentation level 8, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="150" severity="error" message="&apos;method def&apos; child have incorrect indentation level 8, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="151" severity="error" message="&apos;method def rcurly&apos; have incorrect indentation level 4, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="160" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 4, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="161" severity="error" message="&apos;method def&apos; child have incorrect indentation level 8, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="162" severity="error" message="&apos;method def&apos; child have incorrect indentation level 8, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="163" severity="error" message="&apos;method def rcurly&apos; have incorrect indentation level 4, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="128" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 3, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="128" severity="error" message="Line is longer than 120 characters (found 145)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="128" column="122" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="143" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 4, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="144" severity="error" message="&apos;method def&apos; child have incorrect indentation level 8, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="146" severity="error" message="&apos;method def&apos; child have incorrect indentation level 8, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="147" severity="error" message="&apos;method def rcurly&apos; have incorrect indentation level 4, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="158" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 4, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="159" severity="error" message="&apos;method def&apos; child have incorrect indentation level 8, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="160" severity="error" message="&apos;method def&apos; child have incorrect indentation level 8, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="161" severity="error" message="&apos;method def rcurly&apos; have incorrect indentation level 4, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="170" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 4, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="171" severity="error" message="&apos;method def&apos; child have incorrect indentation level 8, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="172" severity="error" message="&apos;method def&apos; child have incorrect indentation level 8, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="173" severity="error" message="&apos;method def rcurly&apos; have incorrect indentation level 4, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
 </file>
 <file name="/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/ByteArrayByteIterator.java">
 <error line="1" severity="error" message="Line is longer than 120 characters (found 179)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
@@ -576,98 +578,133 @@
 <error line="97" severity="error" message="Line is longer than 120 characters (found 148)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
 <error line="98" severity="error" message="Line is longer than 120 characters (found 138)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
 </file>
-<file name="/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/workloads/SafeWorkload.java">
-<error line="0" severity="error" message="Missing package-info.java file." source="com.puppycrawl.tools.checkstyle.checks.javadoc.JavadocPackageCheck"/>
-<error line="15" column="24" severity="error" message="Variable &apos;startkeyname&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="19" column="24" severity="error" message="Variable &apos;comparevalue&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="38" column="24" severity="error" message="Variable &apos;seed&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="41" column="7" severity="error" message="Variable &apos;fieldcount&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="44" column="19" severity="error" message="Variable &apos;fieldlengthgenerator&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="45" column="11" severity="error" message="Variable &apos;readallfields&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="46" column="11" severity="error" message="Variable &apos;writeallfields&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="48" column="19" severity="error" message="Variable &apos;keysequence&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="49" column="21" severity="error" message="Variable &apos;operationchooser&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="50" column="19" severity="error" message="Variable &apos;keychooser&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="51" column="19" severity="error" message="Variable &apos;fieldchooser&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="52" column="32" severity="error" message="Variable &apos;transactioninsertkeysequence&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="53" column="19" severity="error" message="Variable &apos;scanlength&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="54" column="11" severity="error" message="Variable &apos;orderedinserts&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="55" column="7" severity="error" message="Variable &apos;recordcount&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="56" column="7" severity="error" message="Variable &apos;zeropadding&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="57" column="7" severity="error" message="Variable &apos;insertionRetryLimit&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="58" column="7" severity="error" message="Variable &apos;insertionRetryInterval&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="60" column="24" severity="error" message="Name &apos;_measurements&apos; must match pattern &apos;^[a-z][a-zA-Z0-9]*$&apos;." source="com.puppycrawl.tools.checkstyle.checks.naming.MemberNameCheck"/>
-<error line="62" column="21" severity="error" message="Variable &apos;compareOperationChooser&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="96" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="100" severity="error" message="&apos;Integer&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="104" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="107" severity="error" message="&apos;Integer&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="109" severity="error" message="&apos;Integer&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="142" severity="error" message="&apos;FIELD_LENGTH_DISTRIBUTION_PROPERTY&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="143" severity="error" message="&apos;FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="156" severity="error" message="&apos;ExponentialGenerator&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="157" severity="error" message="&apos;ExponentialGenerator&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="159" severity="error" message="&apos;ExponentialGenerator&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="160" severity="error" message="&apos;ExponentialGenerator&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="180" severity="error" message="&apos;p&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="189" severity="error" message="&apos;Double&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="191" severity="error" message="&apos;Double&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="319" severity="error" message="&apos;&quot;Insertion Retry Limit: &quot;&apos; have incorrect indentation level 10, expected level should be 12." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="337" severity="error" message="&apos;case&apos; child have incorrect indentation level 6, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="338" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="339" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="340" severity="error" message="&apos;case&apos; child have incorrect indentation level 6, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="341" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="342" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="343" severity="error" message="&apos;case&apos; child have incorrect indentation level 6, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="344" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="345" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="346" severity="error" message="&apos;case&apos; child have incorrect indentation level 6, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="347" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="348" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="349" severity="error" message="&apos;case&apos; child have incorrect indentation level 6, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="350" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="351" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="352" severity="error" message="&apos;case&apos; child have incorrect indentation level 6, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="353" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="508" column="5" severity="error" message="&apos;}&apos; should be on the same line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
-<error line="509" severity="error" message="&apos;else&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
-<error line="517" column="5" severity="error" message="&apos;}&apos; should be on the same line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
-<error line="518" severity="error" message="&apos;else&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
-<error line="571" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="573" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="575" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="577" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="579" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="581" severity="error" message="&apos;READMODIFYWRITE_PROPORTION_PROPERTY&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="615" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="617" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="619" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="621" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="626" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="628" column="29" severity="error" message="&apos;compareOperationChooser&apos; hides a field." source="com.puppycrawl.tools.checkstyle.checks.coding.HiddenFieldCheck"/>
-</file>
 <file name="/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/workloads/CoreWorkload.java">
+<error line="0" severity="error" message="Missing package-info.java file." source="com.puppycrawl.tools.checkstyle.checks.javadoc.JavadocPackageCheck"/>
 <error line="75" column="24" severity="error" message="Variable &apos;table&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
 <error line="88" column="7" severity="error" message="Variable &apos;fieldcount&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
 <error line="132" column="19" severity="error" message="Variable &apos;fieldlengthgenerator&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
 <error line="145" column="11" severity="error" message="Variable &apos;readallfields&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
 <error line="158" column="11" severity="error" message="Variable &apos;writeallfields&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="324" column="19" severity="error" message="Variable &apos;keysequence&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="326" column="21" severity="error" message="Variable &apos;operationchooser&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="328" column="19" severity="error" message="Variable &apos;keychooser&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="330" column="19" severity="error" message="Variable &apos;fieldchooser&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="332" column="32" severity="error" message="Variable &apos;transactioninsertkeysequence&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="334" column="19" severity="error" message="Variable &apos;scanlength&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="336" column="11" severity="error" message="Variable &apos;orderedinserts&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="338" column="7" severity="error" message="Variable &apos;recordcount&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="339" column="7" severity="error" message="Variable &apos;zeropadding&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="341" column="7" severity="error" message="Variable &apos;insertionRetryLimit&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="342" column="7" severity="error" message="Variable &apos;insertionRetryInterval&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="344" column="24" severity="error" message="Name &apos;_measurements&apos; must match pattern &apos;^[a-z][a-zA-Z0-9]*$&apos;." source="com.puppycrawl.tools.checkstyle.checks.naming.MemberNameCheck"/>
-<error line="787" severity="error" message="Line is longer than 120 characters (found 124)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
-<error line="789" severity="error" message="Line is longer than 120 characters (found 127)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
-<error line="845" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="314" column="19" severity="error" message="Variable &apos;keysequence&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="316" column="21" severity="error" message="Variable &apos;operationchooser&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="318" column="19" severity="error" message="Variable &apos;keychooser&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="320" column="19" severity="error" message="Variable &apos;fieldchooser&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="322" column="32" severity="error" message="Variable &apos;transactioninsertkeysequence&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="324" column="19" severity="error" message="Variable &apos;scanlength&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="326" column="11" severity="error" message="Variable &apos;orderedinserts&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="328" column="7" severity="error" message="Variable &apos;recordcount&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="329" column="7" severity="error" message="Variable &apos;zeropadding&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="331" column="7" severity="error" message="Variable &apos;insertionRetryLimit&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="332" column="7" severity="error" message="Variable &apos;insertionRetryInterval&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="334" column="24" severity="error" message="Name &apos;_measurements&apos; must match pattern &apos;^[a-z][a-zA-Z0-9]*$&apos;." source="com.puppycrawl.tools.checkstyle.checks.naming.MemberNameCheck"/>
+<error line="339" severity="error" message="&apos;FIELD_LENGTH_DISTRIBUTION_PROPERTY&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="341" severity="error" message="&apos;Integer&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="343" severity="error" message="&apos;FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="386" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="388" severity="error" message="&apos;Integer&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="390" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="393" severity="error" message="&apos;Integer&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="395" severity="error" message="&apos;Integer&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="415" severity="error" message="&apos;FIELD_LENGTH_DISTRIBUTION_PROPERTY&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="416" severity="error" message="&apos;FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="425" severity="error" message="&apos;ExponentialGenerator&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="426" severity="error" message="&apos;ExponentialGenerator&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="428" severity="error" message="&apos;ExponentialGenerator&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="429" severity="error" message="&apos;ExponentialGenerator&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="454" severity="error" message="&apos;p&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="463" severity="error" message="&apos;Double&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="465" severity="error" message="&apos;Double&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="592" severity="error" message="&apos;&quot;Insertion Retry Limit: &quot;&apos; have incorrect indentation level 10, expected level should be 12." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="610" severity="error" message="&apos;case&apos; child have incorrect indentation level 6, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="611" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="612" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="613" severity="error" message="&apos;case&apos; child have incorrect indentation level 6, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="614" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="615" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="616" severity="error" message="&apos;case&apos; child have incorrect indentation level 6, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="617" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="618" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="619" severity="error" message="&apos;case&apos; child have incorrect indentation level 6, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="620" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="621" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="622" severity="error" message="&apos;case&apos; child have incorrect indentation level 6, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="623" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="812" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="814" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="816" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="818" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="820" severity="error" message="&apos;READMODIFYWRITE_PROPORTION_PROPERTY&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+</file>
+<file name="/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/workloads/FilterWorkload.java">
+<error line="12" severity="error" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.JavadocTypeCheck"/>
+<error line="23" column="24" severity="error" message="Variable &apos;startkeyname&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="35" column="24" severity="error" message="Variable &apos;comparevalue&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="98" column="24" severity="error" message="Variable &apos;seed&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="112" column="7" severity="error" message="Variable &apos;fieldcount&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="116" column="19" severity="error" message="Variable &apos;fieldlengthgenerator&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="118" column="11" severity="error" message="Variable &apos;readallfields&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="120" column="11" severity="error" message="Variable &apos;writeallfields&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="124" column="19" severity="error" message="Variable &apos;keysequence&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="126" column="21" severity="error" message="Variable &apos;operationchooser&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="128" column="19" severity="error" message="Variable &apos;keychooser&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="130" column="19" severity="error" message="Variable &apos;fieldchooser&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="132" column="32" severity="error" message="Variable &apos;transactioninsertkeysequence&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="134" column="19" severity="error" message="Variable &apos;scanlength&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="136" column="11" severity="error" message="Variable &apos;orderedinserts&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="138" column="7" severity="error" message="Variable &apos;recordcount&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="140" column="7" severity="error" message="Variable &apos;zeropadding&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="142" column="7" severity="error" message="Variable &apos;insertionRetryLimit&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="144" column="7" severity="error" message="Variable &apos;insertionRetryInterval&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="146" column="24" severity="error" message="Name &apos;_measurements&apos; must match pattern &apos;^[a-z][a-zA-Z0-9]*$&apos;." source="com.puppycrawl.tools.checkstyle.checks.naming.MemberNameCheck"/>
+<error line="148" column="21" severity="error" message="Variable &apos;compareOperationChooser&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="179" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="181" severity="error" message="&apos;Integer&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="183" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="186" severity="error" message="&apos;Integer&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="188" severity="error" message="&apos;Integer&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="217" severity="error" message="&apos;FIELD_LENGTH_DISTRIBUTION_PROPERTY&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="218" severity="error" message="&apos;FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="227" severity="error" message="&apos;ExponentialGenerator&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="228" severity="error" message="&apos;ExponentialGenerator&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="230" severity="error" message="&apos;ExponentialGenerator&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="231" severity="error" message="&apos;ExponentialGenerator&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="251" severity="error" message="&apos;p&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="260" severity="error" message="&apos;Double&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="262" severity="error" message="&apos;Double&apos; have incorrect indentation level 8, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="388" severity="error" message="&apos;&quot;Insertion Retry Limit: &quot;&apos; have incorrect indentation level 10, expected level should be 12." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="405" severity="error" message="&apos;case&apos; child have incorrect indentation level 6, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="406" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="407" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="408" severity="error" message="&apos;case&apos; child have incorrect indentation level 6, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="409" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="410" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="411" severity="error" message="&apos;case&apos; child have incorrect indentation level 6, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="412" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="413" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="414" severity="error" message="&apos;case&apos; child have incorrect indentation level 6, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="415" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="416" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="417" severity="error" message="&apos;case&apos; child have incorrect indentation level 6, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="418" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="419" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="420" severity="error" message="&apos;case&apos; child have incorrect indentation level 6, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="421" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="554" column="12" severity="error" message="&apos;startkeyname&apos; hides a field." source="com.puppycrawl.tools.checkstyle.checks.coding.HiddenFieldCheck"/>
+<error line="580" column="5" severity="error" message="&apos;}&apos; should be on the same line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="581" severity="error" message="&apos;else&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="590" column="5" severity="error" message="&apos;}&apos; should be on the same line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="591" severity="error" message="&apos;else&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="644" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="646" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="648" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="650" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="652" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="654" severity="error" message="&apos;READMODIFYWRITE_PROPORTION_PROPERTY&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="697" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="699" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="701" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="703" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="705" severity="error" message="&apos;p&apos; have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
 </file>
 <file name="/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/workloads/RestWorkload.java">
 <error line="127" severity="error" message="&apos;method def&apos; child have incorrect indentation level 6, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
@@ -821,15 +858,15 @@
 <error line="102" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
 <error line="102" severity="error" message="Line is longer than 120 characters (found 149)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
 <error line="102" column="127" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
-<error line="105" severity="error" message="Line is longer than 120 characters (found 133)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
-<error line="115" severity="error" message="Line is longer than 120 characters (found 123)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
-<error line="118" severity="error" message="Line is longer than 120 characters (found 148)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
-<error line="126" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="126" column="80" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
-<error line="129" severity="error" message="Line is longer than 120 characters (found 148)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
-<error line="137" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="137" column="80" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
-<error line="146" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="114" severity="error" message="Line is longer than 120 characters (found 152)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="114" column="130" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="117" severity="error" message="Line is longer than 120 characters (found 148)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="125" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="125" column="80" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="128" severity="error" message="Line is longer than 120 characters (found 148)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="136" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="136" column="80" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="145" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
 </file>
 <file name="/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/DBException.java">
 <error line="1" severity="error" message="Line is longer than 120 characters (found 179)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
@@ -2699,15 +2736,11 @@
 <error line="50" severity="error" message="&apos;block&apos; child have incorrect indentation level 8, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
 </file>
 <file name="/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/BasicDB.java">
-<error line="1" severity="error" message="Line is longer than 120 characters (found 179)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
 <error line="2" severity="error" message="Line is longer than 120 characters (found 179)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
-<error line="3" severity="error" message="Line is longer than 120 characters (found 179)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
 <error line="4" severity="error" message="Line is longer than 120 characters (found 179)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
 <error line="5" severity="error" message="Line is longer than 120 characters (found 179)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
 <error line="6" severity="error" message="Line is longer than 120 characters (found 179)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
-<error line="7" severity="error" message="Line is longer than 120 characters (found 179)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
 <error line="8" severity="error" message="Line is longer than 120 characters (found 179)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
-<error line="9" severity="error" message="Line is longer than 120 characters (found 179)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
 <error line="10" severity="error" message="Line is longer than 120 characters (found 179)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
 <error line="11" severity="error" message="Line is longer than 120 characters (found 179)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
 <error line="12" severity="error" message="Line is longer than 120 characters (found 179)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
@@ -2715,178 +2748,55 @@
 <error line="14" severity="error" message="Line is longer than 120 characters (found 179)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
 <error line="15" severity="error" message="Line is longer than 120 characters (found 179)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
 <error line="29" column="1" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="30" severity="error" message="&apos;member def modifier&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="30" column="1" severity="error" message="File contains tab characters (this is the first instance)." source="com.puppycrawl.tools.checkstyle.checks.whitespace.FileTabCharacterCheck"/>
-<error line="31" severity="error" message="&apos;member def modifier&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="33" severity="error" message="&apos;member def modifier&apos; have incorrect indentation level 4, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="34" severity="error" message="&apos;member def modifier&apos; have incorrect indentation level 4, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="36" severity="error" message="&apos;member def modifier&apos; have incorrect indentation level 4, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="37" severity="error" message="&apos;member def modifier&apos; have incorrect indentation level 4, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="40" severity="error" message="&apos;member def type&apos; have incorrect indentation level 4, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="40" column="13" severity="error" message="Variable &apos;verbose&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="41" severity="error" message="&apos;member def type&apos; have incorrect indentation level 4, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="41" column="13" severity="error" message="Variable &apos;randomizedelay&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="42" severity="error" message="&apos;member def type&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="42" column="13" severity="error" message="Variable &apos;todelay&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
-<error line="44" severity="error" message="&apos;ctor def modifier&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="45" severity="error" message="&apos;ctor def lcurly&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="45" column="9" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="46" severity="error" message="&apos;ctor def&apos; child have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="47" severity="error" message="&apos;ctor def rcurly&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="50" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="51" severity="error" message="&apos;method def lcurly&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="51" column="9" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="52" severity="error" message="&apos;if&apos; have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="53" severity="error" message="&apos;if lcurly&apos; have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="53" column="17" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="54" severity="error" message="&apos;if&apos; child have incorrect indentation level 20, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="54" severity="error" message="&apos;member def type&apos; have incorrect indentation level 20, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="55" severity="error" message="&apos;if&apos; have incorrect indentation level 20, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="56" severity="error" message="&apos;if&apos; child have incorrect indentation level 24, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="57" severity="error" message="&apos;if&apos; have incorrect indentation level 24, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="58" severity="error" message="&apos;if&apos; child have incorrect indentation level 28, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="59" severity="error" message="&apos;if rcurly&apos; have incorrect indentation level 24, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="60" severity="error" message="&apos;if rcurly&apos; have incorrect indentation level 20, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="60" column="21" severity="error" message="&apos;}&apos; should be on the same line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
-<error line="61" severity="error" message="&apos;else&apos; have incorrect indentation level 20, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="62" severity="error" message="&apos;else&apos; child have incorrect indentation level 24, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="63" severity="error" message="&apos;else rcurly&apos; have incorrect indentation level 20, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="65" severity="error" message="&apos;if&apos; child have incorrect indentation level 20, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="65" severity="error" message="&apos;member def type&apos; have incorrect indentation level 20, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="66" severity="error" message="&apos;if&apos; child have incorrect indentation level 12, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="66" severity="error" message="&apos;member def modifier&apos; have incorrect indentation level 12, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="67" severity="error" message="&apos;do..while&apos; have incorrect indentation level 12, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="68" severity="error" message="&apos;do..while&apos; child have incorrect indentation level 16, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="69" severity="error" message="&apos;do..while rcurly&apos; have incorrect indentation level 12, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="69" column="27" severity="error" message="Inner assignments should be avoided." source="com.puppycrawl.tools.checkstyle.checks.coding.InnerAssignmentCheck"/>
-<error line="70" severity="error" message="&apos;if rcurly&apos; have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="71" severity="error" message="&apos;method def rcurly&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="77" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="79" severity="error" message="&apos;method def lcurly&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="79" column="9" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="80" severity="error" message="&apos;method def&apos; child have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="81" severity="error" message="&apos;method def&apos; child have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="82" severity="error" message="&apos;method def&apos; child have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="82" severity="error" message="Line is longer than 120 characters (found 123)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="40" column="11" severity="error" message="Variable &apos;verbose&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="41" column="11" severity="error" message="Variable &apos;randomizedelay&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="42" column="7" severity="error" message="Variable &apos;todelay&apos; must be private and have accessor methods." source="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck"/>
+<error line="45" column="3" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="51" column="3" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="53" column="5" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="60" column="7" severity="error" message="&apos;}&apos; should be on the same line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="69" column="21" severity="error" message="Inner assignments should be avoided." source="com.puppycrawl.tools.checkstyle.checks.coding.InnerAssignmentCheck"/>
+<error line="79" column="3" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
 <error line="83" severity="error" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
-<error line="83" severity="error" message="&apos;if&apos; have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="84" severity="error" message="&apos;block lcurly&apos; have incorrect indentation level 16, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="84" column="17" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="85" severity="error" message="&apos;block&apos; child have incorrect indentation level 24, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="86" severity="error" message="&apos;block&apos; child have incorrect indentation level 24, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="86" severity="error" message="&apos;member def type&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="87" severity="error" message="&apos;if&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="88" severity="error" message="&apos;if lcurly&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="88" column="25" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="89" severity="error" message="&apos;for&apos; have incorrect indentation level 32, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="89" column="91" severity="error" message="&apos;;&apos; is followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.EmptyForIteratorPadCheck"/>
-<error line="90" severity="error" message="&apos;for lcurly&apos; have incorrect indentation level 32, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="90" column="33" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="91" severity="error" message="&apos;for&apos; child have incorrect indentation level 40, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="91" severity="error" message="&apos;member def type&apos; have incorrect indentation level 40, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="92" severity="error" message="&apos;for&apos; child have incorrect indentation level 40, expected level should be 10." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="93" severity="error" message="&apos;for rcurly&apos; have incorrect indentation level 32, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="94" severity="error" message="&apos;if rcurly&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="95" severity="error" message="&apos;block&apos; child have incorrect indentation level 24, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="96" severity="error" message="&apos;block rcurly&apos; have incorrect indentation level 16, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="97" severity="error" message="&apos;method def rcurly&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="121" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="121" column="89" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
-<error line="122" severity="error" message="&apos;method def lcurly&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="123" severity="error" message="&apos;method def&apos; child have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="125" severity="error" message="&apos;if&apos; have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="126" severity="error" message="&apos;if lcurly&apos; have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="126" column="17" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="128" severity="error" message="&apos;if&apos; child have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="129" severity="error" message="&apos;if&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="130" severity="error" message="&apos;if lcurly&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="130" column="25" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="131" severity="error" message="&apos;for&apos; have incorrect indentation level 32, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="132" severity="error" message="&apos;for lcurly&apos; have incorrect indentation level 32, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="132" column="33" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="134" severity="error" message="&apos;for rcurly&apos; have incorrect indentation level 32, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="135" severity="error" message="&apos;if rcurly&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="135" column="25" severity="error" message="&apos;}&apos; should be on the same line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
-<error line="136" severity="error" message="&apos;else&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="137" severity="error" message="&apos;else lcurly&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="137" column="25" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="139" severity="error" message="&apos;else rcurly&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="145" severity="error" message="&apos;method def&apos; child have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="146" severity="error" message="&apos;method def rcurly&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="149" severity="error" message="Line is longer than 120 characters (found 136)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
-<error line="158" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="158" severity="error" message="Line is longer than 120 characters (found 139)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
-<error line="158" column="118" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
-<error line="159" severity="error" message="&apos;method def lcurly&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="160" severity="error" message="&apos;method def&apos; child have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="162" severity="error" message="&apos;if&apos; have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="163" severity="error" message="&apos;if lcurly&apos; have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="163" column="17" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="166" severity="error" message="&apos;if&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="167" severity="error" message="&apos;if lcurly&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="167" column="25" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="168" severity="error" message="&apos;for&apos; have incorrect indentation level 32, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="169" severity="error" message="&apos;for lcurly&apos; have incorrect indentation level 32, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="169" column="33" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="171" severity="error" message="&apos;for rcurly&apos; have incorrect indentation level 32, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="172" severity="error" message="&apos;if rcurly&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="172" column="25" severity="error" message="&apos;}&apos; should be on the same line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
-<error line="173" severity="error" message="&apos;else&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="174" severity="error" message="&apos;else lcurly&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="174" column="25" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="176" severity="error" message="&apos;else rcurly&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="182" severity="error" message="&apos;method def&apos; child have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="183" severity="error" message="&apos;method def rcurly&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="191" severity="error" message="Line is longer than 120 characters (found 130)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
-<error line="192" severity="error" message="Line is longer than 120 characters (found 127)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
-<error line="201" severity="error" message="Line is longer than 120 characters (found 148)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
-<error line="209" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="209" column="71" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
-<error line="210" severity="error" message="&apos;method def lcurly&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="211" severity="error" message="&apos;method def&apos; child have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="213" severity="error" message="&apos;if&apos; have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="214" severity="error" message="&apos;if lcurly&apos; have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="214" column="17" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="217" severity="error" message="&apos;if&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="218" severity="error" message="&apos;if lcurly&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="218" column="25" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="219" severity="error" message="&apos;for&apos; have incorrect indentation level 32, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="220" severity="error" message="&apos;for lcurly&apos; have incorrect indentation level 32, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="220" column="33" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="222" severity="error" message="&apos;for rcurly&apos; have incorrect indentation level 32, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="223" severity="error" message="&apos;if rcurly&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="226" severity="error" message="&apos;if rcurly&apos; have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="228" severity="error" message="&apos;method def&apos; child have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="229" severity="error" message="&apos;method def rcurly&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="232" severity="error" message="Line is longer than 120 characters (found 148)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
-<error line="240" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="240" column="71" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
-<error line="241" severity="error" message="&apos;method def lcurly&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="242" severity="error" message="&apos;method def&apos; child have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="244" severity="error" message="&apos;if&apos; have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="245" severity="error" message="&apos;if lcurly&apos; have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="245" column="17" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="248" severity="error" message="&apos;if&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="249" severity="error" message="&apos;if lcurly&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="249" column="25" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="250" severity="error" message="&apos;for&apos; have incorrect indentation level 32, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="251" severity="error" message="&apos;for lcurly&apos; have incorrect indentation level 32, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="251" column="33" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="253" severity="error" message="&apos;for rcurly&apos; have incorrect indentation level 32, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="254" severity="error" message="&apos;if rcurly&apos; have incorrect indentation level 24, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="258" severity="error" message="&apos;if rcurly&apos; have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="260" severity="error" message="&apos;method def&apos; child have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="261" severity="error" message="&apos;method def rcurly&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="271" severity="error" message="&apos;method def modifier&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="272" severity="error" message="&apos;method def lcurly&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="272" column="9" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="273" severity="error" message="&apos;method def&apos; child have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="275" severity="error" message="&apos;if&apos; have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="276" severity="error" message="&apos;if lcurly&apos; have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="276" column="17" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="280" severity="error" message="&apos;if rcurly&apos; have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="282" severity="error" message="&apos;method def&apos; child have incorrect indentation level 16, expected level should be 4." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
-<error line="283" severity="error" message="&apos;method def rcurly&apos; have incorrect indentation level 8, expected level should be 2." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="84" severity="error" message="&apos;block lcurly&apos; have incorrect indentation level 4, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="84" column="5" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="85" severity="error" message="&apos;block&apos; child have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="86" severity="error" message="&apos;block&apos; child have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="88" column="7" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="89" column="67" severity="error" message="&apos;;&apos; is followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.EmptyForIteratorPadCheck"/>
+<error line="90" column="9" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="95" severity="error" message="&apos;block&apos; child have incorrect indentation level 6, expected level should be 8." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="96" severity="error" message="&apos;block rcurly&apos; have incorrect indentation level 4, expected level should be 6." source="com.puppycrawl.tools.checkstyle.checks.indentation.IndentationCheck"/>
+<error line="121" column="83" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="126" column="5" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="130" column="7" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="132" column="9" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="135" column="7" severity="error" message="&apos;}&apos; should be on the same line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="137" column="7" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="149" severity="error" message="Line is longer than 120 characters (found 130)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="158" severity="error" message="Line is longer than 120 characters (found 133)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="158" column="112" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="163" column="5" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="167" column="7" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="169" column="9" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="172" column="7" severity="error" message="&apos;}&apos; should be on the same line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="174" column="7" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="186" severity="error" message="Line is longer than 120 characters (found 142)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="194" column="65" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="199" column="5" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="203" column="7" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="205" column="9" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="217" severity="error" message="Line is longer than 120 characters (found 142)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="225" column="65" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="230" column="5" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="234" column="7" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="236" column="9" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="257" column="3" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="261" column="5" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="280" severity="error" message="Line is longer than 120 characters (found 144)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="280" column="121" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="285" severity="error" message="Line is longer than 120 characters (found 126)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="296" column="1" severity="error" message="File contains tab characters (this is the first instance)." source="com.puppycrawl.tools.checkstyle.checks.whitespace.FileTabCharacterCheck"/>
 </file>
 <file name="/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/Client.java">
 <error line="53" column="1" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
@@ -3122,21 +3032,24 @@
 <error line="172" column="42" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
 <error line="172" column="54" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
 <error line="172" column="61" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
-<error line="184" column="35" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
-<error line="184" column="44" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
-<error line="184" column="50" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
-<error line="184" column="67" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
-<error line="210" severity="error" message="Line is longer than 120 characters (found 142)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
-<error line="219" column="22" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
-<error line="220" column="3" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="224" column="35" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
-<error line="224" column="39" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
-<error line="243" column="22" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
-<error line="244" column="3" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="248" column="35" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
-<error line="248" column="39" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
-<error line="264" column="3" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
-<error line="268" column="35" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="190" severity="error" message="Line is longer than 120 characters (found 143)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="190" column="105" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="190" column="120" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="194" column="35" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="194" column="44" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="194" column="50" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="194" column="67" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="220" severity="error" message="Line is longer than 120 characters (found 142)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="229" column="22" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="230" column="3" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="234" column="35" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="234" column="39" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="253" column="22" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="254" column="3" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="258" column="35" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="258" column="39" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
+<error line="274" column="3" severity="error" message="&apos;{&apos; should be on the previous line." source="com.puppycrawl.tools.checkstyle.checks.blocks.LeftCurlyCheck"/>
+<error line="278" column="35" severity="error" message="&apos;,&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAfterCheck"/>
 </file>
 <file name="/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/resources/project.properties">
 </file>

@@ -115,7 +115,17 @@ public class GoodBadUglyDB extends DB {
         return Status.OK;
     }
 
-   public Status filter(String table, String startkey, String value, String compareOperation, List<String> result) {
+  /**
+   * Perform a filtered scan for a set of records in the database.
+   *
+   * @param table The name of the table
+   * @param startkey The record key of the first record to read
+   * @param value The record value to compare and perform the filter operation
+   * @param compareOperation The compare operation to apply in the filter
+   * @param result A Map of row identifier/qualifiers. The qualifiers HashMap corresponds to field/value.
+   * @return Zero on success, a non-zero error code on error
+   */
+   public Status filter(String table, String startkey, String value, String compareOperation, Map<String, HashMap<String,ByteIterator>> result) {
     delay();
 
     return Status.OK;

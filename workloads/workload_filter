@@ -14,23 +14,38 @@
 # LICENSE file.
 
 
+# Yahoo! Cloud System Benchmark
+# Workload Filter: Row filters
+#   Application example: Search by social security number
+#
+#   Additional Properties:
+#   > greatproportion: greater than operations
+#   > lessproportion: less than operations
+#   > equalproportion: equal to operations
+#   > greatorequalproportion: greater than or equal to operations
+#   > lessorequalproportion: less than or equal to operations
+#   > seed: long to perform deterministic workloads, using Pseudo-Random Generators
+#   > comparevalue: value to perform the comparisons operations
+#   > startkeyname: name of the key to start the operations
+#   Request distribution: zipfian
+
 recordcount=1000
-operationcount=1
-workload=com.yahoo.ycsb.workloads.SafeWorkload
+operationcount=100
+workload=com.yahoo.ycsb.workloads.FilterWorkload
 
 readallfields=true
 
-readproportion=0
+readproportion=0.1
 updateproportion=0
-scanproportion=0
-filterproportion=1
+scanproportion=0.1
+filterproportion=0.8
 insertproportion=0
 
-greatproportion=0.2
+greatproportion=0.5
 lessproportion=0.2
-equalproportion=0.2
-greatorequalproportion=0.2
-lessorequalproportion=0.2
+equalproportion=0.1
+greatorequalproportion=0.1
+lessorequalproportion=0.1
 
 requestdistribution=zipfian
 
@@ -40,3 +55,4 @@ scanlengthdistribution=uniform
 
 # comparevalue=user8893979329440318460
 seed=1024
+startkeyname=true

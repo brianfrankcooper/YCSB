@@ -30,7 +30,6 @@
 /home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/generator/HistogramGenerator.java
 /home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/measurements/OneMeasurementTimeSeries.java
 /home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/measurements/exporter/MeasurementsExporter.java
-/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/workloads/SafeWorkload.java
 /home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/generator/UnixEpochTimestampGenerator.java
 /home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/UnknownDBException.java
 /home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/measurements/OneMeasurementRaw.java
@@ -39,6 +38,7 @@
 /home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/Workload.java
 /home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/WorkloadException.java
 /home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/generator/Generator.java
+/home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/workloads/FilterWorkload.java
 /home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/generator/ZipfianGenerator.java
 /home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/GoodBadUglyDB.java
 /home/rgmacedo/Dropbox/Master_Thesis/Sample_Code/YCSB/core/src/main/java/com/yahoo/ycsb/generator/SkewedLatestGenerator.java

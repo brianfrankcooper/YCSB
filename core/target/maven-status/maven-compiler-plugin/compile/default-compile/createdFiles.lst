@@ -13,7 +13,6 @@ com/yahoo/ycsb/StringByteIterator.class
 com/yahoo/ycsb/generator/SkewedLatestGenerator.class
 com/yahoo/ycsb/generator/HotspotIntegerGenerator.class
 com/yahoo/ycsb/generator/DiscreteGenerator$Pair.class
-com/yahoo/ycsb/workloads/SafeWorkload.class
 com/yahoo/ycsb/generator/NumberGenerator.class
 com/yahoo/ycsb/generator/SequentialGenerator.class
 com/yahoo/ycsb/measurements/Measurements$2.class
@@ -60,6 +59,7 @@ com/yahoo/ycsb/measurements/Measurements.class
 com/yahoo/ycsb/ClientThread.class
 com/yahoo/ycsb/measurements/Measurements$MeasurementType.class
 com/yahoo/ycsb/measurements/OneMeasurementRaw$RawDataPoint.class
+com/yahoo/ycsb/workloads/FilterWorkload.class
 com/yahoo/ycsb/measurements/OneMeasurementHdrHistogram.class
 com/yahoo/ycsb/generator/HistogramGenerator.class
 com/yahoo/ycsb/BasicDB.class

@@ -17,10 +17,7 @@
 
 package com.yahoo.ycsb.db;
 
-import com.yahoo.ycsb.ByteArrayByteIterator;
-import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.DBException;
-import com.yahoo.ycsb.Status;
+import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.measurements.Measurements;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -37,9 +34,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * HBase client for YCSB framework
  */
-public class HBaseClient extends com.yahoo.ycsb.DB
+public class HBaseClient extends DB
 {
-    private static final Configuration config = new HBaseConfiguration();
+    private static final Configuration config = HBaseConfiguration.create(); //new HBaseConfiguration();
     private static final AtomicInteger THREAD_COUNT = new AtomicInteger(0);
 
     public boolean _debug=false;
@@ -63,7 +60,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
      * Called once per DB instance; there is one DB instance per client thread.
      */
     public void init() throws DBException {
-      config.addResource("conf.xml");
 
       if ( (getProperties().getProperty("debug")!=null) &&
               (getProperties().getProperty("debug").compareTo("true")==0) )
@@ -328,7 +324,12 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         return Status.OK;
     }
 
-
+  /**
+   * Generate a CompareFilter.CompareOp, accordingly the input compareOperation
+   *
+   * @param compareOperation The name of the compare operation to perform.
+   * @return A CompareFilter.CompareOp based on the input. If the input is not recognized, it performs a NO_OP.
+     */
     public CompareFilter.CompareOp getCompareOperation(String compareOperation) {
       CompareFilter.CompareOp compareOp;
       switch (compareOperation) {
@@ -347,9 +348,6 @@ public class HBaseClient extends com.yahoo.ycsb.DB
         case "LESS_OR_EQUAL":
           compareOp = CompareFilter.CompareOp.LESS_OR_EQUAL;
           break;
-        case "NOT_EQUAL":
-          compareOp = CompareFilter.CompareOp.NOT_EQUAL;
-          break;
         default:
           compareOp = CompareFilter.CompareOp.NO_OP;
           break;
@@ -358,65 +356,79 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     }
 
   /**
-   * Filter
+   * Perform a filtered scan for a set of records in the database.
+   *
+   * @param table The name of the table
+   * @param startkey The record key of the first record to read
+   * @param value The record value to compare and perform the filter operation
+   * @param compareOperation The compare operation to apply in the filter
+   * @param result A Map of row identifier/qualifiers. The qualifiers HashMap corresponds to field/value.
+   * @return Zero on success, a non-zero error code on error
    */
-    public Status filter(String table, String startkey, String value, String compareOperation, List<String> result) {
-      if (!_table.equals(table)) {
-        _hTable = null;
-        try
-        {
-          getHTable(table);
-          _table = table;
-        }
-        catch (IOException e)
-        {
-          System.err.println("Error accessing HBase table: "+e);
-          return Status.ERROR;
-        }
+  public Status filter(String table, String startkey, String value, String compareOperation, Map<String, HashMap<String,ByteIterator>> result) {
+    if (!_table.equals(table)) {
+      _hTable = null;
+      try
+      {
+        getHTable(table);
+        _table = table;
       }
-
-      Scan s;
-      if(!startkey.equals("false"))
-        s = new Scan(Bytes.toBytes(startkey));
-      else
-        s = new Scan();
-
-      Filter filter = new RowFilter(getCompareOperation(compareOperation), new BinaryComparator(value.getBytes()));
-      s.setFilter(filter);
-
-
-      //get results
-      ResultScanner scanner = null;
-      try {
-        scanner = _hTable.getScanner(s);
-        System.out.println("START KEY NAME:: "+startkey);
-        for (Result rr = scanner.next(); rr != null; rr = scanner.next())
-        {
-
-          String key = new String(rr.getRow());
-          result.add(key);
-
-          System.out.println(compareOperation+" than "+value+": " +key);
-
-        }
-
-      }
-
-      catch (IOException e) {
-        if (_debug)
-        {
-          System.out.println("Error in getting/parsing scan result: "+e);
-        }
+      catch (IOException e)
+      {
+        System.err.println("Error accessing HBase table: "+e);
         return Status.ERROR;
       }
-
-      finally {
-        scanner.close();
-      }
-
-
-      return Status.OK;
     }
+
+    Scan s;
+    if(!startkey.equals("false"))
+      s = new Scan(Bytes.toBytes(startkey));
+    else
+      s = new Scan();
+
+    Filter filter = new RowFilter(getCompareOperation(compareOperation), new BinaryComparator(value.getBytes()));
+    s.setFilter(filter);
+
+    //get results
+    ResultScanner scanner = null;
+    try {
+      scanner = _hTable.getScanner(s);
+
+      for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
+        //get row key
+        String key = Bytes.toString(rr.getRow());
+        if (_debug) {
+          System.out.println("Got scan result for key: " + key);
+        }
+
+        HashMap<String, ByteIterator> rowResult = new HashMap<String, ByteIterator>();
+        for (KeyValue kv : rr.raw()) {
+          rowResult.put(
+            Bytes.toString(kv.getQualifier()),
+            new ByteArrayByteIterator(kv.getValue()));
+        }
+        //add rowResult to result vector
+        result.put(key, rowResult);
+
+//        System.out.println(key+" <=> "+rowResult.toString());
+
+      } //done with row
+    }
+    catch (IOException e) {
+      if (_debug)
+      {
+        System.out.println("Error in getting/parsing scan result: "+e);
+      }
+      return Status.ERROR;
+    }
+
+    finally {
+      scanner.close();
+    }
+
+
+    return Status.OK;
+  }
 
 
 
