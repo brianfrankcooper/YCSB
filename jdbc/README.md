@@ -54,10 +54,10 @@ Key take aways:
 YCSB has a utility to help create your SQL table. NOTE: It does not support all databases flavors, if it does not work for you, you will have to create your table manually with the schema given above. An example usage of the utility:
 
 ```sh
-java -cp YCSB_HOME/jdbc-binding/lib/jdbc-binding-0.4.0.jar:mysql-connector-java-5.1.37-bin.jar com.yahoo.ycsb.db.JdbcDBCreateTable -P testworkload -P db.properties -n usertable
+java -cp YCSB_HOME/jdbc-binding/lib/jdbc-binding-0.4.0.jar:mysql-connector-java-5.1.37-bin.jar com.yahoo.ycsb.db.JdbcDBCreateTable -P db.properties -n usertable
 ```
 
-Hint: you need to include your Driver jar in the classpath as well as specify your loading options via a workload file, JDBC connection information, and a table name with ```-n```. 
+Hint: you need to include your Driver jar in the classpath as well as specify JDBC connection information via a properties file, and a table name with ```-n```. 
 
 Simply executing the JdbcDBCreateTable class without any other parameters will print out usage information.
 
