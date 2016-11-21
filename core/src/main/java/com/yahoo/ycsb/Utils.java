@@ -34,23 +34,23 @@ public class Utils
   private static final ThreadLocal<Random> rng = new ThreadLocal<Random>();
   private static String seed = "false";
 
-  public static void setSeed(String s) {
-    seed = s;
-  }
-
-  public static Random random() {
-    Random ret = rng.get();
-    if(ret == null) {
-      if(seed.equals("false")) {
-        ret = new Random(rand.nextLong());
-      }
-      else {
-        ret = new Random(Long.parseLong(seed));
-      }
-      rng.set(ret);
+    public static void setSeed(String s) {
+      seed = s;
     }
-    return ret;
-  }
+
+    public static Random random() {
+      Random ret = rng.get();
+      if(ret == null) {
+        if(seed.equals("false")) {
+          ret = new Random(rand.nextLong());
+        }
+        else {
+          ret = new Random(Long.parseLong(seed));
+        }
+        rng.set(ret);
+      }
+      return ret;
+    }
       /**
        * Generate a random ASCII string of a given length.
        */

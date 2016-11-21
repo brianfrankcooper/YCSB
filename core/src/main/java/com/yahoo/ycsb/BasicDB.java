@@ -1,18 +1,18 @@
 /**
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved.                                                                                                                             
+ * Copyright (c) 2010 Yahoo! Inc. All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you                                                                                                             
- * may not use this file except in compliance with the License. You                                                                                                                
- * may obtain a copy of the License at                                                                                                                                             
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0                                                                                                                                      
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software                                                                                                             
- * distributed under the License is distributed on an "AS IS" BASIS,                                                                                                               
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or                                                                                                                 
- * implied. See the License for the specific language governing                                                                                                                    
- * permissions and limitations under the License. See accompanying                                                                                                                 
- * LICENSE file.                                                                                                                                                                   
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
  */
 
 package com.yahoo.ycsb;
@@ -261,29 +261,6 @@ public class BasicDB extends DB
     {
       StringBuilder sb = getStringBuilder();
       sb.append("DELETE ").append(table).append(" ").append(key);
-      System.out.println(sb);
-    }
-
-    return Status.OK;
-  }
-
-  /**
-   * Perform a filtered scan for a set of records in the database.
-   *
-   * @param table The name of the table
-   * @param startkey The record key of the first record to read
-   * @param value The record value to compare and perform the filter operation
-   * @param compareOperation The compare operation to apply in the filter
-   * @param result A Map of row identifier/qualifiers. The qualifiers HashMap corresponds to field/value.
-   * @return Zero on success, a non-zero error code on error
-   */
-  public Status filter(String table, String startkey, String value, String compareOperation, Map<String, HashMap<String,ByteIterator>> result) {
-    delay();
-
-    if(verbose) {
-      StringBuilder sb = getStringBuilder();
-      sb.append("FILTER ").append(table).append(" ").append(value).append(" ").append(result.size()).append("[<all fields>]");
-
       System.out.println(sb);
     }
 

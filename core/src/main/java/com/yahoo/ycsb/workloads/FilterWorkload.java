@@ -7,9 +7,7 @@ import com.yahoo.ycsb.measurements.Measurements;
 
 import java.util.*;
 
-import static com.yahoo.ycsb.workloads.CoreWorkload.*;
-
-public class FilterWorkload extends Workload {
+public class FilterWorkload extends CoreWorkload {
   /**
    * The default value for the start key name.
    */
@@ -21,6 +19,14 @@ public class FilterWorkload extends Workload {
   public static final String START_KEY_NAME = "startkeyname";
 
   public static String startkeyname;
+
+  /**
+   * Check if the scan operation is standard or filter
+   */
+  public static final String IS_FILTER_DEFAULT = "false";
+
+  public static final String IS_FILTER = "is_filter";
+  public static String is_filter;
 
   /**
    * The default value for the compare value.
@@ -97,16 +103,6 @@ public class FilterWorkload extends Workload {
   public static final String SEED_PROPERTY_DEFAULT = "false";
   public static String seed;
 
-  /**
-   * The name of the property for the proportion of transactions that are filters.
-   */
-  public static final String FILTER_PROPORTION_PROPERTY = "filterproportion";
-
-  /**
-   * The default proportion of transactions that are filters.
-   */
-  public static final String FILTER_PROPORTION_PROPERTY_DEFAULT = "0.0";
-
 
 
   int fieldcount;
@@ -151,12 +147,15 @@ public class FilterWorkload extends Workload {
    * Initialize the scenario.
    * Called once, in the main client thread, before any operations are started.
    */
-//  @Override
+  @Override
   public void init(Properties p) throws WorkloadException {
     table = p.getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
 
 //    starting key to perform scan and filter operations
     startkeyname = p.getProperty(START_KEY_NAME, START_KEY_NAME_DEFAULT);
+
+//    check if scan operations are filters
+    is_filter = p.getProperty(IS_FILTER, IS_FILTER_DEFAULT);
 
 //    value to perform comparisons in filter operation
     comparevalue = p.getProperty(COMPARE_VALUE, COMPARE_VALUE_DEFAULT);
@@ -414,9 +413,6 @@ public class FilterWorkload extends Workload {
       case "SCAN":
         doTransactionScan(db);
         break;
-      case "FILTER":
-        doTransactionFilter(db);
-        break;
       default:
         doTransactionReadModifyWrite(db);
     }
@@ -551,48 +547,50 @@ public class FilterWorkload extends Workload {
     // choose a random key
     int keynum = nextKeynum();
 
-    String startkeyname = buildKeyName(keynum);
+    String startk = null;
+    String comparable = null;
+
+//    startkeyname option
+    if(startkeyname.equals("true")) {
+      keynum = nextKeynum();
+      startk = buildKeyName(keynum);
+    }
+    else
+      startk = "false";
 
     // choose a random scan length
     int len = scanlength.nextValue().intValue();
 
     HashSet<String> fields = null;
 
-    if (!readallfields) {
-      // read a random field
-      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
 
-      fields = new HashSet<String>();
-      fields.add(fieldname);
+    if(is_filter.equals("true")) {
+      String compOperation = doCompareOperation();
+
+//    insert a compare value to perform the comparisons in the filter
+      if (comparevalue.equals("false")) {
+        keynum = nextKeynum();
+        comparable = buildKeyName(keynum);
+      }
+      else
+        comparable = comparevalue;
+
+      fields = new HashSet<>();
+      fields.add("isFilter#true:"+compOperation+":"+comparable);
+    }
+    else {
+      if (!readallfields) {
+        // read a random field
+        String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
+
+        fields = new HashSet<String>();
+        fields.add(fieldname);
+      }
     }
 
     db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
   }
 
-  public void doTransactionFilter(DB db) {
-    String startk = null;
-    String comparable = null;
-
-//    startkeyname option
-    if(startkeyname.equals("true")) {
-      int keynum = nextKeynum();
-      startk = buildKeyName(keynum);
-    }
-    else
-      startk = "false";
-
-    String compOperation = doCompareOperation();
-
-//    insert a compare value to perform the comparisons in the filter
-    if (comparevalue.equals("false")) {
-      int keynum = nextKeynum();
-      comparable = buildKeyName(keynum);
-    }
-    else
-      comparable = comparevalue;
-
-    db.filter(table, startk, comparable, compOperation, new HashMap<String, HashMap<String, ByteIterator>>());
-  }
 
   public void doTransactionUpdate(DB db) {
     // choose a random key
@@ -648,8 +646,6 @@ public class FilterWorkload extends Workload {
       p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
     final double scanproportion = Double.parseDouble(
       p.getProperty(SCAN_PROPORTION_PROPERTY, SCAN_PROPORTION_PROPERTY_DEFAULT));
-    final double filterproportion = Double.parseDouble(
-      p.getProperty(FILTER_PROPORTION_PROPERTY, FILTER_PROPORTION_PROPERTY_DEFAULT));
     final double readmodifywriteproportion = Double.parseDouble(p.getProperty(
       READMODIFYWRITE_PROPORTION_PROPERTY, READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT));
 
@@ -668,10 +664,6 @@ public class FilterWorkload extends Workload {
 
     if (scanproportion > 0) {
       operationchooser.addValue(scanproportion, "SCAN");
-    }
-
-    if (filterproportion > 0) {
-      operationchooser.addValue(filterproportion, "FILTER");
     }
 
     if (readmodifywriteproportion > 0) {

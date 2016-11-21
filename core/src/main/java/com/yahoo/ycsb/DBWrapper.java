@@ -37,12 +37,12 @@ public class DBWrapper extends DB
   private HashSet<String> latencyTrackedErrors = new HashSet<String>();
 
   private static final String REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY =
-      "reportlatencyforeacherror";
+    "reportlatencyforeacherror";
   private static final String REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY_DEFAULT =
-      "false";
+    "false";
 
   private static final String LATENCY_TRACKED_ERRORS_PROPERTY =
-      "latencytrackederrors";
+    "latencytrackederrors";
 
   private final String SCOPE_STRING_CLEANUP;
   private final String SCOPE_STRING_DELETE;
@@ -50,7 +50,6 @@ public class DBWrapper extends DB
   private final String SCOPE_STRING_INSERT;
   private final String SCOPE_STRING_READ;
   private final String SCOPE_STRING_SCAN;
-  private final String SCOPE_STRING_FILTER;
   private final String SCOPE_STRING_UPDATE;
 
   public DBWrapper(final DB db, final Tracer tracer)
@@ -65,7 +64,6 @@ public class DBWrapper extends DB
     SCOPE_STRING_INSERT = simple + "#insert";
     SCOPE_STRING_READ = simple + "#read";
     SCOPE_STRING_SCAN = simple + "#scan";
-    SCOPE_STRING_FILTER = simple + "#filter";
     SCOPE_STRING_UPDATE = simple + "#update";
   }
 
@@ -95,21 +93,21 @@ public class DBWrapper extends DB
       _db.init();
 
       this.reportLatencyForEachError = Boolean.parseBoolean(getProperties().
-          getProperty(REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY,
-              REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY_DEFAULT));
+        getProperty(REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY,
+          REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY_DEFAULT));
 
       if (!reportLatencyForEachError) {
         String latencyTrackedErrors = getProperties().getProperty(
-            LATENCY_TRACKED_ERRORS_PROPERTY, null);
+          LATENCY_TRACKED_ERRORS_PROPERTY, null);
         if (latencyTrackedErrors != null) {
           this.latencyTrackedErrors = new HashSet<String>(Arrays.asList(
-              latencyTrackedErrors.split(",")));
+            latencyTrackedErrors.split(",")));
         }
       }
 
       System.err.println("DBWrapper: report latency for each error is " +
-          this.reportLatencyForEachError + " and specific error codes to track" +
-          " for latency are: " + this.latencyTrackedErrors.toString());
+        this.reportLatencyForEachError + " and specific error codes to track" +
+        " for latency are: " + this.latencyTrackedErrors.toString());
     }
   }
 
@@ -139,7 +137,7 @@ public class DBWrapper extends DB
    * @return The result of the operation.
    */
   public Status read(String table, String key, Set<String> fields,
-      HashMap<String,ByteIterator> result)
+                     HashMap<String,ByteIterator> result)
   {
     try (final TraceScope span = _tracer.newScope(SCOPE_STRING_READ)) {
       long ist=_measurements.getIntendedtartTimeNs();
@@ -164,7 +162,7 @@ public class DBWrapper extends DB
    * @return The result of the operation.
    */
   public Status scan(String table, String startkey, int recordcount,
-      Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
+                     Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
   {
     try (final TraceScope span = _tracer.newScope(SCOPE_STRING_SCAN)) {
       long ist=_measurements.getIntendedtartTimeNs();
@@ -177,43 +175,21 @@ public class DBWrapper extends DB
     }
   }
 
-  /**
-   * Perform a filtered scan for a set of records in the database.
-   *
-   * @param table The name of the table
-   * @param startkey The record key of the first record to read
-   * @param value The record value to compare and perform the filter operation
-   * @param compareOperation The compare operation to apply in the filter
-   * @param result A Map of row identifier/qualifiers. The qualifiers HashMap corresponds to field/value.
-   * @return Zero on success, a non-zero error code on error
-   */
-  public Status filter(String table, String startkey, String value, String compareOperation, Map<String,HashMap<String,ByteIterator>> result) {
-    try (final TraceScope span = _tracer.newScope(SCOPE_STRING_FILTER)) {
-      long ist=_measurements.getIntendedtartTimeNs();
-      long st = System.nanoTime();
-      Status res=_db.filter(table,startkey,value,compareOperation,result);
-      long en=System.nanoTime();
-      measure("FILTER", res, ist, st, en);
-      _measurements.reportStatus("FILTER", res);
-      return res;
-    }
-  }
-
   private void measure(String op, Status result, long intendedStartTimeNanos,
-      long startTimeNanos, long endTimeNanos) {
+                       long startTimeNanos, long endTimeNanos) {
     String measurementName = op;
     if (result == null || !result.isOk()) {
       if (this.reportLatencyForEachError ||
-          this.latencyTrackedErrors.contains(result.getName())) {
+        this.latencyTrackedErrors.contains(result.getName())) {
         measurementName = op + "-" + result.getName();
       } else {
         measurementName = op + "-FAILED";
       }
     }
     _measurements.measure(measurementName,
-        (int)((endTimeNanos-startTimeNanos)/1000));
+      (int)((endTimeNanos-startTimeNanos)/1000));
     _measurements.measureIntended(measurementName,
-        (int)((endTimeNanos-intendedStartTimeNanos)/1000));
+      (int)((endTimeNanos-intendedStartTimeNanos)/1000));
   }
 
   /**
@@ -226,7 +202,7 @@ public class DBWrapper extends DB
    * @return The result of the operation.
    */
   public Status update(String table, String key,
-      HashMap<String,ByteIterator> values)
+                       HashMap<String,ByteIterator> values)
   {
     try (final TraceScope span = _tracer.newScope(SCOPE_STRING_UPDATE)) {
       long ist=_measurements.getIntendedtartTimeNs();
@@ -250,7 +226,7 @@ public class DBWrapper extends DB
    * @return The result of the operation.
    */
   public Status insert(String table, String key,
-      HashMap<String,ByteIterator> values)
+                       HashMap<String,ByteIterator> values)
   {
     try (final TraceScope span = _tracer.newScope(SCOPE_STRING_INSERT)) {
       long ist=_measurements.getIntendedtartTimeNs();

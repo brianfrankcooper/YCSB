@@ -30,22 +30,21 @@
 #   Request distribution: zipfian
 
 recordcount=1000
-operationcount=100
+operationcount=1
 workload=com.yahoo.ycsb.workloads.FilterWorkload
 
-readallfields=true
+readallfields=false
 
-readproportion=0.1
+readproportion=0
 updateproportion=0
-scanproportion=0.1
-filterproportion=0.8
+scanproportion=1
 insertproportion=0
 
-greatproportion=0.5
+greatproportion=0.2
 lessproportion=0.2
-equalproportion=0.1
-greatorequalproportion=0.1
-lessorequalproportion=0.1
+equalproportion=0.2
+greatorequalproportion=0.2
+lessorequalproportion=0.2
 
 requestdistribution=zipfian
 
@@ -53,6 +52,7 @@ maxscanlength=100
 
 scanlengthdistribution=uniform
 
-# comparevalue=user8893979329440318460
-seed=1024
+comparevalue=user8893979329440318460
+#seed=1024
 startkeyname=true
+is_filter=true
