@@ -23,9 +23,9 @@ import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.workloads.CoreWorkload;
-import org.kududb.ColumnSchema;
-import org.kududb.Schema;
-import org.kududb.client.*;
+import org.apache.kudu.ColumnSchema;
+import org.apache.kudu.Schema;
+import org.apache.kudu.client.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,25 +34,25 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
-import static org.kududb.Type.STRING;
+import static org.apache.kudu.Type.STRING;
 
 /**
  * Kudu client for YCSB framework. Example to load: <blockquote>
- * 
+ *
  * <pre>
  * <code>
- * $ ./bin/ycsb load kudu -P workloads/workloada -threads 5 
+ * $ ./bin/ycsb load kudu -P workloads/workloada -threads 5
  * </code>
  * </pre>
- * 
+ *
  * </blockquote> Example to run:  <blockquote>
- * 
+ *
  * <pre>
  * <code>
  * ./bin/ycsb run kudu -P workloads/workloada -p kudu_sync_ops=true -threads 5
  * </code>
  * </pre>
- * 
+ *
  * </blockquote>
  */
 public class KuduYCSBClient extends com.yahoo.ycsb.DB {
@@ -64,8 +64,7 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
   private static final String SYNC_OPS_OPT = "kudu_sync_ops";
   private static final String DEBUG_OPT = "kudu_debug";
   private static final String PRINT_ROW_ERRORS_OPT = "kudu_print_row_errors";
-  private static final String PRE_SPLIT_NUM_TABLETS_OPT =
-      "kudu_pre_split_num_tablets";
+  private static final String PRE_SPLIT_NUM_TABLETS_OPT = "kudu_pre_split_num_tablets";
   private static final String TABLE_NUM_REPLICAS = "kudu_table_num_replicas";
   private static final String BLOCK_SIZE_OPT = "kudu_block_size";
   private static final String MASTER_ADDRESSES_OPT = "kudu_master_addresses";
@@ -175,7 +174,7 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
     try {
       client.createTable(tableName, schema, builder);
     } catch (Exception e) {
-      if (!e.getMessage().contains("ALREADY_PRESENT")) {
+      if (!e.getMessage().contains("already exists")) {
         throw new DBException("Couldn't create the table", e);
       }
     }

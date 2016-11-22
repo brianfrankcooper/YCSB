@@ -16,7 +16,7 @@
  */
 
 /**
- * The YCSB binding for <a href="http://getkudu.io/">Kudu</a>.
+ * The YCSB binding for <a href="http://kudu.apache.org/">Apache Kudu</a>.
  */
 package com.yahoo.ycsb.db;
 

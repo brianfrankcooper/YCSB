@@ -31,7 +31,7 @@ LICENSE file.
 
   <dependencies>
     <dependency>
-      <groupId>org.kududb</groupId>
+      <groupId>org.apache.kudu</groupId>
       <artifactId>kudu-client</artifactId>
       <version>${kudu.version}</version>
     </dependency>
@@ -42,17 +42,4 @@ LICENSE file.
       <scope>provided</scope>
     </dependency>
   </dependencies>
-  <repositories>
-    <repository>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>cloudera-repo</id>
-      <name>Cloudera Releases</name>
-      <url>https://repository.cloudera.com/artifactory/cloudera-repos</url>
-    </repository>
-  </repositories>
 </project>
