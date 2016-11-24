@@ -32,7 +32,7 @@ public class Utils
 {
   private static final Random rand = new Random();
   private static final ThreadLocal<Random> rng = new ThreadLocal<Random>();
-  private static String seed = "false";
+  private static String seed = null;
 
     public static void setSeed(String s) {
       seed = s;
@@ -41,7 +41,7 @@ public class Utils
     public static Random random() {
       Random ret = rng.get();
       if(ret == null) {
-        if(seed.equals("false")) {
+        if(seed == null) {
           ret = new Random(rand.nextLong());
         }
         else {

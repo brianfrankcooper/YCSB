@@ -1,3 +1,20 @@
+/**
+ * Copyright (c) 2016 YCSB contributors. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
+ */
+
 package com.yahoo.ycsb.workloads;
 
 
@@ -11,7 +28,7 @@ public class FilterWorkload extends CoreWorkload {
   /**
    * The default value for the start key name.
    */
-  public static final String START_KEY_NAME_DEFAULT = "false";
+  public static final String START_KEY_NAME_DEFAULT = null;
 
   /**
    * The name of the property for choose the starting key name.
@@ -23,7 +40,7 @@ public class FilterWorkload extends CoreWorkload {
   /**
    * Check if the scan operation is standard or filter
    */
-  public static final String IS_FILTER_DEFAULT = "false";
+  public static final String IS_FILTER_DEFAULT = null;
 
   public static final String IS_FILTER = "is_filter";
   public static String is_filter;
@@ -31,7 +48,7 @@ public class FilterWorkload extends CoreWorkload {
   /**
    * The default value for the compare value.
    */
-  public static final String COMPARE_VALUE_DEFAULT = "false";
+  public static final String COMPARE_VALUE_DEFAULT = null;
 
   /**
    * The name of the property that specifies the compare value to perform comparisons
@@ -100,7 +117,7 @@ public class FilterWorkload extends CoreWorkload {
    * The default seed property. The default value of the seed is false, giving for
    * different executions, different results.
    */
-  public static final String SEED_PROPERTY_DEFAULT = "false";
+  public static final String SEED_PROPERTY_DEFAULT = null;
   public static String seed;
 
 
@@ -196,7 +213,7 @@ public class FilterWorkload extends CoreWorkload {
     seed = p.getProperty(SEED_PROPERTY, SEED_PROPERTY_DEFAULT);
 
 //    set seed property in Utils class
-    if(!seed.equals("false")) {
+    if(seed != null) {
       Utils.setSeed(seed);
     }
 
@@ -551,7 +568,7 @@ public class FilterWorkload extends CoreWorkload {
     String comparable = null;
 
 //    startkeyname option
-    if(startkeyname.equals("true")) {
+    if(startkeyname != null) {
       keynum = nextKeynum();
       startk = buildKeyName(keynum);
     }
@@ -564,11 +581,11 @@ public class FilterWorkload extends CoreWorkload {
     HashSet<String> fields = null;
 
 
-    if(is_filter.equals("true")) {
+    if(is_filter != null) {
       String compOperation = doCompareOperation();
 
 //    insert a compare value to perform the comparisons in the filter
-      if (comparevalue.equals("false")) {
+      if (comparevalue == null) {
         keynum = nextKeynum();
         comparable = buildKeyName(keynum);
       }
@@ -588,7 +605,7 @@ public class FilterWorkload extends CoreWorkload {
       }
     }
 
-    db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
+    db.scan(table, startk, len, fields, new Vector<HashMap<String, ByteIterator>>());
   }
 
 

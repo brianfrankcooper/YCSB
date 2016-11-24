@@ -17,12 +17,33 @@
 
 package com.yahoo.ycsb.workloads;
 
+
+import java.util.Properties;
+
 import com.yahoo.ycsb.*;
-import com.yahoo.ycsb.generator.*;
+import com.yahoo.ycsb.generator.AcknowledgedCounterGenerator;
+import com.yahoo.ycsb.generator.ConstantIntegerGenerator;
+import com.yahoo.ycsb.generator.CounterGenerator;
+import com.yahoo.ycsb.generator.DiscreteGenerator;
+import com.yahoo.ycsb.generator.ExponentialGenerator;
+import com.yahoo.ycsb.generator.HistogramGenerator;
+import com.yahoo.ycsb.generator.HotspotIntegerGenerator;
+import com.yahoo.ycsb.generator.NumberGenerator;
+import com.yahoo.ycsb.generator.ScrambledZipfianGenerator;
+import com.yahoo.ycsb.generator.SequentialGenerator;
+import com.yahoo.ycsb.generator.SkewedLatestGenerator;
+import com.yahoo.ycsb.generator.UniformIntegerGenerator;
+import com.yahoo.ycsb.generator.ZipfianGenerator;
 import com.yahoo.ycsb.measurements.Measurements;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Vector;
 
 
 /**
