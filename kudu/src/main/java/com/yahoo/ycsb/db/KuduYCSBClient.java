@@ -23,6 +23,9 @@ import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.workloads.CoreWorkload;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.client.*;
@@ -58,41 +61,27 @@ import static org.apache.kudu.client.KuduPredicate.ComparisonOp.GREATER_EQUAL;
  * </blockquote>
  */
 public class KuduYCSBClient extends com.yahoo.ycsb.DB {
+  private static final Logger LOG = LoggerFactory.getLogger(KuduYCSBClient.class);
   private static final String KEY = "key";
   private static final Status TIMEOUT = new Status("TIMEOUT", "The operation timed out.");
   private static final int MAX_TABLETS = 9000;
   private static final long DEFAULT_SLEEP = 60000;
   private static final String SYNC_OPS_OPT = "kudu_sync_ops";
-  private static final String DEBUG_OPT = "kudu_debug";
-  private static final String PRINT_ROW_ERRORS_OPT = "kudu_print_row_errors";
   private static final String PRE_SPLIT_NUM_TABLETS_OPT = "kudu_pre_split_num_tablets";
   private static final String TABLE_NUM_REPLICAS = "kudu_table_num_replicas";
   private static final String BLOCK_SIZE_OPT = "kudu_block_size";
   private static final String MASTER_ADDRESSES_OPT = "kudu_master_addresses";
   private static final int BLOCK_SIZE_DEFAULT = 4096;
-  private static final List<String> COLUMN_NAMES = new ArrayList<String>();
+  private static final List<String> COLUMN_NAMES = new ArrayList<>();
   private static KuduClient client;
   private static Schema schema;
-  private boolean debug = false;
-  private boolean printErrors = false;
   private KuduSession session;
   private KuduTable kuduTable;
 
   @Override
   public void init() throws DBException {
-    if (getProperties().getProperty(DEBUG_OPT) != null) {
-      this.debug = getProperties().getProperty(DEBUG_OPT).equals("true");
-    }
-    if (getProperties().getProperty(PRINT_ROW_ERRORS_OPT) != null) {
-      this.printErrors =
-          getProperties().getProperty(PRINT_ROW_ERRORS_OPT).equals("true");
-    }
-    if (getProperties().getProperty(PRINT_ROW_ERRORS_OPT) != null) {
-      this.printErrors =
-          getProperties().getProperty(PRINT_ROW_ERRORS_OPT).equals("true");
-    }
     String tableName = CoreWorkload.table;
-    initClient(debug, tableName, getProperties());
+    initClient(tableName, getProperties());
     this.session = client.newSession();
     if (getProperties().getProperty(SYNC_OPS_OPT) != null
         && getProperties().getProperty(SYNC_OPS_OPT).equals("false")) {
@@ -109,8 +98,7 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
     }
   }
 
-  private static synchronized void initClient(boolean debug,
-                                              String tableName,
+  private static synchronized void initClient(String tableName,
                                               Properties prop) throws DBException {
     if (client != null) {
       return;
@@ -135,9 +123,7 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
                            .defaultOperationTimeoutMs(DEFAULT_SLEEP)
                            .defaultAdminOperationTimeoutMs(DEFAULT_SLEEP)
                            .build();
-    if (debug) {
-      System.out.println("Connecting to the masters at " + masterAddresses);
-    }
+    LOG.debug("Connecting to the masters at {}", masterAddresses);
 
     int fieldCount = getIntFromProp(prop, CoreWorkload.FIELD_COUNT_PROPERTY,
                                     Integer.parseInt(CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
@@ -251,13 +237,10 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
       RowResultIterator closer = scanner.close();
       addAllRowsToResult(closer, recordcount, querySchema, result);
     } catch (TimeoutException te) {
-      if (printErrors) {
-        System.err.println("Waited too long for a scan operation with start key=" + startkey);
-      }
+      LOG.info("Waited too long for a scan operation with start key={}", startkey);
       return TIMEOUT;
     } catch (Exception e) {
-      System.err.println("Unexpected exception " + e);
-      e.printStackTrace();
+      LOG.warn("Unexpected exception", e);
       return Status.ERROR;
     }
     return Status.OK;
@@ -308,8 +291,7 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
     PartialRow row = insert.getRow();
     row.addString(KEY, key);
     for (int i = 1; i < schema.getColumnCount(); i++) {
-      row.addString(i, new String(
-          values.get(schema.getColumnByIndex(i).getName()).toArray()));
+      row.addString(i, values.get(schema.getColumnByIndex(i).getName()).toString());
     }
     apply(insert);
     return Status.OK;
@@ -327,14 +309,11 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
   private void apply(Operation op) {
     try {
       OperationResponse response = session.apply(op);
-      if (response != null && response.hasRowError() && printErrors) {
-        System.err.println("Got a row error " + response.getRowError());
+      if (response != null && response.hasRowError()) {
+        LOG.info("Write operation failed: {}", response.getRowError());
       }
-    } catch (Exception ex) {
-      if (printErrors) {
-        System.err.println("Failed to apply an operation " + ex.toString());
-        ex.printStackTrace();
-      }
+    } catch (KuduException ex) {
+      LOG.warn("Write operation failed", ex);
     }
   }
 }
