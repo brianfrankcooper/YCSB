@@ -60,7 +60,7 @@ DATABASES = {
     "cassandra2-cql": "com.yahoo.ycsb.db.CassandraCQLClient",
     "couchbase"    : "com.yahoo.ycsb.db.CouchbaseClient",
     "couchbase2"   : "com.yahoo.ycsb.db.couchbase2.Couchbase2Client",
-    "documentdb"   : "com.yahoo.ycsb.db.DocumentDBClient",
+    "azuredocumentdb"   : "com.yahoo.ycsb.db.azuredocumentdb.AzureDocumentDBClient",
     "dynamodb"     : "com.yahoo.ycsb.db.DynamoDBClient",
     "elasticsearch": "com.yahoo.ycsb.db.ElasticsearchClient",
     "geode"        : "com.yahoo.ycsb.db.GeodeClient",

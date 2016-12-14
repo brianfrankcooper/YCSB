@@ -18,5 +18,5 @@
 /**
  * The YCSB binding for Azure DocumentDB.
  */
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.azuredocumentdb;
 
