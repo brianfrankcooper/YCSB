@@ -15,7 +15,6 @@ import com.yahoo.ycsb.*;
 
 import com.microsoft.azure.documentdb.ConnectionPolicy;
 import com.microsoft.azure.documentdb.ConsistencyLevel;
-import com.microsoft.azure.documentdb.DocumentClient;
 import com.microsoft.azure.documentdb.Database;
 import com.microsoft.azure.documentdb.Document;
 import com.microsoft.azure.documentdb.DocumentClient;
@@ -29,11 +28,13 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.List;
 
+/**
+ * Azure DocumentDB client binding.
+ */
 public class AzureDocumentDBClient extends DB {
   private static String host;
   private static String masterKey;
   private static String databaseId;
-  private static String collectionId;
   private static Database database;
   private static DocumentClient documentClient;
   private static DocumentCollection collection;
@@ -55,32 +56,36 @@ public class AzureDocumentDBClient extends DB {
     }
 
     databaseId = getProperties().getProperty("documentdb.databaseId", "ycsb");
-    collectionId = getProperties().getProperty("documentdb.collectionId", "usertable");
-    documentClient = new DocumentClient(host, masterKey,
-            ConnectionPolicy.GetDefault(), ConsistencyLevel.Session);
+    String collectionId =
+        getProperties().getProperty("documentdb.collectionId", "usertable");
+    documentClient =
+        new DocumentClient(host, masterKey, ConnectionPolicy.GetDefault(),
+                           ConsistencyLevel.Session);
     try {
-    // Initialize test database and collection.
-    getCollection(collectionId);
-} catch (DocumentClientException e) {
-    throw new DBException("Initialze collection failed", e);
-}
+      // Initialize test database and collection.
+      collection = getCollection(collectionId);
+    } catch (DocumentClientException e) {
+      throw new DBException("Initialze collection failed", e);
+    }
 
     feedOptions = new FeedOptions();
     feedOptions.setEmitVerboseTracesInQuery(false);
   }
 
   @Override
-  public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields,
+                     HashMap<String, ByteIterator> result) {
     Document record = getDocumentById(table, key);
 
     if (record != null) {
-      Set<String> fieldsToReturn = (fields == null ? record.getHashMap().keySet() : fields);
+      Set<String> fieldsToReturn =
+          (fields == null ? record.getHashMap().keySet() : fields);
 
       for (String field : fieldsToReturn) {
         if (field.startsWith("_")) {
           continue;
         }
-        result.put(field, new StringByteIterator(record.getString(field)));  
+        result.put(field, new StringByteIterator(record.getString(field)));
       }
       return Status.OK;
     }
@@ -89,7 +94,8 @@ public class AzureDocumentDBClient extends DB {
   }
 
   @Override
-  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key,
+                       HashMap<String, ByteIterator> values) {
     Document record = getDocumentById(table, key);
 
     if (record == null) {
@@ -113,7 +119,8 @@ public class AzureDocumentDBClient extends DB {
   }
 
   @Override
-  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key,
+                       HashMap<String, ByteIterator> values) {
     Document record = new Document();
 
     record.set("id", key);
@@ -123,7 +130,8 @@ public class AzureDocumentDBClient extends DB {
     }
 
     try {
-      documentClient.createDocument(collection.getSelfLink(), record, null, false);
+      documentClient.createDocument(collection.getSelfLink(), record, null,
+                                    false);
     } catch (DocumentClientException e) {
       e.printStackTrace(System.err);
       return Status.ERROR;
@@ -148,51 +156,58 @@ public class AzureDocumentDBClient extends DB {
 
   @Override
   public Status scan(String table, String startkey, int recordcount,
-                     Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+                     Set<String> fields,
+                     Vector<HashMap<String, ByteIterator>> result) {
     // TODO: Implement Scan as query on primary key.
     return Status.NOT_IMPLEMENTED;
   }
 
   private Database getDatabase() {
     if (database == null) {
-        // Get the database if it exists
-        List<Database> databaseList = documentClient
-                .queryDatabases(
-                        "SELECT * FROM root r WHERE r.id='" + databaseId
-                                + "'", null).getQueryIterable().toList();
+      // Get the database if it exists
+      List<Database> databaseList =
+          documentClient
+              .queryDatabases(
+                  "SELECT * FROM root r WHERE r.id='" + databaseId + "'", null)
+              .getQueryIterable()
+              .toList();
 
-        if (databaseList.size() > 0) {
-            // Cache the database object so we won't have to query for it
-            // later to retrieve the selfLink.
-            database = databaseList.get(0);
-        } else {
-            // Create the database if it doesn't exist.
-            try {
-                Database databaseDefinition = new Database();
-                databaseDefinition.setId(databaseId);
+      if (databaseList.size() > 0) {
+        // Cache the database object so we won't have to query for it
+        // later to retrieve the selfLink.
+        database = databaseList.get(0);
+      } else {
+        // Create the database if it doesn't exist.
+        try {
+          Database databaseDefinition = new Database();
+          databaseDefinition.setId(databaseId);
 
-                database = documentClient.createDatabase(
-                        databaseDefinition, null).getResource();
-            } catch (DocumentClientException e) {
-                // TODO: Something has gone terribly wrong - the app wasn't
-                // able to query or create the collection.
-                // Verify your connection, endpoint, and key.
-                e.printStackTrace(System.err);
-            }
+          database = documentClient.createDatabase(databaseDefinition, null)
+                         .getResource();
+        } catch (DocumentClientException e) {
+          // TODO: Something has gone terribly wrong - the app wasn't
+          // able to query or create the collection.
+          // Verify your connection, endpoint, and key.
+          e.printStackTrace(System.err);
         }
+      }
     }
 
     return database;
   }
 
-  private DocumentCollection getCollection(String collectionId) throws DocumentClientException {
+  private DocumentCollection getCollection(String collectionId)
+      throws DocumentClientException {
     if (collection == null) {
       // Get the collection if it exists.
-      List<DocumentCollection> collectionList = documentClient
-              .queryCollections(
-                      getDatabase().getSelfLink(),
-                      "SELECT * FROM root r WHERE r.id='" + collectionId
-                              + "'", null).getQueryIterable().toList();
+      List<DocumentCollection> collectionList =
+          documentClient
+              .queryCollections(getDatabase().getSelfLink(),
+                                "SELECT * FROM root r WHERE r.id='" +
+                                    collectionId + "'",
+                                null)
+              .getQueryIterable()
+              .toList();
 
       if (collectionList.size() > 0) {
         // Cache the collection object so we won't have to query for it
@@ -204,9 +219,10 @@ public class AzureDocumentDBClient extends DB {
           DocumentCollection collectionDefinition = new DocumentCollection();
           collectionDefinition.setId(collectionId);
 
-          collection = documentClient.createCollection(
-                  getDatabase().getSelfLink(),
-                  collectionDefinition, null).getResource();
+          collection = documentClient
+                           .createCollection(getDatabase().getSelfLink(),
+                                             collectionDefinition, null)
+                           .getResource();
         } catch (DocumentClientException e) {
           // TODO: Something has gone terribly wrong - the app wasn't
           // able to query or create the collection.
@@ -221,17 +237,17 @@ public class AzureDocumentDBClient extends DB {
   }
 
   private Document getDocumentById(String collectionId, String id) {
-    DocumentCollection collection = null;
-    try {
-        collection = getCollection(collectionId);
-    } catch (DocumentClientException e) {
-        return null;
+    if (collection == null) {
+      return null;
     }
     // Retrieve the document using the DocumentClient.
-    List<Document> documentList = documentClient
+    List<Document> documentList =
+        documentClient
             .queryDocuments(collection.getSelfLink(),
-                    "SELECT * FROM root r WHERE r.id='" + id + "'", feedOptions)
-            .getQueryIterable().toList();
+                            "SELECT * FROM root r WHERE r.id='" + id + "'",
+                            feedOptions)
+            .getQueryIterable()
+            .toList();
 
     if (documentList.size() > 0) {
       return documentList.get(0);
