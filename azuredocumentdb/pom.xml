@@ -27,9 +27,6 @@ LICENSE file.
 
   <artifactId>azuredocumentdb-binding</artifactId>
   <name>Azure DocumentDB Binding</name>
-  <properties>
-      <checkstyle.failOnViolation>false</checkstyle.failOnViolation>
-  </properties>
   <dependencies>
     <dependency>
       <groupId>com.microsoft.azure</groupId>

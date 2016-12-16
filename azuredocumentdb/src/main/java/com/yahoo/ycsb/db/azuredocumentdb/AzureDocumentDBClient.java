@@ -58,8 +58,12 @@ public class AzureDocumentDBClient extends DB {
     collectionId = getProperties().getProperty("documentdb.collectionId", "usertable");
     documentClient = new DocumentClient(host, masterKey,
             ConnectionPolicy.GetDefault(), ConsistencyLevel.Session);
+    try {
     // Initialize test database and collection.
     getCollection(collectionId);
+} catch (DocumentClientException e) {
+    throw new DBException("Initialze collection failed", e);
+}
 
     feedOptions = new FeedOptions();
     feedOptions.setEmitVerboseTracesInQuery(false);
@@ -101,7 +105,7 @@ public class AzureDocumentDBClient extends DB {
     try {
       documentClient.replaceDocument(record, null);
     } catch (DocumentClientException e) {
-      e.printStackTrace();
+      e.printStackTrace(System.err);
       return Status.ERROR;
     }
 
@@ -121,7 +125,7 @@ public class AzureDocumentDBClient extends DB {
     try {
       documentClient.createDocument(collection.getSelfLink(), record, null, false);
     } catch (DocumentClientException e) {
-      e.printStackTrace();
+      e.printStackTrace(System.err);
       return Status.ERROR;
     }
     return Status.OK;
@@ -173,7 +177,7 @@ public class AzureDocumentDBClient extends DB {
                 // TODO: Something has gone terribly wrong - the app wasn't
                 // able to query or create the collection.
                 // Verify your connection, endpoint, and key.
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             }
         }
     }
@@ -181,7 +185,7 @@ public class AzureDocumentDBClient extends DB {
     return database;
   }
 
-  private DocumentCollection getCollection(String collectionId) {
+  private DocumentCollection getCollection(String collectionId) throws DocumentClientException {
     if (collection == null) {
       // Get the collection if it exists.
       List<DocumentCollection> collectionList = documentClient
@@ -207,7 +211,8 @@ public class AzureDocumentDBClient extends DB {
           // TODO: Something has gone terribly wrong - the app wasn't
           // able to query or create the collection.
           // Verify your connection, endpoint, and key.
-          e.printStackTrace();
+          e.printStackTrace(System.err);
+          throw e;
         }
       }
     }
@@ -216,9 +221,15 @@ public class AzureDocumentDBClient extends DB {
   }
 
   private Document getDocumentById(String collectionId, String id) {
+    DocumentCollection collection = null;
+    try {
+        collection = getCollection(collectionId);
+    } catch (DocumentClientException e) {
+        return null;
+    }
     // Retrieve the document using the DocumentClient.
     List<Document> documentList = documentClient
-            .queryDocuments(getCollection(collectionId).getSelfLink(),
+            .queryDocuments(collection.getSelfLink(),
                     "SELECT * FROM root r WHERE r.id='" + id + "'", feedOptions)
             .getQueryIterable().toList();
 
