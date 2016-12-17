@@ -21,7 +21,7 @@ LICENSE file.
   <parent>
     <groupId>com.yahoo.ycsb</groupId>
     <artifactId>root</artifactId>
-    <version>0.9.0-SNAPSHOT</version>
+    <version>0.13.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>binding-parent</artifactId>
@@ -36,6 +36,11 @@ LICENSE file.
   <modules>
     <module>datastore-specific-descriptor</module>
   </modules>
+
+  <properties>
+    <!-- See the test-on-jdk9 profile below. Default to 'jdk9 works' -->
+    <skipJDK9Tests>false</skipJDK9Tests>
+  </properties>
 
   <build>
     <pluginManagement>
@@ -126,6 +131,18 @@ LICENSE file.
           </plugin>
         </plugins>
       </build>
+    </profile>
+    <!-- If the binding doesn't work with jdk9, it should redefine the
+         skipJDK9 property
+      -->
+    <profile>
+      <id>tests-on-jdk9</id>
+      <activation>
+        <jdk>9</jdk>
+      </activation>
+      <properties>
+        <skipTests>${skipJDK9Tests}</skipTests>
+      </properties>
     </profile>
   </profiles>
 </project>

@@ -13,6 +13,7 @@ output*
 # ignore standard IntelliJ files
 .idea/
 *.iml
+*.ipr
 *.iws
 
 # ignore standard Vim and Emacs temp files

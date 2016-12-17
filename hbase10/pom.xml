@@ -21,18 +21,28 @@ LICENSE file.
   <parent>
     <groupId>com.yahoo.ycsb</groupId>
     <artifactId>binding-parent</artifactId>
-    <version>0.9.0-SNAPSHOT</version>
+    <version>0.13.0-SNAPSHOT</version>
     <relativePath>../binding-parent/</relativePath>
   </parent>
 
   <artifactId>hbase10-binding</artifactId>
   <name>HBase 1.0 DB Binding</name>
 
+  <properties>
+    <!-- Tests do not run on jdk9 -->
+    <skipJDK9Tests>true</skipJDK9Tests>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>org.apache.hbase</groupId>
       <artifactId>hbase-client</artifactId>
       <version>${hbase10.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>jdk.tools</groupId>
+          <artifactId>jdk.tools</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
@@ -51,6 +61,12 @@ LICENSE file.
       <artifactId>hbase-testing-util</artifactId>
       <version>${hbase10.version}</version>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>jdk.tools</groupId>
+          <artifactId>jdk.tools</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
 </project>

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 YCSB contributors All rights reserved.
+ * Copyright (c) 2016 YCSB contributors All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -79,6 +79,14 @@ public class Status {
     return true;
   }
 
+  /**
+   * Is {@code this} a passing state for the operation: {@link Status#OK} or {@link Status#BATCHED_OK}.
+   * @return true if the operation is successful, false otherwise
+   */
+  public boolean isOk() {
+    return this == OK || this == BATCHED_OK;
+  }
+
   public static final Status OK = new Status("OK", "The operation completed successfully.");
   public static final Status ERROR = new Status("ERROR", "The operation failed.");
   public static final Status NOT_FOUND = new Status("NOT_FOUND", "The requested record was not found.");
@@ -87,6 +95,6 @@ public class Status {
   public static final Status BAD_REQUEST = new Status("BAD_REQUEST", "The request was not valid.");
   public static final Status FORBIDDEN = new Status("FORBIDDEN", "The operation is forbidden.");
   public static final Status SERVICE_UNAVAILABLE = new Status("SERVICE_UNAVAILABLE", "Dependant service for the current binding is not available.");
-  
+  public static final Status BATCHED_OK = new Status("BATCHED_OK", "The operation has been batched by the binding to be executed later.");
 }
 

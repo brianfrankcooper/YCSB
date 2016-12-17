@@ -31,13 +31,28 @@ Clone the YCSB git repository and compile:
     
 Now you are ready to run! First, load the data:
 
-    ./bin/ycsb load elasticsearch -s -P workloads/workloada
+    ./bin/ycsb load elasticsearch -s -P workloads/workloada -p path.home=<path>
 
 Then, run the workload:
 
-    ./bin/ycsb run elasticsearch -s -P workloads/workloada
+    ./bin/ycsb run elasticsearch -s -P workloads/workloada -p path.home=<path>
 
-For further configuration see below: 
+Note that the `<path>` specified in each execution should be the same.
+
+The Elasticsearch binding has two modes of operation, embedded mode and remote
+mode. In embedded mode, the client creates an embedded instance of
+Elasticsearch that uses the specified `<path>` to persist data between
+executions.
+
+In remote mode, the client will hit a standalone instance of Elasticsearch. To
+use remote mode, add the flags `-p es.remote=true` and specify a hosts list via
+`-p es.hosts.list=<hostname1:port1>,...,<hostnamen:portn>`.
+
+    ./bin/ycsb run elasticsearch -s -P workloads/workloada -p es.remote=true \
+    -p es.hosts.list=<hostname1:port1>,...,<hostnamen:portn>`
+
+Note that `es.hosts.list` defaults to `localhost:9300`. For further
+configuration see below:
 
 ### Defaults Configuration
 The default setting for the Elasticsearch node that is created is as follows:
@@ -48,7 +63,7 @@ The default setting for the Elasticsearch node that is created is as follows:
     es.number_of_replicas=0
     es.remote=false
     es.newdb=false
-    es.hosts.list=localhost:9200 (only applies if es.remote=true)
+    es.hosts.list=localhost:9300 (only applies if es.remote=true)
 
 ### Custom Configuration
 If you wish to customize the settings used to create the Elasticsearch node

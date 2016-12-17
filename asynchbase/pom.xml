@@ -18,12 +18,17 @@ LICENSE file.
   <parent>
     <groupId>com.yahoo.ycsb</groupId>
     <artifactId>binding-parent</artifactId>
-    <version>0.9.0-SNAPSHOT</version>
+    <version>0.13.0-SNAPSHOT</version>
     <relativePath>../binding-parent/</relativePath>
   </parent>
 
   <artifactId>asynchbase-binding</artifactId>
   <name>AsyncHBase Client Binding for Apache HBase</name>
+
+  <properties>
+    <!-- Tests do not run on jdk9 -->
+    <skipJDK9Tests>true</skipJDK9Tests>
+  </properties>
 
   <dependencies>
     <dependency>
@@ -79,6 +84,12 @@ LICENSE file.
       <artifactId>hbase-testing-util</artifactId>
       <version>${hbase10.version}</version>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>jdk.tools</groupId>
+          <artifactId>jdk.tools</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     
     <dependency>
@@ -86,6 +97,12 @@ LICENSE file.
       <artifactId>hbase-client</artifactId>
       <version>${hbase10.version}</version>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>jdk.tools</groupId>
+          <artifactId>jdk.tools</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     
     <dependency>

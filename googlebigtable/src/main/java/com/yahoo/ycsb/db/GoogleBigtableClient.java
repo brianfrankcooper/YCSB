@@ -365,7 +365,9 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
       setCellBuilder.setFamilyNameBytes(ByteStringer.wrap(columnFamilyBytes));
       setCellBuilder.setColumnQualifier(ByteStringer.wrap(entry.getKey().getBytes()));
       setCellBuilder.setValue(ByteStringer.wrap(entry.getValue().toArray()));
-      setCellBuilder.setTimestampMicros(System.nanoTime() / 1000);
+
+      // Bigtable uses a 1ms granularity
+      setCellBuilder.setTimestampMicros(System.currentTimeMillis() * 1000);
     }
     
     try {

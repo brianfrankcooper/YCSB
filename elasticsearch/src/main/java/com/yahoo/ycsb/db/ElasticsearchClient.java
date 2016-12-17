@@ -30,6 +30,7 @@ import com.yahoo.ycsb.StringByteIterator;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
@@ -81,20 +82,29 @@ public class ElasticsearchClient extends DB {
    */
   @Override
   public void init() throws DBException {
-    Properties props = getProperties();
+    final Properties props = getProperties();
+
+    // Check if transport client needs to be used (To connect to multiple
+    // elasticsearch nodes)
+    remoteMode = Boolean.parseBoolean(props.getProperty("es.remote", "false"));
+
+    final String pathHome = props.getProperty("path.home");
+
+    // when running in embedded mode, require path.home
+    if (!remoteMode && (pathHome == null || pathHome.isEmpty())) {
+      throw new IllegalArgumentException("path.home must be specified when running in embedded mode");
+    }
+
     this.indexKey = props.getProperty("es.index.key", DEFAULT_INDEX_KEY);
 
     int numberOfShards = parseIntegerProperty(props, "es.number_of_shards", NUMBER_OF_SHARDS);
     int numberOfReplicas = parseIntegerProperty(props, "es.number_of_replicas", NUMBER_OF_REPLICAS);
 
-    // Check if transport client needs to be used (To connect to multiple
-    // elasticsearch nodes)
-    remoteMode = Boolean.parseBoolean(props.getProperty("es.remote", "false"));
     Boolean newdb = Boolean.parseBoolean(props.getProperty("es.newdb", "false"));
     Builder settings = Settings.settingsBuilder()
         .put("cluster.name", DEFAULT_CLUSTER_NAME)
         .put("node.local", Boolean.toString(!remoteMode))
-        .put("path.home", System.getProperty("java.io.tmpdir"));
+        .put("path.home", pathHome);
 
     // if properties file contains elasticsearch user defined properties
     // add it to the settings file (will overwrite the defaults).
@@ -185,8 +195,7 @@ public class ElasticsearchClient extends DB {
    *         description for a discussion of error codes.
    */
   @Override
-  public Status insert(String table, String key,
-      HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
     try {
       final XContentBuilder doc = jsonBuilder().startObject();
 
@@ -201,8 +210,8 @@ public class ElasticsearchClient extends DB {
       return Status.OK;
     } catch (Exception e) {
       e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
   }
 
   /**
@@ -218,12 +227,16 @@ public class ElasticsearchClient extends DB {
   @Override
   public Status delete(String table, String key) {
     try {
-      client.prepareDelete(indexKey, table, key).execute().actionGet();
-      return Status.OK;
+      DeleteResponse response = client.prepareDelete(indexKey, table, key).execute().actionGet();
+      if (response.isFound()) {
+        return Status.OK;
+      } else {
+        return Status.NOT_FOUND;
+      }
     } catch (Exception e) {
       e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
   }
 
   /**
@@ -241,8 +254,7 @@ public class ElasticsearchClient extends DB {
    * @return Zero on success, a non-zero error code on error or "not found".
    */
   @Override
-  public Status read(String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
     try {
       final GetResponse response = client.prepareGet(indexKey, table, key).execute().actionGet();
 
@@ -259,11 +271,13 @@ public class ElasticsearchClient extends DB {
           }
         }
         return Status.OK;
+      } else {
+        return Status.NOT_FOUND;
       }
     } catch (Exception e) {
       e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
   }
 
   /**
@@ -281,8 +295,7 @@ public class ElasticsearchClient extends DB {
    *         description for a discussion of error codes.
    */
   @Override
-  public Status update(String table, String key,
-      HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
     try {
       final GetResponse response = client.prepareGet(indexKey, table, key).execute().actionGet();
 
@@ -294,12 +307,13 @@ public class ElasticsearchClient extends DB {
         client.prepareIndex(indexKey, table, key).setSource(response.getSource()).execute().actionGet();
 
         return Status.OK;
+      } else {
+        return Status.NOT_FOUND;
       }
-
     } catch (Exception e) {
       e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
   }
 
   /**
@@ -321,8 +335,12 @@ public class ElasticsearchClient extends DB {
    *         description for a discussion of error codes.
    */
   @Override
-  public Status scan(String table, String startkey, int recordcount,
-      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+  public Status scan(
+          String table,
+          String startkey,
+          int recordcount,
+          Set<String> fields,
+          Vector<HashMap<String, ByteIterator>> result) {
     try {
       final RangeQueryBuilder rangeQuery = rangeQuery("_id").gte(startkey);
       final SearchResponse response = client.prepareSearch(indexKey)
@@ -336,18 +354,16 @@ public class ElasticsearchClient extends DB {
 
       for (SearchHit hit : response.getHits()) {
         entry = new HashMap<>(fields.size());
-
         for (String field : fields) {
           entry.put(field, new StringByteIterator((String) hit.getSource().get(field)));
         }
-
         result.add(entry);
       }
 
       return Status.OK;
     } catch (Exception e) {
       e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
   }
 }

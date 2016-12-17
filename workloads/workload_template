@@ -1,4 +1,4 @@
-# Copyright (c) 2012 YCSB contributors. All rights reserved.
+# Copyright (c) 2012-2016 YCSB contributors. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you
 # may not use this file except in compliance with the License. You
@@ -133,6 +133,16 @@ measurementtype=histogram
 # a new output file will be created.
 #measurement.raw.output_file = /tmp/your_output_file_for_this_run
 
+# JVM Reporting.
+#
+# Measure JVM information over time including GC counts, max and min memory
+# used, max and min thread counts, max and min system load and others. This
+# setting must be enabled in conjunction with the "-s" flag to run the status
+# thread. Every "status.interval", the status thread will capture JVM 
+# statistics and record the results. At the end of the run, max and mins will
+# be recorded.
+# measurement.trackjvm = false
+
 # The range of latencies to track in the histogram (milliseconds)
 histogram.buckets=1000
 
@@ -169,3 +179,25 @@ timeseries.granularity=1000
 #
 # the following number controls the interval between retries (in seconds):
 # core_workload_insertion_retry_interval = 3
+
+# Distributed Tracing via Apache HTrace (http://htrace.incubator.apache.org/)
+#
+# Defaults to blank / no tracing
+# Below sends to a local file, sampling at 0.1%
+#
+# htrace.sampler.classes=ProbabilitySampler
+# htrace.sampler.fraction=0.001
+# htrace.span.receiver.classes=org.apache.htrace.core.LocalFileSpanReceiver
+# htrace.local.file.span.receiver.path=/some/path/to/local/file
+#
+# To capture all spans, use the AlwaysSampler
+#
+# htrace.sampler.classes=AlwaysSampler
+#
+# To send spans to an HTraced receiver, use the below and ensure
+# your classpath contains the htrace-htraced jar (i.e. when invoking the ycsb
+# command add -cp /path/to/htrace-htraced.jar)
+#
+# htrace.span.receiver.classes=org.apache.htrace.impl.HTracedSpanReceiver
+# htrace.htraced.receiver.address=example.com:9075
+# htrace.htraced.error.log.period.ms=10000

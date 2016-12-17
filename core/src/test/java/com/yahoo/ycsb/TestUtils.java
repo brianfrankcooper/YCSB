@@ -99,6 +99,23 @@ public class TestUtils {
     Utils.bytesToDouble(new byte[] { 0, 0, 0, 0, 0, 0, 0 });
   }
   
+  @Test
+  public void jvmUtils() throws Exception {
+    // This should ALWAYS return at least one thread.
+    assertTrue(Utils.getActiveThreadCount() > 0);
+    // This should always be greater than 0 or something is goofed up in the JVM.
+    assertTrue(Utils.getUsedMemoryBytes() > 0);
+    // Some operating systems may not implement this so we don't have a good
+    // test. Just make sure it doesn't throw an exception.
+    Utils.getSystemLoadAverage();
+    // This will probably be zero but should never be negative.
+    assertTrue(Utils.getGCTotalCollectionCount() >= 0);
+    // Could be zero similar to GC total collection count
+    assertTrue(Utils.getGCTotalTime() >= 0);
+    // Could be empty
+    assertTrue(Utils.getGCStatst().size() >= 0);
+  }
+   
   /**
    * Since this version of TestNG doesn't appear to have an assertArrayEquals,
    * this will compare the two to make sure they're the same. 
