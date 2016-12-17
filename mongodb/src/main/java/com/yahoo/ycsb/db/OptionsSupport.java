@@ -18,21 +18,12 @@ package com.yahoo.ycsb.db;
 
 import java.util.Properties;
 
-import com.yahoo.ycsb.Status;
-
 /**
  * OptionsSupport provides methods for handling legacy options.
  *
  * @author rjm
  */
 public final class OptionsSupport {
-
-  /** 
-   * Status used for operations that have not been send to the server and have 
-   * only been batched by the client.
-   */
-  public static final Status BATCHED_OK = new Status("BATCHED_OK", 
-      "The operation has been batched by the binding.");
 
   /** Value for an unavailable property. */
   private static final String UNAVAILABLE = "n/a";

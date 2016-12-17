@@ -19,9 +19,11 @@
 package com.yahoo.ycsb.db.riak;
 
 import java.io.*;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.basho.riak.client.api.commands.kv.FetchValue;
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 
@@ -101,12 +103,12 @@ final class RiakUtils {
   }
 
   /**
-   * Deserializes an input byte array, transforming it into a list of (String, ByteIterator) couples (i.e. a Map).
+   * Deserializes an input byte array, transforming it into a list of (String, ByteIterator) pairs (i.e. a Map).
    *
    * @param aValue    A byte array containing the table to deserialize.
    * @param theResult A Map containing the deserialized table.
      */
-  static void deserializeTable(final byte[] aValue, final Map<String, ByteIterator> theResult) {
+  private static void deserializeTable(final byte[] aValue, final Map<String, ByteIterator> theResult) {
     final ByteArrayInputStream anInputStream = new ByteArrayInputStream(aValue);
     byte[] aSizeBuffer = new byte[4];
 
@@ -143,5 +145,44 @@ final class RiakUtils {
     String keyString = key.replaceFirst("[a-zA-Z]*", "");
 
     return Long.parseLong(keyString);
+  }
+
+  /**
+   * Function that retrieves all the fields searched within a read or scan operation and puts them in the result
+   * HashMap.
+   *
+   * @param fields        The list of fields to read, or null for all of them.
+   * @param response      A Vector of HashMaps, where each HashMap is a set field/value pairs for one record.
+   * @param resultHashMap The HashMap to return as result.
+   */
+  static void createResultHashMap(Set<String> fields, FetchValue.Response response,
+                                  HashMap<String, ByteIterator>resultHashMap) {
+    // If everything went fine, then a result must be given. Such an object is a hash table containing the (field,
+    // value) pairs based on the requested fields. Note that in a read operation, ONLY ONE OBJECT IS RETRIEVED!
+    // The following line retrieves the previously serialized table which was store with an insert transaction.
+    byte[] responseFieldsAndValues = response.getValues().get(0).getValue().getValue();
+
+    // Deserialize the stored response table.
+    HashMap<String, ByteIterator> deserializedTable = new HashMap<>();
+    deserializeTable(responseFieldsAndValues, deserializedTable);
+
+    // If only specific fields are requested, then only these should be put in the result object!
+    if (fields != null) {
+      // Populate the HashMap to provide as result.
+      for (Object field : fields.toArray()) {
+        // Comparison between a requested field and the ones retrieved. If they're equal (i.e. the get() operation
+        // DOES NOT return a null value), then  proceed to store the pair in the resultHashMap.
+        ByteIterator value = deserializedTable.get(field);
+
+        if (value != null) {
+          resultHashMap.put((String) field, value);
+        }
+      }
+    } else {
+      // If, instead, no field is specified, then all those retrieved must be provided as result.
+      for (String field : deserializedTable.keySet()) {
+        resultHashMap.put(field, deserializedTable.get(field));
+      }
+    }
   }
 }

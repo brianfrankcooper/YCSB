@@ -23,11 +23,13 @@ import os
 import shlex
 import sys
 import subprocess
+
 try:
+    mod = __import__('argparse')
     import argparse
 except ImportError:
     print >> sys.stderr, '[ERROR] argparse not found. Try installing it via "pip".'
-    raise
+    exit(1)
 
 BASE_URL = "https://github.com/brianfrankcooper/YCSB/tree/master/"
 COMMANDS = {
@@ -51,15 +53,14 @@ COMMANDS = {
 DATABASES = {
     "accumulo"     : "com.yahoo.ycsb.db.accumulo.AccumuloClient",
     "aerospike"    : "com.yahoo.ycsb.db.AerospikeClient",
+    "arangodb"     : "com.yahoo.ycsb.db.ArangoDBClient",
     "asynchbase"   : "com.yahoo.ycsb.db.AsyncHBaseClient",
     "basic"        : "com.yahoo.ycsb.BasicDB",
-    "cassandra-7"  : "com.yahoo.ycsb.db.CassandraClient7",
-    "cassandra-8"  : "com.yahoo.ycsb.db.CassandraClient8",
-    "cassandra-10" : "com.yahoo.ycsb.db.CassandraClient10",
     "cassandra-cql": "com.yahoo.ycsb.db.CassandraCQLClient",
     "cassandra2-cql": "com.yahoo.ycsb.db.CassandraCQLClient",
     "couchbase"    : "com.yahoo.ycsb.db.CouchbaseClient",
     "couchbase2"   : "com.yahoo.ycsb.db.couchbase2.Couchbase2Client",
+    "azuredocumentdb"   : "com.yahoo.ycsb.db.azuredocumentdb.AzureDocumentDBClient",
     "dynamodb"     : "com.yahoo.ycsb.db.DynamoDBClient",
     "elasticsearch": "com.yahoo.ycsb.db.ElasticsearchClient",
     "geode"        : "com.yahoo.ycsb.db.GeodeClient",
@@ -79,10 +80,13 @@ DATABASES = {
     "mongodb-async": "com.yahoo.ycsb.db.AsyncMongoDbClient",
     "nosqldb"      : "com.yahoo.ycsb.db.NoSqlDbClient",
     "orientdb"     : "com.yahoo.ycsb.db.OrientDBClient",
+    "rados"        : "com.yahoo.ycsb.db.RadosClient",
     "redis"        : "com.yahoo.ycsb.db.RedisClient",
+    "rest"         : "com.yahoo.ycsb.webservice.rest.RestClient",
     "riak"         : "com.yahoo.ycsb.db.riak.RiakKVClient",
     "s3"           : "com.yahoo.ycsb.db.S3Client",
-    "solr"         : "com.yahoo.ycsb.db.SolrClient",
+    "solr"         : "com.yahoo.ycsb.db.solr.SolrClient",
+    "solr6"        : "com.yahoo.ycsb.db.solr6.SolrClient",
     "tarantool"    : "com.yahoo.ycsb.db.TarantoolClient",
     "voldemort"    : "com.yahoo.ycsb.db.VoldemortClient"
 }
@@ -122,12 +126,41 @@ def usage():
 
     return output.getvalue()
 
-def check_output(cmd):
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-    stdout, _ = p.communicate()
-    if p.returncode:
-        raise subprocess.CalledProcessError(p.returncode, cmd)
-    return stdout
+# Python 2.6 doesn't have check_output. Add the method as it is in Python 2.7
+# Based on https://github.com/python/cpython/blob/2.7/Lib/subprocess.py#L545
+def check_output(*popenargs, **kwargs):
+    r"""Run command with arguments and return its output as a byte string.
+
+    If the exit code was non-zero it raises a CalledProcessError.  The
+    CalledProcessError object will have the return code in the returncode
+    attribute and output in the output attribute.
+
+    The arguments are the same as for the Popen constructor.  Example:
+
+    >>> check_output(["ls", "-l", "/dev/null"])
+    'crw-rw-rw- 1 root root 1, 3 Oct 18  2007 /dev/null\n'
+
+    The stdout argument is not allowed as it is used internally.
+    To capture standard error in the result, use stderr=STDOUT.
+
+    >>> check_output(["/bin/sh", "-c",
+    ...               "ls -l non_existent_file ; exit 0"],
+    ...              stderr=STDOUT)
+    'ls: non_existent_file: No such file or directory\n'
+    """
+    if 'stdout' in kwargs:
+        raise ValueError('stdout argument not allowed, it will be overridden.')
+    process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
+    output, unused_err = process.communicate()
+    retcode = process.poll()
+    if retcode:
+        cmd = kwargs.get("args")
+        if cmd is None:
+            cmd = popenargs[0]
+        error = subprocess.CalledProcessError(retcode, cmd)
+        error.output = output
+        raise error
+    return output
 
 def debug(message):
     print >> sys.stderr, "[DEBUG] ", message
@@ -211,11 +244,15 @@ def main():
     # Classpath set up
     binding = args.database.split("-")[0]
 
-    # Deprecation message for the entire cassandra-binding
-    if binding == "cassandra":
-        warn("The 'cassandra-7', 'cassandra-8', 'cassandra-10', and "
-             "cassandra-cql' clients are deprecated. If you are using "
-             "Cassandra 2.X try using the 'cassandra2-cql' client instead.")
+    if binding == "cassandra2":
+        warn("The 'cassandra2-cql' client has been deprecated. It has been "
+             "renamed to simply 'cassandra-cql'. This alias will be removed"
+             " in the next YCSB release.")
+        binding = "cassandra"
+
+    if binding == "couchbase":
+        warn("The 'couchbase' client has been deprecated. If you are using "
+             "Couchbase 4.0+ try using the 'couchbase2' client instead.")
 
     if is_distribution():
         db_dir = os.path.join(ycsb_home, binding + "-binding")

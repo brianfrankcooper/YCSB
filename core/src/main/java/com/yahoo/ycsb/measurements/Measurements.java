@@ -51,6 +51,9 @@ public class Measurements {
   
   public static final String MEASUREMENT_INTERVAL = "measurement.interval";
   private static final String MEASUREMENT_INTERVAL_DEFAULT = "op";
+  
+  public static final String MEASUREMENT_TRACK_JVM_PROPERTY = "measurement.trackjvm";
+  public static final String MEASUREMENT_TRACK_JVM_PROPERTY_DEFAULT = "false";
 
   static Measurements singleton=null;
   static Properties measurementproperties=null;
@@ -158,7 +161,8 @@ public class Measurements {
     case HDRHISTOGRAM_AND_RAW:
       return new TwoInOneMeasurement(name,
           new OneMeasurementHdrHistogram("Hdr"+name, _props),
-          new OneMeasurementHistogram("Raw"+name, _props));
+
+          new OneMeasurementRaw("Raw"+name, _props));
 	case HDRHISTOGRAM_AND_PERIODICHISTOGRAM:
       return new TwoInOneMeasurement(name,
           new OneMeasurementHdrHistogram("Hdr"+name, _props),

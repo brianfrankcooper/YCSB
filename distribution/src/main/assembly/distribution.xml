@@ -38,7 +38,15 @@ LICENSE file.
       <outputDirectory>bin</outputDirectory>
       <fileMode>0755</fileMode>
       <includes>
-        <include>ycsb</include>
+        <include>ycsb*</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <directory>../bin</directory>
+      <outputDirectory>bin</outputDirectory>
+      <fileMode>0644</fileMode>
+      <includes>
+        <include>bindings.properties</include>
       </includes>
     </fileSet>
     <fileSet>

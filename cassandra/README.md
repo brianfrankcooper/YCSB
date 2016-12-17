@@ -14,59 +14,70 @@ implied. See the License for the specific language governing
 permissions and limitations under the License. See accompanying
 LICENSE file.
 -->
-# THIS BINDING IS DEPRECATED
-----------------------------
-Date of removal from YCSB: **March 2016**
 
-Due to the low amount of use and support for older Cassandra lineages (0.X and 1.X), YCSB will not support clients for these versions either.
+# Apache Cassandra 2.x CQL binding
 
-For Cassandra 2.X use the ```cassandra2-cql``` client: https://github.com/brianfrankcooper/YCSB/tree/master/cassandra2.
+Binding for [Apache Cassandra](http://cassandra.apache.org), using the CQL API
+via the [DataStax
+driver](http://docs.datastax.com/en/developer/java-driver/2.1/java-driver/whatsNew2.html).
 
-# Cassandra (0.7, 0.8, 1.x) drivers for YCSB
+To run against the (deprecated) Cassandra Thrift API, use the `cassandra-10` binding.
 
-**For Cassandra 2 CQL support, use the `cassandra2-cql` binding.  The Thrift drivers below are deprecated, and the CQL driver here does not support Cassandra 2.1+.**
+## Creating a table for use with YCSB
 
-There are three drivers in the Cassandra binding:
+For keyspace `ycsb`, table `usertable`:
 
-* `cassandra-7`: Cassandra 0.7 Thrift binding.
-* `cassandra-8`: Cassandra 0.8 Thrift binding.
-* `cassandra-10`: Cassandra 1.0+ Thrift binding.
-* `cassandra-cql`: Cassandra CQL binding, for Cassandra 1.x to 2.0. See `cassandra2/README.md` for details on parameters.
-
-# `cassandra-10`
-
-## Creating a table
-
-Using `cassandra-cli`:
-
-      create keyspace usertable with placement_strategy = 'org.apache.cassandra.locator.SimpleStrategy' and strategy_options = {replication_factor:1};
-
-      create column family data with column_type = 'Standard' and comparator = 'UTF8Type';
+    cqlsh> create keyspace ycsb
+        WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 3 };
+    cqlsh> USE ycsb;
+    cqlsh> create table usertable (
+        y_id varchar primary key,
+        field0 varchar,
+        field1 varchar,
+        field2 varchar,
+        field3 varchar,
+        field4 varchar,
+        field5 varchar,
+        field6 varchar,
+        field7 varchar,
+        field8 varchar,
+        field9 varchar);
 
 **Note that `replication_factor` and consistency levels (below) will affect performance.**
 
-## Configuration Parameters
+## Cassandra Configuration Parameters
 
 - `hosts` (**required**)
   - Cassandra nodes to connect to.
   - No default.
 
 * `port`
-  - Thrift port for communicating with Cassandra cluster.
-  * Default is `9160`.
+  * CQL port for communicating with Cassandra cluster.
+  * Default is `9042`.
 
-- `cassandra.columnfamily`
-  - Column family name - must match the column family for the table created (see above).
-  - Default value is `data`
+- `cassandra.keyspace`
+  Keyspace name - must match the keyspace for the table created (see above).
+  See http://docs.datastax.com/en/cql/3.1/cql/cql_reference/create_keyspace_r.html for details.
+
+  - Default value is `ycsb`
 
 - `cassandra.username`
 - `cassandra.password`
   - Optional user name and password for authentication. See http://docs.datastax.com/en/cassandra/2.0/cassandra/security/security_config_native_authenticate_t.html for details.
 
 * `cassandra.readconsistencylevel`
-* `cassandra.scanconsistencylevel`
 * `cassandra.writeconsistencylevel`
 
-  - Default value is `ONE`
+  * Default value is `ONE`
   - Consistency level for reads and writes, respectively. See the [DataStax documentation](http://docs.datastax.com/en/cassandra/2.0/cassandra/dml/dml_config_consistency_c.html) for details.
-  - *Note that the default setting does not provide durability in the face of node failure. Changing this setting will affect observed performance.* See also `replication_factor`, above.
+  * *Note that the default setting does not provide durability in the face of node failure. Changing this setting will affect observed performance.* See also `replication_factor`, above.
+
+* `cassandra.maxconnections`
+* `cassandra.coreconnections`
+  * Defaults for max and core connections can be found here: https://datastax.github.io/java-driver/2.1.8/features/pooling/#pool-size. Cassandra 2.0.X falls under protocol V2, Cassandra 2.1+ falls under protocol V3.
+* `cassandra.connecttimeoutmillis`
+* `cassandra.readtimeoutmillis`
+  * Defaults for connect and read timeouts can be found here: https://docs.datastax.com/en/drivers/java/2.0/com/datastax/driver/core/SocketOptions.html.
+* `cassandra.tracing`
+  * Default is false
+  * https://docs.datastax.com/en/cql/3.3/cql/cql_reference/tracing_r.html
