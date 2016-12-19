@@ -74,6 +74,11 @@ public class Measurements {
     }
     return singleton;
   }
+  
+  public static void resetMeasurements()
+  {
+	  singleton = null;
+  }
 
   final ConcurrentHashMap<String,OneMeasurement> _opToMesurementMap;
   final ConcurrentHashMap<String,OneMeasurement> _opToIntendedMesurementMap;
