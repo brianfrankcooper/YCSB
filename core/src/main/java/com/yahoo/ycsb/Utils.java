@@ -32,15 +32,25 @@ public class Utils
 {
   private static final Random rand = new Random();
   private static final ThreadLocal<Random> rng = new ThreadLocal<Random>();
+  private static String seed = null;
 
-  public static Random random() {
-    Random ret = rng.get();
-    if(ret == null) {
-      ret = new Random(rand.nextLong());
-      rng.set(ret);
+    public static void setSeed(String s) {
+      seed = s;
     }
-    return ret;
-  }
+
+    public static Random random() {
+      Random ret = rng.get();
+      if(ret == null) {
+        if(seed == null) {
+          ret = new Random(rand.nextLong());
+        }
+        else {
+          ret = new Random(Long.parseLong(seed));
+        }
+        rng.set(ret);
+      }
+      return ret;
+    }
       /**
        * Generate a random ASCII string of a given length.
        */

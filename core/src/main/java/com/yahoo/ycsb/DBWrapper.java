@@ -17,17 +17,11 @@
 
 package com.yahoo.ycsb;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
-
-import org.apache.htrace.core.Tracer;
-import org.apache.htrace.core.TraceScope;
-
 import com.yahoo.ycsb.measurements.Measurements;
+import org.apache.htrace.core.TraceScope;
+import org.apache.htrace.core.Tracer;
+
+import java.util.*;
 
 /**
  * Wrapper around a "real" DB that measures latencies and counts return codes.
@@ -43,12 +37,12 @@ public class DBWrapper extends DB
   private HashSet<String> latencyTrackedErrors = new HashSet<String>();
 
   private static final String REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY =
-      "reportlatencyforeacherror";
+    "reportlatencyforeacherror";
   private static final String REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY_DEFAULT =
-      "false";
+    "false";
 
   private static final String LATENCY_TRACKED_ERRORS_PROPERTY =
-      "latencytrackederrors";
+    "latencytrackederrors";
 
   private final String SCOPE_STRING_CLEANUP;
   private final String SCOPE_STRING_DELETE;
@@ -99,21 +93,21 @@ public class DBWrapper extends DB
       _db.init();
 
       this.reportLatencyForEachError = Boolean.parseBoolean(getProperties().
-          getProperty(REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY,
-              REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY_DEFAULT));
+        getProperty(REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY,
+          REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY_DEFAULT));
 
       if (!reportLatencyForEachError) {
         String latencyTrackedErrors = getProperties().getProperty(
-            LATENCY_TRACKED_ERRORS_PROPERTY, null);
+          LATENCY_TRACKED_ERRORS_PROPERTY, null);
         if (latencyTrackedErrors != null) {
           this.latencyTrackedErrors = new HashSet<String>(Arrays.asList(
-              latencyTrackedErrors.split(",")));
+            latencyTrackedErrors.split(",")));
         }
       }
 
       System.err.println("DBWrapper: report latency for each error is " +
-          this.reportLatencyForEachError + " and specific error codes to track" +
-          " for latency are: " + this.latencyTrackedErrors.toString());
+        this.reportLatencyForEachError + " and specific error codes to track" +
+        " for latency are: " + this.latencyTrackedErrors.toString());
     }
   }
 
@@ -143,7 +137,7 @@ public class DBWrapper extends DB
    * @return The result of the operation.
    */
   public Status read(String table, String key, Set<String> fields,
-      HashMap<String,ByteIterator> result)
+                     HashMap<String,ByteIterator> result)
   {
     try (final TraceScope span = _tracer.newScope(SCOPE_STRING_READ)) {
       long ist=_measurements.getIntendedtartTimeNs();
@@ -168,7 +162,7 @@ public class DBWrapper extends DB
    * @return The result of the operation.
    */
   public Status scan(String table, String startkey, int recordcount,
-      Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
+                     Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
   {
     try (final TraceScope span = _tracer.newScope(SCOPE_STRING_SCAN)) {
       long ist=_measurements.getIntendedtartTimeNs();
@@ -182,20 +176,20 @@ public class DBWrapper extends DB
   }
 
   private void measure(String op, Status result, long intendedStartTimeNanos,
-      long startTimeNanos, long endTimeNanos) {
+                       long startTimeNanos, long endTimeNanos) {
     String measurementName = op;
     if (result == null || !result.isOk()) {
       if (this.reportLatencyForEachError ||
-          this.latencyTrackedErrors.contains(result.getName())) {
+        this.latencyTrackedErrors.contains(result.getName())) {
         measurementName = op + "-" + result.getName();
       } else {
         measurementName = op + "-FAILED";
       }
     }
     _measurements.measure(measurementName,
-        (int)((endTimeNanos-startTimeNanos)/1000));
+      (int)((endTimeNanos-startTimeNanos)/1000));
     _measurements.measureIntended(measurementName,
-        (int)((endTimeNanos-intendedStartTimeNanos)/1000));
+      (int)((endTimeNanos-intendedStartTimeNanos)/1000));
   }
 
   /**
@@ -208,7 +202,7 @@ public class DBWrapper extends DB
    * @return The result of the operation.
    */
   public Status update(String table, String key,
-      HashMap<String,ByteIterator> values)
+                       HashMap<String,ByteIterator> values)
   {
     try (final TraceScope span = _tracer.newScope(SCOPE_STRING_UPDATE)) {
       long ist=_measurements.getIntendedtartTimeNs();
@@ -232,7 +226,7 @@ public class DBWrapper extends DB
    * @return The result of the operation.
    */
   public Status insert(String table, String key,
-      HashMap<String,ByteIterator> values)
+                       HashMap<String,ByteIterator> values)
   {
     try (final TraceScope span = _tracer.newScope(SCOPE_STRING_INSERT)) {
       long ist=_measurements.getIntendedtartTimeNs();

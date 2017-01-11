@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010 Yahoo! Inc., Copyright (c) 2016 YCSB contributors. All rights reserved.
+ * Copyright (c) 2016 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -18,319 +18,121 @@
 package com.yahoo.ycsb.workloads;
 
 
-import java.util.Properties;
-
 import com.yahoo.ycsb.*;
-import com.yahoo.ycsb.generator.AcknowledgedCounterGenerator;
-import com.yahoo.ycsb.generator.ConstantIntegerGenerator;
-import com.yahoo.ycsb.generator.CounterGenerator;
-import com.yahoo.ycsb.generator.DiscreteGenerator;
-import com.yahoo.ycsb.generator.ExponentialGenerator;
-import com.yahoo.ycsb.generator.HistogramGenerator;
-import com.yahoo.ycsb.generator.HotspotIntegerGenerator;
-import com.yahoo.ycsb.generator.NumberGenerator;
-import com.yahoo.ycsb.generator.ScrambledZipfianGenerator;
-import com.yahoo.ycsb.generator.SequentialGenerator;
-import com.yahoo.ycsb.generator.SkewedLatestGenerator;
-import com.yahoo.ycsb.generator.UniformIntegerGenerator;
-import com.yahoo.ycsb.generator.ZipfianGenerator;
+import com.yahoo.ycsb.generator.*;
 import com.yahoo.ycsb.measurements.Measurements;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Vector;
+import java.util.*;
 
-
-/**
- * The core benchmark scenario. Represents a set of clients doing simple CRUD operations. The
- * relative proportion of different kinds of operations, and other properties of the workload,
- * are controlled by parameters specified at runtime.
- *
- * Properties to control the client:
- * <UL>
- * <LI><b>fieldcount</b>: the number of fields in a record (default: 10)
- * <LI><b>fieldlength</b>: the size of each field (default: 100)
- * <LI><b>readallfields</b>: should reads read all fields (true) or just one (false) (default: true)
- * <LI><b>writeallfields</b>: should updates and read/modify/writes update all fields (true) or just
- * one (false) (default: false)
- * <LI><b>readproportion</b>: what proportion of operations should be reads (default: 0.95)
- * <LI><b>updateproportion</b>: what proportion of operations should be updates (default: 0.05)
- * <LI><b>insertproportion</b>: what proportion of operations should be inserts (default: 0)
- * <LI><b>scanproportion</b>: what proportion of operations should be scans (default: 0)
- * <LI><b>readmodifywriteproportion</b>: what proportion of operations should be read a record,
- * modify it, write it back (default: 0)
- * <LI><b>requestdistribution</b>: what distribution should be used to select the records to operate
- * on - uniform, zipfian, hotspot, sequential, exponential or latest (default: uniform)
- * <LI><b>maxscanlength</b>: for scans, what is the maximum number of records to scan (default: 1000)
- * <LI><b>scanlengthdistribution</b>: for scans, what distribution should be used to choose the
- * number of records to scan, for each scan, between 1 and maxscanlength (default: uniform)
- * <LI><b>insertstart</b>: for parallel loads and runs, defines the starting record for this
- * YCSB instance (default: 0)
- * <LI><b>insertcount</b>: for parallel loads and runs, defines the number of records for this
- * YCSB instance (default: recordcount)
- * <LI><b>zeropadding</b>: for generating a record sequence compatible with string sort order by
- * 0 padding the record number. Controls the number of 0s to use for padding. (default: 1)
- * For example for row 5, with zeropadding=1 you get 'user5' key and with zeropading=8 you get
- * 'user00000005' key. In order to see its impact, zeropadding needs to be bigger than number of
- * digits in the record number.
- * <LI><b>insertorder</b>: should records be inserted in order by key ("ordered"), or in hashed
- * order ("hashed") (default: hashed)
- * </ul>
- */
-public class CoreWorkload extends Workload {
+public class FilterWorkload extends CoreWorkload {
   /**
-   * The name of the database table to run queries against.
+   * The default value for the start key name.
    */
-  public static final String TABLENAME_PROPERTY = "table";
+  public static final String START_KEY_NAME_DEFAULT = null;
 
   /**
-   * The default name of the database table to run queries against.
+   * The name of the property for choose the starting key name.
    */
-  public static final String TABLENAME_PROPERTY_DEFAULT = "usertable";
+  public static final String START_KEY_NAME = "startkeyname";
 
-  public static String table;
-
+  public static String startkeyname;
 
   /**
-   * The name of the property for the number of fields in a record.
+   * Check if the scan operation is standard or filter
    */
-  public static final String FIELD_COUNT_PROPERTY = "fieldcount";
+  public static final String IS_FILTER_DEFAULT = null;
+
+  public static final String IS_FILTER = "is_filter";
+  public static String is_filter;
 
   /**
-   * Default number of fields in a record.
+   * The default value for the compare value.
    */
-  public static final String FIELD_COUNT_PROPERTY_DEFAULT = "10";
+  public static final String COMPARE_VALUE_DEFAULT = null;
+
+  /**
+   * The name of the property that specifies the compare value to perform comparisons
+   * with the stored values.
+   */
+  public static final String COMPARE_VALUE = "comparevalue";
+  public static String comparevalue;
+
+  /**
+   * The name of the property for the proportion of comparisons with the GREATER operand.
+   */
+  public static final String GREAT_PROPORTION_PROPERTY = "greatproportion";
+
+  /**
+   * The default proportion of comparisons the GREATER operand.
+   */
+  public static final String GREAT_PROPORTION_PROPERTY_DEFAULT = "0.25";
+
+  /**
+   * The name of the property for the proportion of comparisons with the GREATER_OR_EQUAL operand.
+   */
+  public static final String GREAT_OR_EQUAL_PROPORTION_PROPERTY = "greatorequalproportion";
+
+  /**
+   * The default proportion of comparisons with the GREATER_OR_EQUAL operand.
+   */
+  public static final String GREAT_OR_EQUAL_PROPORTION_PROPERTY_DEFAULT = "0";
+
+  /**
+   * The name of the property for the proportion of comparisons with the EQUAL operand.
+   */
+  public static final String EQUAL_PROPORTION_PROPERTY = "equalproportion";
+
+  /**
+   * The default proportion of comparisons with the EQUAL operand.
+   */
+  public static final String EQUAL_PROPORTION_PROPERTY_DEFAULT = "0.5";
+
+  /**
+   * The name of the property for the proportion of comparisons with the LESS operand.
+   */
+  public static final String LESS_PROPORTION_PROPERTY = "lessproportion";
+
+  /**
+   * The default proportion of comparisons with the LESS operand.
+   */
+  public static final String LESS_PROPORTION_PROPERTY_DEFAULT = "0.25";
+
+  /**
+   * The name of the property for the proportion of comparisons with the LESS_OR_EQUAL operand.
+   */
+  public static final String LESS_OR_EQUAL_PROPORTION_PROPERTY = "lessorequalproportion";
+
+  /**
+   * The default proportion of comparisons with the LESS_OR_EQUAL operand.
+   */
+  public static final String LESS_OR_EQUAL_PROPORTION_PROPERTY_DEFAULT = "0";
+
+  /**
+   * The name of the property for adding a sees. The seed will be used to perform
+   * deterministic workloads, giving the same result for different executions.
+   */
+  public static final String SEED_PROPERTY = "seed";
+
+  /**
+   * The default seed property. The default value of the seed is false, giving for
+   * different executions, different results.
+   */
+  public static final String SEED_PROPERTY_DEFAULT = null;
+  public static String seed;
+
+
 
   int fieldcount;
 
   private List<String> fieldnames;
 
-  /**
-   * The name of the property for the field length distribution. Options are "uniform", "zipfian"
-   * (favouring short records), "constant", and "histogram".
-   *
-   * If "uniform", "zipfian" or "constant", the maximum field length will be that specified by the
-   * fieldlength property. If "histogram", then the histogram will be read from the filename
-   * specified in the "fieldlengthhistogram" property.
-   */
-  public static final String FIELD_LENGTH_DISTRIBUTION_PROPERTY = "fieldlengthdistribution";
-
-  /**
-   * The default field length distribution.
-   */
-  public static final String FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT = "constant";
-
-  /**
-   * The name of the property for the length of a field in bytes.
-   */
-  public static final String FIELD_LENGTH_PROPERTY = "fieldlength";
-
-  /**
-   * The default maximum length of a field in bytes.
-   */
-  public static final String FIELD_LENGTH_PROPERTY_DEFAULT = "100";
-
-  /**
-   * The name of a property that specifies the filename containing the field length histogram (only
-   * used if fieldlengthdistribution is "histogram").
-   */
-  public static final String FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY = "fieldlengthhistogram";
-
-  /**
-   * The default filename containing a field length histogram.
-   */
-  public static final String FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY_DEFAULT = "hist.txt";
-
-  /**
-   * Generator object that produces field lengths.  The value of this depends on the properties that
-   * start with "FIELD_LENGTH_".
-   */
   NumberGenerator fieldlengthgenerator;
-
-  /**
-   * The name of the property for deciding whether to read one field (false) or all fields (true) of
-   * a record.
-   */
-  public static final String READ_ALL_FIELDS_PROPERTY = "readallfields";
-
-  /**
-   * The default value for the readallfields property.
-   */
-  public static final String READ_ALL_FIELDS_PROPERTY_DEFAULT = "true";
 
   boolean readallfields;
 
-  /**
-   * The name of the property for deciding whether to write one field (false) or all fields (true)
-   * of a record.
-   */
-  public static final String WRITE_ALL_FIELDS_PROPERTY = "writeallfields";
-
-  /**
-   * The default value for the writeallfields property.
-   */
-  public static final String WRITE_ALL_FIELDS_PROPERTY_DEFAULT = "false";
-
   boolean writeallfields;
 
-
-  /**
-   * The name of the property for deciding whether to check all returned
-   * data against the formation template to ensure data integrity.
-   */
-  public static final String DATA_INTEGRITY_PROPERTY = "dataintegrity";
-
-  /**
-   * The default value for the dataintegrity property.
-   */
-  public static final String DATA_INTEGRITY_PROPERTY_DEFAULT = "false";
-
-  /**
-   * Set to true if want to check correctness of reads. Must also
-   * be set to true during loading phase to function.
-   */
   private boolean dataintegrity;
-
-  /**
-   * The name of the property for the proportion of transactions that are reads.
-   */
-  public static final String READ_PROPORTION_PROPERTY = "readproportion";
-
-  /**
-   * The default proportion of transactions that are reads.
-   */
-  public static final String READ_PROPORTION_PROPERTY_DEFAULT = "0.95";
-
-  /**
-   * The name of the property for the proportion of transactions that are updates.
-   */
-  public static final String UPDATE_PROPORTION_PROPERTY = "updateproportion";
-
-  /**
-   * The default proportion of transactions that are updates.
-   */
-  public static final String UPDATE_PROPORTION_PROPERTY_DEFAULT = "0.05";
-
-  /**
-   * The name of the property for the proportion of transactions that are inserts.
-   */
-  public static final String INSERT_PROPORTION_PROPERTY = "insertproportion";
-
-  /**
-   * The default proportion of transactions that are inserts.
-   */
-  public static final String INSERT_PROPORTION_PROPERTY_DEFAULT = "0.0";
-
-  /**
-   * The name of the property for the proportion of transactions that are scans.
-   */
-  public static final String SCAN_PROPORTION_PROPERTY = "scanproportion";
-
-  /**
-   * The default proportion of transactions that are scans.
-   */
-  public static final String SCAN_PROPORTION_PROPERTY_DEFAULT = "0.0";
-
-  /**
-   * The name of the property for the proportion of transactions that are read-modify-write.
-   */
-  public static final String READMODIFYWRITE_PROPORTION_PROPERTY = "readmodifywriteproportion";
-
-  /**
-   * The default proportion of transactions that are scans.
-   */
-  public static final String READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT = "0.0";
-
-  /**
-   * The name of the property for the the distribution of requests across the keyspace. Options are
-   * "uniform", "zipfian" and "latest"
-   */
-  public static final String REQUEST_DISTRIBUTION_PROPERTY = "requestdistribution";
-
-  /**
-   * The default distribution of requests across the keyspace.
-   */
-  public static final String REQUEST_DISTRIBUTION_PROPERTY_DEFAULT = "uniform";
-
-  /**
-   * The name of the property for adding zero padding to record numbers in order to match
-   * string sort order. Controls the number of 0s to left pad with.
-   */
-  public static final String ZERO_PADDING_PROPERTY = "zeropadding";
-
-  /**
-   * The default zero padding value. Matches integer sort order
-   */
-  public static final String ZERO_PADDING_PROPERTY_DEFAULT = "1";
-
-
-  /**
-   * The name of the property for the max scan length (number of records).
-   */
-  public static final String MAX_SCAN_LENGTH_PROPERTY = "maxscanlength";
-
-  /**
-   * The default max scan length.
-   */
-  public static final String MAX_SCAN_LENGTH_PROPERTY_DEFAULT = "1000";
-
-  /**
-   * The name of the property for the scan length distribution. Options are "uniform" and "zipfian"
-   * (favoring short scans)
-   */
-  public static final String SCAN_LENGTH_DISTRIBUTION_PROPERTY = "scanlengthdistribution";
-
-  /**
-   * The default max scan length.
-   */
-  public static final String SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT = "uniform";
-
-  /**
-   * The name of the property for the order to insert records. Options are "ordered" or "hashed"
-   */
-  public static final String INSERT_ORDER_PROPERTY = "insertorder";
-
-  /**
-   * Default insert order.
-   */
-  public static final String INSERT_ORDER_PROPERTY_DEFAULT = "hashed";
-
-  /**
-   * Percentage data items that constitute the hot set.
-   */
-  public static final String HOTSPOT_DATA_FRACTION = "hotspotdatafraction";
-
-  /**
-   * Default value of the size of the hot set.
-   */
-  public static final String HOTSPOT_DATA_FRACTION_DEFAULT = "0.2";
-
-  /**
-   * Percentage operations that access the hot set.
-   */
-  public static final String HOTSPOT_OPN_FRACTION = "hotspotopnfraction";
-
-  /**
-   * Default value of the percentage operations accessing the hot set.
-   */
-  public static final String HOTSPOT_OPN_FRACTION_DEFAULT = "0.8";
-
-  /**
-   * How many times to retry when insertion of a single item to a DB fails.
-   */
-  public static final String INSERTION_RETRY_LIMIT = "core_workload_insertion_retry_limit";
-  public static final String INSERTION_RETRY_LIMIT_DEFAULT = "0";
-
-  /**
-   * On average, how long to wait between the retries, in seconds.
-   */
-  public static final String INSERTION_RETRY_INTERVAL = "core_workload_insertion_retry_interval";
-  public static final String INSERTION_RETRY_INTERVAL_DEFAULT = "3";
 
   NumberGenerator keysequence;
 
@@ -347,40 +149,16 @@ public class CoreWorkload extends Workload {
   boolean orderedinserts;
 
   int recordcount;
+
   int zeropadding;
 
   int insertionRetryLimit;
+
   int insertionRetryInterval;
 
   private Measurements _measurements = Measurements.getMeasurements();
 
-  protected static NumberGenerator getFieldLengthGenerator(Properties p) throws WorkloadException {
-    NumberGenerator fieldlengthgenerator;
-    String fieldlengthdistribution = p.getProperty(
-      FIELD_LENGTH_DISTRIBUTION_PROPERTY, FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
-    int fieldlength =
-      Integer.parseInt(p.getProperty(FIELD_LENGTH_PROPERTY, FIELD_LENGTH_PROPERTY_DEFAULT));
-    String fieldlengthhistogram = p.getProperty(
-      FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY, FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY_DEFAULT);
-    if (fieldlengthdistribution.compareTo("constant") == 0) {
-      fieldlengthgenerator = new ConstantIntegerGenerator(fieldlength);
-    } else if (fieldlengthdistribution.compareTo("uniform") == 0) {
-      fieldlengthgenerator = new UniformIntegerGenerator(1, fieldlength);
-    } else if (fieldlengthdistribution.compareTo("zipfian") == 0) {
-      fieldlengthgenerator = new ZipfianGenerator(1, fieldlength);
-    } else if (fieldlengthdistribution.compareTo("histogram") == 0) {
-      try {
-        fieldlengthgenerator = new HistogramGenerator(fieldlengthhistogram);
-      } catch (IOException e) {
-        throw new WorkloadException(
-          "Couldn't read field length histogram file: " + fieldlengthhistogram, e);
-      }
-    } else {
-      throw new WorkloadException(
-        "Unknown field length distribution \"" + fieldlengthdistribution + "\"");
-    }
-    return fieldlengthgenerator;
-  }
+  DiscreteGenerator compareOperationChooser;
 
   /**
    * Initialize the scenario.
@@ -390,13 +168,23 @@ public class CoreWorkload extends Workload {
   public void init(Properties p) throws WorkloadException {
     table = p.getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
 
+//    starting key to perform scan and filter operations
+    startkeyname = p.getProperty(START_KEY_NAME, START_KEY_NAME_DEFAULT);
+
+//    check if scan operations are filters
+    is_filter = p.getProperty(IS_FILTER, IS_FILTER_DEFAULT);
+
+//    value to perform comparisons in filter operation
+    comparevalue = p.getProperty(COMPARE_VALUE, COMPARE_VALUE_DEFAULT);
+
     fieldcount =
       Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
     fieldnames = new ArrayList<String>();
     for (int i = 0; i < fieldcount; i++) {
       fieldnames.add("field" + i);
     }
-    fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
+
+    fieldlengthgenerator = getFieldLengthGenerator(p);
 
     recordcount =
       Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
@@ -420,6 +208,15 @@ public class CoreWorkload extends Workload {
       System.err.println("recordcount must be bigger than insertstart + insertcount.");
       System.exit(-1);
     }
+
+//    seed to generate pseudo-random values
+    seed = p.getProperty(SEED_PROPERTY, SEED_PROPERTY_DEFAULT);
+
+//    set seed property in Utils class
+    if(seed != null) {
+      Utils.setSeed(seed);
+    }
+
     zeropadding =
       Integer.parseInt(p.getProperty(ZERO_PADDING_PROPERTY, ZERO_PADDING_PROPERTY_DEFAULT));
 
@@ -455,6 +252,9 @@ public class CoreWorkload extends Workload {
 
     keysequence = new CounterGenerator(insertstart);
     operationchooser = createOperationGenerator(p);
+//    compare operation chooser for filter operations
+    compareOperationChooser = createCompareOperationGenerator(p);
+
 
     transactioninsertkeysequence = new AcknowledgedCounterGenerator(recordcount);
     if (requestdistrib.compareTo("uniform") == 0) {
@@ -462,15 +262,7 @@ public class CoreWorkload extends Workload {
     } else if (requestdistrib.compareTo("sequential") == 0) {
       keychooser = new SequentialGenerator(insertstart, insertstart + insertcount - 1);
     }else if (requestdistrib.compareTo("zipfian") == 0) {
-      // it does this by generating a random "next key" in part by taking the modulus over the
-      // number of keys.
-      // If the number of keys changes, this would shift the modulus, and we don't want that to
-      // change which keys are popular so we'll actually construct the scrambled zipfian generator
-      // with a keyspace that is larger than exists at the beginning of the test. that is, we'll predict
-      // the number of inserts, and tell the scrambled zipfian generator the number of existing keys
-      // plus the number of predicted keys as the total keyspace. then, if the generator picks a key
-      // that hasn't been inserted yet, will just ignore it and pick another key. this way, the size of
-      // the keyspace doesn't change from the perspective of the scrambled zipfian generator
+
       final double insertproportion = Double.parseDouble(
         p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
       int opcount = Integer.parseInt(p.getProperty(Client.OPERATION_COUNT_PROPERTY));
@@ -582,7 +374,6 @@ public class CoreWorkload extends Workload {
    * for each other, and it will be difficult to reach the target throughput. Ideally, this function would
    * have no side effects other than DB operations.
    */
-  @Override
   public boolean doInsert(DB db, Object threadstate) {
     int keynum = keysequence.nextValue().intValue();
     String dbkey = buildKeyName(keynum);
@@ -625,7 +416,6 @@ public class CoreWorkload extends Workload {
    * for each other, and it will be difficult to reach the target throughput. Ideally, this function would
    * have no side effects other than DB operations.
    */
-  @Override
   public boolean doTransaction(DB db, Object threadstate) {
     switch (operationchooser.nextString()) {
       case "READ":
@@ -645,6 +435,15 @@ public class CoreWorkload extends Workload {
     }
 
     return true;
+  }
+
+  /**
+   * Do one compare operation.
+   * This function will call a DiscreteGenerator, which will return a comparator
+   * based on the Properties file.
+   */
+  public String doCompareOperation() {
+    return compareOperationChooser.nextString();
   }
 
   /**
@@ -765,23 +564,50 @@ public class CoreWorkload extends Workload {
     // choose a random key
     int keynum = nextKeynum();
 
-    String startkeyname = buildKeyName(keynum);
+    String startk = null;
+    String comparable = null;
+
+//    startkeyname option
+    if(startkeyname != null) {
+      keynum = nextKeynum();
+      startk = buildKeyName(keynum);
+    }
+    else
+      startk = "false";
 
     // choose a random scan length
     int len = scanlength.nextValue().intValue();
 
     HashSet<String> fields = null;
 
-    if (!readallfields) {
-      // read a random field
-      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
 
-      fields = new HashSet<String>();
-      fields.add(fieldname);
+    if(is_filter != null) {
+      String compOperation = doCompareOperation();
+
+//    insert a compare value to perform the comparisons in the filter
+      if (comparevalue == null) {
+        keynum = nextKeynum();
+        comparable = buildKeyName(keynum);
+      }
+      else
+        comparable = comparevalue;
+
+      fields = new HashSet<>();
+      fields.add("isFilter#true:"+compOperation+":"+comparable);
+    }
+    else {
+      if (!readallfields) {
+        // read a random field
+        String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
+
+        fields = new HashSet<String>();
+        fields.add(fieldname);
+      }
     }
 
-    db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
+    db.scan(table, startk, len, fields, new Vector<HashMap<String, ByteIterator>>());
   }
+
 
   public void doTransactionUpdate(DB db) {
     // choose a random key
@@ -820,7 +646,7 @@ public class CoreWorkload extends Workload {
    * Creates a weighted discrete values with database operations for a workload to perform.
    * Weights/proportions are read from the properties list and defaults are used
    * when values are not configured.
-   * Current operations are "READ", "UPDATE", "INSERT", "SCAN" and "READMODIFYWRITE".
+   * Current operations are "READ", "UPDATE", "INSERT", "SCAN", "FILTER" and "READMODIFYWRITE".
    * @param p The properties list to pull weights from.
    * @return A generator that can be used to determine the next operation to perform.
    * @throws IllegalArgumentException if the properties object was null.
@@ -862,4 +688,54 @@ public class CoreWorkload extends Workload {
     }
     return operationchooser;
   }
+
+  /**
+   * Creates a weighted discrete values with compare operations for a Filter operation.
+   * Weights/proportions are read from the properties list and defaults are used
+   * when values are not configured.
+   * Current operations are "GREATER", "EQUAL", "LESS", "GREATER_OR_EQUAL" and "LESS_OR_EQUAL".
+   * @param p The properties list to pull weights from.
+   * @return A generator that can be used to determine the next comparison to perform.
+   * @throws IllegalArgumentException if the properties object was null.
+   */
+  public static DiscreteGenerator createCompareOperationGenerator(Properties p) {
+    if (p == null) {
+      throw new IllegalArgumentException("Properties object cannot be null");
+    }
+    final double greatProportion = Double.parseDouble(
+      p.getProperty(GREAT_PROPORTION_PROPERTY, GREAT_PROPORTION_PROPERTY_DEFAULT));
+    final double equalProportion = Double.parseDouble(
+      p.getProperty(EQUAL_PROPORTION_PROPERTY, EQUAL_PROPORTION_PROPERTY_DEFAULT));
+    final double lessProportion = Double.parseDouble(
+      p.getProperty(LESS_PROPORTION_PROPERTY, LESS_PROPORTION_PROPERTY_DEFAULT));
+    final double greatOrEqualProportion = Double.parseDouble(
+      p.getProperty(GREAT_OR_EQUAL_PROPORTION_PROPERTY, GREAT_OR_EQUAL_PROPORTION_PROPERTY_DEFAULT));
+    final double lessOrEqualProportion = Double.parseDouble(
+      p.getProperty(LESS_OR_EQUAL_PROPORTION_PROPERTY, LESS_OR_EQUAL_PROPORTION_PROPERTY_DEFAULT));
+
+    final DiscreteGenerator compareOperationChooser = new DiscreteGenerator();
+
+    if(greatProportion > 0) {
+      compareOperationChooser.addValue(greatProportion, "GREATER");
+    }
+
+    if(equalProportion > 0) {
+      compareOperationChooser.addValue(equalProportion, "EQUAL");
+    }
+
+    if(lessProportion > 0) {
+      compareOperationChooser.addValue(lessProportion, "LESS");
+    }
+
+    if(greatOrEqualProportion > 0) {
+      compareOperationChooser.addValue(greatOrEqualProportion, "GREATER_OR_EQUAL");
+    }
+
+    if(lessOrEqualProportion > 0) {
+      compareOperationChooser.addValue(lessOrEqualProportion, "LESS_OR_EQUAL");
+    }
+
+    return compareOperationChooser;
+  }
+
 }
