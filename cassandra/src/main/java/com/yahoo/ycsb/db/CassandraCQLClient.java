@@ -27,7 +27,10 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SimpleStatement;
+import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
+
+import com.datastax.driver.core.querybuilder.Delete;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
@@ -36,12 +39,15 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
+import com.yahoo.ycsb.workloads.CoreWorkload;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -64,6 +70,7 @@ public class CassandraCQLClient extends DB {
   public static final String KEYSPACE_PROPERTY_DEFAULT = "ycsb";
   public static final String USERNAME_PROPERTY = "cassandra.username";
   public static final String PASSWORD_PROPERTY = "cassandra.password";
+  private static final String FIELD_PREFIX = "field";
 
   public static final String HOSTS_PROPERTY = "hosts";
   public static final String PORT_PROPERTY = "port";
@@ -84,6 +91,23 @@ public class CassandraCQLClient extends DB {
       "cassandra.connecttimeoutmillis";
   public static final String READ_TIMEOUT_MILLIS_PROPERTY =
       "cassandra.readtimeoutmillis";
+
+  private static boolean readallfields;
+
+  private static PreparedStatement deleteStatement = null;
+
+  /*
+    select and scan statements have two variants;
+    one to select all columns, and one for selecting each individual column
+  */
+  private static PreparedStatement selectStatement = null;
+  private static Map<String, PreparedStatement> selectStatements = null;
+  private static PreparedStatement scanStatement = null;
+  private static Map<String, PreparedStatement> scanStatements = null;
+
+  // YCSB always inserts a full row, but updates can be either full-row or single-column
+  private static PreparedStatement insertStatement = null;
+  private static Map<String, PreparedStatement> updateStatements = null;
 
   public static final String TRACING_PROPERTY = "cassandra.tracing";
   public static final String TRACING_PROPERTY_DEFAULT = "false";
@@ -119,31 +143,36 @@ public class CassandraCQLClient extends DB {
 
       try {
 
+        final Properties p = getProperties();
+
         debug =
-            Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
-        trace = Boolean.valueOf(getProperties().getProperty(TRACING_PROPERTY, TRACING_PROPERTY_DEFAULT));
+            Boolean.parseBoolean(p.getProperty("debug", "false"));
+        trace = Boolean.valueOf(p.getProperty(TRACING_PROPERTY, TRACING_PROPERTY_DEFAULT));
         
-        String host = getProperties().getProperty(HOSTS_PROPERTY);
+        String host = p.getProperty(HOSTS_PROPERTY);
         if (host == null) {
           throw new DBException(String.format(
               "Required property \"%s\" missing for CassandraCQLClient",
               HOSTS_PROPERTY));
         }
         String[] hosts = host.split(",");
-        String port = getProperties().getProperty(PORT_PROPERTY, PORT_PROPERTY_DEFAULT);
+        String port = p.getProperty(PORT_PROPERTY, PORT_PROPERTY_DEFAULT);
 
-        String username = getProperties().getProperty(USERNAME_PROPERTY);
-        String password = getProperties().getProperty(PASSWORD_PROPERTY);
+        String username = p.getProperty(USERNAME_PROPERTY);
+        String password = p.getProperty(PASSWORD_PROPERTY);
 
-        String keyspace = getProperties().getProperty(KEYSPACE_PROPERTY,
+        String keyspace = p.getProperty(KEYSPACE_PROPERTY,
             KEYSPACE_PROPERTY_DEFAULT);
 
         readConsistencyLevel = ConsistencyLevel.valueOf(
-            getProperties().getProperty(READ_CONSISTENCY_LEVEL_PROPERTY,
+            p.getProperty(READ_CONSISTENCY_LEVEL_PROPERTY,
                 READ_CONSISTENCY_LEVEL_PROPERTY_DEFAULT));
         writeConsistencyLevel = ConsistencyLevel.valueOf(
-            getProperties().getProperty(WRITE_CONSISTENCY_LEVEL_PROPERTY,
+            p.getProperty(WRITE_CONSISTENCY_LEVEL_PROPERTY,
                 WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT));
+        readallfields = Boolean.parseBoolean(
+                p.getProperty(CoreWorkload.READ_ALL_FIELDS_PROPERTY,
+                        CoreWorkload.READ_ALL_FIELDS_PROPERTY_DEFAULT));
 
         if ((username != null) && !username.isEmpty()) {
           cluster = Cluster.builder().withCredentials(username, password)
@@ -153,7 +182,7 @@ public class CassandraCQLClient extends DB {
               .addContactPoints(hosts).build();
         }
 
-        String maxConnections = getProperties().getProperty(
+        String maxConnections = p.getProperty(
             MAX_CONNECTIONS_PROPERTY);
         if (maxConnections != null) {
           cluster.getConfiguration().getPoolingOptions()
@@ -161,7 +190,7 @@ public class CassandraCQLClient extends DB {
               Integer.valueOf(maxConnections));
         }
 
-        String coreConnections = getProperties().getProperty(
+        String coreConnections = p.getProperty(
             CORE_CONNECTIONS_PROPERTY);
         if (coreConnections != null) {
           cluster.getConfiguration().getPoolingOptions()
@@ -169,14 +198,14 @@ public class CassandraCQLClient extends DB {
               Integer.valueOf(coreConnections));
         }
 
-        String connectTimoutMillis = getProperties().getProperty(
+        String connectTimoutMillis = p.getProperty(
             CONNECT_TIMEOUT_MILLIS_PROPERTY);
         if (connectTimoutMillis != null) {
           cluster.getConfiguration().getSocketOptions()
               .setConnectTimeoutMillis(Integer.valueOf(connectTimoutMillis));
         }
 
-        String readTimoutMillis = getProperties().getProperty(
+        String readTimoutMillis = p.getProperty(
             READ_TIMEOUT_MILLIS_PROPERTY);
         if (readTimoutMillis != null) {
           cluster.getConfiguration().getSocketOptions()
@@ -195,10 +224,76 @@ public class CassandraCQLClient extends DB {
 
         session = cluster.connect(keyspace);
 
+        buildStatements();
+
       } catch (Exception e) {
         throw new DBException(e);
       }
     } // synchronized
+  }
+
+  private void buildStatements() {
+    Properties p = getProperties();
+    int fieldCount = Integer.parseInt(
+            p.getProperty(CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
+    String table = p.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
+
+    // Insert and Update statement
+    final Insert is = QueryBuilder.insertInto(table);
+    is.value(YCSB_KEY, QueryBuilder.bindMarker());
+
+    for (int i = 0; i < fieldCount; i++) {
+      is.value(FIELD_PREFIX + i, QueryBuilder.bindMarker());
+    }
+    insertStatement = session.prepare(is);
+    insertStatement.setConsistencyLevel(writeConsistencyLevel);
+
+
+    // Delete statement
+    final Delete ds = QueryBuilder.delete().from(table);
+    deleteStatement = session.prepare(ds.where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())));
+    deleteStatement.setConsistencyLevel(writeConsistencyLevel);
+
+    if (readallfields) {
+      // Select
+      String ss = QueryBuilder.select().all().from(table)
+              .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).getQueryString();
+      selectStatement = session.prepare(ss);
+      selectStatement.setConsistencyLevel(readConsistencyLevel);
+
+      // Scan
+      String initialStmt = QueryBuilder.select().all().from(table).toString();
+      String scanStmt = getScanQueryString().replaceFirst("_", initialStmt.substring(0, initialStmt.length()-1));
+      scanStatement = session.prepare(scanStmt);
+      scanStatement.setConsistencyLevel(readConsistencyLevel);
+
+    } else {
+      selectStatements = new ConcurrentHashMap<String, PreparedStatement>(fieldCount);
+      scanStatements = new ConcurrentHashMap<String, PreparedStatement>(fieldCount);
+
+      for (int i = 0; i < fieldCount; i++) {
+        final Select from = QueryBuilder.select(FIELD_PREFIX + i).from(table);
+        // Select
+        Select selectStmt = from
+                .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).limit(1);
+        PreparedStatement preparedSelect = session.prepare(selectStmt);
+        preparedSelect.setConsistencyLevel(readConsistencyLevel);
+        selectStatements.put(FIELD_PREFIX + i, preparedSelect);
+
+        // Scan
+        String initialScanStmt = from.toString();
+        String scanStmt = getScanQueryString().replaceFirst("_",
+                initialScanStmt.substring(0, initialScanStmt.length()-1));
+        PreparedStatement preparedScan = session.prepare(scanStmt);
+        preparedScan.setConsistencyLevel(readConsistencyLevel);
+        scanStatements.put(FIELD_PREFIX + i, preparedScan);
+      }
+    }
+  }
+
+  private String getScanQueryString() {
+    return String.format("_ WHERE %s >= token(%s) LIMIT %s",
+            QueryBuilder.token(YCSB_KEY), QueryBuilder.bindMarker(), QueryBuilder.bindMarker());
   }
 
   /**
