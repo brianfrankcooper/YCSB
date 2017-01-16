@@ -86,7 +86,6 @@ public class ArangoDBClient extends DB {
    */
   @Override
   public void init() throws DBException {
-    INIT_COUNT.incrementAndGet();
     synchronized (ArangoDBClient.class) {
       Properties props = getProperties();
 
@@ -115,33 +114,35 @@ public class ArangoDBClient extends DB {
         System.exit(-1);
       }
 
-      // Init the database
-      if (dropDBBeforeRun) {
-        // Try delete first
-        try {
-          arangoDB.db(databaseName).drop();
-        } catch (ArangoDBException e) {
-          logger.info("Fail to delete DB: {}", databaseName);
+      if(INIT_COUNT.getAndIncrement() == 0) {
+        // Init the database
+        if (dropDBBeforeRun) {
+          // Try delete first
+          try {
+            arangoDB.db(databaseName).drop();
+          } catch (ArangoDBException e) {
+            logger.info("Fail to delete DB: {}", databaseName);
+          }
         }
+        try {
+          arangoDB.createDatabase(databaseName);
+          logger.info("Database created: " + databaseName);
+        } catch (ArangoDBException e) {
+          logger.error("Failed to create database: {} with ex: {}", databaseName, e.toString());
+        }
+        try {
+          arangoDB.db(databaseName).createCollection(collectionName);
+          logger.info("Collection created: " + collectionName);
+        } catch (ArangoDBException e) {
+          logger.error("Failed to create collection: {} with ex: {}", collectionName, e.toString());
+        }
+        logger.info("ArangoDB client connection created to {}:{}", ip, port);
+
+        // Log the configuration
+        logger.info("Arango Configuration: dropDBBeforeRun: {}; address: {}:{}; databaseName: {};"
+                    + " waitForSync: {}; transactionUpdate: {};",
+                    dropDBBeforeRun, ip, port, databaseName, waitForSync, transactionUpdate);
       }
-      try {
-        arangoDB.createDatabase(databaseName);
-        logger.info("Database created: " + databaseName);
-      } catch (ArangoDBException e) {
-        logger.error("Failed to create database: {} with ex: {}", databaseName, e.toString());
-      }
-      try {
-        arangoDB.db(databaseName).createCollection(collectionName);
-        logger.info("Collection created: " + collectionName);
-      } catch (ArangoDBException e) {
-        logger.error("Failed to create collection: {} with ex: {}", collectionName, e.toString());
-      }
-      logger.info("ArangoDB client connection created to {}:{}", ip, port);
-      
-      // Log the configuration
-      logger.info("Arango Configuration: dropDBBeforeRun: {}; address: {}:{}; databaseName: {};"
-                  + " waitForSync: {}; transactionUpdate: {};",
-                  dropDBBeforeRun, ip, port, databaseName, waitForSync, transactionUpdate);
     }
   }
 
