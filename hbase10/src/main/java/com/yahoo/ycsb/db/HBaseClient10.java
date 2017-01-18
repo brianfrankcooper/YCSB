@@ -53,6 +53,9 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.yahoo.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY;
+import static com.yahoo.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY_DEFAULT;
+
 /**
  * HBase 1.0 client for YCSB framework.
  *
@@ -173,7 +176,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
     // Terminate right now if table does not exist, since the client
     // will not propagate this error upstream once the workload
     // starts.
-    String table = com.yahoo.ycsb.workloads.CoreWorkload.table;
+    String table = getProperties().getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
     try {
       final TableName tName = TableName.valueOf(table);
       synchronized (CONNECTION_LOCK) {

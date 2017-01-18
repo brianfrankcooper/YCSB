@@ -126,7 +126,7 @@ public class CassandraCQLClientTest {
     insertRow();
 
     final HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
-    final Status status = client.read(CoreWorkload.table, DEFAULT_ROW_KEY, null, result);
+    final Status status = client.read(TABLE, DEFAULT_ROW_KEY, null, result);
     assertThat(status, is(Status.OK));
     assertThat(result.entrySet(), hasSize(11));
     assertThat(result, hasEntry("field2", null));
@@ -147,7 +147,7 @@ public class CassandraCQLClientTest {
     insertRow();
     final HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
     final Set<String> fields = Sets.newHashSet("field1");
-    final Status status = client.read(CoreWorkload.table, DEFAULT_ROW_KEY, fields, result);
+    final Status status = client.read(TABLE, DEFAULT_ROW_KEY, fields, result);
     assertThat(status, is(Status.OK));
     assertThat(result.entrySet(), hasSize(1));
     final Map<String, String> strResult = StringByteIterator.getStringMap(result);
