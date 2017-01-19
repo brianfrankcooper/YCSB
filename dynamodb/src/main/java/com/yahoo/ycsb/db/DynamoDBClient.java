@@ -105,7 +105,7 @@ public class DynamoDBClient extends DB {
         this.primaryKeyType = PrimaryKeyType.valueOf(primaryKeyTypeString.trim().toUpperCase());
       } catch (IllegalArgumentException e) {
         throw new DBException("Invalid primary key mode specified: " + primaryKeyTypeString +
-          ". Expecting HASH or HASH_AND_RANGE.");
+            ". Expecting HASH or HASH_AND_RANGE.");
       }
     }
 
@@ -138,7 +138,7 @@ public class DynamoDBClient extends DB {
 
   @Override
   public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
-    if(LOGGER.isDebugEnabled()) {
+    if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("readkey: " + key + " from table: " + table);
     }
 
@@ -159,7 +159,7 @@ public class DynamoDBClient extends DB {
 
     if (null != res.getItem()) {
       result.putAll(extractResult(res.getItem()));
-      if(LOGGER.isDebugEnabled()) {
+      if (LOGGER.isDebugEnabled()) {
         LOGGER.debug("Result: " + res.toString());
       }
     }
@@ -170,7 +170,7 @@ public class DynamoDBClient extends DB {
   public Status scan(String table, String startkey, int recordcount,
                      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
 
-    if(LOGGER.isDebugEnabled()) {
+    if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("scan " + recordcount + " records from key: " + startkey + " on table: " + table);
     }
 
@@ -229,7 +229,7 @@ public class DynamoDBClient extends DB {
 
   @Override
   public Status update(String table, String key, HashMap<String, ByteIterator> values) {
-    if(LOGGER.isDebugEnabled()) {
+    if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("updatekey: " + key + " from table: " + table);
     }
 
@@ -255,7 +255,7 @@ public class DynamoDBClient extends DB {
 
   @Override
   public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
-    if(LOGGER.isDebugEnabled()) {
+    if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("insertkey: " + primaryKeyName + "-" + key + " from table: " + table);
     }
 
@@ -284,7 +284,7 @@ public class DynamoDBClient extends DB {
 
   @Override
   public Status delete(String table, String key) {
-    if(LOGGER.isDebugEnabled()) {
+    if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("deletekey: " + key + " from table: " + table);
     }
 
@@ -318,7 +318,7 @@ public class DynamoDBClient extends DB {
     HashMap<String, ByteIterator> rItems = new HashMap<>(item.size());
 
     for (Entry<String, AttributeValue> attr : item.entrySet()) {
-      if(LOGGER.isDebugEnabled()) {
+      if (LOGGER.isDebugEnabled()) {
         LOGGER.debug(String.format("Result- key: %s, value: %s", attr.getKey(), attr.getValue()));
       }
       rItems.put(attr.getKey(), new StringByteIterator(attr.getValue().getS()));
