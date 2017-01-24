@@ -32,7 +32,7 @@ import com.yahoo.ycsb.generator.DiscreteGenerator;
 import com.yahoo.ycsb.generator.ExponentialGenerator;
 import com.yahoo.ycsb.generator.HotspotIntegerGenerator;
 import com.yahoo.ycsb.generator.NumberGenerator;
-import com.yahoo.ycsb.generator.UniformIntegerGenerator;
+import com.yahoo.ycsb.generator.UniformLongGenerator;
 import com.yahoo.ycsb.generator.ZipfianGenerator;
 
 /**
@@ -174,7 +174,7 @@ public class RestWorkload extends CoreWorkload {
         keychooser = new ExponentialGenerator(percentile, recordCount * frac);
         break;
       case "uniform":
-        keychooser = new UniformIntegerGenerator(0, recordCount - 1);
+        keychooser = new UniformLongGenerator(0, recordCount - 1);
         break;
       case "zipfian":
         keychooser = new ZipfianGenerator(recordCount, zipfContant);

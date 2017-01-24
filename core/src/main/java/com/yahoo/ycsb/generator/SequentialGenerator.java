@@ -17,38 +17,38 @@
 
 package com.yahoo.ycsb.generator;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Generates a sequence of integers 0, 1, ...
  */
 public class SequentialGenerator extends NumberGenerator {
-  final AtomicInteger counter;
-  int _interval, _countstart;
+  final AtomicLong counter;
+  long _interval, _countstart;
 
   /**
    * Create a counter that starts at countstart.
    */
-  public SequentialGenerator(int countstart, int countend) {
-    counter = new AtomicInteger();
+  public SequentialGenerator(long countstart, long countend) {
+    counter = new AtomicLong();
     setLastValue(counter.get());
     _countstart = countstart;
     _interval = countend - countstart + 1;
   }
   
   /**
-   * If the generator returns numeric (integer) values, return the next value as an int.
+   * If the generator returns numeric (long) values, return the next value as an long.
    * Default is to return -1, which is appropriate for generators that do not return numeric values.
    */
-  public int nextInt() {
-    int ret = _countstart + counter.getAndIncrement() % _interval;
+  public long nextLong() {
+    long ret = _countstart + counter.getAndIncrement() % _interval;
     setLastValue(ret);
     return ret;
   }
   
   @Override
   public Number nextValue() {
-    int ret = _countstart + counter.getAndIncrement() % _interval;
+    long ret = _countstart + counter.getAndIncrement() % _interval;
     setLastValue(ret);
     return ret;
   }

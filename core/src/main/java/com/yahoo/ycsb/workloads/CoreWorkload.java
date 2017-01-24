@@ -31,7 +31,7 @@ import com.yahoo.ycsb.generator.NumberGenerator;
 import com.yahoo.ycsb.generator.ScrambledZipfianGenerator;
 import com.yahoo.ycsb.generator.SequentialGenerator;
 import com.yahoo.ycsb.generator.SkewedLatestGenerator;
-import com.yahoo.ycsb.generator.UniformIntegerGenerator;
+import com.yahoo.ycsb.generator.UniformLongGenerator;
 import com.yahoo.ycsb.generator.ZipfianGenerator;
 import com.yahoo.ycsb.measurements.Measurements;
 
@@ -41,7 +41,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Vector;
 
 
@@ -105,7 +104,7 @@ public class CoreWorkload extends Workload {
    */
   public static final String FIELD_COUNT_PROPERTY_DEFAULT = "10";
 
-  int fieldcount;
+  long fieldcount;
 
   private List<String> fieldnames;
 
@@ -345,7 +344,7 @@ public class CoreWorkload extends Workload {
 
   boolean orderedinserts;
 
-  int recordcount;
+  long recordcount;
   int zeropadding;
 
   int insertionRetryLimit;
@@ -364,7 +363,7 @@ public class CoreWorkload extends Workload {
     if (fieldlengthdistribution.compareTo("constant") == 0) {
       fieldlengthgenerator = new ConstantIntegerGenerator(fieldlength);
     } else if (fieldlengthdistribution.compareTo("uniform") == 0) {
-      fieldlengthgenerator = new UniformIntegerGenerator(1, fieldlength);
+      fieldlengthgenerator = new UniformLongGenerator(1, fieldlength);
     } else if (fieldlengthdistribution.compareTo("zipfian") == 0) {
       fieldlengthgenerator = new ZipfianGenerator(1, fieldlength);
     } else if (fieldlengthdistribution.compareTo("histogram") == 0) {
@@ -390,7 +389,7 @@ public class CoreWorkload extends Workload {
     table = p.getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
 
     fieldcount =
-        Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
+        Long.parseLong(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
     fieldnames = new ArrayList<String>();
     for (int i = 0; i < fieldcount; i++) {
       fieldnames.add("field" + i);
@@ -398,7 +397,7 @@ public class CoreWorkload extends Workload {
     fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
     
     recordcount =
-        Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
+        Long.parseLong(p.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
     if (recordcount == 0) {
       recordcount = Integer.MAX_VALUE;
     }
@@ -409,9 +408,9 @@ public class CoreWorkload extends Workload {
     String scanlengthdistrib =
         p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY, SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
 
-    int insertstart =
-        Integer.parseInt(p.getProperty(INSERT_START_PROPERTY, INSERT_START_PROPERTY_DEFAULT));
-    int insertcount =
+    long insertstart =
+        Long.parseLong(p.getProperty(INSERT_START_PROPERTY, INSERT_START_PROPERTY_DEFAULT));
+    long insertcount=
         Integer.parseInt(p.getProperty(INSERT_COUNT_PROPERTY, String.valueOf(recordcount - insertstart)));
     // Confirm valid values for insertstart and insertcount in relation to recordcount
     if (recordcount < (insertstart + insertcount)) {
@@ -457,7 +456,7 @@ public class CoreWorkload extends Workload {
 
     transactioninsertkeysequence = new AcknowledgedCounterGenerator(recordcount);
     if (requestdistrib.compareTo("uniform") == 0) {
-      keychooser = new UniformIntegerGenerator(insertstart, insertstart + insertcount - 1);
+      keychooser = new UniformLongGenerator(insertstart, insertstart + insertcount - 1);
     } else if (requestdistrib.compareTo("sequential") == 0) {
       keychooser = new SequentialGenerator(insertstart, insertstart + insertcount - 1);
     }else if (requestdistrib.compareTo("zipfian") == 0) {
@@ -489,10 +488,10 @@ public class CoreWorkload extends Workload {
       throw new WorkloadException("Unknown request distribution \"" + requestdistrib + "\"");
     }
 
-    fieldchooser = new UniformIntegerGenerator(0, fieldcount - 1);
+    fieldchooser = new UniformLongGenerator(0, fieldcount - 1);
 
     if (scanlengthdistrib.compareTo("uniform") == 0) {
-      scanlength = new UniformIntegerGenerator(1, maxscanlength);
+      scanlength = new UniformLongGenerator(1, maxscanlength);
     } else if (scanlengthdistrib.compareTo("zipfian") == 0) {
       scanlength = new ZipfianGenerator(1, maxscanlength);
     } else {
@@ -672,8 +671,8 @@ public class CoreWorkload extends Workload {
     _measurements.reportStatus("VERIFY", verifyStatus);
   }
 
-  int nextKeynum() {
-    int keynum;
+  long nextKeynum() {
+    long keynum;
     if (keychooser instanceof ExponentialGenerator) {
       do {
         keynum = transactioninsertkeysequence.lastValue() - keychooser.nextValue().intValue();
@@ -688,7 +687,7 @@ public class CoreWorkload extends Workload {
 
   public void doTransactionRead(DB db) {
     // choose a random key
-    int keynum = nextKeynum();
+    long keynum = nextKeynum();
 
     String keyname = buildKeyName(keynum);
 
@@ -715,7 +714,7 @@ public class CoreWorkload extends Workload {
   
   public void doTransactionReadModifyWrite(DB db) {
     // choose a random key
-    int keynum = nextKeynum();
+    long keynum = nextKeynum();
 
     String keyname = buildKeyName(keynum);
 
@@ -762,7 +761,7 @@ public class CoreWorkload extends Workload {
 
   public void doTransactionScan(DB db) {
     // choose a random key
-    int keynum = nextKeynum();
+    long keynum = nextKeynum();
 
     String startkeyname = buildKeyName(keynum);
 
@@ -784,7 +783,7 @@ public class CoreWorkload extends Workload {
 
   public void doTransactionUpdate(DB db) {
     // choose a random key
-    int keynum = nextKeynum();
+    long keynum = nextKeynum();
 
     String keyname = buildKeyName(keynum);
 
@@ -803,7 +802,7 @@ public class CoreWorkload extends Workload {
 
   public void doTransactionInsert(DB db) {
     // choose the next key
-    int keynum = transactioninsertkeysequence.nextValue();
+    long keynum = transactioninsertkeysequence.nextValue();
 
     try {
       String dbkey = buildKeyName(keynum);

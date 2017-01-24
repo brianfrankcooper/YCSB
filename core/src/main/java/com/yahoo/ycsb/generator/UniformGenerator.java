@@ -29,7 +29,7 @@ public class UniformGenerator extends Generator<String>
 	
 	private final List<String> _values;
 	private String _laststring;
-	private final UniformIntegerGenerator _gen;
+	private final UniformLongGenerator _gen;
 	
 
 	/**
@@ -39,7 +39,7 @@ public class UniformGenerator extends Generator<String>
 	{
 		_values= new ArrayList<>(values);
 		_laststring=null;
-		_gen=new UniformIntegerGenerator(0,values.size()-1);
+		_gen=new UniformLongGenerator(0,values.size()-1);
 	}
 
 	/**
@@ -48,7 +48,7 @@ public class UniformGenerator extends Generator<String>
 	@Override
   public String nextValue()
 	{
-		_laststring = _values.get(_gen.nextValue());
+		_laststring = _values.get(_gen.nextValue().intValue());
 		return _laststring;
 	}
 	
