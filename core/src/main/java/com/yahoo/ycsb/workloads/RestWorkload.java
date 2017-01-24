@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2016 YCSB contributors. All rights reserved.
+ * Copyright (c) 2016-2017 YCSB contributors. All rights reserved.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import com.yahoo.ycsb.generator.UniformLongGenerator;
 /**
  * Typical RESTFul services benchmarking scenario. Represents a set of client
  * calling REST operations like HTTP DELETE, GET, POST, PUT on a web service.
@@ -171,7 +172,7 @@ public class RestWorkload extends CoreWorkload {
       keychooser = new ExponentialGenerator(percentile, recordCount * frac);
       break;
     case "uniform":
-      keychooser = new UniformIntegerGenerator(0, recordCount - 1);
+      keychooser = new UniformLongGenerator(0, recordCount - 1);
       break;
     case "zipfian":
       keychooser = new ZipfianGenerator(recordCount, zipfContant);

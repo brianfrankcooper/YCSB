@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2016 Yahoo! Inc., 2017 YCSB contributors. All rights reserved.
+ * Copyright (c) 2010 Yahoo! Inc. Copyright (c) 2017 YCSB contributors. All rights reserved.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -20,27 +20,28 @@ package com.yahoo.ycsb.generator;
 import com.yahoo.ycsb.Utils;
 
 /**
- * Generates integers randomly uniform from an interval.
+ * Generates longs randomly uniform from an interval.
  */
-public class UniformIntegerGenerator extends NumberGenerator {
-  private final int lb, ub, interval;
+public class UniformLongGenerator extends NumberGenerator {
+  private final long lb, ub, interval;
 
   /**
-   * Creates a generator that will return integers uniformly randomly from the interval [lb,ub] inclusive.
+   * Creates a generator that will return longs uniformly randomly from the 
+   * interval [lb,ub] inclusive (that is, lb and ub are possible values)
    * (lb and ub are possible values).
    *
    * @param lb the lower bound (inclusive) of generated values
    * @param ub the upper bound (inclusive) of generated values
    */
-  public UniformIntegerGenerator(int lb, int ub) {
+  public UniformLongGenerator(long lb, long ub) {
     this.lb = lb;
     this.ub = ub;
     interval = this.ub - this.lb + 1;
   }
 
   @Override
-  public Integer nextValue() {
-    int ret = Utils.random().nextInt(interval) + lb;
+  public Long nextValue() {
+    long ret = Math.abs(Utils.random().nextLong()) % interval  + lb;
     setLastValue(ret);
 
     return ret;

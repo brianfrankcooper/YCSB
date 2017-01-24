@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010 Yahoo! Inc., Copyright (c) 2016 YCSB contributors. All rights reserved.
+ * Copyright (c) 2010 Yahoo! Inc., Copyright (c) 2016-2017 YCSB contributors. All rights reserved.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -19,6 +19,7 @@ package com.yahoo.ycsb.workloads;
 
 import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.generator.*;
+import com.yahoo.ycsb.generator.UniformLongGenerator;
 import com.yahoo.ycsb.measurements.Measurements;
 
 import java.io.IOException;
@@ -82,9 +83,7 @@ public class CoreWorkload extends Workload {
    * Default number of fields in a record.
    */
   public static final String FIELD_COUNT_PROPERTY_DEFAULT = "10";
-
-  protected int fieldcount;
-
+  
   private List<String> fieldnames;
 
   /**
@@ -315,7 +314,8 @@ public class CoreWorkload extends Workload {
   protected AcknowledgedCounterGenerator transactioninsertkeysequence;
   protected NumberGenerator scanlength;
   protected boolean orderedinserts;
-  protected int recordcount;
+  protected long fieldcount;
+  protected long recordcount;
   protected int zeropadding;
   protected int insertionRetryLimit;
   protected int insertionRetryInterval;
@@ -333,7 +333,7 @@ public class CoreWorkload extends Workload {
     if (fieldlengthdistribution.compareTo("constant") == 0) {
       fieldlengthgenerator = new ConstantIntegerGenerator(fieldlength);
     } else if (fieldlengthdistribution.compareTo("uniform") == 0) {
-      fieldlengthgenerator = new UniformIntegerGenerator(1, fieldlength);
+      fieldlengthgenerator = new UniformLongGenerator(1, fieldlength);
     } else if (fieldlengthdistribution.compareTo("zipfian") == 0) {
       fieldlengthgenerator = new ZipfianGenerator(1, fieldlength);
     } else if (fieldlengthdistribution.compareTo("histogram") == 0) {
@@ -359,7 +359,7 @@ public class CoreWorkload extends Workload {
     table = p.getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
 
     fieldcount =
-        Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
+        Long.parseLong(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
     fieldnames = new ArrayList<>();
     for (int i = 0; i < fieldcount; i++) {
       fieldnames.add("field" + i);
@@ -367,7 +367,7 @@ public class CoreWorkload extends Workload {
     fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
 
     recordcount =
-        Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
+        Long.parseLong(p.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
     if (recordcount == 0) {
       recordcount = Integer.MAX_VALUE;
     }
@@ -378,9 +378,9 @@ public class CoreWorkload extends Workload {
     String scanlengthdistrib =
         p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY, SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
 
-    int insertstart =
-        Integer.parseInt(p.getProperty(INSERT_START_PROPERTY, INSERT_START_PROPERTY_DEFAULT));
-    int insertcount =
+    long insertstart =
+        Long.parseLong(p.getProperty(INSERT_START_PROPERTY, INSERT_START_PROPERTY_DEFAULT));
+    long insertcount=
         Integer.parseInt(p.getProperty(INSERT_COUNT_PROPERTY, String.valueOf(recordcount - insertstart)));
     // Confirm valid values for insertstart and insertcount in relation to recordcount
     if (recordcount < (insertstart + insertcount)) {
@@ -426,7 +426,7 @@ public class CoreWorkload extends Workload {
 
     transactioninsertkeysequence = new AcknowledgedCounterGenerator(recordcount);
     if (requestdistrib.compareTo("uniform") == 0) {
-      keychooser = new UniformIntegerGenerator(insertstart, insertstart + insertcount - 1);
+      keychooser = new UniformLongGenerator(insertstart, insertstart + insertcount - 1);
     } else if (requestdistrib.compareTo("sequential") == 0) {
       keychooser = new SequentialGenerator(insertstart, insertstart + insertcount - 1);
     } else if (requestdistrib.compareTo("zipfian") == 0) {
@@ -458,10 +458,10 @@ public class CoreWorkload extends Workload {
       throw new WorkloadException("Unknown request distribution \"" + requestdistrib + "\"");
     }
 
-    fieldchooser = new UniformIntegerGenerator(0, fieldcount - 1);
+    fieldchooser = new UniformLongGenerator(0, fieldcount - 1);
 
     if (scanlengthdistrib.compareTo("uniform") == 0) {
-      scanlength = new UniformIntegerGenerator(1, maxscanlength);
+      scanlength = new UniformLongGenerator(1, maxscanlength);
     } else if (scanlengthdistrib.compareTo("zipfian") == 0) {
       scanlength = new ZipfianGenerator(1, maxscanlength);
     } else {
@@ -646,8 +646,8 @@ public class CoreWorkload extends Workload {
     measurements.reportStatus("VERIFY", verifyStatus);
   }
 
-  protected int nextKeynum() {
-    int keynum;
+  long nextKeynum() {
+    long keynum;
     if (keychooser instanceof ExponentialGenerator) {
       do {
         keynum = transactioninsertkeysequence.lastValue() - keychooser.nextValue().intValue();
@@ -662,7 +662,7 @@ public class CoreWorkload extends Workload {
 
   public void doTransactionRead(DB db) {
     // choose a random key
-    int keynum = nextKeynum();
+    long keynum = nextKeynum();
 
     String keyname = buildKeyName(keynum);
 
@@ -689,7 +689,7 @@ public class CoreWorkload extends Workload {
 
   public void doTransactionReadModifyWrite(DB db) {
     // choose a random key
-    int keynum = nextKeynum();
+    long keynum = nextKeynum();
 
     String keyname = buildKeyName(keynum);
 
@@ -736,7 +736,7 @@ public class CoreWorkload extends Workload {
 
   public void doTransactionScan(DB db) {
     // choose a random key
-    int keynum = nextKeynum();
+    long keynum = nextKeynum();
 
     String startkeyname = buildKeyName(keynum);
 
@@ -758,7 +758,7 @@ public class CoreWorkload extends Workload {
 
   public void doTransactionUpdate(DB db) {
     // choose a random key
-    int keynum = nextKeynum();
+    long keynum = nextKeynum();
 
     String keyname = buildKeyName(keynum);
 
@@ -777,7 +777,7 @@ public class CoreWorkload extends Workload {
 
   public void doTransactionInsert(DB db) {
     // choose the next key
-    int keynum = transactioninsertkeysequence.nextValue();
+    long keynum = transactioninsertkeysequence.nextValue();
 
     try {
       String dbkey = buildKeyName(keynum);

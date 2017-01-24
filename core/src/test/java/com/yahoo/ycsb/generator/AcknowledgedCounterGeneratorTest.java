@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 YCSB contributors. All rights reserved.
+ * Copyright (c) 2015-2017 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -38,19 +38,19 @@ public class AcknowledgedCounterGeneratorTest {
         new AcknowledgedCounterGenerator(Integer.MAX_VALUE - 1000);
 
     Random rand = new Random(System.currentTimeMillis());
-    BlockingQueue<Integer> pending = new ArrayBlockingQueue<Integer>(1000);
+    BlockingQueue<Long> pending = new ArrayBlockingQueue<Long>(1000);
     for (long i = 0; i < toTry; ++i) {
-      int value = generator.nextValue();
+      long value = generator.nextValue();
 
       while (!pending.offer(value)) {
 
-        Integer first = pending.poll();
+        Long first = pending.poll();
 
         // Don't always advance by one.
         if (rand.nextBoolean()) {
           generator.acknowledge(first);
         } else {
-          Integer second = pending.poll();
+          Long second = pending.poll();
           pending.add(first);
           generator.acknowledge(second);
         }

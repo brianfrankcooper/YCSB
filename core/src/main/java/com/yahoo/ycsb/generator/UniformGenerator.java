@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2016 Yahoo! Inc., 2017 YCSB contributors. All rights reserved.
+ * Copyright (c) 2010 Yahoo! Inc. Copyright (c) 2017 YCSB contributors. All rights reserved.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -27,7 +27,7 @@ import java.util.List;
 public class UniformGenerator extends Generator<String> {
   private final List<String> values;
   private String laststring;
-  private final UniformIntegerGenerator gen;
+  private final UniformLongGenerator gen;
 
   /**
    * Creates a generator that will return strings from the specified set uniformly randomly.
@@ -35,7 +35,7 @@ public class UniformGenerator extends Generator<String> {
   public UniformGenerator(Collection<String> values) {
     this.values = new ArrayList<>(values);
     laststring = null;
-    gen = new UniformIntegerGenerator(0, values.size() - 1);
+    gen = new UniformLongGenerator(0, values.size() - 1);
   }
 
   /**
@@ -43,7 +43,7 @@ public class UniformGenerator extends Generator<String> {
    */
   @Override
   public String nextValue() {
-    laststring = values.get(gen.nextValue());
+    laststring = values.get(gen.nextValue().intValue());
     return laststring;
   }
 
