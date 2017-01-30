@@ -1,5 +1,5 @@
 /**                                                                                                                                                                                
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved.                                                                                                                             
+ * Copyright (c) 2017 Yahoo! Inc. All rights reserved.                                                                                                                             
  *                                                                                                                                                                                 
  * Licensed under the Apache License, Version 2.0 (the "License"); you                                                                                                             
  * may not use this file except in compliance with the License. You                                                                                                                
@@ -16,44 +16,63 @@
  */
 package com.yahoo.ycsb;
 
-import java.io.InputStream;
+/**
+ * A byte iterator that handles encoding and decoding numeric values.
+ * Currently this iterator can handle 64 bit signed values and double precision
+ * floating point values.
+ */
+public class NumericByteIterator extends ByteIterator {
+  private final byte[] payload;
+  private final boolean floatingPoint;
+  private int off;
+  
+  public NumericByteIterator(final long value) {
+    floatingPoint = false;
+    payload = Utils.longToBytes(value);
+    off = 0;
+  }
+  
+  public NumericByteIterator(final double value) {
+    floatingPoint = true;
+    payload = Utils.doubleToBytes(value);
+    off = 0;
+  }
+  
+  @Override
+  public boolean hasNext() {
+    return off < payload.length;
+  }
 
-public class InputStreamByteIterator extends ByteIterator {
-	long len;
-	InputStream ins;
-	long off;
-	
-	public InputStreamByteIterator(InputStream ins, long len) {
-		this.len = len;
-		this.ins = ins;
-		off = 0;
-	}
-	
-	@Override
-	public boolean hasNext() {
-		return off < len;
-	}
+  @Override
+  public byte nextByte() {
+    return payload[off++];
+  }
 
-	@Override
-	public byte nextByte() {
-		int ret;
-		try {
-			ret = ins.read();
-		} catch(Exception e) {
-			throw new IllegalStateException(e);
-		}
-		if(ret == -1) { throw new IllegalStateException("Past EOF!"); }
-		off++;
-		return (byte)ret;
-	}
+  @Override
+  public long bytesLeft() {
+    return payload.length - off;
+  }
 
-	@Override
-	public long bytesLeft() {
-		return len - off;
-	}
+  @Override
+  public void reset() {
+    off = 0;
+  }
+  
+  public long getLong() {
+    if (floatingPoint) {
+      throw new IllegalStateException("Byte iterator is of the type double");
+    }
+    return Utils.bytesToLong(payload);
+  }
 
-	@Override
-	public void reset() {
-	  throw new UnsupportedOperationException();
-	}
+  public double getDouble() {
+    if (!floatingPoint) {
+      throw new IllegalStateException("Byte iterator is of the type long");
+    }
+    return Utils.bytesToDouble(payload);
+  }
+
+  public boolean isFloatingPoint() {
+    return floatingPoint;
+  }
 }
