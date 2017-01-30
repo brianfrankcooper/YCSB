@@ -101,7 +101,7 @@ public class ScrambledZipfianGenerator extends NumberGenerator
   public Long nextValue()
 	{
 		long ret=gen.nextValue();
-		ret=_min+Utils.FNVhash64(ret)%_itemcount;
+		ret=_min+Utils.fnvhash64(ret)%_itemcount;
 		setLastValue(ret);
 		return ret;
 	}
