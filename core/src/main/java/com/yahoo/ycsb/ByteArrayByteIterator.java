@@ -19,6 +19,7 @@ package com.yahoo.ycsb;
 public class ByteArrayByteIterator extends ByteIterator {
 	byte[] str;
 	int off;
+	int originalOffset;
 	final int len;
 	public ByteArrayByteIterator(byte[] s) {
 		this.str = s;
@@ -28,7 +29,7 @@ public class ByteArrayByteIterator extends ByteIterator {
 
 	public ByteArrayByteIterator(byte[] s, int off, int len) {
 		this.str = s;
-		this.off = off;
+		this.off = originalOffset = off;
 		this.len = off + len;
 	}
 
@@ -49,4 +50,8 @@ public class ByteArrayByteIterator extends ByteIterator {
 		return len - off;
 	}
 
+	@Override
+	public void reset() {
+	  off = originalOffset;
+	}
 }

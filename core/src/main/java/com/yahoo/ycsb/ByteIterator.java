@@ -25,7 +25,7 @@ import java.util.Iterator;
  * efficient field generation, and to allow backend drivers that can stream
  * fields (instead of materializing them in RAM) to do so.
  * <p>
- * YCSB originially used String objects to represent field values.  This led to
+ * YCSB originally used String objects to represent field values.  This led to
  * two performance issues.
  * </p><p>
  * First, it leads to unnecessary conversions between UTF-16 and UTF-8, both
@@ -52,11 +52,11 @@ public abstract class ByteIterator implements Iterator<Byte> {
 	@Override
 	public Byte next() {
 		throw new UnsupportedOperationException();
-		//return nextByte();
 	}
 
 	public abstract byte nextByte();
-        /** @return byte offset immediately after the last valid byte */
+  
+	/** @return byte offset immediately after the last valid byte */
 	public int nextBuf(byte[] buf, int buf_off) {
 		int sz = buf_off;
 		while(sz < buf.length && hasNext()) {
@@ -67,6 +67,8 @@ public abstract class ByteIterator implements Iterator<Byte> {
 	}
 
 	public abstract long bytesLeft();
+
+	public abstract void reset(); 
 	
 	@Override
 	public void remove() {
