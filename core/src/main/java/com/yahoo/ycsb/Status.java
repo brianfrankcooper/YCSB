@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2016 YCSB contributors All rights reserved.
- *
+ * Copyright (c) 2010-2016 Yahoo! Inc., 2017 YCSB contributors All rights reserved.
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
  * may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
@@ -23,7 +23,6 @@ package com.yahoo.ycsb;
 public class Status {
   private final String name;
   private final String description;
-
 
   /**
    * @param name A short name for the status.
@@ -59,23 +58,30 @@ public class Status {
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
+    if (this == obj) {
       return true;
-    if (obj == null)
+    }
+    if (obj == null) {
       return false;
-    if (getClass() != obj.getClass())
+    }
+    if (getClass() != obj.getClass()) {
       return false;
+    }
     Status other = (Status) obj;
     if (description == null) {
-      if (other.description != null)
+      if (other.description != null) {
         return false;
-    } else if (!description.equals(other.description))
+      }
+    } else if (!description.equals(other.description)) {
       return false;
+    }
     if (name == null) {
-      if (other.name != null)
+      if (other.name != null) {
         return false;
-    } else if (!name.equals(other.name))
+      }
+    } else if (!name.equals(other.name)) {
       return false;
+    }
     return true;
   }
 
@@ -90,11 +96,15 @@ public class Status {
   public static final Status OK = new Status("OK", "The operation completed successfully.");
   public static final Status ERROR = new Status("ERROR", "The operation failed.");
   public static final Status NOT_FOUND = new Status("NOT_FOUND", "The requested record was not found.");
-  public static final Status NOT_IMPLEMENTED = new Status("NOT_IMPLEMENTED", "The operation is not implemented for the current binding.");
-  public static final Status UNEXPECTED_STATE = new Status("UNEXPECTED_STATE", "The operation reported success, but the result was not as expected.");
+  public static final Status NOT_IMPLEMENTED = new Status("NOT_IMPLEMENTED", "The operation is not " +
+      "implemented for the current binding.");
+  public static final Status UNEXPECTED_STATE = new Status("UNEXPECTED_STATE", "The operation reported" +
+      " success, but the result was not as expected.");
   public static final Status BAD_REQUEST = new Status("BAD_REQUEST", "The request was not valid.");
   public static final Status FORBIDDEN = new Status("FORBIDDEN", "The operation is forbidden.");
-  public static final Status SERVICE_UNAVAILABLE = new Status("SERVICE_UNAVAILABLE", "Dependant service for the current binding is not available.");
-  public static final Status BATCHED_OK = new Status("BATCHED_OK", "The operation has been batched by the binding to be executed later.");
+  public static final Status SERVICE_UNAVAILABLE = new Status("SERVICE_UNAVAILABLE", "Dependant " +
+      "service for the current binding is not available.");
+  public static final Status BATCHED_OK = new Status("BATCHED_OK", "The operation has been batched by " +
+      "the binding to be executed later.");
 }
 
