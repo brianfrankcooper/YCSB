@@ -39,6 +39,9 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 
+import static com.yahoo.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY;
+import static com.yahoo.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY_DEFAULT;
+
 /**
  * Alternative Java client for Apache HBase.
  * 
@@ -140,7 +143,7 @@ public class AsyncHBaseClient extends com.yahoo.ycsb.DB {
           // Terminate right now if table does not exist, since the client
           // will not propagate this error upstream once the workload
           // starts.
-          String table = com.yahoo.ycsb.workloads.CoreWorkload.table;
+          String table = getProperties().getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
           try {
             client.ensureTableExists(table).join(joinTimeout);
           } catch (InterruptedException e1) {

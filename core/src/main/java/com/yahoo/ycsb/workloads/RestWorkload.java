@@ -107,6 +107,8 @@ public class RestWorkload extends CoreWorkload {
   private NumberGenerator insertKeyChooser;
   private NumberGenerator deleteKeyChooser;
   private NumberGenerator updateKeyChooser;
+  private NumberGenerator fieldlengthgenerator;
+  private DiscreteGenerator operationchooser;
 
   @Override
   public void init(Properties p) throws WorkloadException {
