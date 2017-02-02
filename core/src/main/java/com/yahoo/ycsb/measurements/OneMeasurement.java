@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved.
- *
+ * Copyright (c) 2010-2016 Yahoo! Inc., 2017 YCSB contributors All rights reserved.
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
  * may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
@@ -26,23 +26,23 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * A single measured metric (such as READ LATENCY)
+ * A single measured metric (such as READ LATENCY).
  */
 public abstract class OneMeasurement {
 
-  private final String _name;
-  private  final ConcurrentHashMap<Status, AtomicInteger> _returncodes;
+  private final String name;
+  private final ConcurrentHashMap<Status, AtomicInteger> returncodes;
 
   public String getName() {
-    return _name;
+    return name;
   }
 
   /**
-   * @param _name
+   * @param name measurement name
    */
-  public OneMeasurement(String _name) {
-    this._name = _name;
-    this._returncodes = new ConcurrentHashMap<Status, AtomicInteger>();
+  public OneMeasurement(String name) {
+    this.name = name;
+    this.returncodes = new ConcurrentHashMap<>();
   }
 
   public abstract void measure(int latency);
@@ -50,13 +50,14 @@ public abstract class OneMeasurement {
   public abstract String getSummary();
 
   /**
-   * No need for synchronization, using CHM to deal with that
+   * No need for synchronization, using CHM to deal with that.
    */
   public void reportStatus(Status status) {
-    AtomicInteger counter = _returncodes.get(status);
+    AtomicInteger counter = returncodes.get(status);
 
     if (counter == null) {
-      AtomicInteger other = _returncodes.putIfAbsent(status, counter = new AtomicInteger());
+      counter = new AtomicInteger();
+      AtomicInteger other = returncodes.putIfAbsent(status, counter);
       if (other != null) {
         counter = other;
       }
@@ -74,7 +75,7 @@ public abstract class OneMeasurement {
   public abstract void exportMeasurements(MeasurementsExporter exporter) throws IOException;
 
   protected final void exportStatusCounts(MeasurementsExporter exporter) throws IOException {
-    for (Map.Entry<Status, AtomicInteger> entry : _returncodes.entrySet()) {
+    for (Map.Entry<Status, AtomicInteger> entry : returncodes.entrySet()) {
       exporter.write(getName(), "Return=" + entry.getKey().getName(), entry.getValue().get());
     }
   }
