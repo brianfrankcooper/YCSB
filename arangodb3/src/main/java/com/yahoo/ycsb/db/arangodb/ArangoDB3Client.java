@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2012 - 2015 YCSB contributors. All rights reserved.
+ * Copyright (c) 2017 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -14,7 +14,7 @@
  * permissions and limitations under the License. See accompanying
  * LICENSE file.
  */
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.arangodb;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -60,12 +60,6 @@ public class ArangoDB3Client extends DB {
   private static Logger logger = LoggerFactory.getLogger(ArangoDB3Client.class);
   
   /**
-   * The database name to access.
-   */
-  private static String databaseName = "ycsb";
-  private static String collectionName = "usertable";
-
-  /**
    * Count the number of times initialized to teardown on the last
    * {@link #cleanup()}.
    */
@@ -73,9 +67,11 @@ public class ArangoDB3Client extends DB {
 
   /** ArangoDB Driver related, Singleton. */
   private ArangoDB arangoDB;
-  private static Boolean dropDBBeforeRun;
-  private static Boolean waitForSync = false;
-  private static Boolean transactionUpdate = false;
+  private String databaseName = "ycsb";
+  private String collectionName;
+  private Boolean dropDBBeforeRun;
+  private Boolean waitForSync = false;
+  private Boolean transactionUpdate = false;
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is
@@ -88,6 +84,8 @@ public class ArangoDB3Client extends DB {
   public void init() throws DBException {
     synchronized (ArangoDB3Client.class) {
       Properties props = getProperties();
+
+      collectionName = props.getProperty("table", "usertable");
 
       // Set the DB address
       String ip = props.getProperty("arangodb.ip", "localhost");
@@ -386,7 +384,7 @@ public class ArangoDB3Client extends DB {
         Entry<String, VPackSlice> next = iterator.next();
         VPackSlice value = next.getValue();
         if (value.isString()) {
-          resultMap.put(next.getKey(), stringToByteIterator(value.getAsString()));  
+          resultMap.put(next.getKey(), stringToByteIterator(value.getAsString()));
         } else if (!value.isCustom()) {
           logger.error("Error! Not the format expected! Actually is {}",
               value.getClass().getName());
@@ -397,7 +395,7 @@ public class ArangoDB3Client extends DB {
       for (String field : fields) {
         VPackSlice value = document.get(field);
         if (value.isString()) {
-          resultMap.put(field, stringToByteIterator(value.getAsString()));  
+          resultMap.put(field, stringToByteIterator(value.getAsString()));
         } else if (!value.isCustom()) {
           logger.error("Error! Not the format expected! Actually is {}",
               value.getClass().getName());

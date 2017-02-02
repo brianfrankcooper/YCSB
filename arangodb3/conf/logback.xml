@@ -1,5 +1,5 @@
 <!-- 
-Copyright (c) 2012 YCSB contributors. All rights reserved.
+Copyright (c) 2017 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -17,7 +17,7 @@ LICENSE file.
 
 <configuration>
 
-  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+  <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
     <!-- encoders are assigned the type
          ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
     <encoder>
@@ -26,6 +26,6 @@ LICENSE file.
   </appender>
 
   <root level="info">
-    <appender-ref ref="STDOUT" />
+    <appender-ref ref="STDERR" />
   </root>
 </configuration>
