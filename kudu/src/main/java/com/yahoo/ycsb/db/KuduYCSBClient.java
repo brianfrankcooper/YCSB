@@ -37,6 +37,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
+import static com.yahoo.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY;
+import static com.yahoo.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY_DEFAULT;
 import static org.apache.kudu.Type.STRING;
 import static org.apache.kudu.client.KuduPredicate.ComparisonOp.EQUAL;
 import static org.apache.kudu.client.KuduPredicate.ComparisonOp.GREATER_EQUAL;
@@ -80,7 +82,7 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
 
   @Override
   public void init() throws DBException {
-    String tableName = CoreWorkload.table;
+    String tableName = getProperties().getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
     initClient(tableName, getProperties());
     this.session = client.newSession();
     if (getProperties().getProperty(SYNC_OPS_OPT) != null

@@ -26,14 +26,12 @@ import com.yahoo.ycsb.measurements.Measurements;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -51,6 +49,9 @@ import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.yahoo.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY;
+import static com.yahoo.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY_DEFAULT;
 
 /**
  * HBase client for YCSB framework
@@ -135,7 +136,7 @@ public class HBaseClient extends com.yahoo.ycsb.DB
       // Terminate right now if table does not exist, since the client
       // will not propagate this error upstream once the workload
       // starts.
-      String table = com.yahoo.ycsb.workloads.CoreWorkload.table;
+      String table = getProperties().getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
       try
 	  {
 	      HTableInterface ht = _hConn.getTable(table);
