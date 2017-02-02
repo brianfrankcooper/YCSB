@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2016 YCSB contributors. All rights reserved.
- *
+ * Copyright (c) 2016-2017 YCSB contributors. All rights reserved.
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
  * may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
@@ -42,26 +42,26 @@ import java.util.concurrent.TimeUnit;
  * threads.
  */
 public class UnixEpochTimestampGenerator extends Generator<Long> {
-  
+
   /** The current timestamp that will be incremented. */
   private long currentTimestamp;
-  
+
   /** The last used timestamp. Should always be one interval behind current. */
   private long lastTimestamp;
-  
+
   /** The interval to increment by. Multiplied by {@link #timeUnits}. */
   private long interval;
-  
+
   /** The units of time the interval represents. */
   private TimeUnit timeUnits;
-  
+
   /**
    * Default ctor with the current system time and a 60 second interval.
    */
   public UnixEpochTimestampGenerator() {
     this(60, TimeUnit.SECONDS);
   }
-  
+
   /**
    * Ctor that uses the current system time as current.
    * @param interval The interval for incrementing the timestamp.
@@ -76,7 +76,7 @@ public class UnixEpochTimestampGenerator extends Generator<Long> {
     currentTimestamp -= getOffset(1);
     lastTimestamp = currentTimestamp;
   }
-  
+
   /**
    * Ctor for supplying a starting timestamp.
    * @param interval The interval for incrementing the timestamp.
@@ -89,7 +89,7 @@ public class UnixEpochTimestampGenerator extends Generator<Long> {
    * or seconds and any interval above, {@code System.currentTimeMillis() / 1000}
    */
   public UnixEpochTimestampGenerator(final long interval, final TimeUnit timeUnits,
-      final long startTimestamp) {
+                                     final long startTimestamp) {
     this.interval = interval;
     this.timeUnits = timeUnits;
     // move the first timestamp by 1 interval so that the first call to nextValue
@@ -97,7 +97,7 @@ public class UnixEpochTimestampGenerator extends Generator<Long> {
     this.currentTimestamp = startTimestamp - getOffset(1);
     lastTimestamp = currentTimestamp - getOffset(1);
   }
-  
+
   /**
    * Sets the starting timestamp to the current system time plus the interval offset.
    * E.g. to set the time an hour in the past, supply a value of {@code -60}.
@@ -115,26 +115,26 @@ public class UnixEpochTimestampGenerator extends Generator<Long> {
       currentTimestamp = System.currentTimeMillis() + getOffset(intervalOffset);
       break;
     case SECONDS:
-      currentTimestamp = (System.currentTimeMillis() / 1000) + 
+      currentTimestamp = (System.currentTimeMillis() / 1000) +
           getOffset(intervalOffset);
       break;
     case MINUTES:
-      currentTimestamp = (System.currentTimeMillis() / 1000) + 
+      currentTimestamp = (System.currentTimeMillis() / 1000) +
           getOffset(intervalOffset);
       break;
     case HOURS:
-      currentTimestamp = (System.currentTimeMillis() / 1000) + 
+      currentTimestamp = (System.currentTimeMillis() / 1000) +
           getOffset(intervalOffset);
       break;
     case DAYS:
-      currentTimestamp = (System.currentTimeMillis() / 1000) + 
+      currentTimestamp = (System.currentTimeMillis() / 1000) +
           getOffset(intervalOffset);
       break;
     default:
       throw new IllegalArgumentException("Unhandled time unit type: " + timeUnits);
     }
   }
-  
+
   @Override
   public Long nextValue() {
     lastTimestamp = currentTimestamp;
@@ -153,7 +153,7 @@ public class UnixEpochTimestampGenerator extends Generator<Long> {
     case MICROSECONDS:
     case MILLISECONDS:
     case SECONDS:
-      return intervalOffset * interval; 
+      return intervalOffset * interval;
     case MINUTES:
       return intervalOffset * interval * (long) 60;
     case HOURS:
@@ -164,7 +164,7 @@ public class UnixEpochTimestampGenerator extends Generator<Long> {
       throw new IllegalArgumentException("Unhandled time unit type: " + timeUnits);
     }
   }
-  
+
   @Override
   public Long lastValue() {
     return lastTimestamp;
@@ -174,5 +174,5 @@ public class UnixEpochTimestampGenerator extends Generator<Long> {
   public long currentValue() {
     return currentTimestamp;
   }
-  
+
 }

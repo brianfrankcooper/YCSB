@@ -74,19 +74,19 @@ public class RandomByteIterator extends ByteIterator {
   }
 
   @Override
-  public int nextBuf(byte[] buffer, int bufOff) {
+  public int nextBuf(byte[] buffer, int bufOffset) {
     int ret;
-    if (len - off < buffer.length - bufOff) {
+    if (len - off < buffer.length - bufOffset) {
       ret = (int) (len - off);
     } else {
-      ret = buffer.length - bufOff;
+      ret = buffer.length - bufOffset;
     }
     int i;
     for (i = 0; i < ret; i += 6) {
-      fillBytesImpl(buffer, i + bufOff);
+      fillBytesImpl(buffer, i + bufOffset);
     }
     off += ret;
-    return ret + bufOff;
+    return ret + bufOffset;
   }
 
   @Override
