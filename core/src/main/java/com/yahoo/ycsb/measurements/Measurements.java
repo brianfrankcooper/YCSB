@@ -40,6 +40,8 @@ public class Measurements {
     HDRHISTOGRAM,
     HDRHISTOGRAM_AND_HISTOGRAM,
     HDRHISTOGRAM_AND_RAW,
+    HDRHISTOGRAM_AND_PERIODICHISTOGRAM,
+    PERIODICHISTOGRAM,
     TIMESERIES,
     RAW
   }
@@ -71,6 +73,11 @@ public class Measurements {
       singleton=new Measurements(measurementproperties);
     }
     return singleton;
+  }
+  
+  public static void resetMeasurements()
+  {
+	  singleton = null;
   }
 
   final ConcurrentHashMap<String,OneMeasurement> _opToMesurementMap;
@@ -105,6 +112,14 @@ public class Measurements {
     else if (mTypeString.equals("hdrhistogram+raw"))
     {
       _measurementType = MeasurementType.HDRHISTOGRAM_AND_RAW;
+    }
+    else if (mTypeString.equals("hdrhistogram+periodichistogram"))
+    {
+	  _measurementType = MeasurementType.HDRHISTOGRAM_AND_PERIODICHISTOGRAM;
+    }
+    else if (mTypeString.equals("periodichistogram"))
+    {
+	  _measurementType = MeasurementType.PERIODICHISTOGRAM;
     }
     else if (mTypeString.equals("timeseries"))
     {
@@ -151,7 +166,14 @@ public class Measurements {
     case HDRHISTOGRAM_AND_RAW:
       return new TwoInOneMeasurement(name,
           new OneMeasurementHdrHistogram("Hdr"+name, _props),
+
           new OneMeasurementRaw("Raw"+name, _props));
+	case HDRHISTOGRAM_AND_PERIODICHISTOGRAM:
+      return new TwoInOneMeasurement(name,
+          new OneMeasurementHdrHistogram("Hdr"+name, _props),
+          new PeriodicHistogram(name, _props));
+	case PERIODICHISTOGRAM:
+	  return new PeriodicHistogram(name, _props);
     case TIMESERIES:
       return new OneMeasurementTimeSeries(name, _props);
     case RAW:

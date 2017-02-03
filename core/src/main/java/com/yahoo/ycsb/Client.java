@@ -730,11 +730,10 @@ public class Client
     }
   }
 
-  @SuppressWarnings("unchecked")
-  public static void main(String[] args)
+  
+  public static void webMain(String[] args, Properties props) throws Exception
   {
     String dbname;
-    Properties props=new Properties();
     Properties fileprops=new Properties();
     boolean dotransactions=true;
     int threadcount=1;
@@ -745,11 +744,12 @@ public class Client
     //parse arguments
     int argindex=0;
 
+    Measurements.resetMeasurements();
+    
     if (args.length==0)
     {
       usageMessage();
-      System.out.println("At least one argument specifying a workload is required.");
-      System.exit(0);
+      throw new Exception("At least one argument specifying a workload is required.");
     }
 
     while (args[argindex].startsWith("-"))
@@ -760,8 +760,7 @@ public class Client
         if (argindex>=args.length)
         {
           usageMessage();
-          System.out.println("Missing argument value for -threads.");
-          System.exit(0);
+          throw new Exception("Missing argument value for -threads.");
         }
         int tcount=Integer.parseInt(args[argindex]);
         props.setProperty(THREAD_COUNT_PROPERTY, String.valueOf(tcount));
@@ -773,8 +772,7 @@ public class Client
         if (argindex>=args.length)
         {
           usageMessage();
-          System.out.println("Missing argument value for -target.");
-          System.exit(0);
+          throw new Exception("Missing argument value for -target.");
         }
         int ttarget=Integer.parseInt(args[argindex]);
         props.setProperty(TARGET_PROPERTY, String.valueOf(ttarget));
@@ -801,8 +799,7 @@ public class Client
         if (argindex>=args.length)
         {
           usageMessage();
-          System.out.println("Missing argument value for -db.");
-          System.exit(0);
+          throw new Exception("Missing argument value for -db.");
         }
         props.setProperty(DB_PROPERTY,args[argindex]);
         argindex++;
@@ -813,8 +810,7 @@ public class Client
         if (argindex>=args.length)
         {
           usageMessage();
-          System.out.println("Missing argument value for -l.");
-          System.exit(0);
+          throw new Exception("Missing argument value for -l.");
         }
         label=args[argindex];
         argindex++;
@@ -825,23 +821,13 @@ public class Client
         if (argindex>=args.length)
         {
           usageMessage();
-          System.out.println("Missing argument value for -P.");
-          System.exit(0);
+          throw new Exception("Missing argument value for -P.");
         }
         String propfile=args[argindex];
         argindex++;
 
         Properties myfileprops=new Properties();
-        try
-        {
-          myfileprops.load(new FileInputStream(propfile));
-        }
-        catch (IOException e)
-        {
-          System.out.println("Unable to open the properties file " + propfile);
-          System.out.println(e.getMessage());
-          System.exit(0);
-        }
+        myfileprops.load(new FileInputStream(propfile));
 
         //Issue #5 - remove call to stringPropertyNames to make compilable under Java 1.5
         for (Enumeration e=myfileprops.propertyNames(); e.hasMoreElements(); )
@@ -858,15 +844,13 @@ public class Client
         if (argindex>=args.length)
         {
           usageMessage();
-          System.out.println("Missing argument value for -p");
-          System.exit(0);
+          throw new Exception("Missing argument value for -p");
         }
         int eq=args[argindex].indexOf('=');
         if (eq<0)
         {
           usageMessage();
-          System.out.println("Argument '-p' expected to be in key=value format (e.g., -p operationcount=99999)");
-          System.exit(0);
+          throw new Exception("Argument '-p' expected to be in key=value format (e.g., -p operationcount=99999)");
         }
 
         String name=args[argindex].substring(0,eq);
@@ -878,8 +862,7 @@ public class Client
       else
       {
         usageMessage();
-        System.out.println("Unknown option " + args[argindex]);
-        System.exit(0);
+        throw new Exception("Unknown option " + args[argindex]);
       }
 
       if (argindex>=args.length)
@@ -891,13 +874,7 @@ public class Client
     if (argindex != args.length)
     {
       usageMessage();
-      if (argindex < args.length) {
-        System.out.println("An argument value without corresponding argument specifier (e.g., -p, -s) was found. "
-                           + "We expected an argument specifier and instead found " + args[argindex]);
-      } else {
-        System.out.println("An argument specifier without corresponding value was found at the end of the supplied command line arguments.");
-      }
-      System.exit(0);
+      throw new Exception("An argument specifier without corresponding value was found at the end of the supplied command line arguments.");
     }
 
     //set up logging
@@ -917,8 +894,8 @@ public class Client
 
     if (!checkRequiredProperties(props))
     {
-      System.out.println("Failed check required properties.");
-      System.exit(0);
+        throw new Exception("Failed check required properties.");
+
     }
 
     props.setProperty(DO_TRANSACTIONS_PROPERTY, String.valueOf(dotransactions));
@@ -993,37 +970,18 @@ public class Client
 
     Workload workload = null;
 
-    try
-    {
-      Class workloadclass = classLoader.loadClass(props.getProperty(WORKLOAD_PROPERTY));
-
-      workload = (Workload)workloadclass.newInstance();
-    }
-    catch (Exception e)
-    {
-      e.printStackTrace();
-      e.printStackTrace(System.out);
-      System.exit(0);
-    }
+    Class workloadclass = classLoader.loadClass(props.getProperty(WORKLOAD_PROPERTY));
+    workload = (Workload)workloadclass.newInstance();
 
     final Tracer tracer = new Tracer.Builder("YCSB " + workload.getClass().getSimpleName())
         .conf(conf)
         .build();
 
-    try
-    {
-      try (final TraceScope span = tracer.newScope(CLIENT_WORKLOAD_INIT_SPAN)) {
-        workload.init(props);
-        warningthread.interrupt();
-      }
-    }
-    catch (WorkloadException e)
-    {
-      e.printStackTrace();
-      e.printStackTrace(System.out);
-      System.exit(0);
-    }
 
+     TraceScope span = tracer.newScope(CLIENT_WORKLOAD_INIT_SPAN);
+     workload.init(props);
+     warningthread.interrupt();
+ 
     //run the workload
 
     System.err.println("Starting test.");
@@ -1031,7 +989,7 @@ public class Client
     final List<ClientThread> clients = new ArrayList<ClientThread>(threadcount);
 
     boolean initFailed = false;
-    try (final TraceScope span = tracer.newScope(CLIENT_INIT_SPAN)) {
+    span = tracer.newScope(CLIENT_INIT_SPAN); 
 
       int opcount;
       if (dotransactions)
@@ -1053,17 +1011,7 @@ public class Client
       for (int threadid=0; threadid<threadcount; threadid++)
       {
         DB db = null;
-        try
-        {
-          db = DBFactory.newDB(dbname, props, tracer);
-        }
-        catch (UnknownDBException e)
-        {
-          System.out.println("Unknown DB " + dbname);
-          initFailed = true;
-          break;
-        }
-
+        db = DBFactory.newDB(dbname, props, tracer);
 
         int threadopcount = opcount / threadcount;
 
@@ -1078,8 +1026,7 @@ public class Client
         clients.add(t);
       }
 
-    }
-
+ 
     if (initFailed) {
       System.err.println("Error initializing datastore bindings.");
       System.exit(0);
@@ -1104,7 +1051,7 @@ public class Client
     long en;
     int opsDone;
 
-    try (final TraceScope span = tracer.newScope(CLIENT_WORKLOAD_SPAN)) {
+    span = tracer.newScope(CLIENT_WORKLOAD_SPAN);
 
       final Map<Thread, ClientThread> threads = new HashMap<Thread, ClientThread>(threadcount);
       for (ClientThread client : clients) {
@@ -1139,11 +1086,7 @@ public class Client
 
       en=System.currentTimeMillis();
 
-    }
-
-    try
-    {
-      try (final TraceScope span = tracer.newScope(CLIENT_CLEANUP_SPAN)) {
+     span = tracer.newScope(CLIENT_CLEANUP_SPAN);
 
         if (terminator != null && !terminator.isInterrupted()) {
           terminator.interrupt();
@@ -1161,27 +1104,21 @@ public class Client
         }
 
         workload.cleanup();
+     
+     span = tracer.newScope(CLIENT_EXPORT_MEASUREMENTS_SPAN);
+     exportMeasurements(props, opsDone, en - st);
+ 
+  }
+
+  public static void main(String[] args) {
+      try {
+    	  webMain(args, new Properties());
+      } catch (Exception e) {
+          e.printStackTrace();
+          e.printStackTrace(System.out);
+          System.exit(-1);
       }
-    }
-    catch (WorkloadException e)
-    {
-      e.printStackTrace();
-      e.printStackTrace(System.out);
+      
       System.exit(0);
-    }
-
-    try
-    {
-      try (final TraceScope span = tracer.newScope(CLIENT_EXPORT_MEASUREMENTS_SPAN)) {
-        exportMeasurements(props, opsDone, en - st);
-      }
-    } catch (IOException e)
-    {
-      System.err.println("Could not export measurements, error: " + e.getMessage());
-      e.printStackTrace();
-      System.exit(-1);
-    }
-
-    System.exit(0);
   }
 }
