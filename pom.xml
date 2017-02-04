@@ -95,8 +95,8 @@ LICENSE file.
     <tarantool.version>1.6.5</tarantool.version>
     <riak.version>2.0.5</riak.version>
     <aerospike.version>3.1.2</aerospike.version>
-    <solr.version>5.4.0</solr.version>
-    <solr6.version>6.2.1</solr6.version>
+    <solr.version>5.5.3</solr.version>
+    <solr6.version>6.4.1</solr6.version>
     <arangodb.version>2.7.3</arangodb.version>
     <arangodb3.version>4.1.7</arangodb3.version>
     <azurestorage.version>4.0.0</azurestorage.version>
