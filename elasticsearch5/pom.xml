@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 
-Copyright (c) 2012 - 2017 YCSB contributors. All rights reserved.
+Copyright (c) 2017 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -26,11 +26,22 @@ LICENSE file.
     <relativePath>../binding-parent</relativePath>
   </parent>
 
-  <artifactId>hypertable-binding</artifactId>
-  <name>Hypertable DB Binding</name>
-  <packaging>jar</packaging>
+  <properties>
+    <!-- Skip tests by default. will be activated by jdk8 profile -->
+    <skipTests>true</skipTests>
+  </properties>
 
+  <artifactId>elasticsearch5-binding</artifactId>
+  <name>Elasticsearch 5.x Binding</name>
+  <packaging>jar</packaging>
   <dependencies>
+    <dependency>
+      <!-- jna is supported in ES and will be used when provided
+           otherwise a fallback is used -->
+      <groupId>net.java.dev.jna</groupId>
+      <artifactId>jna</artifactId>
+      <version>4.1.0</version>
+    </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>core</artifactId>
@@ -38,21 +49,30 @@ LICENSE file.
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.thrift</groupId>
-      <artifactId>libthrift</artifactId>
-      <version>0.8.0</version>
+      <groupId>org.elasticsearch.client</groupId>
+      <artifactId>transport</artifactId>
+      <version>${elasticsearch5-version}</version>
     </dependency>
     <dependency>
-      <groupId>org.hypertable</groupId>
-      <artifactId>hypertable</artifactId>
-      <version>${hypertable.version}</version>
+      <groupId>org.elasticsearch.client</groupId>
+      <artifactId>rest</artifactId>
+      <version>${elasticsearch5-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-api</artifactId>
+      <version>2.7</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+      <version>2.7</version>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <repositories>
-    <repository>
-      <id>clojars.org</id>
-      <url>http://clojars.org/repo</url>
-    </repository>
-  </repositories>
 </project>

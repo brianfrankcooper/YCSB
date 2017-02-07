@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2012-2017 YCSB contributors. All rights reserved.
+ * Copyright (c) 2017 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -15,11 +15,7 @@
  * LICENSE file.
  */
 
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.elasticsearch5;
 
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
@@ -133,6 +129,7 @@ public class ElasticsearchClientTest {
         for (i = 1; i <= 10; i++) {
             assertEquals("newvalue" + i, resultParam.get("field" + i).toString());
         }
+
     }
 
     /**
@@ -144,6 +141,6 @@ public class ElasticsearchClientTest {
         Set<String> fields = MOCK_DATA.keySet();
         Vector<HashMap<String, ByteIterator>> resultParam = new Vector<>(10);
         Status result = instance.scan(MOCK_TABLE, MOCK_KEY1, recordcount, fields, resultParam);
-        assertEquals(Status.OK, result);
+        assertEquals(Status.NOT_IMPLEMENTED, result);
     }
 }
