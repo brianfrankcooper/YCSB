@@ -1,18 +1,18 @@
-/**                                                                                                                                                                                
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved.                                                                                                                             
- *                                                                                                                                                                                 
- * Licensed under the Apache License, Version 2.0 (the "License"); you                                                                                                             
- * may not use this file except in compliance with the License. You                                                                                                                
- * may obtain a copy of the License at                                                                                                                                             
- *                                                                                                                                                                                 
- * http://www.apache.org/licenses/LICENSE-2.0                                                                                                                                      
- *                                                                                                                                                                                 
- * Unless required by applicable law or agreed to in writing, software                                                                                                             
- * distributed under the License is distributed on an "AS IS" BASIS,                                                                                                               
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or                                                                                                                 
- * implied. See the License for the specific language governing                                                                                                                    
- * permissions and limitations under the License. See accompanying                                                                                                                 
- * LICENSE file.                                                                                                                                                                   
+/**
+ * Copyright (c) 2010-2016 Yahoo! Inc., 2017 YCSB contributors All rights reserved.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
  */
 package com.yahoo.ycsb;
 
@@ -20,6 +20,7 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.util.Iterator;
+
 /**
  * YCSB-specific buffer class.  ByteIterators are designed to support
  * efficient field generation, and to allow backend drivers that can stream
@@ -42,54 +43,55 @@ import java.util.Iterator;
  * backend drivers that convert between Map&lt;String,String&gt; and
  * Map&lt;String,ByteBuffer&gt;.
  *
- * @author sears
  */
 public abstract class ByteIterator implements Iterator<Byte> {
 
-	@Override
-	public abstract boolean hasNext();
+  @Override
+  public abstract boolean hasNext();
 
-	@Override
-	public Byte next() {
-		throw new UnsupportedOperationException();
-		//return nextByte();
-	}
+  @Override
+  public Byte next() {
+    throw new UnsupportedOperationException();
+  }
 
-	public abstract byte nextByte();
-        /** @return byte offset immediately after the last valid byte */
-	public int nextBuf(byte[] buf, int buf_off) {
-		int sz = buf_off;
-		while(sz < buf.length && hasNext()) {
-			buf[sz] = nextByte();
-			sz++;
-		}
-		return sz;
-	}
+  public abstract byte nextByte();
 
-	public abstract long bytesLeft();
-	
-	@Override
-	public void remove() {
-		throw new UnsupportedOperationException();
-	}
+  /** @return byte offset immediately after the last valid byte */
+  public int nextBuf(byte[] buf, int bufOff) {
+    int sz = bufOff;
+    while (sz < buf.length && hasNext()) {
+      buf[sz] = nextByte();
+      sz++;
+    }
+    return sz;
+  }
 
-	/** Consumes remaining contents of this object, and returns them as a string. */
-	public String toString() {
-		Charset cset = Charset.forName("UTF-8");
-		CharBuffer cb = cset.decode(ByteBuffer.wrap(this.toArray()));
-		return cb.toString();
-	}
+  public abstract long bytesLeft();
 
-	/** Consumes remaining contents of this object, and returns them as a byte array. */
-	public byte[] toArray() {
-	    long left = bytesLeft();
-	    if(left != (int)left) { throw new ArrayIndexOutOfBoundsException("Too much data to fit in one array!"); }
-	    byte[] ret = new byte[(int)left];
-	    int off = 0;
-	    while(off < ret.length) {
-		off = nextBuf(ret, off);
-	    }
-	    return ret;
-	}
+  @Override
+  public void remove() {
+    throw new UnsupportedOperationException();
+  }
+
+  /** Consumes remaining contents of this object, and returns them as a string. */
+  public String toString() {
+    Charset cset = Charset.forName("UTF-8");
+    CharBuffer cb = cset.decode(ByteBuffer.wrap(this.toArray()));
+    return cb.toString();
+  }
+
+  /** Consumes remaining contents of this object, and returns them as a byte array. */
+  public byte[] toArray() {
+    long left = bytesLeft();
+    if (left != (int) left) {
+      throw new ArrayIndexOutOfBoundsException("Too much data to fit in one array!");
+    }
+    byte[] ret = new byte[(int) left];
+    int off = 0;
+    while (off < ret.length) {
+      off = nextBuf(ret, off);
+    }
+    return ret;
+  }
 
 }

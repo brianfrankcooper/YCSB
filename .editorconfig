@@ -4,11 +4,14 @@ root = true
 [*.java]
 indent_style = space
 indent_size = 2
+continuation_indent_size = 4
 
 [*.md]
 indent_style = space
 indent_size = 2
+continuation_indent_size = 4
 
 [*.xml]
 indent_style = space
 indent_size = 2
+continuation_indent_size = 4

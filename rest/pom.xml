@@ -23,6 +23,9 @@
   <packaging>jar</packaging>
 
   <properties>
+    <!-- Tests do not run on jdk9 -->
+    <skipJDK9Tests>true</skipJDK9Tests>
+
     <tomcat.version>8.0.28</tomcat.version>
     <jersey.version>2.6</jersey.version>
     <httpclient.version>4.5.1</httpclient.version>
