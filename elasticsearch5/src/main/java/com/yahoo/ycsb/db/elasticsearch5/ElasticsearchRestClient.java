@@ -120,13 +120,11 @@ public class ElasticsearchRestClient extends DB {
           Collections.<String, String>emptyMap(),
           new NStringEntity(new ObjectMapper().writeValueAsString(data), ContentType.APPLICATION_JSON));
 
-      if(response.getStatusLine().getStatusCode() == 200) {
-        return Status.OK;
-      }
+      return Status.OK;
     } catch (Exception e) {
       e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
   }
 
   @Override
@@ -136,13 +134,11 @@ public class ElasticsearchRestClient extends DB {
           HttpDelete.METHOD_NAME,
           "/" + indexKey + "/" + table + "/" + key);
 
-      if(response.getStatusLine().getStatusCode() == 200) {
-        return Status.OK;
-      }
+      return Status.OK;
     } catch (Exception e) {
       e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
   }
 
   @Override
@@ -150,13 +146,11 @@ public class ElasticsearchRestClient extends DB {
     try {
       Response response = restClient.performRequest(HttpGet.METHOD_NAME, "/");
 
-      if(response.getStatusLine().getStatusCode() == 200) {
-        return Status.OK;
-      }
+      return Status.OK;
     } catch (Exception e) {
       e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
 
 //    try {
 //      final GetResponse response = client.prepareGet(indexKey, table, key).execute().actionGet();
