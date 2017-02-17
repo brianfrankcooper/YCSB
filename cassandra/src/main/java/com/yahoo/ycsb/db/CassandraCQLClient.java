@@ -566,20 +566,15 @@ public class CassandraCQLClient extends DB {
   public Status delete(String table, String key) {
 
     try {
-      Statement stmt;
-
-      stmt = QueryBuilder.delete().from(table)
-          .where(QueryBuilder.eq(YCSB_KEY, key));
-      stmt.setConsistencyLevel(writeConsistencyLevel);
 
       if (debug) {
-        System.out.println(stmt.toString());
+        System.out.println(deleteStatement.getQueryString());
       }
       if (trace) {
-        stmt.enableTracing();
+        deleteStatement.enableTracing();
       }
       
-      session.execute(stmt);
+      session.execute(deleteStatement.bind(key));
 
       return Status.OK;
     } catch (Exception e) {
