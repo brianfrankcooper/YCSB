@@ -114,6 +114,7 @@ LICENSE file.
     <module>asynchbase</module>
     <module>azuretablestorage</module>
     <module>cassandra</module>
+    <module>cloudspanner</module>
     <module>couchbase</module>
     <module>couchbase2</module>
     <module>distribution</module>
