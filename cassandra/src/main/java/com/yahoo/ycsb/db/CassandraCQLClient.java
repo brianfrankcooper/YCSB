@@ -17,36 +17,16 @@
  */
 package com.yahoo.ycsb.db;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ColumnDefinitions;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.Host;
-import com.datastax.driver.core.HostDistance;
-import com.datastax.driver.core.Metadata;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.SimpleStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Statement;
-
+import com.datastax.driver.core.*;
 import com.datastax.driver.core.querybuilder.Delete;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
-import com.yahoo.ycsb.ByteArrayByteIterator;
-import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.DB;
-import com.yahoo.ycsb.DBException;
-import com.yahoo.ycsb.Status;
+import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.workloads.CoreWorkload;
 
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -92,7 +72,15 @@ public class CassandraCQLClient extends DB {
   public static final String READ_TIMEOUT_MILLIS_PROPERTY =
       "cassandra.readtimeoutmillis";
 
+  public static final String TRACING_PROPERTY = "cassandra.tracing";
+  public static final String TRACING_PROPERTY_DEFAULT = "false";
+
+  private static List<String> fieldList;
   private static boolean readallfields;
+
+  // YCSB always inserts a full row, but updates can be either full-row or single-column
+  private static PreparedStatement insertStatement = null;
+  private static Map<String, PreparedStatement> updateStatements = null;
 
   private static PreparedStatement deleteStatement = null;
 
@@ -105,13 +93,6 @@ public class CassandraCQLClient extends DB {
   private static PreparedStatement scanStatement = null;
   private static Map<String, PreparedStatement> scanStatements = null;
 
-  // YCSB always inserts a full row, but updates can be either full-row or single-column
-  private static PreparedStatement insertStatement = null;
-  private static Map<String, PreparedStatement> updateStatements = null;
-
-  public static final String TRACING_PROPERTY = "cassandra.tracing";
-  public static final String TRACING_PROPERTY_DEFAULT = "false";
-  
   /**
    * Count the number of times initialized to teardown on the last
    * {@link #cleanup()}.
@@ -238,12 +219,18 @@ public class CassandraCQLClient extends DB {
             p.getProperty(CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
     String table = p.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
 
+    fieldList = new ArrayList<String>(fieldCount);
+
     // Insert and Update statement
     final Insert is = QueryBuilder.insertInto(table);
     is.value(YCSB_KEY, QueryBuilder.bindMarker());
+    fieldList.add(YCSB_KEY);
 
     for (int i = 0; i < fieldCount; i++) {
-      is.value(FIELD_PREFIX + i, QueryBuilder.bindMarker());
+      // Preserve field iteration order for the HashMaps used in the DB methods
+      String field = FIELD_PREFIX + i;
+      fieldList.add(field);
+      is.value(field, QueryBuilder.bindMarker());
     }
     insertStatement = session.prepare(is);
     insertStatement.setConsistencyLevel(writeConsistencyLevel);
@@ -307,8 +294,10 @@ public class CassandraCQLClient extends DB {
       if (curInitCount <= 0) {
         session.close();
         cluster.close();
+        fieldList.clear();
         cluster = null;
         session = null;
+        fieldList = null;
       }
       if (curInitCount < 0) {
         // This should never happen.
@@ -520,30 +509,34 @@ public class CassandraCQLClient extends DB {
       Map<String, ByteIterator> values) {
 
     try {
-      Insert insertStmt = QueryBuilder.insertInto(table);
+      final int numValues = values.size();
+      int i = 0;
+      Object[] vals = new Object[numValues + 1];
 
       // Add key
-      insertStmt.value(YCSB_KEY, key);
+      vals[i++] = key;
 
-      // Add fields
-      for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-        Object value;
-        ByteIterator byteIterator = entry.getValue();
-        value = byteIterator.toString();
-
-        insertStmt.value(entry.getKey(), value);
+      // Add fieldList
+      for (; i < fieldList.size(); i++) {
+        String field = fieldList.get(i);
+        if (values.containsKey(field)) {
+          vals[i] = values.get(field).toString();
+        }
       }
 
-      insertStmt.setConsistencyLevel(writeConsistencyLevel);
+      // If there is one value, this is actually an update
+      BoundStatement bs = (numValues == 1 ?
+               updateStatements.get(values.keySet().iterator().next()) :
+               insertStatement).bind(vals);
 
       if (debug) {
-        System.out.println(insertStmt.toString());
+        System.out.println(bs.preparedStatement().getQueryString());
       }
       if (trace) {
-        insertStmt.enableTracing();
+        bs.enableTracing();
       }
       
-      session.execute(insertStmt);
+      session.execute(bs);
 
       return Status.OK;
     } catch (Exception e) {
