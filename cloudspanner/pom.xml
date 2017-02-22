@@ -33,7 +33,7 @@ LICENSE file.
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-spanner</artifactId>
-      <version>0.9.2-beta</version>
+      <version>${cloudspanner.version}</version>
       <exclusions>
         <exclusion> <!-- exclude an old version of Guava -->
           <groupId>com.google.guava</groupId>
