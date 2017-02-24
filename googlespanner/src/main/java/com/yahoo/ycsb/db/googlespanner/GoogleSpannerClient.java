@@ -15,7 +15,7 @@
  * LICENSE file.
  */
 
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.googlespanner;
 
 import com.google.cloud.spanner.*;
 import com.yahoo.ycsb.ByteIterator;
