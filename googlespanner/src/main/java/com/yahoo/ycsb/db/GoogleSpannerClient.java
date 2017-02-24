@@ -33,20 +33,7 @@ import java.util.concurrent.ExecutionException;
 /**
  * Google Cloud Spanner Client for YCSB.
  *
- * To use it, manually create an instance and a database with a table (e.g. in the cloud console). The
- * table and database can have any name, but columns must be "pkey" (string, primary key), and
- * "field0", "field1", .... "fieldN" depending on the number of fields in the workload.
- *
- * At minimum specify these properties:
- *
- * <ul>
- *     <li> googlespanner.instance - name of your spanner instance</li>
- *     <li> googlespanner.database - name of your spanner database</li>
- *     <li> table - name of the table you created in spanner</li>
- * </ul>
- *
- * This binding assumes application default credentials and cannot currently be used with any other authentication
- * mechanism.
+ * See README.md for use.
  */
 
 public class GoogleSpannerClient extends DB {
