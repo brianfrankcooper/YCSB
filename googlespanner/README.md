@@ -21,8 +21,9 @@ LICENSE file.
 
 * Only Application Default Credentials are supported. In other words,
   if running on a Google Cloud instance with permissions granted when
-  creating it, authentication will seamlessly work. But use of
-  explicit keys is not implemented.
+  creating it, authentication will seamlessly work, but you cannot
+  authenticate using a private key file (see https://cloud.google.com/docs/authentication#getting_credentials_for_server-centric_flow
+  and https://developers.google.com/identity/protocols/application-default-credentials).
 * The primary key is not escaped in the implementation, and so the workload
   generator must not generate keys containing characters not safe to put
   within single-quotes in Spanner SQL.
