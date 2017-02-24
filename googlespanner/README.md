@@ -58,6 +58,6 @@ No special process required other than specifying `googlespanner` as
 the name of the binding. Example:
 
 ```
-./bin/ycsb load googlespanner -P wload -threads 20
+./bin/ycsb load googlespanner -P wload
 ./bin/ycsb run googlespanner -P wload -threads 20 -target 200
 ```
