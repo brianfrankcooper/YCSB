@@ -83,6 +83,7 @@ We recommend batching insertions so as to reach ~1 MB of data per commit request
 If you wish to load a large database, you can run YCSB on multiple client VMs in parallel and use the `insertstart` and `insertcount` parameters to distribute the load as described [here](https://github.com/brianfrankcooper/YCSB/wiki/Running-a-Workload-in-Parallel). In this case, we recommend the following:
 
 * Use ordered inserts via specifying the YCSB parameter `insertorder=ordered`;
+* Use zero-padding so that ordered inserts are actually lexicographically ordered; the option `zeropadding = 12` is set in the default `cloudspanner.properties` file;
 * Split the key range evenly between client VMs;
 * Use few threads on each client VM, so that each individual commit request contains keys which are (close to) consecutive, and would thus likely address a single split; this also helps avoid overloading the servers.
 
@@ -96,7 +97,7 @@ After data load, you can a run a workload, say, workload B, using the following 
 ./bin/ycsb run cloudspanner -P cloudspanner/conf/cloudspanner.properties -P workloads/workloadb -p recordcount=10000000 -p operationcount=1000000 -threads 10 -s 
 ```
 
-Make sure that you use the same `insertorder` (i.e. `ordered` or `hashed`) as specified during the data load. Further details about running workloads are given in the [YCSB wiki pages](https://github.com/brianfrankcooper/YCSB/wiki/Running-a-Workload).
+Make sure that you use the same `insertorder` (i.e. `ordered` or `hashed`) and `zeropadding` as specified during the data load. Further details about running workloads are given in the [YCSB wiki pages](https://github.com/brianfrankcooper/YCSB/wiki/Running-a-Workload).
 
 ## Configuration Options
 

@@ -114,7 +114,7 @@ public class CloudSpannerClient extends DB {
 
   private static String standardScan;
 
-  private static final ArrayList<String> STANDARD_FIELDS = new ArrayList();
+  private static final ArrayList<String> STANDARD_FIELDS = new ArrayList<>();
 
   private static final String PRIMARY_KEY_COLUMN = "id";
 
@@ -131,7 +131,7 @@ public class CloudSpannerClient extends DB {
 
   // Buffered mutations on a per object/thread basis for batch inserts.
   // Note that we have a separate CloudSpannerClient object per thread.
-  private final ArrayList<Mutation> bufferedMutations = new ArrayList();
+  private final ArrayList<Mutation> bufferedMutations = new ArrayList<>();
 
   private static void constructStandardQueriesAndFields(Properties properties) {
     String table = properties.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
