@@ -52,7 +52,7 @@ import java.util.logging.Logger;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Google's Cloud Spanner Client for the YCSB framework.
+ * YCSB Client for Google's Cloud Spanner.
  */
 public class CloudSpannerClient extends DB {
 
@@ -93,7 +93,7 @@ public class CloudSpannerClient extends DB {
      */
     static final String PROJECT = "cloudspanner.project";
     /**
-     * The Cloud Spanner host name to use in the YCSB run. Default is https://spanner.googleapis.com/.
+     * The Cloud Spanner host name to use in the YCSB run.
      */
     static final String HOST = "cloudspanner.host";
     /**
@@ -151,12 +151,14 @@ public class CloudSpannerClient extends DB {
     String numChannels = properties.getProperty(CloudSpannerProperties.NUM_CHANNELS);
     int numThreads = Integer.parseInt(properties.getProperty(Client.THREAD_COUNT_PROPERTY, "1"));
     SpannerOptions.Builder optionsBuilder = SpannerOptions.newBuilder()
-        .setHost(host)
         .setSessionPoolOption(SessionPoolOptions.newBuilder()
             .setMinSessions(numThreads)
             // Since we have no read-write transactions, we can set the write session fraction to 0.
             .setWriteSessionsFraction(0)
             .build());
+    if (host != null) {
+      optionsBuilder.setHost(host);
+    }
     if (project != null) {
       optionsBuilder.setProjectId(project);
     }
@@ -182,7 +184,7 @@ public class CloudSpannerClient extends DB {
         return;
       }
       Properties properties = getProperties();
-      String host = properties.getProperty(CloudSpannerProperties.HOST, "https://spanner.googleapis.com/");
+      String host = properties.getProperty(CloudSpannerProperties.HOST);
       String project = properties.getProperty(CloudSpannerProperties.PROJECT);
       String instance = properties.getProperty(CloudSpannerProperties.INSTANCE, "ycsb-instance");
       String database = properties.getProperty(CloudSpannerProperties.DATABASE, "ycsb-database");
@@ -210,7 +212,7 @@ public class CloudSpannerClient extends DB {
       }
 
       LOGGER.log(Level.INFO, new StringBuilder()
-          .append("\nHost: ").append(host)
+          .append("\nHost: ").append(spanner.getOptions().getHost())
           .append("\nProject: ").append(project)
           .append("\nInstance: ").append(instance)
           .append("\nDatabase: ").append(database)
