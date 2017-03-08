@@ -14,7 +14,7 @@
  * permissions and limitations under the License. See accompanying
  * LICENSE file.
  */
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.cloudspanner;
 
 import com.google.common.base.Joiner;
 import com.google.cloud.spanner.DatabaseId;

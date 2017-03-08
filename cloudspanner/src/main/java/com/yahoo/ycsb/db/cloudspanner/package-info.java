@@ -19,4 +19,4 @@
  * The YCSB binding for Google's <a href="https://cloud.google.com/spanner/">
  * Cloud Spanner</a>.
  */
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.cloudspanner;
