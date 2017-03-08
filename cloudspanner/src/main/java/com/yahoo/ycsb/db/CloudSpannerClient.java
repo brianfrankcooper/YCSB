@@ -169,9 +169,7 @@ public class CloudSpannerClient extends DB {
     Runtime.getRuntime().addShutdownHook(new Thread("spannerShutdown") {
         @Override
         public void run() {
-          System.out.println("Closing Cloud Spanner client...");
           spanner.closeAsync();
-          System.out.println("...done.");
         }
       });
     return spanner;
