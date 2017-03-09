@@ -63,7 +63,7 @@ public class ArangoDBClient extends DB {
    * The database name to access.
    */
   private static String databaseName = "ycsb";
-
+  private static String collectionName;
   /**
    * Count the number of times initialized to teardown on the last
    * {@link #cleanup()}.
@@ -92,6 +92,8 @@ public class ArangoDBClient extends DB {
       }
 
       Properties props = getProperties();
+
+      collectionName = props.getProperty("table", "usertable");
 
       // Set the DB address
       String ip = props.getProperty("arangodb.ip", "localhost");
@@ -149,7 +151,16 @@ public class ArangoDBClient extends DB {
       // Always set the default db
       arangoDriver.setDefaultDatabase(databaseName);
       logger.info("ArangoDB client connection created to {}:{}", ip, port);
-      
+      try {
+        arangoDriver.createCollection(collectionName);
+      } catch (ArangoException e) {
+        if (e.getErrorNumber() != ErrorNums.ERROR_ARANGO_DUPLICATE_NAME) {
+          logger.error("Failed to create collection: {} with ex: {}", collectionName, e.toString());
+          System.exit(-1);
+        } else {
+          logger.info("Collection already exists: {}", collectionName);
+        }
+      }
       // Log the configuration
       logger.info("Arango Configuration: dropDBBeforeRun: {}; address: {}:{}; databaseName: {};"
                   + " waitForSync: {}; transactionUpdate: {};",
@@ -193,8 +204,7 @@ public class ArangoDBClient extends DB {
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
         toInsert.addAttribute(entry.getKey(), byteIteratorToString(entry.getValue()));
       }
-      arangoDriver.createDocument(table, toInsert, true/*create collection if not exist*/,
-                                  waitForSync);
+      arangoDriver.createDocument(table, toInsert, waitForSync);
       return Status.OK;
     } catch (ArangoException e) {
       if (e.getErrorNumber() != ErrorNums.ERROR_ARANGO_UNIQUE_CONSTRAINT_VIOLATED) {
@@ -379,9 +389,9 @@ public class ArangoDBClient extends DB {
     return Status.ERROR;
   }
 
-  private String createDocumentHandle(String collectionName, String documentKey) throws ArangoException {
-    validateCollectionName(collectionName);
-    return collectionName + "/" + documentKey;
+  private String createDocumentHandle(String collection, String documentKey) throws ArangoException {
+    validateCollectionName(collection);
+    return collection + "/" + documentKey;
   }
 
   private void validateCollectionName(String name) throws ArangoException {
