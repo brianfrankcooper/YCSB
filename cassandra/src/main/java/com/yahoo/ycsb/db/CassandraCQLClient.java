@@ -345,33 +345,30 @@ public class CassandraCQLClient extends DB {
   public Status read(String table, String key, Set<String> fields,
       Map<String, ByteIterator> result) {
     try {
-      BoundStatement bs;
+      PreparedStatement ps;
 
       if (readallfields || fields == null) {
-        bs = selectStatement.bind(key);
+        ps = selectStatement;
       } else if (fields.size() == 1) {
-        bs = singleSelectStatements.get(fields.iterator().next()).bind(key);
+        ps = singleSelectStatements.get(fields.iterator().next());
       } else {
         Map<Integer, PreparedStatement> possibleStatements = selectManyStatements.get(fields.size());
 
-        Select.Builder selectBuilder;
-        selectBuilder = QueryBuilder.select();
+        Select.Builder selectBuilder = QueryBuilder.select();
         for (String col : fields) {
           ((Select.Selection) selectBuilder).column(col);
         }
         String statement = selectBuilder.from(table)
             .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).getQueryString();
 
-        PreparedStatement ps;
         int statementHash = statement.hashCode(); // Hoping these are unique enough between statements
         if (!possibleStatements.containsKey(statementHash)) {
-          ps = session.prepare(statement);
-          possibleStatements.put(statementHash, ps);
-        } else {
-          ps = possibleStatements.get(statementHash);
+          possibleStatements.put(statementHash,  prepare(statement, true));
         }
-        bs = ps.bind(key);
+        ps = possibleStatements.get(statementHash);
       }
+
+      final BoundStatement bs = ps.bind(key);
 
       if (debug) {
         System.out.println(bs.preparedStatement().getQueryString());
@@ -434,45 +431,41 @@ public class CassandraCQLClient extends DB {
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
 
     try {
-      Statement stmt;
-      Select.Builder selectBuilder;
+      PreparedStatement ps;
 
-      if (fields == null) {
-        selectBuilder = QueryBuilder.select().all();
+      if (readallfields || fields == null) {
+        ps = scanStatement;
+      } else if (fields.size() == 1) {
+        ps = singleScanStatements.get(fields.iterator().next());
       } else {
-        selectBuilder = QueryBuilder.select();
+        Map<Integer, PreparedStatement> possibleStatements = scanManyStatements.get(fields.size());
+
+        Select.Builder selectBuilder = QueryBuilder.select();
         for (String col : fields) {
           ((Select.Selection) selectBuilder).column(col);
         }
+
+        String stmt = selectBuilder.from(table).getQueryString();
+        String scanStmt = getScanQueryString().replaceFirst("_",
+            stmt.substring(0, stmt.length()-1));
+
+        int statementHash = scanStmt.hashCode(); // Hoping these are unique enough between statements
+        if (!possibleStatements.containsKey(statementHash)) {
+          possibleStatements.put(statementHash,  prepare(scanStmt, true));
+        }
+        ps = possibleStatements.get(statementHash);
       }
 
-      stmt = selectBuilder.from(table);
-
-      // The statement builder is not setup right for tokens.
-      // So, we need to build it manually.
-      String initialStmt = stmt.toString();
-      StringBuilder scanStmt = new StringBuilder();
-      scanStmt.append(initialStmt.substring(0, initialStmt.length() - 1));
-      scanStmt.append(" WHERE ");
-      scanStmt.append(QueryBuilder.token(YCSB_KEY));
-      scanStmt.append(" >= ");
-      scanStmt.append("token('");
-      scanStmt.append(startkey);
-      scanStmt.append("')");
-      scanStmt.append(" LIMIT ");
-      scanStmt.append(recordcount);
-
-      stmt = new SimpleStatement(scanStmt.toString());
-      stmt.setConsistencyLevel(readConsistencyLevel);
+      final BoundStatement bs = ps.bind(YCSB_KEY, startkey, recordcount);
 
       if (debug) {
-        System.out.println(stmt.toString());
+        System.out.println(bs.preparedStatement().getQueryString());
       }
       if (trace) {
-        stmt.enableTracing();
+        bs.enableTracing();
       }
       
-      ResultSet rs = session.execute(stmt);
+      ResultSet rs = session.execute(bs);
 
       HashMap<String, ByteIterator> tuple;
       while (!rs.isExhausted()) {
