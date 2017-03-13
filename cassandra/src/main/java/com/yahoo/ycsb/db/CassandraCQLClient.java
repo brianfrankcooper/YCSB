@@ -452,7 +452,7 @@ public class CassandraCQLClient extends DB {
         ps = possibleStatements.get(statementHash);
       }
 
-      final BoundStatement bs = ps.bind(YCSB_KEY, startkey, recordcount);
+      final BoundStatement bs = ps.bind(startkey, recordcount);
 
       if (debug) {
         System.out.println(bs.preparedStatement().getQueryString());
