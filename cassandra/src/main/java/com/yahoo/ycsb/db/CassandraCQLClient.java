@@ -18,7 +18,6 @@
 package com.yahoo.ycsb.db;
 
 import com.datastax.driver.core.*;
-import com.datastax.driver.core.querybuilder.Delete;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
@@ -73,7 +72,7 @@ public class CassandraCQLClient extends DB {
       "cassandra.readtimeoutmillis";
 
   public static final String TRACING_PROPERTY = "cassandra.tracing";
-  public static final String TRACING_PROPERTY_DEFAULT = "false";
+  public static final String TRACING_PROPERTY_DEFAULT = Boolean.FALSE.toString();
 
   private static List<String> fieldList;
   private static boolean readallfields;
@@ -89,9 +88,9 @@ public class CassandraCQLClient extends DB {
     one to select all columns, and one for selecting each individual column
   */
   private static PreparedStatement selectStatement = null;
-  private static Map<String, PreparedStatement> selectStatements = null;
+  private static Map<String, PreparedStatement> singleSelectStatements = null;
   private static PreparedStatement scanStatement = null;
-  private static Map<String, PreparedStatement> scanStatements = null;
+  private static Map<String, PreparedStatement> singleScanStatements = null;
 
   /**
    * Count the number of times initialized to teardown on the last
@@ -100,9 +99,11 @@ public class CassandraCQLClient extends DB {
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
   private static boolean debug = false;
-
   private static boolean trace = false;
-  
+
+  private static TreeMap<Integer, Map<Integer, PreparedStatement>> selectManyStatements;
+  private static TreeMap<Integer, Map<Integer, PreparedStatement>> scanManyStatements;
+
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
    * DB instance per client thread.
@@ -127,7 +128,7 @@ public class CassandraCQLClient extends DB {
         final Properties p = getProperties();
 
         debug =
-            Boolean.parseBoolean(p.getProperty("debug", "false"));
+            Boolean.parseBoolean(p.getProperty("debug", Boolean.FALSE.toString()));
         trace = Boolean.valueOf(p.getProperty(TRACING_PROPERTY, TRACING_PROPERTY_DEFAULT));
         
         String host = p.getProperty(HOSTS_PROPERTY);
@@ -179,18 +180,18 @@ public class CassandraCQLClient extends DB {
               Integer.valueOf(coreConnections));
         }
 
-        String connectTimoutMillis = p.getProperty(
+        String connectTimeoutMillis = p.getProperty(
             CONNECT_TIMEOUT_MILLIS_PROPERTY);
-        if (connectTimoutMillis != null) {
+        if (connectTimeoutMillis != null) {
           cluster.getConfiguration().getSocketOptions()
-              .setConnectTimeoutMillis(Integer.valueOf(connectTimoutMillis));
+              .setConnectTimeoutMillis(Integer.valueOf(connectTimeoutMillis));
         }
 
-        String readTimoutMillis = p.getProperty(
+        String readTimeoutMillis = p.getProperty(
             READ_TIMEOUT_MILLIS_PROPERTY);
-        if (readTimoutMillis != null) {
+        if (readTimeoutMillis != null) {
           cluster.getConfiguration().getSocketOptions()
-              .setReadTimeoutMillis(Integer.valueOf(readTimoutMillis));
+              .setReadTimeoutMillis(Integer.valueOf(readTimeoutMillis));
         }
 
         Metadata metadata = cluster.getMetadata();
@@ -219,67 +220,85 @@ public class CassandraCQLClient extends DB {
             p.getProperty(CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
     String table = p.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
 
-    fieldList = new ArrayList<String>(fieldCount);
+    fieldList = Collections.synchronizedList(new ArrayList<String>(fieldCount));
+    if (!readallfields) {
+      singleSelectStatements = new ConcurrentHashMap<String, PreparedStatement>(fieldCount);
+      singleScanStatements = new ConcurrentHashMap<String, PreparedStatement>(fieldCount);
 
-    // Insert and Update statement
+      selectManyStatements = new TreeMap<>();
+      scanManyStatements = new TreeMap<>();
+    }
+
+    // Insert and Update all statement
     final Insert is = QueryBuilder.insertInto(table);
     is.value(YCSB_KEY, QueryBuilder.bindMarker());
-    fieldList.add(YCSB_KEY);
 
+    fieldList.add(YCSB_KEY);
     for (int i = 0; i < fieldCount; i++) {
       // Preserve field iteration order for the HashMaps used in the DB methods
-      String field = FIELD_PREFIX + i;
+      final String field = FIELD_PREFIX + i;
       fieldList.add(field);
+
+      // Insert and Update statement
       is.value(field, QueryBuilder.bindMarker());
+
+      // Select and Scan few statements
+      if (!readallfields) {
+        // Select - single
+        Select selectOne = QueryBuilder.select(field).from(table)
+            .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker()))
+            .limit(1);
+
+        if (!singleSelectStatements.containsKey(field)) {
+          PreparedStatement preparedSelect = session.prepare(selectOne);
+          preparedSelect.setConsistencyLevel(readConsistencyLevel);
+          singleSelectStatements.put(field, preparedSelect);
+        }
+
+        // Scan - single
+        String initialScanStmt = QueryBuilder.select(field).from(table).toString();
+        String scanOneStmt = getScanQueryString().replaceFirst("_",
+            initialScanStmt.substring(0, initialScanStmt.length()-1));
+        if (!singleScanStatements.containsKey(field)) {
+          PreparedStatement preparedScan = session.prepare(scanOneStmt);
+          preparedScan.setConsistencyLevel(readConsistencyLevel);
+          singleScanStatements.put(field, preparedScan);
+        }
+
+        // Select and Scan many statements
+        selectManyStatements.put(i, new HashMap<Integer, PreparedStatement>());
+        scanManyStatements.put(i, new HashMap<Integer, PreparedStatement>());
+      }
+
     }
+
+    // Prepare insert and update all
     insertStatement = session.prepare(is);
     insertStatement.setConsistencyLevel(writeConsistencyLevel);
 
-
-    // Delete statement
-    final Delete ds = QueryBuilder.delete().from(table);
-    deleteStatement = session.prepare(ds.where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())));
-    deleteStatement.setConsistencyLevel(writeConsistencyLevel);
-
-    if (readallfields) {
-      // Select
-      String ss = QueryBuilder.select().all().from(table)
-              .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).getQueryString();
-      selectStatement = session.prepare(ss);
-      selectStatement.setConsistencyLevel(readConsistencyLevel);
-
-      // Scan
-      String initialStmt = QueryBuilder.select().all().from(table).toString();
-      String scanStmt = getScanQueryString().replaceFirst("_", initialStmt.substring(0, initialStmt.length()-1));
-      scanStatement = session.prepare(scanStmt);
-      scanStatement.setConsistencyLevel(readConsistencyLevel);
-
-    } else {
-      selectStatements = new ConcurrentHashMap<String, PreparedStatement>(fieldCount);
-      scanStatements = new ConcurrentHashMap<String, PreparedStatement>(fieldCount);
-
-      for (int i = 0; i < fieldCount; i++) {
-        final Select from = QueryBuilder.select(FIELD_PREFIX + i).from(table);
-        // Select
-        Select selectStmt = from
-                .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).limit(1);
-        PreparedStatement preparedSelect = session.prepare(selectStmt);
-        preparedSelect.setConsistencyLevel(readConsistencyLevel);
-        selectStatements.put(FIELD_PREFIX + i, preparedSelect);
-
-        // Scan
-        String initialScanStmt = from.toString();
-        String scanStmt = getScanQueryString().replaceFirst("_",
-                initialScanStmt.substring(0, initialScanStmt.length()-1));
-        PreparedStatement preparedScan = session.prepare(scanStmt);
-        preparedScan.setConsistencyLevel(readConsistencyLevel);
-        scanStatements.put(FIELD_PREFIX + i, preparedScan);
-      }
+    // Select All
+    String ss = QueryBuilder.select().all().from(table)
+            .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).getQueryString();
     }
+    selectStatement = session.prepare(ss);
+    selectStatement.setConsistencyLevel(readConsistencyLevel);
+
+    // Scan All
+    String initialStmt = QueryBuilder.select().all().from(table).toString();
+    String scanStmt = getScanQueryString().replaceFirst("_",
+        initialStmt.substring(0, initialStmt.length()-1));
+    scanStatement = session.prepare(scanStmt);
+    scanStatement.setConsistencyLevel(readConsistencyLevel);
+
+    // Delete on key statement
+    String ds = QueryBuilder.delete().from(table)
+        .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).toString();
+    deleteStatement = session.prepare(ds);
+    deleteStatement.setConsistencyLevel(writeConsistencyLevel);
   }
 
   private String getScanQueryString() {
-    return String.format("_ WHERE %s >= token(%s) LIMIT %s",
+    return String.format("_ WHERE %s >= %s LIMIT %s;",
             QueryBuilder.token(YCSB_KEY), QueryBuilder.bindMarker(), QueryBuilder.bindMarker());
   }
 
