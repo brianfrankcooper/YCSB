@@ -389,11 +389,7 @@ public class CassandraCQLClient extends DB {
 
       for (ColumnDefinitions.Definition def : cd) {
         ByteBuffer val = row.getBytesUnsafe(def.getName());
-        if (val != null) {
-          result.put(def.getName(), new ByteArrayByteIterator(val.array()));
-        } else {
-          result.put(def.getName(), null);
-        }
+        result.put(def.getName(), val == null ? null : new ByteArrayByteIterator(val.array()));
       }
 
       return Status.OK;
@@ -476,11 +472,7 @@ public class CassandraCQLClient extends DB {
 
         for (ColumnDefinitions.Definition def : cd) {
           ByteBuffer val = row.getBytesUnsafe(def.getName());
-          if (val != null) {
-            tuple.put(def.getName(), new ByteArrayByteIterator(val.array()));
-          } else {
-            tuple.put(def.getName(), null);
-          }
+          tuple.put(def.getName(), val == null ? null : new ByteArrayByteIterator(val.array()));
         }
 
         result.add(tuple);
