@@ -249,6 +249,9 @@ public class CassandraCQLClient extends DB {
             .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker()))
             .limit(1);
 
+        if (debug) {
+          System.out.printf("Preparing '%s'\n", selectOne.getQueryString());
+        }
         if (!singleSelectStatements.containsKey(field)) {
           PreparedStatement preparedSelect = session.prepare(selectOne);
           preparedSelect.setConsistencyLevel(readConsistencyLevel);
@@ -259,6 +262,9 @@ public class CassandraCQLClient extends DB {
         String initialScanStmt = QueryBuilder.select(field).from(table).toString();
         String scanOneStmt = getScanQueryString().replaceFirst("_",
             initialScanStmt.substring(0, initialScanStmt.length()-1));
+        if (debug) {
+          System.out.printf("Preparing '%s'\n", scanOneStmt);
+        }
         if (!singleScanStatements.containsKey(field)) {
           PreparedStatement preparedScan = session.prepare(scanOneStmt);
           preparedScan.setConsistencyLevel(readConsistencyLevel);
@@ -273,12 +279,17 @@ public class CassandraCQLClient extends DB {
     }
 
     // Prepare insert and update all
+    if (debug) {
+      System.out.printf("Preparing '%s'\n", is.getQueryString());
+    }
     insertStatement = session.prepare(is);
     insertStatement.setConsistencyLevel(writeConsistencyLevel);
 
     // Select All
     String ss = QueryBuilder.select().all().from(table)
             .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).getQueryString();
+    if (debug) {
+      System.out.printf("Preparing '%s'\n", ss);
     }
     selectStatement = session.prepare(ss);
     selectStatement.setConsistencyLevel(readConsistencyLevel);
@@ -287,12 +298,18 @@ public class CassandraCQLClient extends DB {
     String initialStmt = QueryBuilder.select().all().from(table).toString();
     String scanStmt = getScanQueryString().replaceFirst("_",
         initialStmt.substring(0, initialStmt.length()-1));
+    if (debug) {
+      System.out.printf("Preparing '%s'\n", scanStmt);
+    }
     scanStatement = session.prepare(scanStmt);
     scanStatement.setConsistencyLevel(readConsistencyLevel);
 
     // Delete on key statement
     String ds = QueryBuilder.delete().from(table)
         .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).toString();
+    if (debug) {
+      System.out.printf("Preparing '%s'\n", ds);
+    }
     deleteStatement = session.prepare(ds);
     deleteStatement.setConsistencyLevel(writeConsistencyLevel);
   }
