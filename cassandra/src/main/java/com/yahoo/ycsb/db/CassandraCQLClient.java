@@ -361,30 +361,42 @@ public class CassandraCQLClient extends DB {
   public Status read(String table, String key, Set<String> fields,
       Map<String, ByteIterator> result) {
     try {
-      Statement stmt;
-      Select.Builder selectBuilder;
+      BoundStatement bs;
 
-      if (fields == null) {
-        selectBuilder = QueryBuilder.select().all();
+      if (readallfields || fields == null) {
+        bs = selectStatement.bind(key);
+      } else if (fields.size() == 1) {
+        bs = singleSelectStatements.get(fields.iterator().next()).bind(key);
       } else {
+        Map<Integer, PreparedStatement> possibleStatements = selectManyStatements.get(fields.size());
+
+        Select.Builder selectBuilder;
         selectBuilder = QueryBuilder.select();
         for (String col : fields) {
           ((Select.Selection) selectBuilder).column(col);
         }
-      }
+        String statement = selectBuilder.from(table)
+            .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).getQueryString();
 
-      stmt = selectBuilder.from(table).where(QueryBuilder.eq(YCSB_KEY, key))
-          .limit(1);
-      stmt.setConsistencyLevel(readConsistencyLevel);
+        PreparedStatement ps;
+        int statementHash = statement.hashCode(); // Hoping these are unique enough between statements
+        if (!possibleStatements.containsKey(statementHash)) {
+          ps = session.prepare(statement);
+          possibleStatements.put(statementHash, ps);
+        } else {
+          ps = possibleStatements.get(statementHash);
+        }
+        bs = ps.bind(key);
+      }
 
       if (debug) {
-        System.out.println(stmt.toString());
+        System.out.println(bs.preparedStatement().getQueryString());
       }
       if (trace) {
-        stmt.enableTracing();
+        bs.enableTracing();
       }
       
-      ResultSet rs = session.execute(stmt);
+      ResultSet rs = session.execute(bs);
 
       if (rs.isExhausted()) {
         return Status.NOT_FOUND;
