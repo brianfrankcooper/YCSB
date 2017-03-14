@@ -100,6 +100,7 @@ LICENSE file.
     <arangodb.version>2.7.3</arangodb.version>
     <arangodb3.version>4.1.7</arangodb3.version>
     <azurestorage.version>4.0.0</azurestorage.version>
+    <rocksdb.version>4.11.2</rocksdb.version>
   </properties>
 
   <modules>
@@ -139,6 +140,7 @@ LICENSE file.
     <module>redis</module>
     <module>rest</module>
     <module>riak</module>
+    <module>rocksdb</module>
     <module>s3</module>
     <module>solr</module>
     <module>solr6</module>
