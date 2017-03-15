@@ -1,101 +1,91 @@
-/**                                                                                                                                                                                
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved.                                                                                                                             
- *                                                                                                                                                                                 
- * Licensed under the Apache License, Version 2.0 (the "License"); you                                                                                                             
- * may not use this file except in compliance with the License. You                                                                                                                
- * may obtain a copy of the License at                                                                                                                                             
- *                                                                                                                                                                                 
- * http://www.apache.org/licenses/LICENSE-2.0                                                                                                                                      
- *                                                                                                                                                                                 
- * Unless required by applicable law or agreed to in writing, software                                                                                                             
- * distributed under the License is distributed on an "AS IS" BASIS,                                                                                                               
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or                                                                                                                 
- * implied. See the License for the specific language governing                                                                                                                    
- * permissions and limitations under the License. See accompanying                                                                                                                 
- * LICENSE file.                                                                                                                                                                   
+/**
+ * Copyright (c) 2010-2016 Yahoo! Inc., 2017 YCSB contributors. All rights reserved.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
  */
 
 package com.yahoo.ycsb.generator;
 
+import com.yahoo.ycsb.Utils;
+
 import java.util.ArrayList;
 import java.util.Collection;
-import static java.util.Objects.requireNonNull;
 
-import com.yahoo.ycsb.Utils;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Generates a distribution by choosing from a discrete set of values.
  */
-public class DiscreteGenerator extends Generator<String>
-{
-	private static class Pair
-	{
-		private double _weight;
-		private String _value;
+public class DiscreteGenerator extends Generator<String> {
+  private static class Pair {
+    private double weight;
+    private String value;
 
-		Pair(double weight, String value)
-		{
-			_weight=weight;
-			_value = requireNonNull(value);
-		}
-	}
+    Pair(double weight, String value) {
+      this.weight = weight;
+      this.value = requireNonNull(value);
+    }
+  }
 
-	private final Collection<Pair> _values = new ArrayList<>();
-	private String _lastvalue;
+  private final Collection<Pair> values = new ArrayList<>();
+  private String lastvalue;
 
-	public DiscreteGenerator()
-	{
-		_lastvalue=null;
-	}
+  public DiscreteGenerator() {
+    lastvalue = null;
+  }
 
-	/**
-	 * Generate the next string in the distribution.
-	 */
-	@Override
-    public String nextValue()
-	{
-		double sum=0;
+  /**
+   * Generate the next string in the distribution.
+   */
+  @Override
+  public String nextValue() {
+    double sum = 0;
 
-		for (Pair p : _values)
-		{
-			sum+=p._weight;
-		}
+    for (Pair p : values) {
+      sum += p.weight;
+    }
 
-		double val=Utils.random().nextDouble();
+    double val = Utils.random().nextDouble();
 
-		for (Pair p : _values)
-		{
-		    double pw = p._weight / sum;
-			if (val < pw)
-			{
-				return p._value;
-			}
+    for (Pair p : values) {
+      double pw = p.weight / sum;
+      if (val < pw) {
+        return p.value;
+      }
 
-			val -= pw;
-		}
+      val -= pw;
+    }
 
-		throw new AssertionError("oops. should not get here.");
+    throw new AssertionError("oops. should not get here.");
 
-	}
+  }
 
-	/**
-	 * Return the previous string generated by the distribution; e.g., returned from the last nextString() call. 
-	 * Calling lastString() should not advance the distribution or have any side effects. If nextString() has not yet 
-	 * been called, lastString() should return something reasonable.
-	 */
-	@Override
-    public String lastValue()
-	{
-		if (_lastvalue==null)
-		{
-			_lastvalue=nextValue();
-		}
-		return _lastvalue;
-	}
+  /**
+   * Return the previous string generated by the distribution; e.g., returned from the last nextString() call.
+   * Calling lastString() should not advance the distribution or have any side effects. If nextString() has not yet
+   * been called, lastString() should return something reasonable.
+   */
+  @Override
+  public String lastValue() {
+    if (lastvalue == null) {
+      lastvalue = nextValue();
+    }
+    return lastvalue;
+  }
 
-	public void addValue(double weight, String value)
-	{
-		_values.add(new Pair(weight,value));
-	}
+  public void addValue(double weight, String value) {
+    values.add(new Pair(weight, value));
+  }
 
 }

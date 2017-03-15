@@ -29,7 +29,6 @@ LICENSE file.
   <packaging>jar</packaging>
 
   <properties>
-     <checkstyle.failOnViolation>false</checkstyle.failOnViolation>
      <jackson.api.version>1.9.4</jackson.api.version>
   </properties>
 

@@ -57,7 +57,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
   @Override
   public void init() throws DBException {
     insertPolicy.recordExistsAction = RecordExistsAction.CREATE_ONLY;
-    updatePolicy.recordExistsAction = RecordExistsAction.UPDATE_ONLY;
+    updatePolicy.recordExistsAction = RecordExistsAction.REPLACE_ONLY;
 
     Properties props = getProperties();
 

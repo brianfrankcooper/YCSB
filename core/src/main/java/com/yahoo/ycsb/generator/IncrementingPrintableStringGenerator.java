@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2016 YCSB contributors. All rights reserved.
- *
+ * Copyright (c) 2016-2017 YCSB contributors. All rights reserved.
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
  * may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
@@ -16,11 +16,7 @@
  */
 package com.yahoo.ycsb.generator;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import java.util.*;
 
 /**
  * A generator that produces strings of {@link #length} using a set of code points
@@ -46,109 +42,113 @@ public class IncrementingPrintableStringGenerator extends Generator<String> {
 
   /** Default string length for the generator. */
   public static final int DEFAULTSTRINGLENGTH = 8;
-  
+
   /**
    * Set of all character types that include every symbol other than non-printable
    * control characters.
    */
   public static final Set<Integer> CHAR_TYPES_ALL_BUT_CONTROL;
+
   static {
     CHAR_TYPES_ALL_BUT_CONTROL = new HashSet<Integer>(24);
     // numbers
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.DECIMAL_DIGIT_NUMBER);
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.LETTER_NUMBER);
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.OTHER_NUMBER);
-    
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.DECIMAL_DIGIT_NUMBER);
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.LETTER_NUMBER);
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.OTHER_NUMBER);
+
     // letters
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.UPPERCASE_LETTER);
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.LOWERCASE_LETTER);
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.TITLECASE_LETTER);
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.OTHER_LETTER);
-    
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.UPPERCASE_LETTER);
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.LOWERCASE_LETTER);
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.TITLECASE_LETTER);
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.OTHER_LETTER);
+
     // marks
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.COMBINING_SPACING_MARK);
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.NON_SPACING_MARK);
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.ENCLOSING_MARK);
-    
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.COMBINING_SPACING_MARK);
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.NON_SPACING_MARK);
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.ENCLOSING_MARK);
+
     // punctuation
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.CONNECTOR_PUNCTUATION);
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.DASH_PUNCTUATION);
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.START_PUNCTUATION);
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.END_PUNCTUATION);
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.INITIAL_QUOTE_PUNCTUATION);
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.FINAL_QUOTE_PUNCTUATION);
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.OTHER_PUNCTUATION);
-    
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.CONNECTOR_PUNCTUATION);
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.DASH_PUNCTUATION);
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.START_PUNCTUATION);
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.END_PUNCTUATION);
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.INITIAL_QUOTE_PUNCTUATION);
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.FINAL_QUOTE_PUNCTUATION);
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.OTHER_PUNCTUATION);
+
     // symbols
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.MATH_SYMBOL);
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.CURRENCY_SYMBOL);
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.MODIFIER_SYMBOL);
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.OTHER_SYMBOL);
-    
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.MATH_SYMBOL);
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.CURRENCY_SYMBOL);
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.MODIFIER_SYMBOL);
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.OTHER_SYMBOL);
+
     // separators
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.SPACE_SEPARATOR);
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.LINE_SEPARATOR);
-    CHAR_TYPES_ALL_BUT_CONTROL.add((int)Character.PARAGRAPH_SEPARATOR);
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.SPACE_SEPARATOR);
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.LINE_SEPARATOR);
+    CHAR_TYPES_ALL_BUT_CONTROL.add((int) Character.PARAGRAPH_SEPARATOR);
   }
-  
+
   /**
    * Set of character types including only decimals, upper and lower case letters.
    */
   public static final Set<Integer> CHAR_TYPES_BASIC_ALPHA;
+
   static {
     CHAR_TYPES_BASIC_ALPHA = new HashSet<Integer>(2);
-    CHAR_TYPES_BASIC_ALPHA.add((int)Character.UPPERCASE_LETTER);
-    CHAR_TYPES_BASIC_ALPHA.add((int)Character.LOWERCASE_LETTER);
+    CHAR_TYPES_BASIC_ALPHA.add((int) Character.UPPERCASE_LETTER);
+    CHAR_TYPES_BASIC_ALPHA.add((int) Character.LOWERCASE_LETTER);
   }
-  
+
   /**
    * Set of character types including only  decimals, upper and lower case letters.
    */
   public static final Set<Integer> CHAR_TYPES_BASIC_ALPHANUMERICS;
+
   static {
     CHAR_TYPES_BASIC_ALPHANUMERICS = new HashSet<Integer>(3);
-    CHAR_TYPES_BASIC_ALPHANUMERICS.add((int)Character.DECIMAL_DIGIT_NUMBER);
-    CHAR_TYPES_BASIC_ALPHANUMERICS.add((int)Character.UPPERCASE_LETTER);
-    CHAR_TYPES_BASIC_ALPHANUMERICS.add((int)Character.LOWERCASE_LETTER);
+    CHAR_TYPES_BASIC_ALPHANUMERICS.add((int) Character.DECIMAL_DIGIT_NUMBER);
+    CHAR_TYPES_BASIC_ALPHANUMERICS.add((int) Character.UPPERCASE_LETTER);
+    CHAR_TYPES_BASIC_ALPHANUMERICS.add((int) Character.LOWERCASE_LETTER);
   }
-  
+
   /**
    * Set of character types including only decimals, letter numbers, 
    * other numbers, upper, lower, title case as well as letter modifiers 
    * and other letters.
    */
   public static final Set<Integer> CHAR_TYPE_EXTENDED_ALPHANUMERICS;
+
   static {
     CHAR_TYPE_EXTENDED_ALPHANUMERICS = new HashSet<Integer>(8);
-    CHAR_TYPE_EXTENDED_ALPHANUMERICS.add((int)Character.DECIMAL_DIGIT_NUMBER);
-    CHAR_TYPE_EXTENDED_ALPHANUMERICS.add((int)Character.LETTER_NUMBER);
-    CHAR_TYPE_EXTENDED_ALPHANUMERICS.add((int)Character.OTHER_NUMBER);
-    CHAR_TYPE_EXTENDED_ALPHANUMERICS.add((int)Character.UPPERCASE_LETTER);
-    CHAR_TYPE_EXTENDED_ALPHANUMERICS.add((int)Character.LOWERCASE_LETTER);
-    CHAR_TYPE_EXTENDED_ALPHANUMERICS.add((int)Character.TITLECASE_LETTER);
-    CHAR_TYPE_EXTENDED_ALPHANUMERICS.add((int)Character.MODIFIER_LETTER);
-    CHAR_TYPE_EXTENDED_ALPHANUMERICS.add((int)Character.OTHER_LETTER);
+    CHAR_TYPE_EXTENDED_ALPHANUMERICS.add((int) Character.DECIMAL_DIGIT_NUMBER);
+    CHAR_TYPE_EXTENDED_ALPHANUMERICS.add((int) Character.LETTER_NUMBER);
+    CHAR_TYPE_EXTENDED_ALPHANUMERICS.add((int) Character.OTHER_NUMBER);
+    CHAR_TYPE_EXTENDED_ALPHANUMERICS.add((int) Character.UPPERCASE_LETTER);
+    CHAR_TYPE_EXTENDED_ALPHANUMERICS.add((int) Character.LOWERCASE_LETTER);
+    CHAR_TYPE_EXTENDED_ALPHANUMERICS.add((int) Character.TITLECASE_LETTER);
+    CHAR_TYPE_EXTENDED_ALPHANUMERICS.add((int) Character.MODIFIER_LETTER);
+    CHAR_TYPE_EXTENDED_ALPHANUMERICS.add((int) Character.OTHER_LETTER);
   }
-  
+
   /** The character set to iterate over. */
   private final int[] characterSet;
-  
+
   /** An array indices matching a position in the output string. */
-  private int[] indices; 
-  
+  private int[] indices;
+
   /** The length of the output string in characters. */
   private final int length;
-  
-  /** The last value returned by the generator. Should be null if {@link #nextValue()} 
+
+  /** The last value returned by the generator. Should be null if {@link #nextValue()}
    * has not been called.*/
   private String lastValue;
-  
+
   /** Whether or not to throw an exception when the string rolls over. */
   private boolean throwExceptionOnRollover;
-  
+
   /** Whether or not the generator has rolled over. */
   private boolean hasRolledOver;
-  
+
   /**
    * Generates strings of 8 characters using only the upper and lower case alphabetical
    * characters from the ASCII set. 
@@ -156,7 +156,7 @@ public class IncrementingPrintableStringGenerator extends Generator<String> {
   public IncrementingPrintableStringGenerator() {
     this(DEFAULTSTRINGLENGTH, printableBasicAlphaASCIISet());
   }
-  
+
   /**
    * Generates strings of {@link #length} characters using only the upper and lower 
    * case alphabetical characters from the ASCII set. 
@@ -166,7 +166,7 @@ public class IncrementingPrintableStringGenerator extends Generator<String> {
   public IncrementingPrintableStringGenerator(final int length) {
     this(length, printableBasicAlphaASCIISet());
   }
-  
+
   /**
    * Generates strings of {@link #length} characters using the code points in
    * {@link #characterSet}.
@@ -187,18 +187,18 @@ public class IncrementingPrintableStringGenerator extends Generator<String> {
     this.characterSet = characterSet;
     indices = new int[length];
   }
-  
+
   @Override
   public String nextValue() {
     if (hasRolledOver && throwExceptionOnRollover) {
       throw new NoSuchElementException("The generator has rolled over to the beginning");
     }
-    
+
     final StringBuilder buffer = new StringBuilder(length);
     for (int i = 0; i < length; i++) {
       buffer.append(Character.toChars(characterSet[indices[i]]));
     }
-    
+
     // increment the indices;
     for (int i = length - 1; i >= 0; --i) {
       if (indices[i] >= characterSet.length - 1) {
@@ -211,7 +211,7 @@ public class IncrementingPrintableStringGenerator extends Generator<String> {
         break;
       }
     }
-    
+
     lastValue = buffer.toString();
     return lastValue;
   }
@@ -225,19 +225,19 @@ public class IncrementingPrintableStringGenerator extends Generator<String> {
   public void setThrowExceptionOnRollover(final boolean exceptionOnRollover) {
     this.throwExceptionOnRollover = exceptionOnRollover;
   }
-  
+
   /** @return Whether or not to throw an exception on rollover. */
   public boolean getThrowExceptionOnRollover() {
     return throwExceptionOnRollover;
   }
-  
+
   /**
    * Returns an array of printable code points with only the upper and lower
    * case alphabetical characters from the basic ASCII set.
    * @return An array of code points
    */
   public static int[] printableBasicAlphaASCIISet() {
-    final List<Integer> validCharacters = 
+    final List<Integer> validCharacters =
         generatePrintableCharacterSet(0, 127, null, false, CHAR_TYPES_BASIC_ALPHA);
     final int[] characterSet = new int[validCharacters.size()];
     for (int i = 0; i < validCharacters.size(); i++) {
@@ -245,7 +245,7 @@ public class IncrementingPrintableStringGenerator extends Generator<String> {
     }
     return characterSet;
   }
-  
+
   /**
    * Returns an array of printable code points with the upper and lower case 
    * alphabetical characters as well as the numeric values from the basic 
@@ -253,7 +253,7 @@ public class IncrementingPrintableStringGenerator extends Generator<String> {
    * @return An array of code points
    */
   public static int[] printableBasicAlphaNumericASCIISet() {
-    final List<Integer> validCharacters = 
+    final List<Integer> validCharacters =
         generatePrintableCharacterSet(0, 127, null, false, CHAR_TYPES_BASIC_ALPHANUMERICS);
     final int[] characterSet = new int[validCharacters.size()];
     for (int i = 0; i < validCharacters.size(); i++) {
@@ -261,14 +261,14 @@ public class IncrementingPrintableStringGenerator extends Generator<String> {
     }
     return characterSet;
   }
-  
+
   /**
    * Returns an array of printable code points with the entire basic ASCII table,
    * including spaces. Excludes new lines.
    * @return An array of code points
    */
   public static int[] fullPrintableBasicASCIISet() {
-    final List<Integer> validCharacters = 
+    final List<Integer> validCharacters =
         generatePrintableCharacterSet(32, 127, null, false, null);
     final int[] characterSet = new int[validCharacters.size()];
     for (int i = 0; i < validCharacters.size(); i++) {
@@ -276,14 +276,14 @@ public class IncrementingPrintableStringGenerator extends Generator<String> {
     }
     return characterSet;
   }
-  
+
   /**
    * Returns an array of printable code points with the entire basic ASCII table,
    * including spaces and new lines.
    * @return An array of code points
    */
   public static int[] fullPrintableBasicASCIISetWithNewlines() {
-    final List<Integer> validCharacters =new ArrayList<Integer>();
+    final List<Integer> validCharacters = new ArrayList<Integer>();
     validCharacters.add(10); // newline
     validCharacters.addAll(generatePrintableCharacterSet(32, 127, null, false, null));
     final int[] characterSet = new int[validCharacters.size()];
@@ -292,14 +292,14 @@ public class IncrementingPrintableStringGenerator extends Generator<String> {
     }
     return characterSet;
   }
-  
+
   /**
    * Returns an array of printable code points the first plane of Unicode characters
    * including only the alpha-numeric values.
    * @return An array of code points
    */
   public static int[] printableAlphaNumericPlaneZeroSet() {
-    final List<Integer> validCharacters = 
+    final List<Integer> validCharacters =
         generatePrintableCharacterSet(0, 65535, null, false, CHAR_TYPES_BASIC_ALPHANUMERICS);
     final int[] characterSet = new int[validCharacters.size()];
     for (int i = 0; i < validCharacters.size(); i++) {
@@ -307,14 +307,14 @@ public class IncrementingPrintableStringGenerator extends Generator<String> {
     }
     return characterSet;
   }
-  
+
   /**
    * Returns an array of printable code points the first plane of Unicode characters
    * including all printable characters.
    * @return An array of code points
    */
   public static int[] fullPrintablePlaneZeroSet() {
-    final List<Integer> validCharacters = 
+    final List<Integer> validCharacters =
         generatePrintableCharacterSet(0, 65535, null, false, CHAR_TYPES_ALL_BUT_CONTROL);
     final int[] characterSet = new int[validCharacters.size()];
     for (int i = 0; i < validCharacters.size(); i++) {
@@ -322,7 +322,7 @@ public class IncrementingPrintableStringGenerator extends Generator<String> {
     }
     return characterSet;
   }
-  
+
   /**
    * Generates a list of code points based on a range and filters.
    * These can be used for generating strings with various ASCII and/or
@@ -346,17 +346,17 @@ public class IncrementingPrintableStringGenerator extends Generator<String> {
    */
   public static List<Integer> generatePrintableCharacterSet(
       final int startCodePoint,
-      final int lastCodePoint, 
+      final int lastCodePoint,
       final Set<Integer> characterTypesFilter,
       final boolean isFilterAllowableList,
       final Set<Integer> allowableTypes) {
-    
+
     // since we don't know the final size of the allowable character list we
     // start with a list then we'll flatten it to an array.
     final List<Integer> validCharacters = new ArrayList<Integer>(lastCodePoint);
-    
+
     for (int codePoint = startCodePoint; codePoint <= lastCodePoint; ++codePoint) {
-      if (allowableTypes != null && 
+      if (allowableTypes != null &&
           !allowableTypes.contains(Character.getType(codePoint))) {
         continue;
       } else {
@@ -370,7 +370,7 @@ public class IncrementingPrintableStringGenerator extends Generator<String> {
           continue;
         }
       }
-      
+
       if (characterTypesFilter != null) {
         // if the filter is enabled then we need to make sure the code point 
         // is in the allowable list if it's a whitelist or that the code point
@@ -380,10 +380,10 @@ public class IncrementingPrintableStringGenerator extends Generator<String> {
           continue;
         }
       }
-      
+
       validCharacters.add(codePoint);
     }
     return validCharacters;
   }
-  
+
 }
