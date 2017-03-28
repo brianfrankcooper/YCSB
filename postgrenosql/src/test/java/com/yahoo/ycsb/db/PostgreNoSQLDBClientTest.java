@@ -22,14 +22,19 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.postgresql.Driver;
 
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.Socket;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.*;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assume.assumeNoException;
 
 /**
  * PostgreNoSQL test client for YCSB framework.
@@ -37,18 +42,15 @@ import static org.junit.Assert.assertThat;
 public class PostgreNoSQLDBClientTest {
   /** The default port for PostgreSQL. */
   private static final int DEFAULT_PORT = 5430;
+  private static final String DATABASE_NAME = "test";
   private static final String DEFAULT_USER = "postgres";
   private static final String DEFAULT_PWD = "postgres";
 
   /** The properties settings */
-  private static final String TEST_DB_DRIVER = "com.yahoo.ycsb.db.PostgreNoSQLDBClient";
-  private static final String TEST_DB_URL = "jdbc:postgresql://localhost:5430/test";
-  private static final String DATABASE_NAME = "test";
+  private static final String TEST_DB_URL = "jdbc:postgresql://localhost:" + DEFAULT_PORT + "/" + DATABASE_NAME;
   private static final String TABLE_NAME = "usertable";
   private static final int FIELD_LENGTH = 32;
   private static final String FIELD_PREFIX = "FIELD";
-  private static final String KEY_PREFIX = "user";
-  private static final String KEY_FIELD = "YCSB_KEY";
   private static final int NUM_FIELDS = 3;
 
   private static Connection postgreSQLConnection = null;
@@ -56,6 +58,13 @@ public class PostgreNoSQLDBClientTest {
 
   @BeforeClass
   public static void setUp() {
+    // Check whether postgres is available
+    try (Socket socket = new Socket(InetAddress.getLocalHost(), DEFAULT_PORT)){
+      assertThat("Socket is not bound.", socket.getLocalPort(), not(-1));
+    } catch (IOException connectFailed) {
+      assumeNoException("PostgreSQL is not running. Skipping tests.", connectFailed);
+    }
+
     Properties props = new Properties();
     props.setProperty(PostgreNoSQLDBClient.CONNECTION_URL, TEST_DB_URL);
     props.setProperty(PostgreNoSQLDBClient.CONNECTION_USER, DEFAULT_USER);
@@ -92,7 +101,7 @@ public class PostgreNoSQLDBClientTest {
       Set<String> fields = createFieldSet();
 
       for (int i = 0; i < NUM_FIELDS; i++) {
-        byte[] value = new byte[10];
+        byte[] value = new byte[FIELD_LENGTH];
         for (int j = 0;j < value.length;j++){
           value[j] = (byte)((i+1)*(j+1));
         }
@@ -126,7 +135,7 @@ public class PostgreNoSQLDBClientTest {
       Set<String> fields = createFieldSet();
 
       for (int i = 0; i < NUM_FIELDS; i++) {
-        byte[] value = new byte[10];
+        byte[] value = new byte[FIELD_LENGTH];
         for (int j = 0;j < value.length;j++){
           value[j] = (byte)((i+1)*(j+1));
         }
@@ -172,7 +181,7 @@ public class PostgreNoSQLDBClientTest {
       HashMap<String, ByteIterator> insertMap = new HashMap<>();
 
       for (int j = 0; j < NUM_FIELDS; j++) {
-        byte[] value = new byte[10];
+        byte[] value = new byte[FIELD_LENGTH];
         for (int k = 0; k < value.length; k++) {
           value[k] = (byte) ((j + 1) * (k + 1));
         }
@@ -198,7 +207,7 @@ public class PostgreNoSQLDBClientTest {
       Set<String> fields = createFieldSet();
 
       for (int i = 0; i < NUM_FIELDS; i++) {
-        byte[] value = new byte[10];
+        byte[] value = new byte[FIELD_LENGTH];
         for (int j = 0;j < value.length;j++){
           value[j] = (byte)((i+1)*(j+1));
         }
