@@ -86,10 +86,6 @@ public class PostgreNoSQLDBClient extends DB {
 
     this.autoCommit = getBoolProperty(props, JDBC_AUTO_COMMIT, true);
 
-    System.out.println(urls);
-    System.out.println(user);
-    System.out.println(passwd);
-
     try{
       Properties tmpProps = new Properties();
       tmpProps.setProperty("user", user);
@@ -144,7 +140,7 @@ public class PostgreNoSQLDBClient extends DB {
         if (result != null && fields != null) {
           HashMap<String, ByteIterator> values = new HashMap<String, ByteIterator>();
           for (String field : fields) {
-            String value = (String) resultSet.getString(field);
+            String value = resultSet.getString(field);
             values.put(field, new StringByteIterator(value));
           }
 
@@ -222,7 +218,6 @@ public class PostgreNoSQLDBClient extends DB {
       PreparedStatement deleteStatement = connection.prepareStatement(createDeleteStatement(tableName));
       deleteStatement.setString(1, key);
 
-
       int result = deleteStatement.executeUpdate();
 
       if (result == 1){
@@ -248,7 +243,6 @@ public class PostgreNoSQLDBClient extends DB {
     read.append(PRIMARY_KEY);
     read.append(" = ");
     read.append("?");
-    System.out.println(read);
     return read.toString();
   }
 
