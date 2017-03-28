@@ -86,13 +86,17 @@ public class PostgreNoSQLDBClient extends DB {
 
     this.autoCommit = getBoolProperty(props, JDBC_AUTO_COMMIT, true);
 
+    System.out.println(urls);
+    System.out.println(user);
+    System.out.println(passwd);
+
     try{
       Properties tmpProps = new Properties();
       tmpProps.setProperty("user", user);
       tmpProps.setProperty("password", passwd);
 
       postgrenosqlDriver = new Driver();
-      connection = postgrenosqlDriver.connect(urls, props);
+      connection = postgrenosqlDriver.connect(urls, tmpProps);
       connection.setAutoCommit(autoCommit);
     } catch (Exception e){
       System.err.println("Error during initialization: " + e);
@@ -104,8 +108,6 @@ public class PostgreNoSQLDBClient extends DB {
     try{
       PreparedStatement readStatement = connection.prepareStatement(createReadStatement(tableName, fields));
       readStatement.setString(1, key);
-
-      System.out.println(readStatement);
 
       ResultSet resultSet = readStatement.executeQuery();
       if (!resultSet.next()) {
@@ -238,7 +240,7 @@ public class PostgreNoSQLDBClient extends DB {
     StringBuilder read = new StringBuilder("SELECT " + PRIMARY_KEY + " AS " + PRIMARY_KEY);
     if (fields != null){
       for (String field:fields){
-        read.append(", " + COLUMN_NAME + "->>'" + field + "' AS" + field);
+        read.append(", " + COLUMN_NAME + "->>'" + field + "' AS " + field);
       }
     }
     read.append(" FROM " + table);
@@ -246,6 +248,7 @@ public class PostgreNoSQLDBClient extends DB {
     read.append(PRIMARY_KEY);
     read.append(" = ");
     read.append("?");
+    System.out.println(read);
     return read.toString();
   }
 
@@ -253,7 +256,7 @@ public class PostgreNoSQLDBClient extends DB {
     StringBuilder select = new StringBuilder("SELECT " + PRIMARY_KEY + " AS " + PRIMARY_KEY);
     if (fields != null){
       for (String field:fields){
-        select.append(", " + COLUMN_NAME + "->>'" + field + "' AS" + field);
+        select.append(", " + COLUMN_NAME + "->>'" + field + "' AS " + field);
       }
     }
     select.append(" FROM " + table);
