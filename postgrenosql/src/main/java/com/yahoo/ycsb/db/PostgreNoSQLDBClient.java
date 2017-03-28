@@ -50,7 +50,7 @@ public class PostgreNoSQLDBClient extends DB {
   public static final String CONNECTION_PASSWD = "postgrenosql.passwd";
 
   /** The JDBC connection auto-commit property for the driver. */
-  public static final String JDBC_AUTO_COMMIT = "postgresql.autocommit";
+  public static final String JDBC_AUTO_COMMIT = "postgrenosql.autocommit";
 
   /** The primary key in the user table. */
   public static final String PRIMARY_KEY = "YCSB_KEY";
@@ -61,7 +61,6 @@ public class PostgreNoSQLDBClient extends DB {
   private static final String DEFAULT_PROP = "";
 
   private boolean initialized = false;
-  private boolean autoCommit;
   private Properties props;
 
   /** Returns parsed boolean value from the properties if set, otherwise returns defaultVal. */
@@ -83,8 +82,7 @@ public class PostgreNoSQLDBClient extends DB {
     String urls = props.getProperty(CONNECTION_URL, DEFAULT_PROP);
     String user = props.getProperty(CONNECTION_USER, DEFAULT_PROP);
     String passwd = props.getProperty(CONNECTION_PASSWD, DEFAULT_PROP);
-
-    this.autoCommit = getBoolProperty(props, JDBC_AUTO_COMMIT, true);
+    boolean autoCommit = getBoolProperty(props, JDBC_AUTO_COMMIT, true);
 
     try{
       Properties tmpProps = new Properties();
@@ -147,10 +145,11 @@ public class PostgreNoSQLDBClient extends DB {
           result.add(values);
         }
       }
+
       resultSet.close();
       return Status.OK;
     } catch (SQLException e) {
-      System.err.println("Error in processing scan of table: " + tableName + e);
+      System.err.println("Error in processing scan of table: " + tableName + ": " + e);
       return Status.ERROR;
     }
   }
@@ -207,7 +206,7 @@ public class PostgreNoSQLDBClient extends DB {
 
       return Status.UNEXPECTED_STATE;
     } catch (SQLException e) {
-      System.err.println("Error in processing insert to table: " + tableName + e);
+      System.err.println("Error in processing insert to table: " + tableName + ": " + e);
       return Status.ERROR;
     }
   }

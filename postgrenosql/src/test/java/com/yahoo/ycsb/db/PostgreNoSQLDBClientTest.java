@@ -108,7 +108,6 @@ public class PostgreNoSQLDBClientTest {
 
         insertMap.put(FIELD_PREFIX + i, new ByteArrayByteIterator(value));
         copiedInsertMap.put(FIELD_PREFIX + i, new ByteArrayByteIterator(value));
-        fields.add(FIELD_PREFIX + i);
       }
 
       Status result = postgreNoSQLClient.insert(TABLE_NAME, insertKey, insertMap);
@@ -142,7 +141,6 @@ public class PostgreNoSQLDBClientTest {
 
         insertMap.put(FIELD_PREFIX + i, new ByteArrayByteIterator(value));
         copiedInsertMap.put(FIELD_PREFIX + i, new ByteArrayByteIterator(value));
-        fields.add(FIELD_PREFIX + i);
       }
 
       Status result = postgreNoSQLClient.insert(TABLE_NAME, insertKey, insertMap);
@@ -214,7 +212,6 @@ public class PostgreNoSQLDBClientTest {
 
         insertMap.put(FIELD_PREFIX + i, new ByteArrayByteIterator(value));
         copiedInsertMap.put(FIELD_PREFIX + i, new ByteArrayByteIterator(value));
-        fields.add(FIELD_PREFIX + i);
       }
 
       Status result = postgreNoSQLClient.insert(TABLE_NAME, insertKey, insertMap);
