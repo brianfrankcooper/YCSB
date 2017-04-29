@@ -233,6 +233,8 @@ public class CassandraCQLClient extends DB {
     final Insert is = QueryBuilder.insertInto(table);
     is.value(YCSB_KEY, QueryBuilder.bindMarker());
 
+    updateStatements = new ConcurrentHashMap<String, PreparedStatement>(fieldCount);
+
     fieldList.add(YCSB_KEY);
     for (int i = 0; i < fieldCount; i++) {
       // Preserve field iteration order for the HashMaps used in the DB methods
@@ -262,6 +264,16 @@ public class CassandraCQLClient extends DB {
           singleScanStatements.put(field, prepare(scanOneStmt, true));
         }
 
+        // Update - single
+        Insert updateOneStmt = QueryBuilder.insertInto(table)
+            .values(
+              new String[] {YCSB_KEY, field},
+              new Object[] {QueryBuilder.bindMarker(), QueryBuilder.bindMarker()});
+
+        if (!updateStatements.containsKey(field)) {
+          updateStatements.put(field, prepare(updateOneStmt.getQueryString(), false));
+        }
+
         // Select and Scan many statements
         selectManyStatements.put(i, new HashMap<Integer, PreparedStatement>());
         scanManyStatements.put(i, new HashMap<Integer, PreparedStatement>());
@@ -282,6 +294,7 @@ public class CassandraCQLClient extends DB {
     String scanStmt = getScanQueryString().replaceFirst("_",
         initialStmt.substring(0, initialStmt.length()-1));
     scanStatement = prepare(scanStmt, true);
+
 
     // Delete on key statement
     String ds = QueryBuilder.delete().from(table)

@@ -1,12 +1,12 @@
 /**
  * Copyright (c) 2015 YCSB contributors All rights reserved.
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
  * may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
@@ -21,6 +21,7 @@ import com.datastax.driver.core.*;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
+import com.datastax.driver.core.querybuilder.Truncate;
 import com.google.common.collect.Sets;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.Status;
@@ -53,16 +54,14 @@ public class CassandraCQLClientTest {
   private final static String HOST = "localhost";
   private final static int PORT = 9142;
   private final static String DEFAULT_ROW_KEY = "user1";
-
-  private CassandraCQLClient client;
-  private Session session;
-
-  private static PreparedStatement preparedInsert;
-  private static PreparedStatement preparedSelect;
-
   @ClassRule
   public static CassandraCQLUnit cassandraUnit = new CassandraCQLUnit(
     new ClassPathCQLDataSet("ycsb.cql", CassandraCQLClient.KEYSPACE_PROPERTY_DEFAULT), null, timeout);
+  private static PreparedStatement preparedInsert;
+  private static PreparedStatement preparedSelect;
+  private static PreparedStatement preparedTruncate;
+  private CassandraCQLClient client;
+  private Session session;
 
   @Before
   public void setUp() throws Exception {
@@ -90,9 +89,11 @@ public class CassandraCQLClientTest {
   private void buildStatements() {
     if (preparedInsert == null) {
       Insert insertStmt = QueryBuilder.insertInto(TABLE);
-      insertStmt.value(CassandraCQLClient.YCSB_KEY, QueryBuilder.bindMarker());
-      insertStmt.value("field0", QueryBuilder.bindMarker());
-      insertStmt.value("field1", QueryBuilder.bindMarker());
+      insertStmt.values(new String[] {
+        CassandraCQLClient.YCSB_KEY, "field0", "field1"
+      }, new Object[] {
+        QueryBuilder.bindMarker(), QueryBuilder.bindMarker(), QueryBuilder.bindMarker()
+      });
 
       preparedInsert = session.prepare(insertStmt);
     }
@@ -105,6 +106,11 @@ public class CassandraCQLClientTest {
           .limit(1);
 
       preparedSelect = session.prepare(selectStmt);
+    }
+
+    if (preparedTruncate == null) {
+      Truncate truncate = QueryBuilder.truncate(TABLE);
+      preparedTruncate = session.prepare(truncate);
     }
 
   }
@@ -122,9 +128,8 @@ public class CassandraCQLClientTest {
   @After
   public void clearTable() throws Exception {
     // Clear the table so that each test starts fresh.
-    final Statement truncate = QueryBuilder.truncate(TABLE);
     if (cassandraUnit != null) {
-      cassandraUnit.getSession().execute(truncate);
+      cassandraUnit.getSession().execute(preparedTruncate.bind());
     }
   }
 
@@ -141,7 +146,7 @@ public class CassandraCQLClientTest {
     Object[] valuesWithKey = new Object[1 + values.length];
     valuesWithKey[i++] = DEFAULT_ROW_KEY;
     for (; i <= values.length; i++) {
-      valuesWithKey[i] = values[i-1];
+      valuesWithKey[i] = values[i - 1];
     }
 
     BoundStatement bs = preparedInsert.bind(valuesWithKey);
@@ -183,7 +188,26 @@ public class CassandraCQLClientTest {
   }
 
   @Test
-  public void testUpdate() throws Exception {
+  public void testUpdateOne() throws Exception {
+    final String key = "key";
+    final HashMap<String, String> input = new HashMap<String, String>();
+    input.put("field0", "value1");
+
+    final Status status = client.insert(TABLE, key, StringByteIterator.getByteIteratorMap(input));
+    assertThat(status, is(Status.OK));
+
+    // Verify result
+    final BoundStatement bs = preparedSelect.bind(key);
+
+    final ResultSet rs = session.execute(bs);
+    final Row row = rs.one();
+    assertThat(row, notNullValue());
+    assertThat(rs.isExhausted(), is(true));
+    assertThat(row.getString("field0"), is("value1"));
+  }
+
+  @Test
+  public void testUpdateTwo() throws Exception {
     final String key = "key";
     final Map<String, String> input = new HashMap<String, String>();
     input.put("field0", "value1");
