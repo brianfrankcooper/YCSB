@@ -72,6 +72,7 @@ LICENSE file.
     <hbase094.version>0.94.27</hbase094.version>
     <hbase098.version>0.98.14-hadoop2</hbase098.version>
     <hbase10.version>1.0.2</hbase10.version>
+    <hbase12.version>1.2.5</hbase12.version>
     <accumulo.version>1.6.0</accumulo.version>
     <cassandra.cql.version>3.0.0</cassandra.cql.version>
     <geode.version>1.0.0-incubating.M3</geode.version>
@@ -128,6 +129,7 @@ LICENSE file.
     <module>hbase094</module>
     <module>hbase098</module>
     <module>hbase10</module>
+    <module>hbase12</module>
     <module>hypertable</module>
     <module>infinispan</module>
     <module>jdbc</module>
