@@ -91,6 +91,10 @@ A sample configuration is provided in
   What to do with failures; this is one of `net.spy.memcached.FailureMode` enum
   values, which are currently: `Redistribute`, `Retry`, or `Cancel`.
 
+- `memcached.protocol`
+  Set to 'binary' to use memcached binary protocol. Set to 'text' or omit this field
+  to use memcached text protocol
+
 You can set properties on the command line via `-p`, e.g.:
 
     ./bin/ycsb load memcached -s -P workloads/workloada \

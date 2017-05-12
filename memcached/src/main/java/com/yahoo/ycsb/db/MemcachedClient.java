@@ -98,6 +98,10 @@ public class MemcachedClient extends DB {
   public static final FailureMode FAILURE_MODE_PROPERTY_DEFAULT =
       FailureMode.Redistribute;
 
+  public static final String PROTOCOL_PROPERTY = "memcached.protocol";
+  public static final ConnectionFactoryBuilder.Protocol DEFAULT_PROTOCOL =
+      ConnectionFactoryBuilder.Protocol.TEXT;
+
   /**
    * The MemcachedClient implementation that will be used to communicate
    * with the memcached server.
@@ -141,6 +145,11 @@ public class MemcachedClient extends DB {
 
     connectionFactoryBuilder.setOpTimeout(Integer.parseInt(
         getProperties().getProperty(OP_TIMEOUT_PROPERTY, DEFAULT_OP_TIMEOUT)));
+
+    String protocolString = getProperties().getProperty(PROTOCOL_PROPERTY);
+    connectionFactoryBuilder.setProtocol(
+        protocolString == null ? DEFAULT_PROTOCOL
+                         : ConnectionFactoryBuilder.Protocol.valueOf(protocolString.toUpperCase()));
 
     String failureString = getProperties().getProperty(FAILURE_MODE_PROPERTY);
     connectionFactoryBuilder.setFailureMode(
