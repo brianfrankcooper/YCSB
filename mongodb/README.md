@@ -101,7 +101,7 @@ bin/ycsb run mongodb -jvm-args="-Dlogback.configurationFile=/path/to/logback.xml
 
 ## MongoDB Configuration Parameters
 
-- `mongodb.url`
+- `mongodatabase.url`
   - This should be a MongoDB URI or connection string. 
     - See http://docs.mongodb.org/manual/reference/connection-string/ for the standard options.
     - For the complete set of options for the asynchronous driver see: 
@@ -152,8 +152,8 @@ bin/ycsb run mongodb -jvm-args="-Dlogback.configurationFile=/path/to/logback.xml
 
 For example:
 
-    ./bin/ycsb load mongodb-async -s -P workloads/workloada -p mongodb.url=mongodb://localhost:27017/ycsb?w=0
+    ./bin/ycsb load mongodb-async -s -P workloads/workloada -p mongodatabase.url=mongodb://localhost:27017/ycsb?w=0
 
 To run with the synchronous driver from MongoDB Inc.:
 
-    ./bin/ycsb load mongodb -s -P workloads/workloada -p mongodb.url=mongodb://localhost:27017/ycsb?w=0
+    ./bin/ycsb load mongodb -s -P workloads/workloada -p mongodatabase.url=mongodb://localhost:27017/ycsb?w=0
