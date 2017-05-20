@@ -35,6 +35,12 @@ LICENSE file.
     <tag>master</tag>
     <url>https://github.com/brianfrankcooper/YCSB</url>
   </scm>
+  <repositories>
+    <repository>
+      <id>cloudera</id>
+      <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
+    </repository>
+  </repositories>
   <dependencyManagement>
     <dependencies>
       <dependency>
