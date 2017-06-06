@@ -77,7 +77,7 @@ LICENSE file.
     <cassandra.cql.version>3.0.0</cassandra.cql.version>
     <geode.version>1.0.0-incubating.M3</geode.version>
     <azuredocumentdb.version>1.8.1</azuredocumentdb.version>
-    <googlebigtable.version>0.2.3</googlebigtable.version>
+    <googlebigtable.version>0.9.7</googlebigtable.version>
     <infinispan.version>7.2.2.Final</infinispan.version>
     <kudu.version>1.1.0</kudu.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
