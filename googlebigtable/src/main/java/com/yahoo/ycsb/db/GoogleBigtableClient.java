@@ -34,23 +34,24 @@ import java.util.Vector;
 import java.util.concurrent.ExecutionException;
 
 import com.google.bigtable.repackaged.com.google.protobuf.ByteString;
-import com.google.bigtable.repackaged.com.google.protobuf.ServiceException;
-import com.google.bigtable.v1.Column;
-import com.google.bigtable.v1.Family;
-import com.google.bigtable.v1.MutateRowRequest;
-import com.google.bigtable.v1.Mutation;
-import com.google.bigtable.v1.ReadRowsRequest;
-import com.google.bigtable.v1.Row;
-import com.google.bigtable.v1.RowFilter;
-import com.google.bigtable.v1.RowRange;
-import com.google.bigtable.v1.Mutation.DeleteFromRow;
-import com.google.bigtable.v1.Mutation.SetCell;
-import com.google.bigtable.v1.RowFilter.Chain.Builder;
+import com.google.bigtable.v2.Column;
+import com.google.bigtable.v2.Family;
+import com.google.bigtable.v2.MutateRowRequest;
+import com.google.bigtable.v2.Mutation;
+import com.google.bigtable.v2.ReadRowsRequest;
+import com.google.bigtable.v2.Row;
+import com.google.bigtable.v2.RowFilter;
+import com.google.bigtable.v2.RowRange;
+import com.google.bigtable.v2.RowSet;
+import com.google.bigtable.v2.Mutation.DeleteFromRow;
+import com.google.bigtable.v2.Mutation.SetCell;
+import com.google.bigtable.v2.RowFilter.Chain.Builder;
 import com.google.cloud.bigtable.config.BigtableOptions;
 import com.google.cloud.bigtable.grpc.BigtableDataClient;
 import com.google.cloud.bigtable.grpc.BigtableSession;
+import com.google.cloud.bigtable.grpc.BigtableTableName;
 import com.google.cloud.bigtable.grpc.async.AsyncExecutor;
-import com.google.cloud.bigtable.grpc.async.HeapSizeManager;
+import com.google.cloud.bigtable.grpc.async.BulkMutation;
 import com.google.cloud.bigtable.hbase.BigtableOptionsFactory;
 import com.google.cloud.bigtable.util.ByteStringer;
 import com.yahoo.ycsb.ByteArrayByteIterator;
@@ -89,7 +90,6 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
   
   /** Thread loacal Bigtable native API objects. */
   private BigtableDataClient client;
-  private HeapSizeManager heapSizeManager;
   private AsyncExecutor asyncExecutor;
   
   /** The column family use for the workload. */
@@ -105,13 +105,21 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
    */
   private boolean clientSideBuffering = false;
 
+  private BulkMutation bulkMutation;
+
   @Override
   public void init() throws DBException {
     Properties props = getProperties();
     
     // Defaults the user can override if needed
-    CONFIG.set("google.bigtable.auth.service.account.enable", "true");
-    
+    if (getProperties().containsKey(ASYNC_MUTATOR_MAX_MEMORY)) {
+      CONFIG.set(BigtableOptionsFactory.BIGTABLE_BUFFERED_MUTATOR_MAX_MEMORY_KEY,
+          getProperties().getProperty(ASYNC_MUTATOR_MAX_MEMORY));
+    }
+    if (getProperties().containsKey(ASYNC_MAX_INFLIGHT_RPCS)) {
+      CONFIG.set(BigtableOptionsFactory.BIGTABLE_BULK_MAX_ROW_KEY_COUNT,
+          getProperties().getProperty(ASYNC_MAX_INFLIGHT_RPCS));
+    }
     // make it easy on ourselves by copying all CLI properties into the config object.
     final Iterator<Entry<Object, Object>> it = props.entrySet().iterator();
     while (it.hasNext()) {
@@ -143,14 +151,7 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
       }
       
       if (clientSideBuffering) {
-        heapSizeManager = new HeapSizeManager(
-            Long.parseLong(
-                getProperties().getProperty(ASYNC_MUTATOR_MAX_MEMORY, 
-                    Long.toString(AsyncExecutor.ASYNC_MUTATOR_MAX_MEMORY_DEFAULT))),
-            Integer.parseInt(
-                getProperties().getProperty(ASYNC_MAX_INFLIGHT_RPCS, 
-                    Integer.toString(AsyncExecutor.MAX_INFLIGHT_RPCS_DEFAULT))));
-        asyncExecutor = new AsyncExecutor(client, heapSizeManager);
+        asyncExecutor = session.createAsyncExecutor();
       }
     }
     
@@ -169,6 +170,13 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
   
   @Override
   public void cleanup() throws DBException {
+    if (bulkMutation != null) {
+      try {
+        bulkMutation.flush();
+      } catch(RuntimeException e){
+        throw new DBException(e);
+      }
+    }
     if (asyncExecutor != null) {
       try {
         asyncExecutor.flush();
@@ -226,7 +234,8 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
     final ReadRowsRequest.Builder rrr = ReadRowsRequest.newBuilder()
         .setTableNameBytes(ByteStringer.wrap(lastTableBytes))
         .setFilter(filter)
-        .setRowKey(ByteStringer.wrap(key.getBytes()));
+        .setRows(RowSet.newBuilder()
+          .addRowKeys(ByteStringer.wrap(key.getBytes())));
     
     List<Row> rows;
     try {
@@ -292,13 +301,17 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
     }
     
     final RowRange range = RowRange.newBuilder()
-        .setStartKey(ByteStringer.wrap(startkey.getBytes()))
+        .setStartKeyClosed(ByteStringer.wrap(startkey.getBytes()))
         .build();
-    
+
+    final RowSet rowSet = RowSet.newBuilder()
+        .addRowRanges(range)
+        .build();
+
     final ReadRowsRequest.Builder rrr = ReadRowsRequest.newBuilder()
         .setTableNameBytes(ByteStringer.wrap(lastTableBytes))
         .setFilter(filter)
-        .setRowRange(range);
+        .setRows(rowSet);
     
     List<Row> rows;
     try {
@@ -372,19 +385,14 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
     
     try {
       if (clientSideBuffering) {
-        asyncExecutor.mutateRowAsync(rowMutation.build());
+        bulkMutation.add(rowMutation.build());
       } else {
         client.mutateRow(rowMutation.build());
       }
       return Status.OK;
-    } catch (ServiceException e) {
+    } catch (RuntimeException e) {
       System.err.println("Failed to insert key: " + key + " " + e.getMessage());
       return Status.ERROR;
-    } catch (InterruptedException e) {
-      System.err.println("Interrupted while inserting key: " + key + " " 
-          + e.getMessage());
-      Thread.currentThread().interrupt();
-      return Status.ERROR; // never get here, but lets make the compiler happy
     }
   }
 
@@ -410,19 +418,14 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
     
     try {
       if (clientSideBuffering) {
-        asyncExecutor.mutateRowAsync(rowMutation.build());
+        bulkMutation.add(rowMutation.build());
       } else {
         client.mutateRow(rowMutation.build());
       }
       return Status.OK;
-    } catch (ServiceException e) {
+    } catch (RuntimeException e) {
       System.err.println("Failed to delete key: " + key + " " + e.getMessage());
       return Status.ERROR;
-    } catch (InterruptedException e) {
-      System.err.println("Interrupted while delete key: " + key + " " 
-          + e.getMessage());
-      Thread.currentThread().interrupt();
-      return Status.ERROR; // never get here, but lets make the compiler happy
     }
   }
 
@@ -434,11 +437,18 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
   private void setTable(final String table) {
     if (!lastTable.equals(table)) {
       lastTable = table;
-      lastTableBytes = options
-          .getClusterName()
-          .toTableName(table)
+      BigtableTableName tableName = options
+          .getInstanceName()
+          .toTableName(table);
+      lastTableBytes = tableName
           .toString()
           .getBytes();
+      synchronized(this) {
+        if (bulkMutation != null) {
+          bulkMutation.flush();
+        }
+        bulkMutation = session.createBulkMutation(tableName, asyncExecutor);
+      }
     }
   }
   
