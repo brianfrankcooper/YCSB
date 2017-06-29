@@ -18,6 +18,7 @@
 package com.yahoo.ycsb.db;
 
 import com.google.api.client.auth.oauth2.Credential;
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.datastore.v1.*;
 import com.google.datastore.v1.CommitRequest.Mode;
 import com.google.datastore.v1.ReadOptions.ReadConsistency;
@@ -107,17 +108,8 @@ public class GoogleDatastoreClient extends DB {
 
     String privateKeyFile = getProperties().getProperty(
         "googledatastore.privateKeyFile", null);
-    if (privateKeyFile == null) {
-      throw new DBException(
-          "Required property \"privateKeyFile\" missing.");
-    }
-
     String serviceAccountEmail = getProperties().getProperty(
         "googledatastore.serviceAccountEmail", null);
-    if (serviceAccountEmail == null) {
-      throw new DBException(
-          "Required property \"serviceAccountEmail\" missing.");
-    }
 
     // Below are properties related to benchmarking.
 
@@ -157,11 +149,18 @@ public class GoogleDatastoreClient extends DB {
       // Setup the connection to Google Cloud Datastore with the credentials
       // obtained from the configure.
       DatastoreOptions.Builder options = new DatastoreOptions.Builder();
-      Credential credential = DatastoreHelper.getServiceAccountCredential(
-          serviceAccountEmail, privateKeyFile);
-      logger.info("Using JWT Service Account credential.");
-      logger.info("DatasetID: " + datasetId + ", Service Account Email: " +
-          serviceAccountEmail + ", Private Key File Path: " + privateKeyFile);
+      Credential credential = GoogleCredential.getApplicationDefault();
+      if (serviceAccountEmail != null && privateKeyFile != null) {
+        credential = DatastoreHelper.getServiceAccountCredential(
+            serviceAccountEmail, privateKeyFile);
+        logger.info("Using JWT Service Account credential.");
+        logger.info("DatasetID: " + datasetId + ", Service Account Email: " +
+            serviceAccountEmail + ", Private Key File Path: " + privateKeyFile);
+      } else {
+        logger.info("Using default gcloud credential.");
+        logger.info("DatasetID: " + datasetId
+            + ", Service Account Email: " + ((GoogleCredential) credential).getServiceAccountId());
+      }
 
       datastore = DatastoreFactory.get().create(
           options.credential(credential).projectId(datasetId).build());
