@@ -83,6 +83,8 @@ public class GoogleDatastoreClient extends DB {
 
   private Datastore datastore = null;
 
+  private static boolean skipIndex = true;
+
   /**
    * Initialize any state for this DB. Called once per DB instance; there is
    * one DB instance per client thread.
@@ -92,6 +94,12 @@ public class GoogleDatastoreClient extends DB {
     String debug = getProperties().getProperty("googledatastore.debug", null);
     if (null != debug && "true".equalsIgnoreCase(debug)) {
       logger.setLevel(Level.DEBUG);
+    }
+
+    String skipIndexString = getProperties().getProperty(
+        "googledatastore.skipIndex", null);
+    if (null != skipIndexString && "false".equalsIgnoreCase(skipIndexString)) {
+      skipIndex = false;
     }
 
     // We need the following 3 essential properties to initialize datastore:
@@ -297,7 +305,8 @@ public class GoogleDatastoreClient extends DB {
         entityBuilder.getMutableProperties()
             .put(val.getKey(),
                 Value.newBuilder()
-                .setStringValue(val.getValue().toString()).build());
+                .setStringValue(val.getValue().toString())
+                .setExcludeFromIndexes(skipIndex).build());
       }
       Entity entity = entityBuilder.build();
       logger.debug("entity built as: " + entity.toString());
