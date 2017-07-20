@@ -429,7 +429,11 @@ public class S3Client extends DB {
       // writing the stream to bytes and to results
       int sizeOfFile = (int)objectAndMetadata.getValue().getContentLength();
       byte[] inputStreamToByte = new byte[sizeOfFile];
-      objectData.read(inputStreamToByte, 0, sizeOfFile);
+      int len;
+      int offset = 0;
+      while ((len = objectData.read(inputStreamToByte, offset, sizeOfFile - offset)) > 0) {
+        offset += len;
+      }
       result.put(key, new ByteArrayByteIterator(inputStreamToByte));
       objectData.close();
       objectAndMetadata.getKey().close();
