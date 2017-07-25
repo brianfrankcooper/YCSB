@@ -101,7 +101,7 @@ LICENSE file.
     <arangodb.version>2.7.3</arangodb.version>
     <arangodb3.version>4.1.7</arangodb3.version>
     <azurestorage.version>4.0.0</azurestorage.version>
-    <cloudspanner.version>0.9.3-beta</cloudspanner.version>
+    <cloudspanner.version>0.20.3-beta</cloudspanner.version>
   </properties>
 
   <modules>
