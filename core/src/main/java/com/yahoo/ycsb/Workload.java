@@ -43,6 +43,15 @@ public abstract class Workload {
   
   private volatile AtomicBoolean stopRequested = new AtomicBoolean(false);
   
+  /** Operations available for a database. */
+  public enum Operation {
+    READ,
+    UPDATE,
+    INSERT,
+    SCAN,
+    DELETE
+  }
+  
   /**
    * Initialize the scenario. Create any generators and other shared objects here.
    * Called once, in the main client thread, before any operations are started.
