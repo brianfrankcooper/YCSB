@@ -18,6 +18,7 @@
 package com.yahoo.ycsb;
 
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
@@ -26,6 +27,9 @@ import java.util.concurrent.locks.LockSupport;
  * Basic DB that just prints out the requested operations, instead of doing them against a database.
  */
 public class BasicDB extends DB {
+  public static final String COUNT = "basicdb.count";
+  public static final String COUNT_DEFAULT = "false";
+  
   public static final String VERBOSE = "basicdb.verbose";
   public static final String VERBOSE_DEFAULT = "true";
 
@@ -35,9 +39,18 @@ public class BasicDB extends DB {
   public static final String RANDOMIZE_DELAY = "basicdb.randomizedelay";
   public static final String RANDOMIZE_DELAY_DEFAULT = "true";
 
+  protected static final Object MUTEX = new Object();
+  protected static int counter = 0;
+  protected static Map<Integer, Integer> reads;
+  protected static Map<Integer, Integer> scans;
+  protected static Map<Integer, Integer> updates;
+  protected static Map<Integer, Integer> inserts;
+  protected static Map<Integer, Integer> deletes;
+  
   private boolean verbose;
   private boolean randomizedelay;
   private int todelay;
+  protected boolean count;
 
   public BasicDB() {
     todelay = 0;
@@ -66,11 +79,11 @@ public class BasicDB extends DB {
    * Initialize any state for this DB.
    * Called once per DB instance; there is one DB instance per client thread.
    */
-  @SuppressWarnings("unchecked")
   public void init() {
     verbose = Boolean.parseBoolean(getProperties().getProperty(VERBOSE, VERBOSE_DEFAULT));
     todelay = Integer.parseInt(getProperties().getProperty(SIMULATE_DELAY, SIMULATE_DELAY_DEFAULT));
     randomizedelay = Boolean.parseBoolean(getProperties().getProperty(RANDOMIZE_DELAY, RANDOMIZE_DELAY_DEFAULT));
+    count = Boolean.parseBoolean(getProperties().getProperty(COUNT, COUNT_DEFAULT));
     if (verbose) {
       synchronized (System.out) {
         System.out.println("***************** properties *****************");
@@ -83,6 +96,17 @@ public class BasicDB extends DB {
         }
         System.out.println("**********************************************");
       }
+    }
+    
+    synchronized (MUTEX) {
+      if (counter == 0 && count) {
+        reads = new HashMap<Integer, Integer>();
+        scans = new HashMap<Integer, Integer>();
+        updates = new HashMap<Integer, Integer>();
+        inserts = new HashMap<Integer, Integer>();
+        deletes = new HashMap<Integer, Integer>();
+      }
+      counter++;
     }
   }
 
@@ -126,6 +150,10 @@ public class BasicDB extends DB {
       System.out.println(sb);
     }
 
+    if (count) {
+      incCounter(reads, hash(table, key, fields));
+    }
+    
     return Status.OK;
   }
 
@@ -158,6 +186,10 @@ public class BasicDB extends DB {
       sb.append("]");
       System.out.println(sb);
     }
+    
+    if (count) {
+      incCounter(scans, hash(table, startkey, fields));
+    }
 
     return Status.OK;
   }
@@ -186,6 +218,10 @@ public class BasicDB extends DB {
       System.out.println(sb);
     }
 
+    if (count) {
+      incCounter(updates, hash(table, key, values));
+    }
+    
     return Status.OK;
   }
 
@@ -214,6 +250,10 @@ public class BasicDB extends DB {
       System.out.println(sb);
     }
 
+    if (count) {
+      incCounter(inserts, hash(table, key, values));
+    }
+    
     return Status.OK;
   }
 
@@ -234,9 +274,94 @@ public class BasicDB extends DB {
       System.out.println(sb);
     }
 
+    if (count) {
+      incCounter(deletes, (table + key).hashCode());
+    }
+    
     return Status.OK;
   }
 
+  @Override
+  public void cleanup() {
+    synchronized (MUTEX) {
+      int countDown = --counter;
+      if (count && countDown < 1) {
+        // TODO - would be nice to call something like: 
+        // Measurements.getMeasurements().oneOffMeasurement("READS", "Uniques", reads.size());
+        System.out.println("[READS], Uniques, " + reads.size());
+        System.out.println("[SCANS], Uniques, " + scans.size());
+        System.out.println("[UPDATES], Uniques, " + updates.size());
+        System.out.println("[INSERTS], Uniques, " + inserts.size());
+        System.out.println("[DELETES], Uniques, " + deletes.size());
+      }
+    }
+  }
+  
+  /**
+   * Increments the count on the hash in the map.
+   * @param map A non-null map to sync and use for incrementing.
+   * @param hash A hash code to increment.
+   */
+  protected void incCounter(final Map<Integer, Integer> map, final int hash) {
+    synchronized (map) {
+      Integer ctr = map.get(hash);
+      if (ctr == null) {
+        map.put(hash, 1);
+      } else {
+        map.put(hash, ctr + 1);
+      }
+    }
+  }
+  
+  /**
+   * Hashes the table, key and fields, sorting the fields first for a consistent
+   * hash.
+   * Note that this is expensive as we generate a copy of the fields and a string
+   * buffer to hash on. Hashing on the objects is problematic.
+   * @param table The user table.
+   * @param key The key read or scanned.
+   * @param fields The fields read or scanned.
+   * @return The hash code.
+   */
+  protected int hash(final String table, final String key, final Set<String> fields) {
+    if (fields == null) {
+      return (table + key).hashCode();
+    }
+    StringBuilder buf = getStringBuilder().append(table).append(key);
+    List<String> sorted = new ArrayList<String>(fields);
+    Collections.sort(sorted);
+    for (final String field : sorted) {
+      buf.append(field);
+    }
+    return buf.toString().hashCode();
+  }
+  
+  /**
+   * Hashes the table, key and fields, sorting the fields first for a consistent
+   * hash.
+   * Note that this is expensive as we generate a copy of the fields and a string
+   * buffer to hash on. Hashing on the objects is problematic.
+   * @param table The user table.
+   * @param key The key read or scanned.
+   * @param values The values to hash on.
+   * @return The hash code.
+   */
+  protected int hash(final String table, final String key, final Map<String, ByteIterator> values) {
+    if (values == null) {
+      return (table + key).hashCode();
+    }
+    final TreeMap<String, ByteIterator> sorted = 
+        new TreeMap<String, ByteIterator>(values);
+    
+    StringBuilder buf = getStringBuilder().append(table).append(key);
+    for (final Entry<String, ByteIterator> entry : sorted.entrySet()) {
+      entry.getValue().reset();
+      buf.append(entry.getKey())
+         .append(entry.getValue().toString());
+    }
+    return buf.toString().hashCode();
+  }
+  
   /**
    * Short test of BasicDB
    */
