@@ -96,6 +96,11 @@ public class StringByteIterator extends ByteIterator {
     return str.length() - off;
   }
 
+  @Override
+  public void reset() {
+    off = 0;
+  }
+  
   /**
    * Specialization of general purpose toString() to avoid unnecessary
    * copies.

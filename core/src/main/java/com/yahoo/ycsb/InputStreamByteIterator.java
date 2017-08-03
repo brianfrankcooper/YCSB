@@ -16,6 +16,7 @@
  */
 package com.yahoo.ycsb;
 
+import java.io.IOException;
 import java.io.InputStream;
 
 /**
@@ -25,11 +26,16 @@ public class InputStreamByteIterator extends ByteIterator {
   private long len;
   private InputStream ins;
   private long off;
+  private final boolean resetable;
 
   public InputStreamByteIterator(InputStream ins, long len) {
     this.len = len;
     this.ins = ins;
     off = 0;
+    resetable = ins.markSupported();
+    if (resetable) {
+      ins.mark((int) len);
+    }
   }
 
   @Override
@@ -57,4 +63,17 @@ public class InputStreamByteIterator extends ByteIterator {
     return len - off;
   }
 
+  @Override
+  public void reset() {
+    if (resetable) {
+      try {
+        ins.reset();
+        ins.mark((int) len);
+      } catch (IOException e) {
+        throw new IllegalStateException("Failed to reset the input stream", e);
+      }
+    }
+    throw new UnsupportedOperationException();
+  }
+  
 }
