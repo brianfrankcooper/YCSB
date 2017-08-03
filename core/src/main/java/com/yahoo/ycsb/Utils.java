@@ -226,4 +226,19 @@ public final class Utils {
     }
     return map;
   }
+
+  /**
+   * Simple Fisher-Yates array shuffle to randomize discrete sets.
+   * @param array The array to randomly shuffle.
+   * @return The shuffled array.
+   */
+  public static <T> T [] shuffleArray(final T[] array) {
+    for (int i = array.length -1; i > 0; i--) {
+      final int idx = RAND.nextInt(i + 1);
+      final T temp = array[idx];
+      array[idx] = array[i];
+      array[i] = temp;
+    }
+    return array;
+  }
 }
