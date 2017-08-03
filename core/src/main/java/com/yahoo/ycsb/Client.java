@@ -405,6 +405,14 @@ class ClientThread implements Runnable {
     this.completeLatch = completeLatch;
   }
 
+  public void setThreadId(final int threadId) {
+    threadid = threadId;
+  }
+  
+  public void setThreadCount(final int threadCount) {
+    threadcount = threadCount;
+  }
+  
   public int getOpsDone() {
     return opsdone;
   }
@@ -877,7 +885,8 @@ public final class Client {
 
         ClientThread t = new ClientThread(db, dotransactions, workload, props, threadopcount, targetperthreadperms,
             completeLatch);
-
+        t.setThreadId(threadid);
+        t.setThreadCount(threadcount);
         clients.add(t);
       }
 
