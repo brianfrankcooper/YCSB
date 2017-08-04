@@ -40,9 +40,9 @@ Start a locator and two servers:
 
 ```
 gfsh> start locator --name=locator1
+gfsh> configure pdx --read-serialized=true
 gfsh> start server --name=server1 --server-port=40404
 gfsh> start server --name=server2 --server-port=40405
-gfsh> configure pdx --read-serialized=true
 ```
 
 Create the "usertable" region required by YCSB driver:

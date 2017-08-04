@@ -17,16 +17,16 @@
 
 package com.yahoo.ycsb.db;
 
-import com.gemstone.gemfire.cache.*;
-import com.gemstone.gemfire.cache.client.ClientCache;
-import com.gemstone.gemfire.cache.client.ClientCacheFactory;
-import com.gemstone.gemfire.cache.client.ClientRegionFactory;
-import com.gemstone.gemfire.cache.client.ClientRegionShortcut;
-import com.gemstone.gemfire.internal.admin.remote.DistributionLocatorId;
-import com.gemstone.gemfire.internal.cache.GemFireCacheImpl;
-import com.gemstone.gemfire.pdx.JSONFormatter;
-import com.gemstone.gemfire.pdx.PdxInstance;
-import com.gemstone.gemfire.pdx.PdxInstanceFactory;
+import org.apache.geode.cache.*;
+import org.apache.geode.cache.client.ClientCache;
+import org.apache.geode.cache.client.ClientCacheFactory;
+import org.apache.geode.cache.client.ClientRegionFactory;
+import org.apache.geode.cache.client.ClientRegionShortcut;
+import org.apache.geode.internal.admin.remote.DistributionLocatorId;
+import org.apache.geode.internal.cache.GemFireCacheImpl;
+import org.apache.geode.pdx.JSONFormatter;
+import org.apache.geode.pdx.PdxInstance;
+import org.apache.geode.pdx.PdxInstanceFactory;
 import com.yahoo.ycsb.*;
 
 import java.util.*;
@@ -125,6 +125,7 @@ public class GeodeClient extends DB {
       locator = new DistributionLocatorId(locatorStr);
     }
     ClientCacheFactory ccf = new ClientCacheFactory();
+    ccf.setPdxReadSerialized(true);
     if (serverPort != 0) {
       ccf.addPoolServer(serverHost, serverPort);
     } else if (locator != null) {
