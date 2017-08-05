@@ -17,29 +17,29 @@
 
 package com.yahoo.ycsb.generator;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Generates a sequence of integers.
  * (0, 1, ...)
  */
 public class CounterGenerator extends NumberGenerator {
-  private final AtomicInteger counter;
+  private final AtomicLong counter;
 
   /**
    * Create a counter that starts at countstart.
    */
-  public CounterGenerator(int countstart) {
-    counter = new AtomicInteger(countstart);
+  public CounterGenerator(long countstart) {
+    counter = new AtomicLong(countstart);
   }
 
   @Override
-  public Integer nextValue() {
+  public Long nextValue() {
     return counter.getAndIncrement();
   }
 
   @Override
-  public Integer lastValue() {
+  public Long lastValue() {
     return counter.get() - 1;
   }
 

@@ -1,6 +1,8 @@
 /**
  * Copyright (c) 2016 YCSB contributors. All rights reserved.
  * <p>
+ * Copyright (c) 2016-2017 YCSB contributors. All rights reserved.
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
  * may obtain a copy of the License at
@@ -171,7 +173,7 @@ public class RestWorkload extends CoreWorkload {
       keychooser = new ExponentialGenerator(percentile, recordCount * frac);
       break;
     case "uniform":
-      keychooser = new UniformIntegerGenerator(0, recordCount - 1);
+      keychooser = new UniformLongGenerator(0, recordCount - 1);
       break;
     case "zipfian":
       keychooser = new ZipfianGenerator(recordCount, zipfContant);
