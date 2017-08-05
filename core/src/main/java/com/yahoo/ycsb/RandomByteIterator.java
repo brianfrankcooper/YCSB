@@ -93,4 +93,10 @@ public class RandomByteIterator extends ByteIterator {
   public long bytesLeft() {
     return len - off - bufOff;
   }
+
+  @Override
+  public void reset() {
+    off = 0;
+  }
+  
 }

@@ -20,6 +20,7 @@ package com.yahoo.ycsb;
  *  A ByteIterator that iterates through a byte array.
  */
 public class ByteArrayByteIterator extends ByteIterator {
+  private final int originalOffset;
   private byte[] str;
   private int off;
   private final int len;
@@ -28,12 +29,14 @@ public class ByteArrayByteIterator extends ByteIterator {
     this.str = s;
     this.off = 0;
     this.len = s.length;
+    originalOffset = 0;
   }
 
   public ByteArrayByteIterator(byte[] s, int off, int len) {
     this.str = s;
     this.off = off;
     this.len = off + len;
+    originalOffset = off;
   }
 
   @Override
@@ -53,4 +56,9 @@ public class ByteArrayByteIterator extends ByteIterator {
     return len - off;
   }
 
+  @Override
+  public void reset() {
+    off = originalOffset;
+  }
+  
 }
