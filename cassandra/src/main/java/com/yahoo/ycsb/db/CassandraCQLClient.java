@@ -384,7 +384,7 @@ public class CassandraCQLClient extends DB {
       final BoundStatement bs = ps.bind(key);
 
       if (debug) {
-        System.out.println(bs.preparedStatement().getQueryString());
+        System.out.println(">> " + getBoundQuery(bs));
       }
       if (trace) {
         bs.enableTracing();
@@ -415,6 +415,19 @@ public class CassandraCQLClient extends DB {
 
   }
 
+  private static String getBoundQuery(BoundStatement bs) {
+    String q = bs.preparedStatement().getQueryString();
+    ColumnDefinitions variables = bs.preparedStatement().getVariables();
+    int index = 0;
+    for (ColumnDefinitions.Definition variable : variables) {
+      DataType type = variable.getType();
+      Object value = bs.getObject(index++);
+      // Should check type in order to see if need to quote string values
+      q = q.replaceFirst("\\?", String.valueOf(value));
+    }
+    return q;
+  }
+
   /**
    * Perform a range scan for a set of records in the database. Each field/value
    * pair from the result will be stored in a HashMap.
@@ -439,9 +452,9 @@ public class CassandraCQLClient extends DB {
   public Status scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
 
-    try {
-      PreparedStatement ps;
+    PreparedStatement ps = null;
 
+    try {
       if (readallfields || fields == null) {
         ps = scanStatement;
       } else if (fields.size() == 1) {
@@ -465,10 +478,12 @@ public class CassandraCQLClient extends DB {
         ps = possibleStatements.get(statementHash);
       }
 
-      final BoundStatement bs = ps.bind(startkey, recordcount);
+      final BoundStatement bs = ps.bind(
+        QueryBuilder.token(QueryBuilder.quote(startkey)),
+        recordcount);
 
       if (debug) {
-        System.out.println(bs.preparedStatement().getQueryString());
+        System.out.println(">> " + getBoundQuery(bs));
       }
       if (trace) {
         bs.enableTracing();
@@ -495,7 +510,7 @@ public class CassandraCQLClient extends DB {
 
     } catch (Exception e) {
       e.printStackTrace();
-      System.out.println("Error scanning with startkey: " + startkey);
+      System.err.println("Error scanning with startkey: " + startkey);
       return Status.ERROR;
     }
 
@@ -560,7 +575,7 @@ public class CassandraCQLClient extends DB {
                insertStatement).bind(vals);
 
       if (debug) {
-        System.out.println(bs.preparedStatement().getQueryString());
+        System.out.println(">> " + getBoundQuery(bs));
       }
       if (trace) {
         bs.enableTracing();
@@ -590,15 +605,15 @@ public class CassandraCQLClient extends DB {
 
     try {
 
+      BoundStatement bs = deleteStatement.bind(key);
       if (debug) {
-        System.out.println(deleteStatement.getQueryString());
+        System.out.println(">> " + getBoundQuery(bs));
       }
       if (trace) {
         deleteStatement.enableTracing();
       }
-      
-      session.execute(deleteStatement.bind(key));
 
+      session.execute(bs);
       return Status.OK;
     } catch (Exception e) {
       e.printStackTrace();
