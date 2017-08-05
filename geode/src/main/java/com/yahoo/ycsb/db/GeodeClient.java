@@ -131,6 +131,7 @@ public class GeodeClient extends DB {
     } else if (locator != null) {
       ccf.addPoolLocator(locator.getHost().getCanonicalHostName(), locator.getPort());
     }
+    ccf.setPdxReadSerialized(true);
     cache = ccf.create();
   }
 
