@@ -82,7 +82,7 @@ public class JdbcDBClient extends DB {
   /** The field name prefix in the table. */
   public static final String COLUMN_PREFIX = "FIELD";
 
-  private ArrayList<Connection> conns;
+  private List<Connection> conns;
   private boolean initialized = false;
   private Properties props;
   private int jdbcFetchSize;
@@ -312,7 +312,7 @@ public class JdbcDBClient extends DB {
   }
 
   @Override
-  public Status read(String tableName, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+  public Status read(String tableName, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try {
       StatementType type = new StatementType(StatementType.Type.READ, tableName, 1, "", getShardIndexByKey(key));
       PreparedStatement readStatement = cachedStatements.get(type);
@@ -370,7 +370,7 @@ public class JdbcDBClient extends DB {
   }
 
   @Override
-  public Status update(String tableName, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String tableName, String key, Map<String, ByteIterator> values) {
     try {
       int numFields = values.size();
       OrderedFieldInfo fieldInfo = getFieldInfo(values);
@@ -397,7 +397,7 @@ public class JdbcDBClient extends DB {
   }
 
   @Override
-  public Status insert(String tableName, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String tableName, String key, Map<String, ByteIterator> values) {
     try {
       int numFields = values.size();
       OrderedFieldInfo fieldInfo = getFieldInfo(values);
@@ -483,7 +483,7 @@ public class JdbcDBClient extends DB {
     }
   }
 
-  private OrderedFieldInfo getFieldInfo(HashMap<String, ByteIterator> values) {
+  private OrderedFieldInfo getFieldInfo(Map<String, ByteIterator> values) {
     String fieldKeys = "";
     List<String> fieldValues = new ArrayList<>();
     int count = 0;

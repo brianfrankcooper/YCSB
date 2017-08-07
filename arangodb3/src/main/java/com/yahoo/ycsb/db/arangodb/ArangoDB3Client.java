@@ -175,7 +175,7 @@ public class ArangoDB3Client extends DB {
    *     {@link DB} class's description for a discussion of error codes.
    */
   @Override
-  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
       BaseDocument toInsert = new BaseDocument(key);
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
@@ -205,7 +205,7 @@ public class ArangoDB3Client extends DB {
    * @return Zero on success, a non-zero error code on error or "not found".
    */
   @Override
-  public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try {
       VPackSlice document = arangoDB.db(databaseName).collection(table).getDocument(key, VPackSlice.class, null);
       if (!this.fillMap(result, document, fields)) {
@@ -233,7 +233,7 @@ public class ArangoDB3Client extends DB {
    *     description for a discussion of error codes.
    */
   @Override
-  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
     try {
       if (!transactionUpdate) {
         BaseDocument updateDoc = new BaseDocument();
@@ -414,7 +414,7 @@ public class ArangoDB3Client extends DB {
     return new StringByteIterator(content);
   }
   
-  private String mapToJson(HashMap<String, ByteIterator> values) {
+  private String mapToJson(Map<String, ByteIterator> values) {
     VPackBuilder builder = new VPackBuilder().add(ValueType.OBJECT);
     for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
       builder.add(entry.getKey(), byteIteratorToString(entry.getValue()));

@@ -180,7 +180,7 @@ public class CouchbaseClient extends DB {
 
   @Override
   public Status read(final String table, final String key, final Set<String> fields,
-                     final HashMap<String, ByteIterator> result) {
+                     final Map<String, ByteIterator> result) {
     String formattedKey = formatKey(table, key);
 
     try {
@@ -225,7 +225,7 @@ public class CouchbaseClient extends DB {
   }
 
   @Override
-  public Status update(final String table, final String key, final HashMap<String, ByteIterator> values) {
+  public Status update(final String table, final String key, final Map<String, ByteIterator> values) {
     String formattedKey = formatKey(table, key);
 
     try {
@@ -240,7 +240,7 @@ public class CouchbaseClient extends DB {
   }
 
   @Override
-  public Status insert(final String table, final String key, final HashMap<String, ByteIterator> values) {
+  public Status insert(final String table, final String key, final Map<String, ByteIterator> values) {
     String formattedKey = formatKey(table, key);
 
     try {
@@ -301,7 +301,7 @@ public class CouchbaseClient extends DB {
    * @param fields the fields to check.
    * @param dest the result passed back to the ycsb core.
    */
-  private void decode(final Object source, final Set<String> fields, final HashMap<String, ByteIterator> dest) {
+  private void decode(final Object source, final Set<String> fields, final Map<String, ByteIterator> dest) {
     if (useJson) {
       try {
         JsonNode json = JSON_MAPPER.readTree((String) source);
@@ -321,7 +321,7 @@ public class CouchbaseClient extends DB {
         throw new RuntimeException("Could not decode JSON");
       }
     } else {
-      HashMap<String, String> converted = (HashMap<String, String>) source;
+      Map<String, String> converted = (HashMap<String, String>) source;
       for (Map.Entry<String, String> entry : converted.entrySet()) {
         dest.put(entry.getKey(), new StringByteIterator(entry.getValue()));
       }
@@ -334,8 +334,8 @@ public class CouchbaseClient extends DB {
    * @param source the source value.
    * @return the storable object.
    */
-  private Object encode(final HashMap<String, ByteIterator> source) {
-    HashMap<String, String> stringMap = StringByteIterator.getStringMap(source);
+  private Object encode(final Map<String, ByteIterator> source) {
+    Map<String, String> stringMap = StringByteIterator.getStringMap(source);
     if (!useJson) {
       return stringMap;
     }

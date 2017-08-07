@@ -18,6 +18,7 @@
 package com.yahoo.ycsb;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
@@ -85,7 +86,7 @@ public abstract class DB {
    * @param result A HashMap of field/value pairs for the result
    * @return The result of the operation.
    */
-  public abstract Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result);
+  public abstract Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result);
 
   /**
    * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored
@@ -110,7 +111,7 @@ public abstract class DB {
    * @param values A HashMap of field/value pairs to update in the record
    * @return The result of the operation.
    */
-  public abstract Status update(String table, String key, HashMap<String, ByteIterator> values);
+  public abstract Status update(String table, String key, Map<String, ByteIterator> values);
 
   /**
    * Insert a record in the database. Any field/value pairs in the specified values HashMap will be written into the
@@ -121,7 +122,7 @@ public abstract class DB {
    * @param values A HashMap of field/value pairs to insert in the record
    * @return The result of the operation.
    */
-  public abstract Status insert(String table, String key, HashMap<String, ByteIterator> values);
+  public abstract Status insert(String table, String key, Map<String, ByteIterator> values);
 
   /**
    * Delete a record from the database.

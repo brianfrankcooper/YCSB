@@ -23,6 +23,7 @@ import com.microsoft.azure.documentdb.DocumentCollection;
 import com.microsoft.azure.documentdb.FeedOptions;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Vector;
@@ -74,7 +75,7 @@ public class AzureDocumentDBClient extends DB {
 
   @Override
   public Status read(String table, String key, Set<String> fields,
-                     HashMap<String, ByteIterator> result) {
+                     Map<String, ByteIterator> result) {
     Document record = getDocumentById(table, key);
 
     if (record != null) {
@@ -95,7 +96,7 @@ public class AzureDocumentDBClient extends DB {
 
   @Override
   public Status update(String table, String key,
-                       HashMap<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     Document record = getDocumentById(table, key);
 
     if (record == null) {
@@ -120,7 +121,7 @@ public class AzureDocumentDBClient extends DB {
 
   @Override
   public Status insert(String table, String key,
-                       HashMap<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     Document record = new Document();
 
     record.set("id", key);

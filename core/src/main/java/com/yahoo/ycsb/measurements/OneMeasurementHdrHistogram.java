@@ -19,6 +19,7 @@ package com.yahoo.ycsb.measurements;
 
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 import org.HdrHistogram.Histogram;
+import org.HdrHistogram.HistogramIterationValue;
 import org.HdrHistogram.HistogramLogWriter;
 import org.HdrHistogram.Recorder;
 
@@ -112,6 +113,18 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
     }
 
     exportStatusCounts(exporter);
+
+    // also export totalHistogram
+    for (HistogramIterationValue v : totalHistogram.recordedValues()) {
+      int value;
+      if (v.getValueIteratedTo() > (long)Integer.MAX_VALUE) {
+        value = Integer.MAX_VALUE;
+      } else {
+        value = (int)v.getValueIteratedTo();
+      }
+
+      exporter.write(getName(), Integer.toString(value), (double)v.getCountAtValueIteratedTo());
+    }
   }
 
   /**

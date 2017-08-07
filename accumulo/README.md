@@ -36,7 +36,42 @@ Git clone YCSB and compile:
     cd YCSB
     mvn -pl com.yahoo.ycsb:aerospike-binding -am clean package
 
-### 3. Load Data and Run Tests
+### 3. Create the Accumulo table
+
+By default, YCSB uses a table with the name "usertable". Users must create this table before loading
+data into Accumulo. For maximum Accumulo performance, the Accumulo table must be pre-split. A simple
+Ruby script, based on the HBase README, can generate adequate split-point. 10's of Tablets per
+TabletServer is a good starting point. Unless otherwise specified, the following commands should run
+on any version of Accumulo.
+
+    $ echo 'num_splits = 20; puts (1..num_splits).map {|i| "user#{1000+i*(9999-1000)/num_splits}"}' | ruby > /tmp/splits.txt
+    $ accumulo shell -u <user> -p <password> -e "createtable usertable"
+    $ accumulo shell -u <user> -p <password> -e "addsplits -t usertable -sf /tmp/splits.txt"
+    $ accumulo shell -u <user> -p <password> -e "config -t usertable -s table.cache.block.enable=true"
+
+Additionally, there are some other configuration properties which can increase performance. These
+can be set on the Accumulo table via the shell after it is created. Setting the table durability
+to `flush` relaxes the constraints on data durability during hard power-outages (avoids calls
+to fsync). Accumulo defaults table compression to `gzip` which is not particularly fast; `snappy`
+is a faster and similarly-efficient option. The mutation queue property controls how many writes
+that Accumulo will buffer in memory before performing a flush; this property should be set relative
+to the amount of JVM heap the TabletServers are given.
+
+Please note that the `table.durability` and `tserver.total.mutation.queue.max` properties only
+exists for >=Accumulo-1.7. There are no concise replacements for these properties in earlier versions.
+
+    accumulo> config -s table.durability=flush
+    accumulo> config -s tserver.total.mutation.queue.max=256M
+    accumulo> config -t usertable -s table.file.compress.type=snappy
+
+On repeated data loads, the following commands may be helpful to re-set the state of the table quickly.
+
+    accumulo> createtable tmp --copy-splits usertable --copy-config usertable
+    accumulo> deletetable --force usertable
+    accumulo> renametable tmp usertable
+    accumulo> compact --wait -t accumulo.metadata
+
+### 4. Load Data and Run Tests
 
 Load the data:
 

@@ -110,7 +110,7 @@ public class ElasticsearchRestClient extends DB {
   }
   
   @Override
-  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
       Map<String, String> data = StringByteIterator.getStringMap(values);
 
@@ -142,7 +142,7 @@ public class ElasticsearchRestClient extends DB {
   }
 
   @Override
-  public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try {
       Response response = restClient.performRequest(HttpGet.METHOD_NAME, "/");
 
@@ -178,7 +178,7 @@ public class ElasticsearchRestClient extends DB {
   }
 
   @Override
-  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
 //    try {
 //      final GetResponse response = client.prepareGet(indexKey, table, key).execute().actionGet();
 //

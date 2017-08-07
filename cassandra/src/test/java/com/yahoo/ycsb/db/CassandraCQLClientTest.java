@@ -157,7 +157,7 @@ public class CassandraCQLClientTest {
   @Test
   public void testUpdate() throws Exception {
     final String key = "key";
-    final HashMap<String, String> input = new HashMap<String, String>();
+    final Map<String, String> input = new HashMap<String, String>();
     input.put("field0", "value1");
     input.put("field1", "value2");
 

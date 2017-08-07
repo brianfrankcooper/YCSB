@@ -47,6 +47,7 @@ import org.junit.Test;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
@@ -173,7 +174,7 @@ public class HBaseClient10Test {
 
     assertEquals(5, result.size());
     for(int i = 0; i < 5; i++) {
-      final HashMap<String, ByteIterator> row = result.get(i);
+      final Map<String, ByteIterator> row = result.get(i);
       assertEquals(1, row.size());
       assertTrue(row.containsKey(colStr));
       final byte[] bytes = row.get(colStr).toArray();
@@ -186,7 +187,7 @@ public class HBaseClient10Test {
   @Test
   public void testUpdate() throws Exception{
     final String key = "key";
-    final HashMap<String, String> input = new HashMap<String, String>();
+    final Map<String, String> input = new HashMap<String, String>();
     input.put("column1", "value1");
     input.put("column2", "value2");
     final Status status = client.insert(tableName, key, StringByteIterator.getByteIteratorMap(input));

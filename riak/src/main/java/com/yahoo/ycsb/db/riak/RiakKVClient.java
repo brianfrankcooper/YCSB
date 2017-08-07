@@ -228,7 +228,7 @@ public class RiakKVClient extends DB {
    * @return Zero on success, a non-zero error code on error
    */
   @Override
-  public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     Location location = new Location(new Namespace(bucketType, table), key);
     FetchValue fv = new FetchValue.Builder(location).withOption(FetchValue.Option.R, rvalue).build();
     FetchValue.Response response;
@@ -258,8 +258,9 @@ public class RiakKVClient extends DB {
     }
 
     // Create the result HashMap.
-    createResultHashMap(fields, response, result);
-
+    HashMap<String, ByteIterator> partialResult = new HashMap<>();
+    createResultHashMap(fields, response, partialResult);
+    result.putAll(partialResult);
     return Status.OK;
   }
 
@@ -403,7 +404,7 @@ public class RiakKVClient extends DB {
    * @return Zero on success, a non-zero error code on error
    */
   @Override
-  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     Location location = new Location(new Namespace(bucketType, table), key);
     RiakObject object = new RiakObject();
 
@@ -492,7 +493,7 @@ public class RiakKVClient extends DB {
    * @return Zero on success, a non-zero error code on error
    */
   @Override
-  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
     // If eventual consistency model is in use, then an update operation is pratically equivalent to an insert one.
     if (!strongConsistency) {
       return insert(table, key, values);

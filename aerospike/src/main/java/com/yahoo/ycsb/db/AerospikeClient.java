@@ -57,7 +57,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
   @Override
   public void init() throws DBException {
     insertPolicy.recordExistsAction = RecordExistsAction.CREATE_ONLY;
-    updatePolicy.recordExistsAction = RecordExistsAction.UPDATE_ONLY;
+    updatePolicy.recordExistsAction = RecordExistsAction.REPLACE_ONLY;
 
     Properties props = getProperties();
 
@@ -98,7 +98,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
 
   @Override
   public Status read(String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
+      Map<String, ByteIterator> result) {
     try {
       Record record;
 
@@ -134,7 +134,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
   }
 
   private Status write(String table, String key, WritePolicy writePolicy,
-      HashMap<String, ByteIterator> values) {
+      Map<String, ByteIterator> values) {
     Bin[] bins = new Bin[values.size()];
     int index = 0;
 
@@ -156,13 +156,13 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
 
   @Override
   public Status update(String table, String key,
-      HashMap<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     return write(table, key, updatePolicy, values);
   }
 
   @Override
   public Status insert(String table, String key,
-      HashMap<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     return write(table, key, insertPolicy, values);
   }
 

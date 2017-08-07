@@ -241,7 +241,7 @@ public class Couchbase2Client extends DB {
 
   @Override
   public Status read(final String table, final String key, Set<String> fields,
-      final HashMap<String, ByteIterator> result) {
+                     final Map<String, ByteIterator> result) {
     try {
       String docId = formatId(table, key);
       if (kv) {
@@ -256,14 +256,14 @@ public class Couchbase2Client extends DB {
   }
 
   /**
-   * Performs the {@link #read(String, String, Set, HashMap)} operation via Key/Value ("get").
+   * Performs the {@link #read(String, String, Set, Map)} operation via Key/Value ("get").
    *
    * @param docId the document ID
    * @param fields the fields to be loaded
    * @param result the result map where the doc needs to be converted into
    * @return The result of the operation.
    */
-  private Status readKv(final String docId, final Set<String> fields, final HashMap<String, ByteIterator> result)
+  private Status readKv(final String docId, final Set<String> fields, final Map<String, ByteIterator> result)
     throws Exception {
     RawJsonDocument loaded = bucket.get(docId, RawJsonDocument.class);
     if (loaded == null) {
@@ -274,7 +274,7 @@ public class Couchbase2Client extends DB {
   }
 
   /**
-   * Performs the {@link #read(String, String, Set, HashMap)} operation via N1QL ("SELECT").
+   * Performs the {@link #read(String, String, Set, Map)} operation via N1QL ("SELECT").
    *
    * If this option should be used, the "-p couchbase.kv=false" property must be set.
    *
@@ -283,7 +283,7 @@ public class Couchbase2Client extends DB {
    * @param result the result map where the doc needs to be converted into
    * @return The result of the operation.
    */
-  private Status readN1ql(final String docId, Set<String> fields, final HashMap<String, ByteIterator> result)
+  private Status readN1ql(final String docId, Set<String> fields, final Map<String, ByteIterator> result)
     throws Exception {
     String readQuery = "SELECT " + joinFields(fields) + " FROM `" + bucketName + "` USE KEYS [$1]";
     N1qlQueryResult queryResult = bucket.query(N1qlQuery.parameterized(
@@ -319,7 +319,7 @@ public class Couchbase2Client extends DB {
   }
 
   @Override
-  public Status update(final String table, final String key, final HashMap<String, ByteIterator> values) {
+  public Status update(final String table, final String key, final Map<String, ByteIterator> values) {
     if (upsert) {
       return upsert(table, key, values);
     }
@@ -338,13 +338,13 @@ public class Couchbase2Client extends DB {
   }
 
   /**
-   * Performs the {@link #update(String, String, HashMap)} operation via Key/Value ("replace").
+   * Performs the {@link #update(String, String, Map)} operation via Key/Value ("replace").
    *
    * @param docId the document ID
    * @param values the values to update the document with.
    * @return The result of the operation.
    */
-  private Status updateKv(final String docId, final HashMap<String, ByteIterator> values) {
+  private Status updateKv(final String docId, final Map<String, ByteIterator> values) {
     waitForMutationResponse(bucket.async().replace(
         RawJsonDocument.create(docId, documentExpiry, encode(values)),
         persistTo,
@@ -354,7 +354,7 @@ public class Couchbase2Client extends DB {
   }
 
   /**
-   * Performs the {@link #update(String, String, HashMap)} operation via N1QL ("UPDATE").
+   * Performs the {@link #update(String, String, Map)} operation via N1QL ("UPDATE").
    *
    * If this option should be used, the "-p couchbase.kv=false" property must be set.
    *
@@ -362,7 +362,7 @@ public class Couchbase2Client extends DB {
    * @param values the values to update the document with.
    * @return The result of the operation.
    */
-  private Status updateN1ql(final String docId, final HashMap<String, ByteIterator> values)
+  private Status updateN1ql(final String docId, final Map<String, ByteIterator> values)
     throws Exception {
     String fields = encodeN1qlFields(values);
     String updateQuery = "UPDATE `" + bucketName + "` USE KEYS [$1] SET " + fields;
@@ -381,7 +381,7 @@ public class Couchbase2Client extends DB {
   }
 
   @Override
-  public Status insert(final String table, final String key, final HashMap<String, ByteIterator> values) {
+  public Status insert(final String table, final String key, final Map<String, ByteIterator> values) {
     if (upsert) {
       return upsert(table, key, values);
     }
@@ -400,7 +400,7 @@ public class Couchbase2Client extends DB {
   }
 
   /**
-   * Performs the {@link #insert(String, String, HashMap)} operation via Key/Value ("INSERT").
+   * Performs the {@link #insert(String, String, Map)} operation via Key/Value ("INSERT").
    *
    * Note that during the "load" phase it makes sense to retry TMPFAILS (so that even if the server is
    * overloaded temporarily the ops will succeed eventually). The current code will retry TMPFAILs
@@ -410,7 +410,7 @@ public class Couchbase2Client extends DB {
    * @param values the values to update the document with.
    * @return The result of the operation.
    */
-  private Status insertKv(final String docId, final HashMap<String, ByteIterator> values) {
+  private Status insertKv(final String docId, final Map<String, ByteIterator> values) {
     int tries = 60; // roughly 60 seconds with the 1 second sleep, not 100% accurate.
 
     for(int i = 0; i < tries; i++) {
@@ -435,7 +435,7 @@ public class Couchbase2Client extends DB {
   }
 
   /**
-   * Performs the {@link #insert(String, String, HashMap)} operation via N1QL ("INSERT").
+   * Performs the {@link #insert(String, String, Map)} operation via N1QL ("INSERT").
    *
    * If this option should be used, the "-p couchbase.kv=false" property must be set.
    *
@@ -443,7 +443,7 @@ public class Couchbase2Client extends DB {
    * @param values the values to update the document with.
    * @return The result of the operation.
    */
-  private Status insertN1ql(final String docId, final HashMap<String, ByteIterator> values)
+  private Status insertN1ql(final String docId, final Map<String, ByteIterator> values)
     throws Exception {
     String insertQuery = "INSERT INTO `" + bucketName + "`(KEY,VALUE) VALUES ($1,$2)";
 
@@ -470,7 +470,7 @@ public class Couchbase2Client extends DB {
    * @param values A HashMap of field/value pairs to insert in the record
    * @return The result of the operation.
    */
-  private Status upsert(final String table, final String key, final HashMap<String, ByteIterator> values) {
+  private Status upsert(final String table, final String key, final Map<String, ByteIterator> values) {
     try {
       String docId = formatId(table, key);
       if (kv) {
@@ -485,7 +485,7 @@ public class Couchbase2Client extends DB {
   }
 
   /**
-   * Performs the {@link #upsert(String, String, HashMap)} operation via Key/Value ("upsert").
+   * Performs the {@link #upsert(String, String, Map)} operation via Key/Value ("upsert").
    *
    * If this option should be used, the "-p couchbase.upsert=true" property must be set.
    *
@@ -493,7 +493,7 @@ public class Couchbase2Client extends DB {
    * @param values the values to update the document with.
    * @return The result of the operation.
    */
-  private Status upsertKv(final String docId, final HashMap<String, ByteIterator> values) {
+  private Status upsertKv(final String docId, final Map<String, ByteIterator> values) {
     waitForMutationResponse(bucket.async().upsert(
         RawJsonDocument.create(docId, documentExpiry, encode(values)),
         persistTo,
@@ -503,7 +503,7 @@ public class Couchbase2Client extends DB {
   }
 
   /**
-   * Performs the {@link #upsert(String, String, HashMap)} operation via N1QL ("UPSERT").
+   * Performs the {@link #upsert(String, String, Map)} operation via N1QL ("UPSERT").
    *
    * If this option should be used, the "-p couchbase.upsert=true -p couchbase.kv=false" properties must be set.
    *
@@ -511,7 +511,7 @@ public class Couchbase2Client extends DB {
    * @param values the values to update the document with.
    * @return The result of the operation.
    */
-  private Status upsertN1ql(final String docId, final HashMap<String, ByteIterator> values)
+  private Status upsertN1ql(final String docId, final Map<String, ByteIterator> values)
     throws Exception {
     String upsertQuery = "UPSERT INTO `" + bucketName + "`(KEY,VALUE) VALUES ($1,$2)";
 
@@ -734,12 +734,12 @@ public class Couchbase2Client extends DB {
   }
 
   /**
-   * Helper method to turn the values into a String, used with {@link #upsertN1ql(String, HashMap)}.
+   * Helper method to turn the values into a String, used with {@link #upsertN1ql(String, Map)}.
    *
    * @param values the values to encode.
    * @return the encoded string.
    */
-  private static String encodeN1qlFields(final HashMap<String, ByteIterator> values) {
+  private static String encodeN1qlFields(final Map<String, ByteIterator> values) {
     if (values.isEmpty()) {
       return "";
     }
@@ -760,7 +760,7 @@ public class Couchbase2Client extends DB {
    * @param values the values to transform.
    * @return the created json object.
    */
-  private static JsonObject valuesToJsonObject(final HashMap<String, ByteIterator> values) {
+  private static JsonObject valuesToJsonObject(final Map<String, ByteIterator> values) {
     JsonObject result = JsonObject.create();
     for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
       result.put(entry.getKey(), entry.getValue().toString());
@@ -853,7 +853,7 @@ public class Couchbase2Client extends DB {
    * @param dest the result passed back to YCSB.
    */
   private void decode(final String source, final Set<String> fields,
-                      final HashMap<String, ByteIterator> dest) {
+                      final Map<String, ByteIterator> dest) {
     try {
       JsonNode json = JacksonTransformers.MAPPER.readTree(source);
       boolean checkFields = fields != null && !fields.isEmpty();
@@ -879,8 +879,8 @@ public class Couchbase2Client extends DB {
    * @param source the source value.
    * @return the encoded string.
    */
-  private String encode(final HashMap<String, ByteIterator> source) {
-    HashMap<String, String> stringMap = StringByteIterator.getStringMap(source);
+  private String encode(final Map<String, ByteIterator> source) {
+    Map<String, String> stringMap = StringByteIterator.getStringMap(source);
     ObjectNode node = JacksonTransformers.MAPPER.createObjectNode();
     for (Map.Entry<String, String> pair : stringMap.entrySet()) {
       node.put(pair.getKey(), pair.getValue());

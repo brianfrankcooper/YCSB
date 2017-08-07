@@ -117,7 +117,7 @@ public class HypertableClient extends com.yahoo.ycsb.DB {
    */
   @Override
   public Status read(String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
+                     Map<String, ByteIterator> result) {
     // SELECT _column_family:field[i]
     // FROM table WHERE ROW=key MAX_VERSIONS 1;
 
@@ -252,7 +252,7 @@ public class HypertableClient extends com.yahoo.ycsb.DB {
    */
   @Override
   public Status update(String table, String key,
-      HashMap<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     return insert(table, key, values);
   }
 
@@ -271,7 +271,7 @@ public class HypertableClient extends com.yahoo.ycsb.DB {
    */
   @Override
   public Status insert(String table, String key,
-      HashMap<String, ByteIterator> values) {
+            Map<String, ByteIterator> values) {
     // INSERT INTO table VALUES
     // (key, _column_family:entry,getKey(), entry.getValue()), (...);
 

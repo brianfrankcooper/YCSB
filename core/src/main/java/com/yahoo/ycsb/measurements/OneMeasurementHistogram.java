@@ -39,17 +39,17 @@ public class OneMeasurementHistogram extends OneMeasurement {
   /**
    * Groups operations in discrete blocks of 1ms width.
    */
-  private final int[] histogram;
+  private long[] histogram;
 
   /**
    * Counts all operations outside the histogram's range.
    */
-  private int histogramoverflow;
+  private long histogramoverflow;
 
   /**
    * The total number of reported operations.
    */
-  private int operations;
+  private long operations;
 
   /**
    * The sum of each latency measurement over all operations.
@@ -65,7 +65,7 @@ public class OneMeasurementHistogram extends OneMeasurement {
   private double totalsquaredlatency;
 
   //keep a windowed version of these stats for printing status
-  private int windowoperations;
+  private long windowoperations;
   private long windowtotallatency;
 
   private int min;
@@ -74,7 +74,7 @@ public class OneMeasurementHistogram extends OneMeasurement {
   public OneMeasurementHistogram(String name, Properties props) {
     super(name);
     buckets = Integer.parseInt(props.getProperty(BUCKETS, BUCKETS_DEFAULT));
-    histogram = new int[buckets];
+    histogram = new long[buckets];
     histogramoverflow = 0;
     operations = 0;
     totallatency = 0;
@@ -120,7 +120,7 @@ public class OneMeasurementHistogram extends OneMeasurement {
     exporter.write(getName(), "MinLatency(us)", min);
     exporter.write(getName(), "MaxLatency(us)", max);
 
-    int opcounter = 0;
+    long opcounter=0;
     boolean done95th = false;
     for (int i = 0; i < buckets; i++) {
       opcounter += histogram[i];

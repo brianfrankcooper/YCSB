@@ -46,6 +46,7 @@ import org.elasticsearch.search.SearchHit;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
@@ -195,7 +196,7 @@ public class ElasticsearchClient extends DB {
    *         description for a discussion of error codes.
    */
   @Override
-  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
       final XContentBuilder doc = jsonBuilder().startObject();
 
@@ -254,7 +255,7 @@ public class ElasticsearchClient extends DB {
    * @return Zero on success, a non-zero error code on error or "not found".
    */
   @Override
-  public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try {
       final GetResponse response = client.prepareGet(indexKey, table, key).execute().actionGet();
 
@@ -295,7 +296,7 @@ public class ElasticsearchClient extends DB {
    *         description for a discussion of error codes.
    */
   @Override
-  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
     try {
       final GetResponse response = client.prepareGet(indexKey, table, key).execute().actionGet();
 

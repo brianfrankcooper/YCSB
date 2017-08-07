@@ -54,9 +54,9 @@ public class OneMeasurementTimeSeries extends OneMeasurement {
 
   private long start = -1;
   private long currentunit = -1;
-  private int count = 0;
-  private int sum = 0;
-  private int operations = 0;
+  private long count = 0;
+  private long sum = 0;
+  private long operations = 0;
   private long totallatency = 0;
 
   //keep a windowed version of these stats for printing status

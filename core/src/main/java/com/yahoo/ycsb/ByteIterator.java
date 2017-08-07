@@ -73,6 +73,15 @@ public abstract class ByteIterator implements Iterator<Byte> {
     throw new UnsupportedOperationException();
   }
 
+  /** Resets the iterator so that it can be consumed again. Not all
+   * implementations support this call.
+   * @throws UnsupportedOperationException if the implementation hasn't implemented
+   * the method.
+   */
+  public void reset() {
+    throw new UnsupportedOperationException();
+  }
+  
   /** Consumes remaining contents of this object, and returns them as a string. */
   public String toString() {
     Charset cset = Charset.forName("UTF-8");

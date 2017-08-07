@@ -187,7 +187,7 @@ public class ArangoDBClient extends DB {
    *     {@link DB} class's description for a discussion of error codes.
    */
   @Override
-  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
       BaseDocument toInsert = new BaseDocument(key);
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
@@ -225,7 +225,7 @@ public class ArangoDBClient extends DB {
    */
   @SuppressWarnings("unchecked")
   @Override
-  public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try {
       DocumentEntity<BaseDocument> targetDoc = arangoDriver.getDocument(table, key, BaseDocument.class);
       BaseDocument aDocument = targetDoc.getEntity();
@@ -261,7 +261,7 @@ public class ArangoDBClient extends DB {
    *     description for a discussion of error codes.
    */
   @Override
-  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
     try {
       
       if (!transactionUpdate) {
@@ -455,8 +455,8 @@ public class ArangoDBClient extends DB {
     return new StringByteIterator(content);
   }
   
-  private String mapToJson(HashMap<String, ByteIterator> values) {
-    HashMap<String, String> intervalRst = new HashMap<String, String>();
+  private String mapToJson(Map<String, ByteIterator> values) {
+    Map<String, String> intervalRst = new HashMap<String, String>();
     for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
       intervalRst.put(entry.getKey(), byteIteratorToString(entry.getValue()));
     }

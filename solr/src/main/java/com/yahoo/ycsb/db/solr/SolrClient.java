@@ -116,7 +116,7 @@ public class SolrClient extends DB {
    *         discussion of error codes.
    */
   @Override
-  public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
       SolrInputDocument doc = new SolrInputDocument();
 
@@ -182,7 +182,7 @@ public class SolrClient extends DB {
    */
   @Override
   public Status read(String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
+      Map<String, ByteIterator> result) {
     try {
       Boolean returnFields = false;
       String[] fieldList = null;
@@ -225,7 +225,7 @@ public class SolrClient extends DB {
    *         discussion of error codes.
    */
   @Override
-  public Status update(String table, String key, HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
     try {
       SolrInputDocument updatedDoc = new SolrInputDocument();
       updatedDoc.addField("id", key);

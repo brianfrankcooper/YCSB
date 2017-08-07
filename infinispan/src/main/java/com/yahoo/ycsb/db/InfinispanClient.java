@@ -65,8 +65,7 @@ public class InfinispanClient extends DB {
     infinispanManager = null;
   }
 
-  public Status read(String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try {
       Map<String, String> row;
       if (clustered) {
@@ -98,8 +97,7 @@ public class InfinispanClient extends DB {
     return Status.OK;
   }
 
-  public Status update(String table, String key,
-      HashMap<String, ByteIterator> values) {
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
     try {
       if (clustered) {
         AtomicMap<String, String> row = AtomicMapLookup.getAtomicMap(infinispanManager.getCache(table), key);
@@ -122,8 +120,7 @@ public class InfinispanClient extends DB {
     }
   }
 
-  public Status insert(String table, String key,
-      HashMap<String, ByteIterator> values) {
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
       if (clustered) {
         AtomicMap<String, String> row = AtomicMapLookup.getAtomicMap(infinispanManager.getCache(table), key);
