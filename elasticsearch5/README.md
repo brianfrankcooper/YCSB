@@ -39,16 +39,11 @@ Then, run the workload:
 
 Note that the `<path>` specified in each execution should be the same.
 
-The Elasticsearch 5 binding has two modes of operation, embedded mode and remote
-mode. In embedded mode, the client creates an embedded instance of
-Elasticsearch that uses the specified `<path>` to persist data between
-executions.
+The Elasticsearch 5 binding requires a standalone instance of Elasticsearch.
+You must specify a hosts list for the transport client to connect to via
+`-p es.hosts.list=<hostname1:port1>,...,<hostnamen:portn>`:
 
-In remote mode, the client will hit a standalone instance of Elasticsearch. To
-use remote mode, add the flags `-p es.remote=true` and specify a hosts list via
-`-p es.hosts.list=<hostname1:port1>,...,<hostnamen:portn>`.
-
-    ./bin/ycsb run elasticsearch5 -s -P workloads/workloada -p es.remote=true \
+    ./bin/ycsb run elasticsearch5 -s -P workloads/workloada \
     -p es.hosts.list=<hostname1:port1>,...,<hostnamen:portn>`
 
 Note that `es.hosts.list` defaults to `localhost:9300`. For further
@@ -61,9 +56,8 @@ The default setting for the Elasticsearch node that is created is as follows:
     es.index.key=es.ycsb
     es.number_of_shards=1
     es.number_of_replicas=0
-    es.remote=false
     es.newdb=false
-    es.hosts.list=localhost:9300 (only applies if es.remote=true)
+    es.hosts.list=localhost:9300
 
 ### Custom Configuration
 If you wish to customize the settings used to create the Elasticsearch node
@@ -81,10 +75,6 @@ pass it into the Elasticsearch client:
 If you wish to change the default index name you can set the following property:
 
     es.index.key=my_index_key
-
-If you wish to run against a remote cluster you can set the following property:
-
-    es.remote=true
 
 By default this will use localhost:9300 as a seed node to discover the cluster.
 You can also specify

@@ -17,25 +17,25 @@
 
 package com.yahoo.ycsb.db.elasticsearch5;
 
-import com.yahoo.ycsb.*;
-import org.apache.http.HttpHost;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.DB;
+import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
+import com.yahoo.ycsb.StringByteIterator;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
-import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.node.NodeValidationException;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.HashMap;
@@ -58,12 +58,10 @@ public class ElasticsearchClient extends DB {
   private static final String DEFAULT_REMOTE_HOST = "localhost:9300";
   private static final int NUMBER_OF_SHARDS = 1;
   private static final int NUMBER_OF_REPLICAS = 0;
-  private Node node;
   private Client client;
   private String indexKey;
-  private Boolean remoteMode;
-
   /**
+   *
    * Initialize any state for this DB. Called once per DB instance; there is one
    * DB instance per client thread.
    */
@@ -71,15 +69,7 @@ public class ElasticsearchClient extends DB {
   public void init() throws DBException {
     final Properties props = getProperties();
 
-    // Check if transport client needs to be used (To connect to multiple elasticsearch nodes)
-    remoteMode = Boolean.parseBoolean(props.getProperty("es.remote", "false"));
-
     final String pathHome = props.getProperty("path.home");
-
-    // when running in embedded mode, require path.home
-    if (!remoteMode && (pathHome == null || pathHome.isEmpty())) {
-      throw new IllegalArgumentException("path.home must be specified when running in embedded mode");
-    }
 
     this.indexKey = props.getProperty("es.index.key", DEFAULT_INDEX_KEY);
 
@@ -105,46 +95,29 @@ public class ElasticsearchClient extends DB {
     final String clusterName = settings.get("cluster.name");
     System.err.println("Elasticsearch starting node = " + clusterName);
     System.err.println("Elasticsearch node path.home = " + settings.get("path.home"));
-    System.err.println("Elasticsearch Remote Mode = " + remoteMode);
-    // Remote mode support for connecting to remote elasticsearch cluster
-    if(remoteMode) {
-      RestClient restClient = RestClient.builder(
-          new HttpHost("localhost", 9200, "http")).build();
-    }
-    if (remoteMode) {
-      settings.put("client.transport.sniff", true)
-          .put("client.transport.ignore_cluster_name", false)
-          .put("client.transport.ping_timeout", "30s")
-          .put("client.transport.nodes_sampler_interval", "30s");
-      // Default it to localhost:9300
-      String[] nodeList = props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST).split(",");
-      System.out.println("Elasticsearch Remote Hosts = " + props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST));
-      TransportClient tClient = new PreBuiltTransportClient(settings.build());
-      for (String h : nodeList) {
-        String[] nodes = h.split(":");
-        try {
-          tClient.addTransportAddress(new InetSocketTransportAddress(
-              InetAddress.getByName(nodes[0]),
-              Integer.parseInt(nodes[1])
-          ));
-        } catch (NumberFormatException e) {
-          throw new IllegalArgumentException("Unable to parse port number.", e);
-        } catch (UnknownHostException e) {
-          throw new IllegalArgumentException("Unable to Identify host.", e);
-        }
-      }
-      client = tClient;
-    } else { // Start node only if transport client mode is disabled
-      settings.put("transport.type", "local");
-      settings.put("http.enabled", "false");
-      node = new Node(settings.build());
+
+    settings.put("client.transport.sniff", true)
+            .put("client.transport.ignore_cluster_name", false)
+            .put("client.transport.ping_timeout", "30s")
+            .put("client.transport.nodes_sampler_interval", "30s");
+    // Default it to localhost:9300
+    String[] nodeList = props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST).split(",");
+    System.out.println("Elasticsearch Remote Hosts = " + props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST));
+    TransportClient tClient = new PreBuiltTransportClient(settings.build());
+    for (String h : nodeList) {
+      String[] nodes = h.split(":");
       try {
-        node.start();
-      } catch (NodeValidationException e) {
-        throw new DBException(e);
+        tClient.addTransportAddress(new InetSocketTransportAddress(
+                InetAddress.getByName(nodes[0]),
+                Integer.parseInt(nodes[1])
+        ));
+      } catch (NumberFormatException e) {
+        throw new IllegalArgumentException("Unable to parse port number.", e);
+      } catch (UnknownHostException e) {
+        throw new IllegalArgumentException("Unable to Identify host.", e);
       }
-      client = node.client();
     }
+    client = tClient;
 
     final boolean exists =
         client.admin().indices()
@@ -175,15 +148,6 @@ public class ElasticsearchClient extends DB {
     if (client != null) {
       client.close();
       client = null;
-    }
-
-    if (!remoteMode && node != null && !node.isClosed()) {
-      try {
-        node.close();
-        node = null;
-      } catch (IOException e) {
-        throw new DBException(e);
-      }
     }
   }
 
