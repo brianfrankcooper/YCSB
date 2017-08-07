@@ -92,7 +92,7 @@ LICENSE file.
     <thrift.version>0.8.0</thrift.version>
     <hypertable.version>0.9.5.6</hypertable.version>
     <elasticsearch-version>2.4.4</elasticsearch-version>                                                                                                                                      
-    <elasticsearch5-version>5.2.0</elasticsearch5-version>
+    <elasticsearch5-version>5.5.1</elasticsearch5-version>
     <couchbase.version>1.4.10</couchbase.version>
     <couchbase2.version>2.3.1</couchbase2.version>
     <tarantool.version>1.6.5</tarantool.version>
