@@ -87,9 +87,10 @@ public class ElasticsearchClient extends DB {
     int numberOfReplicas = parseIntegerProperty(props, "es.number_of_replicas", NUMBER_OF_REPLICAS);
 
     Boolean newdb = Boolean.parseBoolean(props.getProperty("es.newdb", "false"));
-    Builder settings = Settings.builder()
-        .put("cluster.name", DEFAULT_CLUSTER_NAME)
-        .put("path.home", pathHome);
+    Builder settings = Settings.builder().put("cluster.name", DEFAULT_CLUSTER_NAME);
+    if (pathHome != null) {
+      settings.put("path.home", pathHome);
+    }
 
     // if properties file contains elasticsearch user defined properties
     // add it to the settings file (will overwrite the defaults).
