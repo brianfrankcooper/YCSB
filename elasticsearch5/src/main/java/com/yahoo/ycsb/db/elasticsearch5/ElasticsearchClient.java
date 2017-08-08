@@ -63,6 +63,7 @@ public class ElasticsearchClient extends DB {
   private static final int NUMBER_OF_REPLICAS = 0;
   private Client client;
   private String indexKey;
+
   /**
    *
    * Initialize any state for this DB. Called once per DB instance; there is one
@@ -72,8 +73,6 @@ public class ElasticsearchClient extends DB {
   public void init() throws DBException {
     final Properties props = getProperties();
 
-    final String pathHome = props.getProperty("path.home");
-
     this.indexKey = props.getProperty("es.index.key", DEFAULT_INDEX_KEY);
 
     int numberOfShards = parseIntegerProperty(props, "es.number_of_shards", NUMBER_OF_SHARDS);
@@ -81,9 +80,6 @@ public class ElasticsearchClient extends DB {
 
     Boolean newdb = Boolean.parseBoolean(props.getProperty("es.newdb", "false"));
     Builder settings = Settings.builder().put("cluster.name", DEFAULT_CLUSTER_NAME);
-    if (pathHome != null) {
-      settings.put("path.home", pathHome);
-    }
 
     // if properties file contains elasticsearch user defined properties
     // add it to the settings file (will overwrite the defaults).
@@ -97,7 +93,6 @@ public class ElasticsearchClient extends DB {
     }
     final String clusterName = settings.get("cluster.name");
     System.err.println("Elasticsearch starting node = " + clusterName);
-    System.err.println("Elasticsearch node path.home = " + settings.get("path.home"));
 
     settings.put("client.transport.sniff", true)
             .put("client.transport.ignore_cluster_name", false)
