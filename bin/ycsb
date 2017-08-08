@@ -57,6 +57,7 @@ DATABASES = {
     "arangodb3"    : "com.yahoo.ycsb.db.arangodb.ArangoDB3Client",
     "asynchbase"   : "com.yahoo.ycsb.db.AsyncHBaseClient",
     "basic"        : "com.yahoo.ycsb.BasicDB",
+    "basicts"      : "com.yahoo.ycsb.BasicTSDB",
     "cassandra-cql": "com.yahoo.ycsb.db.CassandraCQLClient",
     "cassandra2-cql": "com.yahoo.ycsb.db.CassandraCQLClient",
     "cloudspanner" : "com.yahoo.ycsb.db.cloudspanner.CloudSpannerClient",
@@ -269,8 +270,8 @@ def main():
         warn("Running against a source checkout. In order to get our runtime "
              "dependencies we'll have to invoke Maven. Depending on the state "
              "of your system, this may take ~30-45 seconds")
-        db_location = "core" if binding == "basic" else binding
-        project = "core" if binding == "basic" else binding + "-binding"
+        db_location = "core" if (binding == "basic" or binding == "basicts") else binding
+        project = "core" if (binding == "basic" or binding == "basicts") else binding + "-binding"
         db_dir = os.path.join(ycsb_home, db_location)
         # goes first so we can rely on side-effect of package
         maven_says = get_classpath_from_maven(project)
