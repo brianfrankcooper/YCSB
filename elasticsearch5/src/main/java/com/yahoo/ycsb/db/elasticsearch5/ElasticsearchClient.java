@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2017 YCSB contributors. All rights reserved.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -174,7 +174,7 @@ public class ElasticsearchClient extends DB {
   @Override
   public Status delete(final String table, final String key) {
     try {
-      final SearchResponse searchResponse = search(key);
+      final SearchResponse searchResponse = search(table, key);
       if (searchResponse.getHits().totalHits == 0) {
         return Status.NOT_FOUND;
       }
@@ -200,19 +200,22 @@ public class ElasticsearchClient extends DB {
           final Set<String> fields,
           final Map<String, ByteIterator> result) {
     try {
-      final SearchResponse searchResponse = search(key);
+      final SearchResponse searchResponse = search(table, key);
       if (searchResponse.getHits().totalHits == 0) {
         return Status.NOT_FOUND;
       }
 
       final SearchHit hit = searchResponse.getHits().getAt(0);
       if (fields != null) {
-        for (String field : fields) {
+        for (final String field : fields) {
           result.put(field, new StringByteIterator(
                   (String) hit.getField(field).getValue()));
         }
       } else {
         for (final Map.Entry<String, SearchHitField> e : hit.getFields().entrySet()) {
+          if ("key".equals(e.getKey())) {
+            continue;
+          }
           result.put(e.getKey(), new StringByteIterator((String) e.getValue().getValue()));
         }
       }
@@ -227,7 +230,7 @@ public class ElasticsearchClient extends DB {
   @Override
   public Status update(final String table, final String key, final Map<String, ByteIterator> values) {
     try {
-      final SearchResponse response = search(key);
+      final SearchResponse response = search(table, key);
       if (response.getHits().totalHits == 0) {
         return Status.NOT_FOUND;
       }
@@ -237,7 +240,7 @@ public class ElasticsearchClient extends DB {
         hit.getSource().put(entry.getKey(), entry.getValue());
       }
 
-      client.prepareIndex(indexKey, table, key).setSource(hit.getSource()).get();
+      client.prepareIndex(indexKey, table, hit.getId()).setSource(hit.getSource()).get();
 
       return Status.OK;
 
@@ -268,6 +271,9 @@ public class ElasticsearchClient extends DB {
         } else {
           entry = new HashMap<>(hit.getFields().size());
           for (final Map.Entry<String, SearchHitField> field : hit.getFields().entrySet()) {
+            if ("key".equals(field.getKey())) {
+              continue;
+            }
             entry.put(field.getKey(), new StringByteIterator((String) field.getValue().getValue()));
           }
         }
@@ -281,8 +287,8 @@ public class ElasticsearchClient extends DB {
   }
 
 
-  private SearchResponse search(final String key) {
-    return client.prepareSearch(indexKey).setQuery(new TermQueryBuilder("key", key)).get();
+  private SearchResponse search(final String table, final String key) {
+    return client.prepareSearch(indexKey).setTypes(table).setQuery(new TermQueryBuilder("key", key)).get();
   }
 
 }
