@@ -26,7 +26,6 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
@@ -48,6 +47,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
+import static com.yahoo.ycsb.db.elasticsearch5.Elasticsearch5.KEY;
+import static com.yahoo.ycsb.db.elasticsearch5.Elasticsearch5.parseIntegerProperty;
 import static org.elasticsearch.common.settings.Settings.Builder;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
@@ -61,7 +62,7 @@ public class ElasticsearchClient extends DB {
   private static final String DEFAULT_REMOTE_HOST = "localhost:9300";
   private static final int NUMBER_OF_SHARDS = 1;
   private static final int NUMBER_OF_REPLICAS = 0;
-  private Client client;
+  private TransportClient client;
   private String indexKey;
 
   /**
@@ -75,11 +76,11 @@ public class ElasticsearchClient extends DB {
 
     this.indexKey = props.getProperty("es.index.key", DEFAULT_INDEX_KEY);
 
-    int numberOfShards = parseIntegerProperty(props, "es.number_of_shards", NUMBER_OF_SHARDS);
-    int numberOfReplicas = parseIntegerProperty(props, "es.number_of_replicas", NUMBER_OF_REPLICAS);
+    final int numberOfShards = parseIntegerProperty(props, "es.number_of_shards", NUMBER_OF_SHARDS);
+    final int numberOfReplicas = parseIntegerProperty(props, "es.number_of_replicas", NUMBER_OF_REPLICAS);
 
-    Boolean newdb = Boolean.parseBoolean(props.getProperty("es.newdb", "false"));
-    Builder settings = Settings.builder().put("cluster.name", DEFAULT_CLUSTER_NAME);
+    final Boolean newdb = Boolean.parseBoolean(props.getProperty("es.newdb", "false"));
+    final Builder settings = Settings.builder().put("cluster.name", DEFAULT_CLUSTER_NAME);
 
     // if properties file contains elasticsearch user defined properties
     // add it to the settings file (will overwrite the defaults).
@@ -92,30 +93,33 @@ public class ElasticsearchClient extends DB {
       }
     }
     final String clusterName = settings.get("cluster.name");
-    System.err.println("Elasticsearch starting node = " + clusterName);
+    System.out.println("Elasticsearch cluster name = " + clusterName);
 
     settings.put("client.transport.sniff", true)
             .put("client.transport.ignore_cluster_name", false)
             .put("client.transport.ping_timeout", "30s")
             .put("client.transport.nodes_sampler_interval", "30s");
     // Default it to localhost:9300
-    String[] nodeList = props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST).split(",");
+    final String[] nodeList = props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST).split(",");
     System.out.println("Elasticsearch Remote Hosts = " + props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST));
-    TransportClient tClient = new PreBuiltTransportClient(settings.build());
+    client = new PreBuiltTransportClient(settings.build());
     for (String h : nodeList) {
       String[] nodes = h.split(":");
+
+      final InetAddress address;
       try {
-        tClient.addTransportAddress(new InetSocketTransportAddress(
-                InetAddress.getByName(nodes[0]),
-                Integer.parseInt(nodes[1])
-        ));
-      } catch (NumberFormatException e) {
-        throw new IllegalArgumentException("Unable to parse port number.", e);
+        address = InetAddress.getByName(nodes[0]);
       } catch (UnknownHostException e) {
-        throw new IllegalArgumentException("Unable to Identify host.", e);
+        throw new IllegalArgumentException("unable to identity host [" + nodes[0]+ "]", e);
       }
+      final int port;
+      try {
+        port = Integer.parseInt(nodes[1]);
+      } catch (final NumberFormatException e) {
+        throw new IllegalArgumentException("unable to parse port [" + nodes[1] + "]", e);
+      }
+      client.addTransportAddress(new InetSocketTransportAddress(address, port));
     }
-    client = tClient;
 
     final boolean exists =
         client.admin().indices()
@@ -136,11 +140,6 @@ public class ElasticsearchClient extends DB {
     client.admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet();
   }
 
-  private int parseIntegerProperty(final Properties properties, final String key, final int defaultValue) {
-    final String value = properties.getProperty(key);
-    return value == null ? defaultValue : Integer.parseInt(value);
-  }
-
   @Override
   public void cleanup() throws DBException {
     if (client != null) {
@@ -158,8 +157,7 @@ public class ElasticsearchClient extends DB {
       for (final Entry<String, String> entry : StringByteIterator.getStringMap(values).entrySet()) {
         doc.field(entry.getKey(), entry.getValue());
       }
-
-      doc.field("key", key);
+      doc.field(KEY, key);
       doc.endObject();
 
       client.prepareIndex(indexKey, table).setSource(doc).execute().actionGet();
@@ -184,9 +182,9 @@ public class ElasticsearchClient extends DB {
       final DeleteResponse deleteResponse = client.prepareDelete(indexKey, table, id).execute().actionGet();
       if (deleteResponse.status().equals(RestStatus.NOT_FOUND)) {
         return Status.NOT_FOUND;
-      } else {
-        return Status.OK;
       }
+
+      return Status.OK;
     } catch (final Exception e) {
       e.printStackTrace();
       return Status.ERROR;
@@ -213,14 +211,14 @@ public class ElasticsearchClient extends DB {
         }
       } else {
         for (final Map.Entry<String, SearchHitField> e : hit.getFields().entrySet()) {
-          if ("key".equals(e.getKey())) {
+          if (KEY.equals(e.getKey())) {
             continue;
           }
           result.put(e.getKey(), new StringByteIterator((String) e.getValue().getValue()));
         }
       }
-      return Status.OK;
 
+      return Status.OK;
     } catch (final Exception e) {
       e.printStackTrace();
       return Status.ERROR;
@@ -243,7 +241,6 @@ public class ElasticsearchClient extends DB {
       client.prepareIndex(indexKey, table, hit.getId()).setSource(hit.getSource()).get();
 
       return Status.OK;
-
     } catch (final Exception e) {
       e.printStackTrace();
       return Status.ERROR;
@@ -258,7 +255,7 @@ public class ElasticsearchClient extends DB {
       final Set<String> fields,
       final Vector<HashMap<String, ByteIterator>> result) {
     try {
-      final RangeQueryBuilder query = new RangeQueryBuilder("key").gte(startkey);
+      final RangeQueryBuilder query = new RangeQueryBuilder(KEY).gte(startkey);
       final SearchResponse response = client.prepareSearch(indexKey).setQuery(query).setSize(recordcount).get();
 
       for (final SearchHit hit : response.getHits()) {
@@ -271,7 +268,7 @@ public class ElasticsearchClient extends DB {
         } else {
           entry = new HashMap<>(hit.getFields().size());
           for (final Map.Entry<String, SearchHitField> field : hit.getFields().entrySet()) {
-            if ("key".equals(field.getKey())) {
+            if (KEY.equals(field.getKey())) {
               continue;
             }
             entry.put(field.getKey(), new StringByteIterator((String) field.getValue().getValue()));
@@ -288,7 +285,7 @@ public class ElasticsearchClient extends DB {
 
 
   private SearchResponse search(final String table, final String key) {
-    return client.prepareSearch(indexKey).setTypes(table).setQuery(new TermQueryBuilder("key", key)).get();
+    return client.prepareSearch(indexKey).setTypes(table).setQuery(new TermQueryBuilder(KEY, key)).get();
   }
 
 }

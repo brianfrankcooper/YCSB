@@ -32,7 +32,6 @@ import org.apache.http.nio.entity.NStringEntity;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
@@ -46,8 +45,9 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
+import static com.yahoo.ycsb.db.elasticsearch5.Elasticsearch5.KEY;
+import static com.yahoo.ycsb.db.elasticsearch5.Elasticsearch5.parseIntegerProperty;
 import static java.util.Collections.emptyMap;
-import static org.elasticsearch.common.settings.Settings.Builder;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 /**
@@ -74,31 +74,15 @@ public class ElasticsearchRestClient extends DB {
 
     this.indexKey = props.getProperty("es.index.key", DEFAULT_INDEX_KEY);
 
-    int numberOfShards = Integer.valueOf(props.getProperty("es.number_of_shards",
-        String.valueOf(NUMBER_OF_SHARDS)));
-    int numberOfReplicas = Integer.valueOf(props.getProperty("es.number_of_replicas",
-        String.valueOf(NUMBER_OF_REPLICAS)));
+    final int numberOfShards = parseIntegerProperty(props, "es.number_of_shards", NUMBER_OF_SHARDS);
+    final int numberOfReplicas = parseIntegerProperty(props, "es.number_of_replicas", NUMBER_OF_REPLICAS);
 
-    Boolean newdb = Boolean.parseBoolean(props.getProperty("es.newdb", "false"));
-    Builder settings = Settings.builder().put("cluster.name", DEFAULT_CLUSTER_NAME);
+    final Boolean newdb = Boolean.parseBoolean(props.getProperty("es.newdb", "false"));
 
-    // if properties file contains elasticsearch user defined properties
-    // add it to the settings file (will overwrite the defaults).
-    for (final Map.Entry<Object, Object> e : props.entrySet()) {
-      if (e.getKey() instanceof String) {
-        final String key = (String) e.getKey();
-        if (key.startsWith("es.setting.")) {
-          settings.put(key.substring("es.setting.".length()), e.getValue());
-        }
-      }
-    }
-    final String clusterName = settings.get("cluster.name");
-    System.err.println("Elasticsearch starting node = " + clusterName);
-
-    String[] nodeList = props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST).split(",");
+    final String[] nodeList = props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST).split(",");
     System.out.println("Elasticsearch Remote Hosts = " + props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST));
 
-    List<HttpHost> esHttpHosts = new ArrayList<>(nodeList.length);
+    final List<HttpHost> esHttpHosts = new ArrayList<>(nodeList.length);
     for (String h : nodeList) {
       String[] nodes = h.split(":");
       esHttpHosts.add(new HttpHost(nodes[0], Integer.valueOf(nodes[1]), "http"));
@@ -204,7 +188,7 @@ public class ElasticsearchRestClient extends DB {
   public Status insert(final String table, final String key, final Map<String, ByteIterator> values) {
     try {
       final Map<String, String> data = StringByteIterator.getStringMap(values);
-      data.put("key", key);
+      data.put(KEY, key);
 
       final Response response = restClient.performRequest(
           "POST",
@@ -224,7 +208,7 @@ public class ElasticsearchRestClient extends DB {
   }
 
   @Override
-  public Status delete(String table, String key) {
+  public Status delete(final String table, final String key) {
     try {
       final Response searchResponse = search(table, key);
       final int statusCode = searchResponse.getStatusLine().getStatusCode();
@@ -240,7 +224,8 @@ public class ElasticsearchRestClient extends DB {
       if (total == 0) {
         return Status.NOT_FOUND;
       }
-      @SuppressWarnings("unchecked") final Map<String, Object> hit = (Map<String, Object>)((List<Object>)hits.get("hits")).get(0);
+      @SuppressWarnings("unchecked") final Map<String, Object> hit =
+              (Map<String, Object>)((List<Object>)hits.get("hits")).get(0);
       @SuppressWarnings("unchecked") final Map<String, Object> source = (Map<String, Object>)hit.get("_source");
       final Response deleteResponse =
               restClient.performRequest("DELETE", "/" + indexKey + "/" + table + "/" + source.get("_id"));
@@ -276,7 +261,8 @@ public class ElasticsearchRestClient extends DB {
       if (total == 0) {
         return Status.NOT_FOUND;
       }
-      @SuppressWarnings("unchecked") final Map<String, Object> hit = (Map<String, Object>)((List<Object>)hits.get("hits")).get(0);
+      @SuppressWarnings("unchecked") final Map<String, Object> hit =
+              (Map<String, Object>)((List<Object>)hits.get("hits")).get(0);
       @SuppressWarnings("unchecked") final Map<String, Object> source = (Map<String, Object>)hit.get("_source");
       if (fields != null) {
         for (final String field : fields) {
@@ -284,7 +270,7 @@ public class ElasticsearchRestClient extends DB {
         }
       } else {
         for (final Map.Entry<String, Object> e : source.entrySet()) {
-          if ("key".equals(e.getKey())) {
+          if (KEY.equals(e.getKey())) {
             continue;
           }
           result.put(e.getKey(), new StringByteIterator((String) e.getValue()));
@@ -299,7 +285,7 @@ public class ElasticsearchRestClient extends DB {
   }
 
   @Override
-  public Status update(String table, String key, Map<String, ByteIterator> values) {
+  public Status update(final String table, final String key, final Map<String, ByteIterator> values) {
     try {
       final Response searchResponse = search(table, key);
       final int statusCode = searchResponse.getStatusLine().getStatusCode();
@@ -315,7 +301,8 @@ public class ElasticsearchRestClient extends DB {
       if (total == 0) {
         return Status.NOT_FOUND;
       }
-      @SuppressWarnings("unchecked") final Map<String, Object> hit = (Map<String, Object>) ((List<Object>) hits.get("hits")).get(0);
+      @SuppressWarnings("unchecked") final Map<String, Object> hit =
+              (Map<String, Object>) ((List<Object>) hits.get("hits")).get(0);
       @SuppressWarnings("unchecked") final Map<String, Object> source = (Map<String, Object>) hit.get("_source");
       for (final Map.Entry<String, String> entry : StringByteIterator.getStringMap(values).entrySet()) {
         source.put(entry.getKey(), entry.getValue());
@@ -338,18 +325,18 @@ public class ElasticsearchRestClient extends DB {
 
   @Override
   public Status scan(
-      String table,
-      String startkey,
-      int recordcount,
-      Set<String> fields,
-      Vector<HashMap<String, ByteIterator>> result) {
+      final String table,
+      final String startkey,
+      final int recordcount,
+      final Set<String> fields,
+      final Vector<HashMap<String, ByteIterator>> result) {
     try {
       final Response response;
       try (XContentBuilder builder = jsonBuilder()) {
         builder.startObject();
         builder.startObject("query");
         builder.startObject("range");
-        builder.startObject("key");
+        builder.startObject(KEY);
         builder.field("gte", startkey);
         builder.endObject();
         builder.endObject();
@@ -359,7 +346,8 @@ public class ElasticsearchRestClient extends DB {
         response = search(table, builder);
         @SuppressWarnings("unchecked") final Map<String, Object> map = map(response);
         @SuppressWarnings("unchecked") final Map<String, Object> hits = (Map<String, Object>)map.get("hits");
-        @SuppressWarnings("unchecked") final List<Map<String, Object>> list = (List<Map<String, Object>>) hits.get("hits");
+        @SuppressWarnings("unchecked") final List<Map<String, Object>> list =
+                (List<Map<String, Object>>) hits.get("hits");
 
         for (final Map<String, Object> hit : list) {
           @SuppressWarnings("unchecked") final Map<String, Object> source = (Map<String, Object>)hit.get("_source");
@@ -372,7 +360,7 @@ public class ElasticsearchRestClient extends DB {
           } else {
             entry = new HashMap<>(hit.size());
             for (final Map.Entry<String, Object> field : source.entrySet()) {
-              if ("key".equals(field.getKey())) {
+              if (KEY.equals(field.getKey())) {
                 continue;
               }
               entry.put(field.getKey(), new StringByteIterator((String) field.getValue()));
@@ -393,7 +381,7 @@ public class ElasticsearchRestClient extends DB {
       builder.startObject();
       builder.startObject("query");
       builder.startObject("term");
-      builder.field("key", key);
+      builder.field(KEY, key);
       builder.endObject();
       builder.endObject();
       builder.endObject();
