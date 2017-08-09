@@ -19,7 +19,12 @@ LICENSE file.
 
 This section describes how to run YCSB on Elasticsearch 5.x running locally. 
 
-### 1. Set Up YCSB
+### 1. Install and Start Elasticsearch
+
+[Download and install Elasticsearch][1]. When starting Elasticsearch, you should
+[configure][2] the cluster name to be `es.ycsb.cluster` (see below).
+
+### 2. Set Up YCSB
 
 Clone the YCSB git repository and compile:
 
@@ -27,17 +32,15 @@ Clone the YCSB git repository and compile:
     cd YCSB
     mvn clean package
 
-### 2. Run YCSB
+### 3. Run YCSB
     
 Now you are ready to run! First, load the data:
 
-    ./bin/ycsb load elasticsearch5 -s -P workloads/workloada -p path.home=<path>
+    ./bin/ycsb load elasticsearch5 -s -P workloads/workloada
 
 Then, run the workload:
 
-    ./bin/ycsb run elasticsearch5 -s -P workloads/workloada -p path.home=<path>
-
-Note that the `<path>` specified in each execution should be the same.
+    ./bin/ycsb run elasticsearch5 -s -P workloads/workloada
 
 The Elasticsearch 5 binding requires a standalone instance of Elasticsearch.
 You must specify a hosts list for the transport client to connect to via
@@ -52,7 +55,7 @@ configuration see below:
 ### Defaults Configuration
 The default setting for the Elasticsearch node that is created is as follows:
 
-    cluster.name=es.ycsb.cluster
+    es.setting.cluster.name=es.ycsb.cluster
     es.index.key=es.ycsb
     es.number_of_shards=1
     es.number_of_replicas=0
@@ -69,7 +72,6 @@ Assuming that we have a properties file named "myproperties.data" that contains
 custom Elasticsearch node configuration you can execute the following to
 pass it into the Elasticsearch client:
 
-
     ./bin/ycsb run elasticsearch5 -P workloads/workloada -P myproperties.data -s
 
 If you wish to change the default index name you can set the following property:
@@ -82,3 +84,30 @@ You can also specify
     es.hosts.list=(\w+:\d+)+
 
 (a comma-separated list of host/port pairs) to change this.
+
+### Configuring the transport client
+
+The `elasticsearch5` binding starts a transport client to connect to
+Elasticsearch using the transport protocol. You can pass arbitrary settings to
+this instance by using properties with the prefix `es.setting.` followed by any
+valid Elasticsearch setting. For example, assuming that you started your
+Elasticsearch node with the cluster name `my-elasticsearch-cluster`, you would
+need to configure the transport client to use the same cluster name via
+
+    ./bin/ycsb run elasticsearch5 -P <workload> \
+    -p es.setting.cluster.name=my-elasticsearch-cluster
+    
+### Using the Elasticsearch low-level REST client
+
+The Elasticsearch 5 bindings also ship with an implementation that uses the
+low-level Elasticsearch REST client. The name of this binding is
+`elasticsearch-rest`. For example:
+
+    ./bin/ycsb load elasticsearch5-rest -P workloads/workloada
+    
+You can configure the hosts to connect to via the same `es.hosts.list` property
+used to configure the transport client in the `elasticsearch5` binding (note
+that by default you should use port 9200)
+
+[1]: https://www.elastic.co/guide/en/elasticsearch/reference/5.5/_installation.html
+[2]: https://www.elastic.co/guide/en/elasticsearch/reference/5.5/settings.html
