@@ -64,33 +64,6 @@ LICENSE file.
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <groupId>com.github.alexcojocaru</groupId>
-        <artifactId>elasticsearch-maven-plugin</artifactId>
-        <version>5.9</version>
-        <configuration>
-          <version>${elasticsearch5-version}</version>
-          <clusterName>test</clusterName>
-          <httpPort>9200</httpPort>
-          <transportPort>9300</transportPort>
-        </configuration>
-        <executions>
-          <execution>
-            <id>start-elasticsearch</id>
-            <phase>pre-integration-test</phase>
-            <goals>
-              <goal>runforked</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>stop-elasticsearch</id>
-            <phase>post-integration-test</phase>
-            <goals>
-              <goal>stop</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -213,6 +186,37 @@ LICENSE file.
       <activation>
         <jdk>1.8</jdk>
       </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.github.alexcojocaru</groupId>
+            <artifactId>elasticsearch-maven-plugin</artifactId>
+            <version>5.9</version>
+            <configuration>
+              <version>${elasticsearch5-version}</version>
+              <clusterName>test</clusterName>
+              <httpPort>9200</httpPort>
+              <transportPort>9300</transportPort>
+            </configuration>
+            <executions>
+              <execution>
+                <id>start-elasticsearch</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>runforked</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>stop-elasticsearch</id>
+                <phase>post-integration-test</phase>
+                <goals>
+                  <goal>stop</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
       <properties>
         <skipTests>false</skipTests>
       </properties>
