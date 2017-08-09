@@ -22,12 +22,8 @@ import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import java.util.HashMap;
 import java.util.Properties;
@@ -36,15 +32,11 @@ import java.util.Vector;
 
 import static org.junit.Assert.assertEquals;
 
-public class ElasticsearchClientTest {
+public class ElasticsearchClientIT {
 
-    @ClassRule public final static TemporaryFolder temp = new TemporaryFolder();
-    private final static ElasticsearchClient instance = new ElasticsearchClient();
+    private final ElasticsearchClient instance = new ElasticsearchClient();
     private final static HashMap<String, ByteIterator> MOCK_DATA;
     private final static String MOCK_TABLE = "MOCK_TABLE";
-    private final static String MOCK_KEY0 = "0";
-    private final static String MOCK_KEY1 = "1";
-    private final static String MOCK_KEY2 = "2";
 
     static {
         MOCK_DATA = new HashMap<>(10);
@@ -53,29 +45,21 @@ public class ElasticsearchClientTest {
         }
     }
 
-    @BeforeClass
-    public static void setUpClass() throws DBException {
+    @Before
+    public void setUp() throws DBException {
         final Properties props = new Properties();
-        props.put("path.home", temp.getRoot().toString());
+        props.put("es.newdb", "true");
+        props.put("es.setting.cluster.name", "test");
         instance.setProperties(props);
         instance.init();
-    }
-
-    @AfterClass
-    public static void tearDownClass() throws DBException {
-        instance.cleanup();
-    }
-
-    @Before
-    public void setUp() {
-        instance.insert(MOCK_TABLE, MOCK_KEY1, MOCK_DATA);
-        instance.insert(MOCK_TABLE, MOCK_KEY2, MOCK_DATA);
+        for (int i = 0; i < 16; i++) {
+            instance.insert(MOCK_TABLE, Integer.toString(i), MOCK_DATA);
+        }
     }
 
     @After
-    public void tearDown() {
-        instance.delete(MOCK_TABLE, MOCK_KEY1);
-        instance.delete(MOCK_TABLE, MOCK_KEY2);
+    public void tearDown() throws DBException {
+        instance.cleanup();
     }
 
     /**
@@ -83,7 +67,7 @@ public class ElasticsearchClientTest {
      */
     @Test
     public void testInsert() {
-        Status result = instance.insert(MOCK_TABLE, MOCK_KEY0, MOCK_DATA);
+        final Status result = instance.insert(MOCK_TABLE, "0", MOCK_DATA);
         assertEquals(Status.OK, result);
     }
 
@@ -92,7 +76,7 @@ public class ElasticsearchClientTest {
      */
     @Test
     public void testDelete() {
-        Status result = instance.delete(MOCK_TABLE, MOCK_KEY1);
+        final Status result = instance.delete(MOCK_TABLE, "1");
         assertEquals(Status.OK, result);
     }
 
@@ -101,9 +85,9 @@ public class ElasticsearchClientTest {
      */
     @Test
     public void testRead() {
-        Set<String> fields = MOCK_DATA.keySet();
-        HashMap<String, ByteIterator> resultParam = new HashMap<>(10);
-        Status result = instance.read(MOCK_TABLE, MOCK_KEY1, fields, resultParam);
+        final Set<String> fields = MOCK_DATA.keySet();
+        final HashMap<String, ByteIterator> resultParam = new HashMap<>(10);
+        final Status result = instance.read(MOCK_TABLE, "1", fields, resultParam);
         assertEquals(Status.OK, result);
     }
 
@@ -112,21 +96,21 @@ public class ElasticsearchClientTest {
      */
     @Test
     public void testUpdate() {
-        int i;
-        HashMap<String, ByteIterator> newValues = new HashMap<>(10);
+        final HashMap<String, ByteIterator> newValues = new HashMap<>(10);
 
-        for (i = 1; i <= 10; i++) {
+        for (int i = 1; i <= 10; i++) {
             newValues.put("field" + i, new StringByteIterator("newvalue" + i));
         }
 
-        Status result = instance.update(MOCK_TABLE, MOCK_KEY1, newValues);
-        assertEquals(Status.OK, result);
+        final Status updateResult = instance.update(MOCK_TABLE, "1", newValues);
+        assertEquals(Status.OK, updateResult);
 
-        //validate that the values changed
-        HashMap<String, ByteIterator> resultParam = new HashMap<>(10);
-        instance.read(MOCK_TABLE, MOCK_KEY1, MOCK_DATA.keySet(), resultParam);
+        // validate that the values changed
+        final HashMap<String, ByteIterator> resultParam = new HashMap<>(10);
+        final Status readResult = instance.read(MOCK_TABLE, "1", MOCK_DATA.keySet(), resultParam);
+        assertEquals(Status.OK, readResult);
 
-        for (i = 1; i <= 10; i++) {
+        for (int i = 1; i <= 10; i++) {
             assertEquals("newvalue" + i, resultParam.get("field" + i).toString());
         }
 
@@ -137,10 +121,12 @@ public class ElasticsearchClientTest {
      */
     @Test
     public void testScan() {
-        int recordcount = 10;
-        Set<String> fields = MOCK_DATA.keySet();
-        Vector<HashMap<String, ByteIterator>> resultParam = new Vector<>(10);
-        Status result = instance.scan(MOCK_TABLE, MOCK_KEY1, recordcount, fields, resultParam);
-        assertEquals(Status.NOT_IMPLEMENTED, result);
+        final int recordcount = 10;
+        final Set<String> fields = MOCK_DATA.keySet();
+        final Vector<HashMap<String, ByteIterator>> resultParam = new Vector<>(10);
+        final Status result = instance.scan(MOCK_TABLE, "1", recordcount, fields, resultParam);
+        assertEquals(Status.OK, result);
+
+        assertEquals(10, resultParam.size());
     }
 }

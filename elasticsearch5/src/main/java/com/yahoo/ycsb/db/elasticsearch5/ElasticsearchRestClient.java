@@ -55,7 +55,6 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
  */
 public class ElasticsearchRestClient extends DB {
 
-  private static final String DEFAULT_CLUSTER_NAME = "es.ycsb.cluster";
   private static final String DEFAULT_INDEX_KEY = "es.ycsb";
   private static final String DEFAULT_REMOTE_HOST = "localhost:9200";
   private static final int NUMBER_OF_SHARDS = 1;
@@ -183,6 +182,8 @@ public class ElasticsearchRestClient extends DB {
       }
     }
   }
+
+  private volatile boolean isRefreshNeeded = false;
   
   @Override
   public Status insert(final String table, final String key, final Map<String, ByteIterator> values) {
@@ -196,11 +197,17 @@ public class ElasticsearchRestClient extends DB {
           Collections.<String, String>emptyMap(),
           new NStringEntity(new ObjectMapper().writeValueAsString(data), ContentType.APPLICATION_JSON));
 
-      if (response.getStatusLine().getStatusCode() == 201) {
-        return Status.OK;
-      } else {
+      if (response.getStatusLine().getStatusCode() != 201) {
         return Status.ERROR;
       }
+
+      if (!isRefreshNeeded) {
+        synchronized (this) {
+          isRefreshNeeded = true;
+        }
+      }
+
+      return Status.OK;
     } catch (final Exception e) {
       e.printStackTrace();
       return Status.ERROR;
@@ -226,11 +233,16 @@ public class ElasticsearchRestClient extends DB {
       }
       @SuppressWarnings("unchecked") final Map<String, Object> hit =
               (Map<String, Object>)((List<Object>)hits.get("hits")).get(0);
-      @SuppressWarnings("unchecked") final Map<String, Object> source = (Map<String, Object>)hit.get("_source");
       final Response deleteResponse =
-              restClient.performRequest("DELETE", "/" + indexKey + "/" + table + "/" + source.get("_id"));
+              restClient.performRequest("DELETE", "/" + indexKey + "/" + table + "/" + hit.get("_id"));
       if (deleteResponse.getStatusLine().getStatusCode() != 200) {
         return Status.ERROR;
+      }
+
+      if (!isRefreshNeeded) {
+        synchronized (this) {
+          isRefreshNeeded = true;
+        }
       }
 
       return Status.OK;
@@ -310,12 +322,19 @@ public class ElasticsearchRestClient extends DB {
       final Map<String, String> params = emptyMap();
       final Response response = restClient.performRequest(
               "PUT",
-              "/" + indexKey + "/" + table + "/" + source.get("_id"),
+              "/" + indexKey + "/" + table + "/" + hit.get("_id"),
               params,
               new NStringEntity(new ObjectMapper().writeValueAsString(source), ContentType.APPLICATION_JSON));
       if (response.getStatusLine().getStatusCode() != 200) {
         return Status.ERROR;
       }
+
+      if (!isRefreshNeeded) {
+        synchronized (this) {
+          isRefreshNeeded = true;
+        }
+      }
+
       return Status.OK;
     } catch (final Exception e) {
       e.printStackTrace();
@@ -376,6 +395,24 @@ public class ElasticsearchRestClient extends DB {
     }
   }
 
+  private void refreshIfNeeded() throws IOException {
+    if (isRefreshNeeded) {
+      final boolean refresh;
+      synchronized (this) {
+        if (isRefreshNeeded) {
+          refresh = true;
+          isRefreshNeeded = false;
+        } else {
+          refresh = false;
+        }
+      }
+      if (refresh) {
+        restClient.performRequest("POST", "/" + indexKey + "/_refresh");
+      }
+    }
+  }
+
+
   private Response search(final String table, final String key) throws IOException {
     try (XContentBuilder builder = jsonBuilder()) {
       builder.startObject();
@@ -390,6 +427,7 @@ public class ElasticsearchRestClient extends DB {
   }
 
   private Response search(final String table, final XContentBuilder builder) throws IOException {
+    refreshIfNeeded();
     final Map<String, String> params = emptyMap();
     final StringEntity entity = new StringEntity(builder.string());
     final Header header = new BasicHeader("content-type", ContentType.APPLICATION_JSON.toString());

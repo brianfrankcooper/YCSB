@@ -65,37 +65,29 @@ LICENSE file.
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <version>1.8</version>
+        <groupId>com.github.alexcojocaru</groupId>
+        <artifactId>elasticsearch-maven-plugin</artifactId>
+        <version>5.9</version>
+        <configuration>
+          <version>${elasticsearch5-version}</version>
+          <clusterName>test</clusterName>
+          <httpPort>9200</httpPort>
+          <transportPort>9300</transportPort>
+        </configuration>
         <executions>
-          <!-- start up external cluster -->
           <execution>
-            <id>integ-setup</id>
+            <id>start-elasticsearch</id>
             <phase>pre-integration-test</phase>
             <goals>
-              <goal>run</goal>
+              <goal>runforked</goal>
             </goals>
-            <configuration>
-              <skip>${skipTests}</skip>
-              <target>
-                <ant antfile="src/test/ant/integration-tests.xml" target="start-external-cluster"/>
-              </target>
-            </configuration>
           </execution>
-          <!-- shut down external cluster -->
           <execution>
-            <id>integ-teardown</id>
+            <id>stop-elasticsearch</id>
             <phase>post-integration-test</phase>
             <goals>
-              <goal>run</goal>
+              <goal>stop</goal>
             </goals>
-            <configuration>
-              <skip>${skipTests}</skip>
-              <target>
-                <ant antfile="src/test/ant/integration-tests.xml" target="stop-external-cluster"/>
-              </target>
-            </configuration>
           </execution>
         </executions>
       </plugin>

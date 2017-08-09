@@ -22,9 +22,12 @@ import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
+import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
+import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.client.transport.TransportClient;
@@ -33,9 +36,7 @@ import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.query.RangeQueryBuilder;
 import org.elasticsearch.index.query.TermQueryBuilder;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHitField;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 
 import java.net.InetAddress;
@@ -148,6 +149,8 @@ public class ElasticsearchClient extends DB {
     }
   }
 
+  private volatile boolean isRefreshNeeded = false;
+
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
@@ -160,7 +163,16 @@ public class ElasticsearchClient extends DB {
       doc.field(KEY, key);
       doc.endObject();
 
-      client.prepareIndex(indexKey, table).setSource(doc).execute().actionGet();
+      final IndexResponse indexResponse = client.prepareIndex(indexKey, table).setSource(doc).get();
+      if (indexResponse.getResult() != DocWriteResponse.Result.CREATED) {
+        return Status.ERROR;
+      }
+
+      if (!isRefreshNeeded) {
+        synchronized (this) {
+          isRefreshNeeded = true;
+        }
+      }
 
       return Status.OK;
     } catch (final Exception e) {
@@ -179,9 +191,15 @@ public class ElasticsearchClient extends DB {
 
       final String id = searchResponse.getHits().getAt(0).getId();
 
-      final DeleteResponse deleteResponse = client.prepareDelete(indexKey, table, id).execute().actionGet();
-      if (deleteResponse.status().equals(RestStatus.NOT_FOUND)) {
+      final DeleteResponse deleteResponse = client.prepareDelete(indexKey, table, id).get();
+      if (deleteResponse.getResult() == DocWriteResponse.Result.NOT_FOUND) {
         return Status.NOT_FOUND;
+      }
+
+      if (!isRefreshNeeded) {
+        synchronized (this) {
+          isRefreshNeeded = true;
+        }
       }
 
       return Status.OK;
@@ -206,15 +224,14 @@ public class ElasticsearchClient extends DB {
       final SearchHit hit = searchResponse.getHits().getAt(0);
       if (fields != null) {
         for (final String field : fields) {
-          result.put(field, new StringByteIterator(
-                  (String) hit.getField(field).getValue()));
+          result.put(field, new StringByteIterator((String) hit.getSource().get(field)));
         }
       } else {
-        for (final Map.Entry<String, SearchHitField> e : hit.getFields().entrySet()) {
+        for (final Map.Entry<String, Object> e : hit.getSource().entrySet()) {
           if (KEY.equals(e.getKey())) {
             continue;
           }
-          result.put(e.getKey(), new StringByteIterator((String) e.getValue().getValue()));
+          result.put(e.getKey(), new StringByteIterator((String) e.getValue()));
         }
       }
 
@@ -238,7 +255,18 @@ public class ElasticsearchClient extends DB {
         hit.getSource().put(entry.getKey(), entry.getValue());
       }
 
-      client.prepareIndex(indexKey, table, hit.getId()).setSource(hit.getSource()).get();
+      final IndexResponse indexResponse =
+              client.prepareIndex(indexKey, table, hit.getId()).setSource(hit.getSource()).get();
+
+      if (indexResponse.getResult() != DocWriteResponse.Result.UPDATED) {
+        return Status.ERROR;
+      }
+
+      if (!isRefreshNeeded) {
+        synchronized (this) {
+          isRefreshNeeded = true;
+        }
+      }
 
       return Status.OK;
     } catch (final Exception e) {
@@ -255,6 +283,7 @@ public class ElasticsearchClient extends DB {
       final Set<String> fields,
       final Vector<HashMap<String, ByteIterator>> result) {
     try {
+      refreshIfNeeded();
       final RangeQueryBuilder query = new RangeQueryBuilder(KEY).gte(startkey);
       final SearchResponse response = client.prepareSearch(indexKey).setQuery(query).setSize(recordcount).get();
 
@@ -266,12 +295,12 @@ public class ElasticsearchClient extends DB {
             entry.put(field, new StringByteIterator((String) hit.getSource().get(field)));
           }
         } else {
-          entry = new HashMap<>(hit.getFields().size());
-          for (final Map.Entry<String, SearchHitField> field : hit.getFields().entrySet()) {
+          entry = new HashMap<>(hit.getSource().size());
+          for (final Map.Entry<String, Object> field : hit.getSource().entrySet()) {
             if (KEY.equals(field.getKey())) {
               continue;
             }
-            entry.put(field.getKey(), new StringByteIterator((String) field.getValue().getValue()));
+            entry.put(field.getKey(), new StringByteIterator((String) field.getValue()));
           }
         }
         result.add(entry);
@@ -283,8 +312,25 @@ public class ElasticsearchClient extends DB {
     }
   }
 
+  private void refreshIfNeeded() {
+    if (isRefreshNeeded) {
+      final boolean refresh;
+      synchronized (this) {
+        if (isRefreshNeeded) {
+          refresh = true;
+          isRefreshNeeded = false;
+        } else {
+          refresh = false;
+        }
+      }
+      if (refresh) {
+        client.admin().indices().refresh(new RefreshRequest()).actionGet();
+      }
+    }
+  }
 
   private SearchResponse search(final String table, final String key) {
+    refreshIfNeeded();
     return client.prepareSearch(indexKey).setTypes(table).setQuery(new TermQueryBuilder(KEY, key)).get();
   }
 
