@@ -412,7 +412,6 @@ public class ElasticsearchRestClient extends DB {
     }
   }
 
-
   private Response search(final String table, final String key) throws IOException {
     try (XContentBuilder builder = jsonBuilder()) {
       builder.startObject();
