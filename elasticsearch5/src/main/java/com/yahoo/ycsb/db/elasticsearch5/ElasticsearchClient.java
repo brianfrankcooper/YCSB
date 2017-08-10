@@ -150,8 +150,7 @@ public class ElasticsearchClient extends DB {
 
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
-    try {
-      final XContentBuilder doc = jsonBuilder();
+    try (XContentBuilder doc = jsonBuilder()) {
 
       doc.startObject();
       for (final Entry<String, String> entry : StringByteIterator.getStringMap(values).entrySet()) {
