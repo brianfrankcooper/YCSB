@@ -49,7 +49,7 @@ public class ElasticsearchRestClientIT {
   @Before
   public void setUp() throws DBException, IOException {
     final Properties props = new Properties();
-    props.put("es.newdb", "true");
+    props.put("es.new_index", "true");
     instance.setProperties(props);
     instance.init();
     for (int i = 0; i < 16; i++) {

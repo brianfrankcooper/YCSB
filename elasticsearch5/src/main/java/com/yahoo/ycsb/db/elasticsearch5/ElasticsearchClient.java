@@ -80,7 +80,7 @@ public class ElasticsearchClient extends DB {
     final int numberOfShards = parseIntegerProperty(props, "es.number_of_shards", NUMBER_OF_SHARDS);
     final int numberOfReplicas = parseIntegerProperty(props, "es.number_of_replicas", NUMBER_OF_REPLICAS);
 
-    final Boolean newdb = Boolean.parseBoolean(props.getProperty("es.newdb", "false"));
+    final Boolean newIndex = Boolean.parseBoolean(props.getProperty("es.new_index", "false"));
     final Builder settings = Settings.builder().put("cluster.name", DEFAULT_CLUSTER_NAME);
 
     // if properties file contains elasticsearch user defined properties
@@ -123,10 +123,10 @@ public class ElasticsearchClient extends DB {
         client.admin().indices()
             .exists(Requests.indicesExistsRequest(indexKey)).actionGet()
             .isExists();
-    if (exists && newdb) {
+    if (exists && newIndex) {
       client.admin().indices().prepareDelete(indexKey).get();
     }
-    if (!exists || newdb) {
+    if (!exists || newIndex) {
       client.admin().indices().create(
           new CreateIndexRequest(indexKey)
               .settings(

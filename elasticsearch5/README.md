@@ -59,7 +59,7 @@ The default setting for the Elasticsearch node that is created is as follows:
     es.index.key=es.ycsb
     es.number_of_shards=1
     es.number_of_replicas=0
-    es.newdb=false
+    es.new_index=false
     es.hosts.list=localhost:9300
 
 ### Custom Configuration

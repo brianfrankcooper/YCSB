@@ -76,7 +76,7 @@ public class ElasticsearchRestClient extends DB {
     final int numberOfShards = parseIntegerProperty(props, "es.number_of_shards", NUMBER_OF_SHARDS);
     final int numberOfReplicas = parseIntegerProperty(props, "es.number_of_replicas", NUMBER_OF_REPLICAS);
 
-    final Boolean newdb = Boolean.parseBoolean(props.getProperty("es.newdb", "false"));
+    final Boolean newIndex = Boolean.parseBoolean(props.getProperty("es.new_index", "false"));
 
     final String[] nodeList = props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST).split(",");
 
@@ -91,7 +91,7 @@ public class ElasticsearchRestClient extends DB {
     final Response existsResponse = performRequest(restClient, "HEAD", "/" + indexKey);
     final boolean exists = existsResponse.getStatusLine().getStatusCode() == 200;
 
-    if (exists && newdb) {
+    if (exists && newIndex) {
       final Response deleteResponse = performRequest(restClient, "DELETE", "/" + indexKey);
       final int statusCode = deleteResponse.getStatusLine().getStatusCode();
       if (statusCode != 200) {
@@ -99,7 +99,7 @@ public class ElasticsearchRestClient extends DB {
       }
     }
 
-    if (!exists || newdb) {
+    if (!exists || newIndex) {
       try (XContentBuilder builder = jsonBuilder()) {
         builder.startObject();
         builder.startObject("settings");
