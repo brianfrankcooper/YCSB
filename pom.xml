@@ -91,6 +91,7 @@ LICENSE file.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <thrift.version>0.8.0</thrift.version>
     <hypertable.version>0.9.5.6</hypertable.version>
+    <elasticsearch5-version>5.5.1</elasticsearch5-version>
     <couchbase.version>1.4.10</couchbase.version>
     <couchbase2.version>2.3.1</couchbase2.version>
     <tarantool.version>1.6.5</tarantool.version>
@@ -123,6 +124,7 @@ LICENSE file.
     <module>azuredocumentdb</module>
     <module>dynamodb</module>
     <module>elasticsearch</module>
+    <module>elasticsearch5</module>
     <module>geode</module>
     <module>googlebigtable</module>
     <module>googledatastore</module>

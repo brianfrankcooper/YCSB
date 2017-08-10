@@ -101,6 +101,11 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>elasticsearch5-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
       <artifactId>geode-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
