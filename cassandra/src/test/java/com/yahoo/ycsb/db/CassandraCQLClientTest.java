@@ -35,10 +35,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -83,7 +80,6 @@ public class CassandraCQLClientTest {
     client.init();
 
     buildStatements();
-
   }
 
   private void buildStatements() {
@@ -112,7 +108,6 @@ public class CassandraCQLClientTest {
       Truncate truncate = QueryBuilder.truncate(TABLE);
       preparedTruncate = session.prepare(truncate);
     }
-
   }
 
   @After
@@ -128,7 +123,7 @@ public class CassandraCQLClientTest {
   @After
   public void clearTable() throws Exception {
     // Clear the table so that each test starts fresh.
-    if (cassandraUnit != null) {
+    if (cassandraUnit != null && cassandraUnit.getSession() != null) {
       cassandraUnit.getSession().execute(preparedTruncate.bind());
     }
   }
@@ -225,5 +220,29 @@ public class CassandraCQLClientTest {
     assertThat(rs.isExhausted(), is(true));
     assertThat(row.getString("field0"), is("value1"));
     assertThat(row.getString("field1"), is("value2"));
+  }
+
+  @Test
+  public void testScanAllPasses() throws Exception {
+    Set fields = null; // All the fields
+    Vector<HashMap<String, ByteIterator>> result = new Vector<>();
+    Status status = client.scan(TABLE, "non-existent", 1, fields, result);
+    assertThat(status, is(Status.OK));
+  }
+
+  @Test
+  public void testScanOnePasses() throws Exception {
+    Set fields = Sets.newHashSet("field1");
+    Vector<HashMap<String, ByteIterator>> result = new Vector<>();
+    Status status = client.scan(TABLE, "non-existent", 1, fields, result);
+    assertThat(status, is(Status.OK));
+  }
+
+  @Test
+  public void testScanMultiPasses() throws Exception {
+    Set fields = Sets.newHashSet("field1", "field2");
+    Vector<HashMap<String, ByteIterator>> result = new Vector<>();
+    Status status = client.scan(TABLE, "non-existent", 1, fields, result);
+    assertThat(status, is(Status.OK));
   }
 }
