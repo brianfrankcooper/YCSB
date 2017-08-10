@@ -79,7 +79,6 @@ public class ElasticsearchRestClient extends DB {
     final Boolean newdb = Boolean.parseBoolean(props.getProperty("es.newdb", "false"));
 
     final String[] nodeList = props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST).split(",");
-    System.out.println("Elasticsearch Remote Hosts = " + props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST));
 
     final List<HttpHost> esHttpHosts = new ArrayList<>(nodeList.length);
     for (String h : nodeList) {

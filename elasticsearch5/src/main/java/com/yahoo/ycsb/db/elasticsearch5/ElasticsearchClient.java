@@ -93,8 +93,6 @@ public class ElasticsearchClient extends DB {
         }
       }
     }
-    final String clusterName = settings.get("cluster.name");
-    System.out.println("Elasticsearch cluster name = " + clusterName);
 
     settings.put("client.transport.sniff", true)
             .put("client.transport.ignore_cluster_name", false)
@@ -102,7 +100,6 @@ public class ElasticsearchClient extends DB {
             .put("client.transport.nodes_sampler_interval", "30s");
     // Default it to localhost:9300
     final String[] nodeList = props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST).split(",");
-    System.out.println("Elasticsearch Remote Hosts = " + props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST));
     client = new PreBuiltTransportClient(settings.build());
     for (String h : nodeList) {
       String[] nodes = h.split(":");
