@@ -25,6 +25,7 @@ import com.yahoo.ycsb.StringByteIterator;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpStatus;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.message.BasicHeader;
@@ -89,12 +90,12 @@ public class ElasticsearchRestClient extends DB {
     restClient = RestClient.builder(esHttpHosts.toArray(new HttpHost[esHttpHosts.size()])).build();
 
     final Response existsResponse = performRequest(restClient, "HEAD", "/" + indexKey);
-    final boolean exists = existsResponse.getStatusLine().getStatusCode() == 200;
+    final boolean exists = existsResponse.getStatusLine().getStatusCode() == HttpStatus.SC_OK;
 
     if (exists && newIndex) {
       final Response deleteResponse = performRequest(restClient, "DELETE", "/" + indexKey);
       final int statusCode = deleteResponse.getStatusLine().getStatusCode();
-      if (statusCode != 200) {
+      if (statusCode != HttpStatus.SC_OK) {
         throw new DBException("delete [" + indexKey + "] failed with status [" + statusCode + "]");
       }
     }
@@ -111,7 +112,7 @@ public class ElasticsearchRestClient extends DB {
         final StringEntity entity = new StringEntity(builder.string());
         final Response createResponse = performRequest(restClient, "PUT", "/" + indexKey, params, entity);
         final int statusCode = createResponse.getStatusLine().getStatusCode();
-        if (statusCode != 200) {
+        if (statusCode != HttpStatus.SC_OK) {
           throw new DBException("create [" + indexKey + "] failed with status [" + statusCode + "]");
         }
       } catch (final IOException e) {
@@ -122,7 +123,7 @@ public class ElasticsearchRestClient extends DB {
     final Map<String, String> params = Collections.singletonMap("wait_for_status", "green");
     final Response healthResponse = performRequest(restClient, "GET", "/_cluster/health/" + indexKey, params);
     final int healthStatusCode = healthResponse.getStatusLine().getStatusCode();
-    if (healthStatusCode != 200) {
+    if (healthStatusCode != HttpStatus.SC_OK) {
       throw new DBException("cluster health [" + indexKey + "] failed with status [" + healthStatusCode + "]");
     }
   }
@@ -196,7 +197,7 @@ public class ElasticsearchRestClient extends DB {
           Collections.<String, String>emptyMap(),
           new NStringEntity(new ObjectMapper().writeValueAsString(data), ContentType.APPLICATION_JSON));
 
-      if (response.getStatusLine().getStatusCode() != 201) {
+      if (response.getStatusLine().getStatusCode() != HttpStatus.SC_CREATED) {
         return Status.ERROR;
       }
 
@@ -218,9 +219,9 @@ public class ElasticsearchRestClient extends DB {
     try {
       final Response searchResponse = search(table, key);
       final int statusCode = searchResponse.getStatusLine().getStatusCode();
-      if (statusCode == 404) {
+      if (statusCode == HttpStatus.SC_NOT_FOUND) {
         return Status.NOT_FOUND;
-      } else if (statusCode != 200) {
+      } else if (statusCode != HttpStatus.SC_OK) {
         return Status.ERROR;
       }
 
@@ -234,7 +235,7 @@ public class ElasticsearchRestClient extends DB {
               (Map<String, Object>)((List<Object>)hits.get("hits")).get(0);
       final Response deleteResponse =
               restClient.performRequest("DELETE", "/" + indexKey + "/" + table + "/" + hit.get("_id"));
-      if (deleteResponse.getStatusLine().getStatusCode() != 200) {
+      if (deleteResponse.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
         return Status.ERROR;
       }
 
@@ -262,7 +263,7 @@ public class ElasticsearchRestClient extends DB {
       final int statusCode = searchResponse.getStatusLine().getStatusCode();
       if (statusCode == 404) {
         return Status.NOT_FOUND;
-      } else if (statusCode != 200) {
+      } else if (statusCode != HttpStatus.SC_OK) {
         return Status.ERROR;
       }
 
@@ -302,7 +303,7 @@ public class ElasticsearchRestClient extends DB {
       final int statusCode = searchResponse.getStatusLine().getStatusCode();
       if (statusCode == 404) {
         return Status.NOT_FOUND;
-      } else if (statusCode != 200) {
+      } else if (statusCode != HttpStatus.SC_OK) {
         return Status.ERROR;
       }
 
@@ -324,7 +325,7 @@ public class ElasticsearchRestClient extends DB {
               "/" + indexKey + "/" + table + "/" + hit.get("_id"),
               params,
               new NStringEntity(new ObjectMapper().writeValueAsString(source), ContentType.APPLICATION_JSON));
-      if (response.getStatusLine().getStatusCode() != 200) {
+      if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
         return Status.ERROR;
       }
 
