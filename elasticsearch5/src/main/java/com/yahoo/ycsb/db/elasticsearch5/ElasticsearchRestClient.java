@@ -143,7 +143,7 @@ public class ElasticsearchRestClient extends DB {
     return performRequest(restClient, method, endpoint, params, null);
   }
 
-  private static Header[] emptyHeaders = new Header[0];
+  private static final Header[] EMPTY_HEADERS = new Header[0];
 
   private static Response performRequest(
           final RestClient restClient,
@@ -156,7 +156,7 @@ public class ElasticsearchRestClient extends DB {
       if (entity != null) {
         headers = new Header[]{new BasicHeader("content-type", ContentType.APPLICATION_JSON.toString())};
       } else {
-        headers = emptyHeaders;
+        headers = EMPTY_HEADERS;
       }
       return restClient.performRequest(
               method,
