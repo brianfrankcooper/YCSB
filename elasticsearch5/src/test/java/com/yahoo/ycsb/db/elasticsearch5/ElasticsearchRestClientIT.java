@@ -63,7 +63,7 @@ public class ElasticsearchRestClientIT {
   }
 
   /**
-   * Test of insert method, of class ElasticsearchClient.
+   * Test of insert method, of class {@link ElasticsearchRestClient}.
    */
   @Test
   public void testInsert() {
@@ -72,7 +72,7 @@ public class ElasticsearchRestClientIT {
   }
 
   /**
-   * Test of delete method, of class ElasticsearchClient.
+   * Test of delete method, of class {@link ElasticsearchRestClient}.
    */
   @Test
   public void testDelete() {
@@ -81,7 +81,7 @@ public class ElasticsearchRestClientIT {
   }
 
   /**
-   * Test of read method, of class ElasticsearchClient.
+   * Test of read method, of class {@link ElasticsearchRestClient}.
    */
   @Test
   public void testRead() {
@@ -92,7 +92,7 @@ public class ElasticsearchRestClientIT {
   }
 
   /**
-   * Test of update method, of class ElasticsearchClient.
+   * Test of update method, of class {@link ElasticsearchRestClient}.
    */
   @Test
   public void testUpdate() {
@@ -117,7 +117,7 @@ public class ElasticsearchRestClientIT {
   }
 
   /**
-   * Test of scan method, of class ElasticsearchClient.
+   * Test of scan method, of class {@link ElasticsearchRestClient}.
    */
   @Test
   public void testScan() {
