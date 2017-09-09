@@ -34,6 +34,9 @@ LICENSE file.
     <!-- For integration tests using ANT -->
     <integ.http.port>9400</integ.http.port>
     <integ.transport.port>9500</integ.transport.port>
+
+    <!-- If tests are skipped, skip ES spin up -->
+    <es.skip>${skipTests}</es.skip>
   </properties>
   <build>
     <plugins>
