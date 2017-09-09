@@ -28,6 +28,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.net.*;
 
+import com.amazonaws.util.IOUtils;
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
@@ -427,14 +428,7 @@ public class S3Client extends DB {
       Map.Entry<S3Object, ObjectMetadata> objectAndMetadata = getS3ObjectAndMetadata(bucket, key, ssecLocal);
       InputStream objectData = objectAndMetadata.getKey().getObjectContent(); //consuming the stream
       // writing the stream to bytes and to results
-      int sizeOfFile = (int)objectAndMetadata.getValue().getContentLength();
-      byte[] inputStreamToByte = new byte[sizeOfFile];
-      int len;
-      int offset = 0;
-      while ((len = objectData.read(inputStreamToByte, offset, sizeOfFile - offset)) > 0) {
-        offset += len;
-      }
-      result.put(key, new ByteArrayByteIterator(inputStreamToByte));
+      result.put(key, new ByteArrayByteIterator(IOUtils.toByteArray(objectData)));
       objectData.close();
       objectAndMetadata.getKey().close();
     } catch (Exception e){
