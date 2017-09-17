@@ -1,0 +1,46 @@
+# Copyright (c) 2017 YCSB contributors. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you
+# may not use this file except in compliance with the License. You
+# may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing
+# permissions and limitations under the License. See accompanying
+# LICENSE file.
+
+# Yahoo! Cloud System Benchmark
+# Workload A: Small cardinality consistent data for 2 days
+#   Application example: Typical monitoring of a single compute or small 
+#   sensor station where 90% of the load is write and only 10% is read 
+#   (it's usually much less). All writes are inserts. No sparsity so 
+#   every series will have a value at every timestamp.
+#
+#   Read/insert ratio: 10/90
+#   Cardinality: 16 per key (field), 64 fields for a total of 1,024 
+#                time series.
+workload=com.yahoo.ycsb.workloads.TimeSeriesWorkload
+
+recordcount=1474560
+operationcount=2949120
+
+fieldlength=8
+fieldcount=64
+tagcount=4
+tagcardinality=1,2,4,2
+
+sparsity=0.0
+delayedSeries=0.0
+delayedIntervals=0
+
+timestampunits=SECONDS
+timestampinterval=60
+querytimespan=3600
+
+readproportion=0.10
+updateproportion=0.00
+insertproportion=0.90
