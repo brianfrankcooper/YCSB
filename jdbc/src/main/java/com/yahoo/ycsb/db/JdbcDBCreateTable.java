@@ -73,7 +73,7 @@ public final class JdbcDBCreateTable {
       for (int idx = 0; idx < fieldcount; idx++) {
         sql.append(", FIELD");
         sql.append(idx);
-        sql.append(" VARCHAR");
+        sql.append(" TEXT");
       }
       sql.append(");");
 
