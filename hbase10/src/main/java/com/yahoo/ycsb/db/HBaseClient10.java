@@ -66,10 +66,12 @@ import static com.yahoo.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY_DEFAULT;
  * durability.
  */
 public class HBaseClient10 extends com.yahoo.ycsb.DB {
+  private static final AtomicInteger THREAD_COUNT = new AtomicInteger(0);
+  
+  private static final Object TABLE_LOCK = new Object();
+  
   private Configuration config = HBaseConfiguration.create();
-
-  private static AtomicInteger threadCount = new AtomicInteger(0);
-
+  
   private boolean debug = false;
 
   private String tableName = "";
@@ -82,7 +84,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
    * @See #CONNECTION_LOCK.
    */
   private static Connection connection = null;
-  private static final Object CONNECTION_LOCK = new Object();
+  //private static final Object CONNECTION_LOCK = new Object();
 
   // Depending on the value of clientSideBuffering, either bufferedMutator
   // (clientSideBuffering) or currentTable (!clientSideBuffering) will be used.
@@ -145,8 +147,8 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
     }
 
     try {
-      threadCount.getAndIncrement();
-      synchronized (CONNECTION_LOCK) {
+      THREAD_COUNT.getAndIncrement();
+      synchronized (THREAD_COUNT) {
         if (connection == null) {
           // Initialize if not set up already.
           connection = ConnectionFactory.createConnection(config);
@@ -179,7 +181,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
     String table = getProperties().getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
     try {
       final TableName tName = TableName.valueOf(table);
-      synchronized (CONNECTION_LOCK) {
+      synchronized (THREAD_COUNT) {
         connection.getTable(tName).getTableDescriptor();
       }
     } catch (IOException e) {
@@ -208,14 +210,11 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
       long en = System.nanoTime();
       final String type = clientSideBuffering ? "UPDATE" : "CLEANUP";
       measurements.measure(type, (int) ((en - st) / 1000));
-      threadCount.decrementAndGet();
-      if (threadCount.get() <= 0) {
-        // Means we are done so ok to shut down the Connection.
-        synchronized (CONNECTION_LOCK) {
-          if (connection != null) {
-            connection.close();
-            connection = null;
-          }
+      synchronized (THREAD_COUNT) {
+        int threadCount = THREAD_COUNT.decrementAndGet();
+        if (threadCount <= 0 && connection != null) {
+          connection.close();
+          connection = null;
         }
       }
     } catch (IOException e) {
@@ -225,7 +224,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
 
   public void getHTable(String table) throws IOException {
     final TableName tName = TableName.valueOf(table);
-    synchronized (CONNECTION_LOCK) {
+    synchronized (TABLE_LOCK) {
       this.currentTable = connection.getTable(tName);
       if (clientSideBuffering) {
         final BufferedMutatorParams p = new BufferedMutatorParams(tName);
