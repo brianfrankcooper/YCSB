@@ -471,7 +471,8 @@ public class HBaseClient extends com.yahoo.ycsb.DB {
       try {
         t.join();
       } catch (InterruptedException ignored) {
-        //ignored
+        System.err.println("interrupted");
+        Thread.currentThread().interrupt();
       }
     }
     long en = System.currentTimeMillis();
