@@ -68,8 +68,6 @@ import static com.yahoo.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY_DEFAULT;
 public class HBaseClient10 extends com.yahoo.ycsb.DB {
   private static final AtomicInteger THREAD_COUNT = new AtomicInteger(0);
   
-  private static final Object TABLE_LOCK = new Object();
-  
   private Configuration config = HBaseConfiguration.create();
   
   private boolean debug = false;
@@ -215,13 +213,11 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
 
   public void getHTable(String table) throws IOException {
     final TableName tName = TableName.valueOf(table);
-    synchronized (TABLE_LOCK) {
-      this.currentTable = connection.getTable(tName);
-      if (clientSideBuffering) {
-        final BufferedMutatorParams p = new BufferedMutatorParams(tName);
-        p.writeBufferSize(writeBufferSize);
-        this.bufferedMutator = connection.getBufferedMutator(p);
-      }
+    this.currentTable = connection.getTable(tName);
+    if (clientSideBuffering) {
+      final BufferedMutatorParams p = new BufferedMutatorParams(tName);
+      p.writeBufferSize(writeBufferSize);
+      this.bufferedMutator = connection.getBufferedMutator(p);
     }
   }
 
