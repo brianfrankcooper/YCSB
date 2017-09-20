@@ -84,7 +84,6 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
    * @See #CONNECTION_LOCK.
    */
   private static Connection connection = null;
-  //private static final Object CONNECTION_LOCK = new Object();
 
   // Depending on the value of clientSideBuffering, either bufferedMutator
   // (clientSideBuffering) or currentTable (!clientSideBuffering) will be used.
@@ -146,12 +145,19 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
       }
     }
 
+    String table = getProperties().getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
     try {
       THREAD_COUNT.getAndIncrement();
       synchronized (THREAD_COUNT) {
         if (connection == null) {
           // Initialize if not set up already.
           connection = ConnectionFactory.createConnection(config);
+          
+          // Terminate right now if table does not exist, since the client
+          // will not propagate this error upstream once the workload
+          // starts.
+          final TableName tName = TableName.valueOf(table);
+          connection.getTable(tName).getTableDescriptor();
         }
       }
     } catch (java.io.IOException e) {
@@ -174,19 +180,6 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
       throw new DBException("No columnfamily specified");
     }
     columnFamilyBytes = Bytes.toBytes(columnFamily);
-
-    // Terminate right now if table does not exist, since the client
-    // will not propagate this error upstream once the workload
-    // starts.
-    String table = getProperties().getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
-    try {
-      final TableName tName = TableName.valueOf(table);
-      synchronized (THREAD_COUNT) {
-        connection.getTable(tName).getTableDescriptor();
-      }
-    } catch (IOException e) {
-      throw new DBException(e);
-    }
   }
 
   /**
@@ -210,12 +203,10 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
       long en = System.nanoTime();
       final String type = clientSideBuffering ? "UPDATE" : "CLEANUP";
       measurements.measure(type, (int) ((en - st) / 1000));
-      synchronized (THREAD_COUNT) {
-        int threadCount = THREAD_COUNT.decrementAndGet();
-        if (threadCount <= 0 && connection != null) {
-          connection.close();
-          connection = null;
-        }
+      int threadCount = THREAD_COUNT.decrementAndGet();
+      if (threadCount <= 0 && connection != null) {
+        connection.close();
+        connection = null;
       }
     } catch (IOException e) {
       throw new DBException(e);
