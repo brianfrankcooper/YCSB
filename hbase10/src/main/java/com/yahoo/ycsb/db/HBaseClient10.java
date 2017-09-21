@@ -202,9 +202,14 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
       final String type = clientSideBuffering ? "UPDATE" : "CLEANUP";
       measurements.measure(type, (int) ((en - st) / 1000));
       int threadCount = THREAD_COUNT.decrementAndGet();
-      if (threadCount <= 0 && connection != null) {
-        connection.close();
-        connection = null;
+      if (threadCount <= 0) {
+        // Means we are done so ok to shut down the Connection.
+        synchronized (THREAD_COUNT) {
+          if (connection != null) {   
+            connection.close();   
+            connection = null;    
+          }   
+        }
       }
     } catch (IOException e) {
       throw new DBException(e);
