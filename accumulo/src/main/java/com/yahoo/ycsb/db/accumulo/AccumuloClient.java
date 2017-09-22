@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -83,9 +84,9 @@ public class AccumuloClient extends DB {
     colFam = new Text(getProperties().getProperty("accumulo.columnFamily"));
     colFamBytes = colFam.toString().getBytes(UTF_8);
 
-    inst = new ZooKeeperInstance(
-        getProperties().getProperty("accumulo.instanceName"),
-        getProperties().getProperty("accumulo.zooKeepers"));
+    inst = new ZooKeeperInstance(new ClientConfiguration()
+        .withInstance(getProperties().getProperty("accumulo.instanceName"))
+        .withZkHosts(getProperties().getProperty("accumulo.zooKeepers")));
     try {
       String principal = getProperties().getProperty("accumulo.username");
       AuthenticationToken token =
