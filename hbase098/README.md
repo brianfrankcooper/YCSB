@@ -17,7 +17,6 @@ LICENSE file.
 
 # HBase (0.98.x) Driver for YCSB
 This driver is a binding for the YCSB facilities to operate against a HBase 0.98.x Server cluster.
-To run against an HBase 0.94.x cluster, use the `hbase094` binding.
 To run against an HBase >= 1.0 cluster, use the `hbase10` binding.
 
 ## Quickstart
