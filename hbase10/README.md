@@ -17,7 +17,6 @@ LICENSE file.
 
 # HBase (1.0.x) Driver for YCSB
 This driver is a binding for the YCSB facilities to operate against a HBase 1.0.x Server cluster or Google's hosted Bigtable.
-To run against an HBase 0.94.x cluster, use the `hbase094` binding.
 To run against an HBase 0.98.x cluster, use the `hbase098` binding.
 
 See `hbase098/README.md` for a quickstart to setup HBase for load testing and common configuration details.

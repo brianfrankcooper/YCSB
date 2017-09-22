@@ -69,7 +69,6 @@ LICENSE file.
     <maven.assembly.version>2.5.5</maven.assembly.version>
     <maven.dependency.version>2.10</maven.dependency.version>
     <asynchbase.version>1.7.1</asynchbase.version>
-    <hbase094.version>0.94.27</hbase094.version>
     <hbase098.version>0.98.14-hadoop2</hbase098.version>
     <hbase10.version>1.0.2</hbase10.version>
     <hbase12.version>1.2.5</hbase12.version>
@@ -128,7 +127,6 @@ LICENSE file.
     <module>geode</module>
     <module>googlebigtable</module>
     <module>googledatastore</module>
-    <module>hbase094</module>
     <module>hbase098</module>
     <module>hbase10</module>
     <module>hbase12</module>
