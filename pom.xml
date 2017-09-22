@@ -109,19 +109,19 @@ LICENSE file.
     <!-- our internals -->
     <module>core</module>
     <module>binding-parent</module>
+    <module>distribution</module>
     <!-- all the datastore bindings, lex sorted please -->
     <module>accumulo</module>
     <module>aerospike</module>
     <module>arangodb</module>
     <module>arangodb3</module>
     <module>asynchbase</module>
+    <module>azuredocumentdb</module>
     <module>azuretablestorage</module>
     <module>cassandra</module>
     <module>cloudspanner</module>
     <module>couchbase</module>
     <module>couchbase2</module>
-    <module>distribution</module>
-    <module>azuredocumentdb</module>
     <module>dynamodb</module>
     <module>elasticsearch</module>
     <module>elasticsearch5</module>

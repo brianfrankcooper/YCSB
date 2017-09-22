@@ -80,7 +80,6 @@ DATABASES = {
     "infinispan"   : "com.yahoo.ycsb.db.InfinispanClient",
     "jdbc"         : "com.yahoo.ycsb.db.JdbcDBClient",
     "kudu"         : "com.yahoo.ycsb.db.KuduYCSBClient",
-    "mapkeeper"    : "com.yahoo.ycsb.db.MapKeeperClient",
     "memcached"    : "com.yahoo.ycsb.db.MemcachedClient",
     "mongodb"      : "com.yahoo.ycsb.db.MongoDbClient",
     "mongodb-async": "com.yahoo.ycsb.db.AsyncMongoDbClient",
@@ -94,7 +93,6 @@ DATABASES = {
     "solr"         : "com.yahoo.ycsb.db.solr.SolrClient",
     "solr6"        : "com.yahoo.ycsb.db.solr6.SolrClient",
     "tarantool"    : "com.yahoo.ycsb.db.TarantoolClient",
-    "voldemort"    : "com.yahoo.ycsb.db.VoldemortClient"
 }
 
 OPTIONS = {
