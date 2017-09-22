@@ -41,7 +41,17 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>accumulo-binding</artifactId>
+      <artifactId>accumulo1.6-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>accumulo1.7-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>accumulo1.8-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

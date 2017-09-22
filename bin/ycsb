@@ -52,6 +52,9 @@ COMMANDS = {
 
 DATABASES = {
     "accumulo"     : "com.yahoo.ycsb.db.accumulo.AccumuloClient",
+    "accumulo1.6"     : "com.yahoo.ycsb.db.accumulo.AccumuloClient",
+    "accumulo1.7"     : "com.yahoo.ycsb.db.accumulo.AccumuloClient",
+    "accumulo1.8"     : "com.yahoo.ycsb.db.accumulo.AccumuloClient",
     "aerospike"    : "com.yahoo.ycsb.db.AerospikeClient",
     "arangodb"     : "com.yahoo.ycsb.db.ArangoDBClient",
     "arangodb3"    : "com.yahoo.ycsb.db.arangodb.ArangoDB3Client",
@@ -246,6 +249,13 @@ def main():
 
     # Classpath set up
     binding = args.database.split("-")[0]
+
+    if binding == "accumulo":
+        warn("The 'accumulo' client has been deprecated in favor of version "
+             "specific bindings. This name still maps to the binding for "
+             "Accumulo 1.6, which is named 'accumulo-1.6'. This alias will "
+             "be removed in a future YCSB release.")
+        binding = "accumulo1.6"
 
     if binding == "cassandra2":
         warn("The 'cassandra2-cql' client has been deprecated. It has been "
