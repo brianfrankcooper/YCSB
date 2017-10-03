@@ -32,8 +32,10 @@ install: mvn install -q -DskipTests=true
 
 script: mvn test -q
 
+
 # Services to start for tests.
 services:
+  - ignite
   - mongodb
 # temporarily disable riak. failing, docs offline.
 #  - riak
