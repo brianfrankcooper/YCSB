@@ -17,10 +17,7 @@
  */
 package com.yahoo.ycsb.db;
 
-import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.DB;
-import com.yahoo.ycsb.DBException;
-import com.yahoo.ycsb.Status;
+import com.yahoo.ycsb.*;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
@@ -180,7 +177,14 @@ public class IgniteClient extends DB {
 
       for (String s : fields) {
 
-        System.out.println(((BinaryObject)po.field(s)).field("str"));
+        // System.out.println(((BinaryObject)po.field(s)).field("str"));
+
+        String val = ((BinaryObject) po.field(s)).field("str");
+        if (val != null) {
+          result.put(s, new ByteArrayByteIterator(val.getBytes()));
+        } else {
+          result.put(s, null);
+        }
       }
 
 
