@@ -102,6 +102,7 @@ LICENSE file.
     <arangodb3.version>4.1.7</arangodb3.version>
     <azurestorage.version>4.0.0</azurestorage.version>
     <cloudspanner.version>0.21.1-beta</cloudspanner.version>
+    <ignite.version>2.2.0-SNAPSHOT</ignite.version>
   </properties>
 
   <modules>
@@ -147,6 +148,7 @@ LICENSE file.
     <module>solr</module>
     <module>solr6</module>
     <module>tarantool</module>
+    <module>ignite</module>
     <!--<module>voldemort</module>-->
   </modules>
 
