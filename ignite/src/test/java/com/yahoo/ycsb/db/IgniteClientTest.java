@@ -33,8 +33,9 @@ import org.junit.Test;
 
 import java.util.*;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.is;
 
 /**
  * Integration tests for the Ignite client
@@ -127,17 +128,28 @@ public class IgniteClientTest {
     final Map<String, String> input = new HashMap<>();
     input.put("field0", "value1");
     input.put("field1", "value2A");
+    input.put("field3", null);
     final Status sPut = client.insert(DEFAULT_CACHE_NAME, key, StringByteIterator.getByteIteratorMap(input));
     assertThat(sPut, is(Status.OK));
     assertThat(cluster.cache(DEFAULT_CACHE_NAME).size(), is(1));
 
     final Set<String> fld = new TreeSet<>();
+    fld.add("field0");
     fld.add("field1");
+    fld.add("field3");
 
     final HashMap<String, ByteIterator> result = new HashMap<>();
     final Status sGet = client.read(DEFAULT_CACHE_NAME, key, fld, result);
     assertThat(sGet, is(Status.OK));
 
+    final HashMap<String, String> strResult = new HashMap<String, String>();
+    for (final Map.Entry<String, ByteIterator> e : result.entrySet()) {
+      if (e.getValue() != null) {
+        strResult.put(e.getKey(), e.getValue().toString());
+      }
+    }
+    assertThat(strResult, hasEntry("field0", "value1"));
+    assertThat(strResult, hasEntry("field1", "value2A"));
   }
 
 
