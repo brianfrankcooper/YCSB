@@ -45,11 +45,9 @@ import static org.apache.ignite.cache.CacheWriteSynchronizationMode.FULL_SYNC;
  * @author spuchnin
  */
 public class IgniteClient extends DB {
-
   private static Ignite cluster = null;
   private static IgniteCache<String, BinaryObject> cache = null;
   private static TcpDiscoveryIpFinder ipFinder = new TcpDiscoveryVmIpFinder(true);
-
 
   private static final String DEFAULT_CACHE_NAME = "usertable";
   private static final String HOSTS_PROPERTY = "hosts";
@@ -63,7 +61,6 @@ public class IgniteClient extends DB {
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
   private static boolean debug = false;
-
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
@@ -85,7 +82,6 @@ public class IgniteClient extends DB {
       }
 
       try {
-
         debug = Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
 
         IgniteConfiguration igcfg = new IgniteConfiguration();
@@ -97,13 +93,14 @@ public class IgniteClient extends DB {
               "Required property \"%s\" missing for Ignite Cluster",
               HOSTS_PROPERTY));
         }
+
         String ports = getProperties().getProperty(PORTS_PROPERTY);
+
         if (ports == null) {
           throw new DBException(String.format(
               "Required property \"%s\" missing for Ignite Cluster",
               PORTS_PROPERTY));
         }
-
 
         igcfg.setLocalHost(host);
         igcfg.setClientMode(true);
@@ -118,8 +115,7 @@ public class IgniteClient extends DB {
         igcfg.setDiscoverySpi(disco);
         igcfg.setNetworkTimeout(2000);
 
-
-        CacheConfiguration cacheCfg = new CacheConfiguration();
+        CacheConfiguration<String, BinaryObject> cacheCfg = new CacheConfiguration<>();
         cacheCfg.setName(DEFAULT_CACHE_NAME);
         cacheCfg.setCacheMode(PARTITIONED);
         cacheCfg.setAtomicityMode(ATOMIC);
@@ -131,8 +127,6 @@ public class IgniteClient extends DB {
         cluster.active();
 
         cache = cluster.getOrCreateCache(cacheCfg).withKeepBinary();
-
-
       } catch (Exception e) {
         throw new DBException(e);
       }
@@ -147,10 +141,12 @@ public class IgniteClient extends DB {
   public void cleanup() throws DBException {
     synchronized (INIT_COUNT) {
       final int curInitCount = INIT_COUNT.decrementAndGet();
+
       if (curInitCount <= 0) {
         cluster.close();
         cluster = null;
       }
+
       if (curInitCount < 0) {
         // This should never happen.
         throw new DBException(
@@ -176,7 +172,6 @@ public class IgniteClient extends DB {
       BinaryObject po = cache.get(key);
 
       for (String s : fields) {
-
         // System.out.println(((BinaryObject)po.field(s)).field("str"));
 
         String val = ((BinaryObject) po.field(s)).field("str");
@@ -186,7 +181,6 @@ public class IgniteClient extends DB {
           result.put(s, null);
         }
       }
-
 
       if (debug) {
         System.out.println();
@@ -199,7 +193,6 @@ public class IgniteClient extends DB {
       System.out.println("Error reading key: " + key);
       return Status.ERROR;
     }
-
   }
 
   /**
@@ -220,10 +213,7 @@ public class IgniteClient extends DB {
   @Override
   public Status scan(String table, String startkey, int recordcount,
                      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-
     try {
-
-
       return Status.OK;
 
     } catch (Exception e) {
@@ -264,10 +254,9 @@ public class IgniteClient extends DB {
   @Override
   public Status insert(String table, String key,
                        Map<String, ByteIterator> values) {
-
     try {
-
       BinaryObjectBuilder bob = cluster.binary().builder("CustomType");
+
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
         bob.setField(entry.getKey(), entry.getValue());
 
@@ -278,7 +267,6 @@ public class IgniteClient extends DB {
 
       BinaryObject bo = bob.build();
 
-
       if (table.equals(DEFAULT_CACHE_NAME)) {
         cache.put(key, bo);
       } else {
@@ -286,10 +274,7 @@ public class IgniteClient extends DB {
       }
 
       return Status.OK;
-    } catch (
-        Exception e)
-
-    {
+    } catch (Exception e) {
       e.printStackTrace();
     }
 
@@ -305,7 +290,6 @@ public class IgniteClient extends DB {
    */
   @Override
   public Status delete(String table, String key) {
-
     try {
       cache.remove(key);
       return Status.OK;
