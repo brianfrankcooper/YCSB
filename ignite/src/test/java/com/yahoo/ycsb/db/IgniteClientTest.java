@@ -41,8 +41,6 @@ import static org.hamcrest.Matchers.is;
  * Integration tests for the Ignite client
  */
 public class IgniteClientTest {
-
-
   private static final String DEFAULT_CACHE_NAME = "usertable";
   private final static String HOST = "127.0.0.1";
   private final static String PORTS = "47500..47509";
@@ -151,6 +149,4 @@ public class IgniteClientTest {
     assertThat(strResult, hasEntry("field0", "value1"));
     assertThat(strResult, hasEntry("field1", "value2A"));
   }
-
-
 }
