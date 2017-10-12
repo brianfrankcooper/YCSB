@@ -27,16 +27,11 @@ LICENSE file.
         <relativePath>../binding-parent</relativePath>
     </parent>
 
-    <artifactId>couchbase2-binding</artifactId>
-    <name>Couchbase Java SDK 2.x Binding</name>
+    <artifactId>angra-binding</artifactId>
+    <name>Angra Binding</name>
     <packaging>jar</packaging>
 
     <dependencies>
-        <dependency>
-            <groupId>com.couchbase.client</groupId>
-            <artifactId>java-client</artifactId>
-            <version>${couchbase2.version}</version>
-        </dependency>
         <dependency>
             <groupId>com.yahoo.ycsb</groupId>
             <artifactId>core</artifactId>
