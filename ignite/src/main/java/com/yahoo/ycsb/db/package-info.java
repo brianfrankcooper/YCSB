@@ -16,8 +16,8 @@
  */
 
 /**
- * The YCSB binding for <a href="http://ignite.apache.org/">Ignite</a>
- * Naive implementaion
+ * The YCSB binding for <a href="http://ignite.apache.org/">Ignite</a>.
+ * Naive implementation.
  */
 package com.yahoo.ycsb.db;
 
