@@ -27,7 +27,7 @@ LICENSE file.
     <relativePath>../binding-parent</relativePath>
   </parent>
 
-  <artifactId>ignite</artifactId>
+  <artifactId>ignite-binding</artifactId>
   <name>Apache Ignite</name>
   <packaging>jar</packaging>
 
@@ -67,16 +67,5 @@ LICENSE file.
     </dependency>
   </dependencies>
 
-  <profiles>
-    <profile>
-      <id>jdk8-tests</id>
-      <activation>
-        <jdk>1.8</jdk>
-      </activation>
-      <properties>
-        <skipTests>false</skipTests>
-      </properties>
-    </profile>
-  </profiles>
 
 </project>
