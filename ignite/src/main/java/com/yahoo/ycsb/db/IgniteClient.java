@@ -53,6 +53,7 @@ public class IgniteClient extends DB {
   private static final String HOSTS_PROPERTY = "hosts";
   private static final String PORTS_PROPERTY = "ports";
   private static final String CLIENT_NODE_NAME = "YCSB client node";
+  private static final String PORTS_DEFAULTS = "47500..47509";
 
   /**
    * Count the number of times initialized to teardown on the last
@@ -94,16 +95,16 @@ public class IgniteClient extends DB {
               HOSTS_PROPERTY));
         }
 
-        String ports = getProperties().getProperty(PORTS_PROPERTY);
+        String ports = getProperties().getProperty(PORTS_PROPERTY, PORTS_DEFAULTS);
 
         if (ports == null) {
           throw new DBException(String.format(
               "Required property \"%s\" missing for Ignite Cluster",
               PORTS_PROPERTY));
+
         }
 
-        igcfg.setLocalHost(host);
-        igcfg.setClientMode(true);
+//        igcfg.setLocalHost(host);
 
         TcpDiscoverySpi disco = new TcpDiscoverySpi();
 
@@ -114,6 +115,7 @@ public class IgniteClient extends DB {
 
         igcfg.setDiscoverySpi(disco);
         igcfg.setNetworkTimeout(2000);
+        igcfg.setClientMode(true);
 
         CacheConfiguration<String, BinaryObject> cacheCfg = new CacheConfiguration<>();
         cacheCfg.setName(DEFAULT_CACHE_NAME);
@@ -123,7 +125,9 @@ public class IgniteClient extends DB {
         cacheCfg.setBackups(1);
         cacheCfg.setRebalanceMode(SYNC);
 
+        System.out.println("Before cluster start");
         cluster = Ignition.start(igcfg);
+        System.out.println("Before cluster activate");
         cluster.active();
 
         cache = cluster.getOrCreateCache(cacheCfg).withKeepBinary();
