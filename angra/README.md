@@ -33,6 +33,11 @@ cd YCSB-Angra-DB
 mvn clean package
 ```
 
+If you need compile only Angra-DB module.
+```
+mvn -pl com.yahoo.ycsb:angra-binding -am clean package
+```
+
 ### 3. Run the Workload
 Before you can actually run the workload, you need to "load" the data first.
 

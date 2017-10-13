@@ -56,6 +56,7 @@ DATABASES = {
     "accumulo1.7"     : "com.yahoo.ycsb.db.accumulo.AccumuloClient",
     "accumulo1.8"     : "com.yahoo.ycsb.db.accumulo.AccumuloClient",
     "aerospike"    : "com.yahoo.ycsb.db.AerospikeClient",
+    "angra"    : "com.yahoo.ycsb.db.angra.AngraClient",
     "arangodb"     : "com.yahoo.ycsb.db.ArangoDBClient",
     "arangodb3"    : "com.yahoo.ycsb.db.arangodb.ArangoDB3Client",
     "asynchbase"   : "com.yahoo.ycsb.db.AsyncHBaseClient",

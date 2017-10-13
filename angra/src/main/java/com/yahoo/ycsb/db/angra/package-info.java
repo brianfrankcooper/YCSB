@@ -18,5 +18,4 @@
 /**
  * The YCSB binding for <a href="https://github.com/Angra-DB">Angra-DB</a>, new driver.
  */
-package com.yahoo.ycsb.db.Angra;
-
+package com.yahoo.ycsb.db.angra;

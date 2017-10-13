@@ -21,15 +21,15 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
-import com.yahoo.ycsb.StringByteIterator;
-
-import java.io.StringWriter;
-import java.io.Writer;
-import java.nio.channels.spi.SelectorProvider;
+// import com.yahoo.ycsb.StringByteIterator;
+//
+// import java.io.StringWriter;
+// import java.io.Writer;
+// import java.nio.channels.spi.SelectorProvider;
 import java.util.*;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.LockSupport;
+// import java.util.concurrent.ThreadFactory;
+// import java.util.concurrent.TimeUnit;
+// import java.util.concurrent.locks.LockSupport;
 
 /**
  * A class that wraps the Angra-DB to be used with YCSB.
@@ -58,10 +58,13 @@ public class AngraClient extends DB {
     host = props.getProperty("angra.host", "127.0.0.1");
     port = props.getProperty("angra.port", "1234");
     schema = props.getProperty("angra.schema", "ycsb");
-
-    driver= new Driver(host,port);
-    driver.createDatabase(schema);
-    driver.connectToDatabase(schema);
+    try{
+      driver = new Driver(host, port);
+      driver.createDatabase(schema);
+      driver.connectToDatabase(schema);
+    } catch (Exception ex) {
+      ex.printStackTrace();
+    }
   }
 
   @Override
@@ -70,7 +73,7 @@ public class AngraClient extends DB {
     try {
       String docId = formatId(table, key);
       String resp = driver.lookup(docId);
-      if resp.substring(0,1).equals("\""){
+      if (resp.substring(0, 1).equals("\"")) {
         return Status.OK;
       }else{
         return Status.NOT_FOUND;
@@ -85,7 +88,7 @@ public class AngraClient extends DB {
   public Status update(final String table, final String key, final Map<String, ByteIterator> values) {
     try {
       String docId = formatId(table, key);
-      String resp = driver.update(docId, value.toString());
+      String resp = driver.update(docId, values.toString());
       if (resp.equals("ok")){
         return Status.OK;
       }else{
@@ -101,7 +104,7 @@ public class AngraClient extends DB {
   public Status insert(final String table, final String key, final Map<String, ByteIterator> values) {
     try {
       String docId = formatId(table, key);
-      String recKey = driver.save_key(docId, value.toString())
+      String recKey = driver.saveKey(docId, values.toString());
       if (recKey.equals(docId)){
         return Status.OK;
       }else{
@@ -149,5 +152,6 @@ public class AngraClient extends DB {
    * @return a document ID that to be used with Angra-DB.
    */
   private static String formatId(final String prefix, final String key) {
-    return prefix + SEPARATOR + key;
+    return (prefix + SEPARATOR + key).replaceAll("[^\\d.]", "");
   }
+}
