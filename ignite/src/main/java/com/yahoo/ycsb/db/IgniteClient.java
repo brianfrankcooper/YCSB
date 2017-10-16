@@ -106,10 +106,13 @@ public class IgniteClient extends DB {
 
 //        igcfg.setLocalHost(host);
 
+        System.setProperty("IGNITE_QUIET", "false");
+
         TcpDiscoverySpi disco = new TcpDiscoverySpi();
 
         Collection<String> addrs = new LinkedHashSet<>();
         addrs.add(host + ":" + ports);
+
         ((TcpDiscoveryVmIpFinder) ipFinder).setAddresses(addrs);
         disco.setIpFinder(ipFinder);
 
