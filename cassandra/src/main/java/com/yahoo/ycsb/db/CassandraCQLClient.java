@@ -223,93 +223,89 @@ public class CassandraCQLClient extends DB {
   }
 
   private void buildStatements(Properties p) {
+    String table = p.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
 
-    synchronized (PREPARED_INIT_COORDINATOR) {
+    int fieldCount = Integer.parseInt(
+        p.getProperty(CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
+    fieldList = Collections.synchronizedList(new ArrayList<String>(fieldCount));
 
-      String table = p.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
+    if (!readallfields) {
+      singleSelectStatements = new ConcurrentHashMap<>(fieldCount);
+      singleScanStatements = new ConcurrentHashMap<>(fieldCount);
 
-      int fieldCount = Integer.parseInt(
-          p.getProperty(CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
-      fieldList = Collections.synchronizedList(new ArrayList<String>(fieldCount));
+      selectManyStatements = new ConcurrentSkipListMap<>();
+      scanManyStatements = new ConcurrentSkipListMap<>();
+    }
 
+    // Insert and Update all statement
+    final Insert is = QueryBuilder.insertInto(table);
+    is.value(YCSB_KEY, QueryBuilder.bindMarker());
+
+    updateStatements = new ConcurrentHashMap<>(fieldCount);
+
+    fieldList.add(YCSB_KEY);
+    for (int i = 0; i < fieldCount; i++) {
+      // Preserve field iteration order for the HashMaps used in the DB methods
+      final String field = FIELD_PREFIX + i;
+      fieldList.add(field);
+
+      // Insert and Update statement
+      is.value(field, QueryBuilder.bindMarker());
+
+      // Select and Scan few statements
       if (!readallfields) {
-        singleSelectStatements = new ConcurrentHashMap<>(fieldCount);
-        singleScanStatements = new ConcurrentHashMap<>(fieldCount);
+        // Select - single
+        Select selectOne = QueryBuilder.select(field).from(table)
+            .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker()))
+            .limit(1);
 
-        selectManyStatements = new ConcurrentSkipListMap<>();
-        scanManyStatements = new ConcurrentSkipListMap<>();
-      }
+        if (!singleSelectStatements.containsKey(field)) {
+          singleSelectStatements.put(field, prepare(selectOne.getQueryString(), true));
+        }
 
-      // Insert and Update all statement
-      final Insert is = QueryBuilder.insertInto(table);
-      is.value(YCSB_KEY, QueryBuilder.bindMarker());
+        // Scan - single
+        String initialScanStmt = QueryBuilder.select(field).from(table).toString();
+        String scanOneStmt = getScanQueryString().replaceFirst("_",
+            initialScanStmt.substring(0, initialScanStmt.length() - 1));
 
-      updateStatements = new ConcurrentHashMap<>(fieldCount);
+        if (!singleScanStatements.containsKey(field)) {
+          singleScanStatements.put(field, prepare(scanOneStmt, true));
+        }
 
-      fieldList.add(YCSB_KEY);
-      for (int i = 0; i < fieldCount; i++) {
-        // Preserve field iteration order for the HashMaps used in the DB methods
-        final String field = FIELD_PREFIX + i;
-        fieldList.add(field);
-
-        // Insert and Update statement
-        is.value(field, QueryBuilder.bindMarker());
-
-        // Select and Scan few statements
-        if (!readallfields) {
-          // Select - single
-          Select selectOne = QueryBuilder.select(field).from(table)
-              .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker()))
-              .limit(1);
-
-          if (!singleSelectStatements.containsKey(field)) {
-            singleSelectStatements.put(field, prepare(selectOne.getQueryString(), true));
-          }
-
-          // Scan - single
-          String initialScanStmt = QueryBuilder.select(field).from(table).toString();
-          String scanOneStmt = getScanQueryString().replaceFirst("_",
-              initialScanStmt.substring(0, initialScanStmt.length() - 1));
-
-          if (!singleScanStatements.containsKey(field)) {
-            singleScanStatements.put(field, prepare(scanOneStmt, true));
-          }
-
-          // Update - single
-          Insert updateOneStmt = QueryBuilder.insertInto(table)
-              .values(
+        // Update - single
+        Insert updateOneStmt = QueryBuilder.insertInto(table)
+            .values(
                 new String[] {YCSB_KEY, field},
                 new Object[] {QueryBuilder.bindMarker(), QueryBuilder.bindMarker()});
 
-          if (!updateStatements.containsKey(field)) {
-            updateStatements.put(field, prepare(updateOneStmt.getQueryString(), false));
-          }
-
-          // Select and Scan many statements
-          selectManyStatements.put(i, new ConcurrentHashMap<Integer, PreparedStatement>());
-          scanManyStatements.put(i, new ConcurrentHashMap<Integer, PreparedStatement>());
+        if (!updateStatements.containsKey(field)) {
+          updateStatements.put(field, prepare(updateOneStmt.getQueryString(), false));
         }
+
+        // Select and Scan many statements
+        selectManyStatements.put(i, new ConcurrentHashMap<Integer, PreparedStatement>());
+        scanManyStatements.put(i, new ConcurrentHashMap<Integer, PreparedStatement>());
       }
-
-      // Prepare insert and update all
-      insertStatement = prepare(is.getQueryString(), false);
-
-      // Select All
-      String ss = QueryBuilder.select().all().from(table)
-          .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).getQueryString();
-      selectStatement = prepare(ss, true);
-
-      // Scan All
-      String initialStmt = QueryBuilder.select().all().from(table).toString();
-      String scanStmt = getScanQueryString().replaceFirst("_",
-          initialStmt.substring(0, initialStmt.length() - 1));
-      scanStatement = prepare(scanStmt, true);
-
-      // Delete on key statement
-      String ds = QueryBuilder.delete().from(table)
-          .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).toString();
-      deleteStatement = prepare(ds, false);
     }
+
+    // Prepare insert and update all
+    insertStatement = prepare(is.getQueryString(), false);
+
+    // Select All
+    String ss = QueryBuilder.select().all().from(table)
+        .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).getQueryString();
+    selectStatement = prepare(ss, true);
+
+    // Scan All
+    String initialStmt = QueryBuilder.select().all().from(table).toString();
+    String scanStmt = getScanQueryString().replaceFirst("_",
+        initialStmt.substring(0, initialStmt.length() - 1));
+    scanStatement = prepare(scanStmt, true);
+
+    // Delete on key statement
+    String ds = QueryBuilder.delete().from(table)
+        .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).toString();
+    deleteStatement = prepare(ds, false);
   }
 
   private PreparedStatement prepare(String statement, boolean isRead) {
@@ -578,10 +574,10 @@ public class CassandraCQLClient extends DB {
       vals[i++] = key;
 
       // Add fieldList
-      for (; i < fieldList.size(); i++) {
-        String field = fieldList.get(i);
+      for (int j = i; j < fieldList.size(); j++) {
+        String field = fieldList.get(j);
         if (values.containsKey(field)) {
-          vals[i] = values.get(field).toString();
+          vals[i++] = values.get(field).toString();
         }
       }
 

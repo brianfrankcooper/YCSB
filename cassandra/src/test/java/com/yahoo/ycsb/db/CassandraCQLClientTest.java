@@ -130,7 +130,7 @@ public class CassandraCQLClientTest {
 
   @Test
   public void testReadMissingRow() throws Exception {
-    final HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
+    final Map<String, ByteIterator> result = new HashMap<>();
     final Status status = client.read(TABLE, "Missing row", null, result);
     assertThat(result.size(), is(0));
     assertThat(status, is(Status.NOT_FOUND));
@@ -152,13 +152,13 @@ public class CassandraCQLClientTest {
   public void testRead() throws Exception {
     insertRow("value1", "value2");
 
-    final HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
+    final Map<String, ByteIterator> result = new HashMap<>();
     final Status status = client.read(TABLE, DEFAULT_ROW_KEY, null, result);
     assertThat(status, is(Status.OK));
     assertThat(result.entrySet(), hasSize(11));
     assertThat(result, hasEntry("field2", null));
 
-    final HashMap<String, String> strResult = new HashMap<String, String>();
+    final Map<String, String> strResult = new HashMap<>();
     for (final Map.Entry<String, ByteIterator> e : result.entrySet()) {
       if (e.getValue() != null) {
         strResult.put(e.getKey(), e.getValue().toString());
@@ -173,7 +173,7 @@ public class CassandraCQLClientTest {
   public void testReadSingleColumn() throws Exception {
     insertRow("value1", "value2");
 
-    final HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
+    final Map<String, ByteIterator> result = new HashMap<>();
     final Set<String> fields = Sets.newHashSet("field1");
     final Status status = client.read(TABLE, DEFAULT_ROW_KEY, fields, result);
     assertThat(status, is(Status.OK));
@@ -185,7 +185,7 @@ public class CassandraCQLClientTest {
   @Test
   public void testUpdateOne() throws Exception {
     final String key = "key";
-    final HashMap<String, String> input = new HashMap<String, String>();
+    final Map<String, String> input = new HashMap<>();
     input.put("field0", "value1");
 
     final Status status = client.insert(TABLE, key, StringByteIterator.getByteIteratorMap(input));
@@ -204,7 +204,7 @@ public class CassandraCQLClientTest {
   @Test
   public void testUpdateTwo() throws Exception {
     final String key = "key";
-    final Map<String, String> input = new HashMap<String, String>();
+    final Map<String, String> input = new HashMap<>();
     input.put("field0", "value1");
     input.put("field1", "value2");
 
