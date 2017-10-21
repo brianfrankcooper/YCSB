@@ -153,11 +153,12 @@ public class FileStoreClient extends DB {
 
     try (FileWriter fileWriter = new FileWriter(filename)) {
       fileWriter.write(output);
+      return Status.OK;
     } catch (IOException e) {
       e.printStackTrace();
     }
 
-    return Status.OK;
+    return Status.ERROR;
   }
 
   @Override
