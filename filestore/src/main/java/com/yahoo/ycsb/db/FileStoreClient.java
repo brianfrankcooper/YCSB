@@ -17,15 +17,16 @@
 
 package com.yahoo.ycsb.db;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -46,14 +47,15 @@ public class FileStoreClient extends DB {
 
   /**
    * The default output directory for the files.
-   * Absolute path: <user.dir>/YCSB-Benchmark/benchmarkingData/
+   * Absolute path: {user.dir}/YCSB-Benchmark/benchmarkingData/
    */
   public static final String OUTPUT_DIRECTORY_DEFAULT = System.getProperty("user.dir")
       + separatorChar
       + "benchmarkingData"
       + separatorChar;
 
-  private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+  private final Gson gson = new GsonBuilder().registerTypeAdapter(ByteIterator.class, new ByteIteratorAdapter())
+      .create();
   private final Type valuesType = new TypeToken<Map<String, ByteIterator>>() {}.getType();
 
   private String outputDirectory;
@@ -74,8 +76,32 @@ public class FileStoreClient extends DB {
     }
   }
 
+  /**
+   * Reads the file with the name {@code table}_{@code key}.json.
+   *
+   * @param table  The name of the table
+   * @param key    The record key of the record to read.
+   * @param fields The list of fields to read, or null for all of them
+   * @param result A HashMap of field/value pairs for the result
+   * @return The specified fields in that file, if present.
+   * If there is no such file, {@code Status.NOT_FOUND} will be returned.
+   */
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
+    String filename = outputDirectory + table + "_" + key + ".json";
+
+    try (JsonReader jsonReader = new JsonReader(new FileReader(filename))) {
+      Map<String, ByteIterator> values = gson.fromJson(jsonReader, valuesType);
+
+      for (String field : fields) {
+        result.put(field, values.get(field));
+      }
+
+      return Status.OK;
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
     return Status.NOT_IMPLEMENTED;
   }
 
@@ -110,5 +136,37 @@ public class FileStoreClient extends DB {
   @Override
   public Status delete(String table, String key) {
     return Status.NOT_IMPLEMENTED;
+  }
+
+  class ByteIteratorAdapter implements JsonSerializer<ByteIterator>, JsonDeserializer<ByteIterator> {
+
+    private final String typeIdentifier = "type";
+    private final String propertyIdentifier = "properties";
+
+    @Override
+    public JsonElement serialize(ByteIterator byteIterator,
+                                 Type type,
+                                 JsonSerializationContext jsonSerializationContext) {
+      JsonObject result = new JsonObject();
+      result.add(typeIdentifier, new JsonPrimitive(byteIterator.getClass().getName()));
+      result.add(propertyIdentifier, jsonSerializationContext.serialize(byteIterator));
+
+      return result;
+    }
+
+    @Override
+    public ByteIterator deserialize(JsonElement jsonElement,
+                                    Type type,
+                                    JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
+      JsonObject jsonObject = jsonElement.getAsJsonObject();
+      String typeString = jsonObject.get(typeIdentifier).getAsString();
+      JsonElement element = jsonObject.get(propertyIdentifier);
+
+      try {
+        return jsonDeserializationContext.deserialize(element, Class.forName(typeString));
+      } catch (ClassNotFoundException e) {
+        throw new JsonParseException("Could not find class " + typeString, e);
+      }
+    }
   }
 }
