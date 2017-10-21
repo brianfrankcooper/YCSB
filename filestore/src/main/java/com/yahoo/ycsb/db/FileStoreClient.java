@@ -88,7 +88,7 @@ public class FileStoreClient extends DB {
    */
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
-    String filename = outputDirectory + table + "_" + key + ".json";
+    String filename = getDatabaseFileName(table, key);
 
     try (JsonReader jsonReader = new JsonReader(new FileReader(filename))) {
       Map<String, ByteIterator> values = gson.fromJson(jsonReader, valuesType);
@@ -121,7 +121,7 @@ public class FileStoreClient extends DB {
 
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
-    String filename = outputDirectory + table + "_" + key + ".json";
+    String filename = getDatabaseFileName(table, key);
     String output = gson.toJson(values, valuesType);
 
     try (FileWriter fileWriter = new FileWriter(filename)) {
@@ -135,7 +135,17 @@ public class FileStoreClient extends DB {
 
   @Override
   public Status delete(String table, String key) {
-    return Status.NOT_IMPLEMENTED;
+    String filename = getDatabaseFileName(table, key);
+
+    if (new File(filename).delete()) {
+      return Status.OK;
+    }
+
+    return Status.ERROR;
+  }
+
+  private String getDatabaseFileName(String table, String key) {
+    return outputDirectory + table + "_" + key + ".json";
   }
 
   class ByteIteratorAdapter implements JsonSerializer<ByteIterator>, JsonDeserializer<ByteIterator> {
