@@ -102,7 +102,7 @@ public class FileStoreClient extends DB {
       e.printStackTrace();
     }
 
-    return Status.NOT_IMPLEMENTED;
+    return Status.ERROR;
   }
 
   @Override
@@ -111,12 +111,39 @@ public class FileStoreClient extends DB {
                      int recordcount,
                      Set<String> fields,
                      Vector<HashMap<String, ByteIterator>> result) {
-    return Status.NOT_IMPLEMENTED;
+    String filename = getDatabaseFileName(table, startkey);
+
+    try (JsonReader jsonReader = new JsonReader(new FileReader(filename))) {
+      Map<String, ByteIterator> values = gson.fromJson(jsonReader, valuesType);
+      result.add(convertToHashMap(values, fields));
+
+      return Status.OK;
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    return Status.ERROR;
   }
 
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
-    return Status.NOT_IMPLEMENTED;
+    String filename = getDatabaseFileName(table, key);
+
+    try (JsonReader jsonReader = new JsonReader(new FileReader(filename))) {
+      Map<String, ByteIterator> map = gson.fromJson(jsonReader, valuesType);
+
+      for (String valuesKey : values.keySet()) {
+        map.put(valuesKey, values.get(valuesKey));
+      }
+
+      insert(table, key, map);
+
+      return Status.OK;
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    return Status.ERROR;
   }
 
   @Override
@@ -144,11 +171,25 @@ public class FileStoreClient extends DB {
     return Status.ERROR;
   }
 
+  private <V> HashMap<String, V> convertToHashMap(Map<String, V> map, Set<String> fields) {
+    HashMap<String, V> result = new HashMap<>();
+
+    if (fields != null && fields.size() > 0) {
+      for (String field : fields) {
+        result.put(field, map.get(field));
+      }
+    } else {
+      result.putAll(map);
+    }
+
+    return result;
+  }
+
   private String getDatabaseFileName(String table, String key) {
     return outputDirectory + table + "_" + key + ".json";
   }
 
-  class ByteIteratorAdapter implements JsonSerializer<ByteIterator>, JsonDeserializer<ByteIterator> {
+  private class ByteIteratorAdapter implements JsonSerializer<ByteIterator>, JsonDeserializer<ByteIterator> {
 
     private final String typeIdentifier = "type";
     private final String propertyIdentifier = "properties";
