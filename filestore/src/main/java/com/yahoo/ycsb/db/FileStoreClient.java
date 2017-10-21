@@ -1,12 +1,12 @@
 /**
  * Copyright (c) 2017 YCSB contributors. All rights reserved.
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
  * may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
@@ -48,10 +48,11 @@ public class FileStoreClient extends DB {
    * The default output directory for the files.
    * Absolute path: <user.dir>/YCSB-Benchmark/benchmarkingData/
    */
-  public static final String OUTPUT_DIRECTORY_DEFAULT = System.getProperty("user.dir") + separatorChar +
-      "YCSB-Benchmark" + separatorChar + "benchmarkingData" + separatorChar;
+  public static final String OUTPUT_DIRECTORY_DEFAULT = System.getProperty("user.dir")
+      + separatorChar
+      + "benchmarkingData"
+      + separatorChar;
 
-  private static final Object LOCK = new Object();
   private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
   private final Type valuesType = new TypeToken<Map<String, ByteIterator>>() {}.getType();
 
@@ -95,13 +96,7 @@ public class FileStoreClient extends DB {
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     String filename = outputDirectory + table + "_" + key + ".json";
-
-    System.out.println("Writing " + filename);
-    System.out.print("Contents is: ");
-    printMap(values);
-
     String output = gson.toJson(values, valuesType);
-    System.out.println(output);
 
     try (FileWriter fileWriter = new FileWriter(filename)) {
       fileWriter.write(output);
@@ -110,13 +105,6 @@ public class FileStoreClient extends DB {
     }
 
     return Status.OK;
-  }
-
-  private void printMap(Map<String, ByteIterator> values) {
-    for (String key : values.keySet()) {
-      System.out.println("Key: " + key);
-      System.out.println("Key value: " + values.get(key).toString());
-    }
   }
 
   @Override
