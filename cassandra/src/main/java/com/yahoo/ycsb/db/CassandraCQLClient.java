@@ -252,6 +252,16 @@ public class CassandraCQLClient extends DB {
       // Insert and Update statement
       is.value(field, QueryBuilder.bindMarker());
 
+      // Update - single
+      Insert updateOneStmt = QueryBuilder.insertInto(table)
+          .values(
+              new String[] {YCSB_KEY, field},
+              new Object[] {QueryBuilder.bindMarker(), QueryBuilder.bindMarker()});
+
+      if (!updateStatements.containsKey(field)) {
+        updateStatements.put(field, prepare(updateOneStmt.getQueryString(), false));
+      }
+
       // Select and Scan few statements
       if (!readallfields) {
         // Select - single
@@ -270,16 +280,6 @@ public class CassandraCQLClient extends DB {
 
         if (!singleScanStatements.containsKey(field)) {
           singleScanStatements.put(field, prepare(scanOneStmt, true));
-        }
-
-        // Update - single
-        Insert updateOneStmt = QueryBuilder.insertInto(table)
-            .values(
-                new String[] {YCSB_KEY, field},
-                new Object[] {QueryBuilder.bindMarker(), QueryBuilder.bindMarker()});
-
-        if (!updateStatements.containsKey(field)) {
-          updateStatements.put(field, prepare(updateOneStmt.getQueryString(), false));
         }
 
         // Select and Scan many statements
