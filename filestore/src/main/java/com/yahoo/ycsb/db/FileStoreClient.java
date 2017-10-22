@@ -102,7 +102,7 @@ public class FileStoreClient extends DB {
       e.printStackTrace();
     }
 
-    return Status.ERROR;
+    return Status.NOT_FOUND;
   }
 
   @Override
