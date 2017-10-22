@@ -41,21 +41,24 @@ import static java.io.File.separatorChar;
 public class FileStoreClient extends DB {
 
   /**
-   * The name of the property for the output directory for the files.
+   * The name and default value of the property for the output directory for the files.
    */
   public static final String OUTPUT_DIRECTORY_PROPERTY = "outputDirectory";
-
-  /**
-   * The default output directory for the files.
-   * Absolute path: {user.dir}/YCSB-Benchmark/benchmarkingData/
-   */
   public static final String OUTPUT_DIRECTORY_DEFAULT = System.getProperty("user.dir")
       + separatorChar
       + "benchmarkingData"
       + separatorChar;
 
-  private final Gson gson = new GsonBuilder().registerTypeAdapter(ByteIterator.class, new ByteIteratorAdapter())
-      .create();
+  /**
+   * The property name to enable pretty printing of the json in created files.
+   * This will increase the size of the files substantially!
+   */
+  public static final String ENABLE_PRETTY_PRINTING = "enablePrettyPrinting";
+  public static final String ENABLE_PRETTY_PRINTING_DEFAULT = "false";
+
+  private final GsonBuilder gsonBuilder = new GsonBuilder().registerTypeAdapter(ByteIterator.class, new
+      ByteIteratorAdapter());
+  private Gson gson;
   private final Type valuesType = new TypeToken<Map<String, ByteIterator>>() {}.getType();
 
   private String outputDirectory;
@@ -74,6 +77,12 @@ public class FileStoreClient extends DB {
     if (!directory.exists() && !directory.mkdirs()) {
       throw new DBException("Could not create output directory for files with path: " + outputDirectory);
     }
+
+    if (!properties.getProperty(ENABLE_PRETTY_PRINTING, ENABLE_PRETTY_PRINTING_DEFAULT).equals("false")) {
+      gsonBuilder.setPrettyPrinting();
+    }
+
+    gson = gsonBuilder.create();
   }
 
   /**

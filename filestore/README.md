@@ -14,3 +14,17 @@ You can specify your own output directory by passing it over the `-p` parameter 
 bin/ycsb.sh load filestore -P workloads/workloada -p outputDirectory=/path/to/data
 bin/ycsb.sh run filestore -P workloads/workloada -p outputDirectory=/path/to/data
 ```
+
+## Pretty Printing
+
+To write the json files better readable you can pass `enablePrettyPrinting` over the `-p` parameter.
+
+```
+bin/ycsb.sh load filestore -P workloads/workloada -p enablePrettyPrinting=t -p outputDirectory=/path/to/data
+```
+
+**Note:**
+You can pass any value other than `false` to enable pretty printing.
+
+**Important:**
+Enabling pretty printing will increase the file size substantially!
