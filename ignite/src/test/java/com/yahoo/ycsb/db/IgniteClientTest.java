@@ -149,4 +149,34 @@ public class IgniteClientTest {
     assertThat(strResult, hasEntry("field0", "value1"));
     assertThat(strResult, hasEntry("field1", "value2A"));
   }
+
+  @Test
+  public void testReadAllFields() throws Exception {
+    cluster.cache(DEFAULT_CACHE_NAME).clear();
+    final String key = "key";
+    final Map<String, String> input = new HashMap<>();
+    input.put("field0", "value1");
+    input.put("field1", "value2A");
+    input.put("field3", null);
+    final Status sPut = client.insert(DEFAULT_CACHE_NAME, key, StringByteIterator.getByteIteratorMap(input));
+    assertThat(sPut, is(Status.OK));
+    assertThat(cluster.cache(DEFAULT_CACHE_NAME).size(), is(1));
+
+    final Set<String> fld = new TreeSet<>();
+
+    final HashMap<String, ByteIterator> result1 = new HashMap<>();
+    final Status sGet = client.read(DEFAULT_CACHE_NAME, key, fld, result1);
+    assertThat(sGet, is(Status.OK));
+
+    final HashMap<String, String> strResult = new HashMap<String, String>();
+    for (final Map.Entry<String, ByteIterator> e : result1.entrySet()) {
+      if (e.getValue() != null) {
+        strResult.put(e.getKey(), e.getValue().toString());
+      }
+    }
+    assertThat(strResult, hasEntry("field0", "value1"));
+    assertThat(strResult, hasEntry("field1", "value2A"));
+  }
+
+
 }

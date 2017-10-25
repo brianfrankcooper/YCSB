@@ -177,7 +177,7 @@ public class IgniteClient extends DB {
 
       BinaryObject po = cache.get(key);
 
-      fldCollection = (fields == null) ? po.type().fieldNames() : fields;
+      fldCollection = (fields.isEmpty()) ? po.type().fieldNames() : fields;
 
       System.out.println("table:{" + table + "}, key:{" + key + "}" + ", fields:{" + fields + "}");
       System.out.println("fields in po{" + po.type().fieldNames() + "}");
