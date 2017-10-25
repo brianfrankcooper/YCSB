@@ -32,11 +32,6 @@ import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.apache.ignite.cache.CacheAtomicityMode.ATOMIC;
-import static org.apache.ignite.cache.CacheMode.PARTITIONED;
-import static org.apache.ignite.cache.CacheRebalanceMode.SYNC;
-import static org.apache.ignite.cache.CacheWriteSynchronizationMode.FULL_SYNC;
-
 /**
  * Ignite client.
  * <p>
@@ -175,12 +170,16 @@ public class IgniteClient extends DB {
   @Override
   public Status read(String table, String key, Set<String> fields,
                      Map<String, ByteIterator> result) {
+
+    Collection<String> fldCollection;
+
     try {
 
-      System.out.println("table:{" + table + "}, key:{" + key + "}" + ", fields:{" + fields + "}");
       BinaryObject po = cache.get(key);
 
-      for (String s : fields) {
+      fldCollection = (fields == null) ? po.type().fieldNames() : fields;
+
+      for (String s : fldCollection) {
         // System.out.println(((BinaryObject)po.field(s)).field("str"));
 
         String val = ((BinaryObject) po.field(s)).field("str");
@@ -192,7 +191,10 @@ public class IgniteClient extends DB {
       }
 
       if (debug) {
-        System.out.println();
+        System.out.println("table:{" + table + "}, key:{" + key + "}" + ", fields:{" + fields + "}");
+        System.out.println("fields in po{" + po.type().fieldNames() + "}");
+        System.out.println("result {" + result + "}");
+
       }
 
       return Status.OK;
