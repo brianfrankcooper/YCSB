@@ -34,7 +34,7 @@ Git clone YCSB and compile:
 
     git clone http://github.com/brianfrankcooper/YCSB.git
     cd YCSB
-    mvn -pl com.yahoo.ycsb:aerospike-binding -am clean package
+    mvn -pl com.yahoo.ycsb:accumulo1.7-binding -am clean package
 
 ### 3. Create the Accumulo table
 
