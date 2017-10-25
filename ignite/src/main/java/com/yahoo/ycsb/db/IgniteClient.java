@@ -179,6 +179,10 @@ public class IgniteClient extends DB {
 
       fldCollection = (fields == null) ? po.type().fieldNames() : fields;
 
+      System.out.println("table:{" + table + "}, key:{" + key + "}" + ", fields:{" + fields + "}");
+      System.out.println("fields in po{" + po.type().fieldNames() + "}");
+      System.out.println("fields in coll{" + fldCollection + "}");
+
       for (String s : fldCollection) {
         // System.out.println(((BinaryObject)po.field(s)).field("str"));
 
