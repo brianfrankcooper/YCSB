@@ -122,11 +122,11 @@ public class IgniteClient extends DB {
 
         CacheConfiguration<String, BinaryObject> cacheCfg = new CacheConfiguration<>();
         cacheCfg.setName(DEFAULT_CACHE_NAME);
-        cacheCfg.setCacheMode(PARTITIONED);
-        cacheCfg.setAtomicityMode(ATOMIC);
-        cacheCfg.setWriteSynchronizationMode(FULL_SYNC);
-        cacheCfg.setBackups(1);
-        cacheCfg.setRebalanceMode(SYNC);
+//        cacheCfg.setCacheMode(PARTITIONED);
+//        cacheCfg.setAtomicityMode(ATOMIC);
+//        cacheCfg.setWriteSynchronizationMode(FULL_SYNC);
+//        cacheCfg.setBackups(1);
+//        cacheCfg.setRebalanceMode(SYNC);
 
         System.out.println("Before cluster start");
         cluster = Ignition.start(igcfg);
@@ -176,6 +176,8 @@ public class IgniteClient extends DB {
   public Status read(String table, String key, Set<String> fields,
                      Map<String, ByteIterator> result) {
     try {
+
+      System.out.println("table:{" + table + "}, key:{" + key + "}" + ", fields:{" + fields + "}");
       BinaryObject po = cache.get(key);
 
       for (String s : fields) {
