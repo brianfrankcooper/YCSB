@@ -170,20 +170,14 @@ public class IgniteClient extends DB {
   @Override
   public Status read(String table, String key, Set<String> fields,
                      Map<String, ByteIterator> result) {
-
-    Collection<String> fldCollection;
-
     try {
 
       BinaryObject po = cache.get(key);
 
-      fldCollection = (fields.isEmpty()) ? po.type().fieldNames() : fields;
-
       System.out.println("table:{" + table + "}, key:{" + key + "}" + ", fields:{" + fields + "}");
       System.out.println("fields in po{" + po.type().fieldNames() + "}");
-      System.out.println("fields in coll{" + fldCollection + "}");
 
-      for (String s : fldCollection) {
+      for (String s : (fields == null || fields.isEmpty()) ? po.type().fieldNames() : fields) {
         // System.out.println(((BinaryObject)po.field(s)).field("str"));
 
         String val = ((BinaryObject) po.field(s)).field("str");
