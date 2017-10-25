@@ -232,6 +232,14 @@ public class CassandraCQLClient extends DB {
     }
   }
 
+  /**
+   * Return a {@code PreparedStatement} for the given query from cache. If none is found, create
+   * a new one in cache and return it.
+   *
+   * @param query
+   *          The query to retrieve the {@code PreparedStatement} for
+   * @return The {@code PreparedStatement} for the query
+   */
   private PreparedStatement getPreparedStatement(String query) {
     PreparedStatement stmt = stmts.get(query);
     if (stmt == null) {
