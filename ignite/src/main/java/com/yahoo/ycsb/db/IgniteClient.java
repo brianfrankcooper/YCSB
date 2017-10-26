@@ -174,28 +174,30 @@ public class IgniteClient extends DB {
 
       BinaryObject po = cache.get(key);
 
-      System.out.println("table:{" + table + "}, key:{" + key + "}" + ", fields:{" + fields + "}");
-      System.out.println("fields in po{" + po.type().fieldNames() + "}");
+      if (po == null) {
+        return Status.NOT_FOUND;
+      } else {
 
-      for (String s : (fields == null || fields.isEmpty()) ? po.type().fieldNames() : fields) {
-        // System.out.println(((BinaryObject)po.field(s)).field("str"));
+        for (String s : (fields == null || fields.isEmpty()) ? po.type().fieldNames() : fields) {
+          //System.out.println(((BinaryObject)po.field(s)).field("str"));
 
-        String val = ((BinaryObject) po.field(s)).field("str");
-        if (val != null) {
-          result.put(s, new ByteArrayByteIterator(val.getBytes()));
-        } else {
-          result.put(s, null);
+          String val = ((BinaryObject) po.field(s)).field("str");
+          if (val != null) {
+            result.put(s, new ByteArrayByteIterator(val.getBytes()));
+          } else {
+            result.put(s, null);
+          }
         }
+
+        if (debug) {
+          System.out.println("table:{" + table + "}, key:{" + key + "}" + ", fields:{" + fields + "}");
+          System.out.println("fields in po{" + po.type().fieldNames() + "}");
+          System.out.println("result {" + result + "}");
+
+        }
+
+        return Status.OK;
       }
-
-      if (debug) {
-        System.out.println("table:{" + table + "}, key:{" + key + "}" + ", fields:{" + fields + "}");
-        System.out.println("fields in po{" + po.type().fieldNames() + "}");
-        System.out.println("result {" + result + "}");
-
-      }
-
-      return Status.OK;
 
     } catch (Exception e) {
       e.printStackTrace();
