@@ -178,5 +178,26 @@ public class IgniteClientTest {
     assertThat(strResult, hasEntry("field1", "value2A"));
   }
 
+  @Test
+  public void testReadNotPresent() throws Exception {
+    cluster.cache(DEFAULT_CACHE_NAME).clear();
+    final String key = "key";
+    final Map<String, String> input = new HashMap<>();
+    input.put("field0", "value1");
+    input.put("field1", "value2A");
+    input.put("field3", null);
+    final Status sPut = client.insert(DEFAULT_CACHE_NAME, key, StringByteIterator.getByteIteratorMap(input));
+    assertThat(sPut, is(Status.OK));
+    assertThat(cluster.cache(DEFAULT_CACHE_NAME).size(), is(1));
+
+    final Set<String> fld = new TreeSet<>();
+
+    final String newKey = "newKey";
+    final HashMap<String, ByteIterator> result1 = new HashMap<>();
+    final Status sGet = client.read(DEFAULT_CACHE_NAME, newKey, fld, result1);
+    assertThat(sGet, is(Status.NOT_FOUND));
+
+  }
+
 
 }
