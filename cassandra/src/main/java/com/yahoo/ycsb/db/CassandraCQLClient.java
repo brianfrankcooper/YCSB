@@ -28,7 +28,6 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
@@ -268,7 +267,7 @@ public class CassandraCQLClient extends DB {
   public Status read(String table, String key, Set<String> fields,
       Map<String, ByteIterator> result) {
     try {
-      Statement stmt;
+      BoundStatement stmt;
       Select.Builder selectBuilder;
 
       if (fields == null) {
@@ -286,7 +285,7 @@ public class CassandraCQLClient extends DB {
       stmt.setConsistencyLevel(readConsistencyLevel);
 
       if (debug) {
-        System.out.println(((BoundStatement)stmt).preparedStatement().getQueryString());
+        System.out.println(stmt.preparedStatement().getQueryString());
       }
       if (trace) {
         stmt.enableTracing();
@@ -346,7 +345,7 @@ public class CassandraCQLClient extends DB {
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
 
     try {
-      Statement stmt;
+      BoundStatement stmt;
       Select.Builder selectBuilder;
 
       if (fields == null) {
@@ -358,11 +357,11 @@ public class CassandraCQLClient extends DB {
         }
       }
 
-      stmt = selectBuilder.from(table);
+      Select selectStmt = selectBuilder.from(table);
 
       // The statement builder is not setup right for tokens.
       // So, we need to build it manually.
-      String initialStmt = stmt.toString();
+      String initialStmt = selectStmt.toString();
       StringBuilder scanStmt = new StringBuilder();
       scanStmt.append(initialStmt.substring(0, initialStmt.length() - 1));
       scanStmt.append(" WHERE ");
@@ -378,7 +377,7 @@ public class CassandraCQLClient extends DB {
       stmt.setConsistencyLevel(readConsistencyLevel);
 
       if (debug) {
-        System.out.println(((BoundStatement)stmt).preparedStatement().getQueryString());
+        System.out.println(stmt.preparedStatement().getQueryString());
       }
       if (trace) {
         stmt.enableTracing();
@@ -450,12 +449,12 @@ public class CassandraCQLClient extends DB {
       updateStmt.where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker()));
       vars.add(key);
 
-      Statement stmt = getPreparedStatement(updateStmt.toString())
-                       .bind(vars.toArray(new Object[vars.size()]));
+      BoundStatement stmt = getPreparedStatement(updateStmt.toString())
+                            .bind(vars.toArray(new Object[vars.size()]));
       stmt.setConsistencyLevel(writeConsistencyLevel);
 
       if (debug) {
-        System.out.println(((BoundStatement)stmt).preparedStatement().getQueryString());
+        System.out.println(stmt.preparedStatement().getQueryString());
       }
       if (trace) {
         stmt.enableTracing();
@@ -506,12 +505,12 @@ public class CassandraCQLClient extends DB {
         vars.add(value);
       }
 
-      Statement stmt = getPreparedStatement(insertStmt.toString())
-                       .bind(vars.toArray(new Object[vars.size()]));
+      BoundStatement stmt = getPreparedStatement(insertStmt.toString())
+                            .bind(vars.toArray(new Object[vars.size()]));
       stmt.setConsistencyLevel(writeConsistencyLevel);
 
       if (debug) {
-        System.out.println(((BoundStatement)stmt).preparedStatement().getQueryString());
+        System.out.println(stmt.preparedStatement().getQueryString());
       }
       if (trace) {
         stmt.enableTracing();
@@ -540,7 +539,7 @@ public class CassandraCQLClient extends DB {
   public Status delete(String table, String key) {
 
     try {
-      Statement stmt;
+      BoundStatement stmt;
 
       stmt = getPreparedStatement(QueryBuilder.delete().from(table)
                                   .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker()))
@@ -548,7 +547,7 @@ public class CassandraCQLClient extends DB {
       stmt.setConsistencyLevel(writeConsistencyLevel);
 
       if (debug) {
-        System.out.println(((BoundStatement)stmt).preparedStatement().getQueryString());
+        System.out.println(stmt.preparedStatement().getQueryString());
       }
       if (trace) {
         stmt.enableTracing();
