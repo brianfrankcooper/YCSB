@@ -176,140 +176,138 @@ public class IgniteClient extends DB {
 
       if (po == null) {
         return Status.NOT_FOUND;
-      } else {
+      }
+      for (String s : (fields == null || fields.isEmpty()) ? po.type().fieldNames() : fields) {
+        //System.out.println(((BinaryObject)po.field(s)).field("str"));
 
-        for (String s : (fields == null || fields.isEmpty()) ? po.type().fieldNames() : fields) {
-          //System.out.println(((BinaryObject)po.field(s)).field("str"));
-
-          if (po.field(s) != null) {
-            String val = ((BinaryObject) po.field(s)).field("str");
-            if (val != null) {
-              result.put(s, new ByteArrayByteIterator(val.getBytes()));
-            }
-
+        if (po.field(s) != null) {
+          String val = ((BinaryObject) po.field(s)).field("str");
+          if (val != null) {
+            result.put(s, new ByteArrayByteIterator(val.getBytes()));
           }
 
-          if (debug) {
-            System.out.println("table:{" + table + "}, key:{" + key + "}" + ", fields:{" + fields + "}");
-            System.out.println("fields in po{" + po.type().fieldNames() + "}");
-            System.out.println("result {" + result + "}");
-
-          }
-
-          return Status.OK;
         }
 
-      } catch(Exception e){
-        e.printStackTrace();
-        System.out.println("Error reading key: " + key);
-        return Status.ERROR;
-      }
-    }
+        if (debug) {
+          System.out.println("table:{" + table + "}, key:{" + key + "}" + ", fields:{" + fields + "}");
+          System.out.println("fields in po{" + po.type().fieldNames() + "}");
+          System.out.println("result {" + result + "}");
 
-    /**
-     * Perform a range scan for a set of records in the database. Each field/value
-     * pair from the result will be stored in a HashMap.
-     * <p>
-     * Cassandra CQL uses "token" method for range scan which doesn't always yield
-     * intuitive results.
-     *
-     * @param table       The name of the table
-     * @param startkey    The record key of the first record to read.
-     * @param recordcount The number of records to read
-     * @param fields      The list of fields to read, or null for all of them
-     * @param result      A Vector of HashMaps, where each HashMap is a set field/value
-     *                    pairs for one record
-     * @return Zero on success, a non-zero error code on error
-     */
-    @Override
-    public Status scan (String table, String startkey,int recordcount,
-    Set<String> fields, Vector<HashMap<String, ByteIterator>>result){
-      try {
-        return Status.OK;
-
-      } catch (Exception e) {
-        e.printStackTrace();
-        System.out.println("Error scanning with startkey: " + startkey);
-        return Status.ERROR;
-      }
-
-    }
-
-    /**
-     * Update a record in the database. Any field/value pairs in the specified
-     * values HashMap will be written into the record with the specified record
-     * key, overwriting any existing values with the same field name.
-     *
-     * @param table  The name of the table
-     * @param key    The record key of the record to write.
-     * @param values A HashMap of field/value pairs to update in the record
-     * @return Zero on success, a non-zero error code on error
-     */
-    @Override
-    public Status update (String table, String key,
-        Map < String, ByteIterator > values){
-      // Insert and updates provide the same functionality
-      return insert(table, key, values);
-    }
-
-    /**
-     * Insert a record in the database. Any field/value pairs in the specified
-     * values HashMap will be written into the record with the specified record
-     * key.
-     *
-     * @param table  The name of the table
-     * @param key    The record key of the record to insert.
-     * @param values A HashMap of field/value pairs to insert in the record
-     * @return Zero on success, a non-zero error code on error
-     */
-    @Override
-    public Status insert (String table, String key,
-        Map < String, ByteIterator > values){
-      try {
-        BinaryObjectBuilder bob = cluster.binary().builder("CustomType");
-
-        for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-          bob.setField(entry.getKey(), entry.getValue());
-
-          if (debug) {
-            System.out.println(entry.getKey() + ":" + entry.getValue());
-          }
         }
-
-        BinaryObject bo = bob.build();
-
-        if (table.equals(DEFAULT_CACHE_NAME)) {
-          cache.put(key, bo);
-        } else {
-          //nop.
-        }
-
-        return Status.OK;
-      } catch (Exception e) {
-        e.printStackTrace();
       }
+      return Status.OK;
 
+    } catch (Exception e) {
+      e.printStackTrace();
+      System.out.println("Error reading key: " + key);
       return Status.ERROR;
     }
+  }
 
-    /**
-     * Delete a record from the database.
-     *
-     * @param table The name of the table
-     * @param key   The record key of the record to delete.
-     * @return Zero on success, a non-zero error code on error
-     */
-    @Override
-    public Status delete (String table, String key){
-      try {
-        cache.remove(key);
-        return Status.OK;
-      } catch (Exception e) {
-        e.printStackTrace();
-        System.out.println("Error deleting key: " + key);
-      }
+  /**
+   * Perform a range scan for a set of records in the database. Each field/value
+   * pair from the result will be stored in a HashMap.
+   * <p>
+   * Cassandra CQL uses "token" method for range scan which doesn't always yield
+   * intuitive results.
+   *
+   * @param table       The name of the table
+   * @param startkey    The record key of the first record to read.
+   * @param recordcount The number of records to read
+   * @param fields      The list of fields to read, or null for all of them
+   * @param result      A Vector of HashMaps, where each HashMap is a set field/value
+   *                    pairs for one record
+   * @return Zero on success, a non-zero error code on error
+   */
+  @Override
+  public Status scan(String table, String startkey, int recordcount,
+                     Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    try {
+      return Status.OK;
 
+    } catch (Exception e) {
+      e.printStackTrace();
+      System.out.println("Error scanning with startkey: " + startkey);
       return Status.ERROR;
     }
 
   }
+
+  /**
+   * Update a record in the database. Any field/value pairs in the specified
+   * values HashMap will be written into the record with the specified record
+   * key, overwriting any existing values with the same field name.
+   *
+   * @param table  The name of the table
+   * @param key    The record key of the record to write.
+   * @param values A HashMap of field/value pairs to update in the record
+   * @return Zero on success, a non-zero error code on error
+   */
+  @Override
+  public Status update(String table, String key,
+                       Map<String, ByteIterator> values) {
+    // Insert and updates provide the same functionality
+    return insert(table, key, values);
+  }
+
+  /**
+   * Insert a record in the database. Any field/value pairs in the specified
+   * values HashMap will be written into the record with the specified record
+   * key.
+   *
+   * @param table  The name of the table
+   * @param key    The record key of the record to insert.
+   * @param values A HashMap of field/value pairs to insert in the record
+   * @return Zero on success, a non-zero error code on error
+   */
+  @Override
+  public Status insert(String table, String key,
+                       Map<String, ByteIterator> values) {
+    try {
+      BinaryObjectBuilder bob = cluster.binary().builder("CustomType");
+
+      for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+        bob.setField(entry.getKey(), entry.getValue());
+
+        if (debug) {
+          System.out.println(entry.getKey() + ":" + entry.getValue());
+        }
+      }
+
+      BinaryObject bo = bob.build();
+
+      if (table.equals(DEFAULT_CACHE_NAME)) {
+        cache.put(key, bo);
+      } else {
+        //nop.
+      }
+
+      return Status.OK;
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+
+    return Status.ERROR;
+  }
+
+  /**
+   * Delete a record from the database.
+   *
+   * @param table The name of the table
+   * @param key   The record key of the record to delete.
+   * @return Zero on success, a non-zero error code on error
+   */
+  @Override
+  public Status delete(String table, String key) {
+    try {
+      cache.remove(key);
+      return Status.OK;
+    } catch (Exception e) {
+      e.printStackTrace();
+      System.out.println("Error deleting key: " + key);
+    }
+
+    return Status.ERROR;
+  }
+
+}
