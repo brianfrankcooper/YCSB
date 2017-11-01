@@ -22,8 +22,20 @@ import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.measurements.Measurements;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.cache.QueryEntity;
+import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
@@ -32,8 +44,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.util.*;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
@@ -41,8 +51,9 @@ import static org.hamcrest.Matchers.is;
 /**
  * Integration tests for the Ignite client
  */
-public class IgniteClientTest {
+public class IgniteSqlClientTest {
   private static final String DEFAULT_CACHE_NAME = "usertable";
+  private static final String TABLE_NAME = "usertable";
   private final static String HOST = "127.0.0.1";
   private final static String PORTS = "47500..47509";
   private final static String SERVER_NODE_NAME = "YCSB Server Node";
@@ -51,6 +62,9 @@ public class IgniteClientTest {
   private DB client;
   private static Ignite cluster = null;
 
+  /**
+   *
+   */
   @BeforeClass
   public static void beforeTest() {
     IgniteConfiguration igcfg = new IgniteConfiguration();
@@ -60,6 +74,27 @@ public class IgniteClientTest {
     TcpDiscoverySpi disco = new TcpDiscoverySpi();
     Collection<String> adders = new LinkedHashSet<>();
     adders.add(HOST + ":" + PORTS);
+
+    QueryEntity qe = new QueryEntity("java.lang.String", "UserTableType")
+        .addQueryField("ycsb_key", "java.lang.String", null)
+        .addQueryField("field0", "java.lang.String", null)
+        .addQueryField("field1", "java.lang.String", null)
+        .addQueryField("field2", "java.lang.String", null)
+        .addQueryField("field3", "java.lang.String", null)
+        .addQueryField("field4", "java.lang.String", null)
+        .addQueryField("field5", "java.lang.String", null)
+        .addQueryField("field6", "java.lang.String", null)
+        .addQueryField("field7", "java.lang.String", null)
+        .addQueryField("field8", "java.lang.String", null)
+        .addQueryField("field9", "java.lang.String", null)
+        .setKeyFieldName("ycsb_key");
+
+    qe.setTableName("usertable");
+
+    CacheConfiguration ccfg = new CacheConfiguration().setQueryEntities(Collections.singleton(qe))
+      .setName(DEFAULT_CACHE_NAME);
+
+    igcfg.setCacheConfiguration(ccfg);
 
     ((TcpDiscoveryVmIpFinder) ipFinder).setAddresses(adders);
     disco.setIpFinder(ipFinder);
@@ -78,7 +113,7 @@ public class IgniteClientTest {
     p.setProperty("ports", PORTS);
     Measurements.setProperties(p);
 
-    client = new IgniteClient();
+    client = new IgniteSqlClient();
     client.setProperties(p);
     client.init();
   }
@@ -90,7 +125,7 @@ public class IgniteClientTest {
     final Map<String, String> input = new HashMap<>();
     input.put("field0", "value1");
     input.put("field1", "value2");
-    final Status status = client.insert(DEFAULT_CACHE_NAME, key, StringByteIterator.getByteIteratorMap(input));
+    final Status status = client.insert(TABLE_NAME, key, StringByteIterator.getByteIteratorMap(input));
     assertThat(status, is(Status.OK));
     assertThat(cluster.cache(DEFAULT_CACHE_NAME).size(), is(1));
   }
@@ -102,7 +137,7 @@ public class IgniteClientTest {
     final Map<String, String> input1 = new HashMap<>();
     input1.put("field0", "value1");
     input1.put("field1", "value2");
-    final Status status1 = client.insert(DEFAULT_CACHE_NAME, key1, StringByteIterator.getByteIteratorMap(input1));
+    final Status status1 = client.insert(TABLE_NAME, key1, StringByteIterator.getByteIteratorMap(input1));
     assertThat(status1, is(Status.OK));
     assertThat(cluster.cache(DEFAULT_CACHE_NAME).size(), is(1));
 
@@ -110,11 +145,11 @@ public class IgniteClientTest {
     final Map<String, String> input2 = new HashMap<>();
     input2.put("field0", "value1");
     input2.put("field1", "value2");
-    final Status status2 = client.insert(DEFAULT_CACHE_NAME, key2, StringByteIterator.getByteIteratorMap(input2));
+    final Status status2 = client.insert(TABLE_NAME, key2, StringByteIterator.getByteIteratorMap(input2));
     assertThat(status2, is(Status.OK));
     assertThat(cluster.cache(DEFAULT_CACHE_NAME).size(), is(2));
 
-    final Status status3 = client.delete(DEFAULT_CACHE_NAME, key2);
+    final Status status3 = client.delete(TABLE_NAME, key2);
     assertThat(status3, is(Status.OK));
     assertThat(cluster.cache(DEFAULT_CACHE_NAME).size(), is(1));
 
@@ -128,7 +163,7 @@ public class IgniteClientTest {
     input.put("field0", "value1");
     input.put("field1", "value2A");
     input.put("field3", null);
-    final Status sPut = client.insert(DEFAULT_CACHE_NAME, key, StringByteIterator.getByteIteratorMap(input));
+    final Status sPut = client.insert(TABLE_NAME, key, StringByteIterator.getByteIteratorMap(input));
     assertThat(sPut, is(Status.OK));
     assertThat(cluster.cache(DEFAULT_CACHE_NAME).size(), is(1));
 
@@ -138,7 +173,7 @@ public class IgniteClientTest {
     fld.add("field3");
 
     final HashMap<String, ByteIterator> result = new HashMap<>();
-    final Status sGet = client.read(DEFAULT_CACHE_NAME, key, fld, result);
+    final Status sGet = client.read(TABLE_NAME, key, fld, result);
     assertThat(sGet, is(Status.OK));
 
     final HashMap<String, String> strResult = new HashMap<String, String>();
@@ -166,7 +201,7 @@ public class IgniteClientTest {
     final Set<String> fld = new TreeSet<>();
 
     final HashMap<String, ByteIterator> result1 = new HashMap<>();
-    final Status sGet = client.read(DEFAULT_CACHE_NAME, key, fld, result1);
+    final Status sGet = client.read(TABLE_NAME, key, fld, result1);
     assertThat(sGet, is(Status.OK));
 
     final HashMap<String, String> strResult = new HashMap<String, String>();
@@ -187,7 +222,7 @@ public class IgniteClientTest {
     input.put("field0", "value1");
     input.put("field1", "value2A");
     input.put("field3", null);
-    final Status sPut = client.insert(DEFAULT_CACHE_NAME, key, StringByteIterator.getByteIteratorMap(input));
+    final Status sPut = client.insert(TABLE_NAME, key, StringByteIterator.getByteIteratorMap(input));
     assertThat(sPut, is(Status.OK));
     assertThat(cluster.cache(DEFAULT_CACHE_NAME).size(), is(1));
 
@@ -195,7 +230,7 @@ public class IgniteClientTest {
 
     final String newKey = "newKey";
     final HashMap<String, ByteIterator> result1 = new HashMap<>();
-    final Status sGet = client.read(DEFAULT_CACHE_NAME, newKey, fld, result1);
+    final Status sGet = client.read(TABLE_NAME, newKey, fld, result1);
     assertThat(sGet, is(Status.NOT_FOUND));
 
   }

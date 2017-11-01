@@ -93,6 +93,7 @@ DATABASES = {
     "solr6"        : "com.yahoo.ycsb.db.solr6.SolrClient",
     "tarantool"    : "com.yahoo.ycsb.db.TarantoolClient",
     "ignite"       : "com.yahoo.ycsb.db.IgniteClient",
+    "ignite-sql"   : "com.yahoo.ycsb.db.IgniteSqlClient",
 }
 
 OPTIONS = {
