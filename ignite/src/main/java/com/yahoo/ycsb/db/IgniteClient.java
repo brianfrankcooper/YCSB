@@ -45,22 +45,19 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author spuchnin
  */
 public class IgniteClient extends DB {
-  private static Ignite cluster = null;
-  private static IgniteCache<String, BinaryObject> cache = null;
-  private static TcpDiscoveryIpFinder ipFinder = new TcpDiscoveryVmIpFinder(true);
-
   private static final String DEFAULT_CACHE_NAME = "usertable";
   private static final String HOSTS_PROPERTY = "hosts";
   private static final String PORTS_PROPERTY = "ports";
   private static final String CLIENT_NODE_NAME = "YCSB client node";
   private static final String PORTS_DEFAULTS = "47500..47509";
-
   /**
    * Count the number of times initialized to teardown on the last
    * {@link #cleanup()}.
    */
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
-
+  private static Ignite cluster = null;
+  private static IgniteCache<String, BinaryObject> cache = null;
+  private static TcpDiscoveryIpFinder ipFinder = new TcpDiscoveryVmIpFinder(true);
   private static boolean debug = false;
 
   private BinaryType binType = null;
@@ -93,16 +90,16 @@ public class IgniteClient extends DB {
         String host = getProperties().getProperty(HOSTS_PROPERTY);
         if (host == null) {
           throw new DBException(String.format(
-              "Required property \"%s\" missing for Ignite Cluster",
-              HOSTS_PROPERTY));
+                    "Required property \"%s\" missing for Ignite Cluster",
+                    HOSTS_PROPERTY));
         }
 
         String ports = getProperties().getProperty(PORTS_PROPERTY, PORTS_DEFAULTS);
 
         if (ports == null) {
           throw new DBException(String.format(
-              "Required property \"%s\" missing for Ignite Cluster",
-              PORTS_PROPERTY));
+                    "Required property \"%s\" missing for Ignite Cluster",
+                    PORTS_PROPERTY));
 
         }
 
@@ -152,7 +149,7 @@ public class IgniteClient extends DB {
       if (curInitCount < 0) {
         // This should never happen.
         throw new DBException(
-            String.format("initCount is negative: %d", curInitCount));
+                  String.format("initCount is negative: %d", curInitCount));
       }
     }
   }
@@ -177,8 +174,9 @@ public class IgniteClient extends DB {
         return Status.NOT_FOUND;
       }
 
-      if (binType == null)
+      if (binType == null) {
         binType = po.type();
+      }
 
       for (String s : F.isEmpty(fields) ? binType.fieldNames() : fields) {
         String val = binType.field(s).value(po);
@@ -221,7 +219,6 @@ public class IgniteClient extends DB {
                      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     try {
       return Status.OK;
-
     } catch (Exception e) {
       e.printStackTrace(System.err);
       return Status.ERROR;
@@ -243,13 +240,12 @@ public class IgniteClient extends DB {
                        Map<String, ByteIterator> values) {
     try {
       cache.invoke(key, new Updater(values));
+      return Status.OK;
     } catch (Exception e) {
       e.printStackTrace(System.err);
       System.out.println("Error updating key: " + key);
       return Status.ERROR;
     }
-
-    return insert(table, key, values);
   }
 
   /**
@@ -315,9 +311,9 @@ public class IgniteClient extends DB {
   /**
    * Entry processor to update values.
    */
-  private static class Updater implements CacheEntryProcessor<String, BinaryObject, Object> {
-    private String [] flds;
-    private String [] vals;
+  public static class Updater implements CacheEntryProcessor<String, BinaryObject, Object> {
+    private String[] flds;
+    private String[] vals;
 
     /**
      * @param values Updated fields.
@@ -334,13 +330,16 @@ public class IgniteClient extends DB {
       }
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public Object process(MutableEntry<String, BinaryObject> mutableEntry, Object... objects) throws EntryProcessorException {
+    public Object process(MutableEntry<String, BinaryObject> mutableEntry, Object... objects)
+              throws EntryProcessorException {
       BinaryObjectBuilder bob = mutableEntry.getValue().toBuilder();
 
       for (int i = 0; i < flds.length; ++i) {
-          bob.setField(flds[i], vals[i]);
+        bob.setField(flds[i], vals[i]);
       }
 
       mutableEntry.setValue(bob.build());

@@ -86,16 +86,16 @@ public class IgniteSqlClient extends DB {
         String host = getProperties().getProperty(HOSTS_PROPERTY);
         if (host == null) {
           throw new DBException(String.format(
-            "Required property \"%s\" missing for Ignite Cluster",
-            HOSTS_PROPERTY));
+                    "Required property \"%s\" missing for Ignite Cluster",
+                    HOSTS_PROPERTY));
         }
 
         String ports = getProperties().getProperty(PORTS_PROPERTY, PORTS_DEFAULTS);
 
         if (ports == null) {
           throw new DBException(String.format(
-            "Required property \"%s\" missing for Ignite Cluster",
-            PORTS_PROPERTY));
+                    "Required property \"%s\" missing for Ignite Cluster",
+                    PORTS_PROPERTY));
 
         }
 
@@ -147,7 +147,7 @@ public class IgniteSqlClient extends DB {
       if (curInitCount < 0) {
         // This should never happen.
         throw new DBException(
-          String.format("initCount is negative: %d", curInitCount));
+                  String.format("initCount is negative: %d", curInitCount));
       }
     }
   }
@@ -166,8 +166,8 @@ public class IgniteSqlClient extends DB {
   public Status read(String table, String key, Set<String> fields,
                      Map<String, ByteIterator> result) {
     try {
-      StringBuilder sb = new StringBuilder("SELECT * FROM ").append(table).append(" WHERE ").append(PRIMARY_KEY)
-        .append("=?");
+      StringBuilder sb = new StringBuilder("SELECT * FROM ").append(table)
+                .append(" WHERE ").append(PRIMARY_KEY).append("=?");
 
       SqlFieldsQuery qry = new SqlFieldsQuery(sb.toString());
       qry.setArgs(key);
@@ -179,8 +179,8 @@ public class IgniteSqlClient extends DB {
         return Status.NOT_FOUND;
       }
 
-      String [] colNames = new String[cur.getColumnsCount()];
-      for(int i = 0; i < colNames.length; ++i) {
+      String[] colNames = new String[cur.getColumnsCount()];
+      for (int i = 0; i < colNames.length; ++i) {
         String colName = cur.getFieldName(i);
         if (F.isEmpty(fields)) {
           colNames[i] = colName.toLowerCase();
@@ -193,12 +193,12 @@ public class IgniteSqlClient extends DB {
         }
       }
 
-      while(it.hasNext()) {
+      while (it.hasNext()) {
         List<?> row = it.next();
 
-        for(int i = 0; i < colNames.length; ++i) {
+        for (int i = 0; i < colNames.length; ++i) {
           if (colNames[i] != null) {
-            result.put(colNames[i], new StringByteIterator((String)row.get(i)));
+            result.put(colNames[i], new StringByteIterator((String) row.get(i)));
           }
         }
       }
@@ -255,12 +255,11 @@ public class IgniteSqlClient extends DB {
                        Map<String, ByteIterator> values) {
     try {
       UpdateData updData = new UpdateData(key, values);
-      StringBuilder sb = new StringBuilder("UPDATE ")
-        .append(table).append(" SET ");
+      StringBuilder sb = new StringBuilder("UPDATE ").append(table).append(" SET ");
 
-      for (int i = 0; i < updData.fields.length; ++i) {
-        sb.append(updData.fields[i]).append("=?");
-        if (i < updData.fields.length - 1) {
+      for (int i = 0; i < updData.getFields().length; ++i) {
+        sb.append(updData.getFields()[i]).append("=?");
+        if (i < updData.getFields().length - 1) {
           sb.append(", ");
         }
       }
@@ -268,7 +267,7 @@ public class IgniteSqlClient extends DB {
       sb.append(" WHERE ").append(PRIMARY_KEY).append("=?");
 
       SqlFieldsQuery qry = new SqlFieldsQuery(sb.toString());
-      qry.setArgs(updData.args);
+      qry.setArgs(updData.getArgs());
 
       cache.query(qry).getAll();
 
@@ -294,12 +293,12 @@ public class IgniteSqlClient extends DB {
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
       InsertData insertData = new InsertData(key, values);
-      StringBuilder sb = new StringBuilder("INSERT INTO ")
-        .append(table).append(" (").append(insertData.insertFields).append(") VALUES (").append(insertData.insertParams)
-        .append(')');
+      StringBuilder sb = new StringBuilder("INSERT INTO ").append(table).append(" (")
+                .append(insertData.getInsertFields()).append(") VALUES (")
+                .append(insertData.getInsertParams()).append(')');
 
       SqlFieldsQuery qry = new SqlFieldsQuery(sb.toString());
-      qry.setArgs(insertData.args);
+      qry.setArgs(insertData.getArgs());
 
       cache.query(qry).getAll();
 
@@ -321,8 +320,8 @@ public class IgniteSqlClient extends DB {
   @Override
   public Status delete(String table, String key) {
     try {
-      StringBuilder sb = new StringBuilder("DELETE FROM ")
-        .append(table).append(" WHERE ").append(PRIMARY_KEY).append(" = ?");
+      StringBuilder sb = new StringBuilder("DELETE FROM ").append(table)
+                .append(" WHERE ").append(PRIMARY_KEY).append(" = ?");
 
       SqlFieldsQuery qry = new SqlFieldsQuery(sb.toString());
       qry.setArgs(key);
@@ -339,12 +338,12 @@ public class IgniteSqlClient extends DB {
    * Field and values for insert queries.
    */
   private static class InsertData {
-    final Object [] args;
-    final String insertFields;
-    final String insertParams;
+    private final Object[] args;
+    private final String insertFields;
+    private final String insertParams;
 
     /**
-     * @param key Key.
+     * @param key    Key.
      * @param values Field values.
      */
     InsertData(String key, Map<String, ByteIterator> values) {
@@ -365,17 +364,29 @@ public class IgniteSqlClient extends DB {
       insertFields = sbFields.toString();
       insertParams = sbParams.toString();
     }
+
+    public Object[] getArgs() {
+      return args;
+    }
+
+    public String getInsertFields() {
+      return insertFields;
+    }
+
+    public String getInsertParams() {
+      return insertParams;
+    }
   }
 
   /**
    * Field and values for update queries.
    */
   private static class UpdateData {
-    final Object [] args;
-    final String [] fields;
+    private final Object[] args;
+    private final String[] fields;
 
     /**
-     * @param key Key.
+     * @param key    Key.
      * @param values Field values.
      */
     UpdateData(String key, Map<String, ByteIterator> values) {
@@ -390,6 +401,14 @@ public class IgniteSqlClient extends DB {
       }
 
       args[idx] = key;
+    }
+
+    public Object[] getArgs() {
+      return args;
+    }
+
+    public String[] getFields() {
+      return fields;
     }
   }
 }
