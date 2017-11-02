@@ -18,18 +18,24 @@
 package com.yahoo.ycsb.db;
 
 import com.yahoo.ycsb.*;
+import com.yahoo.ycsb.db.flavors.DBFlavor;
+import com.yahoo.ycsb.db.flavors.DefaultDBFlavor;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.binary.BinaryObject;
-import org.apache.ignite.binary.BinaryObjectBuilder;
+import org.apache.ignite.cache.query.FieldsQueryCursor;
+import org.apache.ignite.cache.query.SqlFieldsQuery;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
+import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -39,24 +45,23 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author spuchnin
  */
-public class IgniteClient extends DB {
-  private static Ignite cluster = null;
-  private static IgniteCache<String, BinaryObject> cache = null;
-  private static TcpDiscoveryIpFinder ipFinder = new TcpDiscoveryVmIpFinder(true);
-
+public class IgniteSqlClient extends DB {
   private static final String DEFAULT_CACHE_NAME = "usertable";
   private static final String HOSTS_PROPERTY = "hosts";
   private static final String PORTS_PROPERTY = "ports";
   private static final String CLIENT_NODE_NAME = "YCSB client node";
   private static final String PORTS_DEFAULTS = "47500..47509";
-
   /**
    * Count the number of times initialized to teardown on the last
    * {@link #cleanup()}.
    */
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
-
+  private static Ignite cluster = null;
+  private static IgniteCache<String, BinaryObject> cache = null;
+  private static TcpDiscoveryIpFinder ipFinder = new TcpDiscoveryVmIpFinder(true);
   private static boolean debug = false;
+  private DBFlavor dbFlavor = new DefaultDBFlavor();
+  private ConcurrentMap<StatementType, SqlFieldsQuery> cachedQuery = new ConcurrentHashMap<>();
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
@@ -86,16 +91,16 @@ public class IgniteClient extends DB {
         String host = getProperties().getProperty(HOSTS_PROPERTY);
         if (host == null) {
           throw new DBException(String.format(
-              "Required property \"%s\" missing for Ignite Cluster",
-              HOSTS_PROPERTY));
+            "Required property \"%s\" missing for Ignite Cluster",
+            HOSTS_PROPERTY));
         }
 
         String ports = getProperties().getProperty(PORTS_PROPERTY, PORTS_DEFAULTS);
 
         if (ports == null) {
           throw new DBException(String.format(
-              "Required property \"%s\" missing for Ignite Cluster",
-              PORTS_PROPERTY));
+            "Required property \"%s\" missing for Ignite Cluster",
+            PORTS_PROPERTY));
 
         }
 
@@ -118,12 +123,14 @@ public class IgniteClient extends DB {
         CacheConfiguration<String, BinaryObject> cacheCfg = new CacheConfiguration<>();
         cacheCfg.setName(DEFAULT_CACHE_NAME);
 
-        System.out.println("Before cluster start");
+        System.out.println("Start Ignite client node.");
         cluster = Ignition.start(igcfg);
-        System.out.println("Before cluster activate");
+
+        System.out.println("Activate Ignite cluster.");
         cluster.active(true);
 
         cache = cluster.getOrCreateCache(cacheCfg).withKeepBinary();
+
       } catch (Exception e) {
         throw new DBException(e);
       }
@@ -147,7 +154,7 @@ public class IgniteClient extends DB {
       if (curInitCount < 0) {
         // This should never happen.
         throw new DBException(
-            String.format("initCount is negative: %d", curInitCount));
+          String.format("initCount is negative: %d", curInitCount));
       }
     }
   }
@@ -166,34 +173,49 @@ public class IgniteClient extends DB {
   public Status read(String table, String key, Set<String> fields,
                      Map<String, ByteIterator> result) {
     try {
+      StatementType type = new StatementType(StatementType.Type.READ, table, 1, "", 0);
 
-      BinaryObject po = cache.get(key);
+      SqlFieldsQuery qry = cachedQuery.get(type);
+      if (qry == null) {
+        qry = createAndCacheReadStatement(type, key);
+      }
+      qry.setArgs(key);
 
-      if (po == null) {
+      FieldsQueryCursor<List<?>> cur = cache.query(qry);
+      Iterator<List<?>> it = cur.iterator();
+
+      if (!it.hasNext()) {
         return Status.NOT_FOUND;
       }
-      for (String s : (fields == null || fields.isEmpty()) ? po.type().fieldNames() : fields) {
-        //System.out.println(((BinaryObject)po.field(s)).field("str"));
 
-        if (po.field(s) != null) {
-          String val = ((BinaryObject) po.field(s)).field("str");
-          if (val != null) {
-            result.put(s, new ByteArrayByteIterator(val.getBytes()));
+      String [] colNames = new String[cur.getColumnsCount()];
+      for(int i = 0; i < colNames.length; ++i) {
+        String colName = cur.getFieldName(i);
+        if (F.isEmpty(fields)) {
+          colNames[i] = colName.toLowerCase();
+        } else {
+          for (String f : fields) {
+            if (f.equalsIgnoreCase(colName)) {
+              colNames[i] = f;
+            }
           }
         }
+      }
 
-        if (debug) {
-          System.out.println("table:{" + table + "}, key:{" + key + "}" + ", fields:{" + fields + "}");
-          System.out.println("fields in po{" + po.type().fieldNames() + "}");
-          System.out.println("result {" + result + "}");
+      while(it.hasNext()) {
+        List<?> row = it.next();
 
+        for(int i = 0; i < colNames.length; ++i) {
+          if (colNames[i] != null) {
+            result.put(colNames[i], new StringByteIterator((String)row.get(i)));
+          }
         }
       }
-      return Status.OK;
 
+      return Status.OK;
     } catch (Exception e) {
-      e.printStackTrace();
-      System.out.println("Error reading key: " + key);
+      System.err.println("Error in processing read from table: " + table);
+      e.printStackTrace(System.err);
       return Status.ERROR;
     }
   }
@@ -240,8 +262,32 @@ public class IgniteClient extends DB {
   @Override
   public Status update(String table, String key,
                        Map<String, ByteIterator> values) {
-    // Insert and updates provide the same functionality
-    return insert(table, key, values);
+    try {
+      int numFields = values.size();
+      OrderedFieldInfo fieldInfo = getFieldInfo(values);
+      StatementType type = new StatementType(StatementType.Type.UPDATE, table, numFields, fieldInfo.getFieldKeys(), 0);
+
+      SqlFieldsQuery qry = cachedQuery.get(type);
+      if (qry == null) {
+        qry = createAndCacheUpdateStatement(type, key);
+      }
+
+      Object[] args = new Object[numFields + 1];
+      args[0] = key;
+      int index = 1;
+      for (String value : fieldInfo.getFieldValues()) {
+        args[index++] = value;
+      }
+      qry.setArgs(args);
+
+      cache.query(qry).getAll();
+
+      return Status.OK;
+    } catch (Exception e) {
+      System.err.println("Error in processing update table: " + table);
+      e.printStackTrace(System.err);
+      return Status.ERROR;
+    }
   }
 
   /**
@@ -255,33 +301,33 @@ public class IgniteClient extends DB {
    * @return Zero on success, a non-zero error code on error
    */
   @Override
-  public Status insert(String table, String key,
-                       Map<String, ByteIterator> values) {
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
-      BinaryObjectBuilder bob = cluster.binary().builder("CustomType");
+      int numFields = values.size();
+      OrderedFieldInfo fieldInfo = getFieldInfo(values);
+      StatementType type = new StatementType(StatementType.Type.INSERT, table, numFields, fieldInfo.getFieldKeys(), 0);
 
-      for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-        bob.setField(entry.getKey(), entry.getValue());
-
-        if (debug) {
-          System.out.println(entry.getKey() + ":" + entry.getValue());
-        }
+      SqlFieldsQuery qry = cachedQuery.get(type);
+      if (qry == null) {
+        qry = createAndCacheInsertStatement(type, key);
       }
 
-      BinaryObject bo = bob.build();
-
-      if (table.equals(DEFAULT_CACHE_NAME)) {
-        cache.put(key, bo);
-      } else {
-        //nop.
+      Object[] args = new Object[numFields + 1];
+      args[0] = key;
+      int index = 1;
+      for (String value : fieldInfo.getFieldValues()) {
+        args[index++] = value;
       }
+      qry.setArgs(args);
+
+      cache.query(qry).getAll();
 
       return Status.OK;
     } catch (Exception e) {
-      e.printStackTrace();
+      System.err.println("Error in processing insert to table: " + table);
+      e.printStackTrace(System.err);
+      return Status.ERROR;
     }
-
-    return Status.ERROR;
   }
 
   /**
@@ -294,14 +340,130 @@ public class IgniteClient extends DB {
   @Override
   public Status delete(String table, String key) {
     try {
-      cache.remove(key);
+      StatementType type = new StatementType(StatementType.Type.DELETE, table, 1, "", 0);
+
+      SqlFieldsQuery qry = cachedQuery.get(type);
+      if (qry == null) {
+        qry = createAndCacheDeleteStatement(type, key);
+      }
+      qry.setArgs(key);
+      cache.query(qry).getAll();
       return Status.OK;
     } catch (Exception e) {
-      e.printStackTrace();
-      System.out.println("Error deleting key: " + key);
+      System.err.println("Error in processing read from table: " + table);
+      e.printStackTrace(System.err);
+      return Status.ERROR;
     }
-
-    return Status.ERROR;
   }
 
+  /**
+   * @param type Query type.
+   * @param key Key.
+   * @return Query.
+   */
+  private SqlFieldsQuery createAndCacheReadStatement(StatementType type, String key) {
+    String insert = dbFlavor.createReadStatement(type, key);
+    SqlFieldsQuery newQry = new SqlFieldsQuery(insert);
+    SqlFieldsQuery qry = cachedQuery.putIfAbsent(type, newQry);
+    if (qry == null) {
+      return newQry;
+    }
+    return qry;
+  }
+
+  /**
+   * @param type Query type.
+   * @param key Key.
+   * @return Query.
+   */
+  private SqlFieldsQuery createAndCacheUpdateStatement(StatementType type, String key) {
+    String insert = dbFlavor.createUpdateStatement(type, key);
+    SqlFieldsQuery newQry = new SqlFieldsQuery(insert);
+    SqlFieldsQuery qry = cachedQuery.putIfAbsent(type, newQry);
+    if (qry == null) {
+      return newQry;
+    }
+    return qry;
+  }
+
+  /**
+   * @param type Query type.
+   * @param key Key.
+   * @return Query.
+   */
+  private SqlFieldsQuery createAndCacheInsertStatement(StatementType type, String key) {
+    String insert = dbFlavor.createInsertStatement(type, key);
+    SqlFieldsQuery newQry = new SqlFieldsQuery(insert);
+    SqlFieldsQuery qry = cachedQuery.putIfAbsent(type, newQry);
+    if (qry == null) {
+      return newQry;
+    }
+    return qry;
+  }
+
+  /**
+   * @param type Query type.
+   * @param key Key.
+   * @return Query.
+   */
+  private SqlFieldsQuery createAndCacheDeleteStatement(StatementType type, String key) {
+    String insert = dbFlavor.createDeleteStatement(type, key);
+    SqlFieldsQuery newQry = new SqlFieldsQuery(insert);
+    SqlFieldsQuery qry = cachedQuery.putIfAbsent(type, newQry);
+    if (qry == null) {
+      return newQry;
+    }
+    return qry;
+  }
+
+  /**
+   * @param values YCSB values representation.
+   * @return Internal fields info.
+   */
+  private OrderedFieldInfo getFieldInfo(Map<String, ByteIterator> values) {
+    String fieldKeys = "";
+    List<String> fieldValues = new ArrayList<>();
+    int count = 0;
+    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+      fieldKeys += entry.getKey();
+      if (count < values.size() - 1) {
+        fieldKeys += ",";
+      }
+      fieldValues.add(count, entry.getValue().toString());
+      count++;
+    }
+
+    return new OrderedFieldInfo(fieldKeys, fieldValues);
+  }
+
+  /**
+   * Ordered field information for insert and update statements.
+   */
+  private static class OrderedFieldInfo {
+    private String fieldKeys;
+    private List<String> fieldValues;
+
+    /**
+     * @param fieldKeys Keys string.
+     * @param fieldValues Values.
+     */
+    OrderedFieldInfo(String fieldKeys, List<String> fieldValues) {
+      this.fieldKeys = fieldKeys;
+      this.fieldValues = fieldValues;
+    }
+
+    /**
+     * @return Keys.
+     */
+    String getFieldKeys() {
+      return fieldKeys;
+    }
+
+    /**
+     * @return Values.
+     */
+    List<String> getFieldValues() {
+      return fieldValues;
+    }
+  }
 }

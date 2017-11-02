@@ -23,7 +23,7 @@ LICENSE file.
   <repositories>
     <repository>
       <id>GridGain External Repository</id>
-      <url>http://www.gridgainsystems.com/nexus/content/repositories/gridgain_staging-2504</url>
+      <url>http://www.gridgainsystems.com/nexus/content/repositories/gridgain_staging-2515</url>
     </repository>
   </repositories>
   <parent>
@@ -49,8 +49,19 @@ LICENSE file.
       <version>${ignite.version}</version>
     </dependency>
     <dependency>
+      <groupId>org.apache.ignite</groupId>
+      <artifactId>ignite-indexing</artifactId>
+      <version>${ignite.version}</version>
+    </dependency>
+    <dependency>
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>core</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>jdbc-binding</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>

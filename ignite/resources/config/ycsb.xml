@@ -1,0 +1,83 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd">
+<bean id="ignite.cfg" class="org.apache.ignite.configuration.IgniteConfiguration">
+
+    <property name="dataStorageConfiguration">
+        <bean class="org.apache.ignite.configuration.DataStorageConfiguration">
+            <property name="walMode" value="BACKGROUND"/>
+            <property name="storagePath" value="/storage/ssd/ignite/store"/>
+            <property name="walPath" value="/storage/ssd/ignite/wal"/>
+
+            <property name="defaultDataRegionConfiguration">
+                <bean class="org.apache.ignite.configuration.DataRegionConfiguration">
+                    <property name="name" value="default_data_region"/>
+                    <property name="persistenceEnabled" value="true"/>
+                </bean>
+            </property>
+        </bean>
+    </property>
+
+    <property name="cacheConfiguration">
+        <list>
+            <bean class="org.apache.ignite.configuration.CacheConfiguration">
+                <property name="name" value="usertable"/>
+                <property name="atomicityMode" value="ATOMIC"/>
+                <property name="cacheMode" value="PARTITIONED"/>
+                <property name="backups" value="1"/>
+                <property name="writeSynchronizationMode" value="FULL_SYNC"/>
+
+                <property name="queryEntities">
+                    <list>
+                        <bean class="org.apache.ignite.cache.QueryEntity">
+                            <property name="keyType" value="java.lang.String"/>
+                            <property name="valueType" value="UsertableType"/>
+                            <property name="tableName" value="usertable"/>
+                            <property name="keyFieldName" value="ycsb_key"/>
+
+                            <property name="fields">
+                                <map>
+                                    <entry key="ycsb_key" value="java.lang.String"/>
+                                    <entry key="field0" value="java.lang.String"/>
+                                    <entry key="field1" value="java.lang.String"/>
+                                    <entry key="field2" value="java.lang.String"/>
+                                    <entry key="field3" value="java.lang.String"/>
+                                    <entry key="field4" value="java.lang.String"/>
+                                    <entry key="field5" value="java.lang.String"/>
+                                    <entry key="field6" value="java.lang.String"/>
+                                    <entry key="field7" value="java.lang.String"/>
+                                    <entry key="field8" value="java.lang.String"/>
+                                    <entry key="field9" value="java.lang.String"/>
+                                </map>
+                            </property>
+                        </bean>
+                    </list>
+                </property>
+            </bean>
+        </list>
+    </property>
+
+    <!-- Explicitly configure TCP discovery SPI to provide list of initial nodes. -->
+    <property name="discoverySpi">
+        <bean class="org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi">
+            <property name="ipFinder">
+
+                <bean class="org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder">
+                    <property name="addresses">
+                        <list>
+                            <!--The list of host includes client host -->
+                            <!--<value><hostname_or_IP>:47500..47509</value>-->
+                            <!--<value><hostname_or_IP>:47500..47509</value>-->
+                        </list>
+                    </property>
+                </bean>
+            </property>
+        </bean>
+    </property>
+</bean>
+</beans>
+
+
+
