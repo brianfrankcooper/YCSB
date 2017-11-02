@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.Sets;
 
@@ -155,7 +156,7 @@ public class CassandraCQLClientTest {
   }
 
   @Test
-  public void testUpdate() throws Exception {
+  public void testInsert() throws Exception {
     final String key = "key";
     final Map<String, String> input = new HashMap<String, String>();
     input.put("field0", "value1");
@@ -177,5 +178,64 @@ public class CassandraCQLClientTest {
     assertThat(rs.isExhausted(), is(true));
     assertThat(row.getString("field0"), is("value1"));
     assertThat(row.getString("field1"), is("value2"));
+  }
+
+  @Test
+  public void testUpdate() throws Exception {
+    insertRow();
+    final Map<String, String> input = new HashMap<String, String>();
+    input.put("field0", "new-value1");
+    input.put("field1", "new-value2");
+
+    final Status status = client.update(TABLE,
+                                        DEFAULT_ROW_KEY,
+                                        StringByteIterator.getByteIteratorMap(input));
+    assertThat(status, is(Status.OK));
+
+    // Verify result
+    final Select selectStmt =
+        QueryBuilder.select("field0", "field1")
+            .from(TABLE)
+            .where(QueryBuilder.eq(CassandraCQLClient.YCSB_KEY, DEFAULT_ROW_KEY))
+            .limit(1);
+
+    final ResultSet rs = session.execute(selectStmt);
+    final Row row = rs.one();
+    assertThat(row, notNullValue());
+    assertThat(rs.isExhausted(), is(true));
+    assertThat(row.getString("field0"), is("new-value1"));
+    assertThat(row.getString("field1"), is("new-value2"));
+  }
+
+  @Test
+  public void testDelete() throws Exception {
+    insertRow();
+
+    final Status status = client.delete(TABLE, DEFAULT_ROW_KEY);
+    assertThat(status, is(Status.OK));
+
+    // Verify result
+    final Select selectStmt =
+        QueryBuilder.select("field0", "field1")
+            .from(TABLE)
+            .where(QueryBuilder.eq(CassandraCQLClient.YCSB_KEY, DEFAULT_ROW_KEY))
+            .limit(1);
+
+    final ResultSet rs = session.execute(selectStmt);
+    final Row row = rs.one();
+    assertThat(row, nullValue());
+  }
+
+  @Test
+  public void testPreparedStatements() throws Exception {
+    final int LOOP_COUNT = 3;
+    for (int i = 0; i < LOOP_COUNT; i++) {
+      testInsert();
+      testUpdate();
+      testRead();
+      testReadSingleColumn();
+      testReadMissingRow();
+      testDelete();
+    }
   }
 }
