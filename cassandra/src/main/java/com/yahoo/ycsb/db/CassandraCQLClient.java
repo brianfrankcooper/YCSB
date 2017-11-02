@@ -49,6 +49,9 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Cassandra 2.x CQL client.
  *
@@ -58,16 +61,25 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class CassandraCQLClient extends DB {
 
+  private static Logger logger = LoggerFactory.getLogger(CassandraCQLClient.class);
+
   private static Cluster cluster = null;
   private static Session session = null;
 
-  private static ConcurrentMap<Set<String>, PreparedStatement> readStmts = null;
-  private static ConcurrentMap<Set<String>, PreparedStatement> scanStmts = null;
-  private static ConcurrentMap<Set<String>, PreparedStatement> insertStmts = null;
-  private static ConcurrentMap<Set<String>, PreparedStatement> updateStmts = null;
-  private static AtomicReference<PreparedStatement> readAllStmt = null;
-  private static AtomicReference<PreparedStatement> scanAllStmt = null;
-  private static AtomicReference<PreparedStatement> deleteStmt = null;
+  private static ConcurrentMap<Set<String>, PreparedStatement> readStmts =
+      new ConcurrentHashMap<Set<String>, PreparedStatement>();
+  private static ConcurrentMap<Set<String>, PreparedStatement> scanStmts =
+      new ConcurrentHashMap<Set<String>, PreparedStatement>();
+  private static ConcurrentMap<Set<String>, PreparedStatement> insertStmts =
+      new ConcurrentHashMap<Set<String>, PreparedStatement>();
+  private static ConcurrentMap<Set<String>, PreparedStatement> updateStmts =
+      new ConcurrentHashMap<Set<String>, PreparedStatement>();
+  private static AtomicReference<PreparedStatement> readAllStmt =
+      new AtomicReference<PreparedStatement>();
+  private static AtomicReference<PreparedStatement> scanAllStmt =
+      new AtomicReference<PreparedStatement>();
+  private static AtomicReference<PreparedStatement> deleteStmt =
+      new AtomicReference<PreparedStatement>();
 
   private static ConsistencyLevel readConsistencyLevel = ConsistencyLevel.ONE;
   private static ConsistencyLevel writeConsistencyLevel = ConsistencyLevel.ONE;
@@ -197,24 +209,16 @@ public class CassandraCQLClient extends DB {
         }
 
         Metadata metadata = cluster.getMetadata();
-        System.err.printf("Connected to cluster: %s\n",
+        logger.error("Connected to cluster: {}\n",
             metadata.getClusterName());
 
         for (Host discoveredHost : metadata.getAllHosts()) {
-          System.out.printf("Datacenter: %s; Host: %s; Rack: %s\n",
+          logger.info("Datacenter: {}; Host: {}; Rack: {}\n", new Object[] {
               discoveredHost.getDatacenter(), discoveredHost.getAddress(),
-              discoveredHost.getRack());
+              discoveredHost.getRack() });
         }
 
         session = cluster.connect(keyspace);
-
-        readStmts = new ConcurrentHashMap<Set<String>, PreparedStatement>();
-        scanStmts = new ConcurrentHashMap<Set<String>, PreparedStatement>();
-        insertStmts = new ConcurrentHashMap<Set<String>, PreparedStatement>();
-        updateStmts = new ConcurrentHashMap<Set<String>, PreparedStatement>();
-        readAllStmt = new AtomicReference<PreparedStatement>();
-        scanAllStmt = new AtomicReference<PreparedStatement>();
-        deleteStmt = new AtomicReference<PreparedStatement>();
 
       } catch (Exception e) {
         throw new DBException(e);
@@ -300,11 +304,9 @@ public class CassandraCQLClient extends DB {
         }
       }
 
-      if (debug) {
-        System.out.println(stmt.getQueryString());
-        System.out.println("key = " + key);
-      }
-      
+      logger.debug(stmt.getQueryString());
+      logger.debug("key = {}", key);
+
       ResultSet rs = session.execute(stmt.bind(key));
 
       if (rs.isExhausted()) {
@@ -328,7 +330,7 @@ public class CassandraCQLClient extends DB {
 
     } catch (Exception e) {
       e.printStackTrace();
-      System.out.println("Error reading key: " + key);
+      logger.error("Error reading key: {}", key);
       return Status.ERROR;
     }
 
@@ -404,11 +406,9 @@ public class CassandraCQLClient extends DB {
         }
       }
 
-      if (debug) {
-        System.out.println(stmt.getQueryString());
-        System.out.println("startKey = " + startkey + ", recordcount = " + recordcount);
-      }
-      
+      logger.debug(stmt.getQueryString());
+      logger.debug("startKey = {}, recordcount = {}", startkey, recordcount);
+
       ResultSet rs = session.execute(stmt.bind(startkey, Integer.valueOf(recordcount)));
 
       HashMap<String, ByteIterator> tuple;
@@ -434,7 +434,7 @@ public class CassandraCQLClient extends DB {
 
     } catch (Exception e) {
       e.printStackTrace();
-      System.out.println("Error scanning with startkey: " + startkey);
+      logger.error("Error scanning with startkey: {}", startkey);
       return Status.ERROR;
     }
 
@@ -484,11 +484,11 @@ public class CassandraCQLClient extends DB {
         }
       }
 
-      if (debug) {
-        System.out.println(stmt.getQueryString());
-        System.out.println("key = " + key);
+      if (logger.isDebugEnabled()) {
+        logger.debug(stmt.getQueryString());
+        logger.debug("key = {}", key);
         for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-          System.out.println(entry.getKey() + " = " + entry.getValue().toString());
+          logger.debug("{} = {}", entry.getKey(), entry.getValue());
         }
       }
 
@@ -556,14 +556,14 @@ public class CassandraCQLClient extends DB {
         }
       }
 
-      if (debug) {
-        System.out.println(stmt.getQueryString());
-        System.out.println("key = " + key);
+      if (logger.isDebugEnabled()) {
+        logger.debug(stmt.getQueryString());
+        logger.debug("key = {}", key);
         for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-          System.out.println(entry.getKey() + " = " + entry.getValue().toString());
+          logger.debug("{} = {}", entry.getKey(), entry.getValue());
         }
       }
-      
+
       // Add key
       BoundStatement boundStmt = stmt.bind().setString(0, key);
 
@@ -613,17 +613,15 @@ public class CassandraCQLClient extends DB {
         }
       }
 
-      if (debug) {
-        System.out.println(stmt.getQueryString());
-        System.out.println("key = " + key);
-      }
-      
+      logger.debug(stmt.getQueryString());
+      logger.debug("key = {}", key);
+
       session.execute(stmt.bind(key));
 
       return Status.OK;
     } catch (Exception e) {
       e.printStackTrace();
-      System.out.println("Error deleting key: " + key);
+      logger.error("Error deleting key: {}", key);
     }
 
     return Status.ERROR;
