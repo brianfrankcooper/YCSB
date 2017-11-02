@@ -23,12 +23,17 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.binary.BinaryObjectBuilder;
+import org.apache.ignite.binary.BinaryType;
+import org.apache.ignite.cache.CacheEntryProcessor;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
+import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 
+import javax.cache.processor.EntryProcessorException;
+import javax.cache.processor.MutableEntry;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -57,6 +62,8 @@ public class IgniteClient extends DB {
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
   private static boolean debug = false;
+
+  private BinaryType binType = null;
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
@@ -98,8 +105,6 @@ public class IgniteClient extends DB {
               PORTS_PROPERTY));
 
         }
-
-//        igcfg.setLocalHost(host);
 
         System.setProperty("IGNITE_QUIET", "false");
 
@@ -166,33 +171,31 @@ public class IgniteClient extends DB {
   public Status read(String table, String key, Set<String> fields,
                      Map<String, ByteIterator> result) {
     try {
-
       BinaryObject po = cache.get(key);
 
       if (po == null) {
         return Status.NOT_FOUND;
       }
-      for (String s : (fields == null || fields.isEmpty()) ? po.type().fieldNames() : fields) {
-        //System.out.println(((BinaryObject)po.field(s)).field("str"));
 
-        if (po.field(s) != null) {
-          String val = ((BinaryObject) po.field(s)).field("str");
-          if (val != null) {
-            result.put(s, new ByteArrayByteIterator(val.getBytes()));
-          }
+      if (binType == null)
+        binType = po.type();
+
+      for (String s : F.isEmpty(fields) ? binType.fieldNames() : fields) {
+        String val = binType.field(s).value(po);
+        if (val != null) {
+          result.put(s, new StringByteIterator(val));
         }
 
         if (debug) {
           System.out.println("table:{" + table + "}, key:{" + key + "}" + ", fields:{" + fields + "}");
           System.out.println("fields in po{" + po.type().fieldNames() + "}");
           System.out.println("result {" + result + "}");
-
         }
       }
       return Status.OK;
 
     } catch (Exception e) {
-      e.printStackTrace();
+      e.printStackTrace(System.err);
       System.out.println("Error reading key: " + key);
       return Status.ERROR;
     }
@@ -220,11 +223,9 @@ public class IgniteClient extends DB {
       return Status.OK;
 
     } catch (Exception e) {
-      e.printStackTrace();
-      System.out.println("Error scanning with startkey: " + startkey);
+      e.printStackTrace(System.err);
       return Status.ERROR;
     }
-
   }
 
   /**
@@ -240,7 +241,14 @@ public class IgniteClient extends DB {
   @Override
   public Status update(String table, String key,
                        Map<String, ByteIterator> values) {
-    // Insert and updates provide the same functionality
+    try {
+      cache.invoke(key, new Updater(values));
+    } catch (Exception e) {
+      e.printStackTrace(System.err);
+      System.out.println("Error updating key: " + key);
+      return Status.ERROR;
+    }
+
     return insert(table, key, values);
   }
 
@@ -261,7 +269,7 @@ public class IgniteClient extends DB {
       BinaryObjectBuilder bob = cluster.binary().builder("CustomType");
 
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-        bob.setField(entry.getKey(), entry.getValue());
+        bob.setField(entry.getKey(), entry.getValue().toString());
 
         if (debug) {
           System.out.println(entry.getKey() + ":" + entry.getValue());
@@ -278,10 +286,10 @@ public class IgniteClient extends DB {
 
       return Status.OK;
     } catch (Exception e) {
-      e.printStackTrace();
+      e.printStackTrace(System.err);
+      System.out.println("Error inserting key: " + key);
+      return Status.ERROR;
     }
-
-    return Status.ERROR;
   }
 
   /**
@@ -304,4 +312,40 @@ public class IgniteClient extends DB {
     return Status.ERROR;
   }
 
+  /**
+   * Entry processor to update values.
+   */
+  private static class Updater implements CacheEntryProcessor<String, BinaryObject, Object> {
+    private String [] flds;
+    private String [] vals;
+
+    /**
+     * @param values Updated fields.
+     */
+    Updater(Map<String, ByteIterator> values) {
+      flds = new String[values.size()];
+      vals = new String[values.size()];
+
+      int idx = 0;
+      for (Map.Entry<String, ByteIterator> e : values.entrySet()) {
+        flds[idx] = e.getKey();
+        vals[idx] = e.getValue().toString();
+        ++idx;
+      }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Object process(MutableEntry<String, BinaryObject> mutableEntry, Object... objects) throws EntryProcessorException {
+      BinaryObjectBuilder bob = mutableEntry.getValue().toBuilder();
+
+      for (int i = 0; i < flds.length; ++i) {
+          bob.setField(flds[i], vals[i]);
+      }
+
+      mutableEntry.setValue(bob.build());
+
+      return null;
+    }
+  }
 }

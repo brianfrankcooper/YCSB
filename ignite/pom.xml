@@ -60,12 +60,6 @@ LICENSE file.
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>jdbc-binding</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
       <version>1.7.21</version>
