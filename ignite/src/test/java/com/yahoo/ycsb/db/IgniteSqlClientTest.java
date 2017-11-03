@@ -187,6 +187,43 @@ public class IgniteSqlClientTest {
   }
 
   @Test
+  public void testUpdate() throws Exception {
+    cluster.cache(DEFAULT_CACHE_NAME).clear();
+    final String key = "key";
+    final Map<String, String> input = new HashMap<>();
+    input.put("field0", "value1");
+    input.put("field1", "value2A");
+    input.put("field3", null);
+    client.insert(TABLE_NAME, key, StringByteIterator.getByteIteratorMap(input));
+
+    input.put("field1", "value2B");
+    input.put("field4", "value4A");
+
+    final Status sUpd = client.update(TABLE_NAME, key, StringByteIterator.getByteIteratorMap(input));
+    assertThat(sUpd, is(Status.OK));
+
+    final Set<String> fld = new TreeSet<>();
+    fld.add("field0");
+    fld.add("field1");
+    fld.add("field3");
+    fld.add("field4");
+
+    final HashMap<String, ByteIterator> result = new HashMap<>();
+    final Status sGet = client.read(TABLE_NAME, key, fld, result);
+    assertThat(sGet, is(Status.OK));
+
+    final HashMap<String, String> strResult = new HashMap<String, String>();
+    for (final Map.Entry<String, ByteIterator> e : result.entrySet()) {
+      if (e.getValue() != null) {
+        strResult.put(e.getKey(), e.getValue().toString());
+      }
+    }
+    assertThat(strResult, hasEntry("field0", "value1"));
+    assertThat(strResult, hasEntry("field1", "value2B"));
+    assertThat(strResult, hasEntry("field4", "value4A"));
+  }
+
+  @Test
   public void testReadAllFields() throws Exception {
     cluster.cache(DEFAULT_CACHE_NAME).clear();
     final String key = "key";

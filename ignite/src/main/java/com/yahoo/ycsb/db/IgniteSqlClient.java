@@ -396,7 +396,7 @@ public class IgniteSqlClient extends DB {
       int idx = 0;
 
       for (Map.Entry<String, ByteIterator> e : values.entrySet()) {
-        args[idx++] = e.getValue().toString();
+        args[idx] = e.getValue().toString();
         fields[idx++] = e.getKey();
       }
 
