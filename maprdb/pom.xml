@@ -46,11 +46,6 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.mapr.db</groupId>
-			<artifactId>maprdb</artifactId>
-			<version>${mapr.version}</version>
-		</dependency>
-		<dependency>
 			<groupId>org.apache.hbase</groupId>
 			<artifactId>hbase-client</artifactId>
 			<version>${maprhbase.version}</version>

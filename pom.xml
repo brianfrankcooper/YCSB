@@ -104,8 +104,7 @@ LICENSE file.
     <arangodb3.version>4.1.7</arangodb3.version>
     <azurestorage.version>4.0.0</azurestorage.version>
     <cloudspanner.version>0.24.0-beta</cloudspanner.version>
-    <mapr.version>6.0.0-mapr</mapr.version>
-    <maprhbase.version>1.1.1-mapr-1602</maprhbase.version>
+    <maprhbase.version>1.1.8-mapr-1710</maprhbase.version>
   </properties>
 
   <modules>

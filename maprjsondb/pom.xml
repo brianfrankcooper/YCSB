@@ -46,14 +46,9 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.mapr.db</groupId>
-			<artifactId>maprdb</artifactId>
-			<version>${mapr.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.mapr.ojai</groupId>
-			<artifactId>mapr-ojai-driver</artifactId>
-			<version>${mapr.version}</version>
+			<groupId>org.ojai</groupId>
+			<artifactId>ojai</artifactId>
+			<version>2.0</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
