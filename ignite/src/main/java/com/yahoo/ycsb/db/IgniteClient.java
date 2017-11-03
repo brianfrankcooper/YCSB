@@ -120,15 +120,12 @@ public class IgniteClient extends DB {
         igcfg.setNetworkTimeout(2000);
         igcfg.setClientMode(true);
 
-        CacheConfiguration<String, BinaryObject> cacheCfg = new CacheConfiguration<>();
-        cacheCfg.setName(DEFAULT_CACHE_NAME);
-
         System.out.println("Before cluster start");
         cluster = Ignition.start(igcfg);
         System.out.println("Before cluster activate");
         cluster.active(true);
 
-        cache = cluster.getOrCreateCache(cacheCfg).withKeepBinary();
+        cache = cluster.cache(DEFAULT_CACHE_NAME).withKeepBinary();
       } catch (Exception e) {
         throw new DBException(e);
       }
