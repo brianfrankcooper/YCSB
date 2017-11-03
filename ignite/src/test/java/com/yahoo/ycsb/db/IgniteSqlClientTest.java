@@ -22,16 +22,6 @@ import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.measurements.Measurements;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.TreeSet;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.cache.QueryEntity;
@@ -43,6 +33,12 @@ import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
@@ -58,9 +54,8 @@ public class IgniteSqlClientTest {
   private final static String PORTS = "47500..47509";
   private final static String SERVER_NODE_NAME = "YCSB Server Node";
   private static TcpDiscoveryIpFinder ipFinder = new TcpDiscoveryVmIpFinder(true);
-
-  private DB client;
   private static Ignite cluster = null;
+  private DB client;
 
   /**
    *
@@ -76,23 +71,23 @@ public class IgniteSqlClientTest {
     adders.add(HOST + ":" + PORTS);
 
     QueryEntity qe = new QueryEntity("java.lang.String", "UserTableType")
-        .addQueryField("ycsb_key", "java.lang.String", null)
-        .addQueryField("field0", "java.lang.String", null)
-        .addQueryField("field1", "java.lang.String", null)
-        .addQueryField("field2", "java.lang.String", null)
-        .addQueryField("field3", "java.lang.String", null)
-        .addQueryField("field4", "java.lang.String", null)
-        .addQueryField("field5", "java.lang.String", null)
-        .addQueryField("field6", "java.lang.String", null)
-        .addQueryField("field7", "java.lang.String", null)
-        .addQueryField("field8", "java.lang.String", null)
-        .addQueryField("field9", "java.lang.String", null)
-        .setKeyFieldName("ycsb_key");
+              .addQueryField("ycsb_key", "java.lang.String", null)
+              .addQueryField("field0", "java.lang.String", null)
+              .addQueryField("field1", "java.lang.String", null)
+              .addQueryField("field2", "java.lang.String", null)
+              .addQueryField("field3", "java.lang.String", null)
+              .addQueryField("field4", "java.lang.String", null)
+              .addQueryField("field5", "java.lang.String", null)
+              .addQueryField("field6", "java.lang.String", null)
+              .addQueryField("field7", "java.lang.String", null)
+              .addQueryField("field8", "java.lang.String", null)
+              .addQueryField("field9", "java.lang.String", null)
+              .setKeyFieldName("ycsb_key");
 
     qe.setTableName("usertable");
 
     CacheConfiguration ccfg = new CacheConfiguration().setQueryEntities(Collections.singleton(qe))
-      .setName(DEFAULT_CACHE_NAME);
+              .setName(DEFAULT_CACHE_NAME);
 
     igcfg.setCacheConfiguration(ccfg);
 
@@ -221,6 +216,49 @@ public class IgniteSqlClientTest {
     assertThat(strResult, hasEntry("field0", "value1"));
     assertThat(strResult, hasEntry("field1", "value2B"));
     assertThat(strResult, hasEntry("field4", "value4A"));
+  }
+
+  @Test
+  public void testConcurrentUpdate() throws Exception {
+    cluster.cache(DEFAULT_CACHE_NAME).clear();
+    final String key = "key";
+    final Map<String, String> input = new HashMap<>();
+    input.put("field0", "value1");
+    input.put("field1", "value2A");
+    input.put("field3", null);
+    client.insert(TABLE_NAME, key, StringByteIterator.getByteIteratorMap(input));
+
+    input.put("field1", "value2B");
+    input.put("field4", "value4A");
+
+    ExecutorService exec = Executors.newCachedThreadPool();
+
+    final AtomicLong l = new AtomicLong(0);
+    final Boolean[] updError = {false};
+
+    Runnable task = new Runnable() {
+      @Override
+      public void run() {
+        for (int i = 0; i < 100; ++i) {
+          input.put("field1", "value2B_" + l.incrementAndGet());
+          final Status sUpd = client.update(TABLE_NAME, key, StringByteIterator.getByteIteratorMap(input));
+
+          if (!sUpd.isOk()) {
+            updError[0] = true;
+            break;
+          }
+        }
+      }
+    };
+
+    for (int i = 0; i < 32; ++i) {
+      exec.execute(task);
+    }
+
+    exec.awaitTermination(60, TimeUnit.SECONDS);
+    exec.shutdownNow();
+
+    assertThat(updError[0], is(false));
   }
 
   @Test

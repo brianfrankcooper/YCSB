@@ -30,6 +30,7 @@ import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 
+import javax.cache.CacheException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -249,29 +250,37 @@ public class IgniteSqlClient extends DB {
   @Override
   public Status update(String table, String key,
                        Map<String, ByteIterator> values) {
-    try {
-      UpdateData updData = new UpdateData(key, values);
-      StringBuilder sb = new StringBuilder("UPDATE ").append(table).append(" SET ");
+    while (true) {
+      try {
+        UpdateData updData = new UpdateData(key, values);
+        StringBuilder sb = new StringBuilder("UPDATE ").append(table).append(" SET ");
 
-      for (int i = 0; i < updData.getFields().length; ++i) {
-        sb.append(updData.getFields()[i]).append("=?");
-        if (i < updData.getFields().length - 1) {
-          sb.append(", ");
+        for (int i = 0; i < updData.getFields().length; ++i) {
+          sb.append(updData.getFields()[i]).append("=?");
+          if (i < updData.getFields().length - 1) {
+            sb.append(", ");
+          }
         }
+
+        sb.append(" WHERE ").append(PRIMARY_KEY).append("=?");
+
+        SqlFieldsQuery qry = new SqlFieldsQuery(sb.toString());
+        qry.setArgs(updData.getArgs());
+
+        cache.query(qry).getAll();
+
+        return Status.OK;
+      } catch (CacheException e) {
+        if (!e.getMessage().contains("Failed to update some keys because they had been modified concurrently")) {
+          System.err.println("Error in processing update table: " + table);
+          e.printStackTrace(System.err);
+          return Status.ERROR;
+        }
+      } catch (Exception e) {
+        System.err.println("Error in processing update table: " + table);
+        e.printStackTrace(System.err);
+        return Status.ERROR;
       }
-
-      sb.append(" WHERE ").append(PRIMARY_KEY).append("=?");
-
-      SqlFieldsQuery qry = new SqlFieldsQuery(sb.toString());
-      qry.setArgs(updData.getArgs());
-
-      cache.query(qry).getAll();
-
-      return Status.OK;
-    } catch (Exception e) {
-      System.err.println("Error in processing update table: " + table);
-      e.printStackTrace(System.err);
-      return Status.ERROR;
     }
   }
 
