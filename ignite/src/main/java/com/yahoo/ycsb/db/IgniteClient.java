@@ -21,6 +21,7 @@ import com.yahoo.ycsb.*;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.binary.BinaryField;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.binary.BinaryObjectBuilder;
 import org.apache.ignite.binary.BinaryType;
@@ -35,6 +36,7 @@ import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import javax.cache.processor.EntryProcessorException;
 import javax.cache.processor.MutableEntry;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -59,6 +61,7 @@ public class IgniteClient extends DB {
   private static IgniteCache<String, BinaryObject> cache = null;
   private static TcpDiscoveryIpFinder ipFinder = new TcpDiscoveryVmIpFinder(true);
   private static boolean debug = false;
+  private final ConcurrentHashMap<String, BinaryField> fieldsCache = new ConcurrentHashMap<>();
 
   private BinaryType binType = null;
 
@@ -179,14 +182,21 @@ public class IgniteClient extends DB {
       }
 
       for (String s : F.isEmpty(fields) ? binType.fieldNames() : fields) {
-        String val = binType.field(s).value(po);
+        BinaryField bfld = fieldsCache.get(s);
+
+        if (bfld == null) {
+          bfld = binType.field(s);
+          fieldsCache.put(s, bfld);
+        }
+
+        String val = bfld.value(po);
         if (val != null) {
           result.put(s, new StringByteIterator(val));
         }
 
         if (debug) {
           System.out.println("table:{" + table + "}, key:{" + key + "}" + ", fields:{" + fields + "}");
-          System.out.println("fields in po{" + po.type().fieldNames() + "}");
+          System.out.println("fields in po{" + binType.fieldNames() + "}");
           System.out.println("result {" + result + "}");
         }
       }
@@ -217,12 +227,7 @@ public class IgniteClient extends DB {
   @Override
   public Status scan(String table, String startkey, int recordcount,
                      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-    try {
-      return Status.OK;
-    } catch (Exception e) {
-      e.printStackTrace(System.err);
-      return Status.ERROR;
-    }
+    throw new UnsupportedOperationException("Scan method isn't implemented");
   }
 
   /**
@@ -277,7 +282,7 @@ public class IgniteClient extends DB {
       if (table.equals(DEFAULT_CACHE_NAME)) {
         cache.put(key, bo);
       } else {
-        //nop.
+        throw new UnsupportedOperationException("Unexpected table name: " + table);
       }
 
       return Status.OK;
