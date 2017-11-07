@@ -24,6 +24,7 @@ import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.measurements.Measurements;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
@@ -66,6 +67,10 @@ public class IgniteClientTest {
 
     igcfg.setDiscoverySpi(disco);
     igcfg.setNetworkTimeout(2000);
+
+    CacheConfiguration ccfg = new CacheConfiguration().setName(DEFAULT_CACHE_NAME);
+
+    igcfg.setCacheConfiguration(ccfg);
 
     cluster = Ignition.start(igcfg);
     cluster.active();

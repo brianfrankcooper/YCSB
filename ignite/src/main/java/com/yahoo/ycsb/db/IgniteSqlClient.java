@@ -18,24 +18,20 @@
 package com.yahoo.ycsb.db;
 
 import com.yahoo.ycsb.*;
-import com.yahoo.ycsb.db.flavors.DBFlavor;
-import com.yahoo.ycsb.db.flavors.DefaultDBFlavor;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.query.FieldsQueryCursor;
 import org.apache.ignite.cache.query.SqlFieldsQuery;
-import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 
+import javax.cache.CacheException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -51,6 +47,7 @@ public class IgniteSqlClient extends DB {
   private static final String PORTS_PROPERTY = "ports";
   private static final String CLIENT_NODE_NAME = "YCSB client node";
   private static final String PORTS_DEFAULTS = "47500..47509";
+  private static final String PRIMARY_KEY = "YCSB_KEY";
   /**
    * Count the number of times initialized to teardown on the last
    * {@link #cleanup()}.
@@ -60,8 +57,6 @@ public class IgniteSqlClient extends DB {
   private static IgniteCache<String, BinaryObject> cache = null;
   private static TcpDiscoveryIpFinder ipFinder = new TcpDiscoveryVmIpFinder(true);
   private static boolean debug = false;
-  private DBFlavor dbFlavor = new DefaultDBFlavor();
-  private ConcurrentMap<StatementType, SqlFieldsQuery> cachedQuery = new ConcurrentHashMap<>();
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
@@ -91,20 +86,18 @@ public class IgniteSqlClient extends DB {
         String host = getProperties().getProperty(HOSTS_PROPERTY);
         if (host == null) {
           throw new DBException(String.format(
-            "Required property \"%s\" missing for Ignite Cluster",
-            HOSTS_PROPERTY));
+                    "Required property \"%s\" missing for Ignite Cluster",
+                    HOSTS_PROPERTY));
         }
 
         String ports = getProperties().getProperty(PORTS_PROPERTY, PORTS_DEFAULTS);
 
         if (ports == null) {
           throw new DBException(String.format(
-            "Required property \"%s\" missing for Ignite Cluster",
-            PORTS_PROPERTY));
+                    "Required property \"%s\" missing for Ignite Cluster",
+                    PORTS_PROPERTY));
 
         }
-
-//        igcfg.setLocalHost(host);
 
         System.setProperty("IGNITE_QUIET", "false");
 
@@ -120,16 +113,13 @@ public class IgniteSqlClient extends DB {
         igcfg.setNetworkTimeout(2000);
         igcfg.setClientMode(true);
 
-        CacheConfiguration<String, BinaryObject> cacheCfg = new CacheConfiguration<>();
-        cacheCfg.setName(DEFAULT_CACHE_NAME);
-
         System.out.println("Start Ignite client node.");
         cluster = Ignition.start(igcfg);
 
         System.out.println("Activate Ignite cluster.");
         cluster.active(true);
 
-        cache = cluster.getOrCreateCache(cacheCfg).withKeepBinary();
+        cache = cluster.cache(DEFAULT_CACHE_NAME).withKeepBinary();
 
       } catch (Exception e) {
         throw new DBException(e);
@@ -154,7 +144,7 @@ public class IgniteSqlClient extends DB {
       if (curInitCount < 0) {
         // This should never happen.
         throw new DBException(
-          String.format("initCount is negative: %d", curInitCount));
+                  String.format("initCount is negative: %d", curInitCount));
       }
     }
   }
@@ -173,12 +163,10 @@ public class IgniteSqlClient extends DB {
   public Status read(String table, String key, Set<String> fields,
                      Map<String, ByteIterator> result) {
     try {
-      StatementType type = new StatementType(StatementType.Type.READ, table, 1, "", 0);
+      StringBuilder sb = new StringBuilder("SELECT * FROM ").append(table)
+                .append(" WHERE ").append(PRIMARY_KEY).append("=?");
 
-      SqlFieldsQuery qry = cachedQuery.get(type);
-      if (qry == null) {
-        qry = createAndCacheReadStatement(type, key);
-      }
+      SqlFieldsQuery qry = new SqlFieldsQuery(sb.toString());
       qry.setArgs(key);
 
       FieldsQueryCursor<List<?>> cur = cache.query(qry);
@@ -188,8 +176,8 @@ public class IgniteSqlClient extends DB {
         return Status.NOT_FOUND;
       }
 
-      String [] colNames = new String[cur.getColumnsCount()];
-      for(int i = 0; i < colNames.length; ++i) {
+      String[] colNames = new String[cur.getColumnsCount()];
+      for (int i = 0; i < colNames.length; ++i) {
         String colName = cur.getFieldName(i);
         if (F.isEmpty(fields)) {
           colNames[i] = colName.toLowerCase();
@@ -202,12 +190,12 @@ public class IgniteSqlClient extends DB {
         }
       }
 
-      while(it.hasNext()) {
+      while (it.hasNext()) {
         List<?> row = it.next();
 
-        for(int i = 0; i < colNames.length; ++i) {
+        for (int i = 0; i < colNames.length; ++i) {
           if (colNames[i] != null) {
-            result.put(colNames[i], new StringByteIterator((String)row.get(i)));
+            result.put(colNames[i], new StringByteIterator((String) row.get(i)));
           }
         }
       }
@@ -262,31 +250,37 @@ public class IgniteSqlClient extends DB {
   @Override
   public Status update(String table, String key,
                        Map<String, ByteIterator> values) {
-    try {
-      int numFields = values.size();
-      OrderedFieldInfo fieldInfo = getFieldInfo(values);
-      StatementType type = new StatementType(StatementType.Type.UPDATE, table, numFields, fieldInfo.getFieldKeys(), 0);
+    while (true) {
+      try {
+        UpdateData updData = new UpdateData(key, values);
+        StringBuilder sb = new StringBuilder("UPDATE ").append(table).append(" SET ");
 
-      SqlFieldsQuery qry = cachedQuery.get(type);
-      if (qry == null) {
-        qry = createAndCacheUpdateStatement(type, key);
+        for (int i = 0; i < updData.getFields().length; ++i) {
+          sb.append(updData.getFields()[i]).append("=?");
+          if (i < updData.getFields().length - 1) {
+            sb.append(", ");
+          }
+        }
+
+        sb.append(" WHERE ").append(PRIMARY_KEY).append("=?");
+
+        SqlFieldsQuery qry = new SqlFieldsQuery(sb.toString());
+        qry.setArgs(updData.getArgs());
+
+        cache.query(qry).getAll();
+
+        return Status.OK;
+      } catch (CacheException e) {
+        if (!e.getMessage().contains("Failed to update some keys because they had been modified concurrently")) {
+          System.err.println("Error in processing update table: " + table);
+          e.printStackTrace(System.err);
+          return Status.ERROR;
+        }
+      } catch (Exception e) {
+        System.err.println("Error in processing update table: " + table);
+        e.printStackTrace(System.err);
+        return Status.ERROR;
       }
-
-      Object[] args = new Object[numFields + 1];
-      args[0] = key;
-      int index = 1;
-      for (String value : fieldInfo.getFieldValues()) {
-        args[index++] = value;
-      }
-      qry.setArgs(args);
-
-      cache.query(qry).getAll();
-
-      return Status.OK;
-    } catch (Exception e) {
-      System.err.println("Error in processing update table: " + table);
-      e.printStackTrace(System.err);
-      return Status.ERROR;
     }
   }
 
@@ -303,22 +297,13 @@ public class IgniteSqlClient extends DB {
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
-      int numFields = values.size();
-      OrderedFieldInfo fieldInfo = getFieldInfo(values);
-      StatementType type = new StatementType(StatementType.Type.INSERT, table, numFields, fieldInfo.getFieldKeys(), 0);
+      InsertData insertData = new InsertData(key, values);
+      StringBuilder sb = new StringBuilder("INSERT INTO ").append(table).append(" (")
+                .append(insertData.getInsertFields()).append(") VALUES (")
+                .append(insertData.getInsertParams()).append(')');
 
-      SqlFieldsQuery qry = cachedQuery.get(type);
-      if (qry == null) {
-        qry = createAndCacheInsertStatement(type, key);
-      }
-
-      Object[] args = new Object[numFields + 1];
-      args[0] = key;
-      int index = 1;
-      for (String value : fieldInfo.getFieldValues()) {
-        args[index++] = value;
-      }
-      qry.setArgs(args);
+      SqlFieldsQuery qry = new SqlFieldsQuery(sb.toString());
+      qry.setArgs(insertData.getArgs());
 
       cache.query(qry).getAll();
 
@@ -340,12 +325,10 @@ public class IgniteSqlClient extends DB {
   @Override
   public Status delete(String table, String key) {
     try {
-      StatementType type = new StatementType(StatementType.Type.DELETE, table, 1, "", 0);
+      StringBuilder sb = new StringBuilder("DELETE FROM ").append(table)
+                .append(" WHERE ").append(PRIMARY_KEY).append(" = ?");
 
-      SqlFieldsQuery qry = cachedQuery.get(type);
-      if (qry == null) {
-        qry = createAndCacheDeleteStatement(type, key);
-      }
+      SqlFieldsQuery qry = new SqlFieldsQuery(sb.toString());
       qry.setArgs(key);
       cache.query(qry).getAll();
       return Status.OK;
@@ -357,113 +340,80 @@ public class IgniteSqlClient extends DB {
   }
 
   /**
-   * @param type Query type.
-   * @param key Key.
-   * @return Query.
+   * Field and values for insert queries.
    */
-  private SqlFieldsQuery createAndCacheReadStatement(StatementType type, String key) {
-    String insert = dbFlavor.createReadStatement(type, key);
-    SqlFieldsQuery newQry = new SqlFieldsQuery(insert);
-    SqlFieldsQuery qry = cachedQuery.putIfAbsent(type, newQry);
-    if (qry == null) {
-      return newQry;
-    }
-    return qry;
-  }
+  private static class InsertData {
+    private final Object[] args;
+    private final String insertFields;
+    private final String insertParams;
 
-  /**
-   * @param type Query type.
-   * @param key Key.
-   * @return Query.
-   */
-  private SqlFieldsQuery createAndCacheUpdateStatement(StatementType type, String key) {
-    String insert = dbFlavor.createUpdateStatement(type, key);
-    SqlFieldsQuery newQry = new SqlFieldsQuery(insert);
-    SqlFieldsQuery qry = cachedQuery.putIfAbsent(type, newQry);
-    if (qry == null) {
-      return newQry;
-    }
-    return qry;
-  }
+    /**
+     * @param key    Key.
+     * @param values Field values.
+     */
+    InsertData(String key, Map<String, ByteIterator> values) {
+      args = new String[values.size() + 1];
 
-  /**
-   * @param type Query type.
-   * @param key Key.
-   * @return Query.
-   */
-  private SqlFieldsQuery createAndCacheInsertStatement(StatementType type, String key) {
-    String insert = dbFlavor.createInsertStatement(type, key);
-    SqlFieldsQuery newQry = new SqlFieldsQuery(insert);
-    SqlFieldsQuery qry = cachedQuery.putIfAbsent(type, newQry);
-    if (qry == null) {
-      return newQry;
-    }
-    return qry;
-  }
+      int idx = 0;
+      args[idx++] = key;
 
-  /**
-   * @param type Query type.
-   * @param key Key.
-   * @return Query.
-   */
-  private SqlFieldsQuery createAndCacheDeleteStatement(StatementType type, String key) {
-    String insert = dbFlavor.createDeleteStatement(type, key);
-    SqlFieldsQuery newQry = new SqlFieldsQuery(insert);
-    SqlFieldsQuery qry = cachedQuery.putIfAbsent(type, newQry);
-    if (qry == null) {
-      return newQry;
-    }
-    return qry;
-  }
+      StringBuilder sbFields = new StringBuilder(PRIMARY_KEY);
+      StringBuilder sbParams = new StringBuilder("?");
 
-  /**
-   * @param values YCSB values representation.
-   * @return Internal fields info.
-   */
-  private OrderedFieldInfo getFieldInfo(Map<String, ByteIterator> values) {
-    String fieldKeys = "";
-    List<String> fieldValues = new ArrayList<>();
-    int count = 0;
-    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-      fieldKeys += entry.getKey();
-      if (count < values.size() - 1) {
-        fieldKeys += ",";
+      for (Map.Entry<String, ByteIterator> e : values.entrySet()) {
+        args[idx++] = e.getValue().toString();
+        sbFields.append(',').append(e.getKey());
+        sbParams.append(", ?");
       }
-      fieldValues.add(count, entry.getValue().toString());
-      count++;
+
+      insertFields = sbFields.toString();
+      insertParams = sbParams.toString();
     }
 
-    return new OrderedFieldInfo(fieldKeys, fieldValues);
+    public Object[] getArgs() {
+      return args;
+    }
+
+    public String getInsertFields() {
+      return insertFields;
+    }
+
+    public String getInsertParams() {
+      return insertParams;
+    }
   }
 
   /**
-   * Ordered field information for insert and update statements.
+   * Field and values for update queries.
    */
-  private static class OrderedFieldInfo {
-    private String fieldKeys;
-    private List<String> fieldValues;
+  private static class UpdateData {
+    private final Object[] args;
+    private final String[] fields;
 
     /**
-     * @param fieldKeys Keys string.
-     * @param fieldValues Values.
+     * @param key    Key.
+     * @param values Field values.
      */
-    OrderedFieldInfo(String fieldKeys, List<String> fieldValues) {
-      this.fieldKeys = fieldKeys;
-      this.fieldValues = fieldValues;
+    UpdateData(String key, Map<String, ByteIterator> values) {
+      args = new String[values.size() + 1];
+      fields = new String[values.size()];
+
+      int idx = 0;
+
+      for (Map.Entry<String, ByteIterator> e : values.entrySet()) {
+        args[idx] = e.getValue().toString();
+        fields[idx++] = e.getKey();
+      }
+
+      args[idx] = key;
     }
 
-    /**
-     * @return Keys.
-     */
-    String getFieldKeys() {
-      return fieldKeys;
+    public Object[] getArgs() {
+      return args;
     }
 
-    /**
-     * @return Values.
-     */
-    List<String> getFieldValues() {
-      return fieldValues;
+    public String[] getFields() {
+      return fields;
     }
   }
 }
