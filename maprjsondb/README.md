@@ -23,8 +23,7 @@ This section describes how to run YCSB on a MapR Cluster against MapR-DB (JSON).
 
 Clone the YCSB git repository and compile:
 
-    #git clone https://github.com/brianfrankcooper/YCSB.git
-    git clone https://github.com/rohanjayaraj/YCSB.git
+    git clone https://github.com/brianfrankcooper/YCSB.git
     cd YCSB
     mvn clean package
 
