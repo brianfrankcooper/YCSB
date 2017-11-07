@@ -30,6 +30,7 @@ import org.ojai.store.DocumentMutation;
 import org.ojai.store.DocumentStore;
 import org.ojai.store.Driver;
 import org.ojai.store.DriverManager;
+import org.ojai.store.Query;
 import org.ojai.store.QueryCondition;
 import org.ojai.store.QueryCondition.Op;
 
@@ -79,8 +80,13 @@ public class MapRJSONDBClient extends com.yahoo.ycsb.DB {
       QueryCondition condition = driver.newCondition()
           .is(DocumentConstants.ID_FIELD, Op.GREATER_OR_EQUAL, startkey)
           .build();
+      Query query = driver.newQuery()
+          .select(getFieldPaths(fields))
+          .where(condition)
+          .build();
+      
       try (DocumentStream stream =
-          docStore.find(condition, getFieldPaths(fields));) {
+          docStore.findQuery(query)) {
         int numResults = 0;
         for (Document record : stream) {
           result.add(buildRowResult(record));
@@ -183,7 +189,7 @@ public class MapRJSONDBClient extends com.yahoo.ycsb.DB {
     if (fields != null) {
       return fields.toArray(new String[fields.size()]);
     }
-    return null;
+    return new String[0];
   }
 
   /**
