@@ -35,5 +35,10 @@ Clone the YCSB git repository and compile:
 
 ### 3. Run YCSB
     
-    ./bin/ycsb load maprdb -P workloads/workloada -cp $(mapr classpath) -p table=/tables/myTable -p columnfamily=cf0
+    ##### 3.1. Load Table
 
+	./bin/ycsb load maprdb -P workloads/workloada -cp $(mapr classpath) -p table=/tables/myTable -p columnfamily=cf0
+
+    ##### 3.2. Run workload
+
+	./bin/ycsb run maprdb -P workloads/workloadb -cp $(mapr classpath) -p table=/tables/myTable -p columnfamily=cf0
