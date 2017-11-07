@@ -34,10 +34,10 @@ Clone the YCSB git repository and compile:
 
 ### 3. Run YCSB
     
-    ##### 3.1. Load Table
+###### 3.1. Load Table
 	
 	./bin/ycsb load maprjsondb -P workloads/workloada -cp $(mapr clientclasspath) -p table=/tables/docTable
 
-    ##### 3.2. Run workload
+###### 3.2. Run workload
 	
 	./bin/ycsb run maprjsondb -P workloads/workloadb -cp $(mapr clientclasspath) -p table=/tables/docTable
