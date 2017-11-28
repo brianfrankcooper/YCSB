@@ -56,13 +56,17 @@ public class IgniteClient extends DB {
    * {@link #cleanup()}.
    */
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
+  /** Ignite cluster. */
   private static Ignite cluster = null;
+  /** Ignite cache to store key-values. */
   private static IgniteCache<String, BinaryObject> cache = null;
-  private static TcpDiscoveryIpFinder ipFinder = new TcpDiscoveryVmIpFinder(true);
+  /** Debug flag. */
   private static boolean debug = false;
-  private final ConcurrentHashMap<String, BinaryField> fieldsCache = new ConcurrentHashMap<>();
 
+  /** Cached binary type. */
   private BinaryType binType = null;
+  /** Cached binary type's fields. */
+  private final ConcurrentHashMap<String, BinaryField> fieldsCache = new ConcurrentHashMap<>();
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
@@ -111,6 +115,8 @@ public class IgniteClient extends DB {
 
         Collection<String> addrs = new LinkedHashSet<>();
         addrs.add(host + ":" + ports);
+
+        TcpDiscoveryIpFinder ipFinder = new TcpDiscoveryVmIpFinder(true);
 
         ((TcpDiscoveryVmIpFinder) ipFinder).setAddresses(addrs);
         disco.setIpFinder(ipFinder);
@@ -196,6 +202,7 @@ public class IgniteClient extends DB {
           System.out.println("result {" + result + "}");
         }
       }
+
       return Status.OK;
 
     } catch (Exception e) {
@@ -241,6 +248,7 @@ public class IgniteClient extends DB {
                        Map<String, ByteIterator> values) {
     try {
       cache.invoke(key, new Updater(values));
+
       return Status.OK;
     } catch (Exception e) {
       e.printStackTrace(System.err);
