@@ -18,5 +18,5 @@
 /**
  * The YCSB binding for <a href="http://mapr.com/maprjsondb/">MapR JSON DB</a>.
  */
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.mapr;
 

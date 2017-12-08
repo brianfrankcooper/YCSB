@@ -15,44 +15,8 @@
  * LICENSE file.
  */
 
-package com.yahoo.ycsb.db;
-
-import org.ojai.Value;
-import org.ojai.util.Values;
-
-import com.yahoo.ycsb.ByteIterator;
-
 /**
- * OJAI Value byte iterator.
- * 
- * Used for parsing the document fetched MapR JSON DB
+ * The YCSB binding for <a href="http://mapr.com/maprdb/">MapR-DB</a>.
  */
-public class ValueByteIterator extends ByteIterator {
+package com.yahoo.ycsb.db.mapr;
 
-  private Value value;
-
-  public ValueByteIterator(Value value) {
-    this.value = value;
-  }
-
-  @Override
-  public boolean hasNext() {
-    return false;
-  }
-
-  @Override
-  public byte nextByte() {
-    return 0;
-  }
-
-  @Override
-  public long bytesLeft() {
-    return 0;
-  }
-
-  @Override
-  public String toString() {
-    return Values.asJsonString(value);
-  }
-
-}

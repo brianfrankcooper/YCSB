@@ -13,7 +13,7 @@
  * LICENSE file.
  */
 
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.mapr;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;

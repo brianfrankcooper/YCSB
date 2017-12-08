@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2017, Yahoo!, Inc. All rights reserved.
+/**
+ * Copyright (c) 2017 Yahoo! Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -15,8 +15,11 @@
  * LICENSE file.
  */
 
-/**
- * The YCSB binding for <a href="http://mapr.com/maprdb/">MapR-DB</a>.
- */
-package com.yahoo.ycsb.db.maprdb;
+package com.yahoo.ycsb.db.mapr;
 
+/**
+ * MapR-DB(binary) client for YCSB framework.
+ * 
+ */
+public class MapRDBClient extends com.yahoo.ycsb.db.HBaseClient10 {
+}
