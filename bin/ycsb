@@ -80,6 +80,7 @@ DATABASES = {
     "hypertable"   : "com.yahoo.ycsb.db.HypertableClient",
     "infinispan-cs": "com.yahoo.ycsb.db.InfinispanRemoteClient",
     "infinispan"   : "com.yahoo.ycsb.db.InfinispanClient",
+    "influxdb"     : "com.yahoo.ycsb.db.InfluxDBClient",
     "jdbc"         : "com.yahoo.ycsb.db.JdbcDBClient",
     "kudu"         : "com.yahoo.ycsb.db.KuduYCSBClient",
     "memcached"    : "com.yahoo.ycsb.db.MemcachedClient",

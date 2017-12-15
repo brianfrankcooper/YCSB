@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<!-- 
-Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
+<!--
+Copyright (c) 2012 - 2017 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -158,7 +158,8 @@ LICENSE file.
         <module name="EmptyStatement"/>
         <module name="EqualsHashCode"/>
         <module name="HiddenField">
-          <property name="ignoreConstructorParameter" value="true"/>
+          <!-- ignores parameters. Fluent Interface implementations are very hard otherwise -->
+          <property name="tokens" value="VARIABLE_DEF,LAMBDA" />
         </module>
         <module name="IllegalInstantiation"/>
         <module name="InnerAssignment"/>
@@ -182,7 +183,7 @@ LICENSE file.
         <module name="Indentation">
             <property name="basicOffset" value="2" />
             <property name="caseIndent" value="0" />
-        </module> 
+        </module>
         <!-- <module name="TodoComment"/> -->
         <module name="UpperEll"/>
 
