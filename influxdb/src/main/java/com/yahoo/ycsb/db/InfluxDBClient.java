@@ -26,6 +26,7 @@ import org.influxdb.dto.QueryResult;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * InfluxDB client for YCSB framework.
@@ -33,18 +34,43 @@ import java.util.concurrent.TimeUnit;
  */
 public class InfluxDBClient extends DB {
 
-  private static final String RETENTION_POLICY = "autogen";
+  private static final String PROPERTY_IP = "ip";
+  private static final String PROPERTY_PORT = "port";
 
-  private String ip = "localhost";
-  private String dbName = "testdb";
-  private int port = 8086;
-  private boolean debug = false;
-  private InfluxDB client;
-  private boolean batch = false;
+  private static final String PROPERTY_DB_NAME = "dbName";
+  private static final String PROPERTY_DB_NAME_DEFAULT = "ycsb";
+
+  private static final String PROPERTY_DEBUG = "debug";
+  private static final String PROPERTY_DEBUG_DEFAULT = "false";
+
+  private static final String PROPERTY_BATCH = "batch";
+  private static final String PROPERTY_BATCH_DEFAULT = "false";
+
+  private static final String PROPERTY_RETENTION_POLICY = "retentionPolicy";
+  private static final String PROPERTY_RETENTION_POLICY_DEFAULT = "autogen";
+
+  private static final String PROPERTY_TEST = "test";
+  private static final String PROPERTY_TEST_DEFAULT = "false";
+
+  // defaults for downsampling. Basically we ignore it
+  private static final String DOWNSAMPLING_FUNCTION_PROPERTY_DEFAULT = "NONE";
+  private static final String DOWNSAMPLING_INTERVAL_PROPERTY_DEFAULT = "0";
+  public static final String RETENTION_POLICY_DURATION = "INF";
+  public static final String RETENTION_POLICY_SHARD_DURATION = "2d";
+  public static final int RETENTION_POLICY_REPLICATION_FACTOR = 1;
+  public static final boolean RETENTION_POLICY_IS_DEFAULT = false;
+
+  // influxdb connection relevant properties and binding configuration properties
+  private String ip;
+  private int port;
+  private String dbName;
+  private String retentionPolicy;
+  private boolean debug;
   private boolean groupBy = true;
-  private boolean test = false;
-  private String valueFieldName = "value"; // in which field should the value be?
+  private boolean test;
+  private final String valueFieldName = "value";
 
+  // Workload parameters that we need to parse this
   private String timestampKey;
   private String valueKey;
   private String tagPairDelimiter;
@@ -56,6 +82,8 @@ public class InfluxDBClient extends DB {
   private Integer downsamplingInterval;
   private AggregationOperation downsamplingFunction;
 
+  private InfluxDB client;
+
   /**
    * Initialize any state for this DB.
    * Called once per DB instance; there is one DB instance per client thread.
@@ -63,6 +91,13 @@ public class InfluxDBClient extends DB {
   @Override
   public void init() throws DBException {
     try {
+      if (!getProperties().containsKey(PROPERTY_PORT)) {
+        throw new DBException("No port given, abort.");
+      }
+      if (!getProperties().containsKey(PROPERTY_IP)) {
+        throw new DBException("No ip given, abort.");
+      }
+
       // taken from BasicTSDB
       timestampKey = getProperties().getProperty(
           TimeSeriesWorkload.TIMESTAMP_KEY_PROPERTY,
@@ -89,22 +124,19 @@ public class InfluxDBClient extends DB {
           TimeSeriesWorkload.DOWNSAMPLING_KEY_PROPERTY,
           TimeSeriesWorkload.DOWNSAMPLING_KEY_PROPERTY_DEFAULT);
       downsamplingFunction = AggregationOperation.valueOf(getProperties()
-          .getProperty(TimeSeriesWorkload.DOWNSAMPLING_FUNCTION_PROPERTY, "NONE"));
+          .getProperty(TimeSeriesWorkload.DOWNSAMPLING_FUNCTION_PROPERTY, DOWNSAMPLING_FUNCTION_PROPERTY_DEFAULT));
       downsamplingInterval = Integer.valueOf(getProperties()
-          .getProperty(TimeSeriesWorkload.DOWNSAMPLING_INTERVAL_PROPERTY, "0"));
+          .getProperty(TimeSeriesWorkload.DOWNSAMPLING_INTERVAL_PROPERTY, DOWNSAMPLING_INTERVAL_PROPERTY_DEFAULT));
 
+      debug = Boolean.parseBoolean(getProperties().getProperty(PROPERTY_DEBUG, PROPERTY_DEBUG_DEFAULT));
+      test = Boolean.parseBoolean(getProperties().getProperty(PROPERTY_TEST, PROPERTY_TEST_DEFAULT));
+      dbName = getProperties().getProperty(PROPERTY_DB_NAME, PROPERTY_DB_NAME_DEFAULT);
+      retentionPolicy = getProperties().getProperty(PROPERTY_RETENTION_POLICY, PROPERTY_RETENTION_POLICY_DEFAULT);
 
-      test = Boolean.parseBoolean(getProperties().getProperty("test", "false"));
-      batch = Boolean.parseBoolean(getProperties().getProperty("batch", "false"));
-      if (!getProperties().containsKey("port") && !test) {
-        throw new DBException("No port given, abort.");
-      }
-      port = Integer.parseInt(getProperties().getProperty("port", String.valueOf(port)));
-      dbName = getProperties().getProperty("dbName", dbName);
-      if (!getProperties().containsKey("ip") && !test) {
-        throw new DBException("No ip given, abort.");
-      }
-      ip = getProperties().getProperty("ip", ip);
+      // Must be set, if it blows up, we can error out
+      port = Integer.parseInt(getProperties().getProperty(PROPERTY_PORT));
+      ip = getProperties().getProperty(PROPERTY_IP);
+
       if (debug) {
         System.out.println("The following properties are given: ");
         for (String element : getProperties().stringPropertyNames()) {
@@ -117,17 +149,44 @@ public class InfluxDBClient extends DB {
         if (debug) {
           this.client = this.client.setLogLevel(InfluxDB.LogLevel.FULL);
         }
-        if (this.batch) {
+        boolean batch = Boolean.parseBoolean(getProperties().getProperty(PROPERTY_BATCH, PROPERTY_BATCH_DEFAULT));
+        if (batch) {
           this.client = this.client.enableBatch(10, 1000, TimeUnit.MILLISECONDS);
         }
         this.client.ping();
+
+        // ensure database and retention policy exist:
+        if (!client.databaseExists(dbName)) {
+          client.createDatabase(dbName);
+        }
+        Query retentionPolicies = new Query(String.format("SHOW RETENTION POLICIES ON \"%s\"", dbName), dbName);
+        QueryResult result = client.query(retentionPolicies);
+        if (result.hasError()) {
+          throw new DBException("Could not verify retention policy exists");
+        }
+        boolean exists = false;
+        for (QueryResult.Result res : result.getResults()) {
+          if (res.hasError()) {
+            throw new DBException("Could not verify retention policy exists");
+          }
+          for (QueryResult.Series series : res.getSeries()) {
+            for (List<Object> values : series.getValues()) {
+              if (values.get(0).equals(retentionPolicy)) {
+                exists = true;
+              }
+            }
+          }
+        }
+        if (!exists) {
+          client.createRetentionPolicy(retentionPolicy, dbName, RETENTION_POLICY_DURATION,
+              RETENTION_POLICY_SHARD_DURATION, RETENTION_POLICY_REPLICATION_FACTOR, RETENTION_POLICY_IS_DEFAULT);
+        }
       }
     } catch (retrofit.RetrofitError e) {
       throw new DBException(String.format("Can't connect to %s:%s.)", ip, port) + e);
     } catch (Exception e) {
       throw new DBException(e);
     }
-
   }
 
   /**
@@ -139,15 +198,6 @@ public class InfluxDBClient extends DB {
     this.client.close();
   }
 
-  /*
-  For calls to DB.read(String, String, Set, Map) and DB.scan(String, String, int, Set, Vector),
-   timestamps are encoded in a StringByteIterator in a key/value format with the tagpairdelimiter separator.
-   E.g YCSBTS=1483228800.
-
-   If querytimespan has been set to a positive value then the value will include a range with
-   the starting (oldest) timestamp followed by the querytimespandelimiter separator and the ending timestamp.
-   E.g. YCSBTS=1483228800-1483228920.
-   */
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     Map<String, List<String>> tagQueries = new HashMap<>();
@@ -164,14 +214,7 @@ public class InfluxDBClient extends DB {
         timestamp = Long.valueOf(timestampParts[1]);
       } else {
         String[] queryParts = field.split(tagPairDelimiter);
-        // TODO tech-debt after java 7 support is dropped
-        if (tagQueries.containsKey(queryParts[0])) {
-          tagQueries.get(queryParts[0]).add(queryParts[1]);
-        } else {
-          List<String> tags = new ArrayList<>();
-          tags.add(queryParts[1]);
-          tagQueries.put(queryParts[0], tags);
-        }
+        tagQueries.computeIfAbsent(queryParts[0], k -> new ArrayList<>()).add(queryParts[1]);
       }
     }
 
@@ -187,24 +230,22 @@ public class InfluxDBClient extends DB {
    * @return Zero on success, a non-zero error code on error or "not found".
    */
   public Status read(String metric, Long timestamp, Map<String, List<String>> tags) {
-    if (metric == null || metric == "") {
+    if (metric == null || metric.isEmpty()) {
       return Status.BAD_REQUEST;
     }
     if (timestamp == null) {
       return Status.BAD_REQUEST;
     }
     StringBuilder tagFilter = new StringBuilder();
-    // TODO technical debt after dropping java 7
     for (String tag : tags.keySet()) {
       tagFilter.append(" AND ( ");
-      for (String tagname : tags.get(tag)) {
-        tagFilter.append(String.format(" OR %s = '%s'", tag, tagname));
-      }
-      tagFilter = new StringBuilder(tagFilter.toString().replaceFirst(" OR ", ""));
+      tagFilter.append(tags.get(tag).stream()
+          .map(t -> String.format("%s  = '%s'", tag, t))
+          .collect(Collectors.joining(" OR ")));
       tagFilter.append(" )");
     }
 
-    String fqMetric = String.format("%s.%s.%s", dbName, RETENTION_POLICY, metric);
+    String fqMetric = String.format("%s.%s.%s", dbName, retentionPolicy, metric);
     // InfluxDB can not use milliseconds or nanoseconds, it uses microseconds or seconds (or greater).
     // See https://docs.influxdata.com/influxdb/v0.8/api/query_language/.
     // u stands for microseconds. Since getNanos() seems unfair because no other TSDB uses it, we just add three zeros
@@ -288,13 +329,8 @@ public class InfluxDBClient extends DB {
           // we should probably warn about this being ignored...
           System.err.println("Grouping by arbitrary series is currently not supported");
           groupByFields.add(field);
-        } else if (tagQueries.containsKey(queryParts[0])) {
-        // TODO tech-debt after java 7 support is dropped
-          tagQueries.get(queryParts[0]).add(queryParts[1]);
         } else {
-          List<String> tags = new ArrayList<>();
-          tags.add(queryParts[1]);
-          tagQueries.put(queryParts[0], tags);
+          tagQueries.computeIfAbsent(queryParts[0], k -> new ArrayList<>()).add(queryParts[1]);
         }
       }
     }
@@ -321,7 +357,7 @@ public class InfluxDBClient extends DB {
   public Status scan(String metric, Long startTs, Long endTs, Map<String, List<String>> tags,
                      AggregationOperation aggreg, int timeValue, TimeUnit timeUnit) {
 
-    if (metric == null || metric == "") {
+    if (metric == null || metric.isEmpty()) {
       return Status.BAD_REQUEST;
     }
     if (startTs == null || endTs == null) {
@@ -330,11 +366,9 @@ public class InfluxDBClient extends DB {
     StringBuilder tagFilter = new StringBuilder();
     for (String tag : tags.keySet()) {
       tagFilter.append(" AND ( ");
-      StringBuilder tempTagFilter = new StringBuilder(); // for OR Clauses
-      for (String tagName : tags.get(tag)) {
-        tempTagFilter.append(String.format(" OR %s = '%s'", tag, tagName));
-      }
-      tagFilter.append(tempTagFilter.toString().replaceFirst(" OR ", ""));
+      tagFilter.append(tags.get(tag).stream()
+          .map(t -> String.format("%s = '%s'", tag, t))
+          .collect(Collectors.joining(" OR ")));
       tagFilter.append(" )");
     }
     String fieldStr = "*";
@@ -393,15 +427,13 @@ public class InfluxDBClient extends DB {
         return Status.ERROR;
       }
       for (QueryResult.Series series : result.getSeries()) {
-        if (series.getValues().size() == 0) {
+        if (series.getValues().isEmpty()) {
           return Status.NOT_FOUND;
         }
-        for (List<Object> obj : series.getValues()) {
+        for (List<Object> values : series.getValues()) {
           // null is okay, as it means 0 for sum,count,avg
-//                    if (obj.get(obj.size()-1) != null) {
           found = true;
-//                    }
-          if (obj.size() == 0) {
+          if (values.isEmpty()) {
             return Status.NOT_FOUND;
           }
         }
@@ -436,7 +468,7 @@ public class InfluxDBClient extends DB {
    * @return A {@link Status} detailing the outcome of the insert
    */
   private Status insert(String metric, Long timestamp, double value, Map<String, ByteIterator> tags) {
-    if (metric == null || metric == "") {
+    if (metric == null || metric.isEmpty()) {
       return Status.BAD_REQUEST;
     }
     if (timestamp == null) {
@@ -453,11 +485,13 @@ public class InfluxDBClient extends DB {
       if (test) {
         return Status.OK;
       }
-      this.client.write(this.dbName, RETENTION_POLICY, pb.build());
+      this.client.write(this.dbName, retentionPolicy, pb.build());
       return Status.OK;
     } catch (Exception e) {
       System.err.println("ERROR: Error in processing insert to metric: " + metric + e);
-      e.printStackTrace();
+      if (debug) {
+        e.printStackTrace();
+      }
       return Status.ERROR;
     }
   }
