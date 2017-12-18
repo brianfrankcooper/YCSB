@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
  */
 public class InfluxDBClient extends DB {
 
+  // influx-binding specific properties
   private static final String PROPERTY_IP = "ip";
   private static final String PROPERTY_PORT = "port";
 
@@ -55,10 +56,10 @@ public class InfluxDBClient extends DB {
   // defaults for downsampling. Basically we ignore it
   private static final String DOWNSAMPLING_FUNCTION_PROPERTY_DEFAULT = "NONE";
   private static final String DOWNSAMPLING_INTERVAL_PROPERTY_DEFAULT = "0";
-  public static final String RETENTION_POLICY_DURATION = "INF";
-  public static final String RETENTION_POLICY_SHARD_DURATION = "2d";
-  public static final int RETENTION_POLICY_REPLICATION_FACTOR = 1;
-  public static final boolean RETENTION_POLICY_IS_DEFAULT = false;
+  private static final String RETENTION_POLICY_DURATION = "INF";
+  private static final String RETENTION_POLICY_SHARD_DURATION = "2d";
+  private static final int RETENTION_POLICY_REPLICATION_FACTOR = 1;
+  private static final boolean RETENTION_POLICY_IS_DEFAULT = false;
 
   // influxdb connection relevant properties and binding configuration properties
   private String ip;
@@ -83,6 +84,11 @@ public class InfluxDBClient extends DB {
   private AggregationOperation downsamplingFunction;
 
   private InfluxDB client;
+
+  // FIXME move into core?
+  private enum AggregationOperation {
+    NONE, SUM, AVERAGE, COUNT
+  }
 
   /**
    * Initialize any state for this DB.
@@ -236,21 +242,14 @@ public class InfluxDBClient extends DB {
     if (timestamp == null) {
       return Status.BAD_REQUEST;
     }
-    StringBuilder tagFilter = new StringBuilder();
-    for (String tag : tags.keySet()) {
-      tagFilter.append(" AND ( ");
-      tagFilter.append(tags.get(tag).stream()
-          .map(t -> String.format("%s  = '%s'", tag, t))
-          .collect(Collectors.joining(" OR ")));
-      tagFilter.append(" )");
-    }
+    String tagFilter = buildTagFilter(tags);
 
     String fqMetric = String.format("%s.%s.%s", dbName, retentionPolicy, metric);
     // InfluxDB can not use milliseconds or nanoseconds, it uses microseconds or seconds (or greater).
     // See https://docs.influxdata.com/influxdb/v0.8/api/query_language/.
     // u stands for microseconds. Since getNanos() seems unfair because no other TSDB uses it, we just add three zeros
     Query query = new Query(String.format("SELECT * FROM %s WHERE time = %s000u%s", fqMetric,
-        timestamp, tagFilter.toString()), dbName);
+        timestamp, tagFilter), dbName);
     if (debug) {
       System.out.println("Query: " + query.getCommand());
     }
@@ -337,10 +336,6 @@ public class InfluxDBClient extends DB {
     return scan(table, start, end, tagQueries, downsamplingFunction, downsamplingInterval, timestampUnit);
   }
 
-  private enum AggregationOperation {
-    NONE, SUM, AVERAGE, COUNT
-  }
-
   /**
    * Perform a range scan for a set of records in the database. Each value from the result will be stored in a
    * HashMap.
@@ -354,7 +349,7 @@ public class InfluxDBClient extends DB {
    * @param timeUnit  timeUnit for aggregation
    * @return A {@link Status} detailing the outcome of the scan operation.
    */
-  public Status scan(String metric, Long startTs, Long endTs, Map<String, List<String>> tags,
+  private Status scan(String metric, Long startTs, Long endTs, Map<String, List<String>> tags,
                      AggregationOperation aggreg, int timeValue, TimeUnit timeUnit) {
 
     if (metric == null || metric.isEmpty()) {
@@ -363,14 +358,8 @@ public class InfluxDBClient extends DB {
     if (startTs == null || endTs == null) {
       return Status.BAD_REQUEST;
     }
-    StringBuilder tagFilter = new StringBuilder();
-    for (String tag : tags.keySet()) {
-      tagFilter.append(" AND ( ");
-      tagFilter.append(tags.get(tag).stream()
-          .map(t -> String.format("%s = '%s'", tag, t))
-          .collect(Collectors.joining(" OR ")));
-      tagFilter.append(" )");
-    }
+
+    String tagFilter = buildTagFilter(tags);
     String fieldStr = "*";
     if (aggreg != AggregationOperation.NONE) {
       if (aggreg == AggregationOperation.AVERAGE) {
@@ -446,6 +435,18 @@ public class InfluxDBClient extends DB {
     return Status.OK;
   }
 
+  private String buildTagFilter(Map<String, List<String>> tags) {
+    StringBuilder tagFilter = new StringBuilder();
+    for (String tag : tags.keySet()) {
+      tagFilter.append(" AND ( ");
+      tagFilter.append(tags.get(tag).stream()
+          .map(t -> String.format("%s = '%s'", tag, t))
+          .collect(Collectors.joining(" OR ")));
+      tagFilter.append(" )");
+    }
+    return tagFilter.toString();
+  }
+
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     NumericByteIterator tsContainer = (NumericByteIterator) values.remove(timestampKey);
@@ -497,24 +498,31 @@ public class InfluxDBClient extends DB {
   }
 
   @Override
-  public Properties getProperties() {
-    return super.getProperties();
-  }
-
-  @Override
-  public void setProperties(Properties p) {
-    super.setProperties(p);
-  }
-
-  @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
     return Status.NOT_IMPLEMENTED; // makes no sense in a TSDB
   }
 
   @Override
   public Status delete(String table, String key) {
-    // FIXME needs to be implemented
-    return Status.NOT_IMPLEMENTED;
+    String[] parts = key.split(deleteDelimiter);
+    // influxdb structure doesn't match YCSB expectations
+    String ignored = parts[0];
+
+    Map<String, List<String>> tagQuerySpecifier = Arrays.stream(parts).skip(1)
+        .map(s -> s.split(tagPairDelimiter))
+        .collect(Collectors.groupingBy(s -> s[0], Collectors.mapping(s -> s[1], Collectors.toList())));
+
+    String tagFilter = buildTagFilter(tagQuerySpecifier);
+
+    Query delete = new Query(String.format("DELETE FROM '%s' WHERE %s", table, tagFilter), this.dbName);
+    QueryResult result = client.query(delete);
+
+    if (result.hasError()) {
+      System.err.println("ERROR: Error in processing delete to metric: " + table + result.getError());
+      return Status.ERROR;
+    }
+    // We don't even get to know how many records we deleted
+    return Status.OK;
   }
 }
 
