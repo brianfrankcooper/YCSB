@@ -76,7 +76,7 @@ LICENSE file.
     <accumulo.1.7.version>1.7.3</accumulo.1.7.version>
     <accumulo.1.8.version>1.8.1</accumulo.1.8.version>
     <cassandra.cql.version>3.0.0</cassandra.cql.version>
-    <geode.version>1.2.0</geode.version>
+    <geode.version>1.3.0</geode.version>
     <azuredocumentdb.version>1.8.1</azuredocumentdb.version>
     <googlebigtable.version>0.9.7</googlebigtable.version>
     <infinispan.version>7.2.2.Final</infinispan.version>

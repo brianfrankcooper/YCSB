@@ -17,19 +17,35 @@
 
 package com.yahoo.ycsb.db;
 
-import org.apache.geode.cache.*;
+import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import com.yahoo.ycsb.ByteArrayByteIterator;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.DB;
+import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
+
+import org.apache.geode.cache.Cache;
+import org.apache.geode.cache.CacheFactory;
+import org.apache.geode.cache.GemFireCache;
+import org.apache.geode.cache.Region;
+import org.apache.geode.cache.RegionExistsException;
+import org.apache.geode.cache.RegionFactory;
+import org.apache.geode.cache.RegionShortcut;
 import org.apache.geode.cache.client.ClientCache;
 import org.apache.geode.cache.client.ClientCacheFactory;
 import org.apache.geode.cache.client.ClientRegionFactory;
 import org.apache.geode.cache.client.ClientRegionShortcut;
-import org.apache.geode.internal.admin.remote.DistributionLocatorId;
-import org.apache.geode.internal.cache.GemFireCacheImpl;
 import org.apache.geode.pdx.JSONFormatter;
 import org.apache.geode.pdx.PdxInstance;
 import org.apache.geode.pdx.PdxInstanceFactory;
-import com.yahoo.ycsb.*;
-
-import java.util.*;
 
 /**
  * Apache Geode (incubating) client for the YCSB benchmark.<br />
@@ -84,6 +100,11 @@ public class GeodeClient extends DB {
    */
   private static final String TOPOLOGY_P2P_VALUE = "p2p";
 
+  /**
+   * Pattern to split up a locator string in the form host[port].
+   */
+  private static final Pattern LOCATOR_PATTERN = Pattern.compile("(.+)\\[(\\d+)\\]");;
+
   private GemFireCache cache;
 
   /**
@@ -120,18 +141,24 @@ public class GeodeClient extends DB {
       }
     }
     isClient = true;
-    DistributionLocatorId locator = null;
-    if (locatorStr != null) {
-      locator = new DistributionLocatorId(locatorStr);
-    }
+
     ClientCacheFactory ccf = new ClientCacheFactory();
     ccf.setPdxReadSerialized(true);
     if (serverPort != 0) {
       ccf.addPoolServer(serverHost, serverPort);
-    } else if (locator != null) {
-      ccf.addPoolLocator(locator.getHost().getCanonicalHostName(), locator.getPort());
+    } else  {
+      InetSocketAddress locatorAddress = getLocatorAddress(locatorStr);
+      ccf.addPoolLocator(locatorAddress.getHostName(), locatorAddress.getPort());
     }
     cache = ccf.create();
+  }
+
+  static InetSocketAddress getLocatorAddress(String locatorStr) {
+    Matcher matcher = LOCATOR_PATTERN.matcher(locatorStr);
+    if(!matcher.matches()) {
+      throw new IllegalStateException("Unable to parse locator: " + locatorStr);
+    }
+    return new InetSocketAddress(matcher.group(1), Integer.parseInt(matcher.group(2)));
   }
 
   @Override
@@ -180,8 +207,7 @@ public class GeodeClient extends DB {
   }
 
   private PdxInstance convertToBytearrayMap(Map<String, ByteIterator> values) {
-    GemFireCacheImpl gci = (GemFireCacheImpl) CacheFactory.getAnyInstance();
-    PdxInstanceFactory pdxInstanceFactory = gci.createPdxInstanceFactory(JSONFormatter.JSON_CLASSNAME);
+    PdxInstanceFactory pdxInstanceFactory = cache.createPdxInstanceFactory(JSONFormatter.JSON_CLASSNAME);
 
     for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
       pdxInstanceFactory.writeByteArray(entry.getKey(), entry.getValue().toArray());
