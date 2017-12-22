@@ -86,7 +86,7 @@ LICENSE file.
     <mongodb.version>3.0.3</mongodb.version>
     <mongodb.async.version>2.0.1</mongodb.async.version>
     <orientdb.version>2.2.10</orientdb.version>
-    <redis.version>2.0.0</redis.version>
+    <redis.version>2.9.0</redis.version>
     <s3.version>1.10.20</s3.version>
     <voldemort.version>0.81</voldemort.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
