@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2014 - 2015 YCSB contributors. All rights reserved.
+Copyright (c) 2017 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -45,3 +45,6 @@ Load the data:
 Run the workload test:
 
     ./bin/ycsb run rocksdb -s -P workloads/workloada > outputRun.txt
+
+    Add rocksdb-binding for ycsb.
+
