@@ -50,19 +50,55 @@ import static com.yahoo.ycsb.TimeseriesDB.AggregationOperation.*;
  * OpenTSDB does not support one Bucket for avg/sum/count -> using interval size as Bucket
  */
 public class OpenTSDBClient extends TimeseriesDB {
-  private URL urlQuery = null;
-  private URL urlPut = null;
-  private String ip = "localhost";
-  private String queryURL = "/api/query";
-  private String putURL = "/api/put";
-  private int port = 4242;
-  private boolean debug = false;
-  private boolean filterForTags = true; // Versions above OpenTSDB 2.2 (included) can use this; Untested!
-  private boolean useCount = true; // Versions above OpenTSDB 2.2 (included) have Count(), otherwise min is used
-  private boolean useMs = true; // Millisecond or Second resolution
+  // Configuration retrieval
+  private static final String PROPERTY_IP = "ip";
+  private static final String PROPERTY_PORT = "port";
+
+  private static final String PROPERTY_QUERY_URL = "queryUrl";
+  private static final String PROPERTY_QUERY_URL_DEFAULT = "/api/query";
+
+  private static final String PROPERTY_PUT_URL = "putUrl";
+  private static final String PROPERTY_PUT_URL_DEFAULT = "/api/put";
+
+  private static final String PROPERTY_FILTER_FOR_TAGS = "filterForTags";
+  private static final String PROPERTY_FILTER_FOR_TAGS_DEFAULT = "true";
+
+  private static final String PROPERTY_USE_COUNT = "useCount";
+  private static final String PROPERTY_USE_COUNT_DEFAULT = "true";
+
+  private static final String PROPERTY_USE_MILLIS = "useMs";
+  private static final String PROPERTY_USE_MILLIS_DEFAULT = "true";
+
+  private static final String PROPERTY_TEST = "test";
+  private static final String PROPERTY_TEST_DEFAULT = "false";
+
+  private static final String PROPERTY_DEBUG = "debug";
+  private static final String PROPERTY_DEBUG_DEFAULT = "false";
+
+  // configuration containers
+  private URL urlQuery;
+  private URL urlPut;
+  private String ip;
+  private int port;
+  private boolean debug;
+  /**
+   * Versions above OpenTSDB 2.2 (included) can use this; Untested! Defaults to true
+   */
+  private boolean filterForTags;
+  /**
+   * Versions above OpenTSDB 2.2 (included) have Count(), otherwise min is used. Defaults to true.
+   */
+  private boolean useCount;
+  /**
+   * Millisecond or Second resolution. Defaults to true -> Millisecond resolution.
+   */
+  private boolean useMs;
+  private boolean test;
+
+  // internal containers for implementation details
   private CloseableHttpClient client;
+  // TODO: expose as configuration??
   private int retries = 3;
-  private boolean test = false;
 
   /**
    * Initialize any state for this DB.
@@ -70,25 +106,24 @@ public class OpenTSDBClient extends TimeseriesDB {
    */
   @Override
   public void init() throws DBException {
+    if (!getProperties().containsKey("port") && !test) {
+      throw new DBException("No port given, abort.");
+    }
+    if (!getProperties().containsKey("ip") && !test) {
+      throw new DBException("No ip given, abort.");
+    }
+    ip = getProperties().getProperty(PROPERTY_IP, ip);
+    port = Integer.parseInt(getProperties().getProperty(PROPERTY_PORT, String.valueOf(port)));
+
+    filterForTags = Boolean.parseBoolean(getProperties().
+        getProperty(PROPERTY_FILTER_FOR_TAGS, PROPERTY_FILTER_FOR_TAGS_DEFAULT));
+    useCount = Boolean.parseBoolean(getProperties().getProperty(PROPERTY_USE_COUNT, PROPERTY_USE_COUNT_DEFAULT));
+    useMs = Boolean.parseBoolean(getProperties().getProperty(PROPERTY_USE_MILLIS, PROPERTY_USE_MILLIS_DEFAULT));
+
+    debug = Boolean.parseBoolean(getProperties().getProperty(PROPERTY_DEBUG, PROPERTY_DEBUG_DEFAULT));
+    test = Boolean.parseBoolean(getProperties().getProperty(PROPERTY_TEST, PROPERTY_TEST_DEFAULT));
+
     try {
-      test = Boolean.parseBoolean(getProperties().getProperty("test", "false"));
-      if (!getProperties().containsKey("port") && !test) {
-        throw new DBException("No port given, abort.");
-      }
-      port = Integer.parseInt(getProperties().getProperty("port", String.valueOf(port)));
-      if (!getProperties().containsKey("ip") && !test) {
-        throw new DBException("No ip given, abort.");
-      }
-      ip = getProperties().getProperty("ip", ip);
-      if (debug) {
-        System.out.println("The following properties are given: ");
-        for (String element : getProperties().stringPropertyNames()) {
-          System.out.println(element + ": " + getProperties().getProperty(element));
-        }
-      }
-      filterForTags = Boolean.parseBoolean(getProperties().getProperty("filterForTags", "true"));
-      useCount = Boolean.parseBoolean(getProperties().getProperty("useCount", "true"));
-      useMs = Boolean.parseBoolean(getProperties().getProperty("useMs", "true"));
       RequestConfig requestConfig = RequestConfig.custom().build();
       if (!test) {
         client = HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).build();
@@ -98,6 +133,8 @@ public class OpenTSDBClient extends TimeseriesDB {
     }
 
     try {
+      String queryURL = getProperties().getProperty(PROPERTY_QUERY_URL, PROPERTY_QUERY_URL_DEFAULT);
+      String putURL = getProperties().getProperty(PROPERTY_PUT_URL, PROPERTY_PUT_URL_DEFAULT);
       urlQuery = new URL("http", ip, port, queryURL);
       if (debug) {
         System.out.println("URL: " + urlQuery);
@@ -108,6 +145,13 @@ public class OpenTSDBClient extends TimeseriesDB {
       }
     } catch (MalformedURLException e) {
       throw new DBException(e);
+    }
+
+    if (debug) {
+      System.out.println("The following properties are given: ");
+      for (String element : getProperties().stringPropertyNames()) {
+        System.out.println(element + ": " + getProperties().getProperty(element));
+      }
     }
   }
 
@@ -206,14 +250,8 @@ public class OpenTSDBClient extends TimeseriesDB {
     JSONObject queryParams = new JSONObject();
     queryParams.put("metric", metric);
     queryArray.put(queryParams);
-    JSONArray queryFilters = null;
-    if (filterForTags) {
-      queryFilters = new JSONArray();
-    }
-    JSONObject queryTags = null;
-    if (!filterForTags) {
-      queryTags = new JSONObject();
-    }
+    JSONArray queryFilters = new JSONArray();
+    JSONObject queryTags = new JSONObject();
     queryParams.put("aggregator", "min");
     for (Map.Entry<String, List<String>> entry : tags.entrySet()) {
       String tagValues = "";
@@ -224,12 +262,12 @@ public class OpenTSDBClient extends TimeseriesDB {
       if (filterForTags) {
         JSONObject tagFilter = new JSONObject();
         tagFilter.put("type", "literal_or");
-        tagFilter.put("tagk", entry.getKey().toString());
+        tagFilter.put("tagk", entry.getKey());
         tagFilter.put("groupBy", false);
         tagFilter.put("filter", tagValues);
         queryFilters.put(tagFilter);
       } else {
-        queryTags.put(entry.getKey().toString(), tagValues);
+        queryTags.put(entry.getKey(), tagValues);
       }
     }
     if (filterForTags) {
@@ -257,12 +295,12 @@ public class OpenTSDBClient extends TimeseriesDB {
         System.err.println("ERROR: jsonArr Index " + i + " has no 'dps' key.");
       } else {
         JSONObject jsonObj = (JSONObject) jsonArr.getJSONObject(i).get("dps");
-        if (jsonObj.keySet().size() == 0) {
+        if (jsonObj.keySet().isEmpty()) {
           // Allowed to happen, no error message!
           return Status.OK;
         }
         for (Object obj : jsonObj.keySet()) {
-          long objTS = Long.valueOf(obj.toString());
+          long objTS = Long.parseLong(obj.toString());
           if (objTS == timestamp) {
             counter++;
           }
@@ -270,7 +308,7 @@ public class OpenTSDBClient extends TimeseriesDB {
       }
     }
     if (debug) {
-      System.err.println("jsonArr: " + jsonArr);
+      System.err.println("Result JSON array: " + jsonArr);
     }
     if (counter == 0) {
       System.err.println("ERROR: Found no values for metric: " + metric + " for timestamp: " + timestamp + ".");
@@ -334,6 +372,7 @@ public class OpenTSDBClient extends TimeseriesDB {
     queryParams.put("metric", metric);
     JSONArray queryFilters = new JSONArray();
     JSONObject queryTags = new JSONObject();
+    // FIXME should we use downsampling passed by YCSB params here??
     if (aggreg == AVERAGE) {
       queryParams.put("aggregator", "avg");
       queryParams.put("downsample", tu + "-avg");
@@ -448,7 +487,8 @@ public class OpenTSDBClient extends TimeseriesDB {
 
   @Override
   public Status delete(String table, String key) {
-    // not implemented in the YCSB-TS fork
+    // not implemented in the Query API for opentsdb.
+    // can be achieved through the command-line tools in the distribution, but those are out of scope for the connector.
     return Status.NOT_IMPLEMENTED;
   }
 }
