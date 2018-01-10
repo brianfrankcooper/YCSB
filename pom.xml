@@ -98,6 +98,7 @@ LICENSE file.
     <mongodb.async.version>2.0.1</mongodb.async.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
     <orientdb.version>2.2.10</orientdb.version>
+    <!-- opentsdb doesn't need a language-binding -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <redis.version>2.0.0</redis.version>
     <riak.version>2.0.5</riak.version>
@@ -147,6 +148,7 @@ LICENSE file.
     <module>mongodb</module>
     <module>nosqldb</module>
     <module>orientdb</module>
+    <module>opentsdb</module>
     <module>rados</module>
     <module>redis</module>
     <module>rest</module>
