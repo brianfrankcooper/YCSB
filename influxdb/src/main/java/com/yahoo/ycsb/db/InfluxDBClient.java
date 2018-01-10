@@ -17,7 +17,6 @@
 package com.yahoo.ycsb.db;
 
 import com.yahoo.ycsb.*;
-import com.yahoo.ycsb.workloads.TimeSeriesWorkload;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.Point;
@@ -32,7 +31,7 @@ import java.util.stream.Collectors;
  * InfluxDB client for YCSB framework.
  * Tagfilter seems a bit problematic/not working correctly
  */
-public class InfluxDBClient extends DB {
+public class InfluxDBClient extends TimeseriesDB {
 
   // influx-binding specific properties
   private static final String PROPERTY_IP = "ip";
@@ -53,9 +52,6 @@ public class InfluxDBClient extends DB {
   private static final String PROPERTY_TEST = "test";
   private static final String PROPERTY_TEST_DEFAULT = "false";
 
-  // defaults for downsampling. Basically we ignore it
-  private static final String DOWNSAMPLING_FUNCTION_PROPERTY_DEFAULT = "NONE";
-  private static final String DOWNSAMPLING_INTERVAL_PROPERTY_DEFAULT = "0";
   private static final String RETENTION_POLICY_DURATION = "INF";
   private static final String RETENTION_POLICY_SHARD_DURATION = "2d";
   private static final int RETENTION_POLICY_REPLICATION_FACTOR = 1;
@@ -71,24 +67,7 @@ public class InfluxDBClient extends DB {
   private boolean test;
   private final String valueFieldName = "value";
 
-  // Workload parameters that we need to parse this
-  private String timestampKey;
-  private String valueKey;
-  private String tagPairDelimiter;
-  private String queryTimeSpanDelimiter;
-  private String deleteDelimiter;
-  private TimeUnit timestampUnit;
-  private String groupByKey;
-  private String downsamplingKey;
-  private Integer downsamplingInterval;
-  private AggregationOperation downsamplingFunction;
-
   private InfluxDB client;
-
-  // FIXME move into core?
-  private enum AggregationOperation {
-    NONE, SUM, AVERAGE, COUNT
-  }
 
   /**
    * Initialize any state for this DB.
@@ -96,6 +75,8 @@ public class InfluxDBClient extends DB {
    */
   @Override
   public void init() throws DBException {
+    // initialize protected fields we need for workload
+    super.init();
     try {
       if (!getProperties().containsKey(PROPERTY_PORT)) {
         throw new DBException("No port given, abort.");
@@ -103,36 +84,6 @@ public class InfluxDBClient extends DB {
       if (!getProperties().containsKey(PROPERTY_IP)) {
         throw new DBException("No ip given, abort.");
       }
-
-      // taken from BasicTSDB
-      timestampKey = getProperties().getProperty(
-          TimeSeriesWorkload.TIMESTAMP_KEY_PROPERTY,
-          TimeSeriesWorkload.TIMESTAMP_KEY_PROPERTY_DEFAULT);
-      valueKey = getProperties().getProperty(
-          TimeSeriesWorkload.VALUE_KEY_PROPERTY,
-          TimeSeriesWorkload.VALUE_KEY_PROPERTY_DEFAULT);
-      tagPairDelimiter = getProperties().getProperty(
-          TimeSeriesWorkload.PAIR_DELIMITER_PROPERTY,
-          TimeSeriesWorkload.PAIR_DELIMITER_PROPERTY_DEFAULT);
-      queryTimeSpanDelimiter = getProperties().getProperty(
-          TimeSeriesWorkload.QUERY_TIMESPAN_DELIMITER_PROPERTY,
-          TimeSeriesWorkload.QUERY_TIMESPAN_DELIMITER_PROPERTY_DEFAULT);
-      deleteDelimiter = getProperties().getProperty(
-          TimeSeriesWorkload.DELETE_DELIMITER_PROPERTY,
-          TimeSeriesWorkload.DELETE_DELIMITER_PROPERTY_DEFAULT);
-      timestampUnit = TimeUnit.valueOf(getProperties().getProperty(
-          TimeSeriesWorkload.TIMESTAMP_UNITS_PROPERTY,
-          TimeSeriesWorkload.TIMESTAMP_UNITS_PROPERTY_DEFAULT));
-      groupByKey = getProperties().getProperty(
-          TimeSeriesWorkload.GROUPBY_KEY_PROPERTY,
-          TimeSeriesWorkload.GROUPBY_KEY_PROPERTY_DEFAULT);
-      downsamplingKey = getProperties().getProperty(
-          TimeSeriesWorkload.DOWNSAMPLING_KEY_PROPERTY,
-          TimeSeriesWorkload.DOWNSAMPLING_KEY_PROPERTY_DEFAULT);
-      downsamplingFunction = AggregationOperation.valueOf(getProperties()
-          .getProperty(TimeSeriesWorkload.DOWNSAMPLING_FUNCTION_PROPERTY, DOWNSAMPLING_FUNCTION_PROPERTY_DEFAULT));
-      downsamplingInterval = Integer.valueOf(getProperties()
-          .getProperty(TimeSeriesWorkload.DOWNSAMPLING_INTERVAL_PROPERTY, DOWNSAMPLING_INTERVAL_PROPERTY_DEFAULT));
 
       debug = Boolean.parseBoolean(getProperties().getProperty(PROPERTY_DEBUG, PROPERTY_DEBUG_DEFAULT));
       test = Boolean.parseBoolean(getProperties().getProperty(PROPERTY_TEST, PROPERTY_TEST_DEFAULT));
@@ -201,40 +152,15 @@ public class InfluxDBClient extends DB {
    */
   @Override
   public void cleanup() throws DBException {
-    this.client.close();
+    try {
+      this.client.close();
+    } catch (Exception e) {
+      throw new DBException(e);
+    }
   }
+
 
   @Override
-  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
-    Map<String, List<String>> tagQueries = new HashMap<>();
-    Long timestamp = null;
-    for (String field : fields) {
-      if (field.startsWith(timestampKey)) {
-        String[] timestampParts = field.split(tagPairDelimiter);
-        if (timestampParts[1].contains(queryTimeSpanDelimiter)) {
-          // seems like this should be a more elaborate query.
-          // for now we don't support querying ranges
-          // TODO: Support Timestamp range queries
-          return Status.NOT_IMPLEMENTED;
-        }
-        timestamp = Long.valueOf(timestampParts[1]);
-      } else {
-        String[] queryParts = field.split(tagPairDelimiter);
-        tagQueries.computeIfAbsent(queryParts[0], k -> new ArrayList<>()).add(queryParts[1]);
-      }
-    }
-
-    return read(table, timestamp, tagQueries);
-  }
-
-  /**
-   * Read a record from the database. Each value from the result will be stored in a HashMap
-   *
-   * @param metric    The name of the metric
-   * @param timestamp The timestamp of the record to read.
-   * @param tags      actual tags that were want to receive (can be empty)
-   * @return Zero on success, a non-zero error code on error or "not found".
-   */
   public Status read(String metric, Long timestamp, Map<String, List<String>> tags) {
     if (metric == null || metric.isEmpty()) {
       return Status.BAD_REQUEST;
@@ -291,66 +217,10 @@ public class InfluxDBClient extends DB {
     return Status.OK;
   }
 
+
   @Override
-  public Status scan(String table, String startkey, int recordcount, Set<String> fields,
-                     Vector<HashMap<String, ByteIterator>> result) {
-    Map<String, List<String>> tagQueries = new HashMap<>();
-    Long start = null;
-    Long end = null;
-    AggregationOperation aggregationOperation = AggregationOperation.NONE;
-    Set<String> groupByFields = new HashSet<>();
-
-    for (String field : fields) {
-      if (field.startsWith(timestampKey)) {
-        String[] timestampParts = field.split(tagPairDelimiter);
-        if (!timestampParts[1].contains(queryTimeSpanDelimiter)) {
-          // seems like this should be a more elaborate query.
-          // for now we don't support scanning single timestamps
-          // TODO: Support Timestamp range queries
-          return Status.NOT_IMPLEMENTED;
-        }
-        String[] rangeParts = timestampParts[1].split(queryTimeSpanDelimiter);
-        start = Long.valueOf(rangeParts[0]);
-        end = Long.valueOf(rangeParts[1]);
-      } else if (field.startsWith(groupByKey)) {
-        String groupBySpecifier = field.split(tagPairDelimiter)[1];
-        aggregationOperation = AggregationOperation.valueOf(groupBySpecifier);
-      } else if (field.startsWith(downsamplingKey)) {
-        String downsamplingSpec = field.split(tagPairDelimiter)[1];
-        // apparently that needs to always hold true:
-        if (!downsamplingSpec.equals(downsamplingFunction.toString() + downsamplingInterval.toString())) {
-          // FIXME instead return BAD_REQUEST?
-          System.err.print("Downsampling specification for Scan did not match configured downsampling");
-        }
-      } else {
-        String[] queryParts = field.split(tagPairDelimiter);
-        if (queryParts.length == 1) {
-          // we should probably warn about this being ignored...
-          System.err.println("Grouping by arbitrary series is currently not supported");
-          groupByFields.add(field);
-        } else {
-          tagQueries.computeIfAbsent(queryParts[0], k -> new ArrayList<>()).add(queryParts[1]);
-        }
-      }
-    }
-    return scan(table, start, end, tagQueries, downsamplingFunction, downsamplingInterval, timestampUnit);
-  }
-
-  /**
-   * Perform a range scan for a set of records in the database. Each value from the result will be stored in a
-   * HashMap.
-   *
-   * @param metric    The name of the metric
-   * @param startTs   The timestamp of the first record to read.
-   * @param endTs     The timestamp of the last record to read.
-   * @param tags      actual tags that were want to receive (can be empty).
-   * @param aggreg    The aggregation operation to perform.
-   * @param timeValue value for timeUnit for aggregation
-   * @param timeUnit  timeUnit for aggregation
-   * @return A {@link Status} detailing the outcome of the scan operation.
-   */
-  private Status scan(String metric, Long startTs, Long endTs, Map<String, List<String>> tags,
-                     AggregationOperation aggreg, int timeValue, TimeUnit timeUnit) {
+  protected Status scan(String metric, Long startTs, Long endTs, Map<String, List<String>> tags,
+                      TimeseriesDB.AggregationOperation aggreg, int timeValue, TimeUnit timeUnit) {
 
     if (metric == null || metric.isEmpty()) {
       return Status.BAD_REQUEST;
@@ -361,17 +231,17 @@ public class InfluxDBClient extends DB {
 
     String tagFilter = buildTagFilter(tags);
     String fieldStr = "*";
-    if (aggreg != AggregationOperation.NONE) {
-      if (aggreg == AggregationOperation.AVERAGE) {
+    if (aggreg != TimeseriesDB.AggregationOperation.NONE) {
+      if (aggreg == TimeseriesDB.AggregationOperation.AVERAGE) {
         fieldStr = "MEAN(" + this.valueFieldName + ")";
-      } else if (aggreg == AggregationOperation.COUNT) {
+      } else if (aggreg == TimeseriesDB.AggregationOperation.COUNT) {
         fieldStr = "COUNT(" + this.valueFieldName + ")";
-      } else if (aggreg == AggregationOperation.SUM) {
+      } else if (aggreg == TimeseriesDB.AggregationOperation.SUM) {
         fieldStr = "SUM(" + this.valueFieldName + ")";
       }
     }
     String groupByStr = "";
-    if (this.groupBy && timeValue != 0 && aggreg != AggregationOperation.NONE) {
+    if (this.groupBy && timeValue != 0 && aggreg != TimeseriesDB.AggregationOperation.NONE) {
       groupByStr = " GROUP BY time(" + timeValue + "%s)";
       if (timeUnit == TimeUnit.MILLISECONDS) {
         groupByStr = " GROUP BY time(" + TimeUnit.MICROSECONDS.convert(timeValue, timeUnit) + "u)";
@@ -435,40 +305,8 @@ public class InfluxDBClient extends DB {
     return Status.OK;
   }
 
-  private String buildTagFilter(Map<String, List<String>> tags) {
-    StringBuilder tagFilter = new StringBuilder();
-    for (String tag : tags.keySet()) {
-      tagFilter.append(" AND ( ");
-      tagFilter.append(tags.get(tag).stream()
-          .map(t -> String.format("%s = '%s'", tag, t))
-          .collect(Collectors.joining(" OR ")));
-      tagFilter.append(" )");
-    }
-    return tagFilter.toString();
-  }
-
   @Override
-  public Status insert(String table, String key, Map<String, ByteIterator> values) {
-    NumericByteIterator tsContainer = (NumericByteIterator) values.remove(timestampKey);
-    NumericByteIterator valueContainer = (NumericByteIterator) values.remove(valueKey);
-    if (!valueContainer.isFloatingPoint()) {
-      // non-double values are not supported by the adapter
-      return Status.BAD_REQUEST;
-    }
-    return insert(table, tsContainer.getLong(), valueContainer.getDouble(), values);
-  }
-
-  /**
-   * Insert a record in the database. Any tags/tagvalue pairs in the specified tags HashMap and the given value
-   * will be written into the record with the specified timestamp
-   *
-   * @param metric    The name of the metric
-   * @param timestamp The timestamp of the record to insert.
-   * @param value     actual value to insert
-   * @param tags      A HashMap of tag/tagvalue pairs to insert as tagsmv c
-   * @return A {@link Status} detailing the outcome of the insert
-   */
-  private Status insert(String metric, Long timestamp, double value, Map<String, ByteIterator> tags) {
+  protected Status insert(String metric, Long timestamp, double value, Map<String, ByteIterator> tags) {
     if (metric == null || metric.isEmpty()) {
       return Status.BAD_REQUEST;
     }
