@@ -18,7 +18,9 @@ import java.net.Socket;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -33,8 +35,13 @@ import java.util.concurrent.TimeUnit;
 public class AkumuliClient extends TimeseriesDB {
 
   private static final int MILIS_TO_NANOS = 1_000_000;
-  private boolean test = false;
-  private boolean debug = false;
+
+  public static final String IP_PROPERTY = "ip";
+  public static final String TCP_PORT_PROPERTY = "tcpPort";
+  public static final String HTTP_PORT_PROPERTY = "httpPort";
+  public static final String IP_PROPERTY_DEFAULT = "localhost";
+  public static final String TCP_PORT_PROPERTY_DEFAULT = "8282";
+  public static final String HTTP_PORT_PROPERTY_DEFAULT = "8181";
 
   /**
    * Inserting with TCP Server.
@@ -55,24 +62,19 @@ public class AkumuliClient extends TimeseriesDB {
   @Override
   public void init() throws DBException {
 
-    test = Boolean.parseBoolean(getProperties().getProperty("test", "false"));
-    debug = Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
-
-    if (!getProperties().containsKey("ip") && !test) {
+    if (!getProperties().containsKey(IP_PROPERTY) && !test) {
       throw new DBException("No ip given, abort.");
     }
-
-    if (!getProperties().containsKey("tcpPort") && !test) {
+    if (!getProperties().containsKey(TCP_PORT_PROPERTY) && !test) {
       throw new DBException("No TCP Server port given, abort.");
     }
-
-    if (!getProperties().containsKey("httpPort") && !test) {
+    if (!getProperties().containsKey(HTTP_PORT_PROPERTY) && !test) {
       throw new DBException("No HTTP Server port given, abort.");
     }
 
-    String ip = getProperties().getProperty("ip", "localhost");
-    int tcpPort = Integer.parseInt(getProperties().getProperty("tcpPort", "8282"));
-    int httpPort = Integer.parseInt(getProperties().getProperty("httpPort", "8181"));
+    String ip = getProperties().getProperty(IP_PROPERTY, IP_PROPERTY_DEFAULT);
+    int tcpPort = Integer.parseInt(getProperties().getProperty(TCP_PORT_PROPERTY, TCP_PORT_PROPERTY_DEFAULT));
+    int httpPort = Integer.parseInt(getProperties().getProperty(HTTP_PORT_PROPERTY, HTTP_PORT_PROPERTY_DEFAULT));
     tz = TimeZone.getTimeZone("UTC");
     df = new SimpleDateFormat("yyyyMMdd'T'HHmmss.SSSSSSSS");
     df.setTimeZone(tz);
