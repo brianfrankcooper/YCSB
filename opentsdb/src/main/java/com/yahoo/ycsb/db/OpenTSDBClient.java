@@ -69,18 +69,11 @@ public class OpenTSDBClient extends TimeseriesDB {
   private static final String PROPERTY_USE_MILLIS = "useMs";
   private static final String PROPERTY_USE_MILLIS_DEFAULT = "true";
 
-  private static final String PROPERTY_TEST = "test";
-  private static final String PROPERTY_TEST_DEFAULT = "false";
-
-  private static final String PROPERTY_DEBUG = "debug";
-  private static final String PROPERTY_DEBUG_DEFAULT = "false";
-
   // configuration containers
   private URL urlQuery;
   private URL urlPut;
   private String ip;
   private int port;
-  private boolean debug;
   /**
    * Versions above OpenTSDB 2.2 (included) can use this; Untested! Defaults to true
    */
@@ -93,7 +86,6 @@ public class OpenTSDBClient extends TimeseriesDB {
    * Millisecond or Second resolution. Defaults to true -> Millisecond resolution.
    */
   private boolean useMs;
-  private boolean test;
 
   // internal containers for implementation details
   private CloseableHttpClient client;
@@ -119,9 +111,6 @@ public class OpenTSDBClient extends TimeseriesDB {
         getProperty(PROPERTY_FILTER_FOR_TAGS, PROPERTY_FILTER_FOR_TAGS_DEFAULT));
     useCount = Boolean.parseBoolean(getProperties().getProperty(PROPERTY_USE_COUNT, PROPERTY_USE_COUNT_DEFAULT));
     useMs = Boolean.parseBoolean(getProperties().getProperty(PROPERTY_USE_MILLIS, PROPERTY_USE_MILLIS_DEFAULT));
-
-    debug = Boolean.parseBoolean(getProperties().getProperty(PROPERTY_DEBUG, PROPERTY_DEBUG_DEFAULT));
-    test = Boolean.parseBoolean(getProperties().getProperty(PROPERTY_TEST, PROPERTY_TEST_DEFAULT));
 
     try {
       RequestConfig requestConfig = RequestConfig.custom().build();
@@ -485,10 +474,12 @@ public class OpenTSDBClient extends TimeseriesDB {
     }
   }
 
+  /**
+   * Not implemented in the Query API for opentsdb.
+   * Can be achieved through the command-line tools in the distribution, but those are out of scope for the connector.
+   */
   @Override
   public Status delete(String table, String key) {
-    // not implemented in the Query API for opentsdb.
-    // can be achieved through the command-line tools in the distribution, but those are out of scope for the connector.
     return Status.NOT_IMPLEMENTED;
   }
 }

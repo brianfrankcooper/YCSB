@@ -40,17 +40,11 @@ public class InfluxDBClient extends TimeseriesDB {
   private static final String PROPERTY_DB_NAME = "dbName";
   private static final String PROPERTY_DB_NAME_DEFAULT = "ycsb";
 
-  private static final String PROPERTY_DEBUG = "debug";
-  private static final String PROPERTY_DEBUG_DEFAULT = "false";
-
   private static final String PROPERTY_BATCH = "batch";
   private static final String PROPERTY_BATCH_DEFAULT = "false";
 
   private static final String PROPERTY_RETENTION_POLICY = "retentionPolicy";
   private static final String PROPERTY_RETENTION_POLICY_DEFAULT = "autogen";
-
-  private static final String PROPERTY_TEST = "test";
-  private static final String PROPERTY_TEST_DEFAULT = "false";
 
   private static final String RETENTION_POLICY_DURATION = "INF";
   private static final String RETENTION_POLICY_SHARD_DURATION = "2d";
@@ -62,9 +56,7 @@ public class InfluxDBClient extends TimeseriesDB {
   private int port;
   private String dbName;
   private String retentionPolicy;
-  private boolean debug;
   private boolean groupBy = true;
-  private boolean test;
   private final String valueFieldName = "value";
 
   private InfluxDB client;
@@ -85,8 +77,6 @@ public class InfluxDBClient extends TimeseriesDB {
         throw new DBException("No ip given, abort.");
       }
 
-      debug = Boolean.parseBoolean(getProperties().getProperty(PROPERTY_DEBUG, PROPERTY_DEBUG_DEFAULT));
-      test = Boolean.parseBoolean(getProperties().getProperty(PROPERTY_TEST, PROPERTY_TEST_DEFAULT));
       dbName = getProperties().getProperty(PROPERTY_DB_NAME, PROPERTY_DB_NAME_DEFAULT);
       retentionPolicy = getProperties().getProperty(PROPERTY_RETENTION_POLICY, PROPERTY_RETENTION_POLICY_DEFAULT);
 
