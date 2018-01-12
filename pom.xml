@@ -120,6 +120,7 @@ LICENSE file.
     <module>accumulo1.7</module>
     <module>accumulo1.8</module>
     <module>aerospike</module>
+    <module>akumuli</module>
     <module>arangodb</module>
     <module>arangodb3</module>
     <module>asynchbase</module>
