@@ -1,0 +1,281 @@
+package com.yahoo.ycsb.db;
+
+import com.axibase.tsd.client.*;
+import com.axibase.tsd.model.data.TimeFormat;
+import com.axibase.tsd.model.data.command.GetSeriesQuery;
+import com.axibase.tsd.model.data.command.SimpleAggregateMatcher;
+import com.axibase.tsd.model.data.series.*;
+import com.axibase.tsd.model.data.series.aggregate.AggregateType;
+import com.axibase.tsd.model.system.ClientConfiguration;
+import com.axibase.tsd.model.system.TcpClientConfiguration;
+import com.axibase.tsd.network.SimpleCommand;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
+import com.yahoo.ycsb.TimeseriesDB;
+
+import javax.ws.rs.core.MultivaluedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * ATSD client for YCSB framework.
+ */
+public class ATSDClient extends TimeseriesDB {
+
+  private String ip = "localhost";
+  private int httpPort = 8088;
+  private int tcpPort = 8081;
+  private String username = "admin";
+  private String passwd = "adminadmin";
+
+  private HttpClientManager httpClientManager;
+  private TcpClientManager tcpClientManager;
+  private DataService dataService;
+
+  /**
+   * Initialize any state for this DB. Called once per DB instance; there is
+   * one DB instance per client thread.
+   */
+  @Override
+  public void init() throws DBException {
+    super.init();
+    try {
+      if (!getProperties().containsKey("http_port") && !test) {
+        throw new DBException("No http port given, abort.");
+      }
+      httpPort = Integer.parseInt(getProperties().getProperty("http_port", String.valueOf(httpPort)));
+
+      if (!getProperties().containsKey("tcp_port") && !test) {
+        throw new DBException("No tcp port given, abort.");
+      }
+      tcpPort = Integer.parseInt(getProperties().getProperty("tcp_port", String.valueOf(tcpPort)));
+
+      if (!getProperties().containsKey("ip") && !test) {
+        throw new DBException("No ip given, abort.");
+      }
+      ip = getProperties().getProperty("ip", ip);
+
+      if (!getProperties().containsKey("username") && !test) {
+        throw new DBException("No username given, abort.");
+      }
+      username = getProperties().getProperty("username", username);
+
+      if (!getProperties().containsKey("passwd") && !test) {
+        throw new DBException("No passwd given, abort.");
+      }
+      passwd = getProperties().getProperty("passwd", passwd);
+
+      if (debug) {
+        System.out.println("The following properties are given: ");
+        for (String element : getProperties().stringPropertyNames()) {
+          System.out.println(element + ": " + getProperties().getProperty(element));
+        }
+      }
+
+    } catch (Exception e) {
+      throw new DBException(e);
+    }
+
+    httpClientManager = createHttpClientManager(ip, httpPort, username, passwd);
+    dataService = new DataService(httpClientManager);
+    tcpClientManager = createTcpClientManager(ip, tcpPort);
+  }
+
+  private static HttpClientManager createHttpClientManager(String ip, int httpPort, String username, String passwd) {
+    ClientConfigurationFactory configurationFactory = new ClientConfigurationFactory("http", ip, httpPort, // serverPort
+        "/api/v1", "/api/v1", username, passwd, 3000, // connectTimeoutMillis
+        3000, // readTimeoutMillis
+        600000, // pingTimeout
+        false, // ignoreSSLErrors
+        false, // skipStreamingControl
+        false // enableGzipCompression
+    );
+    ClientConfiguration clientConfiguration = configurationFactory.createClientConfiguration();
+    System.out.println("Connecting to ATSD: " + clientConfiguration.getMetadataUrl());
+    HttpClientManager httpClientManager = new HttpClientManager(clientConfiguration);
+    httpClientManager.setBorrowMaxWaitMillis(1000);
+
+    return httpClientManager;
+  }
+
+  private static TcpClientManager createTcpClientManager(String ip, int tcpPort) {
+    TcpClientConfigurationFactory tcpConfigurationFactory =
+        new TcpClientConfigurationFactory(ip, tcpPort, false, 3000, 10000);
+    TcpClientConfiguration tcpClientConfiguration = tcpConfigurationFactory.createClientConfiguration();
+    TcpClientManager tcpClientManager = new TcpClientManager();
+    tcpClientManager.setClientConfiguration(tcpClientConfiguration);
+    tcpClientManager.setBorrowMaxWaitMillis(1000);
+
+    return tcpClientManager;
+  }
+
+  public void cleanup() throws DBException {
+    httpClientManager.close();
+    tcpClientManager.close();
+  }
+
+
+  /**
+   * @inheritdoc
+   */
+  @Override
+  public Status read(String metric, Long timestamp, Map<String, List<String>> tags) {
+    if (metric == null || metric.equals("") || timestamp == null) {
+      return Status.BAD_REQUEST;
+    }
+
+    if (test) {
+      return Status.OK;
+    }
+
+    // Problem: You cant ask for a timestamp at TS=x, you need to give a
+    // range. So: Begin: timestamp, End: timestamp + 1 ms
+    // We may get more than that, but we just take the right one
+    // There could also be more of them, so count
+    GetSeriesQuery command = new GetSeriesQuery(metric, metric);
+    command.setTags(intoMultiMap(tags));
+    command.setTimeFormat(TimeFormat.MILLISECONDS);
+    command.setStartTime(timestamp);
+    command.setEndTime(timestamp + 1);
+
+    List<Series> seriesList = dataService.retrieveSeries(command);
+
+    if (debug) {
+      System.out.println("Command: " + command.toString());
+      for (Series res : seriesList) {
+        System.out.println("Result: " + res.toString());
+      }
+    }
+
+    if (seriesList == null || seriesList.isEmpty()) {
+      System.err.println(
+          "ERROR: Found no series for metric: " + metric + " for timestamp: " + timestamp + " to read.");
+
+      return Status.NOT_FOUND;
+    }
+    int count = 0;
+    for (Series series : seriesList) {
+      for (Sample sample : series.getData()) {
+        if (sample.getTimeMillis() == timestamp) {
+          count++;
+        }
+      }
+    }
+
+    if (count == 0) {
+      System.err.println("ERROR: Found no values for metric: " + metric + " for timestamp: " + timestamp + ".");
+      return Status.NOT_FOUND;
+    } else if (count > 1) {
+      System.err.println(
+          "ERROR: Found more than one value for metric: " + metric + " for timestamp: " + timestamp + ".");
+      return Status.ERROR;
+    }
+
+    return Status.OK;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  @Override
+  public Status scan(String metric, Long startTs, Long endTs, Map<String, List<String>> tags,
+                     AggregationOperation aggreg, int timeValue, TimeUnit timeUnit) {
+    if (metric == null || metric.equals("") || startTs == null || endTs == null) {
+      return Status.BAD_REQUEST;
+    }
+    if (test) {
+      return Status.OK;
+    }
+
+    GetSeriesQuery command = new GetSeriesQuery(metric, metric);
+    command.setTags(intoMultiMap(tags));
+    command.setTimeFormat(TimeFormat.MILLISECONDS);
+    command.setStartTime(startTs);
+    command.setEndTime(endTs);
+
+    if (aggreg != AggregationOperation.NONE) {
+      // AVG;SUM;COUNT
+      AggregateType aggregateType = AggregateType.DETAIL;
+      switch (aggreg) {
+      case AVERAGE:
+        aggregateType = AggregateType.AVG;
+        break;
+      case COUNT:
+        aggregateType = AggregateType.COUNT;
+        break;
+      case SUM:
+        aggregateType = AggregateType.SUM;
+        break;
+      default:
+        // keeps the analyzer happy
+        break;
+      }
+
+      IntervalUnit intervalUnit = IntervalUnit.SECOND; // smallest unit
+      if (timeUnit == TimeUnit.MINUTES) {
+        intervalUnit = IntervalUnit.MINUTE;
+      } else if (timeUnit == TimeUnit.HOURS) {
+        intervalUnit = IntervalUnit.HOUR;
+      } else if (timeUnit == TimeUnit.DAYS) {
+        intervalUnit = IntervalUnit.DAY;
+      }
+
+      command.setAggregateMatcher(
+          new SimpleAggregateMatcher(new Interval(timeValue, intervalUnit), Interpolate.NONE, aggregateType));
+    }
+
+    List<Series> seriesList = dataService.retrieveSeries(command);
+    if (debug) {
+      System.out.println("Command: " + command.toString());
+      for (Series res : seriesList) {
+        System.out.println("Result: " + res.toString());
+      }
+    }
+    return Status.OK;
+  }
+
+  private MultivaluedHashMap<String, String> intoMultiMap(Map<String, List<String>> tags) {
+    MultivaluedHashMap<String, String> tagsMap = new MultivaluedHashMap<String, String>();
+
+    for (Map.Entry<String, List<String>> entry : tags.entrySet()) {
+      String tagKey = entry.getKey();
+      for (String tagValue : entry.getValue()) {
+        tagsMap.add(tagKey, tagValue);
+      }
+    }
+    return tagsMap;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  @Override
+  public Status insert(String metric, Long timestamp, double value, Map<String, ByteIterator> tags) {
+    if (metric == null || metric.equals("") || timestamp == null) {
+      return Status.BAD_REQUEST;
+    }
+
+    SimpleCommand command = new SimpleCommand(
+        String.format("series e:%s m:%s=%s ms:%s %s\n",
+            metric, metric, value, timestamp, convertTags(tags)));
+
+    tcpClientManager.send(command);
+
+    return Status.OK;
+  }
+
+  @Override
+  public Status delete(String table, String key) {
+    return null;
+  }
+
+  private String convertTags(Map<String, ByteIterator> tags) {
+    StringBuilder builder = new StringBuilder();
+    for (Map.Entry<String, ByteIterator> entry : tags.entrySet()) {
+      builder.append(String.format("t:%s=%s ", entry.getKey(), entry.getValue().toString()));
+    }
+    return builder.toString();
+  }
+}

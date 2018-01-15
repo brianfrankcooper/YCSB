@@ -124,6 +124,7 @@ LICENSE file.
     <module>arangodb</module>
     <module>arangodb3</module>
     <module>asynchbase</module>
+    <module>atsd</module>
     <module>azuredocumentdb</module>
     <module>azuretablestorage</module>
     <module>cassandra</module>
