@@ -24,11 +24,22 @@ import java.util.concurrent.TimeUnit;
  */
 public class ATSDClient extends TimeseriesDB {
 
-  private String ip = "localhost";
-  private int httpPort = 8088;
-  private int tcpPort = 8081;
-  private String username = "admin";
-  private String passwd = "adminadmin";
+  private static final String HTTP_PORT_PROPERTY = "httpPort";
+  private static final String HTTP_PORT_PROPERTY_DEFAULT = "8088";
+  private static final String TCP_PORT_PROPERTY = "tcpPort";
+  private static final String TCP_PORT_PROPERTY_DEFAULT = "8081";
+  private static final String IP_PROPERTY = "ip";
+  private static final String IP_PROPERTY_DEFAULT = "localhost";
+  private static final String USERNAME_PROPERTY = "username";
+  private static final String USERNAME_PROPERTY_DEFAULT = "admin";
+  private static final String PASSWORD_PROPERTY = "password";
+  private static final String PASSWORD_PROPERTY_DEFAULT = "adminadmin";
+
+  private String ip;
+  private int httpPort;
+  private int tcpPort;
+  private String username;
+  private String password;
 
   private HttpClientManager httpClientManager;
   private TcpClientManager tcpClientManager;
@@ -42,31 +53,27 @@ public class ATSDClient extends TimeseriesDB {
   public void init() throws DBException {
     super.init();
     try {
-      if (!getProperties().containsKey("http_port") && !test) {
+      if (!getProperties().containsKey(HTTP_PORT_PROPERTY) && !test) {
         throw new DBException("No http port given, abort.");
       }
-      httpPort = Integer.parseInt(getProperties().getProperty("http_port", String.valueOf(httpPort)));
-
-      if (!getProperties().containsKey("tcp_port") && !test) {
+      if (!getProperties().containsKey(TCP_PORT_PROPERTY) && !test) {
         throw new DBException("No tcp port given, abort.");
       }
-      tcpPort = Integer.parseInt(getProperties().getProperty("tcp_port", String.valueOf(tcpPort)));
-
-      if (!getProperties().containsKey("ip") && !test) {
+      if (!getProperties().containsKey(IP_PROPERTY) && !test) {
         throw new DBException("No ip given, abort.");
       }
-      ip = getProperties().getProperty("ip", ip);
-
-      if (!getProperties().containsKey("username") && !test) {
+      if (!getProperties().containsKey(USERNAME_PROPERTY) && !test) {
         throw new DBException("No username given, abort.");
       }
-      username = getProperties().getProperty("username", username);
-
-      if (!getProperties().containsKey("passwd") && !test) {
-        throw new DBException("No passwd given, abort.");
+      if (!getProperties().containsKey(PASSWORD_PROPERTY) && !test) {
+        throw new DBException("No password given, abort.");
       }
-      passwd = getProperties().getProperty("passwd", passwd);
 
+      httpPort = Integer.parseInt(getProperties().getProperty(HTTP_PORT_PROPERTY, HTTP_PORT_PROPERTY_DEFAULT));
+      tcpPort = Integer.parseInt(getProperties().getProperty(TCP_PORT_PROPERTY, TCP_PORT_PROPERTY_DEFAULT));
+      username = getProperties().getProperty(USERNAME_PROPERTY, USERNAME_PROPERTY_DEFAULT);
+      ip = getProperties().getProperty(IP_PROPERTY, IP_PROPERTY_DEFAULT);
+      password = getProperties().getProperty(PASSWORD_PROPERTY, PASSWORD_PROPERTY_DEFAULT);
       if (debug) {
         System.out.println("The following properties are given: ");
         for (String element : getProperties().stringPropertyNames()) {
@@ -78,7 +85,7 @@ public class ATSDClient extends TimeseriesDB {
       throw new DBException(e);
     }
 
-    httpClientManager = createHttpClientManager(ip, httpPort, username, passwd);
+    httpClientManager = createHttpClientManager(ip, httpPort, username, password);
     dataService = new DataService(httpClientManager);
     tcpClientManager = createTcpClientManager(ip, tcpPort);
   }
@@ -158,7 +165,7 @@ public class ATSDClient extends TimeseriesDB {
     int count = 0;
     for (Series series : seriesList) {
       for (Sample sample : series.getData()) {
-        if (sample.getTimeMillis() == timestamp) {
+        if (sample.getTimeMillis().equals(timestamp)) {
           count++;
         }
       }
@@ -266,9 +273,12 @@ public class ATSDClient extends TimeseriesDB {
     return Status.OK;
   }
 
+  /**
+   * Not implemented for series data, only for entities and metrics.
+   */
   @Override
   public Status delete(String table, String key) {
-    return null;
+    return Status.NOT_IMPLEMENTED;
   }
 
   private String convertTags(Map<String, ByteIterator> tags) {
