@@ -102,6 +102,9 @@ public class Couchbase2Client extends DB {
   static {
     // No need to send the full encoded_plan for this benchmark workload, less network overhead!
     System.setProperty("com.couchbase.query.encodedPlanEnabled", "false");
+
+    // Enable support for IPv6
+    System.setProperty("com.couchbase.forceIPv4", "false");
   }
 
   private static final String SEPARATOR = ":";
