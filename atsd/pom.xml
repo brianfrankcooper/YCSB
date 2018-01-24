@@ -21,7 +21,7 @@
     <dependency>
       <groupId>com.axibase</groupId>
       <artifactId>atsd-api-java</artifactId>
-      <version>1.0.0</version>
+      <version>${atsd.version}</version>
     </dependency>
   </dependencies>
 </project>

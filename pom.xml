@@ -77,6 +77,7 @@ LICENSE file.
     <arangodb.version>2.7.3</arangodb.version>
     <arangodb3.version>4.1.7</arangodb3.version>
     <asynchbase.version>1.7.1</asynchbase.version>
+    <atsd.version>1.0.1</atsd.version>
     <azuredocumentdb.version>1.8.1</azuredocumentdb.version>
     <azurestorage.version>4.0.0</azurestorage.version>
     <cassandra.cql.version>3.0.0</cassandra.cql.version>
