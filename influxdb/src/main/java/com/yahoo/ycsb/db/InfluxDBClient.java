@@ -129,8 +129,6 @@ public class InfluxDBClient extends TimeseriesDB {
               RETENTION_POLICY_SHARD_DURATION, RETENTION_POLICY_REPLICATION_FACTOR, RETENTION_POLICY_IS_DEFAULT);
         }
       }
-    } catch (retrofit.RetrofitError e) {
-      throw new DBException(String.format("Can't connect to %s:%s.)", ip, port) + e);
     } catch (Exception e) {
       throw new DBException(e);
     }
