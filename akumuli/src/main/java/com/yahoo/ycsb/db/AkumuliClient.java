@@ -77,7 +77,7 @@ public class AkumuliClient extends TimeseriesDB {
 
   @Override
   public void init() throws DBException {
-
+    super.init();
     if (!getProperties().containsKey(IP_PROPERTY) && !test) {
       throw new DBException("No ip given, abort.");
     }

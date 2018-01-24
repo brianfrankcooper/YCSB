@@ -128,6 +128,7 @@ LICENSE file.
     <module>atsd</module>
     <module>azuredocumentdb</module>
     <module>azuretablestorage</module>
+    <module>blueflood</module>
     <module>cassandra</module>
     <module>cloudspanner</module>
     <module>couchbase</module>
