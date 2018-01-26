@@ -37,7 +37,8 @@ public class IgniteYCSBClient extends com.yahoo.ycsb.DB {
   public void init() throws DBException {
     System.out.println("IgniteYCSBClient.init");
     super.init();
-    String tableName = getProperties().getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
+    String tableName = getProperties()
+        .getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
 
     createIgniteClient(tableName);
   }
@@ -45,7 +46,7 @@ public class IgniteYCSBClient extends com.yahoo.ycsb.DB {
   @Override
   public Status read(String table, String key, Set<String> fields,
                      Map<String, ByteIterator> result) {
-    LOG.debug("IgniteYCSBClient.read:{}",key);
+    LOG.debug("IgniteYCSBClient.read:{}", key);
     Map<String, String> r = cache.get(key);
     if (r == null) {
       return Status.NOT_FOUND;
@@ -88,9 +89,8 @@ public class IgniteYCSBClient extends com.yahoo.ycsb.DB {
 
 
   /**
-   *
-   * @param table The name of the table
-   * @param key The record key of the record to insert.
+   * @param table  The name of the table
+   * @param key    The record key of the record to insert.
    * @param values A HashMap of field/value pairs to insert in the record
    * @return
    */
@@ -98,8 +98,8 @@ public class IgniteYCSBClient extends com.yahoo.ycsb.DB {
   @Override
   public Status insert(String table, String key,
                        Map<String, ByteIterator> values) {
-   LOG.debug("IgniteYCSBClient.insert:{}|{}", table, values);
-   //todo: implement parameters driven batching and asynchronosity
+    LOG.debug("IgniteYCSBClient.insert:{}|{}", table, values);
+    //todo: implement parameters driven batching and asynchronosity
     try {
       cache.putAsync(key, toCachedValue(values));
       return Status.OK;
