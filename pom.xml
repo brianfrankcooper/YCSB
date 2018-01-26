@@ -92,6 +92,7 @@ LICENSE file.
     <hbase14.version>1.4.2</hbase14.version>
     <hbase20.version>2.0.0-beta-2</hbase20.version>
     <hypertable.version>0.9.5.6</hypertable.version>
+    <ignite.version>2.3.0</ignite.version>
     <infinispan.version>7.2.2.Final</infinispan.version>
     <kudu.version>1.1.0</kudu.version>
     <!--<mapkeeper.version>1.0</mapkeeper.version>-->
@@ -141,6 +142,7 @@ LICENSE file.
     <module>hbase14</module>
     <module>hbase20</module>
     <module>hypertable</module>
+    <module>ignite</module>
     <module>infinispan</module>
     <module>jdbc</module>
     <module>kudu</module>
