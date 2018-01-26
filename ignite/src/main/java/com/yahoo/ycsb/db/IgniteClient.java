@@ -13,14 +13,17 @@ import java.util.Arrays;
 /**
  *
  */
-public class IgniteClient {
+public final class  IgniteClient {
+
+  private IgniteClient() {
+  }
 
   private static final Logger LOG = LoggerFactory.getLogger(IgniteClient.class);
 
   static Ignite startIgnite() {
 
     String ipAddresses = System.getProperty("igniteIps", "127.0.0.1,127.0.0.1:47500..47509");
-    LOG.info("starting ignite with seed: {} \n\tto change them set property igniteIps to comma separated list of IPs",ipAddresses);
+    LOG.info("starting ignite with seed: {} \n\tset property igniteIps to comma separated list of IPs", ipAddresses);
 
     TcpDiscoverySpi spi = new TcpDiscoverySpi();
 
