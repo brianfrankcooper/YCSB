@@ -69,34 +69,52 @@ import static java.net.HttpURLConnection.*;
  */
 public class BluefloodClient extends TimeseriesDB {
 
+  private static final String PROPERTY_IP = "ip";
+
+  private static final String PROPERTY_TENANT_ID = "tenantId";
+  private static final String PROPERTY_TENANT_ID_DEFAULT = "usermetric";
+
+  private static final String PROPERTY_INGEST_PORT = "ingestPort";
+  private static final String PROPERTY_INGEST_PORT_DEFAULT = "19000";
+
+  private static final String PROPERTY_QUERY_PORT = "queryPort";
+  private static final String PROPERTY_QUERY_PORT_DEFAULT = "19001";
+
+  private static final String PROPERTY_RETRIES = "retries";
+  private static final String PROPERTY_RETRIES_DEFAULT = "3";
+
+  private static final String PROPERTY_TTL = "ttl";
+  private static final String PROPERTY_TTL_DEFAULT = "31536000"; // 1 year
+
+  // directly configured properties
+  private String ip;
+  private int retries;
+  private int ttl; // 1 Year TTL
+  // secondary stage properties (generated from configured props)
   private URL urlQuery = null;
   private URL urlIngest = null;
-  private String ip = "localhost";
-  private String queryURL = "/v2.0/%s/views";
-  private String ingestURL = "/v2.0/%s/ingest";
-  private String tenantId = "usermetric";
-  private int ingestPort = 19000;
-  private int queryPort = 19001;
   private CloseableHttpClient client;
-  private int ttl = 60 * 60 * 24 * 365; // 1 Year TTL
-  private int retries = 3;
+
 
   /**
-   * Initialize any state for this DB.
-   * Called once per DB instance; there is one DB instance per client thread.
+   * @inheritDoc
    */
   @Override
   public void init() throws DBException {
     super.init();
+    if (!getProperties().containsKey(PROPERTY_IP) && !test) {
+      throw new DBException("No ip given, abort.");
+    }
+    String tenantId;
+    int ingestPort;
+    int queryPort;
     try {
-      test = Boolean.parseBoolean(getProperties().getProperty("test", "false"));
-      ingestPort = Integer.parseInt(getProperties().getProperty("ingestPort", String.valueOf(ingestPort)));
-      queryPort = Integer.parseInt(getProperties().getProperty("queryPort", String.valueOf(queryPort)));
-      if (!getProperties().containsKey("ip") && !test) {
-        throw new DBException("No ip given, abort.");
-      }
-      ip = getProperties().getProperty("ip", ip);
-      ttl = Integer.parseInt(getProperties().getProperty("ttl", String.valueOf(ttl)));
+      ip = getProperties().getProperty(PROPERTY_IP, ip);
+      ingestPort = Integer.parseInt(getProperties().getProperty(PROPERTY_INGEST_PORT, PROPERTY_INGEST_PORT_DEFAULT));
+      queryPort = Integer.parseInt(getProperties().getProperty(PROPERTY_QUERY_PORT, PROPERTY_QUERY_PORT_DEFAULT));
+      ttl = Integer.parseInt(getProperties().getProperty(PROPERTY_TTL, PROPERTY_TTL_DEFAULT));
+      tenantId = getProperties().getProperty(PROPERTY_TENANT_ID, PROPERTY_TENANT_ID_DEFAULT);
+      retries = Integer.parseInt(getProperties().getProperty(PROPERTY_RETRIES, PROPERTY_RETRIES_DEFAULT));
       if (debug) {
         System.out.println("The following properties are given: ");
         for (String element : getProperties().stringPropertyNames()) {
@@ -112,11 +130,13 @@ public class BluefloodClient extends TimeseriesDB {
     }
 
     try {
-      urlQuery = new URL("http", ip, queryPort, String.format(queryURL, tenantId));
+      String queryURLFormat = "/v2.0/%s/views";
+      urlQuery = new URL("http", ip, queryPort, String.format(queryURLFormat, tenantId));
       if (debug) {
         System.out.println("URL: " + urlQuery);
       }
-      urlIngest = new URL("http", ip, ingestPort, String.format(ingestURL, tenantId));
+      String ingestURLFormat = "/v2.0/%s/ingest";
+      urlIngest = new URL("http", ip, ingestPort, String.format(ingestURLFormat, tenantId));
       if (debug) {
         System.out.println("URL: " + urlIngest);
       }
@@ -129,7 +149,7 @@ public class BluefloodClient extends TimeseriesDB {
     JSONObject jsonObj = new JSONObject();
     HttpResponse response = null;
     try {
-      HttpRequestBase method = null;
+      final HttpRequestBase method;
       if (queryStr != null) {
         HttpPost postMethod = new HttpPost(url.toString());
         StringEntity requestEntity = new StringEntity(queryStr, ContentType.APPLICATION_JSON);
@@ -192,8 +212,7 @@ public class BluefloodClient extends TimeseriesDB {
   }
 
   /**
-   * Cleanup any state for this DB.
-   * Called once per DB instance; there is one DB instance per client thread.
+   * @inheritDoc
    */
   @Override
   public void cleanup() throws DBException {
@@ -374,6 +393,9 @@ public class BluefloodClient extends TimeseriesDB {
     }
   }
 
+  /**
+   * Delete is not supported on blueflood.
+   */
   @Override
   public Status delete(String table, String key) {
     return Status.NOT_IMPLEMENTED;
