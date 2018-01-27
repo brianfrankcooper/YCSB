@@ -10,24 +10,31 @@ import org.apache.ignite.IgniteCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 /**
  *
  */
 public class IgniteYCSBClient extends com.yahoo.ycsb.DB {
+
+  public static final String INSERT_ASYNC = "insertAsync";
+  public static final String IGNITE_IPS = "igniteIPs";
+  public static final String BATCH_SIZE = "batchSize";
+
   private static final Logger LOG = LoggerFactory.getLogger(IgniteYCSBClient.class);
   private static Ignite ignite;
   private static IgniteCache<String, Map<String, String>> cache;
 
+  private boolean asyncInsert = false;
+  private int batchSize = 1;
+  private int batchCount = 0;
+  private Map<String, Map<String, String>> batchBuffer = new HashMap();
 
-  static synchronized void createIgniteClient(String cacheName) {
+
+  static synchronized void createIgniteClient(String cacheName, String igniteIPs) {
     if (ignite == null) {
       System.out.println("IgniteYCSBClient.createIgniteClient");
-      ignite = IgniteClient.startIgnite();
+      ignite = IgniteClient.startIgnite(igniteIPs);
       cache = ignite.getOrCreateCache(cacheName);
     }
   }
@@ -35,12 +42,20 @@ public class IgniteYCSBClient extends com.yahoo.ycsb.DB {
 
   @Override
   public void init() throws DBException {
-    System.out.println("IgniteYCSBClient.init");
+    System.out.println("Init this.toString() = " + this.toString());
     super.init();
-    String tableName = getProperties()
-        .getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
+    Properties props = getProperties();
+    String tableName = props.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
+    String igniteIPs = props.getProperty(IGNITE_IPS, "127.0.0.1,127.0.0.1:47500..47509");
+    asyncInsert = Boolean.valueOf(props.getProperty(INSERT_ASYNC, "false"));
+    batchSize = Integer.parseInt(props.getProperty(BATCH_SIZE, "1"));
+    createIgniteClient(tableName, igniteIPs);
 
-    createIgniteClient(tableName);
+    System.out.println(
+        "" + this +  ":" +
+        "\n\tBATCH_SIZE = " + batchSize +
+        "\n\tINSERT_ASYNC = " +asyncInsert);
+
   }
 
   @Override
@@ -72,7 +87,8 @@ public class IgniteYCSBClient extends com.yahoo.ycsb.DB {
   public Status scan(String table, String startkey, int recordcount,
                      Set<String> fields,
                      Vector<HashMap<String, ByteIterator>> result) {
-    return null;
+    LOG.warn("Ignite does not support scan semantics");
+    return Status.OK;
   }
 
   @Override
@@ -99,14 +115,49 @@ public class IgniteYCSBClient extends com.yahoo.ycsb.DB {
   public Status insert(String table, String key,
                        Map<String, ByteIterator> values) {
     LOG.debug("IgniteYCSBClient.insert:{}|{}", table, values);
-    //todo: implement parameters driven batching and asynchronosity
+    Map<String, String> valToCache = toCachedValue(values);
     try {
-      cache.putAsync(key, toCachedValue(values));
+
+      if (batchSize > 1) {
+        batchBuffer.put(key, valToCache);
+        if (++batchCount % batchSize == 0) {
+          insertBuffer();
+        }
+
+      } else {
+        if (asyncInsert) {
+          cache.putAsync(key, valToCache);
+        } else {
+          cache.put(key, valToCache);
+        }
+      }
+
+
       return Status.OK;
     } catch (Exception e) {
       LOG.error("insert error", e);
       return Status.ERROR;
     }
+  }
+
+  @Override
+  public void cleanup() throws DBException {
+    //will submit all the remaining records in batch
+    if (!batchBuffer.isEmpty()) {
+      insertBuffer();
+    }
+    super.cleanup();
+
+  }
+
+  private void insertBuffer() {
+    if (asyncInsert) {
+      cache.putAllAsync(batchBuffer);
+    } else {
+      cache.putAll(batchBuffer);
+    }
+    batchBuffer.clear();
+    batchCount = 0;
   }
 
   private Map<String, String> toCachedValue(Map<String, ByteIterator> values) {

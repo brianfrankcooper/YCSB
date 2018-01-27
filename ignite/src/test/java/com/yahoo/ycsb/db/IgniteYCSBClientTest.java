@@ -29,16 +29,33 @@ public class IgniteYCSBClientTest {
 
 
   @Test
-  public void testLoad() {
+  public void testLoadAsyncBatch() {
     com.yahoo.ycsb.Client.main(new String[]{
         "-load",
         "-db", "com.yahoo.ycsb.db.IgniteYCSBClient",
         "-p", "workload=com.yahoo.ycsb.workloads.CoreWorkload",
-        "-p", "threadcount=1",
+        "-p", "insertAsync=true",
+        "-p", "batchSize=10",
+        "-p", "threadcount=2",
         "-p", "recordcount=100",
         "-p", "operationcount=100",
     });
   }
+
+
+  @Test
+    public void testLoadSynk() {
+      com.yahoo.ycsb.Client.main(new String[]{
+          "-load",
+          "-db", "com.yahoo.ycsb.db.IgniteYCSBClient",
+          "-p", "workload=com.yahoo.ycsb.workloads.CoreWorkload",
+          "-p", "insertAsync=false",
+          "-p", "batchSize=1",
+          "-p", "threadcount=2",
+          "-p", "recordcount=100",
+          "-p", "operationcount=100",
+      });
+    }
 
 
   @Test
