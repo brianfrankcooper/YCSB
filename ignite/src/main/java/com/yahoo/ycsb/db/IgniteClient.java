@@ -20,10 +20,11 @@ public final class  IgniteClient {
 
   private static final Logger LOG = LoggerFactory.getLogger(IgniteClient.class);
 
-  static Ignite startIgnite() {
+  static Ignite startIgnite(String igniteIPs) {
 
-    String ipAddresses = System.getProperty("igniteIps", "127.0.0.1,127.0.0.1:47500..47509");
-    LOG.info("starting ignite with seed: {} \n\tset property igniteIps to comma separated list of IPs", ipAddresses);
+
+    LOG.info("starting ignite with seed: {} \n\tset property " +
+        IgniteYCSBClient.IGNITE_IPS+" to comma separated list of IPs", igniteIPs);
 
     TcpDiscoverySpi spi = new TcpDiscoverySpi();
 
@@ -31,7 +32,7 @@ public final class  IgniteClient {
 
     // Set initial IP addresses.
     // Note that you can optionally specify a port or a port range.
-    ipFinder.setAddresses(Arrays.asList(ipAddresses.split(",")));
+    ipFinder.setAddresses(Arrays.asList(igniteIPs.split(",")));
 
     spi.setIpFinder(ipFinder);
 
