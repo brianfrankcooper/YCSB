@@ -39,6 +39,8 @@ LICENSE file.
       <artifactId>core</artifactId>
       <version>${project.version}</version>
     </dependency>
+
+    <!-- ycsb-bindings: lex sorted -->
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>accumulo1.6-binding</artifactId>
@@ -86,6 +88,16 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>azuredocumentdb-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>azuretablestorage-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
       <artifactId>blueflood-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -111,12 +123,7 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>azuredocumentdb-binding</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>azuretablestorage-binding</artifactId>
+      <artifactId>databus-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

@@ -71,6 +71,7 @@ DATABASES = {
     "cloudspanner" : "com.yahoo.ycsb.db.cloudspanner.CloudSpannerClient",
     "couchbase"    : "com.yahoo.ycsb.db.CouchbaseClient",
     "couchbase2"   : "com.yahoo.ycsb.db.couchbase2.Couchbase2Client",
+    "databus"      : "com.yahoo.ycsb.db.DatabusClient",
     "dynamodb"     : "com.yahoo.ycsb.db.DynamoDBClient",
     "elasticsearch": "com.yahoo.ycsb.db.ElasticsearchClient",
     "elasticsearch5": "com.yahoo.ycsb.db.elasticsearch5.ElasticsearchClient",

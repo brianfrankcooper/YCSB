@@ -89,7 +89,6 @@ LICENSE file.
         <module name="StaticVariableName"/>
         <module name="TypeName"/>
 
-
         <!-- Checks for Headers                                -->
         <!-- See http://checkstyle.sf.net/config_header.html   -->
         <!-- <module name="Header">                            -->
