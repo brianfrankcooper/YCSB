@@ -20,7 +20,7 @@ public final class  IgniteClient {
 
   private static final Logger LOG = LoggerFactory.getLogger(IgniteClient.class);
 
-  static Ignite startIgnite(String igniteIPs) {
+  static Ignite startIgnite(String igniteIPs, boolean clientMode) {
 
 
     LOG.info("starting ignite with seed: {} \n\tset property " +
@@ -37,7 +37,8 @@ public final class  IgniteClient {
     spi.setIpFinder(ipFinder);
 
     IgniteConfiguration cfg = new IgniteConfiguration();
-    cfg.setClientMode(true);
+    cfg.setClientMode(clientMode);
+    cfg.setIgniteInstanceName((clientMode)? "client":"gridNode-"+System.currentTimeMillis());
     // Override default discovery SPI.
     cfg.setDiscoverySpi(spi);
     return Ignition.start(cfg);
