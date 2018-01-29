@@ -33,7 +33,7 @@ public class IgniteYCSBClient extends com.yahoo.ycsb.DB {
 
   static synchronized void createIgniteClient(String cacheName, String igniteIPs) {
     if (ignite == null) {
-      System.out.println("IgniteYCSBClient.createIgniteClient");
+      LOG.debug("IgniteYCSBClient.createIgniteClient");
       ignite = IgniteClient.startIgnite(igniteIPs);
       cache = ignite.getOrCreateCache(cacheName);
     }
@@ -42,7 +42,6 @@ public class IgniteYCSBClient extends com.yahoo.ycsb.DB {
 
   @Override
   public void init() throws DBException {
-    System.out.println("Init this.toString() = " + this.toString());
     super.init();
     Properties props = getProperties();
     String tableName = props.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
@@ -51,7 +50,7 @@ public class IgniteYCSBClient extends com.yahoo.ycsb.DB {
     batchSize = Integer.parseInt(props.getProperty(BATCH_SIZE, "1"));
     createIgniteClient(tableName, igniteIPs);
 
-    System.out.println(
+    LOG.info(
         "" + this +  ":" +
         "\n\tBATCH_SIZE = " + batchSize +
         "\n\tINSERT_ASYNC = " +asyncInsert);
@@ -88,7 +87,7 @@ public class IgniteYCSBClient extends com.yahoo.ycsb.DB {
                      Set<String> fields,
                      Vector<HashMap<String, ByteIterator>> result) {
     LOG.warn("Ignite does not support scan semantics");
-    return Status.OK;
+    return Status.NOT_IMPLEMENTED;
   }
 
   @Override
