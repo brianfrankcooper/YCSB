@@ -42,12 +42,35 @@ You can clone the YCSB project and compile it to stay up to date with the latest
 
 ## Load data
 
-bin/ycsb load ignite -P workloads/workloada
+    bin/ycsb load ignite -P workloads/workloada
+
+or load asynchronously
+
+    bin/ycsb load ignite \
+                      -p workload=com.yahoo.ycsb.workloads.CoreWorkload \
+                      -p insertAsync=true \
+                      -p batchSize=10 \
+                      -p threadcount=2 \
+                      -p recordcount=100 \
+                      -p operationcount=100
+                      
+                      
+or load synchronously  
+
+    bin/ycsb load ignite \
+                      -p workload=com.yahoo.ycsb.workloads.CoreWorkload \
+                      -p insertAsync=false \
+                      -p batchSize=10 \
+                      -p threadcount=2 \
+                      -p recordcount=100 \
+                      -p operationcount=100                    
 
 ## Run
-bin/ycsb run ignite -P workloads/workloada
+
+    bin/ycsb run ignite -P workloads/workloada
+
 
 
 Check style
 --
-mvn checkstyle:check  -Dcheckstyle.config.location=$(pwd)/../checkstyle.xml
+    mvn checkstyle:check  -Dcheckstyle.config.location=$(pwd)/../checkstyle.xml

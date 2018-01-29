@@ -29,22 +29,26 @@ public class IgniteYCSBClient extends com.yahoo.ycsb.DB {
   private int batchSize = 1;
   private int batchCount = 0;
   private Map<String, Map<String, String>> batchBuffer = new HashMap();
+  private String tableName;
 
 
   static synchronized void createIgniteClient(String cacheName, String igniteIPs) {
     if (ignite == null) {
       LOG.debug("IgniteYCSBClient.createIgniteClient");
-      ignite = IgniteClient.startIgnite(igniteIPs);
+      ignite = IgniteClient.startIgnite(igniteIPs, true);
       cache = ignite.getOrCreateCache(cacheName);
     }
   }
 
+  public String getTableName() {
+    return tableName;
+  }
 
   @Override
   public void init() throws DBException {
     super.init();
     Properties props = getProperties();
-    String tableName = props.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
+    tableName = props.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
     String igniteIPs = props.getProperty(IGNITE_IPS, "127.0.0.1,127.0.0.1:47500..47509");
     asyncInsert = Boolean.valueOf(props.getProperty(INSERT_ASYNC, "false"));
     batchSize = Integer.parseInt(props.getProperty(BATCH_SIZE, "1"));
