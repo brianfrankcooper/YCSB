@@ -68,6 +68,18 @@ import static com.yahoo.ycsb.TimeseriesDB.AggregationOperation.NONE;
  */
 public class DatabusClient extends TimeseriesDB {
 
+  // required properties
+  private static final String PROPERTY_IP = "ip";
+  private static final String PROPERTY_PORT = "port";
+  private static final String PROPERTY_USER = "user";
+  private static final String PROPERTY_API_KEY = "apiKey";
+  private static final String PROPERTY_TABLE_TYPE = "tableType";
+
+  // optional properties
+  private static final String PROPERTY_DATABASE_NAME = "dbName";
+  private static final String PROPERTY_DATABASE_NAME_DEFAULT = "ycsb_db";
+
+
   private HttpClient httpClient;
 
   /**
@@ -95,6 +107,7 @@ public class DatabusClient extends TimeseriesDB {
    * are using this metric. If new metric names will be added or existing ones
    * modified, this array must be adapted appropriately.
    */
+  // FIXME create metrics on demand
   private static final String[] METRIC_NAMES = {"usermetric"};
 
   /**
@@ -102,12 +115,8 @@ public class DatabusClient extends TimeseriesDB {
    * workloads are using these tag names. If new tag names will be added or
    * existing ones modified, this array must be adapted appropriately.
    */
+  // FIXME create tag names on demand, if possible
   private static final String[] TAG_NAMES = {"TAG0", "TAG1", "TAG2"};
-
-  /**
-   * For storing tables in.
-   */
-  private static final String DATABASE_NAME = "ycsb_db";
 
   private TableType tableType;
 
@@ -118,33 +127,29 @@ public class DatabusClient extends TimeseriesDB {
   public void init() throws DBException {
     super.init();
 
-    if (!getProperties().containsKey("ip") && !test) {
+    if (!getProperties().containsKey(PROPERTY_IP) && !test) {
       throw new DBException("No ip given, abort.");
     }
-
-    if (!getProperties().containsKey("port") && !test) {
+    if (!getProperties().containsKey(PROPERTY_PORT) && !test) {
       throw new DBException("No port given, abort.");
     }
-
-    if (!getProperties().containsKey("user") && !test) {
+    if (!getProperties().containsKey(PROPERTY_USER) && !test) {
       throw new DBException("No user name given, abort.");
     }
-
-    if (!getProperties().containsKey("apiKey") && !test) {
+    if (!getProperties().containsKey(PROPERTY_API_KEY) && !test) {
       throw new DBException("No API key given, abort.");
     }
-
-    if ((!getProperties().containsKey("tableType")
-        || !TableType.isFriendlyName(getProperties().getProperty("tableType"))) && !test) {
+    if ((!getProperties().containsKey(PROPERTY_TABLE_TYPE)
+        || !TableType.isFriendlyName(getProperties().getProperty(PROPERTY_TABLE_TYPE))) && !test) {
       throw new DBException("No or not invalid table type given, abort.");
     }
 
-    String ip = getProperties().getProperty("ip", "localhost");
-    // Default port in prod config: 8080
-    int port = Integer.parseInt(getProperties().getProperty("port", "8080"));
-    String user = getProperties().getProperty("user", "admin");
-    String apiKey = getProperties().getProperty("apiKey", "adminregkey");
-    tableType = TableType.getEnumOfFriendlyName(getProperties().getProperty("tableType"));
+    String ip = getProperties().getProperty(PROPERTY_IP);
+    int port = Integer.parseInt(getProperties().getProperty(PROPERTY_PORT));
+    String user = getProperties().getProperty(PROPERTY_USER);
+    String apiKey = getProperties().getProperty(PROPERTY_API_KEY);
+
+    tableType = TableType.getEnumOfFriendlyName(getProperties().getProperty(PROPERTY_TABLE_TYPE));
 
     if (debug) {
       System.out.println("The following properties are given: ");
@@ -175,8 +180,8 @@ public class DatabusClient extends TimeseriesDB {
         authCache.put(httpHost, basicAuth);
         httpContext.setAuthCache(authCache);
 
-        createDbAndTables(DATABASE_NAME, METRIC_NAMES, TAG_NAMES);
-
+        final String dbName = getProperties().getProperty(PROPERTY_DATABASE_NAME, PROPERTY_DATABASE_NAME_DEFAULT);
+        createDbAndTables(dbName, METRIC_NAMES, TAG_NAMES);
       } catch (Exception e) {
         throw new DBException(e);
       }
