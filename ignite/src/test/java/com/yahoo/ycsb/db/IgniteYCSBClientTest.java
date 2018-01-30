@@ -20,16 +20,14 @@ import static org.junit.Assert.assertEquals;
  *
  */
 public class IgniteYCSBClientTest {
-
-  static Ignite ignite;
-  static IgniteCache<Object, Object> cache;
+  
   static IgniteYCSBClient igniteClient;
   private static String tableName;
   public final String testKey = "a";
 
   @BeforeClass
   public static void setup() throws DBException {
-    ignite = IgniteClient.startIgnite("127.0.0.1", false);
+    IgniteClient.startIgnite("127.0.0.1", false);
     igniteClient = new IgniteYCSBClient();
     igniteClient.init();
     tableName = igniteClient.getTableName();
