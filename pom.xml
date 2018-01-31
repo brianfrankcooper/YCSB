@@ -134,6 +134,7 @@ LICENSE file.
     <module>couchbase</module>
     <module>couchbase2</module>
     <module>databus</module>
+    <module>druid</module>
     <module>dynamodb</module>
     <module>elasticsearch</module>
     <module>elasticsearch5</module>
