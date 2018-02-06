@@ -22,6 +22,7 @@ import com.metamx.tranquility.druid.DruidBeams;
 import com.metamx.tranquility.druid.DruidDimensions;
 import com.metamx.tranquility.druid.DruidLocation;
 import com.metamx.tranquility.druid.DruidRollup;
+import com.metamx.tranquility.tranquilizer.Tranquilizer;
 import com.metamx.tranquility.typeclass.Timestamper;
 import com.twitter.finagle.Service;
 import com.twitter.util.Await;
@@ -31,6 +32,7 @@ import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.TimeseriesDB;
 import io.druid.data.input.impl.TimestampSpec;
+import io.druid.granularity.QueryGranularities;
 import io.druid.granularity.QueryGranularity;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -87,15 +89,19 @@ public class DruidClient extends TimeseriesDB {
   private String queryIP = "localhost"; // normally broker node,but historical/realtime is possible
   private String queryPort = "8090"; // normally broker node,but historical/realtime is possible
   private String queryURL = "/druid/v2/?pretty";
+  private int retries = 3;
+
   private URL urlQuery = null;
   private long insertStart = 0; // Workload
   private long insertEnd = 0; // Workload
   private int timeResolution = 0; // Workload
   private long realInsertStart = 0; // Druid
   private long realInsertEnd = 0; // Druid
+
   private Period windowPeriod = new Period().withDays(2);
   private Granularity segmentGranularity = Granularity.MONTH;
-  private QueryGranularity queryGranularity = QueryGranularity.NONE; // Millisecond Querys
+  // Millisecond Querys
+  private QueryGranularity queryGranularity = QueryGranularities.NONE;
   // does not help for first task, but spawns task for second segment 10 minutes earlier,
   // see: https://groups.google.com/forum/#!topic/druid-user/UT5JNSZqAuk
   private Period warmingPeriod = new Period().withMinutes(10);
@@ -106,17 +112,12 @@ public class DruidClient extends TimeseriesDB {
   // see http://druid.io/docs/latest/querying/aggregations.html
   private boolean doubleSum = true;
   private List<String> dimensions = new ArrayList<>();
-  //    private List<AggregatorFactory> aggregators;
-  private Timestamper<Map<String, Object>> timestamper;
   private CuratorFramework curator;
   private CloseableHttpClient client;
-  private final TimestampSpec timestampSpec = new TimestampSpec("timestamp", "auto");
-  private Service<List<Map<String, Object>>, Integer> druidService;
+  private final TimestampSpec timestampSpec = new TimestampSpec("timestamp", "auto", null);
+  private Tranquilizer<Map<String, Object>> druidService;
 
-  private int retries = 3;
   private String phase;
-  private int tagCount;
-  private String tagPrefix;
   private static final String PHASE_PROPERTY = "phase"; // See Client.java
   private static final String TAG_PREFIX_PROPERTY = "tagprefix"; // see CoreWorkload.java
   private static final String TAG_PREFIX_PROPERTY_DEFAULT = "TAG"; // see CoreWorkload.java
@@ -139,13 +140,8 @@ public class DruidClient extends TimeseriesDB {
           System.out.println(element + ": " + getProperties().getProperty(element));
         }
       }
-      // You don't get Logging completely off :/
-      timestamper = new Timestamper<Map<String, Object>>() {
-        @Override
-        public DateTime timestamp(Map<String, Object> theMap) {
-          return new DateTime(theMap.get("timestamp"));
-        }
-      };
+
+
       curator = CuratorFrameworkFactory
           .builder()
           .connectString(String.format("%s:%s", zookeeperIP, zookeeperPort))
@@ -154,7 +150,7 @@ public class DruidClient extends TimeseriesDB {
       if (!test) {
         curator.start();
         druidService = DruidBeams
-            .builder(timestamper)
+            .builder((Timestamper<Map<String, Object>>) theMap -> new DateTime(theMap.get("timestamp")))
             .curator(curator)
             .discoveryPath(discoveryPath)
             .location(
@@ -176,7 +172,7 @@ public class DruidClient extends TimeseriesDB {
                     .warmingPeriod(this.warmingPeriod)
                     .build()
             )
-            .buildJavaService();
+            .buildTranquilizer();
         RequestConfig requestConfig = RequestConfig.custom().build();
         if (!test) {
           client = HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).build();
@@ -256,8 +252,8 @@ public class DruidClient extends TimeseriesDB {
     }
     phase = getProperties().getProperty(PHASE_PROPERTY, "");
     dataSource = getProperties().getProperty(METRICNAME_PROPERTY, dataSource);
-    tagCount = Integer.valueOf(getProperties().getProperty(TAG_COUNT_PROPERTY, TAG_COUNT_PROPERTY_DEFAULT));
-    tagPrefix = getProperties().getProperty(TAG_PREFIX_PROPERTY, TAG_PREFIX_PROPERTY_DEFAULT);
+    int tagCount = Integer.valueOf(getProperties().getProperty(TAG_COUNT_PROPERTY, TAG_COUNT_PROPERTY_DEFAULT));
+    String tagPrefix = getProperties().getProperty(TAG_PREFIX_PROPERTY, TAG_PREFIX_PROPERTY_DEFAULT);
     dimensions.add("value");
     for (int i = 0; i < tagCount; i++) {
       dimensions.add(tagPrefix + i);

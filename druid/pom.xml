@@ -21,14 +21,8 @@
     </dependency>
     <dependency>
       <groupId>io.druid</groupId>
-      <artifactId>tranquility_2.10</artifactId>
-      <version>0.5.1</version>
-      <exclusions>
-        <exclusion>
-          <artifactId>sigar</artifactId>
-          <groupId>org.hyperic</groupId>
-        </exclusion>
-      </exclusions>
+      <artifactId>tranquility-core_2.11</artifactId>
+      <version>0.8.2</version>
     </dependency>
     <dependency>
       <groupId>org.json</groupId>
