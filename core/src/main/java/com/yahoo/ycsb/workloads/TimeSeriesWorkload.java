@@ -1252,7 +1252,7 @@ public class TimeSeriesWorkload extends Workload {
         boolean tagRollover = false;
         for (int i = tagCardinality.length - 1; i >= 0; --i) {
           if (tagCardinality[i] <= 1) {
-            // nothing to increment here
+            tagRollover = true; // Only one tag so needs roll over.
             continue;
           }
           
