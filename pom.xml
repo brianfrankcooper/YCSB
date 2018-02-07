@@ -139,6 +139,7 @@ LICENSE file.
     <module>elasticsearch</module>
     <module>elasticsearch5</module>
     <module>geode</module>
+    <module>gnocchi</module>
     <module>googlebigtable</module>
     <module>googledatastore</module>
     <module>hbase098</module>
