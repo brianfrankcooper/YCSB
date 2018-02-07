@@ -132,4 +132,8 @@ public abstract class DB {
    * @return The result of the operation.
    */
   public abstract Status delete(String table, String key);
+
+  public static void throwMissingProperty(String propertyName) throws DBException {
+    throw new DBException(String.format("Required property %s is missing", propertyName));
+  }
 }

@@ -24,13 +24,9 @@ import com.metamx.tranquility.druid.DruidLocation;
 import com.metamx.tranquility.druid.DruidRollup;
 import com.metamx.tranquility.tranquilizer.Tranquilizer;
 import com.metamx.tranquility.typeclass.Timestamper;
-import com.twitter.finagle.Service;
 import com.twitter.util.Await;
 import com.twitter.util.Future;
-import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.DBException;
-import com.yahoo.ycsb.Status;
-import com.yahoo.ycsb.TimeseriesDB;
+import com.yahoo.ycsb.*;
 import io.druid.data.input.impl.TimestampSpec;
 import io.druid.granularity.QueryGranularities;
 import io.druid.granularity.QueryGranularity;
@@ -49,17 +45,21 @@ import org.joda.time.DateTime;
 import org.joda.time.Period;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import scala.runtime.BoxedUnit;
 
 import java.io.*;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.yahoo.ycsb.TimeseriesDB.AggregationOperation.*;
+import static java.nio.file.StandardOpenOption.*;
 
 /**
  * Druid Client for YCSB framework.
@@ -79,24 +79,78 @@ import static com.yahoo.ycsb.TimeseriesDB.AggregationOperation.*;
  * </ul>
  */
 public class DruidClient extends TimeseriesDB {
+  // constants
+  private static final String QUERY_ENDPOINT = "/druid/v2/?pretty";
+  private static final String FIREHOSE_PATTERN = "druid:firehose:%s";
 
-  private String zookeeperIP = "localhost";
-  private String zookeeperPort = "2181";
-  private String indexService = "overlord";
-  private String firehosePattern = "druid:firehose:%s";
-  private String discoveryPath = "/druid/discovery";
-  private String dataSource = "usermetric";
-  private String queryIP = "localhost"; // normally broker node,but historical/realtime is possible
-  private String queryPort = "8090"; // normally broker node,but historical/realtime is possible
-  private String queryURL = "/druid/v2/?pretty";
+  // property-related constants
+  private static final String ZOOKEEPER_IP_PROPERTY = "zookeeperIp";
+  private static final String QUERY_IP_PROPERTY = "queryIp";
+  private static final String INSERT_START_PROPERTY = "insertStart";
+  private static final String INSERT_END_PROPERTY = "insertEnd";
+  private static final String TIME_RESOLUTION_PROPERTY = "timeResolution";
+
+  private static final String ZOOKEEPER_PORT_PROPERTY = "zookeeperPort";
+  private static final String ZOOKEEPER_PORT_PROPERTY_DEFAULT = "2181";
+
+  private static final String INDEX_SERVICE_PROPERTY = "indexService";
+  private static final String INDEX_SERVICE_PROPERTY_DEFAULT = "overlord";
+
+  private static final String SERVICE_DISCOVERY_PATH_PROPERTY = "serviceDiscoveryPath";
+  private static final String SERVICE_DISCOVERY_PATH_PROPERTY_DEFAULT = "/druid/discovery";
+
+  private static final String DATA_SOURCE_PROPERTY = "dataSource";
+  private static final String DATA_SOURCE_PROPERTY_DEFAULT = "usermetric";
+
+  private static final String QUERY_PORT_PROPERTY = "queryPort";
+  private static final String QUERY_PORT_PROPERTY_DEFAULT = "8090";
+
+  private static final String PARTITIONS_PROPERTY = "partitions";
+  private static final int PARTITIONS_PROPERTY_DEFAULT = 1;
+
+  private static final String REPLICANTS_PROPERTY = "replicants";
+  private static final int REPLICANTS_PROPERTY_DEFAULT = 1;
+
+  private static final String TIMESTAMP_FILE_PROPERTY = "timestampFile";
+  private static final String TIMESTAMP_FILE_PROPERTY_DEFAULT = "timestamps.txt";
+
+  private static final String DOUBLE_SUM_PROPERTY = "doubleSum";
+  private static final String DOUBLE_SUM_PROPERTY_DEFAULT = "true";
+
+  // properties themselves
+  private String zookeeperIP;
+  private String zookeeperPort;
+  private String indexService;
+  private String discoveryPath;
+  private String dataSource;
+  // usually the broker node, but it can directly point to a historical / realtime node as well
+  private String queryIP;
+  private String queryPort;
+
+  private int partitions;
+  private int replicants;
+
+  // the following three are what the workload expects.
+  // they must be transposed from [insertStart, insertEnd] into [realInsertStart, realInsertEnd]
+  private long insertStart;
+  private long insertEnd;
+  private int timeResolution;
+
+  private String timestampFile = "timestamps.txt";
+  // if false do longSum, which should be faster (non floating point),
+  // see http://druid.io/docs/latest/querying/aggregations.html
+  private boolean doubleSum = true;
+
+  // internal workings
+
+  // are read from file / written to file during init()
+  // see #insertStart
+  private long realInsertStart = 0;
+  private long realInsertEnd = 0;
+
+  private URL urlQuery;
+  private String timestampColumn = "timestamp";
   private int retries = 3;
-
-  private URL urlQuery = null;
-  private long insertStart = 0; // Workload
-  private long insertEnd = 0; // Workload
-  private int timeResolution = 0; // Workload
-  private long realInsertStart = 0; // Druid
-  private long realInsertEnd = 0; // Druid
 
   private Period windowPeriod = new Period().withDays(2);
   private Granularity segmentGranularity = Granularity.MONTH;
@@ -105,26 +159,89 @@ public class DruidClient extends TimeseriesDB {
   // does not help for first task, but spawns task for second segment 10 minutes earlier,
   // see: https://groups.google.com/forum/#!topic/druid-user/UT5JNSZqAuk
   private Period warmingPeriod = new Period().withMinutes(10);
-  private int partitions = 1;
-  private int replicants = 1;
 
-  // if false do longSum, which should be faster (non floating point),
-  // see http://druid.io/docs/latest/querying/aggregations.html
-  private boolean doubleSum = true;
   private List<String> dimensions = new ArrayList<>();
   private CuratorFramework curator;
   private CloseableHttpClient client;
-  private final TimestampSpec timestampSpec = new TimestampSpec("timestamp", "auto", null);
+  private final TimestampSpec timestampSpec = new TimestampSpec(timestampColumn, "auto", null);
   private Tranquilizer<Map<String, Object>> druidService;
 
-  private String phase;
-  private static final String PHASE_PROPERTY = "phase"; // See Client.java
+  private boolean isRun;
+
+  // FIXME this is already done in TimeSeriesWorkload, we should use those, or the same algo
   private static final String TAG_PREFIX_PROPERTY = "tagprefix"; // see CoreWorkload.java
   private static final String TAG_PREFIX_PROPERTY_DEFAULT = "TAG"; // see CoreWorkload.java
   private static final String TAG_COUNT_PROPERTY = "tagcount"; // see CoreWorkload.java
   private static final String TAG_COUNT_PROPERTY_DEFAULT = "3"; // see CoreWorkload.java
   private static final String METRICNAME_PROPERTY = "metric"; // see CoreWorkload.java
-  private String timestampFile = "timestamps.txt";
+
+  private void readProperties() throws DBException {
+    Properties properties = getProperties();
+    if (!properties.containsKey(Client.DO_TRANSACTIONS_PROPERTY)) {
+      throwMissingProperty(Client.DO_TRANSACTIONS_PROPERTY);
+    }
+    if (!properties.containsKey(ZOOKEEPER_IP_PROPERTY) && !test) {
+      throwMissingProperty(ZOOKEEPER_IP_PROPERTY);
+    }
+    if (!properties.containsKey(QUERY_IP_PROPERTY) && !test) {
+      throwMissingProperty(QUERY_IP_PROPERTY);
+    }
+    if (!properties.containsKey(INSERT_START_PROPERTY)) {
+      throwMissingProperty(INSERT_START_PROPERTY);
+    }
+    if (!properties.containsKey(INSERT_END_PROPERTY)) {
+      throwMissingProperty(INSERT_END_PROPERTY);
+    }
+    if (!properties.containsKey(TIME_RESOLUTION_PROPERTY)) {
+      throwMissingProperty(TIME_RESOLUTION_PROPERTY);
+    }
+
+    isRun = Boolean.valueOf(properties.getProperty(Client.DO_TRANSACTIONS_PROPERTY));
+    dataSource = properties.getProperty(METRICNAME_PROPERTY, dataSource);
+    // FIXME these are workload properties, see TimeSeriesWorkload
+    int tagCount = Integer.parseInt(properties.getProperty(TAG_COUNT_PROPERTY, TAG_COUNT_PROPERTY_DEFAULT));
+    String tagPrefix = properties.getProperty(TAG_PREFIX_PROPERTY, TAG_PREFIX_PROPERTY_DEFAULT);
+    dimensions.add("value");
+    for (int i = 0; i < tagCount; i++) {
+      dimensions.add(tagPrefix + i);
+    }
+    insertStart = Long.parseLong(properties.getProperty(INSERT_START_PROPERTY));
+    insertEnd = Long.parseLong(properties.getProperty(INSERT_END_PROPERTY));
+    timeResolution = Integer.parseInt(properties.getProperty(TIME_RESOLUTION_PROPERTY));
+    doubleSum = Boolean.parseBoolean(properties.getProperty(DOUBLE_SUM_PROPERTY, DOUBLE_SUM_PROPERTY_DEFAULT));
+    timestampFile = properties.getProperty(TIMESTAMP_FILE_PROPERTY, TIMESTAMP_FILE_PROPERTY_DEFAULT);
+
+    if (insertStart == 0) {
+      throw new DBException(INSERT_START_PROPERTY + "must not be 0!");
+    }
+    if (insertEnd == 0) {
+      throw new DBException(INSERT_END_PROPERTY + "must not be 0!");
+    }
+    if (timeResolution == 0) {
+      throw new DBException(TIME_RESOLUTION_PROPERTY + " must not be 0!");
+    }
+    try {
+      // TODO support https?
+      urlQuery = new URL("http", queryIP, Integer.valueOf(queryPort), QUERY_ENDPOINT);
+    } catch (MalformedURLException e) {
+      throw new DBException(e);
+    }
+
+    zookeeperIP = properties.getProperty(ZOOKEEPER_IP_PROPERTY);
+    zookeeperPort = properties.getProperty(ZOOKEEPER_PORT_PROPERTY, ZOOKEEPER_PORT_PROPERTY_DEFAULT);
+    indexService = properties.getProperty(INDEX_SERVICE_PROPERTY, INDEX_SERVICE_PROPERTY_DEFAULT);
+    discoveryPath = properties.getProperty(SERVICE_DISCOVERY_PATH_PROPERTY, SERVICE_DISCOVERY_PATH_PROPERTY_DEFAULT);
+    dataSource = properties.getProperty(DATA_SOURCE_PROPERTY, DATA_SOURCE_PROPERTY_DEFAULT);
+    queryIP = properties.getProperty(QUERY_IP_PROPERTY);
+    queryPort = properties.getProperty(QUERY_PORT_PROPERTY, QUERY_PORT_PROPERTY_DEFAULT);
+
+    partitions = properties.containsKey(PARTITIONS_PROPERTY)
+        ? Integer.parseInt(properties.getProperty(PARTITIONS_PROPERTY))
+        : PARTITIONS_PROPERTY_DEFAULT;
+    replicants = properties.containsKey(REPLICANTS_PROPERTY)
+        ? Integer.parseInt(properties.getProperty(REPLICANTS_PROPERTY))
+        : REPLICANTS_PROPERTY_DEFAULT;
+  }
 
   /**
    * @inheritDoc
@@ -133,93 +250,67 @@ public class DruidClient extends TimeseriesDB {
   public void init() throws DBException {
     super.init();
     readProperties();
-    try {
-      if (debug) {
-        System.out.println("The following properties are given: ");
-        for (String element : getProperties().stringPropertyNames()) {
-          System.out.println(element + ": " + getProperties().getProperty(element));
-        }
+
+    if (debug) {
+      System.out.println("The following properties are given: ");
+      for (String element : getProperties().stringPropertyNames()) {
+        System.out.println(element + ": " + getProperties().getProperty(element));
       }
+      if (debug) {
+        System.out.println("URL: " + urlQuery);
+      }
+    }
 
-
+    if (!test) {
       curator = CuratorFrameworkFactory
           .builder()
           .connectString(String.format("%s:%s", zookeeperIP, zookeeperPort))
           .retryPolicy(new ExponentialBackoffRetry(1000, 20, 30000))
           .build();
+      curator.start();
+      druidService = DruidBeams
+          .builder((Timestamper<Map<String, Object>>) theMap -> new DateTime(theMap.get(timestampColumn)))
+          .curator(curator)
+          .discoveryPath(discoveryPath)
+          .location(
+              DruidLocation.create(
+                  indexService,
+                  FIREHOSE_PATTERN,
+                  dataSource
+              )
+          )
+          .timestampSpec(timestampSpec)
+          // FIXME tags are not necessarily known at this point
+          // FIXME they are also not used at all during the actual workload, so there's that.
+          .rollup(DruidRollup.create(DruidDimensions.specific(dimensions), new ArrayList<>(), queryGranularity))
+          .tuning(
+              ClusteredBeamTuning
+                  .builder()
+                  .segmentGranularity(this.segmentGranularity)
+                  .windowPeriod(this.windowPeriod)
+                  .partitions(this.replicants)
+                  .replicants(this.partitions)
+                  .warmingPeriod(this.warmingPeriod)
+                  .build()
+          )
+          .buildTranquilizer();
+      RequestConfig requestConfig = RequestConfig.custom().build();
       if (!test) {
-        curator.start();
-        druidService = DruidBeams
-            .builder((Timestamper<Map<String, Object>>) theMap -> new DateTime(theMap.get("timestamp")))
-            .curator(curator)
-            .discoveryPath(discoveryPath)
-            .location(
-                DruidLocation.create(
-                    indexService,
-                    firehosePattern,
-                    dataSource
-                )
-            )
-            .timestampSpec(timestampSpec)
-            .rollup(DruidRollup.create(DruidDimensions.specific(dimensions), new ArrayList<>(), queryGranularity))
-            .tuning(
-                ClusteredBeamTuning
-                    .builder()
-                    .segmentGranularity(this.segmentGranularity)
-                    .windowPeriod(this.windowPeriod)
-                    .partitions(this.replicants)
-                    .replicants(this.partitions)
-                    .warmingPeriod(this.warmingPeriod)
-                    .build()
-            )
-            .buildTranquilizer();
-        RequestConfig requestConfig = RequestConfig.custom().build();
-        if (!test) {
-          client = HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).build();
-        }
+        client = HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).build();
       }
-      urlQuery = new URL("http", queryIP, Integer.valueOf(queryPort), queryURL);
-      if (debug) {
-        System.out.println("URL: " + urlQuery);
-      }
-      if (phase.equals("load")) {
-        // write timestamps
+    }
+
+    try {
+      // Accesses the properties from client... possibly inline? then we don't need the field
+      if (isRun) {
+        readRealInsertTimestamps();
+      } else {
         String actTime = String.valueOf(System.currentTimeMillis());
         realInsertStart = Long.valueOf(actTime.substring(0, actTime.length() - 3) + "000");
         realInsertEnd = realInsertStart + Math.abs(insertStart - insertEnd);
-        File file = new File(timestampFile);
-        if (file.isDirectory()) {
-          throw new DBException(String.format("'%s' is a directory. Please specify a file.", timestampFile));
-        }
-        if (file.exists()) {
-          file.delete();
-        }
-        FileOutputStream fileOut = new FileOutputStream(file);
-        ObjectOutputStream oos = new ObjectOutputStream(fileOut);
-        oos.writeObject(realInsertStart);
-        oos.writeObject(realInsertEnd);
-        oos.flush();
-        oos.close();
-        fileOut.flush();
-        fileOut.close();
-      } else if (phase.equals("run")) {
-        // read timestamps
-        File file = new File(timestampFile);
-        if (file.exists() && file.canRead() && file.isFile()) {
-          FileInputStream fileIn = new FileInputStream(timestampFile);
-          ObjectInputStream ois = new ObjectInputStream(fileIn);
-          realInsertStart = (long) ois.readObject();
-          realInsertEnd = (long) ois.readObject();
-          ois.close();
-          fileIn.close();
-          file.delete();
-        } else {
-          throw new DBException(String.format("'%s' is not existing,not readable or not a file.", timestampFile));
-        }
-
-      } else {
-        throw new DBException(String.format("Unknown Phase: '%s'", phase));
+        writeRealInsertTimstamps();
       }
+
       if (debug) {
         System.out.println(String.format("Workload Timerange: %s (%s) %s (%s)",
             insertStart, new DateTime(insertStart),
@@ -235,65 +326,44 @@ public class DruidClient extends TimeseriesDB {
       // because of no worker available etcpp.
       // insert 10ms before time range, should not matter
       if (debug) {
-        System.out.println("Doing Init Insert now.");
+        System.out.println("Starting initial insert.");
       }
       Status res = this.insert(dataSource, insertStart - 10, 1, new HashMap<>());
       if (debug) {
-        System.out.println(String.format("Init Insert returned %s.", res));
+        System.out.println(String.format("Initial insert returned Status %s.", res.getName()));
       }
     } catch (Exception e) {
       throw new DBException(e);
     }
   }
 
-  private void readProperties() throws DBException {
-    if (!getProperties().containsKey(PHASE_PROPERTY)) {
-      throw new DBException(String.format("No %s given, abort.", PHASE_PROPERTY));
+  private void readRealInsertTimestamps() throws IOException, DBException {
+    Path timestamps = Paths.get(timestampFile);
+    if (Files.isReadable(timestamps) && Files.isRegularFile(timestamps)) {
+      // FIXME reconsider DELETE_ON_CLOSE. It breaks load-once-run-many
+      try (InputStream fileIn = Files.newInputStream(timestamps, DELETE_ON_CLOSE, READ);
+           ObjectInputStream ois = new ObjectInputStream(fileIn)) {
+        realInsertStart = ois.readLong();
+        realInsertEnd = ois.readLong();
+      }
+    } else {
+      throw new DBException(String.format("'%s' is not existing,not readable or not a file.", timestampFile));
     }
-    phase = getProperties().getProperty(PHASE_PROPERTY, "");
-    dataSource = getProperties().getProperty(METRICNAME_PROPERTY, dataSource);
-    int tagCount = Integer.valueOf(getProperties().getProperty(TAG_COUNT_PROPERTY, TAG_COUNT_PROPERTY_DEFAULT));
-    String tagPrefix = getProperties().getProperty(TAG_PREFIX_PROPERTY, TAG_PREFIX_PROPERTY_DEFAULT);
-    dimensions.add("value");
-    for (int i = 0; i < tagCount; i++) {
-      dimensions.add(tagPrefix + i);
+  }
+
+  private void writeRealInsertTimstamps() throws DBException, IOException {
+    Path timestamps = Paths.get(timestampFile);
+    if (Files.isDirectory(timestamps)) {
+      throw new DBException(String.format("'%s' is a directory. Please specify a file.", timestampFile));
     }
-    timestampFile = getProperties().getProperty("timestampfile", timestampFile);
-    insertStart = Long.parseLong(getProperties().getProperty("insertstart", "0"));
-    if (insertStart == 0) {
-      throw new DBException("insertstart must not be 0, is it not set?");
+    try (OutputStream fileOut = Files.newOutputStream(timestamps, WRITE, CREATE, TRUNCATE_EXISTING);
+         ObjectOutputStream oos = new ObjectOutputStream(fileOut)) {
+      oos.writeLong(realInsertStart);
+      oos.writeLong(realInsertEnd);
     }
-    insertEnd = Long.parseLong(getProperties().getProperty("insertend", "0"));
-    if (insertEnd == 0) {
-      throw new DBException("insertend must not be 0, is it not set?");
-    }
-    timeResolution = Integer.parseInt(getProperties().getProperty("timeresolution", "0"));
-    if (timeResolution == 0) {
-      throw new DBException("timeresolution must not be 0, is it not set?");
-    }
-    test = Boolean.parseBoolean(getProperties().getProperty("test", "false"));
-    doubleSum = Boolean.parseBoolean(getProperties().getProperty("doublesum", Boolean.toString(doubleSum)));
-    if (!getProperties().containsKey("zookeeperip") && !test) {
-      throw new DBException("No zookeeperip given, abort.");
-    }
-    if (!getProperties().containsKey("queryip") && !test) {
-      throw new DBException("No queryip given, abort.");
-    }
-    partitions = Integer.parseInt(getProperties().getProperty("partitions", String.valueOf(partitions)));
-    replicants = Integer.parseInt(getProperties().getProperty("replicants", String.valueOf(replicants)));
-    zookeeperIP = getProperties().getProperty("zookeeperip", zookeeperIP);
-    zookeeperPort = getProperties().getProperty("zookeeperport", zookeeperPort);
-    queryIP = getProperties().getProperty("queryip", queryIP);
-    queryPort = getProperties().getProperty("queryport", queryPort);
-    indexService = getProperties().getProperty("indexservice", indexService);
-    firehosePattern = getProperties().getProperty("firehosepattern", firehosePattern);
-    discoveryPath = getProperties().getProperty("discoverypath", discoveryPath);
-    firehosePattern = getProperties().getProperty("firehosepattern", firehosePattern);
-    dataSource = getProperties().getProperty("datasource", dataSource);
   }
 
   private JSONArray runQuery(URL url, String queryStr) {
-    JSONArray jsonArr = new JSONArray();
     HttpResponse response = null;
     try {
       HttpPost postMethod = new HttpPost(url.toString());
@@ -325,27 +395,22 @@ public class DruidClient extends TimeseriesDB {
           System.err.println("WARNING: Query returned 301");
         }
         if (response.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_NO_CONTENT) {
-          // Maybe also not HTTP_MOVED_PERM? Can't Test it right now
-          BufferedReader bis = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-          StringBuilder builder = new StringBuilder();
-          String line;
-          while ((line = bis.readLine()) != null) {
-            builder.append(line);
+          // better be sure to close this ...
+          try (BufferedReader bis = new BufferedReader(new InputStreamReader(response.getEntity().getContent()))) {
+            return new JSONArray(bis.lines().collect(Collectors.joining()));
           }
-          jsonArr = new JSONArray(builder.toString());
         }
         EntityUtils.consumeQuietly(response.getEntity());
         postMethod.releaseConnection();
       }
     } catch (Exception e) {
-      System.err.println("ERROR: Errror while trying to query " + url.toString() + " for '" + queryStr + "'.");
+      System.err.println("ERROR: Error while trying to query " + url.toString() + " for '" + queryStr + "'.");
       e.printStackTrace();
       if (response != null) {
         EntityUtils.consumeQuietly(response.getEntity());
       }
-      return null;
     }
-    return jsonArr;
+    return null;
   }
 
   /**
@@ -353,14 +418,14 @@ public class DruidClient extends TimeseriesDB {
    */
   @Override
   public void cleanup() throws DBException {
-    try {
-      if (!test) {
+    if (!test) {
+      try {
         Await.result(druidService.close());
         curator.close();
         client.close();
+      } catch (Exception e) {
+        e.printStackTrace();
       }
-    } catch (Exception e) {
-      e.printStackTrace();
     }
     super.cleanup();
   }
@@ -425,14 +490,14 @@ public class DruidClient extends TimeseriesDB {
       }
 
       for (int i = 0; i < jsonArr.length(); i++) {
-        if (!jsonArr.getJSONObject(i).has("timestamp")) {
+        if (!jsonArr.getJSONObject(i).has(timestampColumn)) {
           System.err.println("ERROR: jsonArr Index " + i + " has no 'timestamp' key.");
           continue;
         } else if (!jsonArr.getJSONObject(i).has("result")) {
           System.err.println("ERROR: jsonArr Index " + i + " has no 'result' key.");
           continue;
         }
-        DateTime ts = new DateTime(jsonArr.getJSONObject(i).get("timestamp"));
+        DateTime ts = new DateTime(jsonArr.getJSONObject(i).get(timestampColumn));
         JSONObject result = (JSONObject) jsonArr.getJSONObject(i).get("result");
         if (!result.has("events")) {
           System.err.println("ERROR: jsonArr Index " + i + " has no 'result->events' key.");
@@ -447,8 +512,8 @@ public class DruidClient extends TimeseriesDB {
                 System.err.println("ERROR: jsonArr Index " + i + " has no 'result->events->event' at index " + j + ".");
               } else {
                 JSONObject eventEntry = event.getJSONObject("event");
-                if (eventEntry.has("timestamp")) {
-                  DateTime ts2 = new DateTime(eventEntry.get("timestamp"));
+                if (eventEntry.has(timestampColumn)) {
+                  DateTime ts2 = new DateTime(eventEntry.get(timestampColumn));
                   if (ts.getMillis() == ts2.getMillis() && ts.getMillis() == realTimestamp) {
                     counter++;
                   }
@@ -573,12 +638,12 @@ public class DruidClient extends TimeseriesDB {
       }
 
       for (int i = 0; i < jsonArr.length(); i++) {
-        if (!jsonArr.getJSONObject(i).has("timestamp")) {
+        if (!jsonArr.getJSONObject(i).has(timestampColumn)) {
           return Status.ERROR;
         } else if (!jsonArr.getJSONObject(i).has("result")) {
           return Status.ERROR;
         } else {
-          DateTime ts = new DateTime(jsonArr.getJSONObject(i).get("timestamp"));
+          DateTime ts = new DateTime(jsonArr.getJSONObject(i).get(timestampColumn));
           JSONObject result = (JSONObject) jsonArr.getJSONObject(i).get("result");
           if (aggreg == SUM) {
             if (!result.has("sumResult")) {
@@ -673,22 +738,15 @@ public class DruidClient extends TimeseriesDB {
     Map<String, Object> data = new HashMap<>();
     // Calculate special Timestamp in special druid timerange
     // (workload timerange shifted to actual time)
-    data.put("timestamp", this.realInsertStart + (timestamp - this.insertStart));
+    data.put(timestampColumn, this.realInsertStart + (timestamp - this.insertStart));
     for (Map.Entry<String, ByteIterator> tag : tags.entrySet()) {
       data.put(tag.getKey(), tag.getValue().toString());
     }
     data.put("value", value);
-    List<Map<String, Object>> druidEvents = new ArrayList<>();
-    druidEvents.add(data);
-    final Future<Integer> numSentFuture = druidService.apply(druidEvents);
+    // BoxedUnit is equivalent to Unit, which is Void in java
+    final Future<BoxedUnit> numSentFuture = druidService.apply(data);
     try {
-      final Integer numSent = Await.result(numSentFuture);
-      if (debug) {
-        System.out.println(String.format("Result (numSent) from Druid: %s", numSent));
-      }
-      if (numSent != 1) {
-        return Status.UNEXPECTED_STATE;
-      }
+      Await.result(numSentFuture);
     } catch (Exception e) {
       System.err.println("ERROR: Error in processing insert to metric: " + metric + e);
       e.printStackTrace();
