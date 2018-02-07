@@ -86,6 +86,8 @@ public class DruidClient extends TimeseriesDB {
   // property-related constants
   private static final String ZOOKEEPER_IP_PROPERTY = "zookeeperIp";
   private static final String QUERY_IP_PROPERTY = "queryIp";
+
+  // replace with CoreWorkload.INSERT_START_PROPERTY?
   private static final String INSERT_START_PROPERTY = "insertStart";
   private static final String INSERT_END_PROPERTY = "insertEnd";
   private static final String TIME_RESOLUTION_PROPERTY = "timeResolution";
@@ -134,6 +136,7 @@ public class DruidClient extends TimeseriesDB {
   // they must be transposed from [insertStart, insertEnd] into [realInsertStart, realInsertEnd]
   private long insertStart;
   private long insertEnd;
+  // FIXME make obsolete by changing the timestamp schema to not use intervals
   private int timeResolution;
 
   private String timestampFile = "timestamps.txt";
