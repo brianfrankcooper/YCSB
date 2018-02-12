@@ -133,6 +133,10 @@ measurementtype=histogram
 # a new output file will be created.
 #measurement.raw.output_file = /tmp/your_output_file_for_this_run
 
+# Whether or not to emit individual histogram buckets when measuring
+# using histograms.
+# measurement.histogram.verbose = false
+
 # JVM Reporting.
 #
 # Measure JVM information over time including GC counts, max and min memory
