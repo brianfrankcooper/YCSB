@@ -976,6 +976,7 @@ public final class Client {
     for (String arg : args) {
       System.err.print(" " + arg);
     }
+    System.err.println();
 
     Properties fileprops = new Properties();
     int argindex = 0;
