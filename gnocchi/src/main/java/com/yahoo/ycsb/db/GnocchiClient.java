@@ -42,6 +42,7 @@ import java.net.URL;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -58,13 +59,11 @@ public class GnocchiClient extends TimeseriesDB {
   private static final String METRIC_URL = "/v1/metric";
   private static final String METRIC_MEASURES_URL = "/v1/metric/%s/measures";
 
+  private static final String IP_PROPERTY = "ip";
+  private static final String PORT_PROPERTY = "port";
+
   private URL measuresURL = null;
-  private UUID id;
 
-  private String name = "usermetric";
-
-  private String ip = "localhost";
-  private int port = 8041;
   private int retries = 3;
   private CloseableHttpClient client;
 
@@ -74,22 +73,24 @@ public class GnocchiClient extends TimeseriesDB {
    */
   public void init() throws DBException {
     super.init();
-    try {
-      if (!getProperties().containsKey("port") && !test) {
-        throw new DBException("No port given, abort.");
-      }
-      port = Integer.parseInt(getProperties().getProperty("port", String.valueOf(port)));
-      if (!getProperties().containsKey("ip") && !test) {
-        throw new DBException("No ip given, abort.");
-      }
-      ip = getProperties().getProperty("ip", ip);
+    Properties properties = getProperties();
+    if (!properties.containsKey(PORT_PROPERTY) && !test) {
+      throwMissingProperty(PORT_PROPERTY);
+    }
+    if (!properties.containsKey(IP_PROPERTY) && !test) {
+      throwMissingProperty(IP_PROPERTY);
+    }
+    // should default to 8041
+    int port = Integer.parseInt(properties.getProperty(PORT_PROPERTY));
+    String ip = properties.getProperty(IP_PROPERTY);
 
-      if (debug) {
-        System.out.println("The following properties are given: ");
-        for (String element : getProperties().stringPropertyNames()) {
-          System.out.println(element + ": " + getProperties().getProperty(element));
-        }
+    if (debug) {
+      System.out.println("The following properties are given: ");
+      for (String element : properties.stringPropertyNames()) {
+        System.out.println(element + ": " + properties.getProperty(element));
       }
+    }
+    try {
       RequestConfig requestConfig = RequestConfig.custom().build();
       if (!test) {
         client = HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).build();
@@ -103,10 +104,10 @@ public class GnocchiClient extends TimeseriesDB {
       if (debug) {
         System.out.println("METRIC_URL: " + metricURL);
       }
-      id = getMetricID(metricURL);
+      UUID metricUUID = getMetricID(metricURL);
 
-      // if id==null create the Metric and the ArchivePolicy
-      if (id == null) {
+      // if there's no UUID create the Metric and the ArchivePolicy
+      if (metricUUID == null) {
         URL policyURL = new URL("http", ip, port, POLICY_URL);
         if (debug) {
           System.out.println("POLICY_URL: " + policyURL);
@@ -114,16 +115,16 @@ public class GnocchiClient extends TimeseriesDB {
         if (!createArchivePolicy(policyURL)) {
           throw new DBException("Couldn't create the ArchivePolicy.");
         }
-        id = createMetric(metricURL);
-        if (id == null && !test) {
+        metricUUID = createMetric(metricURL);
+        if (metricUUID == null && !test) {
           throw new DBException("Couldn't create a Metric.");
         }
       }
 
       if (debug) {
-        System.out.println("ID: " + id);
+        System.out.println("ID: " + metricUUID);
       }
-      measuresURL = new URL("http", ip, port, String.format(METRIC_MEASURES_URL, id));
+      measuresURL = new URL("http", ip, port, String.format(METRIC_MEASURES_URL, metricUUID));
       if (debug) {
         System.out.println("METRIC_MEASURES_URL: " + measuresURL);
       }
@@ -147,26 +148,23 @@ public class GnocchiClient extends TimeseriesDB {
     }
   }
 
-  // {
-  // "archive_policy_name": "low",
-  // "name": "usermetric"
-  // }
+  /*
+  {
+   "archive_policy_name": "low",
+   "name": "usermetric"
+  }
+  */
   private UUID createMetric(URL metricURL) {
-
     JSONObject metricObject = new JSONObject();
     metricObject.put("archive_policy_name", POLICY);
-    metricObject.put("name", name);
+    metricObject.put("name", "usermetric");
 
     String queryString = metricObject.toString();
 
     if (debug) {
       System.out.println("QueryString for Metric creation: " + queryString);
     }
-
-    UUID uuid = doCreateMetric(metricURL, queryString);
-
-    return uuid;
-
+    return doCreateMetric(metricURL, queryString);
   }
 
   /*
@@ -200,7 +198,7 @@ public class GnocchiClient extends TimeseriesDB {
 
     JSONArray definitionArray = new JSONArray();
     JSONObject definitionObject = new JSONObject();
-    definitionObject.put("points", 1000000);
+    definitionObject.put("points", 1_000_000);
     definitionObject.put("granularity", "1s");
     definitionArray.put(definitionObject);
 
@@ -233,37 +231,35 @@ public class GnocchiClient extends TimeseriesDB {
       postMethod.setEntity(requestEntity);
       postMethod.addHeader("X-Roles", "admin");
 
-      int tries = retries + 1;
-      while (true) {
-        tries--;
+      for (int attempt = 0; attempt < retries; attempt++) {
         try {
           response = client.execute(postMethod);
           break;
         } catch (IOException e) {
-          if (tries < 1) {
-            System.err.print("ERROR: Connection to " + url.toString() + " failed " + retries + "times.");
-            e.printStackTrace();
-            if (response != null) {
-              EntityUtils.consumeQuietly(response.getEntity());
-            }
-            postMethod.releaseConnection();
-            return null;
+          if (response != null) {
+            EntityUtils.consumeQuietly(response.getEntity());
           }
+          postMethod.releaseConnection();
+          response = null;
         }
+      }
+      if (response == null) {
+        System.err.printf("ERROR: Connection to %s failed %d times.", url.toString(), retries);
+        return HttpURLConnection.HTTP_GATEWAY_TIMEOUT;
       }
 
       statusCode = response.getStatusLine().getStatusCode();
       EntityUtils.consumeQuietly(response.getEntity());
       postMethod.releaseConnection();
+      return statusCode;
     } catch (Exception e) {
-      System.err.println("ERROR: Errror while trying to query " + url.toString() + " for '" + queryStr + "'.");
+      System.err.printf("ERROR: Error while trying to query %s for '%s'.%n", url.toString(), queryStr);
       e.printStackTrace();
       if (response != null) {
         EntityUtils.consumeQuietly(response.getEntity());
       }
-      return null;
+      return HttpURLConnection.HTTP_INTERNAL_ERROR;
     }
-    return statusCode;
   }
 
   private UUID doCreateMetric(URL url, String queryStr) {
@@ -283,7 +279,7 @@ public class GnocchiClient extends TimeseriesDB {
           break;
         } catch (IOException e) {
           if (tries < 1) {
-            System.err.print("ERROR: Connection to " + url.toString() + " failed " + retries + "times.");
+            System.err.printf("ERROR: Connection to %s failed %dtimes.", url.toString(), retries);
             e.printStackTrace();
             if (response != null) {
               EntityUtils.consumeQuietly(response.getEntity());
@@ -309,7 +305,7 @@ public class GnocchiClient extends TimeseriesDB {
       EntityUtils.consumeQuietly(response.getEntity());
       postMethod.releaseConnection();
     } catch (Exception e) {
-      System.err.println("ERROR: Errror while trying to query " + url.toString() + " for '" + queryStr + "'.");
+      System.err.printf("ERROR: Error while trying to query %s for '%s'.%n", url.toString(), queryStr);
       e.printStackTrace();
       if (response != null) {
         EntityUtils.consumeQuietly(response.getEntity());
@@ -319,10 +315,14 @@ public class GnocchiClient extends TimeseriesDB {
     return uuid;
   }
 
+  /**
+   * Gets the last UUID returned from the metrics endpoint listing all metrics.
+   *
+   * @param metricURL The metrics endpoint
+   * @return the UUID of the last metric exposed on the endpoint
+   */
   private UUID getMetricID(URL metricURL) {
-
     UUID uuid = null;
-
     JSONArray jsonArray = doGet(metricURL);
     for (int n = 0; n < jsonArray.length(); n++) {
       JSONObject jsonObject = jsonArray.getJSONObject(n);
@@ -339,23 +339,22 @@ public class GnocchiClient extends TimeseriesDB {
       getMethod.addHeader("accept", "application/json");
       getMethod.addHeader("X-Roles", "admin");
 
-      int tries = retries + 1;
-      while (true) {
-        tries--;
+      for (int attempt = 0; attempt < retries; attempt++) {
         try {
           response = client.execute(getMethod);
           break;
         } catch (IOException e) {
-          if (tries < 1) {
-            System.err.print("ERROR: Connection to " + url.toString() + " failed " + retries + "times.");
-            e.printStackTrace();
-            if (response != null) {
-              EntityUtils.consumeQuietly(response.getEntity());
-            }
-            getMethod.releaseConnection();
-            return null;
+          if (response != null) {
+            EntityUtils.consumeQuietly(response.getEntity());
           }
+          getMethod.releaseConnection();
+          response = null;
         }
+      }
+      if (response == null) {
+        System.err.print("ERROR: Connection to " + url.toString() + " failed " + retries + "times.");
+        // make this a happier path. Prefer empty collections over null
+        return new JSONArray();
       }
 
       int statusCode = response.getStatusLine().getStatusCode();
@@ -370,30 +369,31 @@ public class GnocchiClient extends TimeseriesDB {
       }
       EntityUtils.consumeQuietly(response.getEntity());
       getMethod.releaseConnection();
-
+      return jsonArray;
     } catch (Exception e) {
-      System.err.println("ERROR: Errror while trying to query " + url.toString() + ".");
+      System.err.println("ERROR: Error while trying to query " + url.toString() + ".");
       e.printStackTrace();
       if (response != null) {
         EntityUtils.consumeQuietly(response.getEntity());
       }
-      return null;
+      // make this a happier path: prefer empty collections over null
+      return new JSONArray();
     }
-
-    return jsonArray;
   }
 
-  // GET
-  // /v1/metric/76f02203-81ce-4dae-bbaa-10de7b9b5701/measures?start=2014-10-06T14:34&stop=2014-10-06T14:34
-  // HTTP/1.1
-  //
-  // [
-  // [
-  // "2014-10-06T14:34",
-  // 1800.0,
-  // 19.033333333333335
-  // ]
-  // ]
+   /*
+   GET
+   /v1/metric/76f02203-81ce-4dae-bbaa-10de7b9b5701/measures?start=2014-10-06T14:34&stop=2014-10-06T14:34
+   HTTP/1.1
+
+   [
+     [
+       "2014-10-06T14:34",
+       1800.0,
+       19.033333333333335
+     ]
+   ]
+   */
 
   /**
    * @inheritDoc
@@ -430,8 +430,7 @@ public class GnocchiClient extends TimeseriesDB {
         System.err.println("ERROR: Found no values for metric: " + metric + ".");
         return Status.NOT_FOUND;
       } else if (jsonArray.length() > 1) {
-        System.err.println("ERROR: Found more than one value for metric: " + metric + " for timestamp: "
-            + timestamp + ".");
+        System.err.printf("ERROR: Found more than one value for metric: %s for timestamp: %d.%n", metric, timestamp);
         return Status.UNEXPECTED_STATE;
       }
 
@@ -457,6 +456,7 @@ public class GnocchiClient extends TimeseriesDB {
     ]
   ]
   */
+
   /**
    * @inheritDoc
    */
