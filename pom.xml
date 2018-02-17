@@ -143,6 +143,7 @@ LICENSE file.
     <module>googlebigtable</module>
     <module>googledatastore</module>
     <module>graphite</module>
+    <module>h5serv</module>
     <module>hbase098</module>
     <module>hbase10</module>
     <module>hbase12</module>
