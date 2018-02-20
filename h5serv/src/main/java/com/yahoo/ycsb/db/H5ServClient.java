@@ -255,7 +255,8 @@ public class H5ServClient extends TimeseriesDB {
         LOGGER.warn("Response has a 'datasets' array with length != 1, using first one.");
       }
       try {
-        final String endpoint = String.format("%s/%s/value", DATASETS_ENDPOINT, response.getJSONArray("datasets").get(0));
+        final String endpoint = String.format("%s/%s/value",
+            DATASETS_ENDPOINT, response.getJSONArray("datasets").get(0));
         final URL value = new URL("http", ip, port, endpoint);
         if (debug) {
           LOGGER.info("Dataset Value URL: {}", value);
