@@ -1,6 +1,8 @@
 package com.yahoo.ycsb;
 
 import com.yahoo.ycsb.workloads.TimeSeriesWorkload;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -20,6 +22,8 @@ import java.util.stream.Collectors;
  * to correctly initialize the workload-parsing.
  */
 public abstract class TimeseriesDB extends DB {
+
+  protected static final Logger LOGGER = LoggerFactory.getLogger(TimeseriesDB.class);
 
   // defaults for downsampling. Basically we ignore it
   private static final String DOWNSAMPLING_FUNCTION_PROPERTY_DEFAULT = "NONE";

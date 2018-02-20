@@ -16,10 +16,6 @@
  */
 package com.yahoo.ycsb.db;
 
-/**
- * Created by Andreas Bader on 09.02.16.
- */
-
 import com.yahoo.ycsb.*;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
@@ -42,13 +38,12 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-
-// Need to use Json 20140107, newer versions drop an error "Unsupported major.minor version 52.0"
+import java.util.stream.Collectors;
 
 /**
  * h5serv client for YCSB framework.
@@ -59,14 +54,29 @@ import java.util.concurrent.TimeUnit;
  * -> using a fixed length string
  * h5serv does not yet support hdf5 timestamp datatype
  * -> using long/double
- * h5serv does not support querys with H5T_STD_U64BE or H5T_STD_U64LE due to numexpr (both are unsigned 64bit integers)
+ * h5serv does not support queries with H5T_STD_U64BE or H5T_STD_U64LE due to numexpr (both are unsigned 64bit integers)
  * -> using H5T_STD_I64LE instead (signed 64bit integer)
  */
 public class H5ServClient extends TimeseriesDB {
+  // internal constants
+  private static final String DOMAIN_ENDPOINT = "/";
+  private static final String DATATYPES_ENDPOINT = "/datatypes";
+  private static final String DATASETS_ENDPOINT = "/datasets";
+  private static final String GROUPS_ENDPOINT = "/groups";
 
+  private static final String DATATYPE_NAME = "timeseries";
+  private static final String DATASET_NAME = "timeseriesSet";
+  private static final String HDF_DOMAIN_BASE = "hdfgroup.org";
+
+  // required properties
+  private static final String IP_PROPERTY = "ip";
+  private static final String PORT_PROPERTY = "port";
+
+  // optional properties
   private static final String PHASE_PROPERTY = "phase"; // See Client.java
   private static final String METRICNAME_PROPERTY = "metric"; // see CoreWorkload.java
   private static final String METRICNAME_PROPERTY_DEFAULT = "usermetric"; // see CoreWorkload.java
+  // FIXME make these obsolete by referring to the TimeSeriesWorkload
   private static final String TAG_PREFIX_PROPERTY = "tagprefix"; // see CoreWorkload.java
   private static final String TAG_PREFIX_PROPERTY_DEFAULT = "TAG"; // see CoreWorkload.java
   private static final String TAG_COUNT_PROPERTY = "tagcount"; // see CoreWorkload.java
@@ -74,34 +84,22 @@ public class H5ServClient extends TimeseriesDB {
   private static final String TAG_VALUE_LENGTH_PROPERTY = "tagvaluelength"; // see CoreWorkload.java
   private static final String TAG_VALUE_LENGTH_PROPERTY_DEFAULT = "10"; // see CoreWorkload.java
 
-  private URL urlDomain = null;
-  private URL urlDatatypes = null;
-  private URL urlDatasets = null;
   private URL urlDatasetValue = null;
-  private URL urlGroups = null;
   private URL urlGroupLinkDS = null; // URL for Link of Dataset
   private int tagCount;
   private String tagPrefix;
   private String phase;
   private String ip = "localhost";
-  private String domainURL = "/";
-  private String datatypesURL = "/datatypes";
-  private String datasetsURL = "/datasets";
-  private String groupsURL = "/groups";
-  private String datatypeName = "timeseries";
-  private String datasetName = "timeseriesSet";
   private int port = 5000;
-  private String basedomain = "hdfgroup.org";
-  private String domain = METRICNAME_PROPERTY_DEFAULT + "." + basedomain;
 
   private CloseableHttpClient client;
   private int retries = 3;
-  // 0 is unlimited
+  // 0 for unlimited
   private int stringlength = 10;
   private String datatypeId = "";
   private int recordcount;
   private int index = 0;
-  private List<String[]> headers;
+  private Map<String, String> headers = new HashMap<>();
 
   /**
    * Initialize any state for this DB.
@@ -110,163 +108,161 @@ public class H5ServClient extends TimeseriesDB {
   @Override
   public void init() throws DBException {
     super.init();
-    try {
-      final Properties properties = getProperties();
-      recordcount = Integer.parseInt(properties.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
-      if (recordcount == 0) {
-        recordcount = Integer.MAX_VALUE;
-      }
-      if (debug) {
-        System.out.println("Recordcount: " + recordcount);
-      }
-      if (!properties.containsKey(PHASE_PROPERTY)) {
-        throw new DBException(String.format("No %s given, abort.", PHASE_PROPERTY));
-      }
-      phase = properties.getProperty(PHASE_PROPERTY, "");
-      domain = properties.getProperty(METRICNAME_PROPERTY, METRICNAME_PROPERTY_DEFAULT) + "." + basedomain;
-      tagCount = Integer.valueOf(properties.getProperty(TAG_COUNT_PROPERTY, TAG_COUNT_PROPERTY_DEFAULT));
-      tagPrefix = properties.getProperty(TAG_PREFIX_PROPERTY, TAG_PREFIX_PROPERTY_DEFAULT);
-      stringlength = Integer.valueOf(properties.getProperty(TAG_VALUE_LENGTH_PROPERTY,
-          TAG_VALUE_LENGTH_PROPERTY_DEFAULT));
-      test = Boolean.parseBoolean(properties.getProperty("test", "false"));
-      if (!properties.containsKey("port") && !test) {
-        throw new DBException("No port given, abort.");
-      }
-      port = Integer.parseInt(properties.getProperty("port", String.valueOf(port)));
-      stringlength = Integer.parseInt(properties.getProperty("stringlength", String.valueOf(stringlength)));
-      if (!properties.containsKey("ip") && !test) {
-        throw new DBException("No ip given, abort.");
-      }
-      ip = properties.getProperty("ip", ip);
-      if (debug) {
-        System.out.println("The following properties are given: ");
-        for (String element : properties.stringPropertyNames()) {
-          System.out.println(element + ": " + properties.getProperty(element));
-        }
-      }
-      RequestConfig requestConfig = RequestConfig.custom().build();
-      if (!test) {
+    final Properties properties = getProperties();
+    recordcount = Integer.parseInt(properties.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
+    if (recordcount == 0) {
+      recordcount = Integer.MAX_VALUE;
+    }
+    // FIXME use the property from YCSB.core
+    if (!properties.containsKey(PHASE_PROPERTY)) {
+      throwMissingProperty(PHASE_PROPERTY);
+    }
+    if (!properties.containsKey(IP_PROPERTY) && !test) {
+      throwMissingProperty(IP_PROPERTY);
+    }
+    if (!properties.contains(PORT_PROPERTY) && !test) {
+      throwMissingProperty(PORT_PROPERTY);
+    }
+    ip = properties.getProperty(IP_PROPERTY);
+    port = Integer.parseInt(properties.getProperty(PORT_PROPERTY));
+
+    String domain = properties.getProperty(METRICNAME_PROPERTY, METRICNAME_PROPERTY_DEFAULT) + "." + HDF_DOMAIN_BASE;
+    phase = properties.getProperty(PHASE_PROPERTY, "");
+    tagCount = Integer.valueOf(properties.getProperty(TAG_COUNT_PROPERTY, TAG_COUNT_PROPERTY_DEFAULT));
+    tagPrefix = properties.getProperty(TAG_PREFIX_PROPERTY, TAG_PREFIX_PROPERTY_DEFAULT);
+    stringlength = Integer.valueOf(properties.getProperty(TAG_VALUE_LENGTH_PROPERTY,
+        TAG_VALUE_LENGTH_PROPERTY_DEFAULT));
+    stringlength = Integer.parseInt(properties.getProperty("stringlength", String.valueOf(stringlength)));
+    RequestConfig requestConfig = RequestConfig.custom().build();
+    if (!test) {
+      try {
         client = HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).build();
+      } catch (Exception e) {
+        throw new DBException(e);
       }
-    } catch (Exception e) {
-      throw new DBException(e);
+    }
+    if (debug) {
+      LOGGER.debug("The following properties are given:");
+      for (String element : properties.stringPropertyNames()) {
+        LOGGER.debug(element + ": " + properties.getProperty(element));
+      }
     }
 
+    URL urlDomain;
+    URL urlDatatypes;
+    URL urlDatasets;
     try {
-      urlDomain = new URL("http", ip, port, domainURL);
+      urlDomain = new URL("http", ip, port, DOMAIN_ENDPOINT);
       if (debug) {
-        System.out.println("domainURL: " + urlDomain);
+        LOGGER.debug("domainURL: {}", urlDomain);
       }
-      urlDatatypes = new URL("http", ip, port, datatypesURL);
+      urlDatatypes = new URL("http", ip, port, DATATYPES_ENDPOINT);
       if (debug) {
-        System.out.println("datatypesURL: " + urlDatatypes);
+        LOGGER.debug("datatypesURL: {}", urlDatatypes);
       }
-      urlDatasets = new URL("http", ip, port, datasetsURL);
+      urlDatasets = new URL("http", ip, port, DATASETS_ENDPOINT);
       if (debug) {
-        System.out.println("datasetsURL: " + urlDatasets);
+        LOGGER.debug("datasetsURL: {}", urlDatasets);
       }
-      urlGroups = new URL("http", ip, port, groupsURL);
+      URL urlGroups = new URL("http", ip, port, GROUPS_ENDPOINT);
       if (debug) {
-        System.out.println("groupsURL: " + urlGroups);
+        LOGGER.debug("groupsURL: {}", urlGroups);
       }
     } catch (MalformedURLException e) {
       throw new DBException(e);
     }
     if (debug) {
-      System.out.println("Creating new Domain in HDF5: " + domain);
+      LOGGER.info("Creating new Domain in HDF5: {}" + domain);
     }
-    headers = new ArrayList<>();
-    headers.add(new String[]{"host", domain});
+    headers.put("host", domain);
     if (phase.equals("load")) {
       if (debug) {
-        System.out.println("Load Phase.");
+        LOGGER.info("Load Phase.");
       }
-      // Creating domain
+      // Create Domain
       JSONObject response = runQuery(urlDomain, "", headers, "put");
-      if (response == null) {
-        System.out.println("ERROR: runQuery() for domain creation returned null.");
+      if (response.equals(new JSONObject())) {
+        LOGGER.warn("runQuery() for domain creation returned null.");
       }
       String id = response.getString("root");
       try {
-        urlGroupLinkDS = new URL("http", ip, port, groupsURL + "/" + id + "/links/" + "linked_" + datasetName);
+        urlGroupLinkDS = new URL("http", ip, port, GROUPS_ENDPOINT + "/" + id + "/links/" + "linked_" + DATASET_NAME);
       } catch (MalformedURLException e) {
-        e.printStackTrace();
+        LOGGER.error("Failed to build groupLink datasource URL", e);
       }
       // Creating datatype
       response = runQuery(urlDatatypes, createDataTypeQueryObject().toString(), headers, "post");
-      if (response != null) {
+      if (!response.equals(new JSONObject())) {
         if (response.has("id")) {
           datatypeId = response.getString("id");
         } else {
-          System.out.println("ERROR: Response of datatype creation query has no 'id'.");
+          LOGGER.warn("Response of datatype creation query has no 'id'.");
         }
       }
       if (debug) {
-        System.out.println("Datatype ID: " + datatypeId);
+        LOGGER.info("Datatype ID: {}", datatypeId);
       }
       // Creating dataset
       response = runQuery(urlDatasets, createDataSetQueryObject().toString(), headers, "post");
-      if (response != null) {
+      if (response.equals(new JSONObject())) {
         if (response.has("id")) {
           if (debug) {
-            System.out.printf("Creating link for linked_%s with ID: %s and URL: %s.%n",
-                datasetName, response.getString("id"), urlGroupLinkDS);
+            LOGGER.info("Creating link for linked_{} with ID: {} and URL: {}.",
+                DATASET_NAME, response.getString("id"), urlGroupLinkDS);
           }
           try {
-            final String endpoint = String.format("%s/%s/value", datasetsURL, response.getString("id"));
+            final String endpoint = String.format("%s/%s/value", DATASETS_ENDPOINT, response.getString("id"));
             urlDatasetValue = new URL("http", ip, port, endpoint);
           } catch (MalformedURLException e) {
-            System.out.printf("ERROR: Response of dataset creation query 'id' could not be transformed into a URL." +
-                " Value: '%s'.%n", response.getString("id"));
+            LOGGER.error("Response of dataset creation query 'id' could not be transformed into a URL." +
+                " Value: '{}'.", response.getString("id"));
           }
           // Creating link for dataset -> avoiding "anonymous dataset" (otherwise querys do not work)
           JSONObject query = new JSONObject();
           query.put("id", response.getString("id"));
           JSONObject response2 = runQuery(urlGroupLinkDS, query.toString(), headers, "put");
-          if (response2 == null) {
-            System.out.printf("ERROR: Response of group link creation for linked_%s query is null.%n", datasetName);
+          if (response2.equals(new JSONObject())) {
+            LOGGER.warn("Response of group link creation for linked_{} query is null.%n", DATASET_NAME);
           }
         } else {
-          System.out.println("ERROR: Response of dataset creation query has no 'id'.");
+          LOGGER.warn("Response of dataset creation query has no 'id'.");
         }
       }
       if (debug) {
-        System.out.println("Dataset Value URL: " + urlDatasetValue);
+        LOGGER.trace("Dataset Value URL: {}", urlDatasetValue);
       }
     } else {
       if (debug) {
-        System.out.println("Run Phase.");
+        LOGGER.info("Run Phase.");
       }
       index = recordcount; // also possible to search for the last index in HDF5
-      JSONObject response = runQuery(urlDatasets, "", headers, "get");
-      urlDatasetValue = handleUrlDataSetResponse(response);
-
-
+      JSONObject datasetDefinitions = runQuery(urlDatasets, "", headers, "get");
+      urlDatasetValue = readDatasetValueEndpoint(datasetDefinitions);
     }
   }
 
-  private URL handleUrlDataSetResponse(JSONObject response) {
-    if (response != null) {
+  private URL readDatasetValueEndpoint(JSONObject response) {
+    if (!response.equals(new JSONObject())) {
       if (!response.has("datasets")) {
-        System.out.println("ERROR: Response of dataset get query has no 'datasets'.");
+        LOGGER.error("Response of dataset get query has no 'datasets'.");
         return null;
       }
       if (response.getJSONArray("datasets").length() <= 0) {
-        System.out.println("ERROR: Response has a 'datasets' array with length 0, this should not happen.");
+        LOGGER.error("Response has a 'datasets' array with length 0, this should not happen.");
         return null;
       }
       if (response.getJSONArray("datasets").length() != 1) {
-        System.out.println("WARNING: Response has a 'datasets' array with length != 1, using first one.");
+        LOGGER.warn("Response has a 'datasets' array with length != 1, using first one.");
       }
       try {
-        final String endpoint = String.format("%s/%s/value", datasetsURL, response.getJSONArray("datasets").get(0));
+        final String endpoint = String.format("%s/%s/value", DATASETS_ENDPOINT, response.getJSONArray("datasets").get(0));
         final URL value = new URL("http", ip, port, endpoint);
         if (debug) {
-          System.out.println("Dataset Value URL: " + value);
+          LOGGER.info("Dataset Value URL: {}", value);
         }
         return value;
       } catch (MalformedURLException e) {
-        System.out.printf("ERROR: Query id of dataset could not be transformed into a URL. Value: '%s'.%n",
+        LOGGER.error("Query id of dataset could not be transformed into a URL. Value: '{}'.",
             response.getJSONArray("datasets").get(0));
       }
     }
@@ -275,18 +271,19 @@ public class H5ServClient extends TimeseriesDB {
 
   private JSONObject createDataSetQueryObject() {
     JSONObject query = new JSONObject();
-    query.put("shape", recordcount * 2); // some space for INSERTs in RUN Phase
+    // some space for INSERTs in RUN Phase
+    query.put("shape", recordcount * 2);
     query.put("type", datatypeId);
     query.put("maxdims", 0);
     if (debug) {
-      System.out.println("Creating dataset with the following query: " + query.toString());
+      LOGGER.info("Creating dataset with the following query: {}", query.toString());
     }
     return query;
   }
 
   private JSONObject createDataTypeQueryObject() {
     JSONObject query = new JSONObject();
-    query.put("name", datatypeName);
+    query.put("name", DATATYPE_NAME);
     JSONObject shape = new JSONObject();
     shape.put("class", "H5S_SCALAR");
     query.put("shape", shape);
@@ -335,92 +332,75 @@ public class H5ServClient extends TimeseriesDB {
     type.put("fields", fields);
     query.put("type", type);
     if (debug) {
-      System.out.println("Creating datatype 'timeseries' with the following query: " + query.toString());
+      LOGGER.info("Creating datatype 'timeseries' with the following query: {}", query.toString());
     }
     return query;
   }
 
-  private JSONObject runQuery(URL url, String queryStr, List<String[]> headers, String queryMethod) {
-    JSONObject jsonObj = new JSONObject();
-    HttpResponse response = null;
+  private JSONObject runQuery(URL url, String queryStr, Map<String, String> headers, String queryMethod) {
+
     try {
-      final HttpEntityEnclosingRequestBase method;
-      if (queryMethod.equals("") || queryMethod.toLowerCase().equals("post")) {
-        method = new HttpPost(url.toString());
-      } else if (queryMethod.toLowerCase().equals("put")) {
-        method = new HttpPut(url.toString());
-      } else if (queryMethod.toLowerCase().equals("get")) {
-        method = new HttpGetWithEntity(url.toString());
+      final HttpEntityEnclosingRequestBase request;
+      if (queryMethod.equals("") || queryMethod.equalsIgnoreCase("post")) {
+        request = new HttpPost(url.toString());
+      } else if (queryMethod.equalsIgnoreCase("put")) {
+        request = new HttpPut(url.toString());
+      } else if (queryMethod.equalsIgnoreCase("get")) {
+        request = new HttpGetWithEntity(url.toString());
       } else {
         throw new IllegalArgumentException("Query Method must be set to one of \"\", post, put or get");
       }
       StringEntity requestEntity = new StringEntity(queryStr, ContentType.APPLICATION_JSON);
-      method.setEntity(requestEntity);
+      request.setEntity(requestEntity);
+      HttpResponse response = null;
       if (!headers.isEmpty()) {
-        for (String[] strArr : headers) {
-          if (strArr.length == 2) {
-            method.addHeader(strArr[0], strArr[1]);
-          } else {
-            System.err.print("ERROR: Array in header list does not have length 2. Header not set.");
-          }
+        for (Map.Entry<String, String> headerEntry : headers.entrySet()) {
+          request.addHeader(headerEntry.getKey(), headerEntry.getValue());
         }
       }
-      method.addHeader("accept", "application/json");
-      int tries = retries + 1;
-      while (true) {
-        tries--;
+      request.addHeader("accept", "application/json");
+      for (int attempt = 0; attempt < retries; attempt++) {
         try {
-          response = client.execute(method);
+          response = client.execute(request);
           break;
         } catch (IOException e) {
-          if (tries < 1) {
-            System.err.print("ERROR: Connection to " + url.toString() + " failed " + retries + "times.");
-            e.printStackTrace();
-            if (response != null) {
-              EntityUtils.consumeQuietly(response.getEntity());
-            }
-            method.releaseConnection();
-            return new JSONObject();
-          }
+          // ignore for retrying
         }
+      }
+      if (response == null) {
+        request.releaseConnection();
+        LOGGER.error("Connection to {} failed {} times.", url.toString(), retries);
+        return new JSONObject();
       }
       if (response.getStatusLine().getStatusCode() == HttpURLConnection.HTTP_OK ||
           response.getStatusLine().getStatusCode() == HttpURLConnection.HTTP_CREATED ||
           response.getStatusLine().getStatusCode() == HttpURLConnection.HTTP_NO_CONTENT ||
           response.getStatusLine().getStatusCode() == HttpURLConnection.HTTP_MOVED_PERM) {
         if (response.getStatusLine().getStatusCode() == HttpURLConnection.HTTP_MOVED_PERM) {
-          System.err.println("WARNING: Query returned HTTP Status 301");
+          LOGGER.warn("Query returned HTTP Status 301");
         }
-        if (response.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_NO_CONTENT) {
-          // Maybe also not HTTP_MOVED_PERM? Can't Test it right now
-          if (response.getEntity().getContentLength() != 0) {
-            // This if is required, as POST Value does not has an response, only 200 as HTTP Code
-            BufferedReader bis = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-            StringBuilder builder = new StringBuilder();
-            String line;
-            while ((line = bis.readLine()) != null) {
-              builder.append(line);
-            }
-            jsonObj = new JSONObject(builder.toString());
+        JSONObject jsonObj = null;
+        // Maybe also not HTTP_MOVED_PERM? Can't Test it right now
+        if (response.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_NO_CONTENT
+            // POST Value does not have a response, but HTTP status 200
+            && response.getEntity().getContentLength() != 0) {
+          try (BufferedReader bis = new BufferedReader(new InputStreamReader(response.getEntity().getContent()))) {
+            jsonObj = new JSONObject(bis.lines().collect(Collectors.joining()));
           }
-
         }
         EntityUtils.consumeQuietly(response.getEntity());
-        method.releaseConnection();
+        request.releaseConnection();
+        return jsonObj;
       } else {
-        System.err.printf("WARNING: Query returned status code %d with Error: '%s'.%n",
+        LOGGER.warn("Query returned status code {} with Error: '{}'.",
             response.getStatusLine().getStatusCode(), response.getStatusLine().getReasonPhrase());
+        EntityUtils.consumeQuietly(response.getEntity());
         return new JSONObject();
       }
     } catch (Exception e) {
-      System.err.printf("ERROR: Errror while trying to query %s for '%s'.%n", url.toString(), queryStr);
-      e.printStackTrace();
-      if (response != null) {
-        EntityUtils.consumeQuietly(response.getEntity());
-      }
+      LOGGER.error("ERROR: Error while trying to query {} for '{}'.", url.toString(), queryStr);
       return new JSONObject();
     }
-    return jsonObj;
   }
 
   /**
@@ -456,7 +436,7 @@ public class H5ServClient extends TimeseriesDB {
     for (Map.Entry<String, List<String>> entry : tags.entrySet()) {
       List<String> arrList = entry.getValue();
       if (arrList.size() > 1) {
-        // Avoid dobule brackets
+        // Avoid double brackets
         query.append(" & (");
       } else {
         query.append(" & ");
@@ -465,9 +445,9 @@ public class H5ServClient extends TimeseriesDB {
         query.append("(" + entry.getKey() + " == '" + tagValue + "') | ");
       }
       int length = query.length();
-      query.delete(length - 3, length);
+      query.delete(length - " | ".length(), length);
       if (arrList.size() > 1) {
-        // Avoid dobule brackets
+        // Avoid double brackets
         query.append(")");
       }
     }
@@ -487,54 +467,53 @@ public class H5ServClient extends TimeseriesDB {
       // //queryURL = new URI(urlDatasetValue.getProtocol(), null, urlDatasetValue.getHost(),
       //    urlDatasetValue.getPort(), urlDatasetValue.getPath(), "query=" + query.toString(), null);
     } catch (UnsupportedEncodingException e) {
-      System.err.println("ERROR: Can not encode paramters for read query, Error: '" + e.toString() + "'.");
+      LOGGER.error("Can not encode paramters for read query, Error: [{}].", e.toString());
       return Status.ERROR;
     } catch (MalformedURLException e) {
-      System.err.println("ERROR: Can not create URL for read query, Error: '" + e.toString() + "'.");
+      LOGGER.error("ERROR: Can not create URL for read query, Error: [{}].", e.toString());
       return Status.ERROR;
     }
     if (debug) {
-      System.out.println("Read Query String: " + queryURL.toString());
+      LOGGER.error("Read Query String: {}", queryURL.toString());
     }
     if (test) {
       return Status.OK;
     }
-    JSONObject response = null;
-    response = runQuery(queryURL, "", headers, "get");
+    JSONObject response = runQuery(queryURL, "", headers, "get");
     if (debug) {
-      System.err.println("Respone: " + response);
+      LOGGER.info("Response: {}", response);
     }
     if (response.has("value")) {
-      JSONArray jsonArr = response.getJSONArray("value");
-      if (jsonArr.length() == 0) {
+      JSONArray values = response.getJSONArray("value");
+      if (values.length() == 0) {
         return Status.NOT_FOUND;
       }
-      for (int i = 0; i < jsonArr.length(); i++) {
-        if (jsonArr.isNull(i)) {
-          System.err.println("ERROR: jsonArr Index " + i + " is null.");
+      for (int i = 0; i < values.length(); i++) {
+        if (values.isNull(i)) {
+          LOGGER.warn("values at index {} is null.", i);
         } else {
-          JSONArray jsonArr2 = jsonArr.getJSONArray(0);
-          if (jsonArr2.length() == 0) {
+          JSONArray value = values.getJSONArray(0);
+          if (value.length() == 0) {
             // is allowed!
-            System.err.println("ERROR: jsonArr2 has length 0.");
+            LOGGER.warn("value array has length 0.");
           }
-          if (jsonArr2.isNull(0)) {
-            System.err.println("ERROR: jsonArr2 Index 0 is null.");
+          if (value.isNull(0)) {
+            LOGGER.warn("value array index 0 is null.");
           }
-          if (jsonArr2.getLong(0) == timestampLong) {
+          if (value.getLong(0) == timestampLong) {
             counter++;
           }
         }
       }
     } else {
-      System.err.printf("ERROR: Received response without 'value' for '%s' with headers '%s'.%n",
+      LOGGER.error("Received response without 'value' for '{}' with headers '{}'.",
           queryURL.toString(), headers);
     }
     if (counter == 0) {
-      System.err.printf("ERROR: Found no values for metric: %s for timestamp: %d.%n", metric, timestamp);
+      LOGGER.error("Found no values for metric: {} for timestamp: {}.", metric, timestamp);
       return Status.NOT_FOUND;
     } else if (counter > 1) {
-      System.err.printf("ERROR: Found more than one value for metric: %s for timestamp: %d.%n", metric, timestamp);
+      LOGGER.error("Found more than one value for metric: {} for timestamp: {}.", metric, timestamp);
     }
     return Status.OK;
   }
@@ -545,10 +524,8 @@ public class H5ServClient extends TimeseriesDB {
     if (metric == null || metric.equals("") || startTs == null || endTs == null) {
       return Status.BAD_REQUEST;
     }
-    if (timeValue != 0) {
-      if (TimeUnit.MILLISECONDS.convert(timeValue, timeUnit) != 1) {
-        System.err.println("WARNING: h5serv does not support granularity, defaulting to one bucket.");
-      }
+    if (timeValue != 0 && TimeUnit.MILLISECONDS.convert(timeValue, timeUnit) != 1) {
+      LOGGER.warn("h5serv does not support granularity, defaulting to one bucket.");
     }
     // every part of the query must be url encoded
     // even (,) and & must be encoded correctly
@@ -571,7 +548,7 @@ public class H5ServClient extends TimeseriesDB {
         query.append("(" + entry.getKey() + " == '" + tagValue + "') | ");
       }
       int length = query.length();
-      query.delete(length - 3, length);
+      query.delete(length - " | ".length(), length);
       if (arrList.size() > 1) {
         // Avoid double brackets
         query.append(")");
@@ -593,21 +570,21 @@ public class H5ServClient extends TimeseriesDB {
       // queryURL = new URI(urlDatasetValue.getProtocol(), null, urlDatasetValue.getHost(), urlDatasetValue.getPort(),
       //    urlDatasetValue.getPath(), "query=" + query.toString(), null);
     } catch (UnsupportedEncodingException e) {
-      System.err.printf("ERROR: Can not encode parameters for scan/avg/sum/count query, Error: '%s'.%n", e);
+      LOGGER.error("Can not encode parameters for scan/avg/sum/count query, Error: '{}'.", e);
       return Status.ERROR;
     } catch (MalformedURLException e) {
-      System.err.printf("ERROR: Can not create URL for scan/avg/sum/count query, Error: '%s'.%n", e);
+      LOGGER.error("Can not create URL for scan/avg/sum/count query, Error: '{}'.", e);
       return Status.ERROR;
     }
     if (debug) {
-      System.out.println("Read Query String: " + queryURL.toString());
+      LOGGER.debug("Read Query String: {}", queryURL.toString());
     }
     if (test) {
       return Status.OK;
     }
     JSONObject response = runQuery(queryURL, "", headers, "get");
     if (debug) {
-      System.err.println("Respone: " + response);
+      LOGGER.info("Response: {}", response);
     }
     if (response.has("value")) {
       JSONArray jsonArr = response.getJSONArray("value");
@@ -617,12 +594,11 @@ public class H5ServClient extends TimeseriesDB {
       }
       for (int i = 0; i < jsonArr.length(); i++) {
         if (jsonArr.isNull(i) || jsonArr.getJSONArray(0).length() == 0) {
-          System.err.println("ERROR: jsonArr at Index " + i + " is null or has length null.");
+          LOGGER.error("jsonArr at index {} is null or empty.", i);
         }
       }
     } else {
-      System.err.printf("ERROR: Received response without 'value' for '%s' with headers '%s'.%n",
-          queryURL.toString(), headers);
+      LOGGER.error("Received response without 'value' for '{}' with headers '{}'.", queryURL.toString(), headers);
     }
     return Status.OK;
   }
@@ -633,7 +609,7 @@ public class H5ServClient extends TimeseriesDB {
       return Status.BAD_REQUEST;
     }
     if (phase.equals("run") && index > recordcount * 2) {
-      System.err.println("ERROR: index is greater than (recordcount*2)-1, which is the maximum amount possible. " +
+      LOGGER.error("Index is greater than (recordcount*2)-1, which is the maximum amount possible. " +
           "Increase hdf5 shape, lessen INSERTs in RUN Phase or implement PUT Shape for increasing dimension " +
           "(http://h5serv.readthedocs.org/en/latest/DatasetOps/PUT_DatasetShape.html).");
       return Status.BAD_REQUEST;
@@ -650,24 +626,23 @@ public class H5ServClient extends TimeseriesDB {
       }
       query.put("value", valueArr);
       if (debug) {
-        System.out.println("Input Query String: " + query.toString());
+        LOGGER.info("Input Query String: {}", query.toString());
       }
       if (test) {
         return Status.OK;
       }
       JSONObject jsonObj = runQuery(urlDatasetValue, query.toString(), headers, "put");
       if (debug) {
-        System.err.println("jsonArr: " + jsonObj);
+        LOGGER.info("jsonArr: ", jsonObj);
       }
       if (jsonObj.equals(new JSONObject())) {
-        System.err.println("ERROR: Error in processing insert to metric: " + metric + " in " + urlDatasetValue);
+        LOGGER.error("Error in processing insert to metric: {} in {}", metric, urlDatasetValue);
         return Status.ERROR;
       }
       index++;
       return Status.OK;
     } catch (Exception e) {
-      System.err.println("ERROR: Error in processing insert to metric: " + metric + " in " + urlDatasetValue + " " + e);
-      e.printStackTrace();
+      LOGGER.error("Error in processing insert to metric: {} in {}: {}", metric, urlDatasetValue, e);
       return Status.ERROR;
     }
   }
