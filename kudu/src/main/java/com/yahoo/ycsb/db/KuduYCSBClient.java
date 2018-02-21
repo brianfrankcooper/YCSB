@@ -280,9 +280,9 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
     row.addString(KEY, key);
     for (int i = 1; i < schema.getColumnCount(); i++) {
       String columnName = schema.getColumnByIndex(i).getName();
-      if (values.containsKey(columnName)) {
-        String value = values.get(columnName).toString();
-        row.addString(columnName, value);
+      ByteIterator b = values.get(columnName);
+      if (b != null) {
+        row.addStringUtf8(columnName, b.toArray());
       }
     }
     apply(update);
@@ -295,7 +295,7 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
     PartialRow row = insert.getRow();
     row.addString(KEY, key);
     for (int i = 1; i < schema.getColumnCount(); i++) {
-      row.addString(i, values.get(schema.getColumnByIndex(i).getName()).toString());
+      row.addStringUtf8(i, values.get(schema.getColumnByIndex(i).getName()).toArray());
     }
     apply(insert);
     return Status.OK;
