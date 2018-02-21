@@ -27,17 +27,18 @@ import java.sql.Statement;
 import java.util.Enumeration;
 import java.util.Properties;
 
-import static com.yahoo.ycsb.db.JdbcDBClientConstants.*;
+import static com.yahoo.ycsb.db.HanaClient.*;
 
 /**
  * Execute a JDBC command line.
  *
  * @author sudipto
  */
-public final class JdbcDBCli {
+public final class HanaDBCommandLineInterface {
 
-  // shut checkstype up
-  private JdbcDBCli() {}
+  // shut checkstyle up
+  private HanaDBCommandLineInterface() {
+  }
 
   private static void usageMessage() {
     System.out.println("JdbcCli. Options:");
@@ -48,28 +49,25 @@ public final class JdbcDBCli {
 
   private static void executeCommand(Properties props, String sql)
       throws SQLException {
-    String driver = props.getProperty(DRIVER_CLASS);
-    String username = props.getProperty(CONNECTION_USER);
-    String password = props.getProperty(CONNECTION_PASSWD, "");
-    String url = props.getProperty(CONNECTION_URL);
+    String driver = props.getProperty(DRIVER_CLASS_PROPERTY);
+    String username = props.getProperty(CONNECTION_USER_PROPERTY);
+    String password = props.getProperty(CONNECTION_PASSWORD_PROPERTY, "");
+    String url = props.getProperty(CONNECTION_URL_PROPERTY);
     if (driver == null || username == null || url == null) {
       throw new SQLException("Missing connection information.");
     }
-
     Connection conn = null;
-
     try {
       Class.forName(driver);
-
       conn = DriverManager.getConnection(url, username, password);
-      Statement stmt = conn.createStatement();
-      stmt.execute(sql);
-      System.out.println("Command  \"" + sql + "\" successfully executed.");
+      try (Statement stmt = conn.createStatement()) {
+        stmt.execute(sql);
+        System.out.println("Command  \"" + sql + "\" successfully executed.");
+      }
     } catch (ClassNotFoundException e) {
       throw new SQLException("JDBC Driver class not found.");
     } finally {
       if (conn != null) {
-        System.out.println("Closing database connection.");
         conn.close();
       }
     }
