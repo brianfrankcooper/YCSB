@@ -152,6 +152,7 @@ LICENSE file.
     <module>infinispan</module>
     <module>influxdb</module>
     <module>jdbc</module>
+    <module>kairosdb</module>
     <module>kudu</module>
     <!--<module>mapkeeper</module>-->
     <module>memcached</module>
