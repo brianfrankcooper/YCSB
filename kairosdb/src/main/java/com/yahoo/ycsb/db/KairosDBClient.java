@@ -22,10 +22,8 @@ import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.TimeseriesDB;
 import org.kairosdb.client.HttpClient;
 import org.kairosdb.client.builder.*;
-import org.kairosdb.client.response.Query;
 import org.kairosdb.client.response.QueryResponse;
 import org.kairosdb.client.response.Response;
-import org.kairosdb.client.response.Result;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -33,6 +31,7 @@ import java.net.URISyntaxException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -40,9 +39,13 @@ import java.util.concurrent.TimeUnit;
  */
 public class KairosDBClient extends TimeseriesDB {
 
+  private static final String PORT_PROPERTY = "port";
+  private static final String PORT_PROPERTY_DEFAULT = "8080";
+
+  private static final String IP_PROPERTY = "ip";
+  private static final String IP_PROPERTY_DEFAULT = "localhost";
+
   private HttpClient client = null;
-  private String ip = "localhost";
-  private int port = 8080;
 
   /**
    * Initialize any state for this DB.
@@ -51,22 +54,26 @@ public class KairosDBClient extends TimeseriesDB {
   @Override
   public void init() throws DBException {
     super.init();
+    final Properties properties = getProperties();
+    if (!properties.containsKey(PORT_PROPERTY) && !test) {
+      throwMissingProperty(PORT_PROPERTY);
+    }
+    if (!properties.containsKey(IP_PROPERTY) && !test) {
+      throwMissingProperty(IP_PROPERTY);
+    }
+
+    int port;
     try {
-      if (!getProperties().containsKey("port") && !test) {
-        throw new DBException("ERROR: No port given, abort.");
-      }
-      port = Integer.parseInt(getProperties().getProperty("port", String.valueOf(port)));
-      if (!getProperties().containsKey("ip") && !test) {
-        throw new DBException("ERROR: No ip given, abort.");
-      }
-      ip = getProperties().getProperty("ip", ip);
-    } catch (Exception e) {
+      port = Integer.parseInt(properties.getProperty(PORT_PROPERTY, PORT_PROPERTY_DEFAULT));
+    } catch (NumberFormatException e) {
       throw new DBException(e);
     }
+    String ip = properties.getProperty(IP_PROPERTY, IP_PROPERTY_DEFAULT);
+
     if (debug) {
-      System.out.println("The following properties are given: ");
-      for (String element : getProperties().stringPropertyNames()) {
-        System.out.println(element + ": " + getProperties().getProperty(element));
+      LOGGER.info("The following properties are given: ");
+      for (String element : properties.stringPropertyNames()) {
+        LOGGER.info("{}: {}", element, properties.getProperty(element));
       }
     }
 
@@ -92,7 +99,6 @@ public class KairosDBClient extends TimeseriesDB {
     } catch (IOException e) {
       throw new DBException(e);
     }
-    super.cleanup();
   }
 
   @Override
@@ -105,18 +111,11 @@ public class KairosDBClient extends TimeseriesDB {
     // So: Begin: timestamp, End: timestamp + 1 ms
     // We may get more than that, but we just take the right one
     // There could also be more of them, so count
-    int counter = 0;
-    long timestampLong = timestamp;
     QueryBuilder builder = QueryBuilder.getInstance();
     QueryMetric qm = builder.setStart(new Timestamp(timestamp))
-        .setEnd(new Timestamp(timestampLong + 1))
+        .setEnd(new Timestamp(timestamp + 1))
         .addMetric(metric);
-    for (String tag : tags.keySet()) {
-      List<String> tagnames = tags.get(tag);
-      String[] tnArr = new String[tagnames.size()];
-      tnArr = tagnames.toArray(tnArr);
-      qm.addTag(tag, tnArr);
-    }
+    tags.forEach((key, value) -> qm.addTag(key, value.toArray(new String[0])));
     try {
       // No idea what that '******************* Type=number' Error means, seems to be from GSON or Apache httpclient
       // Old Debug Message in Kairos DB Client, see https://github.com/kairosdb/kairosdb-client/issues/43
@@ -132,49 +131,29 @@ public class KairosDBClient extends TimeseriesDB {
         return Status.ERROR;
       }
       if (response.getQueries().isEmpty()) {
-        System.err.printf("ERROR: Found no queries for metric: %s for timestamp: %d to read.%n", metric, timestamp);
+        LOGGER.error("Found no queries for metric: {} for timestamp: {} to read.", metric, timestamp);
         return Status.NOT_FOUND;
       } else if (response.getQueries().size() > 1) {
-        System.err.printf("ERROR: Found more than one queries for metric: %s for timestamp: %d to read. " +
-            "This should normally not happen.%n", metric, timestamp);
+        LOGGER.error("Found more than one queries for metric: {} for timestamp: {} to read. " +
+            "This should normally not happen.", metric, timestamp);
       }
 
-      for (Query query : response.getQueries()) {
-        List<Result> resList = query.getResults();
-        if (resList.isEmpty()) {
-          return Status.NOT_FOUND;
-        }
-        for (Result result : resList) {
-          List<DataPoint> dataPoints = result.getDataPoints();
-          if (dataPoints.isEmpty()) {
-            return Status.NOT_FOUND;
-          }
-          for (DataPoint dp : dataPoints) {
-            if (dp.getTimestamp() == timestampLong) {
-              counter++;
-            }
-          }
-        }
+      long counter = response.getQueries().stream()
+          .flatMap(q -> q.getResults().stream())
+          .flatMap(result -> result.getDataPoints().stream())
+          .filter(dataPoint -> dataPoint.getTimestamp() == timestamp)
+          .count();
+      if (counter == 0) {
+        LOGGER.warn("Found no values for metric {} for timestamp {}.", metric, timestamp);
+        return Status.NOT_FOUND;
+      } else if (counter > 1) {
+        LOGGER.warn("Found more than one value for metric {} for timestamp {}", metric, timestamp);
       }
-    } catch (URISyntaxException e) {
-      System.err.printf("ERROR: Error in processing scan for metric: %s for timestamp: %d.%s%n",
-          metric, timestamp, e);
-      e.printStackTrace();
-      return Status.ERROR;
-    } catch (IOException e) {
-      System.err.printf("ERROR: Error in processing scan for metric: %s  for timestamp: %d.%s%n",
-          metric, timestamp, e);
-      e.printStackTrace();
+      return Status.OK;
+    } catch (URISyntaxException | IOException e) {
+      LOGGER.error("Failed to process scan in metric {} for timestamp {}.{}", metric, timestamp, e);
       return Status.ERROR;
     }
-
-    if (counter == 0) {
-      System.err.printf("ERROR: Found no values for metric: %s for timestamp: %d.%n", metric, timestamp);
-      return Status.NOT_FOUND;
-    } else if (counter > 1) {
-      System.err.printf("ERROR: Found more than one value for metric: %s for timestamp: %d.%n", metric, timestamp);
-    }
-    return Status.OK;
   }
 
   @Override
@@ -187,12 +166,7 @@ public class KairosDBClient extends TimeseriesDB {
     QueryMetric qm = builder.setStart(new Timestamp(startTs))
         .setEnd(new Timestamp(endTs))
         .addMetric(metric);
-    for (String tag : tags.keySet()) {
-      List<String> tagnames = tags.get(tag);
-      String[] tnArr = new String[tagnames.size()];
-      tnArr = tagnames.toArray(tnArr);
-      qm.addTag(tag, tnArr);
-    }
+    tags.forEach((name, values) -> qm.addTag(name, values.toArray(new String[0])));
     org.kairosdb.client.builder.TimeUnit tu = null;
     int newTimeValue = timeValue;
     // Can also support "weeks", "months", and "years", not used yet
@@ -218,13 +192,21 @@ public class KairosDBClient extends TimeseriesDB {
         tu = org.kairosdb.client.builder.TimeUnit.valueOf(timeUnit.name());
       }
     }
-    if (aggreg == AggregationOperation.AVERAGE) {
+    switch (aggreg) {
+    case AVERAGE:
       qm.addAggregator(AggregatorFactory.createAverageAggregator(newTimeValue, tu));
-    } else if (aggreg == AggregationOperation.COUNT) {
+      break;
+    case COUNT:
       qm.addAggregator(AggregatorFactory.createCountAggregator(newTimeValue, tu));
-    } else if (aggreg == AggregationOperation.SUM) {
+      break;
+    case SUM:
       qm.addAggregator(AggregatorFactory.createSumAggregator(newTimeValue, tu));
+      break;
+    default:
+      // shut checkstyle up...
+      break;
     }
+
     try {
       if (test) {
         return Status.OK;
@@ -233,33 +215,15 @@ public class KairosDBClient extends TimeseriesDB {
       if (response.getStatusCode() != 200) {
         return Status.ERROR;
       }
-      if (response.getQueries().isEmpty()) {
-        return Status.NOT_FOUND;
-      }
-      for (Query query : response.getQueries()) {
-        List<Result> resList = query.getResults();
-        if (resList.isEmpty()) {
-          return Status.NOT_FOUND;
-        }
-        for (Result result : resList) {
-          List<DataPoint> dataPoints = result.getDataPoints();
-          if (dataPoints.isEmpty()) {
-            return Status.NOT_FOUND;
-          }
-        }
-      }
-    } catch (URISyntaxException e) {
-      System.err.printf("ERROR: Error in processing scan for metric: %s for timestamprange: %d->%d.%s%n",
-          metric, startTs, endTs, e);
-      e.printStackTrace();
-      return Status.ERROR;
-    } catch (IOException e) {
-      System.err.printf("ERROR: Error in processing scan for metric: %s  for timestamprange: %d->%d.%s%n",
-          metric, startTs, endTs, e);
-      e.printStackTrace();
+      long counter = response.getQueries().stream()
+          .flatMap(query -> query.getResults().stream())
+          .mapToLong(result -> result.getDataPoints().size())
+          .sum();
+      return counter == 0 ? Status.NOT_FOUND : Status.OK;
+    } catch (URISyntaxException | IOException e) {
+      LOGGER.error("Failed to process scan for metric {} for timestamp-range: {}->{}.{}", metric, startTs, endTs, e);
       return Status.ERROR;
     }
-    return Status.OK;
   }
 
   @Override
@@ -269,29 +233,17 @@ public class KairosDBClient extends TimeseriesDB {
     }
     MetricBuilder builder = MetricBuilder.getInstance();
     Metric met = builder.addMetric(metric);
-
-    for (Map.Entry<String, ByteIterator> entry : tags.entrySet()) {
-      met.addTag(entry.getKey(), entry.getValue().toString());
-    }
+    tags.forEach((key, tag) -> met.addTag(key, tag.toString()));
     // cast is required for overload resolution to work properly
-    met.addDataPoint((long)timestamp, value);
+    met.addDataPoint((long) timestamp, value);
     try {
       if (test) {
         return Status.OK;
       }
       Response response = client.pushMetrics(builder);
-      if (response.getStatusCode() != 204) {
-        return Status.ERROR;
-      } else {
-        return Status.OK;
-      }
-    } catch (URISyntaxException e) {
-      System.err.println("ERROR: Error in processing insert to metric: " + metric + e);
-      e.printStackTrace();
-      return Status.ERROR;
-    } catch (IOException e) {
-      System.err.println("ERROR: Error in processing insert to metric: " + metric + e);
-      e.printStackTrace();
+      return response.getStatusCode() != 204 ? Status.ERROR : Status.OK;
+    } catch (URISyntaxException | IOException e) {
+      LOGGER.error("Failed to process insert to metric {}. {}", metric, e);
       return Status.ERROR;
     }
   }
