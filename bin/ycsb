@@ -92,6 +92,7 @@ DATABASES = {
     "influxdb"     : "com.yahoo.ycsb.db.InfluxDBClient",
     "jdbc"         : "com.yahoo.ycsb.db.JdbcDBClient",
     "kairosdb"     : "com.yahoo.ycsb.db.KairosDBClient",
+    "kdbplus"      : "com.yahoo.ycsb.db.KdbPlusClient",
     "kudu"         : "com.yahoo.ycsb.db.KuduYCSBClient",
     "memcached"    : "com.yahoo.ycsb.db.MemcachedClient",
     "mongodb"      : "com.yahoo.ycsb.db.MongoDbClient",
