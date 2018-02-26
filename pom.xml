@@ -153,6 +153,7 @@ LICENSE file.
     <module>influxdb</module>
     <module>jdbc</module>
     <module>kairosdb</module>
+    <module>kdbplus-java</module>
     <module>kudu</module>
     <!--<module>mapkeeper</module>-->
     <module>memcached</module>
