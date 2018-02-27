@@ -97,6 +97,7 @@ DATABASES = {
     "memcached"    : "com.yahoo.ycsb.db.MemcachedClient",
     "mongodb"      : "com.yahoo.ycsb.db.MongoDbClient",
     "mongodb-async": "com.yahoo.ycsb.db.AsyncMongoDbClient",
+    "newts"        : "com.yahoo.ycsb.db.NewTSClient",
     "nosqldb"      : "com.yahoo.ycsb.db.NoSqlDbClient",
     "opentsdb"     : "com.yahoo.ycsb.db.OpenTSDBClient",
     "orientdb"     : "com.yahoo.ycsb.db.OrientDBClient",

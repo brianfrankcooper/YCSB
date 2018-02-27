@@ -159,6 +159,7 @@ LICENSE file.
     <!--<module>mapkeeper</module>-->
     <module>memcached</module>
     <module>mongodb</module>
+    <module>newts</module>
     <module>nosqldb</module>
     <module>orientdb</module>
     <module>opentsdb</module>
