@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -37,43 +38,41 @@ import java.util.concurrent.TimeUnit;
  */
 public class KdbPlusClient extends TimeseriesDB {
 
-  private String ip;
-  private int port;
+  private static final String PORT_PROPERTY = "port";
+  private static final String PORT_PROPERTY_DEFAULT = "5001";
+
+  private static final String IP_PROPERTY = "ip";
+  private static final String IP_PROPERTY_DEFAULT = "localhost";
 
   private c kdbPlus;
 
   @Override
   public void init() throws DBException {
     super.init();
-    test = Boolean.parseBoolean(getProperties().getProperty("test", "false"));
-
-    if (!getProperties().containsKey("port") && !test) {
-      throw new DBException("No port given, abort.");
-    }
-    port = Integer.parseInt(getProperties().getProperty("port", "5001"));
-
-    if (!getProperties().containsKey("ip") && !test) {
-      throw new DBException("No ip given, abort.");
-    }
-    ip = getProperties().getProperty("ip", "localhost");
-
+    final Properties properties = getProperties();
     if (debug) {
-      System.out.println("The following properties are given: ");
-      for (String element : getProperties().stringPropertyNames()) {
-        System.out.println(element + ": " + getProperties().getProperty(element));
+      LOGGER.info("The following properties are given: ");
+      for (String element : properties.stringPropertyNames()) {
+        LOGGER.info("{}: {}", element, properties.getProperty(element));
       }
     }
 
     if (!test) {
+      if (!properties.containsKey(PORT_PROPERTY)) {
+        throwMissingProperty(PORT_PROPERTY);
+      }
+      if (!properties.containsKey(IP_PROPERTY)) {
+        throwMissingProperty(IP_PROPERTY);
+      }
+      int port = Integer.parseInt(properties.getProperty(PORT_PROPERTY, PORT_PROPERTY_DEFAULT));
+      String ip = properties.getProperty(IP_PROPERTY, IP_PROPERTY_DEFAULT);
       try {
         // establishes connection to kdb+
         this.kdbPlus = new c(ip, port);
       } catch (KException | IOException e) {
         throw new DBException(e);
-
       }
     }
-
   }
 
   @Override
@@ -100,9 +99,8 @@ public class KdbPlusClient extends TimeseriesDB {
     generateTagFilterQueryPart(query, tags);
 
     if (debug) {
-      System.out.println("Query: " + query);
+      LOGGER.info("Query: {}", query);
     }
-
     if (test) {
       return Status.OK;
     }
@@ -111,14 +109,13 @@ public class KdbPlusClient extends TimeseriesDB {
 
   @Override
   public Status scan(String metric, Long startTs, Long endTs, Map<String, List<String>> tags,
-                  AggregationOperation aggreg, int timeValue, TimeUnit timeUnit) {
+                     AggregationOperation aggreg, int timeValue, TimeUnit timeUnit) {
 
     if (metric == null || metric.isEmpty() || startTs == null || endTs == null) {
       return Status.BAD_REQUEST;
     }
 
     StringBuilder query = new StringBuilder("select ");
-
     if (aggreg == AggregationOperation.AVERAGE) {
       query.append("avg ");
     } else if (aggreg == AggregationOperation.COUNT) {
@@ -167,7 +164,7 @@ public class KdbPlusClient extends TimeseriesDB {
 
     generateTagFilterQueryPart(query, tags);
     if (debug) {
-      System.out.println("Query: " + query);
+      LOGGER.info("Query: {}", query);
     }
     if (test) {
       return Status.OK;
@@ -177,8 +174,6 @@ public class KdbPlusClient extends TimeseriesDB {
 
   /**
    * Sends {@code query} to the kdb+ instance which executes it.
-   *
-   * @param query
    */
   private Status execQuery(String query) {
     try {
@@ -194,11 +189,9 @@ public class KdbPlusClient extends TimeseriesDB {
    * Generates the tag filter query part. The query part will be appended to
    * StringBuilder {@code query}.
    *
-   * @param query
-   * @param tags  to use for filtering
+   * @param tags to use for filtering
    */
   private void generateTagFilterQueryPart(StringBuilder query, Map<String, List<String>> tags) {
-
     for (Map.Entry<String, List<String>> tag : tags.entrySet()) {
       query.append(',');
       for (String tagValue : tag.getValue()) {
@@ -223,7 +216,6 @@ public class KdbPlusClient extends TimeseriesDB {
    * there is not already a table with that name. The query part will be
    * appended to StringBuilder {@code query}.
    *
-   * @param query
    * @param table name - must only consists of letters, numbers and underscores
    *              (case-sensitive), no whitespaces are allowed
    */
@@ -251,7 +243,6 @@ public class KdbPlusClient extends TimeseriesDB {
    */
   @Override
   public Status insert(String metric, Long timestamp, double value, Map<String, ByteIterator> tags) {
-
     if (metric == null || metric.isEmpty() || timestamp == null) {
       return Status.BAD_REQUEST;
     }
@@ -304,9 +295,8 @@ public class KdbPlusClient extends TimeseriesDB {
     }
 
     if (debug) {
-      System.out.println("Query: " + query);
+      LOGGER.info("Query: {}", query);
     }
-
     if (test) {
       return Status.OK;
     }
