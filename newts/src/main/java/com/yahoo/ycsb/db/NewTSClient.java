@@ -27,14 +27,12 @@ import org.opennms.newts.api.query.ResultDescriptor;
 import org.opennms.newts.api.query.StandardAggregationFunctions;
 import org.opennms.newts.api.search.*;
 import org.opennms.newts.cassandra.CassandraSession;
+import org.opennms.newts.cassandra.CassandraSessionImpl;
 import org.opennms.newts.cassandra.ContextConfigurations;
 import org.opennms.newts.cassandra.search.CassandraSearcher;
 import org.opennms.newts.persistence.cassandra.CassandraSampleRepository;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static com.yahoo.ycsb.TimeseriesDB.AggregationOperation.COUNT;
@@ -50,17 +48,27 @@ import static com.yahoo.ycsb.TimeseriesDB.AggregationOperation.SUM;
  */
 public class NewTSClient extends TimeseriesDB {
 
-  private String ip = "localhost";
-  private int port = 9042;
-  private String keySpace = "newts";
+  private static final String IP_PROPERTY = "ip";
+  private static final String IP_PROPERTY_DEFAULT = "localhost";
+
+  private static final String PORT_PROPERTY = "port";
+  private static final String PORT_PROPERTY_DEFAULT = "9042";
+
+  private static final String KEYSPACE_PROPERTY = "keyspace";
+  private static final String KEYSPACE_PROPERTY_DEFAULT = "newts";
+
+  private static final String HEARTBEAT_FACTOR_PROPERTY = "heartbeatFactor";
+  private static final String HEARTBEAT_FACTOR_PROPERTY_DEFAULT = "10";
+
+  private static final String FILTER_FOR_TAGS_PROPERTY = "filterForTags";
+  private static final String FILTER_FOR_TAGS_PROPERTY_DEFAULT = "false";
 
   private CassandraSession client;
   private SampleRepository repo;
   private CassandraSearcher searcher;
-  private ContextConfigurations cc = new ContextConfigurations();
-  private int heartbeatFactor = 10; // heartbeat = resolution * heartbeatfactor
+  private ContextConfigurations contextConfigurations = new ContextConfigurations();
   // NewTS can only filter for tags OR for time, tags + avg/sum/count/scan does not work
-  private boolean filterForTags = false;
+  private boolean filterForTags;
 
   /**
    * Initialize any state for this DB.
@@ -69,34 +77,34 @@ public class NewTSClient extends TimeseriesDB {
   @Override
   public void init() throws DBException {
     super.init();
+    final Properties properties = getProperties();
+    if (debug) {
+      LOGGER.info("The following properties are given: ");
+      for (String element : properties.stringPropertyNames()) {
+        LOGGER.info("{}: {}", element, properties.getProperty(element));
+      }
+    }
+    if (!properties.containsKey(PORT_PROPERTY) && !test) {
+      throwMissingProperty(PORT_PROPERTY);
+    }
+    if (!properties.containsKey(IP_PROPERTY) && !test) {
+      throwMissingProperty(IP_PROPERTY);
+    }
+    filterForTags = Boolean.parseBoolean(properties.getProperty(FILTER_FOR_TAGS_PROPERTY,
+        FILTER_FOR_TAGS_PROPERTY_DEFAULT));
+    String keySpace = properties.getProperty(KEYSPACE_PROPERTY, KEYSPACE_PROPERTY_DEFAULT);
+    int port = Integer.parseInt(properties.getProperty(PORT_PROPERTY, PORT_PROPERTY_DEFAULT));
+    String ip = properties.getProperty(IP_PROPERTY, IP_PROPERTY_DEFAULT);
     try {
-      if (!getProperties().containsKey("port") && !test) {
-        throw new DBException("No port given, abort.");
-      }
-      port = Integer.parseInt(getProperties().getProperty("port", String.valueOf(port)));
-      if (!getProperties().containsKey("ip") && !test) {
-        throw new DBException("No ip given, abort.");
-      }
-      ip = getProperties().getProperty("ip", ip);
-      keySpace = getProperties().getProperty("keyspace", keySpace);
-      heartbeatFactor = Integer.parseInt(getProperties().getProperty("heartbeatfactor", "10"));
-      filterForTags = Boolean.parseBoolean(getProperties().getProperty("filterForTags", "false"));
-      if (debug) {
-        System.out.println("The following properties are given: ");
-        for (String element : getProperties().stringPropertyNames()) {
-          System.out.println(element + ": " + getProperties().getProperty(element));
-        }
-      }
       if (!test) {
-        SampleProcessorService processors = new SampleProcessorService(32);
-        int ttl = 86400 * 365; // 1 Jahr TTL
+        SampleProcessorService processors = new DefaultSampleProcessorService(32);
+        final int ttl = 86400 * 365; // 1 Jahr TTL
         MetricRegistry registry = new MetricRegistry();
-        // keypsace,ip,port,compression,user,pw
-        this.client = new CassandraSession(keySpace, this.ip, this.port, "NONE", "cassandra", "cassandra");
-        this.repo = new CassandraSampleRepository(this.client, ttl, registry, processors, this.cc);
+        client = new CassandraSessionImpl(keySpace, ip, port, "NONE", "cassandra", "cassandra", false);
+        repo = new CassandraSampleRepository(client, ttl, registry, processors, contextConfigurations);
         if (filterForTags) {
-          System.err.println("WARNING: FilterForTags does not work properly for NewTS!");
-          this.searcher = new CassandraSearcher(this.client, registry, this.cc);
+          LOGGER.warn("FilterForTags does not work properly for NewTS!");
+          searcher = new CassandraSearcher(client, registry, contextConfigurations);
         }
       }
     } catch (Exception e) {
@@ -109,8 +117,8 @@ public class NewTSClient extends TimeseriesDB {
    * Called once per DB instance; there is one DB instance per client thread.
    */
   @Override
-  public void cleanup() throws DBException {
-    this.client.shutdown();
+  public void cleanup() {
+    client.shutdown();
   }
 
 
@@ -125,44 +133,39 @@ public class NewTSClient extends TimeseriesDB {
       return Status.OK;
     }
 
-    if (!this.filterForTags || tags.size() < 1) {
-      Results<Sample> samples = this.repo.select(Context.DEFAULT_CONTEXT, resource,
+    if (!filterForTags || tags.size() < 1) {
+      Results<Sample> samples = repo.select(Context.DEFAULT_CONTEXT, resource,
           Optional.of(org.opennms.newts.api.Timestamp.fromEpochMillis(timestamp)),
           Optional.of(org.opennms.newts.api.Timestamp.fromEpochMillis(timestamp)));
       for (Results.Row row : samples.getRows()) {
-
         if (row.getTimestamp().asMillis() == timestamp) {
           counter++;
         }
       }
     } else {
-      BooleanQuery mainBq = new BooleanQuery(); // AND the smaller Querys per TAG together
-      for (String tag : tags.keySet()) {
-        BooleanQuery bq = new BooleanQuery(); // OR the single Querys per TAG together
-        for (String tagvalue : tags.get(tag)) {
-          Query query = QueryBuilder.matchKeyAndValue(tag, tagvalue);
+      // AND the smaller Querys per TAG together
+      BooleanQuery mainBq = new BooleanQuery();
+      for (Map.Entry<String, List<String>> tagDefinition : tags.entrySet()) {
+        // OR the single Querys per TAG together
+        BooleanQuery bq = new BooleanQuery();
+        for (String tagvalue : tagDefinition.getValue()) {
+          Query query = QueryBuilder.matchKeyAndValue(tagDefinition.getKey(), tagvalue);
           bq.add(query, Operator.OR);
         }
         mainBq.add(bq, Operator.AND);
       }
-      SearchResults sr = this.searcher.search(Context.DEFAULT_CONTEXT, mainBq);
-      if (!sr.isEmpty()) {
-        SearchResults.Result res;
-        while (sr.iterator().hasNext()) {
-          res = sr.iterator().next();
-          // Untested -> Missing: Check if timestamp is there
-        }
-      } else {
+      SearchResults sr = searcher.search(Context.DEFAULT_CONTEXT, mainBq);
+      if (sr.isEmpty()) {
         return Status.NOT_FOUND;
       }
+      // TODO check timestamp by iterating result
     }
 
     if (counter == 0) {
-      System.err.println("ERROR: Found no values for metric: " + metric + " for timestamp: " + timestamp + ".");
+      LOGGER.info("Found no values for metric {} for timestamp {}.", metric, timestamp);
       return Status.NOT_FOUND;
     } else if (counter > 1) {
-      System.err.println("ERROR: Found more than one value for metric: " + metric + " for timestamp: "
-          + timestamp + ".");
+      LOGGER.info("Found more than one value for metric {} for timestamp {}.", metric, timestamp);
     }
     return Status.OK;
   }
@@ -170,7 +173,6 @@ public class NewTSClient extends TimeseriesDB {
   @Override
   public Status scan(String metric, Long startTs, Long endTs, Map<String, List<String>> tags,
                      AggregationOperation aggreg, int timeValue, TimeUnit timeUnit) {
-
     if (metric == null || metric.equals("") || startTs == null || endTs == null) {
       return Status.BAD_REQUEST;
     }
@@ -179,71 +181,70 @@ public class NewTSClient extends TimeseriesDB {
     if (test) {
       return Status.OK;
     }
-    if (!this.filterForTags || tags.size() < 1) {
-      // Duration for repo is resolution
-      // Duration must be a divider of the interval
-      // 1 is not allowed/possible
-      if (timeValue != 0 && timeUnit.MILLISECONDS.convert(timeValue, timeUnit) < 2) {
-        System.err.println("WARNING: NewTS supports only values > 2 as resolution. Defaulting to 2.");
-        timeValue = 2;
-      }
-      Duration duration = Duration.millis(TimeUnit.MILLISECONDS.convert(endTs - startTs, TimeUnit.MILLISECONDS) * 2);
-      // we must use double duration, otherwise sampleinterval wont work.
-      Duration sampleInterval = Duration.millis(TimeUnit.MILLISECONDS.convert(endTs - startTs, TimeUnit.MILLISECONDS));
-      if (timeValue != 0) {
-        sampleInterval = Duration.millis(TimeUnit.MILLISECONDS.convert(timeValue, timeUnit));
-        if (TimeUnit.MILLISECONDS.convert(endTs - startTs, TimeUnit.MILLISECONDS) % sampleInterval.asMillis() == 0) {
-          duration = Duration.millis(TimeUnit.MILLISECONDS.convert(endTs - startTs, TimeUnit.MILLISECONDS));
-        } else {
-          long factor = (long) Math.ceil(duration.asMillis() / sampleInterval.asMillis());
-          duration = Duration.millis(sampleInterval.asMillis() * factor);
-        }
-      }
-      Duration heartbeat = Duration.millis(TimeUnit.MILLISECONDS.convert(endTs - startTs, TimeUnit.MILLISECONDS));
-      // heartbeat see https://github.com/OpenNMS/newts/wiki/RestService
-      // heartbeat = max. duration for aggregations?
-      // sample interval = bucketsize
-      // duartion + sampleInterval see https://github.com/OpenNMS/newts/wiki/JavaAPI#measurement-selects
-      // duration = complete time interval (must fit at least one sample interval in it) ...
-      // also named resolution which is totally wrong..
-      if (aggreg != AggregationOperation.NONE) {
-        // AVG;SUM;COUNT
-        ResultDescriptor descriptor = null;
-        if (aggreg == AggregationOperation.AVERAGE) {
-          descriptor = new ResultDescriptor(sampleInterval)
-              .datasource(metric, metric, heartbeat, StandardAggregationFunctions.AVERAGE)
-              .export(metric);
-        } else if (aggreg == SUM) {
-          // There is no sum, use MAX instead
-          descriptor = new ResultDescriptor(sampleInterval)
-              .datasource(metric, metric, heartbeat, StandardAggregationFunctions.MAX)
-              .export(metric);
-        } else if (aggreg == COUNT) {
-          // There is no count, use MIN instead
-          descriptor = new ResultDescriptor(sampleInterval)
-              .datasource(metric, metric, heartbeat, StandardAggregationFunctions.MIN)
-              .export(metric);
-        }
-        Results<Measurement> samples = this.repo.select(Context.DEFAULT_CONTEXT, resource,
-            Optional.of(org.opennms.newts.api.Timestamp.fromEpochMillis(startTs)),
-            Optional.of(org.opennms.newts.api.Timestamp.fromEpochMillis(endTs)),
-            descriptor, Optional.of(duration));
-
-        if (samples == null || samples.getRows().size() == 0) {
-          return Status.NOT_FOUND;
-        }
+    if (filterForTags && tags.size() >= 1) {
+      LOGGER.warn("FilterForTags can't work together with SCAN/AVG/SUM/COUNT for NewTS!");
+      return Status.NOT_IMPLEMENTED;
+    }
+    // Duration for repo is resolution
+    // Duration must be a divider of the interval
+    // 1 is not allowed/possible
+    if (timeValue != 0 && TimeUnit.MILLISECONDS.convert(timeValue, timeUnit) < 2) {
+      LOGGER.warn("NewTS supports only values > 2 as resolution. Defaulting to 2.");
+      timeValue = 2;
+    }
+    Duration duration = Duration.millis(TimeUnit.MILLISECONDS.convert(endTs - startTs, TimeUnit.MILLISECONDS) * 2);
+    // we must use double duration, otherwise sampleinterval wont work.
+    Duration sampleInterval = Duration.millis(TimeUnit.MILLISECONDS.convert(endTs - startTs, TimeUnit.MILLISECONDS));
+    if (timeValue != 0) {
+      sampleInterval = Duration.millis(TimeUnit.MILLISECONDS.convert(timeValue, timeUnit));
+      if (TimeUnit.MILLISECONDS.convert(endTs - startTs, TimeUnit.MILLISECONDS) % sampleInterval.asMillis() == 0) {
+        duration = Duration.millis(TimeUnit.MILLISECONDS.convert(endTs - startTs, TimeUnit.MILLISECONDS));
       } else {
-        // SCAN
-        Results<Sample> samples = this.repo.select(Context.DEFAULT_CONTEXT, resource,
-            Optional.of(org.opennms.newts.api.Timestamp.fromEpochMillis(startTs)),
-            Optional.of(org.opennms.newts.api.Timestamp.fromEpochMillis(endTs)));
-        if (samples == null || samples.getRows().size() == 0) {
-          return Status.NOT_FOUND;
-        }
+        long factor = (long) Math.ceil(duration.asMillis() / (double) sampleInterval.asMillis());
+        duration = Duration.millis(sampleInterval.asMillis() * factor);
+      }
+    }
+    Duration heartbeat = Duration.millis(TimeUnit.MILLISECONDS.convert(endTs - startTs, TimeUnit.MILLISECONDS));
+    // heartbeat see https://github.com/OpenNMS/newts/wiki/RestService
+    // heartbeat = max. duration for aggregations?
+    // sample interval = bucketsize
+    // duartion + sampleInterval see https://github.com/OpenNMS/newts/wiki/JavaAPI#measurement-selects
+    // duration = complete time interval (must fit at least one sample interval in it) ...
+    // also named resolution which is totally wrong..
+    if (aggreg != AggregationOperation.NONE) {
+      // AVG;SUM;COUNT
+      ResultDescriptor descriptor = null;
+      if (aggreg == AggregationOperation.AVERAGE) {
+        descriptor = new ResultDescriptor(sampleInterval)
+            .datasource(metric, metric, heartbeat, StandardAggregationFunctions.AVERAGE)
+            .export(metric);
+      } else if (aggreg == SUM) {
+        // There is no sum, use MAX instead
+        descriptor = new ResultDescriptor(sampleInterval)
+            .datasource(metric, metric, heartbeat, StandardAggregationFunctions.MAX)
+            .export(metric);
+      } else if (aggreg == COUNT) {
+        // There is no count, use MIN instead
+        descriptor = new ResultDescriptor(sampleInterval)
+            .datasource(metric, metric, heartbeat, StandardAggregationFunctions.MIN)
+            .export(metric);
+      }
+      Results<Measurement> samples = repo.select(Context.DEFAULT_CONTEXT, resource,
+          Optional.of(Timestamp.fromEpochMillis(startTs)),
+          Optional.of(Timestamp.fromEpochMillis(endTs)),
+          descriptor, Optional.of(duration));
+
+      if (samples == null || samples.getRows().isEmpty()) {
+        return Status.NOT_FOUND;
       }
     } else {
-      System.err.println("WARNING: FilterForTags can't work together with SCAN/AVG/SUM/COUNT for NewTS!");
-      return Status.NOT_IMPLEMENTED;
+      // SCAN
+      Results<Sample> samples = repo.select(Context.DEFAULT_CONTEXT, resource,
+          Optional.of(Timestamp.fromEpochMillis(startTs)),
+          Optional.of(Timestamp.fromEpochMillis(endTs)));
+      if (samples == null || samples.getRows().isEmpty()) {
+        return Status.NOT_FOUND;
+      }
     }
     return Status.OK;
   }
@@ -254,8 +255,8 @@ public class NewTSClient extends TimeseriesDB {
       return Status.BAD_REQUEST;
     }
     try {
-      List<Sample> samples = new ArrayList<Sample>();
-      Map<String, String> tagMap = new HashMap<String, String>();
+      List<Sample> samples = new ArrayList<>();
+      Map<String, String> tagMap = new HashMap<>();
       for (Map.Entry<String, ByteIterator> tag : tags.entrySet()) {
         tagMap.put(tag.getKey(), tag.getValue().toString());
       }
@@ -269,11 +270,10 @@ public class NewTSClient extends TimeseriesDB {
               tagMap
           )
       );
-      this.repo.insert(samples);
+      repo.insert(samples);
       return Status.OK;
     } catch (Exception e) {
-      System.err.println("ERROR: Error in processing insert to metric: " + metric + e);
-      e.printStackTrace();
+      LOGGER.error("Failed to process insert to metric [{}] due to {}", metric, e);
       return Status.ERROR;
     }
   }
