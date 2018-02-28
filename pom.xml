@@ -163,6 +163,7 @@ LICENSE file.
     <module>nosqldb</module>
     <module>orientdb</module>
     <module>opentsdb</module>
+    <module>prometheus</module>
     <module>rados</module>
     <module>redis</module>
     <module>rest</module>

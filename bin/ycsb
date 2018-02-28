@@ -101,6 +101,7 @@ DATABASES = {
     "nosqldb"      : "com.yahoo.ycsb.db.NoSqlDbClient",
     "opentsdb"     : "com.yahoo.ycsb.db.OpenTSDBClient",
     "orientdb"     : "com.yahoo.ycsb.db.OrientDBClient",
+    "prometheus"   : "com.yahoo.ycsb.db.PrometheusClient",
     "rados"        : "com.yahoo.ycsb.db.RadosClient",
     "redis"        : "com.yahoo.ycsb.db.RedisClient",
     "rest"         : "com.yahoo.ycsb.webservice.rest.RestClient",
