@@ -30,10 +30,6 @@ import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.TimeseriesDB;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -58,12 +54,6 @@ public class RhombusClient extends TimeseriesDB {
   private String[] usedTags = {"TAG0", "TAG1", "TAG2"};
   private String alwaysSetTagName = "TAGALWAYSSET1";
 
-  static String readFile(String path, Charset encoding)
-      throws IOException {
-    byte[] encoded = Files.readAllBytes(Paths.get(path));
-    return new String(encoded, encoding);
-  }
-
   /**
    * Initialize any state for this DB.
    * Called once per DB instance; there is one DB instance per client thread.
@@ -80,47 +70,37 @@ public class RhombusClient extends TimeseriesDB {
       root.setLevel(Level.WARN);
     }
     if (debug) {
-      System.out.println("The following properties are given: ");
+      LOGGER.info("The following properties are given: ");
       for (String element : getProperties().stringPropertyNames()) {
-        System.out.println(element + ": " + getProperties().getProperty(element));
+        LOGGER.info("{}: {}", element, getProperties().getProperty(element));
       }
     }
-    try {
-      if (!getProperties().containsKey("ip") && !test) {
-        throw new DBException("No ip given, abort.");
-      }
       ip = getProperties().getProperty("ip", ip);
       keySpaceDefinitionFile = getProperties().getProperty("keySpacedefinitionfile", keySpaceDefinitionFile);
       dataCenter = getProperties().getProperty("datacenter", dataCenter);
       filterForTags = Boolean.parseBoolean(getProperties().getProperty("filterForTags",
           Boolean.toString(filterForTags)));
+    try {
       if (!test) {
+        if (!getProperties().containsKey("ip")) {
+          throw new DBException("No ip given, abort.");
+        }
         CassandraConfiguration config = new CassandraConfiguration();
-        List contactPoints = new ArrayList();
-        for (String splittedIp : ip.split(",")) {
-          contactPoints.add(splittedIp);
-        }
-        config.setContactPoints(contactPoints);
+        config.setContactPoints(Arrays.asList(ip.split(",")));
         config.setLocalDatacenter(dataCenter);
-        this.client = new ConnectionManager(config);
-        this.client.buildCluster();
-        String json = "";
-        try {
-          json = readFile(keySpaceDefinitionFile, Charset.forName("UTF-8"));
-        } catch (Exception e) {
-          throw new DBException("Can't open or read " + keySpaceDefinitionFile + ". " + e);
-        }
-        CKeyspaceDefinition keyspaceDefinition = CKeyspaceDefinition.fromJsonString(json);
+        client = new ConnectionManager(config);
+        client.buildCluster();
+        final CKeyspaceDefinition keyspaceDefinition = CKeyspaceDefinition.fromJsonFile(keySpaceDefinitionFile);
         // false = do not rebuild if exist
-        this.client.buildKeyspace(keyspaceDefinition, false);
-        this.client.setDefaultKeyspace(keyspaceDefinition);
-        this.om = this.client.getObjectMapper();
+        client.buildKeyspace(keyspaceDefinition, false);
+        client.setDefaultKeyspace(keyspaceDefinition);
+        om = client.getObjectMapper();
         if (debug) {
-          this.client.setLogCql(true);
-          this.om.setLogCql(true);
+          client.setLogCql(true);
+          om.setLogCql(true);
         } else {
-          this.client.setLogCql(false);
-          this.om.setLogCql(false);
+          client.setLogCql(false);
+          om.setLogCql(false);
         }
       }
     } catch (Exception e) {
@@ -130,31 +110,28 @@ public class RhombusClient extends TimeseriesDB {
   }
 
   @Override
-  public void cleanup() throws DBException {
-    this.client.teardown();
+  public void cleanup() {
+    client.teardown();
   }
 
   @Override
   public Status read(String metric, Long timestamp, Map<String, List<String>> tags) {
-    if (metric == null || metric.equals("") || timestamp == null) {
+    if (metric == null || metric.equals("") || timestamp == null || tags == null) {
       return Status.BAD_REQUEST;
     }
-    if (tags != null && tags.keySet().size() > usedTags.length) {
-      System.err.println("WARNING: More tags used than configured in Rhombus. " +
-          "Please adjust usedTags and rhombus.json! Or use only " + usedTags.length + " tags.");
+    if (tags.keySet().size() > usedTags.length) {
+      LOGGER.warn("More tags used than configured in Rhombus. Please adjust usedTags and rhombus.json, " +
+          "or use only {} tags.", usedTags.length);
     }
     try {
       int counter = 0;
       Criteria criteria = new Criteria();
-      SortedMap values = Maps.newTreeMap();
-      if (this.filterForTags && tags.size() > 0) {
-        for (String tag : tags.keySet()) {
-          for (String tagvalue : tags.get(tag)) {
-            values.put(tag, tagvalue);
-          }
-        }
+      SortedMap<String, Object> values = Maps.newTreeMap();
+      if (filterForTags && !tags.isEmpty()) {
+        // FIXME THIS IS NOT HOW MAPS WORK, FFS! WHY WAS THE ORIGINAL CODE EQUIVALENT TO THIS?
+        tags.forEach((tagName, tagValues) -> tagValues.forEach(tagValue -> values.put(tagName, tagValue)));
       } else {
-        values.put(this.alwaysSetTagName, 1L);
+        values.put(alwaysSetTagName, 1L);
       }
       criteria.setIndexKeys(values);
       criteria.setStartTimestamp(timestamp);
@@ -162,23 +139,18 @@ public class RhombusClient extends TimeseriesDB {
       if (test) {
         return Status.OK;
       }
-      List<Map<String, Object>> results = this.om.list(metric, criteria);
-      // every result will have the right timestamp, we can't check that
-      for (Map<String, Object> map : results) {
-        counter++;
-      }
-
+      List<Map<String, Object>> results = om.list(metric, criteria);
+      // TODO: this assumes that results are all that we wanted...
+      counter = results.size();
       if (counter == 0) {
-        System.err.println("ERROR: Found no values for metric: " + metric + " for timestamp: " + timestamp + ".");
+        LOGGER.info("Found no values for metric {} at timestamp {}", metric, timestamp);
         return Status.NOT_FOUND;
       } else if (counter > 1) {
-        System.err.println("ERROR: Found more than one value for metric: "
-            + metric + " for timestamp: " + timestamp + ".");
+        LOGGER.warn("Found more than one value for metric {} at timestamp {}", metric, timestamp);
       }
       return Status.OK;
     } catch (Exception e) {
-      System.err.println("ERROR: Error while processing READ for metric: " + metric + e);
-      e.printStackTrace();
+      LOGGER.error("Failed to process READ for metric {} due to {}", metric, e);
       return Status.ERROR;
     }
   }
@@ -186,27 +158,24 @@ public class RhombusClient extends TimeseriesDB {
   @Override
   public Status scan(String metric, Long startTs, Long endTs, Map<String, List<String>> tags,
                      AggregationOperation aggreg, int timeValue, TimeUnit timeUnit) {
-    if (metric == null || metric.equals("") || startTs == null || endTs == null) {
+    if (metric == null || metric.equals("") || startTs == null || endTs == null || tags== null) {
       return Status.BAD_REQUEST;
     }
-    if (tags != null && tags.keySet().size() > usedTags.length) {
-      System.err.println("WARNING: More tags used than configured in Rhombus. " +
-          "Please adjust usedTags and rhombus.json! Or use only " + usedTags.length + " tags.");
+    if (tags.keySet().size() > usedTags.length) {
+      LOGGER.warn("More tags used than configured in Rhombus. Please adjust usedTags and rhombus.json, " +
+          "or use only {} tags.", usedTags.length);
     }
     if (timeValue != 0) {
-      System.err.println("WARNING: Rhombus does not support granularities.");
+      LOGGER.warn("Rhombus does not support granularities.");
     }
     try {
       Criteria criteria = new Criteria();
-      SortedMap values = Maps.newTreeMap();
-      if (this.filterForTags && tags.size() > 0) {
-        for (String tag : tags.keySet()) {
-          for (String tagvalue : tags.get(tag)) {
-            values.put(tag, tagvalue);
-          }
-        }
+      SortedMap<String, Object> values = Maps.newTreeMap();
+      if (filterForTags && !tags.isEmpty()) {
+        // FIXME still not how maps work ...
+        tags.forEach((tagName, tagValues) -> tagValues.forEach(value -> values.put(tagName, value)));
       } else {
-        values.put(this.alwaysSetTagName, 1L);
+        values.put(alwaysSetTagName, 1L);
       }
       criteria.setStartTimestamp(startTs);
       criteria.setEndTimestamp(endTs);
@@ -215,11 +184,11 @@ public class RhombusClient extends TimeseriesDB {
         return Status.OK;
       }
       if (aggreg != AggregationOperation.NONE) {
-        long result = this.om.count(metric, criteria);
-        // Every Count result is okay, -1 is only dropped in catch
+        // Every Count result is okay, ERROR is only required in case of an exception
+        om.count(metric, criteria);
       } else {
-        List<Map<String, Object>> results = this.om.list(metric, criteria);
-        if (results == null || results.size() == 0) {
+        List<Map<String, Object>> results = om.list(metric, criteria);
+        if (results == null || results.isEmpty()) {
           return Status.NOT_FOUND;
         }
       }
@@ -238,7 +207,7 @@ public class RhombusClient extends TimeseriesDB {
       Map<String, Object> data = new HashMap<>();
       data.put("value", value);
       // new is needed, otherwise .remove does not work, see http://stackoverflow.com/q/6260113/
-      List<String> tagList = new ArrayList<>(Arrays.asList(this.usedTags.clone()));
+      List<String> tagList = new ArrayList<>(Arrays.asList(usedTags.clone()));
       for (Map.Entry<String, ByteIterator> tag : tags.entrySet()) {
         data.put(tag.getKey(), tag.getValue().toString());
         tagList.remove(tag.getKey());
@@ -246,12 +215,11 @@ public class RhombusClient extends TimeseriesDB {
       for (String unusedTag : tagList) {
         data.put(unusedTag, "");
       }
-      data.put(this.alwaysSetTagName, 1L);
-      Object id = om.insert(metric, data, timestamp);
+      data.put(alwaysSetTagName, 1L);
+      om.insert(metric, data, timestamp);
       return Status.OK;
     } catch (Exception e) {
-      System.err.println("ERROR: Error in processing insert to metric: " + metric + e);
-      e.printStackTrace();
+      LOGGER.error("Failed to process insert to metric {} due to {}", metric, e);
       return Status.ERROR;
     }
   }
