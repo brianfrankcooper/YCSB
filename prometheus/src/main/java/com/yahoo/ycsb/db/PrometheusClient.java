@@ -16,7 +16,6 @@
  */
 package com.yahoo.ycsb.db;
 
-import com.sun.net.ssl.internal.www.protocol.https.HttpsURLConnectionOldImpl;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
@@ -44,12 +43,18 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 
 /**
@@ -57,21 +62,43 @@ import java.util.concurrent.TimeUnit;
  */
 public class PrometheusClient extends TimeseriesDB {
 
+  private static final DateFormat RFC_3339_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+  private static final Pattern METRIC_REGEX = Pattern.compile("[a-zA-Z_:][a-zA-Z0-9_:]*");
+
+  private static final String PUT_ENDPOINT = "/api/put";
+  /**
+   * YES, that endpoint is v1 for Prometheus v2.0.
+   * I don't know why either...
+   */
+  private static final String QUERY_ENDPOINT = "/api/v1/query";
+
+  private static final String PUSH_GATEWAY_IP_PROPERTY = "ipPushgateway";
+  private static final String PUSH_GATEWAY_IP_PROPERTY_DEFAULT = "localhost";
+  private static final String PUSH_GATEWAY_PORT_PROPERTY = "portPushgateway";
+  private static final int PUSH_GATEWAY_PORT_PROPERTY_DEFAULT = 9091;
+
+  private static final String PROMETHEUS_IP_PROPERTY = "ipPrometheus";
+  private static final String PROMETHEUS_IP_PROPERTY_DEFAULT = "localhost";
+  private static final String PROMETHEUS_PORT_PROPERTY = "portPrometheus";
+  private static final int PROMETHEUS_PORT_PROPERTY_DEFAULT = 9090;
+
+  private static final String USE_COUNT_PROPERTY = "useCount";
+  private static final boolean USE_COUNT_PROPERTY_DEFAULT = true;
+
+  private static final String USE_PLAINTEXT_PROPERTY = "plainTextFormat";
+  private static final boolean USE_PLAINTEXT_PROPERTY_DEFAULT = true;
+
+  // configurable property holders
+  private String ipPushgateway;
+  private int portPushgateway;
+  private boolean useCount;
+  private boolean usePlainTextFormat;
+
+  // internal workings definitions
+  private CloseableHttpClient client;
   private URL urlQuery = null;
   private URL urlPut = null;
-  private String ipPushgateway = "localhost";
-  private String ipPrometheus = "localhost";
-  private String putURL = "/api/put";
-  private int portPushgateway = 9091;
-  private int portPrometheus = 9090;
-  private boolean useCount = true;
-  private boolean usePlainTextFormat = true;
-  private CloseableHttpClient client;
   private int retries = 3;
-
-  private static final DateFormat RFC_3339_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
-  private static final String METRIC_REGEX = "[a-zA-Z_:][a-zA-Z0-9_:]*";
-  private String queryURLInfix = "/api/v1/query";
 
   /**
    * Initialize any state for this DB.
@@ -80,128 +107,130 @@ public class PrometheusClient extends TimeseriesDB {
   @Override
   public void init() throws DBException {
     super.init();
-    try {
-      if (!getProperties().containsKey("ipPrometheus") && !test) {
-        throw new DBException("No ip_server given, abort.");
+    final Properties properties = getProperties();
+    if (debug) {
+      LOGGER.info("The following properties are given: ");
+      for (String element : properties.stringPropertyNames()) {
+        LOGGER.info("{}: {}", element, properties.getProperty(element));
       }
-      ipPrometheus = getProperties().getProperty("ipPrometheus", ipPrometheus);
+    }
+    String ipPrometheus = properties.getProperty(PROMETHEUS_IP_PROPERTY, PROMETHEUS_IP_PROPERTY_DEFAULT);
+    int portPrometheus = properties.containsKey(PROMETHEUS_PORT_PROPERTY)
+        ? Integer.parseInt(properties.getProperty(PROMETHEUS_PORT_PROPERTY))
+        : PROMETHEUS_PORT_PROPERTY_DEFAULT;
 
-      if (!getProperties().containsKey("portPrometheus") && !test) {
-        throw new DBException("No portPrometheus given, abort.");
-      }
-      portPrometheus = Integer.parseInt(getProperties().getProperty("portPrometheus", String.valueOf(portPrometheus)));
+    ipPushgateway = properties.getProperty(PUSH_GATEWAY_IP_PROPERTY, PUSH_GATEWAY_IP_PROPERTY_DEFAULT);
+    portPushgateway = properties.containsKey(PUSH_GATEWAY_PORT_PROPERTY)
+        ? Integer.parseInt(properties.getProperty(PUSH_GATEWAY_PORT_PROPERTY))
+        : PUSH_GATEWAY_PORT_PROPERTY_DEFAULT;
 
-      if (!getProperties().containsKey("ipPushgateway") && !test) {
-        throw new DBException("No ipPushgateway given, abort.");
-      }
-      ipPushgateway = getProperties().getProperty("ipPushgateway", ipPushgateway);
-      if (!getProperties().containsKey("portPushgateway") && !test) {
-        throw new DBException("No portPushgateway given, abort.");
-      }
-      portPushgateway = Integer.parseInt(getProperties()
-          .getProperty("portPushgateway", String.valueOf(portPushgateway)));
+    usePlainTextFormat = properties.containsKey(USE_PLAINTEXT_PROPERTY)
+        ? Boolean.parseBoolean(properties.getProperty(USE_PLAINTEXT_PROPERTY))
+        : USE_PLAINTEXT_PROPERTY_DEFAULT;
+    useCount = properties.containsKey(USE_COUNT_PROPERTY)
+        ? Boolean.parseBoolean(properties.getProperty(USE_COUNT_PROPERTY))
+        : USE_COUNT_PROPERTY_DEFAULT;
 
-      if (debug) {
-        System.out.println("The following properties are given: ");
-        for (String element : getProperties().stringPropertyNames()) {
-          System.out.println(element + ": " + getProperties().getProperty(element));
-        }
+    RequestConfig requestConfig = RequestConfig.custom().build();
+    if (!test) {
+      if (!properties.containsKey(PROMETHEUS_IP_PROPERTY)) {
+        throwMissingProperty(PROMETHEUS_IP_PROPERTY);
       }
-      usePlainTextFormat = Boolean.parseBoolean(getProperties().getProperty("plainTextFormat", "true"));
-      useCount = Boolean.parseBoolean(getProperties().getProperty("useCount", "true"));
-      RequestConfig requestConfig = RequestConfig.custom().build();
-      if (!test) {
+      if (!properties.containsKey(PROMETHEUS_PORT_PROPERTY)) {
+        throwMissingProperty(PROMETHEUS_PORT_PROPERTY);
+      }
+      if (!properties.containsKey(PUSH_GATEWAY_IP_PROPERTY)) {
+        throwMissingProperty(PUSH_GATEWAY_IP_PROPERTY);
+      }
+      if (!properties.containsKey(PUSH_GATEWAY_PORT_PROPERTY)) {
+        throwMissingProperty(PUSH_GATEWAY_PORT_PROPERTY);
+      }
+      try {
         client = HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).build();
+      } catch (Exception e) {
+        throw new DBException(e);
       }
-    } catch (Exception e) {
-      throw new DBException(e);
     }
 
     try {
-      urlQuery = new URL("http", ipPrometheus, portPrometheus, queryURLInfix);
+      urlQuery = new URL("http", ipPrometheus, portPrometheus, QUERY_ENDPOINT);
       if (debug) {
-        System.out.println("URL: " + urlQuery);
+        LOGGER.info("URL: {}", urlQuery);
       }
-      urlPut = new URL("http", ipPushgateway, portPushgateway, putURL);
+      urlPut = new URL("http", ipPushgateway, portPushgateway, PUT_ENDPOINT);
       if (debug) {
-        System.out.println("URL: " + urlPut);
+        LOGGER.info("URL: {}", urlPut);
       }
     } catch (MalformedURLException e) {
       throw new DBException(e);
     }
   }
 
-  private JSONArray runQuery(URL url, String queryStr) {
-    JSONArray jsonArr = new JSONArray();
+  /**
+   * Run the given queryString against the given URL using a HTTP PUT request and return the results as JSONArray
+   *
+   * @param url         The URL to run the queryString against
+   * @param queryString the queryString to send to the URL
+   * @return One of the following:
+   * <ul>
+   * <li>An empty JSONArray, if now results were returned, but the response indicated a success.</li>
+   * <li>A JSONArray containing the results, if there were any.</li>
+   * <li><tt>null</tt> if the request failed more than {@link #retries} times
+   * or an Exception occurred when reading a success response.</li>
+   * </ul>
+   */
+  private JSONArray runInsert(URL url, String queryString) {
+    if (url == null) {
+      return null;
+    }
     HttpResponse response = null;
     try {
       HttpPut postMethod = new HttpPut(url.toURI());
-
-      StringEntity requestEntity = new StringEntity(
-          queryStr + "\n");
+      StringEntity requestEntity = new StringEntity(queryString + "\n");
       requestEntity.setContentType("text/html; charset=UTF-8\\n; version=0.0.4;");
       postMethod.addHeader("host", ipPushgateway);
       postMethod.addHeader("Accept", "application/json");
       postMethod.setEntity(requestEntity);
-
-      int tries = retries + 1;
-      while (true) {
-        tries--;
-        try {
-          response = client.execute(postMethod);
-          String inputLine = "";
-          BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+      try {
+        for (int attempt = 0; attempt < retries; attempt++) {
           try {
-            while ((inputLine = br.readLine()) != null) {
-              System.out.println("1" + inputLine);
-            }
-            br.close();
+            response = client.execute(postMethod);
+            break;
           } catch (IOException e) {
-            //e.printStackTrace();
-          }
-          break;
-        } catch (IOException e) {
-          if (tries < 1) {
-            System.err.print("ERROR: Connection to " + url.toString() + " failed " + retries + "times.");
-            e.printStackTrace();
-            if (response != null) {
-              EntityUtils.consumeQuietly(response.getEntity());
-            }
-            postMethod.releaseConnection();
-            return null;
+            // response must be null here, so we can't quietly consume it's entity
           }
         }
-      }
-      if (response.getStatusLine().getStatusCode() >= 200 && response.getStatusLine().getStatusCode() < 300) {
-        if (response.getStatusLine().getStatusCode() == HttpsURLConnectionOldImpl.HTTP_ACCEPTED) {
-          // The pushgateway does not include an entity in the response when inserting
-          if (response.getEntity().getContent().available() == 0) {
-            jsonArr = new JSONArray();
-            return jsonArr;
-          }
+        if (response == null) {
+          LOGGER.error("Connection to {} failed {} times.", url, retries);
+          return null;
         }
-        if (response.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_NO_CONTENT) {
-          BufferedReader bis = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-          StringBuilder builder = new StringBuilder();
-          String line;
-          while ((line = bis.readLine()) != null) {
-            builder.append(line);
-          }
-          jsonArr = new JSONArray(builder.toString());
-        }
-        EntityUtils.consumeQuietly(response.getEntity());
+      } finally {
         postMethod.releaseConnection();
       }
 
+      if (response.getStatusLine().getStatusCode() >= HttpURLConnection.HTTP_OK
+          // between 200 and 300
+          && response.getStatusLine().getStatusCode() < HttpURLConnection.HTTP_MULT_CHOICE) {
+        if (response.getStatusLine().getStatusCode() == HttpURLConnection.HTTP_ACCEPTED
+            // The pushgateway does not include an entity in the response when inserting
+            && response.getEntity().getContent().available() == 0) {
+          return new JSONArray();
+        }
+        if (response.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_NO_CONTENT) {
+          try (BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()))) {
+            return new JSONArray(br.lines().collect(Collectors.joining()));
+          }
+        }
+      }
     } catch (Exception e) {
-      System.err.println("ERROR: Error while trying to query " + url.toString() + " for '" + queryStr + "'.");
-      e.printStackTrace();
+      LOGGER.error("Failed to query {} for '{}' due to {}", url.toString(), queryString, e);
+      return null;
+    } finally {
       if (response != null) {
         EntityUtils.consumeQuietly(response.getEntity());
       }
-      return null;
     }
-    return jsonArr;
+    return new JSONArray();
   }
 
   @Override
@@ -217,242 +246,221 @@ public class PrometheusClient extends TimeseriesDB {
 
   @Override
   public Status read(String metric, Long timestamp, Map<String, List<String>> tags) {
-    if (metric == null || metric.isEmpty() || !metric.matches(METRIC_REGEX) || timestamp == null) {
+    if (metric == null || metric.isEmpty() || !METRIC_REGEX.matcher(metric).matches() || timestamp == null) {
       return Status.BAD_REQUEST;
     }
-    int tries = retries + 1;
-    HttpGet getMethod;
-    String queryString = "";
-    HttpResponse response = null;
-    JSONObject responseData;
-
-    // Construct query
-    for (Map.Entry<String, List<String>> entry : tags.entrySet()) {
-      queryString += entry.getKey() + "=~\"";
-      List<String> values =  entry.getValue();
-      for (int i = 0; i < values.size(); i++) {
-        queryString += values.get(i)
-            + (i + 1 < (values.size()) ? "|" : "");
-      }
-      queryString += "\",";
+    if (urlPut == null || urlQuery == null) {
+      LOGGER.warn("Binding initialization failed, yet read was called.");
+      return Status.UNEXPECTED_STATE;
     }
-    queryString = "{" + (queryString.isEmpty() ? "" : queryString.substring(0, queryString.length() - 1)) + "}";
+
+    StringBuilder queryString = new StringBuilder();
+    // Construct query
+    queryString.append("{");
+    for (Map.Entry<String, List<String>> tagDefinition : tags.entrySet()) {
+      queryString.append(tagDefinition.getKey()).append("=~\"");
+      for (String tag : tagDefinition.getValue()) {
+        queryString.append(tag).append("|");
+      }
+      queryString.replace(queryString.length() - 1, queryString.length(), "\",");
+    }
+    queryString.replace(queryString.length() - 1, queryString.length(), "}");
 
     try {
-      queryString = URLEncoder.encode(queryString, "UTF-8");
+      queryString = new StringBuilder(URLEncoder.encode(queryString.toString(), StandardCharsets.UTF_8.displayName()));
     } catch (UnsupportedEncodingException e) {
+      LOGGER.error("Failed to URL-encode query string as UTF-8");
       return Status.ERROR;
     }
 
-    queryString = "?query=" + metric + queryString;
-    queryString += "&time=" + RFC_3339_FORMAT.format(new Date(timestamp)).replace("+", "%2B");
-
+    queryString.insert(0, "?query=" + metric);
+    queryString.append("&time=").append(RFC_3339_FORMAT.format(new Date(timestamp)).replace("+", "%2B"));
     if (debug) {
-      System.out.println("Input Query: " + urlQuery.toString() + queryString);
+      LOGGER.info("Input Query: {}{}", urlQuery, queryString);
     }
-    getMethod = new HttpGet(urlQuery.toString() + queryString);
-    loop:
-    while (true) {
-      tries--;
-      try {
-        if (test) {
-          return Status.OK;
-        }
-
-        response = client.execute(getMethod);
-
-        String inputLine = "";
-        String content = "";
-        BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+    if (test) {
+      return Status.OK;
+    }
+    HttpResponse response = null;
+    HttpGet getMethod = new HttpGet(urlQuery.toString() + queryString);
+    try {
+      for (int attempt = 0; attempt < retries; attempt++) {
         try {
-          while ((inputLine = br.readLine()) != null) {
-            content += inputLine;
+          response = client.execute(getMethod);
+          final String content;
+          try (BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()))) {
+            content = br.lines().collect(Collectors.joining());
           }
-          br.close();
+          JSONObject responseData = new JSONObject(content);
+          if (responseData.getString("status").equals("success")) {
+            return Status.OK;
+          }
         } catch (IOException e) {
-        }
-        responseData = new JSONObject(content);
-
-        if (responseData.getString("status").equals("success")) {
-          return Status.OK;
-        }
-      } catch (IOException e) {
-        if (tries < 1) {
-          System.err.print("ERROR: Connection to " + urlQuery.toString() + " failed " + retries + "times.");
-          e.printStackTrace();
           if (response != null) {
             EntityUtils.consumeQuietly(response.getEntity());
           }
-          EntityUtils.consumeQuietly(response.getEntity());
-          getMethod.releaseConnection();
-          return Status.ERROR;
         }
-        continue loop;
       }
+    } finally {
+      getMethod.releaseConnection();
     }
+    LOGGER.error("Connection to {} failed {} times.", urlQuery, retries);
+    return Status.ERROR;
   }
+
 
   @Override
   public Status scan(String metric, Long startTs, Long endTs, Map<String, List<String>> tags,
                      AggregationOperation aggreg, int timeValue, TimeUnit timeUnit) {
-    if (metric == null || metric.isEmpty() || !metric.matches(METRIC_REGEX) || startTs == null || endTs == null) {
+    if (metric == null || metric.isEmpty() || !METRIC_REGEX.matcher(metric).matches()
+        || startTs == null || endTs == null) {
       return Status.BAD_REQUEST;
     }
-
-    NumberFormat durationOffsetFormat = new DecimalFormat("###");
-    int tries = retries + 1;
-    HttpGet getMethod;
-    String queryString = "";
-    HttpResponse response = null;
-    JSONObject responseData;
-    double duration;
-    double offset;
-    double currentTime = new Date().getTime();
-
-    for (Map.Entry<String, List<String>> entry : tags.entrySet()) {
-      queryString += entry.getKey() + "=~\"";
-      List<String> values = entry.getValue();
-      for (int i = 0; i < values.size(); i++) {
-        queryString += values.get(i)
-            + (i + 1 < (values.size()) ? "|" : "");
-      }
-      queryString += "\",";
+    if (urlPut == null || urlQuery == null) {
+      LOGGER.warn("Binding initialization failed, yet scan was called.");
+      return Status.UNEXPECTED_STATE;
     }
 
-         /* Application of aggregations by bucket not possible, timeValue and timeUnit ignored
-         query_range would not be suitable, as only 11.000 entries are possible
-         and those are made up interpolated values and those cannot be aggregated because of the response format */
-    duration = Math.ceil(((double) endTs - startTs) / 1000d);
-    offset = (long) Math.floor((currentTime - endTs) / 1000d);
+    StringBuilder queryString = new StringBuilder();
+    queryString.append("{");
+    for (Map.Entry<String, List<String>> tagDefinition : tags.entrySet()) {
+      queryString.append(tagDefinition.getKey()).append("=~\"");
+      for (String tag : tagDefinition.getValue()) {
+        queryString.append(tag).append("|");
+      }
+      queryString.replace(queryString.length() - 1, queryString.length(), "\",");
+    }
+    queryString.replace(queryString.length() - 1, queryString.length(), "}");
+
+     /* Application of aggregations by bucket not possible, timeValue and timeUnit ignored
+     query_range would not be suitable, as only 11.000 entries are possible
+     and those are made up interpolated values and those cannot be aggregated because of the response format */
+    long currentTime = new Date().getTime();
+    double duration = Math.ceil((endTs - startTs) / 1000d);
+    double offset = Math.floor((currentTime - endTs) / 1000d);
     if ((currentTime - offset - duration) > (startTs / 1000d)) {
       duration++;
     }
 
-    queryString = "{" + queryString.substring(0, queryString.length() - 1) + "}[" +
-        durationOffsetFormat.format(duration) + "s]offset " + durationOffsetFormat.format(offset) + "s)";
+    // Duration is converted to seconds anyway, so always use those
+    // No application of functions on buckets possible, timeValue is ignored
+    NumberFormat durationOffsetFormat = new DecimalFormat("###");
+    queryString.append("[")
+        .append(durationOffsetFormat.format(duration))
+        .append("s]offset ")
+        .append(durationOffsetFormat.format(offset))
+        .append("s)");
     try {
-      queryString = URLEncoder.encode("(" + metric + queryString, "UTF-8");
+      queryString = new StringBuilder(URLEncoder.encode("(" + metric + queryString,
+          StandardCharsets.UTF_8.displayName()));
     } catch (UnsupportedEncodingException e) {
       return Status.ERROR;
     }
-    // Duration are converted to seconds anyway, so always use those
-    // No application of functions on buckets possible, timeValue is ignored
-
-    if (aggreg == AggregationOperation.AVERAGE) {
-      queryString = "?query=avg_over_time" + queryString;
-
-    } else if (aggreg == AggregationOperation.COUNT) {
+    switch (aggreg) {
+    case AVERAGE:
+      queryString.insert(0, "?query=avg_over_time");
+      break;
+    case COUNT:
       if (useCount) {
-        queryString = "?query=count_over_time" + queryString;
+        queryString.insert(0, "?query=count_over_time");
       } else {
-        queryString = "?query=min_over_time" + queryString;
+        queryString.insert(0, "?query=min_over_time");
       }
-    } else if (aggreg == AggregationOperation.SUM) {
-      queryString = "?query=sum_over_time" + queryString;
-
-    } else {
-      queryString = "?query=min_over_time" + queryString;
-
-
+      break;
+    case SUM:
+      queryString.insert(0, "?query=sum_over_time");
+      break;
+    case NONE:
+    default:
+      queryString.insert(0, "?query=min_over_time");
+      break;
     }
     if (debug) {
-      System.out.println("Input Query: " + urlQuery.toString() + queryString);
+      LOGGER.info("Input Query: {}{}", urlQuery, queryString);
     }
-    getMethod = new HttpGet(urlQuery.toString() + queryString);
-    loop:
-    while (true) {
-      tries--;
-      try {
-        if (test) {
-          return Status.OK;
-        }
-
-        response = client.execute(getMethod);
-
-        String inputLine = "";
-        String content = "";
-        BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+    if (test) {
+      return Status.OK;
+    }
+    HttpGet getMethod = new HttpGet(urlQuery.toString() + queryString);
+    HttpResponse response = null;
+    try {
+      for (int attempt = 0; attempt < retries; attempt++) {
         try {
-          while ((inputLine = br.readLine()) != null) {
-            content += inputLine;
+          JSONObject responseData;
+          response = client.execute(getMethod);
+          try (BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()))) {
+            responseData = new JSONObject(br.lines().collect(Collectors.joining()));
           }
-          br.close();
-        } catch (IOException e) {
-        }
-        responseData = new JSONObject(content);
-
-        if (responseData.getString("status").equals("success")) {
-
-          try {
-            if (responseData.getJSONObject("data").getJSONArray("result").length() > 0) {
+          if (responseData.getString("status").equals("success") && responseData.has("data")) {
+            JSONObject dataObject = responseData.getJSONObject("data");
+            if (dataObject.has("result") && dataObject.getJSONArray("result").length() > 0) {
               return Status.OK;
             } else {
               return Status.NOT_FOUND;
             }
-          } catch (JSONException e) {
-            // No data included in response
-            EntityUtils.consumeQuietly(response.getEntity());
-            getMethod.releaseConnection();
-            return Status.ERROR;
           }
-        }
-      } catch (IOException e) {
-        if (tries < 1) {
-          System.err.print("ERROR: Connection to " + urlQuery.toString() + " failed " + retries + "times.");
-          e.printStackTrace();
+        } catch (JSONException | IOException e) {
           if (response != null) {
             EntityUtils.consumeQuietly(response.getEntity());
           }
-          EntityUtils.consumeQuietly(response.getEntity());
-          getMethod.releaseConnection();
-          return Status.ERROR;
+          response = null;
         }
-        continue loop;
       }
+      LOGGER.error("Connection to {} failed {} times.", urlQuery, retries);
+      return Status.ERROR;
+    } finally {
+      getMethod.releaseConnection();
     }
   }
 
   @Override
   public Status insert(String metric, Long timestamp, double value, Map<String, ByteIterator> tags) {
-    if (metric == null || metric.isEmpty() || !metric.matches(METRIC_REGEX) || timestamp == null) {
+    if (metric == null || metric.isEmpty() || !METRIC_REGEX.matcher(metric).matches() || timestamp == null) {
       return Status.BAD_REQUEST;
     }
+    if (urlPut == null || urlQuery == null) {
+      LOGGER.warn("Binding initialization failed, yet read was called.");
+      return Status.UNEXPECTED_STATE;
+    }
     if (usePlainTextFormat) {
-      String queryString = "#TYPE " + metric + " gauge\n" + metric;
-      if (tags.size() > 0) {
-        queryString += "{";
-        for (String tagKey : tags.keySet()) {
-          queryString += tagKey + "=\"" +
-              (tags.get(tagKey).toString().replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")) +
-              "\",";
-        }
-        queryString = queryString.substring(0, queryString.length() - 1) + "} " + value + " " + timestamp;
+      StringBuilder queryString = new StringBuilder("#TYPE " + metric + " gauge\n" + metric);
+      if (tags.isEmpty()) {
+        queryString.append(" ").append(value).append(" ").append(timestamp);
       } else {
-        queryString += " " + value + " " + timestamp;
+        queryString.append("{");
+        for (Map.Entry<String, ByteIterator> tagDefinition : tags.entrySet()) {
+          queryString.append(tagDefinition.getKey()).append("=\"").append("[");
+          queryString.append(tagDefinition.getValue().toString()
+              .replace("\\", "\\\\")
+              .replace("\"", "\\\"")
+              .replace("\n", "\\n"));
+          queryString.append("]").append("\",");
+        }
+        queryString.replace(queryString.length() - 1, queryString.length(), "} ")
+            .append(value)
+            .append(" ")
+            .append(timestamp);
       }
 
       try {
-
         if (debug) {
-          System.out.println("Timestamp: " + timestamp);
-          System.out.println("Input Query String: " + queryString);
+          LOGGER.info("Timestamp: {}", timestamp);
+          LOGGER.info("Input Query String: {}", queryString);
         }
         if (test) {
           return Status.OK;
         }
-        JSONArray jsonArr = runQuery(urlPut, queryString);
+        JSONArray jsonArr = runInsert(urlPut, queryString.toString());
         if (debug) {
-          System.err.println("jsonArr: " + jsonArr);
+          LOGGER.info("jsonArr: {}", jsonArr);
         }
         if (jsonArr == null) {
-          System.err.println("ERROR: Error in processing insert to metric: " + metric);
+          LOGGER.error("Failed to process insert to metric {}", metric);
           return Status.ERROR;
         }
         return Status.OK;
-
       } catch (Exception e) {
-        System.err.println("ERROR: Error in processing insert to metric: " + metric + e);
-        e.printStackTrace();
+        LOGGER.error("Failed to process insert to metric {} due to {}", metric, e);
         return Status.ERROR;
       }
     } else {
@@ -467,21 +475,16 @@ public class PrometheusClient extends TimeseriesDB {
       gauge.register(registry);
 
       PushGateway gateway = new PushGateway(ipPushgateway + ":" + portPushgateway);
-      int tries = retries;
-      loop:
-      while (true) {
+      for (int attempt = 0; attempt < retries; attempt++) {
         try {
-          tries--;
           gateway.pushAdd(registry, "test_job");
           return Status.OK;
         } catch (IOException exception) {
-          if (tries > 0) {
-            continue loop;
-          }
-          System.err.println(exception.toString());
-          return Status.ERROR;
+          LOGGER.warn("Insert failed with exception {}", exception);
         }
       }
+      LOGGER.error("Insert failed {} times", retries);
+      return Status.ERROR;
     }
   }
 
