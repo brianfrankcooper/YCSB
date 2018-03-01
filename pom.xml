@@ -170,6 +170,7 @@ LICENSE file.
     <module>rhombus</module>
     <module>riak</module>
     <module>s3</module>
+    <module>seriesly</module>
     <module>solr</module>
     <module>solr6</module>
     <module>tarantool</module>

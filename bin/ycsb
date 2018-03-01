@@ -108,6 +108,7 @@ DATABASES = {
     "rhombus"      : "com.yahoo.ycsb.db.RhombusClient",
     "riak"         : "com.yahoo.ycsb.db.riak.RiakKVClient",
     "s3"           : "com.yahoo.ycsb.db.S3Client",
+    "seriesly"     : "com.yahoo.ycsb.db.SerieslyClient",
     "solr"         : "com.yahoo.ycsb.db.solr.SolrClient",
     "solr6"        : "com.yahoo.ycsb.db.solr6.SolrClient",
     "tarantool"    : "com.yahoo.ycsb.db.TarantoolClient",
