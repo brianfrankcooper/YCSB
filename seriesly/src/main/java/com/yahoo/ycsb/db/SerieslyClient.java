@@ -41,8 +41,9 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Seriesly client for YCSB framework. It's possible to store tags, as seriesly
@@ -52,18 +53,25 @@ import java.util.concurrent.TimeUnit;
  * @author Michael Zimmermann
  */
 public class SerieslyClient extends TimeseriesDB {
+  private static final String DATABASE_NAME = "TestDB";
+  private static final String METRIC_FIELD_NAME = "metric";
+  private static final String VALUE_FIELD_NAME = "value";
+  private static final String TAGS_FIELD_NAME = "tags";
 
-  private String databaseName = "TestDB";
-  private String metricFieldName = "metric";
-  private String valueFieldName = "value";
-  private String tagsFieldName = "tags";
+  private static final String IP_PROPERTY = "ip";
+  private static final String IP_PROPERTY_DEFAULT = "localhost";
 
-  private String ip = "localhost";
-  private int port = 3133;
-  private int retries = 3;
+  private static final String PORT_PROPERTY = "port";
+  private static final int PORT_PROPERTY_DEFAULT = 3133;
+
+  // configurable properties
+  private String ip;
+  private int port;
+
+  // internally used fields
   private CloseableHttpClient client;
-
   private URL databaseURL = null;
+  private int retries = 3;
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is
@@ -71,43 +79,42 @@ public class SerieslyClient extends TimeseriesDB {
    */
   public void init() throws DBException {
     super.init();
+    final Properties properties = getProperties();
     if (debug) {
-      System.out.println("The following properties are given: ");
-      for (String element : getProperties().stringPropertyNames()) {
-        System.out.println(element + ": " + getProperties().getProperty(element));
+      LOGGER.info("The following properties are given: ");
+      for (String element : properties.stringPropertyNames()) {
+        LOGGER.info("{}: {}", element, properties.getProperty(element));
       }
     }
+    port = properties.containsKey(PORT_PROPERTY)
+        ? Integer.parseInt(properties.getProperty(PORT_PROPERTY))
+        : PORT_PROPERTY_DEFAULT;
+    ip = properties.getProperty(IP_PROPERTY, IP_PROPERTY_DEFAULT);
+
     try {
-      if (!getProperties().containsKey("port") && !test) {
-        throw new DBException("No port given, abort.");
-      }
-      port = Integer.parseInt(getProperties().getProperty("port", String.valueOf(port)));
-
-      if (!getProperties().containsKey("ip") && !test) {
-        throw new DBException("No ip given, abort.");
-      }
-      ip = getProperties().getProperty("ip", ip);
-
       RequestConfig requestConfig = RequestConfig.custom().build();
       if (!test) {
+        if (!properties.containsKey(PORT_PROPERTY)) {
+          throwMissingProperty(PORT_PROPERTY);
+        }
+        if (!properties.containsKey(IP_PROPERTY)) {
+          throwMissingProperty(IP_PROPERTY);
+        }
         client = HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).build();
       }
-
     } catch (Exception e) {
       throw new DBException(e);
     }
-
     try {
-      databaseURL = new URL("http", ip, port, "/" + databaseName);
+      databaseURL = new URL("http", ip, port, "/" + DATABASE_NAME);
       if (debug) {
-        System.out.println("URL: " + databaseURL);
+        LOGGER.info("URL: {}", databaseURL);
       }
-
     } catch (MalformedURLException e) {
       throw new DBException(e);
     }
-
-    if (doPut(databaseURL) != HttpURLConnection.HTTP_CREATED) {
+    final Integer createDatabaseStatus = doPut(databaseURL);
+    if (createDatabaseStatus == null || createDatabaseStatus != HttpURLConnection.HTTP_CREATED) {
       throw new DBException("Error creating the DB.");
     }
   }
@@ -128,141 +135,97 @@ public class SerieslyClient extends TimeseriesDB {
   }
 
   private Integer doPut(URL url) {
-    Integer statusCode;
     HttpResponse response = null;
+    HttpPut putMethod = new HttpPut(url.toString());
     try {
-      HttpPut putMethod = new HttpPut(url.toString());
-
-      int tries = retries + 1;
-      while (true) {
-        tries--;
+      for (int attempt = 0; attempt < retries; attempt++) {
         try {
           response = client.execute(putMethod);
           break;
         } catch (IOException e) {
-          if (tries < 1) {
-            System.err.print("ERROR: Connection to " + url.toString() + " failed " + retries + " times.");
-            e.printStackTrace();
-            if (response != null) {
-              EntityUtils.consumeQuietly(response.getEntity());
-            }
-            putMethod.releaseConnection();
-            return null;
-          }
+          // no action necessary
         }
       }
-
-      statusCode = response.getStatusLine().getStatusCode();
-      EntityUtils.consumeQuietly(response.getEntity());
+      if (response == null) {
+        LOGGER.error("Connection to {} failed {} times.", url, retries);
+        return null;
+      }
       putMethod.releaseConnection();
-
+      return response.getStatusLine().getStatusCode();
     } catch (Exception e) {
-      System.err.println("ERROR: Error while trying to send PUT request '" + url.toString() + "'.");
-      e.printStackTrace();
+      LOGGER.error("Failed to send PUT request to '{}' due to  {}", url, e);
+      return null;
+    } finally {
+      putMethod.releaseConnection();
       if (response != null) {
         EntityUtils.consumeQuietly(response.getEntity());
       }
-      return null;
     }
-
-    return statusCode;
   }
 
   private Integer doPost(URL url, String queryStr) {
-    Integer statusCode;
     HttpResponse response = null;
+    HttpPost postMethod = new HttpPost(url.toString());
     try {
-      HttpPost postMethod = new HttpPost(url.toString());
       StringEntity requestEntity = new StringEntity(queryStr, ContentType.APPLICATION_JSON);
       postMethod.setEntity(requestEntity);
-
-      int tries = retries + 1;
-      while (true) {
-        tries--;
+      for (int attempt = 0; attempt < retries; attempt++) {
         try {
           response = client.execute(postMethod);
           break;
         } catch (IOException e) {
-          if (tries < 1) {
-            System.err.print("ERROR: Connection to " + url.toString() + " failed " + retries + " times.");
-            e.printStackTrace();
-            if (response != null) {
-              EntityUtils.consumeQuietly(response.getEntity());
-            }
-            postMethod.releaseConnection();
-            return null;
-          }
+          // no action necessary
         }
       }
-
-      statusCode = response.getStatusLine().getStatusCode();
-      EntityUtils.consumeQuietly(response.getEntity());
-      postMethod.releaseConnection();
-
+      if (response == null) {
+        LOGGER.error("Connection to {} failed {} times.", url, retries);
+        return null;
+      }
+      return response.getStatusLine().getStatusCode();
     } catch (Exception e) {
-      System.err.println("ERROR: Errror while trying to query " + url.toString() + " for '" + queryStr + "'.");
-      e.printStackTrace();
+      LOGGER.error("Failed to query '{}' for '{}' due to {}", url, queryStr, e);
+      return null;
+    } finally {
+      postMethod.releaseConnection();
       if (response != null) {
         EntityUtils.consumeQuietly(response.getEntity());
       }
-      return null;
     }
-
-    return statusCode;
   }
 
   private JSONObject doGet(URL url) {
-    JSONObject jsonObject = new JSONObject();
     HttpResponse response = null;
+    HttpGet getMethod = new HttpGet(url.toString());
+    getMethod.addHeader("accept", "application/json");
     try {
-      HttpGet getMethod = new HttpGet(url.toString());
-      getMethod.addHeader("accept", "application/json");
-
-      int tries = retries + 1;
-      while (true) {
-        tries--;
+      for (int attempt = 0; attempt < retries; attempt++) {
         try {
           response = client.execute(getMethod);
           break;
         } catch (IOException e) {
-          if (tries < 1) {
-            System.err.print("ERROR: Connection to " + url.toString() + " failed " + retries + " times.");
-            e.printStackTrace();
-            if (response != null) {
-              EntityUtils.consumeQuietly(response.getEntity());
-            }
-            getMethod.releaseConnection();
-            return null;
-          }
+          // no action necessary
         }
       }
-
+      if (response == null) {
+        LOGGER.error("Connection to {} failed {} times.", url, retries);
+        return null;
+      }
       if (response.getStatusLine().getStatusCode() == HttpURLConnection.HTTP_OK) {
-
-        BufferedReader bis = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-        StringBuilder builder = new StringBuilder();
-        String line;
-        while ((line = bis.readLine()) != null) {
-          builder.append(line);
-        }
-
-        if (builder.length() > 0) {
-          jsonObject = new JSONObject(builder.toString());
+        try (BufferedReader bis = new BufferedReader(new InputStreamReader(response.getEntity().getContent()))) {
+          return new JSONObject(bis.lines().collect(Collectors.joining()));
         }
       }
-      EntityUtils.consumeQuietly(response.getEntity());
-      getMethod.releaseConnection();
-
+      // if no exception was thrown, but we didn't get an answer
+      return new JSONObject();
     } catch (Exception e) {
-      System.err.println("ERROR: Errror while trying to query " + url.toString() + ".");
-      e.printStackTrace();
+      LOGGER.error("Failed to query {} due to {}", url, e);
+      return null;
+    } finally {
       if (response != null) {
         EntityUtils.consumeQuietly(response.getEntity());
       }
-      return null;
+      getMethod.releaseConnection();
     }
-
-    return jsonObject;
   }
 
   @Override
@@ -270,40 +233,39 @@ public class SerieslyClient extends TimeseriesDB {
     if (metric == null || metric.equals("") || timestamp == null) {
       return Status.BAD_REQUEST;
     }
-
+    long timestampLong = timestamp;
+    String urlStr = String.format("%s/_query?from=%s&to=%s&group=1&ptr=/%s&reducer=any&f=/%s&fv=%s", databaseURL,
+        timestampLong, timestampLong, VALUE_FIELD_NAME, METRIC_FIELD_NAME, metric);
+    final URL newQueryURL;
     try {
-      long timestampLong = timestamp;
-      String urlStr = String.format("%s/_query?from=%s&to=%s&group=1&ptr=/%s&reducer=any&f=/%s&fv=%s", databaseURL,
-          timestampLong, timestampLong, valueFieldName, metricFieldName, metric);
-      URL newQueryURL = new URL(urlStr);
-
-      if (debug) {
-        System.out.println("QueryURL: " + newQueryURL.toString());
-      }
-      if (test) {
-        return Status.OK;
-      }
+      newQueryURL = new URL(urlStr);
+    } catch (MalformedURLException e) {
+      LOGGER.error("A malformed URL was generated, {}", e);
+      return Status.ERROR;
+    }
+    if (debug) {
+      LOGGER.info("QueryURL: {}", newQueryURL);
+    }
+    if (test) {
+      return Status.OK;
+    }
+    try {
       JSONObject jsonObject = doGet(newQueryURL);
       if (debug) {
-        System.out.println("Answer: " + jsonObject.toString());
+        LOGGER.info("Answer: {}", jsonObject);
+      }
+      if (jsonObject == null) {
+        return Status.ERROR;
       }
       JSONArray jsonArray = jsonObject.getJSONArray(Long.toString(timestampLong));
-
       if (jsonArray == null || jsonArray.length() < 1) {
-        System.err.println("ERROR: Found no values for metric: " + metric + ".");
+        LOGGER.error("Found no values for metric {}", metric);
         return Status.NOT_FOUND;
       }
-
-    } catch (MalformedURLException e) {
-      System.err.println("ERROR: a malformed URL was generated.");
-      return Status.ERROR;
+      return Status.OK;
     } catch (Exception e) {
       return Status.ERROR;
     }
-
-
-    return Status.OK;
-
   }
 
   @Override
@@ -312,7 +274,6 @@ public class SerieslyClient extends TimeseriesDB {
     if (metric == null || metric.equals("") || startTs == null || endTs == null) {
       return Status.BAD_REQUEST;
     }
-
     String aggregation = "any";
     if (aggreg == AggregationOperation.AVERAGE) {
       aggregation = "avg";
@@ -334,44 +295,43 @@ public class SerieslyClient extends TimeseriesDB {
     } else if (timeUnit == TimeUnit.DAYS) {
       grouping = 86400000;
     } else {
-      System.err.println(
-          "WARNING: Timeunit " + timeUnit.toString() + " is not supported. Using milliseconds instead!");
+      LOGGER.warn("Timeunit {} is not supported. Using milliseconds instead!", timeUnit);
       grouping = 1;
     }
-
     grouping = grouping * timeValue;
-
+    String urlStr = String.format("%s/_query?from=%s&to=%s&group=%s&ptr=/%s&reducer=%s&f=/%s&fv=%s", databaseURL,
+        startTs, endTs, grouping, VALUE_FIELD_NAME, aggregation, METRIC_FIELD_NAME, metric);
+    URL newQueryURL;
     try {
-      String urlStr = String.format("%s/_query?from=%s&to=%s&group=%s&ptr=/%s&reducer=%s&f=/%s&fv=%s", databaseURL,
-          startTs, endTs, grouping, valueFieldName, aggregation, metricFieldName, metric);
-      URL newQueryURL = new URL(urlStr);
-
-      if (debug) {
-        System.out.println("QueryURL: " + newQueryURL.toString());
-      }
-
-      if (test) {
-        return Status.OK;
-      }
-      JSONObject jsonObject = doGet(newQueryURL);
-
-      if (debug) {
-        System.out.println("Answer: " + jsonObject.toString());
-      }
+      newQueryURL = new URL(urlStr);
+    } catch (MalformedURLException e) {
+      LOGGER.error("A malformed URL was generated, {}", e);
+      return Status.ERROR;
+    }
+    if (debug) {
+      LOGGER.info("QueryURL: {}", newQueryURL);
+    }
+    if (test) {
+      return Status.OK;
+    }
+    JSONObject jsonObject = doGet(newQueryURL);
+    if (debug) {
+      LOGGER.info("Answer: {}", jsonObject);
+    }
+    if (jsonObject == null) {
+      return Status.ERROR;
+    }
+    try {
       String[] elementNames = JSONObject.getNames(jsonObject);
       JSONArray jsonArray = jsonObject.getJSONArray(elementNames[0]);
       if (jsonArray == null || jsonArray.length() < 1) {
-        System.err.println("ERROR: Found no values for metric: " + metric + ".");
+        LOGGER.warn("Found no values for metric {}", metric);
         return Status.NOT_FOUND;
       }
-
-    } catch (MalformedURLException e) {
-      System.err.println("ERROR: a malformed URL was generated.");
-      return Status.ERROR;
+      return Status.OK;
     } catch (Exception e) {
       return Status.ERROR;
     }
-    return Status.OK;
   }
 
   @Override
@@ -380,44 +340,40 @@ public class SerieslyClient extends TimeseriesDB {
       return Status.BAD_REQUEST;
     }
 
+    JSONObject insertObject = new JSONObject();
+    insertObject.put(METRIC_FIELD_NAME, metric);
+    insertObject.put(VALUE_FIELD_NAME, value);
+    if (tags != null && !tags.isEmpty()) {
+      JSONObject tagsObject = new JSONObject();
+      tags.forEach((tagName, tagValue) -> tagsObject.put(tagName, tagValue.toString()));
+      insertObject.put(TAGS_FIELD_NAME, tagsObject);
+    }
+
+    String query = insertObject.toString();
+    String urlStr = String.format("%s?ts=%s", databaseURL.toString(), timestamp);
+    URL insertURL;
     try {
-      JSONObject insertObject = new JSONObject();
-      insertObject.put(metricFieldName, metric);
-      insertObject.put(valueFieldName, value);
-
-      if (tags != null && !tags.isEmpty()) {
-        JSONObject tagsObject = new JSONObject();
-        for (Entry<String, ByteIterator> entry : tags.entrySet()) {
-          tagsObject.put(entry.getKey(), entry.getValue().toString());
-        }
-        insertObject.put(tagsFieldName, tagsObject);
-      }
-
-      String query = insertObject.toString();
-      String urlStr = String.format("%s?ts=%s", databaseURL.toString(), timestamp);
-      URL insertURL = new URL(urlStr);
-
-      if (debug) {
-        System.out.println("Insert measures String: " + query);
-        System.out.println("Insert measures URL: " + insertURL.toString());
-      }
-      if (test) {
-        return Status.OK;
-      }
-      Integer statusCode = doPost(insertURL, query);
-      if (debug) {
-        System.out.println("StatusCode: " + statusCode);
-      }
-      if (statusCode != HttpURLConnection.HTTP_CREATED) {
-        System.err.println("ERROR: Error in processing insert to metric: " + metric);
-        return Status.ERROR;
-      }
-      return Status.OK;
-    } catch (Exception e) {
-      System.err.println("ERROR: Error in processing insert to metric: " + metric);
-      e.printStackTrace();
+      insertURL = new URL(urlStr);
+    } catch (MalformedURLException e) {
+      LOGGER.error("A malformed URL was generated, {}", e);
       return Status.ERROR;
     }
+    if (debug) {
+      LOGGER.info("Insert measures String: {}", query);
+      LOGGER.info("Insert measures URL: {}", insertURL);
+    }
+    if (test) {
+      return Status.OK;
+    }
+    Integer statusCode = doPost(insertURL, query);
+    if (debug) {
+      LOGGER.info("StatusCode: {}", statusCode);
+    }
+    if (statusCode == null || statusCode != HttpURLConnection.HTTP_CREATED) {
+      LOGGER.error("Failed to process insert to metric {}", metric);
+      return Status.ERROR;
+    }
+    return Status.OK;
   }
 
   @Override
