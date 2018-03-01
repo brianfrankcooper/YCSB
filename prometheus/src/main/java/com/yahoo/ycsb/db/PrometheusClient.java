@@ -167,7 +167,7 @@ public class PrometheusClient extends TimeseriesDB {
   }
 
   /**
-   * Run the given queryString against the given URL using a HTTP PUT request and return the results as JSONArray
+   * Run the given queryString against the given URL using a HTTP PUT request and return the results as JSONArray.
    *
    * @param url         The URL to run the queryString against
    * @param queryString the queryString to send to the URL
