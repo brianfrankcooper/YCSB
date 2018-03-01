@@ -75,11 +75,11 @@ public class RhombusClient extends TimeseriesDB {
         LOGGER.info("{}: {}", element, getProperties().getProperty(element));
       }
     }
-      ip = getProperties().getProperty("ip", ip);
-      keySpaceDefinitionFile = getProperties().getProperty("keySpacedefinitionfile", keySpaceDefinitionFile);
-      dataCenter = getProperties().getProperty("datacenter", dataCenter);
-      filterForTags = Boolean.parseBoolean(getProperties().getProperty("filterForTags",
-          Boolean.toString(filterForTags)));
+    ip = getProperties().getProperty("ip", ip);
+    keySpaceDefinitionFile = getProperties().getProperty("keySpacedefinitionfile", keySpaceDefinitionFile);
+    dataCenter = getProperties().getProperty("datacenter", dataCenter);
+    filterForTags = Boolean.parseBoolean(getProperties().getProperty("filterForTags",
+        Boolean.toString(filterForTags)));
     try {
       if (!test) {
         if (!getProperties().containsKey("ip")) {
@@ -158,7 +158,7 @@ public class RhombusClient extends TimeseriesDB {
   @Override
   public Status scan(String metric, Long startTs, Long endTs, Map<String, List<String>> tags,
                      AggregationOperation aggreg, int timeValue, TimeUnit timeUnit) {
-    if (metric == null || metric.equals("") || startTs == null || endTs == null || tags== null) {
+    if (metric == null || metric.equals("") || startTs == null || endTs == null || tags == null) {
       return Status.BAD_REQUEST;
     }
     if (tags.keySet().size() > usedTags.length) {
