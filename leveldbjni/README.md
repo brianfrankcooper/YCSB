@@ -19,7 +19,7 @@ LICENSE file.
 
 This section describes how to run YCSB on Redis. 
 
-### 1. Start Redis
+### 1. Code JNI for leveldb and get a leveldb-jni.jar
 
 ### 2. Install Java and Maven
 
@@ -31,18 +31,15 @@ Git clone YCSB and compile:
     cd YCSB
     mvn -pl com.yahoo.ycsb:redis-binding -am clean package
 
-### 4. Provide Redis Connection Parameters
+### 4. Set the dependcy about leveldb-jni.jar in pom.xml
     
-Set the host, port, and password (do not redis auth is not turned on) in the 
-workload you plan to run.
-
-- `redis.host`
-- `redis.port`
-- `redis.password`
-
-Or, you can set configs with the shell command, EG:
-
-    ./bin/ycsb load redis -s -P workloads/workloada -p "redis.host=127.0.0.1" -p "redis.port=6379" > outputLoad.txt
+ <dependency>
+      <groupId>org.fusesource.leveldbjni</groupId>
+      <artifactId>leveldbjni-all</artifactId>
+      <version>1.7</version>
+      <scope>system</scope>
+      <systemPath>${project.basedir}/lib/leveldbjni-all-1.7.jar</systemPath>
+ </dependency>
 
 ### 5. Load data and run tests
 
