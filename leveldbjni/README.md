@@ -15,7 +15,7 @@ permissions and limitations under the License. See accompanying
 LICENSE file.
 -->
 
-## Quick Start
+## Quick Start - The way to connect ycsb and your own leveldb
 
 This section describes how to run YCSB on Redis. 
 
