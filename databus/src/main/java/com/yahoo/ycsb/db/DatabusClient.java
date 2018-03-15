@@ -20,6 +20,7 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.TimeseriesDB;
+import com.yahoo.ycsb.workloads.CoreWorkload;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -43,7 +44,6 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -103,20 +103,16 @@ public class DatabusClient extends TimeseriesDB {
   private HttpClientContext httpContext;
 
   /**
-   * Tables (Metrics) which must be created. All current available workloads
-   * are using this metric. If new metric names will be added or existing ones
-   * modified, this array must be adapted appropriately.
+   * The table name we expect to encounter.
+   * This is filled in {@link #init} from the workload properties that <em>should</em> be available to the database.
    */
-  // FIXME create metrics on demand
-  private static final String[] METRIC_NAMES = {"usermetric"};
-
+  private String tableName = "usermetric";
   /**
-   * Tag columns which must be defined in the tables. All current available
-   * workloads are using these tag names. If new tag names will be added or
-   * existing ones modified, this array must be adapted appropriately.
+   * Tag keys we expect to encounter.
+   * These are filled in {@link #init} from the workload properties that <em>should</em> be available to the database.
    */
-  // FIXME create tag names on demand, if possible
-  private static final String[] TAG_NAMES = {"TAG0", "TAG1", "TAG2"};
+  private String[] tagKeyNames = {"AAAAAAAA", "AAAAAAAB", "AAAAAAAAC", "AAAAAAAAD"};
+
 
   private TableType tableType;
 
@@ -150,6 +146,7 @@ public class DatabusClient extends TimeseriesDB {
     String apiKey = getProperties().getProperty(PROPERTY_API_KEY);
 
     tableType = TableType.getEnumOfFriendlyName(getProperties().getProperty(PROPERTY_TABLE_TYPE));
+    tableName = getProperties().getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
 
     if (debug) {
       System.out.println("The following properties are given: ");
@@ -181,7 +178,8 @@ public class DatabusClient extends TimeseriesDB {
         httpContext.setAuthCache(authCache);
 
         final String dbName = getProperties().getProperty(PROPERTY_DATABASE_NAME, PROPERTY_DATABASE_NAME_DEFAULT);
-        createDbAndTables(dbName, METRIC_NAMES, TAG_NAMES);
+        tagKeyNames = getPossibleTagKeys(getProperties());
+        createDbAndTable(dbName, tableName, tagKeyNames);
       } catch (Exception e) {
         throw new DBException(e);
       }
@@ -189,17 +187,14 @@ public class DatabusClient extends TimeseriesDB {
   }
 
   /**
-   * Creates database with table(s) for storing time series data.
+   * Creates database with tableName(s) for storing time series data.
    *
-   * @param database to create tables in
-   * @param tables
-   * @param tagNames - additional columns in the tables beside timestamp and value
-   * @throws IOException
-   * @throws JSONException
-   * @throws ClientProtocolException
+   * @param database  to create for the benchmark
+   * @param tableName The name of the table to create
+   * @param tagNames  - additional columns in tableName beside timestamp and value
+   * @throws IOException if the HTTP request to the Databus DBMS host fails with an IOException
    */
-  private void createDbAndTables(String database, String[] tables, String[] tagNames)
-      throws ClientProtocolException, JSONException, IOException {
+  private void createDbAndTable(String database, String tableName, String[] tagNames) throws IOException {
 
     JSONObject timestampColumn = new JSONObject().put("name", "time").put("dataType", "BigInteger")
         .put("isPrimaryKey", true).put("isIndex", true);
@@ -213,20 +208,18 @@ public class DatabusClient extends TimeseriesDB {
       }
     }
 
-    JSONObject createTimeSeriesTableRequest = new JSONObject().put("datasetType", tableType.name())
-        .put("schema", database).put("createschema", true).put("columns", columns);
+    JSONObject createTimeSeriesTableRequest = new JSONObject()
+        .put("datasetType", tableType.name())
+        .put("schema", database)
+        .put("createschema", true)
+        .put("columns", columns)
+        .put("modelName", tableName);
 
-    // for each table: add table name to POST request and send it to the
-    // HTTP API
-    for (String table : tables) {
-      createTimeSeriesTableRequest.put("modelName", table);
-      String responseStr = doPost(createDbAndTablesApiUri, createTimeSeriesTableRequest.toString());
-      if (debug) {
-        System.out.println("Create DB and Tables Request:\n" + createTimeSeriesTableRequest
-            + "\nCreate DB and Tables Response:\n" + responseStr);
-      }
+    String responseStr = doPost(createDbAndTablesApiUri, createTimeSeriesTableRequest.toString());
+    if (debug) {
+      System.out.println("Create DB and Tables Request:\n" + createTimeSeriesTableRequest
+          + "\nCreate DB and Tables Response:\n" + responseStr);
     }
-
   }
 
   /**
@@ -499,7 +492,7 @@ public class DatabusClient extends TimeseriesDB {
     JSONObject dataRecord = new JSONObject().put("_tableName", metric).put("time", timestamp).put("value", value);
     // tags can't be stored in a time series table - just time and value
     if (tableType != TableType.TIME_SERIES) {
-      for (String tagName : TAG_NAMES) {
+      for (String tagName : tagKeyNames) {
         // We assume that all records to insert containing tags with
         // each tag name specified above. If this is not the case in the
         // future, we can't omit the tag completely in the insert
