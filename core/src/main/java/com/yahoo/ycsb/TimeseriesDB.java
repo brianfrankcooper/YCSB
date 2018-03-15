@@ -224,9 +224,17 @@ public abstract class TimeseriesDB extends DB {
    */
   protected abstract Status insert(String metric, Long timestamp, double value, Map<String, ByteIterator> tags);
 
-  // must be explicitly overridden, since an intermediary parser is probably too much work ...
+  /**
+   * NOTE: This operation is usually <b>not</b> supported for Time-Series databases.
+   * Deletion of data is often instead regulated through automatic cleanup and "retention policies" or similar.
+   *
+   * @return Status.NOT_IMPLEMENTED or a {@link Status} specifying the outcome of deletion
+   * in case the operation is supported.
+   */
+  public Status delete(String table, String key) {
+    return Status.NOT_IMPLEMENTED;
+  }
 
-  public abstract Status delete(String table, String key);
   protected final String buildTagFilter(Map<String, List<String>> tags) {
     StringBuilder tagFilter = new StringBuilder();
     for (String tag : tags.keySet()) {
