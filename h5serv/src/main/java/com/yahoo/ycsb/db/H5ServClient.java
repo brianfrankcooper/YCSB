@@ -17,6 +17,7 @@
 package com.yahoo.ycsb.db;
 
 import com.yahoo.ycsb.*;
+import com.yahoo.ycsb.workloads.CoreWorkload;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
@@ -72,30 +73,15 @@ public class H5ServClient extends TimeseriesDB {
   private static final String IP_PROPERTY = "ip";
   private static final String PORT_PROPERTY = "port";
 
-  // optional properties
-  private static final String PHASE_PROPERTY = "phase"; // See Client.java
-  private static final String METRICNAME_PROPERTY = "metric"; // see CoreWorkload.java
-  private static final String METRICNAME_PROPERTY_DEFAULT = "usermetric"; // see CoreWorkload.java
-  // FIXME make these obsolete by referring to the TimeSeriesWorkload
-  private static final String TAG_PREFIX_PROPERTY = "tagprefix"; // see CoreWorkload.java
-  private static final String TAG_PREFIX_PROPERTY_DEFAULT = "TAG"; // see CoreWorkload.java
-  private static final String TAG_COUNT_PROPERTY = "tagcount"; // see CoreWorkload.java
-  private static final String TAG_COUNT_PROPERTY_DEFAULT = "3"; // see CoreWorkload.java
-  private static final String TAG_VALUE_LENGTH_PROPERTY = "tagvaluelength"; // see CoreWorkload.java
-  private static final String TAG_VALUE_LENGTH_PROPERTY_DEFAULT = "10"; // see CoreWorkload.java
-
   private URL urlDatasetValue = null;
   private URL urlGroupLinkDS = null; // URL for Link of Dataset
-  private int tagCount;
-  private String tagPrefix;
-  private String phase;
+  private boolean isRunPhase;
   private String ip = "localhost";
   private int port = 5000;
 
   private CloseableHttpClient client;
   private int retries = 3;
   // 0 for unlimited
-  private int stringlength = 10;
   private String datatypeId = "";
   private int recordcount;
   private int index = 0;
@@ -113,9 +99,8 @@ public class H5ServClient extends TimeseriesDB {
     if (recordcount == 0) {
       recordcount = Integer.MAX_VALUE;
     }
-    // FIXME use the property from YCSB.core
-    if (!properties.containsKey(PHASE_PROPERTY)) {
-      throwMissingProperty(PHASE_PROPERTY);
+    if (!properties.containsKey(Client.DO_TRANSACTIONS_PROPERTY)) {
+      throwMissingProperty(Client.DO_TRANSACTIONS_PROPERTY);
     }
     if (!properties.containsKey(IP_PROPERTY) && !test) {
       throwMissingProperty(IP_PROPERTY);
@@ -126,13 +111,9 @@ public class H5ServClient extends TimeseriesDB {
     ip = properties.getProperty(IP_PROPERTY);
     port = Integer.parseInt(properties.getProperty(PORT_PROPERTY));
 
-    String domain = properties.getProperty(METRICNAME_PROPERTY, METRICNAME_PROPERTY_DEFAULT) + "." + HDF_DOMAIN_BASE;
-    phase = properties.getProperty(PHASE_PROPERTY, "");
-    tagCount = Integer.valueOf(properties.getProperty(TAG_COUNT_PROPERTY, TAG_COUNT_PROPERTY_DEFAULT));
-    tagPrefix = properties.getProperty(TAG_PREFIX_PROPERTY, TAG_PREFIX_PROPERTY_DEFAULT);
-    stringlength = Integer.valueOf(properties.getProperty(TAG_VALUE_LENGTH_PROPERTY,
-        TAG_VALUE_LENGTH_PROPERTY_DEFAULT));
-    stringlength = Integer.parseInt(properties.getProperty("stringlength", String.valueOf(stringlength)));
+    String domain = properties.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT) + "." + HDF_DOMAIN_BASE;
+    isRunPhase = Boolean.parseBoolean(properties.getProperty(Client.DO_TRANSACTIONS_PROPERTY));
+
     RequestConfig requestConfig = RequestConfig.custom().build();
     if (!test) {
       try {
@@ -175,7 +156,7 @@ public class H5ServClient extends TimeseriesDB {
       LOGGER.info("Creating new Domain in HDF5: {}" + domain);
     }
     headers.put("host", domain);
-    if (phase.equals("load")) {
+    if (!isRunPhase) {
       if (debug) {
         LOGGER.info("Load Phase.");
       }
@@ -314,10 +295,12 @@ public class H5ServClient extends TimeseriesDB {
     fieldtype.put("class", "H5T_FLOAT");
     field.put("type", fieldtype);
     fields.put(field);
+
+    String[] tagKeys = getPossibleTagKeys(getProperties());
     // TAG0 ...TAGn
-    for (int i = 0; i < tagCount; i++) {
+    for (String tagKey : tagKeys) {
       field = new JSONObject();
-      field.put("name", tagPrefix + i);
+      field.put("name", tagKey);
       shape = new JSONObject();
       shape.put("class", "H5S_SIMPLE");
       shape.put("dims", new int[]{4});
@@ -609,7 +592,7 @@ public class H5ServClient extends TimeseriesDB {
     if (metric == null || metric.equals("") || timestamp == null) {
       return Status.BAD_REQUEST;
     }
-    if (phase.equals("run") && index > recordcount * 2) {
+    if (isRunPhase && index > recordcount * 2) {
       LOGGER.error("Index is greater than (recordcount*2)-1, which is the maximum amount possible. " +
           "Increase hdf5 shape, lessen INSERTs in RUN Phase or implement PUT Shape for increasing dimension " +
           "(http://h5serv.readthedocs.org/en/latest/DatasetOps/PUT_DatasetShape.html).");
