@@ -21,6 +21,7 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.TimeseriesDB;
+import com.yahoo.ycsb.workloads.TimeSeriesWorkload;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -43,15 +44,13 @@ public class HanaClient extends TimeseriesDB {
   private static final String CONNECTION_PASSWORD_PROPERTY_DEFAULT = "";
 
   private static final String JDBC_FETCH_SIZE_PROPERTY = "jdbc.fetchsize";
-  private static final String JDBC_AUTO_COMMIT_PROPERTY = "jdbc.autocommit";
 
   private static final String DO_GROUP_BY_PROPERTY = "dogroupby";
   private static final String DO_GROUP_BY_PROERTY_DEFAULT = "true";
 
-  static final String FIELD_COUNT_PROPERTY = "fieldcount";
-  static final String FIELD_COUNT_PROPERTY_DEFAULT = "10";
-
   private static final String TIMESTAMP_KEY = "YCSB_KEY";
+
+  private static final String JDBC_AUTO_COMMIT_PROPERTY = "jdbc.autocommit";
   private static final String JDBC_AUTO_COMMIT_PROPERTY_DEFAULT = "true";
 
   private boolean initialized = false;
@@ -83,7 +82,10 @@ public class HanaClient extends TimeseriesDB {
     String user = props.getProperty(CONNECTION_USER_PROPERTY);
     String passwd = props.getProperty(CONNECTION_PASSWORD_PROPERTY, CONNECTION_PASSWORD_PROPERTY_DEFAULT);
     doGroupBy = Boolean.parseBoolean(props.getProperty(DO_GROUP_BY_PROPERTY, DO_GROUP_BY_PROERTY_DEFAULT));
-    fieldCount = Integer.parseInt(props.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
+    // tag count +1 for value, primary key (aka timestamp) is not included
+    fieldCount = Integer.parseInt(props.getProperty(TimeSeriesWorkload.TAG_COUNT_PROPERTY,
+        TimeSeriesWorkload.TAG_COUNT_PROPERTY_DEFAULT)) + 1;
+
 
     String jdbcFetchSizeStr = props.getProperty(JDBC_FETCH_SIZE_PROPERTY);
     if (jdbcFetchSizeStr != null && !jdbcFetchSizeStr.isEmpty()) {
