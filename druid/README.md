@@ -70,9 +70,6 @@ Additional options include:
 
  [path-config]: http://druid.io/docs/0.11.0/configuration/#Path_Configuration
 
-- `dataSource` **metric name**:
- Defaults to `usermetric`
-
  - `partitions` **number of partitions**:
  This property can be used to fine-tune druid's storage behavior.
  Defaults to 1.

@@ -27,6 +27,7 @@ import com.metamx.tranquility.typeclass.Timestamper;
 import com.twitter.util.Await;
 import com.twitter.util.Future;
 import com.yahoo.ycsb.*;
+import com.yahoo.ycsb.workloads.CoreWorkload;
 import io.druid.data.input.impl.TimestampSpec;
 import io.druid.granularity.QueryGranularities;
 import io.druid.granularity.QueryGranularity;
@@ -101,9 +102,6 @@ public class DruidClient extends TimeseriesDB {
   private static final String SERVICE_DISCOVERY_PATH_PROPERTY = "serviceDiscoveryPath";
   private static final String SERVICE_DISCOVERY_PATH_PROPERTY_DEFAULT = "/druid/discovery";
 
-  private static final String DATA_SOURCE_PROPERTY = "dataSource";
-  private static final String DATA_SOURCE_PROPERTY_DEFAULT = "usermetric";
-
   private static final String QUERY_PORT_PROPERTY = "queryPort";
   private static final String QUERY_PORT_PROPERTY_DEFAULT = "8090";
 
@@ -124,7 +122,7 @@ public class DruidClient extends TimeseriesDB {
   private String zookeeperPort;
   private String indexService;
   private String discoveryPath;
-  private String dataSource;
+  private String metricName;
   // usually the broker node, but it can directly point to a historical / realtime node as well
   private String queryIP;
   private String queryPort;
@@ -171,13 +169,6 @@ public class DruidClient extends TimeseriesDB {
 
   private boolean isRun;
 
-  // FIXME this is already done in TimeSeriesWorkload, we should use those, or the same algo
-  private static final String TAG_PREFIX_PROPERTY = "tagprefix"; // see CoreWorkload.java
-  private static final String TAG_PREFIX_PROPERTY_DEFAULT = "TAG"; // see CoreWorkload.java
-  private static final String TAG_COUNT_PROPERTY = "tagcount"; // see CoreWorkload.java
-  private static final String TAG_COUNT_PROPERTY_DEFAULT = "3"; // see CoreWorkload.java
-  private static final String METRICNAME_PROPERTY = "metric"; // see CoreWorkload.java
-
   private void readProperties() throws DBException {
     Properties properties = getProperties();
     if (!properties.containsKey(Client.DO_TRANSACTIONS_PROPERTY)) {
@@ -199,15 +190,10 @@ public class DruidClient extends TimeseriesDB {
       throwMissingProperty(TIME_RESOLUTION_PROPERTY);
     }
 
-    isRun = Boolean.valueOf(properties.getProperty(Client.DO_TRANSACTIONS_PROPERTY));
-    dataSource = properties.getProperty(METRICNAME_PROPERTY, dataSource);
-    // FIXME these are workload properties, see TimeSeriesWorkload
-    int tagCount = Integer.parseInt(properties.getProperty(TAG_COUNT_PROPERTY, TAG_COUNT_PROPERTY_DEFAULT));
-    String tagPrefix = properties.getProperty(TAG_PREFIX_PROPERTY, TAG_PREFIX_PROPERTY_DEFAULT);
     dimensions.add("value");
-    for (int i = 0; i < tagCount; i++) {
-      dimensions.add(tagPrefix + i);
-    }
+    dimensions.addAll(Arrays.asList(getPossibleTagKeys(properties)));
+
+    isRun = Boolean.valueOf(properties.getProperty(Client.DO_TRANSACTIONS_PROPERTY));
     insertStart = Long.parseLong(properties.getProperty(INSERT_START_PROPERTY));
     insertEnd = Long.parseLong(properties.getProperty(INSERT_END_PROPERTY));
     timeResolution = Integer.parseInt(properties.getProperty(TIME_RESOLUTION_PROPERTY));
@@ -234,7 +220,7 @@ public class DruidClient extends TimeseriesDB {
     zookeeperPort = properties.getProperty(ZOOKEEPER_PORT_PROPERTY, ZOOKEEPER_PORT_PROPERTY_DEFAULT);
     indexService = properties.getProperty(INDEX_SERVICE_PROPERTY, INDEX_SERVICE_PROPERTY_DEFAULT);
     discoveryPath = properties.getProperty(SERVICE_DISCOVERY_PATH_PROPERTY, SERVICE_DISCOVERY_PATH_PROPERTY_DEFAULT);
-    dataSource = properties.getProperty(DATA_SOURCE_PROPERTY, DATA_SOURCE_PROPERTY_DEFAULT);
+    metricName = properties.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
     queryIP = properties.getProperty(QUERY_IP_PROPERTY);
     queryPort = properties.getProperty(QUERY_PORT_PROPERTY, QUERY_PORT_PROPERTY_DEFAULT);
 
@@ -279,12 +265,11 @@ public class DruidClient extends TimeseriesDB {
               DruidLocation.create(
                   indexService,
                   FIREHOSE_PATTERN,
-                  dataSource
+                  metricName
               )
           )
           .timestampSpec(timestampSpec)
-          // FIXME tags are not necessarily known at this point
-          // FIXME they are also not used at all during the actual workload, so there's that.
+          // FIXME Tags not used at all during the actual workload
           .rollup(DruidRollup.create(DruidDimensions.specific(dimensions), new ArrayList<>(), queryGranularity))
           .tuning(
               ClusteredBeamTuning
@@ -331,7 +316,7 @@ public class DruidClient extends TimeseriesDB {
       if (debug) {
         System.out.println("Starting initial insert.");
       }
-      Status res = this.insert(dataSource, insertStart - 10, 1, new HashMap<>());
+      Status res = this.insert(metricName, insertStart - 10, 1, new HashMap<>());
       if (debug) {
         System.out.println(String.format("Initial insert returned Status %s.", res.getName()));
       }
@@ -446,6 +431,7 @@ public class DruidClient extends TimeseriesDB {
       JSONObject query = new JSONObject();
       query.put("queryType", "select");
       query.put("dataSource", metric);
+      // FIXME check whether we need to add dimensions here
       query.put("dimensions", new JSONArray());
       query.put("metrics", new JSONArray());
       query.put("granularity", "all");
@@ -460,7 +446,7 @@ public class DruidClient extends TimeseriesDB {
           for (String tagValue : entry.getValue()) {
             JSONObject selectorFilter = new JSONObject();
             selectorFilter.put("type", "selector");
-            selectorFilter.put("dimension", entry.getKey().toString());
+            selectorFilter.put("dimension", entry.getKey());
             selectorFilter.put("value", tagValue);
             orArray.put(selectorFilter);
           }
@@ -559,6 +545,7 @@ public class DruidClient extends TimeseriesDB {
         putAggregationProperties(query, aggreg);
       } else {
         query.put("queryType", "select");
+        // FIXME check whether we need to add dimensions here
         query.put("dimensions", new JSONArray());
         query.put("metrics", new JSONArray());
         JSONObject pagingSpec = new JSONObject();
@@ -734,9 +721,9 @@ public class DruidClient extends TimeseriesDB {
     if (metric == null || metric.equals("") || timestamp == null) {
       return Status.BAD_REQUEST;
     }
-    if (!metric.equals(dataSource)) {
-      System.err.println(String.format("WARNING: Metric and Datasource differ! Metric: %s, dataSource: %s.",
-          metric, this.dataSource));
+    if (!metric.equals(metricName)) {
+      System.err.println(String.format("WARNING: Workload Metric and Database Metric differ! " +
+              "Workload: %s, Database: %s.", metric, this.metricName));
     }
     Map<String, Object> data = new HashMap<>();
     // Calculate special Timestamp in special druid timerange
