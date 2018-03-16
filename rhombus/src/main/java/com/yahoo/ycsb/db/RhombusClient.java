@@ -51,7 +51,7 @@ public class RhombusClient extends TimeseriesDB {
   private ConnectionManager client;
   private ObjectMapper om;
 
-  private String[] usedTags = {"TAG0", "TAG1", "TAG2"};
+  private String[] usedTags;
   private String alwaysSetTagName = "TAGALWAYSSET1";
 
   /**
@@ -80,6 +80,7 @@ public class RhombusClient extends TimeseriesDB {
     dataCenter = getProperties().getProperty("datacenter", dataCenter);
     filterForTags = Boolean.parseBoolean(getProperties().getProperty("filterForTags",
         Boolean.toString(filterForTags)));
+    usedTags = getPossibleTagKeys(getProperties());
     try {
       if (!test) {
         if (!getProperties().containsKey("ip")) {
@@ -207,7 +208,7 @@ public class RhombusClient extends TimeseriesDB {
       Map<String, Object> data = new HashMap<>();
       data.put("value", value);
       // new is needed, otherwise .remove does not work, see http://stackoverflow.com/q/6260113/
-      List<String> tagList = new ArrayList<>(Arrays.asList(usedTags.clone()));
+      List<String> tagList = new ArrayList<>(Arrays.asList(usedTags));
       for (Map.Entry<String, ByteIterator> tag : tags.entrySet()) {
         data.put(tag.getKey(), tag.getValue().toString());
         tagList.remove(tag.getKey());
