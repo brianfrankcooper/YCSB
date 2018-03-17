@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
+/*
+ * Copyright (c) 2012 - 2018 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -43,15 +43,15 @@ import java.util.concurrent.locks.ReentrantLock;
  * OrientDB client for YCSB framework.
  */
 public class OrientDBClient extends DB {
-  private static final String URL_PROPERTY         = "orientdb.url";
-  private static final String URL_PROPERTY_DEFAULT =
+  static final String URL_PROPERTY         = "orientdb.url";
+  static final String URL_PROPERTY_DEFAULT =
       "plocal:." + File.separator + "target" + File.separator + "databases" + File.separator + "ycsb";
 
-  private static final String USER_PROPERTY         = "orientdb.user";
-  private static final String USER_PROPERTY_DEFAULT = "admin";
+  static final String USER_PROPERTY         = "orientdb.user";
+  static final String USER_PROPERTY_DEFAULT = "admin";
 
-  private static final String PASSWORD_PROPERTY         = "orientdb.password";
-  private static final String PASSWORD_PROPERTY_DEFAULT = "admin";
+  static final String PASSWORD_PROPERTY         = "orientdb.password";
+  static final String PASSWORD_PROPERTY_DEFAULT = "admin";
 
   private static final String NEWDB_PROPERTY         = "orientdb.newdb";
   private static final String NEWDB_PROPERTY_DEFAULT = "false";
