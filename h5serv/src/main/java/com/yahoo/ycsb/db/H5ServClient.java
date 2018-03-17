@@ -111,7 +111,8 @@ public class H5ServClient extends TimeseriesDB {
     ip = properties.getProperty(IP_PROPERTY);
     port = Integer.parseInt(properties.getProperty(PORT_PROPERTY));
 
-    String domain = properties.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT) + "." + HDF_DOMAIN_BASE;
+    String domain = properties.getProperty(CoreWorkload.TABLENAME_PROPERTY,
+        CoreWorkload.TABLENAME_PROPERTY_DEFAULT) + "." + HDF_DOMAIN_BASE;
     isRunPhase = Boolean.parseBoolean(properties.getProperty(Client.DO_TRANSACTIONS_PROPERTY));
 
     RequestConfig requestConfig = RequestConfig.custom().build();
