@@ -59,6 +59,26 @@ above, and the option to record both the op and intended for comparison.
 * -p hdrhistogram.fileoutput=[true|false] (default=false)
 This new option will enable periodical writes of the interval histogram into an output file. The path can be set using '-p hdrhistogram.output.path=<PATH>'.
 
+When running the benchmark with graph workloads following parameters are available:
+
+* -p datasetdirectory=[/path/on/your/machine] (default=pathToYCSB/benchmarkingData)
+This new option will store the values created during a `GraphWorkload` execution in the given folder. For later runs 
+this data will be used to mimic that workload run, removing randomness.
+
+* -p nodebytesize=[an integer value] (default=500)
+This new option will set the size (in bytes) of the value (a string) stored in each node. This will determine how 
+much in terms of data size will be stored in the data base.
+
+These two parameters alter the graph structure a little bit: (See com.yahoo.ycsb.generator.graph.GraphDataRecorder to
+ see the generation process)
+
+* -p testparametercount=[an integer value] (default=128)
+This new option will set the number of tests per product in the `GraphWorkload`, more specifically 
+in the `GraphDataRecorder`.
+
+* -p productsperorder=[an integer value] (default=10)
+This new option will set the number of products in one order.
+
 Example parameters:
 -target 1000 -s -p workload=com.yahoo.ycsb.workloads.CoreWorkload -p basicdb.verbose=false -p basicdb.simulatedelay=4 -p measurement.interval=both -p measurementtype=hdrhistogram -p hdrhistogram.fileoutput=true -p maxexecutiontime=60
 
