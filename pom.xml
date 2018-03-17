@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-Copyright (c) 2012 - 2017 YCSB contributors. All rights reserved.
+Copyright (c) 2012 - 2018 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -16,7 +16,8 @@ permissions and limitations under the License. See accompanying
 LICENSE file.
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.yahoo.ycsb</groupId>
@@ -95,8 +96,10 @@ LICENSE file.
     <infinispan.version>7.2.2.Final</infinispan.version>
     <kudu.version>1.1.0</kudu.version>
     <!--<mapkeeper.version>1.0</mapkeeper.version>-->
-    <mongodb.version>3.0.3</mongodb.version>
+    <maven.assembly.version>2.5.5</maven.assembly.version>
+    <maven.dependency.version>2.10</maven.dependency.version>
     <mongodb.async.version>2.0.1</mongodb.async.version>
+    <mongodb.version>3.0.3</mongodb.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
     <orientdb.version>2.2.10</orientdb.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -105,6 +108,7 @@ LICENSE file.
     <s3.version>1.10.20</s3.version>
     <solr.version>5.5.3</solr.version>
     <solr6.version>6.4.1</solr6.version>
+    <sparksee.version>5.2.3</sparksee.version>
     <tarantool.version>1.6.5</tarantool.version>
     <thrift.version>0.8.0</thrift.version>
     <voldemort.version>0.81</voldemort.version>
@@ -120,18 +124,18 @@ LICENSE file.
     <module>accumulo1.7</module>
     <module>accumulo1.8</module>
     <module>aerospike</module>
-    <module>arangodb</module>
     <module>arangodb3</module>
+    <module>arangodb</module>
     <module>asynchbase</module>
     <module>azuredocumentdb</module>
     <module>azuretablestorage</module>
     <module>cassandra</module>
     <module>cloudspanner</module>
-    <module>couchbase</module>
     <module>couchbase2</module>
+    <module>couchbase</module>
     <module>dynamodb</module>
-    <module>elasticsearch</module>
     <module>elasticsearch5</module>
+    <module>elasticsearch</module>
     <module>geode</module>
     <module>googlebigtable</module>
     <module>googledatastore</module>
@@ -154,8 +158,9 @@ LICENSE file.
     <module>rest</module>
     <module>riak</module>
     <module>s3</module>
-    <module>solr</module>
     <module>solr6</module>
+    <module>solr</module>
+    <module>sparksee</module>
     <module>tarantool</module>
     <!--<module>voldemort</module>-->
   </modules>
