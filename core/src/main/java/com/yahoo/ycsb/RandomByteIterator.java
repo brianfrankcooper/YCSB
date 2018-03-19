@@ -20,10 +20,10 @@ package com.yahoo.ycsb;
  *  A ByteIterator that generates a random sequence of bytes.
  */
 public class RandomByteIterator extends ByteIterator {
-  private long len;
+  private final long len;
   private long off;
   private int bufOff;
-  private byte[] buf;
+  private final byte[] buf;
 
   @Override
   public boolean hasNext() {
@@ -98,5 +98,19 @@ public class RandomByteIterator extends ByteIterator {
   public void reset() {
     off = 0;
   }
-  
+
+  /** Consumes remaining contents of this object, and returns them as a byte array. */
+  public byte[] toArray() {
+    long left = bytesLeft();
+    if (left != (int) left) {
+      throw new ArrayIndexOutOfBoundsException("Too much data to fit in one array!");
+    }
+    byte[] ret = new byte[(int) left];
+    int bufOffset = 0;
+    while (bufOffset < ret.length) {
+      bufOffset = nextBuf(ret, bufOffset);
+    }
+    return ret;
+  }
+
 }
