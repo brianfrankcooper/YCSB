@@ -72,6 +72,8 @@ LICENSE file.
         <module name="JavadocType">
           <property name="scope" value="public"/>
           <property name="allowMissingParamTags" value="true"/>
+          <!-- unfortunately we cannot add implNote, implSpec, apiNote and apiSpec to checkstyle -->
+          <property name="allowUnknownTags" value="true"/>
         </module>
         <module name="JavadocStyle"/>
 
