@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
+
+<!--
 Copyright (c) 2012 - 2017 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -67,6 +68,10 @@ LICENSE file.
 
   <!-- Properties Management -->
   <properties>
+    <maven.assembly.version>2.5.5</maven.assembly.version>
+    <maven.dependency.version>2.10</maven.dependency.version>
+
+    <!-- datastore binding versions, lex sorted -->
     <accumulo.1.6.version>1.6.6</accumulo.1.6.version>
     <accumulo.1.7.version>1.7.3</accumulo.1.7.version>
     <accumulo.1.8.version>1.8.1</accumulo.1.8.version>
@@ -90,8 +95,6 @@ LICENSE file.
     <infinispan.version>7.2.2.Final</infinispan.version>
     <kudu.version>1.1.0</kudu.version>
     <!--<mapkeeper.version>1.0</mapkeeper.version>-->
-    <maven.assembly.version>2.5.5</maven.assembly.version>
-    <maven.dependency.version>2.10</maven.dependency.version>
     <mongodb.async.version>2.0.1</mongodb.async.version>
     <mongodb.version>3.0.3</mongodb.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
@@ -219,8 +222,8 @@ LICENSE file.
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.7.0</version>
         <configuration>
-          <source>1.7</source>
-          <target>1.7</target>
+          <source>1.8</source>
+          <target>1.8</target>
         </configuration>
       </plugin>
       <plugin>
