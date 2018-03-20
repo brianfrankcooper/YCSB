@@ -33,7 +33,7 @@ import java.util.Set;
 public class Node extends GraphComponent {
   public static final Set<String> NODE_FIELDS_SET = new HashSet<>();
   public static final String NODE_IDENTIFIER = "Node";
-  private static final String VALUE_IDENTIFIER = "value";
+  public static final String VALUE_IDENTIFIER = "value";
   private static long nodeIdCount = 0;
 
   static {

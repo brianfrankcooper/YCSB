@@ -26,8 +26,8 @@ import java.util.Set;
  * Class to extract common fields and methods from {@link Node}s and {@link Edge}s.
  */
 public abstract class GraphComponent {
-  static final String ID_IDENTIFIER = "id";
-  static final String LABEL_IDENTIFIER = "label";
+  public static final String ID_IDENTIFIER = "id";
+  public static final String LABEL_IDENTIFIER = "label";
   private final long id;
   private final String label;
 
