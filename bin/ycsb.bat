@@ -195,6 +195,16 @@ IF NOT "%BINDING_DIR%" == "couchbase" GOTO notOldCouchbase
 echo [WARN] The 'couchbase' client is deprecated. If you are using Couchbase 4.0+ try using the 'couchbase2' client instead.
 :notOldCouchbase
 
+@REM HBase 0.98 deprecation message
+IF NOT "%BINDING_DIR%" == "hbase098" GOTO not098HBase
+echo [WARN] The 'hbase098' client is deprecated because HBase 0.98 is EOM. If you are using HBase 1.2+ try using the 'hbase12' client instead.
+:not098HBase
+
+@REM HBase 1.0 deprecation message
+IF NOT "%BINDING_DIR%" == "hbase10" GOTO not10HBase
+echo [WARN] The 'hbase10' client is deprecated because HBase 1.0 is EOM. If you are using HBase 1.2+ try using the 'hbase12' client instead.
+:not10HBase
+
 @REM Get the rest of the arguments, skipping the first 2
 FOR /F "tokens=2*" %%G IN ("%*") DO (
   SET YCSB_ARGS=%%H
