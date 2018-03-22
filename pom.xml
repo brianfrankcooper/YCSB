@@ -90,6 +90,7 @@ LICENSE file.
     <hbase10.version>1.0.2</hbase10.version>
     <hbase12.version>1.2.5</hbase12.version>
     <hbase14.version>1.4.2</hbase14.version>
+    <hbase20.version>2.0.0-beta-2</hbase20.version>
     <hypertable.version>0.9.5.6</hypertable.version>
     <infinispan.version>7.2.2.Final</infinispan.version>
     <kudu.version>1.1.0</kudu.version>
@@ -138,6 +139,7 @@ LICENSE file.
     <module>hbase10</module>
     <module>hbase12</module>
     <module>hbase14</module>
+    <module>hbase20</module>
     <module>hypertable</module>
     <module>infinispan</module>
     <module>jdbc</module>
