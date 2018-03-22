@@ -34,6 +34,7 @@ import java.util.*;
 public class GraphDataRecreator extends GraphDataGenerator {
 
   private final List<Graph> graphs;
+  private Map<Long, Edge> loadEdgeMap = new HashMap<>();
   private int currentPosition = -1;
 
   GraphDataRecreator(String inputDirectory, boolean isRunPhase) throws IOException {
@@ -45,26 +46,44 @@ public class GraphDataRecreator extends GraphDataGenerator {
     if (isRunPhase) {
       loadNodeMap = parseNodes(new File(inputDirectory, LOAD_NODE_FILE_NAME));
       addNodesFromLoadPhaseIfPresent(nodes, loadNodeMap);
+
+      loadEdgeMap = parseEdges(new File(inputDirectory, LOAD_EDGE_FILE_NAME), nodes);
     }
 
     Map<Long, Edge> edges = parseEdges(getEdgeFile(), nodes);
-    graphs = createSingleGraphs(edges, loadNodeMap);
+    graphs = createSingleGraphs(edges, getLastLoadId(loadNodeMap));
   }
 
   @Override
-  public String getExceptionMessage() {
-    return "Graph data files aren't present.";
+  List<Graph> getGraphs(int numberOfGraphs) {
+    List<Graph> result = new ArrayList<>();
+
+    List<Graph> singleGraphs = createSingleGraphs(loadEdgeMap, -1);
+
+    for (int i = 0; i < numberOfGraphs; i++) {
+      result.add(singleGraphs.get(i));
+    }
+
+    loadEdgeMap.clear();
+
+    return result;
   }
 
   @Override
   Graph createNextValue() {
     if (hasValueAtNextPosition()) {
-      setLastValue(graphs.get(++currentPosition));
+      Graph graph = graphs.get(++currentPosition);
+      setLastValue(graph);
     } else {
       setLastValue(new Graph());
     }
 
     return getLastValue();
+  }
+
+  @Override
+  public String getExceptionMessage() {
+    return "Graph data files aren't present.";
   }
 
   @Override
@@ -145,8 +164,7 @@ public class GraphDataRecreator extends GraphDataGenerator {
     return Edge.recreateEdge(values, nodeMap);
   }
 
-  private List<Graph> createSingleGraphs(Map<Long, Edge> edgeMap, Map<Long, Node> loadNodeMap) {
-    long lastNodeId = getLastLoadId(loadNodeMap);
+  private List<Graph> createSingleGraphs(Map<Long, Edge> edgeMap, long lastNodeId) {
     List<Graph> result = new ArrayList<>();
 
     Node startNode;

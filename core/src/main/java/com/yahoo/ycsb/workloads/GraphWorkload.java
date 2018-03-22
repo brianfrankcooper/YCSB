@@ -19,16 +19,16 @@ package com.yahoo.ycsb.workloads;
 
 import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.generator.Generator;
-import com.yahoo.ycsb.generator.graph.*;
+import com.yahoo.ycsb.generator.graph.Graph;
+import com.yahoo.ycsb.generator.graph.GraphComponent;
+import com.yahoo.ycsb.generator.graph.GraphDataGenerator;
+import com.yahoo.ycsb.generator.graph.Node;
 import com.yahoo.ycsb.generator.graph.randomcomponents.RandomGraphComponentGenerator;
 import com.yahoo.ycsb.generator.operationorder.OperationOrderGenerator;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Vector;
+import java.util.*;
 
 import static com.yahoo.ycsb.workloads.CoreWorkload.*;
 import static java.io.File.separatorChar;
@@ -112,7 +112,7 @@ public class GraphWorkload extends Workload {
   public boolean doInsert(DB db, Object threadState) {
     Graph graph = graphDataGenerator.nextValue();
 
-    return insertGraphComponents(db, graph);
+    return insertGraphComponents(db, graph.getNodes()) && insertGraphComponents(db, graph.getEdges());
   }
 
   @Override
@@ -122,23 +122,6 @@ public class GraphWorkload extends Workload {
     return executeOperation(nextOperation, db, graphDataGenerator);
   }
 
-  private boolean insertGraphComponents(DB db, Graph graph) {
-    System.out.println("Inserting Nodes");
-    for (Node node : graph.getNodes()) {
-      if (!insertNode(db, node)) {
-        return false;
-      }
-    }
-
-    System.out.println("Inserting Edges");
-    for (Edge edge : graph.getEdges()) {
-      if (!insertEdge(db, edge)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
   private boolean executeOperation(String operation, DB db, Generator<Graph> generator) {
     if (operation == null) {
       return false;
@@ -146,23 +129,19 @@ public class GraphWorkload extends Workload {
 
     switch (operation) {
     case READ_IDENTIFIER:
-      System.out.println("Reading");
       doTransactionRead(db);
       break;
     case UPDATE_IDENTIFIER:
-      System.out.println("Updating");
       doTransactionUpdate(db);
       break;
     case INSERT_IDENTIFIER:
-      System.out.println("Inserting");
       doTransactionInsert(db, generator);
       break;
     case SCAN_IDENTIFIER:
-      System.out.println("Scanning");
       doTransactionScan(db);
       break;
     case READMODIFYWRITE_IDENTIFIER:
-      System.out.println("ReadingModifyingWriting");
+      System.err.println("Read Modify Write");
       doTransactionReadModifyWrite(db);
     default:
       System.err.println("Unsupported operation was chosen.");
@@ -175,15 +154,8 @@ public class GraphWorkload extends Workload {
   private void doTransactionInsert(DB db, Generator<Graph> generator) {
     Graph graph = generator.nextValue();
 
-    System.out.println("Inserting Nodes");
-    for (Node node : graph.getNodes()) {
-      insertNode(db, node);
-    }
-
-    System.out.println("Inserting Edges");
-    for (Edge edge : graph.getEdges()) {
-      insertEdge(db, edge);
-    }
+    insertGraphComponents(db, graph.getNodes());
+    insertGraphComponents(db, graph.getEdges());
   }
 
   private void doTransactionRead(DB db) {
@@ -198,27 +170,16 @@ public class GraphWorkload extends Workload {
           map
       );
     }
-
-    printMap(map);
   }
 
   private void doTransactionUpdate(DB db) {
     GraphComponent graphComponent = randomGraphComponentGenerator.nextValue();
 
-    Map<String, ByteIterator> map = new HashMap<>();
-
     if (graphComponent != null) {
-      db.read(graphComponent.getComponentTypeIdentifier(),
-          String.valueOf(graphComponent.getId()),
-          graphComponent.getFieldSet(),
-          map);
-
       db.update(graphComponent.getComponentTypeIdentifier(),
           String.valueOf(graphComponent.getId()),
-          map);
+          graphComponent.getHashMap());
     }
-
-    printMap(map);
   }
 
   private void doTransactionScan(DB db) {
@@ -234,50 +195,30 @@ public class GraphWorkload extends Workload {
           hashMaps
       );
     }
-
-    for (HashMap<String, ByteIterator> hashMap : hashMaps) {
-      printMap(hashMap);
-    }
   }
 
   private void doTransactionReadModifyWrite(DB db) {
     Node node = randomGraphComponentGenerator.chooseRandomNode();
+    Node otherNode = randomGraphComponentGenerator.chooseRandomNode();
     Map<String, ByteIterator> values = new HashMap<>();
 
     db.read(node.getComponentTypeIdentifier(), String.valueOf(node.getId()), Node.NODE_FIELDS_SET, values);
 
-    System.out.println("old");
-    printMap(values);
-
     values = node.getHashMap();
-
-    System.out.println("new");
-    printMap(values);
+    values.put(Node.VALUE_IDENTIFIER, otherNode.getHashMap().get(Node.VALUE_IDENTIFIER));
 
     db.update(node.getComponentTypeIdentifier(), String.valueOf(node.getId()), values);
   }
 
-  private void printMap(Map<String, ByteIterator> map) {
-    for (String s : map.keySet()) {
-      System.out.println("Key: " + s + " Value: " + map.get(s));
+  private boolean insertGraphComponents(DB db, List<? extends GraphComponent> graphComponents) {
+    for (GraphComponent graphComponent : graphComponents) {
+      Map<String, ByteIterator> values = graphComponent.getHashMap();
+
+      if (!db.insert(graphComponent.getComponentTypeIdentifier(), String.valueOf(graphComponent.getId()), values)
+          .isOk()) {
+        return false;
+      }
     }
-  }
-
-  private boolean insertNode(DB db, Node node) {
-    Map<String, ByteIterator> values = node.getHashMap();
-
-    System.out.println("Node: " + node.getId());
-    printMap(values);
-
-    return db.insert(node.getComponentTypeIdentifier(), String.valueOf(node.getId()), values).isOk();
-  }
-
-  private boolean insertEdge(DB db, Edge edge) {
-    Map<String, ByteIterator> values = edge.getHashMap();
-
-    System.out.println("Edge: " + edge.getId());
-    printMap(values);
-
-    return db.insert(edge.getComponentTypeIdentifier(), String.valueOf(edge.getId()), values).isOk();
+    return true;
   }
 }

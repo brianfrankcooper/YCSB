@@ -17,9 +17,7 @@
 
 package com.yahoo.ycsb.generator.graph.randomcomponents;
 
-import com.yahoo.ycsb.generator.graph.Edge;
 import com.yahoo.ycsb.generator.graph.GraphDataGenerator;
-import com.yahoo.ycsb.generator.graph.Node;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -27,7 +25,7 @@ import java.io.IOException;
 import java.util.Random;
 
 /**
- * Class to pick and store a random GraphComponent ({@link Node} or {@link Edge}).
+ * Class to pick and store a random GraphComponent (Node or Edge).
  */
 public class RandomGraphComponentRecorder extends RandomGraphComponentGenerator {
 
@@ -66,7 +64,8 @@ public class RandomGraphComponentRecorder extends RandomGraphComponentGenerator 
 
   @Override
   long chooseRandomNodeId() {
-    int maxBound = (int) Node.getNodeCount() == 0 ? 1 : (int) Node.getNodeCount();
+    int lastNodeId = (int) getGraphDataGenerator().getLastNodeId();
+    int maxBound = lastNodeId == 0 ? 1 : lastNodeId;
 
     int id = random.nextInt(maxBound);
 
@@ -81,7 +80,8 @@ public class RandomGraphComponentRecorder extends RandomGraphComponentGenerator 
 
   @Override
   long chooseRandomEdgeId() {
-    int maxBound = (int) Edge.getEdgeCount() == 0 ? 1 : (int) Edge.getEdgeCount();
+    int lastEdgeId = (int) getGraphDataGenerator().getLastEdgeId();
+    int maxBound = lastEdgeId == 0 ? 1 : lastEdgeId;
 
     int id = random.nextInt(maxBound);
 

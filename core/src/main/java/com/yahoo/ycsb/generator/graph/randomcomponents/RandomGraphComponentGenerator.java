@@ -120,6 +120,10 @@ public abstract class RandomGraphComponentGenerator extends StoringGenerator<Gra
     return graphDataGenerator.getNode(id);
   }
 
+  GraphDataGenerator getGraphDataGenerator() {
+    return graphDataGenerator;
+  }
+
   File getNodeFile() {
     return nodeFile;
   }

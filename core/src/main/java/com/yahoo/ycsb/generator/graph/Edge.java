@@ -32,7 +32,7 @@ public class Edge extends GraphComponent {
   public static final String EDGE_IDENTIFIER = "Edge";
   public static final String START_IDENTIFIER = "start";
   public static final String END_IDENTIFIER = "end";
-  private static final Set<String> EDGE_FIELDS_SET = new HashSet<>();
+  public static final Set<String> EDGE_FIELDS_SET = new HashSet<>();
   private static long edgeIdCount = 0;
 
   static {

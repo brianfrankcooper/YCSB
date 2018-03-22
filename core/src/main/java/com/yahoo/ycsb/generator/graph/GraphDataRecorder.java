@@ -17,16 +17,13 @@
 
 package com.yahoo.ycsb.generator.graph;
 
-import com.google.gson.stream.JsonReader;
 import com.yahoo.ycsb.ByteIterator;
 
-import java.io.*;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.io.Closeable;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.*;
 
 /**
  * Generates graph data with an "industrial" structure.
@@ -82,19 +79,26 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
         String.valueOf(PRODUCTS_PER_ORDER_DEFAULT_VALUE)));
 
     fileWriterMap = new HashMap<>();
+  }
 
-    if (isRunPhase) {
-      File loadNodeFile = new File(outputDirectory, LOAD_NODE_FILE_NAME);
-      File loadEdgeFile = new File(outputDirectory, LOAD_EDGE_FILE_NAME);
+  @Override
+  List<Graph> getGraphs(int numberOfGraphs) {
+    List<Graph> result = new ArrayList<>();
 
-      if (checkDataPresentAndCleanIfSomeMissing(GraphDataRecorder.class.getSimpleName(), loadNodeFile, loadEdgeFile)) {
-        int lastNodeId = getLastId(loadNodeFile);
-
-        for (int i = 0; i <= lastNodeId; i++) {
-          createGraph();
-        }
-      }
+    for (int i = 0; i <= numberOfGraphs; i++) {
+      result.add(createGraph());
     }
+
+    return result;
+  }
+
+  @Override
+  Graph createNextValue() throws IOException {
+    setLastValue(createGraph());
+
+    saveGraphContentsAndFillValueOfNodes(getLastValue());
+
+    return getLastValue();
   }
 
   @Override
@@ -115,28 +119,10 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
   }
 
   @Override
-  Graph createNextValue() throws IOException {
-    setLastValue(createGraph());
-
-    saveGraphContentsAndFillValueOfNodes(getLastValue());
-
-    return getLastValue();
-  }
-
-  @Override
   public void close() throws IOException {
     for (String key : fileWriterMap.keySet()) {
       fileWriterMap.get(key).close();
     }
-  }
-
-  private int getLastId(File file) throws IOException {
-    List<String> lines = Files.readAllLines(file.toPath(), Charset.forName(new FileReader(file).getEncoding()));
-    String lastEntry = lines.get(lines.size() - 1);
-
-    Map<String, ByteIterator> values = getGson().fromJson(new JsonReader(new StringReader(lastEntry)), getValueType());
-
-    return Integer.parseInt(values.get(Node.ID_IDENTIFIER).toString());
   }
 
   private void saveGraphContentsAndFillValueOfNodes(Graph graph) throws IOException {
