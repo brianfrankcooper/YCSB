@@ -16,6 +16,8 @@
  */
 package com.yahoo.ycsb;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 /**
  *  A ByteIterator that generates a random sequence of bytes.
  */
@@ -31,7 +33,7 @@ public class RandomByteIterator extends ByteIterator {
   }
 
   private void fillBytesImpl(byte[] buffer, int base) {
-    int bytes = Utils.random().nextInt();
+    int bytes = ThreadLocalRandom.current().nextInt();
 
     switch (buffer.length - base) {
     default:
