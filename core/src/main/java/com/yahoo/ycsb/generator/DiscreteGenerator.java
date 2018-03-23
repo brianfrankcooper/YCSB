@@ -17,10 +17,9 @@
 
 package com.yahoo.ycsb.generator;
 
-import com.yahoo.ycsb.Utils;
-
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static java.util.Objects.requireNonNull;
 
@@ -56,7 +55,7 @@ public class DiscreteGenerator extends Generator<String> {
       sum += p.weight;
     }
 
-    double val = Utils.random().nextDouble();
+    double val = ThreadLocalRandom.current().nextDouble();
 
     for (Pair p : values) {
       double pw = p.weight / sum;
