@@ -142,6 +142,14 @@ be removed in a future YCSB release."
   BINDING_DIR="accumulo1.6"
 fi
 
+# Accumulo 1.6 deprecation message
+if [ "${BINDING_DIR}" = "accumulo1.6" ] ; then
+  echo "[WARN] The 'accumulo' client has been deprecated because Accumulo 1.6 \
+is EOM. If you are using Accumulo 1.7+ try using the 'accumulo1.7' client \
+instead."
+fi
+
+
 # Cassandra2 deprecation message
 if [ "${BINDING_DIR}" = "cassandra2" ] ; then
   echo "[WARN] The 'cassandra2-cql' client has been deprecated. It has been \
