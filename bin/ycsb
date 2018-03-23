@@ -259,6 +259,11 @@ def main():
              "be removed in a future YCSB release.")
         binding = "accumulo1.6"
 
+    if binding == "accumulo1.6":
+        warn("The 'accumulo1.6' client has been deprecated because Accumulo 1.6 "
+             "is EOM. If you are using Accumulo 1.7+ try using the 'accumulo1.7' "
+             "client instead.")
+
     if binding == "cassandra2":
         warn("The 'cassandra2-cql' client has been deprecated. It has been "
              "renamed to simply 'cassandra-cql'. This alias will be removed"
