@@ -81,3 +81,7 @@ For keyspace `ycsb`, table `usertable`:
 * `cassandra.tracing`
   * Default is false
   * https://docs.datastax.com/en/cql/3.3/cql/cql_reference/tracing_r.html
+  
+* `readallfields`
+  * Default is true
+  * If you set `updateproportion>0`, please make sure `readallfileds=false`
