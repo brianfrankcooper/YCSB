@@ -258,10 +258,10 @@ public class TestGraphWorkload {
     fileWriter = new FileWriter(edgeFile);
     fileWriter.write("{\"start\":{\"" +
         "type\":\"com.yahoo.ycsb.StringByteIterator\",\"" +
-        "properties\":{\"str\":\"1\",\"off\":0}},\"" +
+        "properties\":{\"str\":\"" + lastNodeLoadId + "\",\"off\":0}},\"" +
         "end\":{\"" +
         "type\":\"com.yahoo.ycsb.StringByteIterator\",\"" +
-        "properties\":{\"str\":\"9\",\"off\":0}},\"" +
+        "properties\":{\"str\":\"" + lastNodeLoadId + "\",\"off\":0}},\"" +
         "id\":{\"" +
         "type\":\"com.yahoo.ycsb.StringByteIterator\",\"" +
         "properties\":{\"str\":\"" + lastEdgeLoadId + "\",\"off\":0}},\"" +

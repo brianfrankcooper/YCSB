@@ -109,8 +109,8 @@ public class TestGraphDataRecorder {
 
   @Test
   public void creatingFilesTestInRunPhaseWithLoadFiles() throws IOException {
-    File nodeFile = createComponentLoadFileFileInDirectory(Node.NODE_IDENTIFIER);
-    File edgeFile = createComponentLoadFileFileInDirectory(Edge.EDGE_IDENTIFIER);
+    File nodeFile = createComponentLoadFileInDirectory(Node.NODE_IDENTIFIER);
+    File edgeFile = createComponentLoadFileInDirectory(Edge.EDGE_IDENTIFIER);
 
     nodeFile.createNewFile();
     edgeFile.createNewFile();
@@ -127,24 +127,6 @@ public class TestGraphDataRecorder {
     assertTrue(list.contains(graphDataRecorder.getNodeFile()));
     assertTrue(list.contains(graphDataRecorder.getEdgeFile()));
     assertEquals(++nodeId, Node.getNodeCount());
-  }
-
-  @Test(expected = IOException.class)
-  public void shouldAbortInLoadPhaseBecauseFolderWithFilesExists() throws IOException {
-    directory.mkdirs();
-    File nodeFile = createComponentLoadFileFileInDirectory(Node.NODE_IDENTIFIER);
-    nodeFile.createNewFile();
-
-    getGraphDataRecorderInLoadPhase();
-  }
-
-  @Test(expected = IOException.class)
-  public void shouldAbortInRunPhaseBecauseFolderWithFilesExists() throws IOException {
-    directory.mkdirs();
-    File nodeFile = createComponentRunFileFileInDirectory(Node.NODE_IDENTIFIER);
-    nodeFile.createNewFile();
-
-    getGraphDataRecorderInRunPhase();
   }
 
   @Test
@@ -208,8 +190,8 @@ public class TestGraphDataRecorder {
   public void checkIfGraphComponentsCanBeRetrievedByGetInRunPhaseWithLoadFiles() throws IOException {
     int nodeId = 5;
 
-    File nodeFile = createComponentLoadFileFileInDirectory(Node.NODE_IDENTIFIER);
-    File edgeFile = createComponentLoadFileFileInDirectory(Edge.EDGE_IDENTIFIER);
+    File nodeFile = createComponentLoadFileInDirectory(Node.NODE_IDENTIFIER);
+    File edgeFile = createComponentLoadFileInDirectory(Edge.EDGE_IDENTIFIER);
 
     nodeFile.createNewFile();
     edgeFile.createNewFile();
@@ -282,18 +264,18 @@ public class TestGraphDataRecorder {
   }
 
   private GraphDataRecorder getGraphDataRecorderInLoadPhase() throws IOException {
-    return new GraphDataRecorder(directoryName, false, properties);
+    return (GraphDataRecorder) GraphDataGenerator.create(directoryName, false, properties);
   }
 
   private GraphDataRecorder getGraphDataRecorderInRunPhase() throws IOException {
-    return new GraphDataRecorder(directoryName, true, properties);
+    return (GraphDataRecorder) GraphDataGenerator.create(directoryName, true, properties);
   }
 
-  private File createComponentLoadFileFileInDirectory(String componentIdentifier) {
+  private File createComponentLoadFileInDirectory(String componentIdentifier) {
     return new File(directory, componentIdentifier + "load.json");
   }
 
-  private File createComponentRunFileFileInDirectory(String componentIdentifier) {
+  private File createComponentRunFileInDirectory(String componentIdentifier) {
     return new File(directory, componentIdentifier + "run.json");
   }
 

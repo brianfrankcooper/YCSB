@@ -60,6 +60,10 @@ public class GraphDataRecreator extends GraphDataGenerator {
 
     List<Graph> singleGraphs = createSingleGraphs(loadEdgeMap, -1);
 
+    if (numberOfGraphs > graphs.size()) {
+      numberOfGraphs = graphs.size();
+    }
+
     for (int i = 0; i < numberOfGraphs; i++) {
       result.add(singleGraphs.get(i));
     }
