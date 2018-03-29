@@ -102,7 +102,7 @@ LICENSE file.
     <arangodb3.version>4.1.7</arangodb3.version>
     <azurestorage.version>4.0.0</azurestorage.version>
     <cloudspanner.version>0.21.1-beta</cloudspanner.version>
-    <ignite.version>2.3.1</ignite.version>
+    <ignite.version>2.4.0</ignite.version>
   </properties>
 
   <modules>
