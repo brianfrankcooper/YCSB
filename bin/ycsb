@@ -149,8 +149,8 @@ def check_output(*popenargs, **kwargs):
     To capture standard error in the result, use stderr=STDOUT.
 
     >>> check_output(["/bin/sh", "-c",
-    ...               "ls -l non_existent_file ; exit 0"],
-    ...              stderr=STDOUT)
+                    "ls -l non_existent_file ; exit 0"],
+                    stderr=STDOUT)
     'ls: non_existent_file: No such file or directory\n'
     """
     if 'stdout' in kwargs:
