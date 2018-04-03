@@ -21,11 +21,11 @@ This section describes how to run YCSB on [Accumulo](https://accumulo.apache.org
 
 ### 1. Start Accumulo
 
-See the [Accumulo Documentation](https://accumulo.apache.org/1.7/accumulo_user_manual.html#_installation)
+See the [Accumulo Documentation](https://accumulo.apache.org/1.6/accumulo_user_manual.html#_installation)
 for details on installing and running Accumulo.
 
 Before running the YCSB test you must create the Accumulo table. Again see the 
-[Accumulo Documentation](https://accumulo.apache.org/1.7/accumulo_user_manual.html#_basic_administration)
+[Accumulo Documentation](https://accumulo.apache.org/1.6/accumulo_user_manual.html#_basic_administration)
 for details. The default table name is `ycsb`.
 
 ### 2. Set Up YCSB
@@ -34,7 +34,7 @@ Git clone YCSB and compile:
 
     git clone http://github.com/brianfrankcooper/YCSB.git
     cd YCSB
-    mvn -pl com.yahoo.ycsb:aerospike-binding -am clean package
+    mvn -pl com.yahoo.ycsb:accumulo1.6-binding -am clean package
 
 ### 3. Create the Accumulo table
 
@@ -75,7 +75,7 @@ On repeated data loads, the following commands may be helpful to re-set the stat
 
 Load the data:
 
-    ./bin/ycsb load accumulo -s -P workloads/workloada \
+    ./bin/ycsb load accumulo1.6 -s -P workloads/workloada \
          -p accumulo.zooKeepers=localhost \
          -p accumulo.columnFamily=ycsb \
          -p accumulo.instanceName=ycsb \
@@ -85,7 +85,7 @@ Load the data:
 
 Run the workload test:
 
-    ./bin/ycsb run accumulo -s -P workloads/workloada  \
+    ./bin/ycsb run accumulo1.6 -s -P workloads/workloada  \
          -p accumulo.zooKeepers=localhost \
          -p accumulo.columnFamily=ycsb \
          -p accumulo.instanceName=ycsb \
@@ -96,7 +96,7 @@ Run the workload test:
 ## Accumulo Configuration Parameters
 
 - `accumulo.zooKeepers`
-  - The Accumulo cluster's [zookeeper servers](https://accumulo.apache.org/1.7/accumulo_user_manual.html#_connecting).
+  - The Accumulo cluster's [zookeeper servers](https://accumulo.apache.org/1.6/accumulo_user_manual.html#_connecting).
   - Should contain a comma separated list of of hostname or hostname:port values.
   - No default value.
 
@@ -105,7 +105,7 @@ Run the workload test:
   - No default value.
 
 - `accumulo.instanceName`
-  - Name of the Accumulo [instance](https://accumulo.apache.org/1.7/accumulo_user_manual.html#_connecting).
+  - Name of the Accumulo [instance](https://accumulo.apache.org/1.6/accumulo_user_manual.html#_connecting).
   - No default value.
 
 - `accumulo.username`

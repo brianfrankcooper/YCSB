@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -43,7 +44,7 @@ public class GoodBadUglyDB extends DB {
   }
 
   private void delay() {
-    final Random random = Utils.random();
+    final Random random = ThreadLocalRandom.current();
     double p = random.nextDouble();
     int mod;
     if (p < 0.9) {

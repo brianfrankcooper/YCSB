@@ -22,7 +22,11 @@ language: java
 jdk:
   - oraclejdk9
   - oraclejdk8
-  - openjdk7
+
+addons:
+  hosts:
+    - myshorthost
+  hostname: myshorthost
 
 install: mvn install -q -DskipTests=true
 
@@ -35,5 +39,5 @@ services:
 #  - riak
 
 
-# Use the Container based infrastructure.
-sudo: false
+# Can't use container based infra because of hosts/hostname
+sudo: true

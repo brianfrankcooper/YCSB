@@ -33,6 +33,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
@@ -442,7 +443,7 @@ class ClientThread implements Runnable {
     // GH issue 4 - throws exception if _target>1 because random.nextInt argument must be >0
     // and the sleep() doesn't make sense for granularities < 1 ms anyway
     if ((targetOpsPerMs > 0) && (targetOpsPerMs <= 1.0)) {
-      long randomMinorDelay = Utils.random().nextInt((int) targetOpsTickNs);
+      long randomMinorDelay = ThreadLocalRandom.current().nextInt((int) targetOpsTickNs);
       sleepUntil(System.nanoTime() + randomMinorDelay);
     }
     try {

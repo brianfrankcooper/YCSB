@@ -41,7 +41,17 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>accumulo-binding</artifactId>
+      <artifactId>accumulo1.6-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>accumulo1.7-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>accumulo1.8-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -137,6 +147,16 @@ LICENSE file.
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>hbase12-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>hbase14-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>hbase20-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

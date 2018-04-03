@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
-Copyright (c) 2011 YCSB++ project, 2014 - 2016 YCSB contributors.
-All rights reserved.
+<!--
+Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -23,31 +22,31 @@ LICENSE file.
     <groupId>com.yahoo.ycsb</groupId>
     <artifactId>binding-parent</artifactId>
     <version>0.14.0-SNAPSHOT</version>
-    <relativePath>../binding-parent</relativePath>
+    <relativePath>../binding-parent/</relativePath>
   </parent>
-  <artifactId>accumulo-binding</artifactId>
-  <name>Accumulo DB Binding</name>
+
+  <artifactId>hbase14-binding</artifactId>
+  <name>HBase 1.4 DB Binding</name>
+
   <properties>
-    <!-- This should match up to the one from your Accumulo version -->
-    <hadoop.version>2.2.0</hadoop.version>
     <!-- Tests do not run on jdk9 -->
     <skipJDK9Tests>true</skipJDK9Tests>
+    <!-- Tests can't run without a shaded hbase testing util.
+         See HBASE-15666, which blocks us.
+         For now, we rely on the HBase 1.0 binding and manual testing.
+      -->
+    <maven.test.skip>true</maven.test.skip>
   </properties>
   <dependencies>
     <dependency>
-      <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-core</artifactId>
-      <version>${accumulo.version}</version>
-    </dependency>
-    <!-- Needed for hadoop.io.Text :( -->
-    <dependency>
-      <groupId>org.apache.hadoop</groupId>
-      <artifactId>hadoop-common</artifactId>
-      <version>${hadoop.version}</version>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>hbase10-binding</artifactId>
+      <version>${project.version}</version>
+      <!-- Should match all compile scoped dependencies -->
       <exclusions>
         <exclusion>
-          <groupId>jdk.tools</groupId>
-          <artifactId>jdk.tools</artifactId>
+          <groupId>org.apache.hbase</groupId>
+          <artifactId>hbase-client</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -58,34 +57,29 @@ LICENSE file.
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>org.apache.hbase</groupId>
+      <artifactId>hbase-shaded-client</artifactId>
+      <version>${hbase14.version}</version>
+    </dependency>
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>4.12</version>
       <scope>test</scope>
     </dependency>
+<!-- blocked on HBASE-15666
     <dependency>
-      <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-minicluster</artifactId>
-      <version>${accumulo.version}</version>
+      <groupId>org.apache.hbase</groupId>
+      <artifactId>hbase-testing-util</artifactId>
+      <version>${hbase14.version}</version>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>jdk.tools</groupId>
+          <artifactId>jdk.tools</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
-    <!-- needed directly only in test, but transitive
-         at runtime for accumulo, hadoop, and thrift. -->
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>1.7.13</version>
-    </dependency>
+-->
   </dependencies>
-  <build>
-    <testResources>
-      <testResource>
-        <directory>../workloads</directory>
-        <targetPath>workloads</targetPath>
-      </testResource>
-      <testResource>
-        <directory>src/test/resources</directory>
-      </testResource>
-    </testResources>
-  </build>
 </project>
