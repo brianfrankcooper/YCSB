@@ -16,54 +16,50 @@ permissions and limitations under the License. See accompanying
 LICENSE file.
 -->
 
-Yahoo! Cloud System Benchmark (YCSB)
-====================================
-[![Build Status](https://travis-ci.org/brianfrankcooper/YCSB.png?branch=master)](https://travis-ci.org/brianfrankcooper/YCSB)
+# Yahoo! Cloud System Benchmark (YCSB) - Neo4J fork !
 
-Links
------
-http://wiki.github.com/brianfrankcooper/YCSB/  
-https://labs.yahoo.com/news/yahoo-cloud-serving-benchmark/
-ycsb-users@yahoogroups.com  
+## Preambule
 
-Getting Started
----------------
+This project is a fork of the YCSB benchmark tool. It now supports Neo4J 3.0+ benchmarking : to learn more, read the docs in the neo4j directory.
+
+## Getting Started
 
 1. Download the [latest release of YCSB](https://github.com/brianfrankcooper/YCSB/releases/latest):
 
-    ```sh
-    curl -O --location https://github.com/brianfrankcooper/YCSB/releases/download/0.12.0/ycsb-0.12.0.tar.gz
-    tar xfvz ycsb-0.12.0.tar.gz
-    cd ycsb-0.12.0
-    ```
-    
-2. Set up a database to benchmark. There is a README file under each binding 
+   ```sh
+   curl -O --location https://github.com/brianfrankcooper/YCSB/releases/download/0.12.0/ycsb-0.12.0.tar.gz
+   tar xfvz ycsb-0.12.0.tar.gz
+   cd ycsb-0.12.0
+   ```
+
+2. Set up a database to benchmark. There is a README file under each binding
    directory.
 
-3. Run YCSB command. 
+3. Run YCSB command.
 
-    On Linux:
-    ```sh
-    bin/ycsb.sh load basic -P workloads/workloada
-    bin/ycsb.sh run basic -P workloads/workloada
-    ```
+   On Linux:
 
-    On Windows:
-    ```bat
-    bin/ycsb.bat load basic -P workloads\workloada
-    bin/ycsb.bat run basic -P workloads\workloada
-    ```
+   ```sh
+   bin/ycsb.sh load basic -P workloads/workloada
+   bin/ycsb.sh run basic -P workloads/workloada
+   ```
 
-  Running the `ycsb` command without any argument will print the usage. 
-   
-  See https://github.com/brianfrankcooper/YCSB/wiki/Running-a-Workload
-  for a detailed documentation on how to run a workload.
+   On Windows:
 
-  See https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties for 
-  the list of available workload properties.
+   ```bat
+   bin/ycsb.bat load basic -P workloads\workloada
+   bin/ycsb.bat run basic -P workloads\workloada
+   ```
 
-Building from source
---------------------
+Running the `ycsb` command without any argument will print the usage.
+
+See https://github.com/brianfrankcooper/YCSB/wiki/Running-a-Workload
+for a detailed documentation on how to run a workload.
+
+See https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties for
+the list of available workload properties.
+
+## Building from source
 
 YCSB requires the use of Maven 3; if you use Maven 2, you may see [errors
 such as these](https://github.com/brianfrankcooper/YCSB/issues/406).
