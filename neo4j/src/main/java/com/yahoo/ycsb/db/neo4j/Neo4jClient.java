@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
+/*
+ * Copyright (c) 2016 - 2018 YCSB contributors. All rights reserved.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -14,222 +14,332 @@
  * permissions and limitations under the License. See accompanying
  * LICENSE file.
  */
+
 package com.yahoo.ycsb.db.neo4j;
 
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
-import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
+import com.yahoo.ycsb.generator.graph.Edge;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-import org.neo4j.graphdb.Label;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Transaction;
-import org.neo4j.helpers.collection.Iterators;
+
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.yahoo.ycsb.Status.*;
 
 /**
  * Neo4j client for YCSB framework.
  */
 public class Neo4jClient extends DB {
-  public static final String DEFAULT_PROP = "";
-  /** Path used to create the database directory. */
-  public static final String BASE_PATH = "db.path";
-  /** Default path used to create the database directory, if no arguments are given. */
-  public static final String DEFAULT_PATH = "neo4j.db";
-  /** The name of the node identifier field. */
-  private static final String NODE_ID = "_key";
-  /** The graph database instance, initialized only once. */
-  private static GraphDatabaseService graphDbInstance;
-  /** Integer used to keep track of current threads. */
-  private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
-
   /**
-   * Initializes the graph database, only once per DB instance.
-   *
-   * @throws DBException
+   * Path used to create the database directory.
    */
+  static final String BASE_PATH = "neo4j.path";
+  private static final String BASE_PATH_DEFAULT = "neo4j.db";
+  /**
+   * The name of the node identifier field.
+   */
+  private static final String NODE_ID = "node_id";
+  /**
+   * Integer used to keep track of current threads.
+   */
+  private static final AtomicInteger INIT_COUNT = new AtomicInteger();
+  /**
+   * The graph database instance, initialized only once.
+   */
+  private static GraphDatabaseService graphDbInstance;
+
   @Override
-  public void init() throws DBException {
+  public void init() {
     INIT_COUNT.incrementAndGet();
 
-    // syncing all threads
     synchronized (Neo4jClient.class) {
-      // instantiating graph db only once
       if (graphDbInstance == null) {
-        String path = getProperties().getProperty(BASE_PATH, DEFAULT_PROP);
-        if (path == null) {
-          graphDbInstance = new GraphDatabaseFactory().newEmbeddedDatabase(new File(DEFAULT_PATH));
-        } else {
-          graphDbInstance = new GraphDatabaseFactory().newEmbeddedDatabase(new File(path));
-        }
+        String path = getProperties().getProperty(BASE_PATH, BASE_PATH_DEFAULT);
+        graphDbInstance = new GraphDatabaseFactory().newEmbeddedDatabase(new File(path));
       }
     }
   }
 
-  /**
-   * Shuts down the Neo4j graph database, called once per DB instance.
-   *
-   * @throws DBException
-   */
   @Override
-  public void cleanup() throws DBException {
-    // making sure that all threads are done working
+  public void cleanup() {
     if (INIT_COUNT.decrementAndGet() == 0) {
       graphDbInstance.shutdown();
+      graphDbInstance = null;
     }
   }
 
   /**
-   * Reads a set of fields found in a labelled node.
+   * Reads a set of fields found in a graph component with the {@link Label}/{@link RelationshipType} "key".
    *
-   * @param label  Table name
-   * @param key    Record key of the node to read
-   * @param fields Fields to read
-   * @param result A Vector of HashMaps, where each HashMap is a set field/value
-   *               pairs for one record
-   * @return Zero on success, a non-zero error code on error
+   * @param table  used to distinguish between Relationships and Nodes.
+   * @param key    to find the component.
+   * @param fields to read. If null all properties will be read.
+   * @param result a map to store the found properties in.
+   * @return {@link Status}.OK if everything was found, Status.NOT_FOUND if the component couldn't be found for the
+   * given key and Status.ERROR if an exception occurs.
    */
   @Override
-  public Status read(String label, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
-    // starting transaction
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try (Transaction tx = graphDbInstance.beginTx()) {
-      Node n = graphDbInstance.findNode(Label.label(label), NODE_ID, key);
-      // searching for properties with fields names, and putting their values in result
-      if (fields != null) {
-        for (String field : fields) {
-          result.put(field, new StringByteIterator((String) n.getProperty(field)));
-        }
+      Optional<? extends PropertyContainer> container;
+
+      if (table.equals(Edge.EDGE_IDENTIFIER)) {
+        container = getRelationship(key);
+      } else {
+        container = getNode(key);
       }
 
+      if (!container.isPresent()) {
+        return NOT_FOUND;
+      }
+
+      insertFieldsIntoValueMap(fields, container.get().getAllProperties(), result);
+
       tx.success();
-      return Status.OK;
+    } catch (NotFoundException e) {
+      return NOT_FOUND;
     } catch (Exception e) {
-      System.out.println(e);
-      return Status.ERROR;
+      return ERROR;
     }
+
+    return OK;
   }
 
   /**
-   * Perform a range scan for a set of records in the database. Each field/value
-   * pair from the result will be stored in a HashMap.
+   * Perform a range scan for a set of records in the database.
+   * Each field/value pair from the result will be stored in a HashMap.
+   * The graph will be scanned in a depth first manner.
    *
-   * @param label       Table name
-   * @param startkey    The record key of the first record to read.
-   * @param recordcount The number of records to read
-   * @param fields      The list of fields to read, or null for all of them
-   * @param result      A Vector of HashMaps, where each HashMap is a set field/value
-   *                    pairs for one record
-   * @return Zero on success, a non-zero error code on error.
+   * @param table       used to distinguish between Relationships and Nodes.
+   * @param startkey    is the key of the first record to read.
+   * @param recordcount number of records to read.
+   * @param fields      list of fields to read, or null for all of them.
+   * @param result      a {@link Vector} of {@link HashMap}s, where each HashMap is a set field/value
+   *                    pairs for one record.
+   * @return {@link Status}.OK if everything was found, Status.NOT_FOUND if the component couldn't be found for the
+   * given key and Status.ERROR if an exception occurs.
    */
   @Override
-  public Status scan(String label, String startkey, int recordcount, Set<String> fields,
+  public Status scan(String table, String startkey, int recordcount, Set<String> fields,
                      Vector<HashMap<String, ByteIterator>> result) {
-    // starting transaction
     try (Transaction tx = graphDbInstance.beginTx()) {
-      // finding nodes to scan
-      Result cypherResult = graphDbInstance.execute("match (n:" + label + ") where n." + NODE_ID + " >= '"
-              + startkey + "' return n limit " + recordcount);
-      Iterator<Node> nColumn = cypherResult.columnAs("n");
 
-      for (Node node : Iterators.asIterable(nColumn)) {
-        HashMap<String, ByteIterator> nodeScanResult = new HashMap<String, ByteIterator>();
+      if (table.equals(Edge.EDGE_IDENTIFIER)) {
+        Optional<Relationship> optionalRelationship = getRelationship(startkey);
 
-        // searching for properties with fields names, and putting their values in result
-        if (fields != null) {
-          for (String field : fields) {
-            nodeScanResult.put(field, new StringByteIterator((String) node.getProperty(field)));
-          }
+        if (!optionalRelationship.isPresent()) {
+          return NOT_FOUND;
         }
-        result.add(nodeScanResult);
+
+        Node startNode = optionalRelationship.get().getStartNode();
+
+        scanEdges(startNode, recordcount, fields, result);
+      } else {
+        Optional<Node> optionalNode = getNode(startkey);
+
+        if (!optionalNode.isPresent()) {
+          return NOT_FOUND;
+        }
+
+        Node node = optionalNode.get();
+
+        scanNodes(node, recordcount, fields, result);
       }
 
       tx.success();
-      return Status.OK;
     } catch (Exception e) {
-      return Status.ERROR;
+      return ERROR;
     }
+
+    return OK;
   }
 
   /**
-   * Updates a new node in the neo4j database. Any field/value pairs in the specified
-   * values HashMap will be written into the node with the specified node
+   * Updates a {@link PropertyContainer} in the neo4j database.
+   * All field/value pairs in the specified values {@link Map} will be written into the container with the specified
    * key, overwriting any existing values with the same property name.
    *
-   * @param label  Table name
-   * @param key    Node identifier
-   * @param values Values to insert/update (key-value hashmap)
-   * @return Zero on success, a non-zero error code on error
+   * @param table  used to distinguish between Relationships and Nodes.
+   * @param key    to identify the {@link Node} or {@link Relationship}.
+   * @param values to insert/update.
+   * @return {@link Status}.OK if everything was found, Status.NOT_FOUND if the component couldn't be found for the
+   * given key and Status.ERROR if an exception occurs.
    */
   @Override
-  public Status update(String label, String key, HashMap<String, ByteIterator> values) {
-    // starting transaction
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
     try (Transaction tx = graphDbInstance.beginTx()) {
-      // finding node
-      Node n = graphDbInstance.findNode(Label.label(label), NODE_ID, key);
-      // updating/inserting values in node
-      for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-        n.setProperty(entry.getKey().toString(), entry.getValue().toString());
+      Optional<? extends PropertyContainer> container;
+
+      if (table.equals(Edge.EDGE_IDENTIFIER)) {
+        container = getRelationship(key);
+      } else {
+        container = getNode(key);
       }
 
+      if (!container.isPresent()) {
+        return NOT_FOUND;
+      }
+
+      setProperties(container.get(), values);
+
       tx.success();
-      return Status.OK;
     } catch (Exception e) {
-      return Status.ERROR;
+      return ERROR;
     }
 
+    return OK;
   }
 
   /**
-   * Inserts a new node in the neo4j database. Any field/value pairs in the specified
-   * values HashMap will be written into the node with the specified node
-   * key.
+   * Inserts a new graph component ({@link Node} or {@link Relationship}) in the neo4j database.
+   * Any key/value pairs in the specified values Map will be written into the component with the specified key.
    *
-   * @param label  Table name
-   * @param key    Node identifier
-   * @param values Values to insert (key-value hashmap)
-   * @return Zero on success, a non-zero error code on error
+   * @param table  used to distinguish between Relationships and Nodes.
+   * @param key    used as {@link Label} or {@link RelationshipType}.
+   * @param values to set as properties.
+   * @return {@link Status}.OK if everything was found, Status.BAD_REQUEST if a {@link Relationship} should be
+   * inserted but on of the two corresponding {@link Node}s is not present and Status.ERROR if an exception occurs.
    */
   @Override
-  public Status insert(String label, String key, HashMap<String, ByteIterator> values) {
-    // starting transaction
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try (Transaction tx = graphDbInstance.beginTx()) {
-      // inserting node and setting up identifier
-      Node n = graphDbInstance.createNode(Label.label(label));
-      n.setProperty(NODE_ID, key);
-      // inserting values in current node
-      for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-        n.setProperty(entry.getKey().toString(), entry.getValue().toString());
+      PropertyContainer container;
+
+      if (table.equals(Edge.EDGE_IDENTIFIER)) {
+        Node startNode = graphDbInstance.findNodes(Label.label(values.get(Edge.START_IDENTIFIER).toString())).next();
+        Node endNode = graphDbInstance.findNodes(Label.label(values.get(Edge.END_IDENTIFIER).toString())).next();
+
+        if (startNode == null || endNode == null) {
+          return BAD_REQUEST;
+        }
+
+        RelationshipType relationshipType = RelationshipType.withName(key);
+
+        startNode.createRelationshipTo(endNode, relationshipType);
+        container = startNode.getSingleRelationship(relationshipType, Direction.OUTGOING);
+      } else {
+        container = graphDbInstance.createNode(Label.label(key));
+        container.setProperty(NODE_ID, key);
       }
 
+      setProperties(container, values);
+
       tx.success();
-      return Status.OK;
     } catch (Exception e) {
-      return Status.ERROR;
+      return ERROR;
     }
+
+    return OK;
   }
 
   /**
-   * Deletes a node found by its label and property.
+   * Deletes a graph component ({@link Node} or {@link Relationship}) with the given key.
    *
-   * @param label Label to find
-   * @param key   Identifier property value
-   * @return Zero on success, a non-zero error code on error
+   * @param table used to distinguish between Relationships and Nodes.
+   * @param key   to identify the {@link PropertyContainer}.
+   * @return {@link Status}.OK if everything was found, Status.NOT_FOUND if the component couldn't be found for the
+   * given key and Status.ERROR if an exception occurs.
    */
   @Override
-  public Status delete(String label, String key) {
-    // starting transaction
+  public Status delete(String table, String key) {
     try (Transaction tx = graphDbInstance.beginTx()) {
-      // inserting node and setting up identifier
-      Node n = graphDbInstance.findNode(Label.label(label), NODE_ID, key);
-      n.delete();
+      if (table.equals(Edge.EDGE_IDENTIFIER)) {
+        Optional<Relationship> relationship = getRelationship(key);
+
+        if (!relationship.isPresent()) {
+          return NOT_FOUND;
+        }
+
+        relationship.get().delete();
+      } else {
+        Optional<Node> node = getNode(key);
+
+        if (!node.isPresent()) {
+          return NOT_FOUND;
+        }
+
+        node.get().delete();
+      }
+
       tx.success();
-      return Status.OK;
     } catch (Exception e) {
-      return Status.ERROR;
+      return ERROR;
+    }
+
+    return OK;
+  }
+
+  private void scanNodes(Node node, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    if (result.size() >= recordcount) {
+      return;
+    }
+
+    HashMap<String, ByteIterator> values = new HashMap<>();
+
+    insertFieldsIntoValueMap(fields, node.getAllProperties(), values);
+    result.add(values);
+
+    Iterable<Relationship> relationships = node.getRelationships(Direction.OUTGOING);
+
+    relationships.forEach(relationship -> scanNodes(relationship.getEndNode(), recordcount, fields, result));
+  }
+
+  private void scanEdges(Node startNode,
+                         int recordcount,
+                         Set<String> fields,
+                         Vector<HashMap<String, ByteIterator>> result) {
+    if (result.size() >= recordcount) {
+      return;
+    }
+
+    Iterable<Relationship> relationships = startNode.getRelationships(Direction.OUTGOING);
+
+    for (Relationship relationship : relationships) {
+      HashMap<String, ByteIterator> values = new HashMap<>();
+
+      insertFieldsIntoValueMap(fields, relationship.getAllProperties(), values);
+      result.add(values);
+
+      scanEdges(relationship.getEndNode(), recordcount, fields, result);
+    }
+  }
+
+  private void insertFieldsIntoValueMap(Set<String> fields,
+                                        Map<String, Object> properties,
+                                        Map<String, ByteIterator> values) {
+    if (fields != null) {
+      fields.forEach(field -> values.put(field, new StringByteIterator(properties.get(field).toString())));
+    } else {
+      properties.forEach((key, value) -> values.put(key, new StringByteIterator(value.toString())));
+    }
+  }
+
+  private Optional<Node> getNode(String key) {
+    Node node = graphDbInstance.findNode(Label.label(key), NODE_ID, key);
+
+    if (node == null) {
+      return Optional.empty();
+    }
+
+    return Optional.of(node);
+  }
+
+  private Optional<Relationship> getRelationship(String key) {
+    return graphDbInstance
+        .getAllRelationships()
+        .stream()
+        .filter(relationship -> relationship.getType().name().equals(key))
+        .findAny();
+  }
+
+  private void setProperties(PropertyContainer container, Map<String, ByteIterator> values) {
+    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+      container.setProperty(entry.getKey(), entry.getValue().toString());
     }
   }
 }

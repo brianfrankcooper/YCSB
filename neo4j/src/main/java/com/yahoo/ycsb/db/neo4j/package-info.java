@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2015 YCSB contributors. All rights reserved.
+/*
+ * Copyright (c) 2016-2018 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -16,6 +16,6 @@
  */
 
 /**
- * YCSB binding for Neo4J.
+ * YCSB binding for Neo4j.
  */
 package com.yahoo.ycsb.db.neo4j;

@@ -99,7 +99,7 @@ LICENSE file.
     <!--<mapkeeper.version>1.0</mapkeeper.version>-->
     <mongodb.async.version>2.0.1</mongodb.async.version>
     <mongodb.version>3.0.3</mongodb.version>
-    <neo4j.version>3.0.3</neo4j.version>
+    <neo4j.version>3.3.4</neo4j.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
     <orientdb.version>2.2.10</orientdb.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -110,7 +110,7 @@ LICENSE file.
     <solr6.version>6.4.1</solr6.version>
     <tarantool.version>1.6.5</tarantool.version>
     <thrift.version>0.8.0</thrift.version>
-    <voldemort.version>0.81</voldemort.version>
+    <!--<voldemort.version>0.81</voldemort.version>-->
   </properties>
 
   <modules>
@@ -150,6 +150,7 @@ LICENSE file.
     <!--<module>mapkeeper</module>-->
     <module>memcached</module>
     <module>mongodb</module>
+    <module>neo4j</module>
     <module>nosqldb</module>
     <module>orientdb</module>
     <module>rados</module>

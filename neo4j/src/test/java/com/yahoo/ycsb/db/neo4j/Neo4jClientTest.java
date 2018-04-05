@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2012 YCSB contributors. All rights reserved.
+/*
+ * Copyright (c) 2016-2018 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -15,167 +15,171 @@
  * LICENSE file.
  */
 
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.yahoo.ycsb.db.neo4j;
 
 import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
-import org.junit.AfterClass;
+import com.yahoo.ycsb.generator.graph.Edge;
+import com.yahoo.ycsb.generator.graph.Node;
+import org.apache.commons.io.FileUtils;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.Vector;
 
 import static org.junit.Assert.assertEquals;
 
-
 public class Neo4jClientTest {
-	protected final static Neo4jClient instance = new Neo4jClient();
-	protected final static HashMap<String, ByteIterator> NEO_DATA;
-	protected final static String TABLE_LABEL = "TESTLABEL";
-	protected final static String KEY_0 = "0";
-	protected final static String KEY_1 = "1";
-	protected final static String KEY_2 = "2";
-	protected static File basePath;
+  private static final String FIRST_NODE_KEY = "0";
+  private static final String SECOND_NODE_KEY = "1";
+  private static final String EDGE_KEY = "2";
 
-	static {
-		NEO_DATA = new HashMap<String, ByteIterator>(0);
-		for (int i = 1; i <= 10; i++) {
-			NEO_DATA.put("field" + i, new StringByteIterator("value" + i));
-		}
-	}
+  private static Map<String, ByteIterator> firstNodeValues;
+  private static File basePath;
+  private static Properties properties;
+  private static Map<String, ByteIterator> secondNodeValues;
+  private static Map<String, ByteIterator> edgeValues;
 
-	/**
-	 * creating a test database
-	 * @throws DBException
-	 */
-	@BeforeClass
-	public static void setUpClass() throws DBException {
-		// creating test db
-		basePath = new File("test.db");
-		Properties p = new Properties();
-		p.setProperty(Neo4jClient.BASE_PATH,basePath.getAbsolutePath());
-		instance.setProperties(p);
-		instance.init();
-		// used in read, scan & update tests
-		instance.insert(TABLE_LABEL, KEY_0, NEO_DATA);
-		// used in delete test
-		instance.insert(TABLE_LABEL, KEY_2, NEO_DATA);
-	}
+  private Neo4jClient neo4jClient;
 
-	@AfterClass
-	public static void tearDownClass() throws DBException {
-		instance.cleanup();
-		deleteFileOrDirectory(basePath);
-	}
+  @BeforeClass
+  public static void setUpClass() {
+    basePath = new File("test.db");
 
-	/*
-	used to delete graph database folder
-	 */
-	public static void deleteFileOrDirectory( final File file ) {
-		if ( file.exists() ) {
-			if ( file.isDirectory() ) {
-				for ( File child : file.listFiles() ) {
-					deleteFileOrDirectory( child );
-				}
-			}
-			file.delete();
-		}
-	}
+    properties = new Properties();
+    properties.setProperty(Neo4jClient.BASE_PATH, basePath.getAbsolutePath());
 
-	@Test
-	public void testInsert() {
-		Status result = instance.insert(TABLE_LABEL, KEY_1, NEO_DATA);
-		assertEquals(Status.OK, result);
-		// verify that result is coherent
-		Set<String> fields = NEO_DATA.keySet();
-		HashMap<String, ByteIterator> resultParam = new HashMap<String, ByteIterator>(10);
-		result = instance.read(TABLE_LABEL, KEY_0, fields, resultParam);
+    firstNodeValues = new HashMap<>();
+    firstNodeValues.put(Node.ID_IDENTIFIER, new StringByteIterator(FIRST_NODE_KEY));
+    firstNodeValues.put(Node.LABEL_IDENTIFIER, new StringByteIterator("First"));
 
-		//validate that the values are correct
-		for (int i = 1; i <= 10; i++) {
-			assertEquals("value" + i, resultParam.get("field" + i).toString());
-		}
-	}
+    secondNodeValues = new HashMap<>();
+    secondNodeValues.put(Node.ID_IDENTIFIER, new StringByteIterator(SECOND_NODE_KEY));
+    secondNodeValues.put(Node.LABEL_IDENTIFIER, new StringByteIterator("Second"));
 
-	@Test
-	public void testDelete() {
-		Status result = instance.delete(TABLE_LABEL, KEY_2);
-		assertEquals(Status.OK, result);
-		// verify that result is coherent
-		Set<String> fields = NEO_DATA.keySet();
-		HashMap<String, ByteIterator> resultParam = new HashMap<String, ByteIterator>(10);
-		result = instance.read(TABLE_LABEL, KEY_0, fields, resultParam);
+    edgeValues = new HashMap<>();
+    edgeValues.put(Edge.ID_IDENTIFIER, new StringByteIterator(EDGE_KEY));
+    edgeValues.put(Edge.START_IDENTIFIER, new StringByteIterator(FIRST_NODE_KEY));
+    edgeValues.put(Edge.END_IDENTIFIER, new StringByteIterator(SECOND_NODE_KEY));
+    edgeValues.put(Edge.LABEL_IDENTIFIER, new StringByteIterator("connection"));
+  }
 
-		//validate that the values are correct
-		for (int i = 1; i <= 10; i++) {
-			assertEquals("value" + i, resultParam.get("field" + i).toString());
-		}
-	}
+  @Before
+  public void setUpClient() {
+    neo4jClient = new Neo4jClient();
+    neo4jClient.setProperties(properties);
+    neo4jClient.init();
+  }
 
-	@Test
-	public void testRead() {
-		Set<String> fields = NEO_DATA.keySet();
-		HashMap<String, ByteIterator> resultParam = new HashMap<String, ByteIterator>(10);
-		Status result = instance.read(TABLE_LABEL, KEY_0, fields, resultParam);
-		assertEquals(Status.OK, result);
+  @After
+  public void tearDownClass() throws IOException {
+    neo4jClient.cleanup();
+    FileUtils.deleteDirectory(basePath);
+  }
 
-		//validate that the values are correct
-		for (int i = 1; i <= 10; i++) {
-			assertEquals("value" + i, resultParam.get("field" + i).toString());
-		}
-	}
+  @Test
+  public void testInsert() {
+    HashMap<String, ByteIterator> readValues = new HashMap<>();
 
+    assertEquals(Status.OK, neo4jClient.insert(Node.NODE_IDENTIFIER, FIRST_NODE_KEY, firstNodeValues));
+    assertEquals(Status.OK, neo4jClient.insert(Node.NODE_IDENTIFIER, SECOND_NODE_KEY, secondNodeValues));
+    assertEquals(Status.OK, neo4jClient.insert(Edge.EDGE_IDENTIFIER, EDGE_KEY, edgeValues));
 
-	@Test
-	public void testUpdate() {
-		int i;
-		HashMap<String, ByteIterator> newValues = new HashMap<String, ByteIterator>(10);
+    assertEquals(Status.OK, neo4jClient.read(Node.NODE_IDENTIFIER, FIRST_NODE_KEY, firstNodeValues.keySet(), readValues));
 
-		for (i = 1; i <= 10; i++) {
-			newValues.put("field" + i, new StringByteIterator("newvalue" + i));
-		}
+    validateFields(firstNodeValues, readValues);
+  }
 
-		Status result = instance.update(TABLE_LABEL, KEY_0, newValues);
-		assertEquals(Status.OK, result);
+  @Test
+  public void testDelete() {
+    HashMap<String, ByteIterator> readValues = new HashMap<>();
 
-		//validate that the values have changed
-		HashMap<String, ByteIterator> resultParam = new HashMap<String, ByteIterator>(10);
-		instance.read(TABLE_LABEL, KEY_0, NEO_DATA.keySet(), resultParam);
+    assertEquals(Status.OK, neo4jClient.insert(Node.NODE_IDENTIFIER, FIRST_NODE_KEY, firstNodeValues));
+    assertEquals(Status.OK, neo4jClient.insert(Node.NODE_IDENTIFIER, SECOND_NODE_KEY, secondNodeValues));
 
-		for (i = 1; i <= 10; i++) {
-			assertEquals("newvalue" + i, resultParam.get("field" + i).toString());
-		}
-	}
+    assertEquals(Status.OK, neo4jClient.delete(Node.NODE_IDENTIFIER, FIRST_NODE_KEY));
 
-	@Test
-	public void testScan() {
-		int recordCount = 2;
-		Set<String> fields = NEO_DATA.keySet();
-		Vector<HashMap<String, ByteIterator>> resultParam = new Vector<HashMap<String, ByteIterator>>(10);
-		Status result = instance.scan(TABLE_LABEL, KEY_0, recordCount, fields, resultParam);
-		assertEquals(Status.OK, result);
+    assertEquals(Status.NOT_FOUND, neo4jClient.read(Node.NODE_IDENTIFIER, FIRST_NODE_KEY, firstNodeValues.keySet(), new HashMap<>()));
 
-		// Checking that the resultVector is the correct size
-		assertEquals(recordCount, resultParam.size());
-		// Checking each vector row to make sure we have the correct fields
-		for (HashMap<String, ByteIterator> rP: resultParam) {
-			// size check
-			assertEquals(fields.size(), rP.size());
-			for (String field: fields) {
-				// data correspondance check
-				assertEquals(NEO_DATA.get(field).toString(), rP.get(field).toString());
-			}
-		}
-	}
+    assertEquals(Status.OK, neo4jClient.read(Node.NODE_IDENTIFIER, SECOND_NODE_KEY, secondNodeValues.keySet(), readValues));
 
+    validateFields(secondNodeValues, readValues);
+  }
+
+  @Test
+  public void testRead() {
+    HashMap<String, ByteIterator> readValues = new HashMap<>();
+
+    assertEquals(Status.OK, neo4jClient.insert(Node.NODE_IDENTIFIER, FIRST_NODE_KEY, firstNodeValues));
+
+    assertEquals(Status.OK, neo4jClient.read(Node.NODE_IDENTIFIER, FIRST_NODE_KEY, firstNodeValues.keySet(), readValues));
+
+    validateFields(firstNodeValues, readValues);
+  }
+
+  @Test
+  public void testUpdate() {
+    Map<String, ByteIterator> readValues = new HashMap<>();
+
+    assertEquals(Status.OK, neo4jClient.insert(Node.NODE_IDENTIFIER, FIRST_NODE_KEY, firstNodeValues));
+
+    assertEquals(Status.OK, neo4jClient.update(Node.NODE_IDENTIFIER, FIRST_NODE_KEY, secondNodeValues));
+
+    assertEquals(Status.OK, neo4jClient.read(Node.NODE_IDENTIFIER, FIRST_NODE_KEY, secondNodeValues.keySet(), readValues));
+
+    validateFields(secondNodeValues, readValues);
+  }
+
+  @Test
+  public void testScan() {
+    int recordCount = 2;
+    Vector<HashMap<String, ByteIterator>> scanVector = new Vector<>();
+
+    assertEquals(Status.OK, neo4jClient.insert(Node.NODE_IDENTIFIER, FIRST_NODE_KEY, firstNodeValues));
+    assertEquals(Status.OK, neo4jClient.insert(Node.NODE_IDENTIFIER, SECOND_NODE_KEY, secondNodeValues));
+    assertEquals(Status.OK, neo4jClient.insert(Edge.EDGE_IDENTIFIER, EDGE_KEY, edgeValues));
+
+    assertEquals(Status.OK, neo4jClient.scan(Node.NODE_IDENTIFIER,
+        FIRST_NODE_KEY,
+        recordCount,
+        firstNodeValues.keySet(),
+        scanVector));
+
+    assertEquals(recordCount, scanVector.size());
+
+    HashMap<String, ByteIterator> values = scanVector.get(0);
+    assertEquals(firstNodeValues.keySet().size(), values.size());
+    validateFields(firstNodeValues, values);
+
+    values = scanVector.get(1);
+    assertEquals(secondNodeValues.keySet().size(), values.size());
+    validateFields(secondNodeValues, values);
+
+    scanVector.clear();
+
+    assertEquals(Status.OK, neo4jClient.scan(Edge.EDGE_IDENTIFIER,
+        EDGE_KEY,
+        1,
+        edgeValues.keySet(),
+        scanVector));
+
+    values = scanVector.get(0);
+    assertEquals(edgeValues.keySet().size(), values.size());
+    validateFields(edgeValues, values);
+
+  }
+
+  private void validateFields(Map<String, ByteIterator> originalValues, Map<String, ByteIterator> actualValues) {
+    for (Map.Entry<String, ByteIterator> originalEntry : originalValues.entrySet()) {
+      assertEquals(originalEntry.getValue().toString(), actualValues.get(originalEntry.getKey()).toString());
+    }
+  }
 }
