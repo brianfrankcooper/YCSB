@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <!--
 Copyright (c) 2012 - 2017 YCSB contributors. All rights reserved.
 
@@ -16,7 +17,8 @@ permissions and limitations under the License. See accompanying
 LICENSE file.
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.yahoo.ycsb</groupId>
@@ -74,6 +76,7 @@ LICENSE file.
     <accumulo.1.7.version>1.7.3</accumulo.1.7.version>
     <accumulo.1.8.version>1.8.1</accumulo.1.8.version>
     <aerospike.version>3.1.2</aerospike.version>
+    <apachejena.version>3.6.0</apachejena.version>
     <arangodb.version>2.7.3</arangodb.version>
     <arangodb3.version>4.1.7</arangodb3.version>
     <asynchbase.version>1.7.1</asynchbase.version>
@@ -95,8 +98,8 @@ LICENSE file.
     <infinispan.version>7.2.2.Final</infinispan.version>
     <kudu.version>1.1.0</kudu.version>
     <!--<mapkeeper.version>1.0</mapkeeper.version>-->
-    <mongodb.version>3.0.3</mongodb.version>
     <mongodb.async.version>2.0.1</mongodb.async.version>
+    <mongodb.version>3.0.3</mongodb.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
     <orientdb.version>2.2.10</orientdb.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -120,18 +123,19 @@ LICENSE file.
     <module>accumulo1.7</module>
     <module>accumulo1.8</module>
     <module>aerospike</module>
-    <module>arangodb</module>
+    <module>apachejena</module>
     <module>arangodb3</module>
+    <module>arangodb</module>
     <module>asynchbase</module>
     <module>azuredocumentdb</module>
     <module>azuretablestorage</module>
     <module>cassandra</module>
     <module>cloudspanner</module>
-    <module>couchbase</module>
     <module>couchbase2</module>
+    <module>couchbase</module>
     <module>dynamodb</module>
-    <module>elasticsearch</module>
     <module>elasticsearch5</module>
+    <module>elasticsearch</module>
     <module>geode</module>
     <module>googlebigtable</module>
     <module>googledatastore</module>
@@ -154,8 +158,8 @@ LICENSE file.
     <module>rest</module>
     <module>riak</module>
     <module>s3</module>
-    <module>solr</module>
     <module>solr6</module>
+    <module>solr</module>
     <module>tarantool</module>
     <!--<module>voldemort</module>-->
   </modules>
@@ -171,6 +175,34 @@ LICENSE file.
       </plugins>
     </pluginManagement>
     <plugins>
+      <!-- Used to execute junit tests but crashes on some bindings.
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.21.0</version>
+        <configuration>
+          <parallel>methods</parallel>
+          <threadCount>10</threadCount>
+          <properties>
+            <property>
+              <name>junit</name>
+              <value>false</value>
+            </property>
+          </properties>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.maven.surefire</groupId>
+            <artifactId>surefire-junit4</artifactId>
+            <version>2.21.0</version>
+          </dependency>
+          <dependency>
+            <groupId>org.apache.maven.surefire</groupId>
+            <artifactId>surefire-testng</artifactId>
+            <version>2.21.0</version>
+          </dependency>
+        </dependencies>
+      </plugin>-->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>

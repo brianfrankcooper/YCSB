@@ -1,5 +1,5 @@
 <!-- 
-Copyright (c) 2012 - 2015 YCSB contributors. All rights reserved.
+Copyright (c) 2012 - 2018 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -15,7 +15,8 @@ permissions and limitations under the License. See accompanying
 LICENSE file.
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -61,6 +62,11 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>apachejena-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
       <artifactId>arangodb-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -72,6 +78,16 @@ LICENSE file.
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>asynchbase-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>azuretablestorage-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>azuredocumentdb-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -96,16 +112,6 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>azuredocumentdb-binding</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>azuretablestorage-binding</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
       <artifactId>dynamodb-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -126,12 +132,12 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>googledatastore-binding</artifactId>
+      <artifactId>googlebigtable-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>googlebigtable-binding</artifactId>
+      <artifactId>googledatastore-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -239,13 +245,13 @@ LICENSE file.
       <artifactId>tarantool-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
-<!--
-    <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>voldemort-binding</artifactId>
-      <version>${project.version}</version>
-    </dependency>
--->
+    <!--
+        <dependency>
+          <groupId>com.yahoo.ycsb</groupId>
+          <artifactId>voldemort-binding</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+    -->
   </dependencies>
   <build>
     <plugins>
