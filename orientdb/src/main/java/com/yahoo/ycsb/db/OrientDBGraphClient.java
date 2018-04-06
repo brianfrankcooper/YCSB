@@ -27,6 +27,7 @@ import com.yahoo.ycsb.generator.graph.Edge;
 import com.yahoo.ycsb.generator.graph.Node;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.yahoo.ycsb.db.OrientDBClient.*;
@@ -43,19 +44,22 @@ public class OrientDBGraphClient extends DB {
    * @see <a href=https://orientdb.com/docs/2.2.x/Lightweight-Edges.html>Lightweigt edges</a>
    */
   private static final String USE_LIGHTWEIGHT_EDGES_PROPERTY = "orientdb.uselightweightedges";
-  private static final String USE_LIGHTWEIGHT_EDGES_DEFAULT = "true";
+  private static final String USE_LIGHTWEIGHT_EDGES_DEFAULT = "false";
   private static final Object INIT_LOCK = new Object();
+  private static final AtomicInteger INIT_COUNT = new AtomicInteger();
+  private static OrientGraphFactory factory;
+  private static boolean initialised = false;
+
   private final String edgeLabelIdentifier = "edge_" + Edge.LABEL_IDENTIFIER;
   private final String nodeIdIdentifier = "node_" + Node.ID_IDENTIFIER;
 
-  private OrientGraphFactory factory;
   private String edgeIdIdentifier = "edge_" + Edge.ID_IDENTIFIER;
-  private boolean initialised = false;
-
 
   @Override
   public void init() throws DBException {
     super.init();
+
+    INIT_COUNT.incrementAndGet();
 
     synchronized (INIT_LOCK) {
       if (!initialised) {
@@ -80,7 +84,10 @@ public class OrientDBGraphClient extends DB {
 
   @Override
   public void cleanup() throws DBException {
-    factory.close();
+    if (INIT_COUNT.decrementAndGet() == 0) {
+      factory.close();
+    }
+
     super.cleanup();
   }
 
