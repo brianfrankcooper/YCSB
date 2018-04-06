@@ -26,25 +26,48 @@ import org.apache.jena.tdb.TDBFactory;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Apache Jena TDB client for YCSB.
  */
 public class ApacheJenaClient extends DB {
 
-  private final String outputDirectoryProperty = "outputdirectory";
-  private final String outputDirectoryDefault = new File(System.getProperty("user.dir"),
+  private static final String OUTPUT_DIRECTORY_PROPERTY = "outputdirectory";
+  private static final String OUTPUT_DIRECTORY_DEFAULT = new File(System.getProperty("user.dir"),
       "apachejena_database").getAbsolutePath();
-  private Dataset dataset;
+  private static final AtomicInteger INIT_COUNT = new AtomicInteger();
+  private static final Object INIT_LOCK = new Object();
+
+  private static boolean initialised = false;
+  private static Dataset dataset;
+
 
   @Override
   public void init() throws DBException {
     super.init();
 
-    Properties properties = getProperties();
-    String outputDirectory = properties.getProperty(outputDirectoryProperty, outputDirectoryDefault);
+    INIT_COUNT.incrementAndGet();
 
-    dataset = TDBFactory.createDataset(outputDirectory);
+    synchronized (INIT_LOCK) {
+      if (!initialised) {
+        Properties properties = getProperties();
+        String outputDirectory = properties.getProperty(OUTPUT_DIRECTORY_PROPERTY, OUTPUT_DIRECTORY_DEFAULT);
+
+        dataset = TDBFactory.createDataset(outputDirectory);
+
+        initialised = true;
+      }
+    }
+  }
+
+  @Override
+  public void cleanup() throws DBException {
+    if (INIT_COUNT.decrementAndGet() == 0) {
+      TDBFactory.release(dataset);
+    }
+
+    super.cleanup();
   }
 
   @Override
