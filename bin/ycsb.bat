@@ -1,5 +1,5 @@
 @REM
-@REM Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
+@REM Copyright (c) 2012 - 2018 YCSB contributors. All rights reserved.
 @REM
 @REM Licensed under the Apache License, Version 2.0 (the "License"); you
 @REM may not use this file except in compliance with the License. You
@@ -175,6 +175,11 @@ IF %ERRORLEVEL% NEQ 0 (
 :gotJars
 @REM Core libraries
 FOR %%F IN (%YCSB_HOME%\core\target\*.jar) DO (
+  SET CLASSPATH=!CLASSPATH!;%%F%
+)
+
+@REM Core dependency libraries
+FOR %%F IN (%YCSB_HOME%\core\target\dependency\*.jar) DO (
   SET CLASSPATH=!CLASSPATH!;%%F%
 )
 

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
+# Copyright (c) 2012 - 2018 YCSB contributors. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you
 # may not use this file except in compliance with the License. You
@@ -206,6 +206,13 @@ else
 
   # Core libraries
   for f in "$YCSB_HOME"/core/target/*.jar ; do
+    if [ -r "$f" ] ; then
+      CLASSPATH="$CLASSPATH:$f"
+    fi
+  done
+
+  # Core dependency libraries
+  for f in "$YCSB_HOME"/core/target/dependency/*.jar ; do
     if [ -r "$f" ] ; then
       CLASSPATH="$CLASSPATH:$f"
     fi
