@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
-Copyright (c) 2012 - 2017 YCSB contributors. All rights reserved.
+Copyright (c) 2012 - 2018 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -105,6 +105,7 @@ LICENSE file.
     <s3.version>1.10.20</s3.version>
     <solr.version>5.5.3</solr.version>
     <solr6.version>6.4.1</solr6.version>
+    <sparksee.version>5.2.3</sparksee.version>
     <tarantool.version>1.6.5</tarantool.version>
     <thrift.version>0.8.0</thrift.version>
     <voldemort.version>0.81</voldemort.version>
@@ -154,6 +155,7 @@ LICENSE file.
     <module>s3</module>
     <module>solr6</module>
     <module>solr</module>
+    <module>sparksee</module>
     <module>tarantool</module>
     <!--<module>voldemort</module>-->
   </modules>
