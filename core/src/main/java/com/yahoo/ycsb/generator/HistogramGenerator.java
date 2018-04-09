@@ -16,12 +16,11 @@
  */
 package com.yahoo.ycsb.generator;
 
-import com.yahoo.ycsb.Utils;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Generate integers according to a histogram distribution.  The histogram
@@ -89,7 +88,7 @@ public class HistogramGenerator extends NumberGenerator {
 
   @Override
   public Long nextValue() {
-    int number = Utils.random().nextInt((int) area);
+    int number = ThreadLocalRandom.current().nextInt((int) area);
     int i;
 
     for (i = 0; i < (buckets.length - 1); i++) {

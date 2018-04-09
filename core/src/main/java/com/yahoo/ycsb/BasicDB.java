@@ -20,6 +20,7 @@ package com.yahoo.ycsb;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
@@ -60,7 +61,7 @@ public class BasicDB extends DB {
     if (todelay > 0) {
       long delayNs;
       if (randomizedelay) {
-        delayNs = TimeUnit.MILLISECONDS.toNanos(Utils.random().nextInt(todelay));
+        delayNs = TimeUnit.MILLISECONDS.toNanos(ThreadLocalRandom.current().nextInt(todelay));
         if (delayNs == 0) {
           return;
         }

@@ -17,11 +17,11 @@ LICENSE file.
 
 ## Quick Start
 
-This section describes how to run YCSB on Apache Geode (incubating).
+This section describes how to run YCSB on Apache Geode.
 
 ### Get Apache Geode
 
-You can download Geode from http://geode.incubator.apache.org/releases/
+You can download Geode from https://geode.apache.org/releases/
 
 #### Start Geode Cluster
 
@@ -63,6 +63,10 @@ In the default mode, ycsb geode driver will connect as a client to the geode
 cluster. To make the ycsb driver a peer member of the distributed system
 use the property
 `-p geode.topology=p2p -p geode.locator=host[port]`
+
+YCSB uses geode 1.2.0, which should be compatible with all later
+versions of the geode server. To make YCSB run with a different version of the
+geode client, you can change the geode.version property in pom.xml.
 
 Note:
 For update workloads, please use the property `-p writeallfields=true`
