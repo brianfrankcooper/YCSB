@@ -17,47 +17,320 @@
 
 package com.yahoo.ycsb.db.sparksee;
 
-import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.DB;
-import com.yahoo.ycsb.DBException;
-import com.yahoo.ycsb.Status;
+import com.sparsity.sparksee.gdb.*;
+import com.sparsity.sparksee.gdb.Objects;
+import com.yahoo.ycsb.*;
+import com.yahoo.ycsb.generator.graph.Edge;
+import com.yahoo.ycsb.generator.graph.Node;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
+import java.io.FileNotFoundException;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Sparksee client for the YCSB benchmark.
+ */
 public class SparkseeClient extends DB {
+
+  static final String SPARKSEE_DATABASE_PATH_PROPERTY = "sparksee.path";
+  private static final String SPARKSEE_DATABASE_PATH_DEFAULT = "sparkseeDB.gdb";
+
+  private static final Object INIT_LOCK = new Object();
+  private static final AtomicInteger INIT_COUNT = new AtomicInteger();
+
+  private static boolean initialised = false;
+  private static Sparksee sparksee;
+  private static Database database;
+  private Integer nodeIdAttribute = null;
+  private Integer edgeIdAttribute = null;
 
   @Override
   public void init() throws DBException {
     super.init();
 
+    INIT_COUNT.incrementAndGet();
 
+    synchronized (INIT_LOCK) {
+      if (!initialised) {
+
+        Properties properties = getProperties();
+
+        String path = properties.getProperty(SPARKSEE_DATABASE_PATH_PROPERTY, SPARKSEE_DATABASE_PATH_DEFAULT);
+
+        SparkseeConfig sparkseeConfig = new SparkseeConfig();
+        sparkseeConfig.setLogLevel(LogLevel.Off);
+        sparksee = new Sparksee(sparkseeConfig);
+
+        try {
+          database = sparksee.create(path, "SparkseeDB");
+          Session session = database.newSession();
+          Graph graph = session.getGraph();
+
+          nodeIdAttribute = graph.newAttribute(getNodeType(graph),
+              "sparksee.nodeId",
+              DataType.String,
+              AttributeKind.Basic);
+
+          edgeIdAttribute = graph.newAttribute(getEdgeType(graph),
+              "sparksee.edgeId",
+              DataType.String,
+              AttributeKind.Basic);
+
+          session.close();
+
+          initialised = true;
+        } catch (FileNotFoundException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+  }
+
+  @Override
+  public void cleanup() throws DBException {
+    if (INIT_COUNT.decrementAndGet() == 0) {
+      database.close();
+      sparksee.close();
+      initialised = false;
+    }
+
+    super.cleanup();
   }
 
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
-    return null;
+    try (Session session = database.newSession()) {
+      Graph graph = session.getGraph();
+
+      long component;
+
+      if (table.equals(Edge.EDGE_IDENTIFIER)) {
+        component = getEdge(graph, key);
+      } else {
+        component = getNode(graph, key);
+      }
+
+      addValuesToMap(graph, component, fields, result);
+    } catch (RuntimeException e) {
+      return Status.NOT_FOUND;
+    }
+
+    return Status.OK;
   }
 
   @Override
-  public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-    return null;
+  public Status scan(String table,
+                     String startkey,
+                     int recordcount,
+                     Set<String> fields,
+                     Vector<HashMap<String, ByteIterator>> result) {
+
+    try (Session session = database.newSession()) {
+      Graph graph = session.getGraph();
+
+      if (table.equals(Edge.EDGE_IDENTIFIER)) {
+        long edge = getEdge(graph, startkey);
+
+        long startNode = graph.getEdgeData(edge).getTail();
+
+        scanEdges(graph, startNode, recordcount, fields, result);
+      } else {
+        long node = getNode(graph, startkey);
+
+        scanNodes(graph, node, recordcount, fields, result);
+      }
+    }
+
+    return Status.OK;
   }
 
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
-    return null;
+    try (Session session = database.newSession()) {
+      Graph graph = session.getGraph();
+
+      long component;
+      int type;
+
+      if (table.equals(Edge.EDGE_IDENTIFIER)) {
+        component = getEdge(graph, key);
+        type = getEdgeType(graph);
+      } else {
+        component = getNode(graph, key);
+        type = getNodeType(graph);
+      }
+
+      values.entrySet().forEach(entry -> updateAttribute(graph, type, component, entry));
+    }
+
+    return Status.OK;
   }
 
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
-    return null;
+    try (Session session = database.newSession()) {
+      Graph graph = session.getGraph();
+
+      long component;
+      int type;
+
+      Value value = new Value();
+      value.setString(key);
+
+      if (table.equals(Edge.EDGE_IDENTIFIER)) {
+        long startNode = getNode(graph, values.get(Edge.START_IDENTIFIER).toString());
+        long endNode = getNode(graph, values.get(Edge.END_IDENTIFIER).toString());
+
+        type = getEdgeType(graph);
+        component = graph.newEdge(type, startNode, endNode);
+
+        graph.setAttribute(component, edgeIdAttribute, value);
+      } else {
+        type = getNodeType(graph);
+        component = graph.newNode(type);
+
+        graph.setAttribute(component, nodeIdAttribute, value);
+      }
+
+      for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+        setAttribute(graph, type, component, entry);
+      }
+    }
+
+    return Status.OK;
   }
 
   @Override
   public Status delete(String table, String key) {
-    return null;
+    try (Session session = database.newSession()) {
+      Graph graph = session.getGraph();
+
+      long component;
+
+      if (table.equals(Edge.EDGE_IDENTIFIER)) {
+        component = getEdge(graph, key);
+      } else {
+        component = getNode(graph, key);
+      }
+
+      graph.drop(component);
+    }
+
+    return Status.OK;
   }
+
+  private void addValuesToMap(Graph graph, long component, Set<String> fields, Map<String, ByteIterator> result) {
+    HashMap<String, String> availableAttributes = getAvailableAttributeMap(graph, component);
+
+    if (fields != null && !fields.isEmpty()) {
+      fields.forEach(field -> {
+        String availableValue = availableAttributes.get(field);
+        if (availableValue != null) {
+          result.put(field, new StringByteIterator(availableValue));
+        }
+      });
+    } else {
+      availableAttributes.forEach((attributeName, attributeValue) ->
+          result.put(attributeName, new StringByteIterator(attributeValue)));
+    }
+  }
+
+  private void scanEdges(Graph graph,
+                         long component,
+                         int recordcount,
+                         Set<String> fields,
+                         Vector<HashMap<String, ByteIterator>> result) {
+    if (result.size() >= recordcount) {
+      return;
+    }
+
+    HashMap<String, ByteIterator> values = new HashMap<>();
+
+    try (Objects outgoingEdges = graph.explode(component, getEdgeType(graph), EdgesDirection.Outgoing)) {
+      outgoingEdges.forEach(edge -> {
+        addValuesToMap(graph, edge, fields, values);
+
+        result.add(values);
+
+        scanEdges(graph, graph.getEdgeData(edge).getHead(), recordcount, fields, result);
+      });
+    }
+  }
+
+  private void scanNodes(Graph graph,
+                         long component,
+                         int recordcount,
+                         Set<String> fields,
+                         Vector<HashMap<String, ByteIterator>> result) {
+    if (result.size() >= recordcount) {
+      return;
+    }
+
+    HashMap<String, ByteIterator> values = new HashMap<>();
+    addValuesToMap(graph, component, fields, values);
+    result.add(values);
+
+    try (Objects outgoingEdges = graph.explode(component, getEdgeType(graph), EdgesDirection.Outgoing)) {
+      outgoingEdges.forEach(edge -> scanNodes(graph, graph.getEdgeData(edge).getHead(), recordcount, fields, result));
+    }
+  }
+
+  private HashMap<String, String> getAvailableAttributeMap(Graph graph, long component) throws RuntimeException {
+    AttributeList attributes = graph.getAttributes(component);
+
+    HashMap<String, String> availableAttributes = new HashMap<>();
+
+    attributes.iterator().forEachRemaining(attribute -> {
+      String attributeName = graph.getAttribute(attribute).getName();
+      String attributeValue = graph.getAttribute(component, attribute).getString();
+
+      availableAttributes.put(attributeName, attributeValue);
+    });
+
+    attributes.delete();
+
+    return availableAttributes;
+  }
+
+  private long getNode(Graph graph, String key) {
+    Value value = new Value();
+    value.setString(key);
+    return graph.findObject(nodeIdAttribute, value);
+  }
+
+  private long getEdge(Graph graph, String key) {
+    Value value = new Value();
+    value.setString(key);
+    return graph.findObject(edgeIdAttribute, value);
+  }
+
+  private int getEdgeType(Graph graph) {
+    return graph.findType(Edge.EDGE_IDENTIFIER) != Type.InvalidType
+        ? graph.findType(Edge.EDGE_IDENTIFIER) : graph.newEdgeType(Edge.EDGE_IDENTIFIER, true, false);
+  }
+
+  private int getNodeType(Graph graph) {
+    return graph.findType(Node.NODE_IDENTIFIER) != Type.InvalidType
+        ? graph.findType(Node.NODE_IDENTIFIER) : graph.newNodeType(Node.NODE_IDENTIFIER);
+  }
+
+  private void updateAttribute(Graph graph, int type, long oid, Map.Entry<String, ByteIterator> entry) {
+    int attributeIdentifier = getAttribute(graph, type, entry.getKey());
+    graph.removeAttribute(attributeIdentifier);
+
+    setAttribute(graph, type, oid, entry);
+  }
+
+  private void setAttribute(Graph graph, int type, long oid, Map.Entry<String, ByteIterator> entry) {
+    int attributeIdentifier = getAttribute(graph, type, entry.getKey());
+    Value value = new Value();
+    value.setString(entry.getValue().toString());
+    graph.setAttribute(oid, attributeIdentifier, value);
+  }
+
+  private int getAttribute(Graph graph, int type, String key) {
+    return graph.findAttribute(type, key) != Attribute.InvalidAttribute
+        ? graph.findAttribute(type, key) : graph.newAttribute(type, key, DataType.String, AttributeKind.Basic);
+  }
+
 }
