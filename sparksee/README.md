@@ -19,7 +19,7 @@ LICENSE file.
 
 This section describes how to run YCSB with Sparksee. 
 
-### 1. Set Up YCSB
+### 1. Set Up YCSB with Sparksee
 
 Clone the YCSB git repository and compile:
 
@@ -27,23 +27,34 @@ Clone the YCSB git repository and compile:
     cd YCSB
     mvn -pl com.yahoo.ycsb:sparksee-binding -am clean package
 
-### 2. Set Up Sparksee
-
-    <!-- TODO -->
-
-### 3. Run YCSB
+### 2. Run YCSB with Sparksee
     
 Now you are ready to run! First, load the data:
 
-    ./bin/ycsb load sparksee -s -P workloads/workloada 
+    ./bin/ycsb load sparksee -s -P workloads/workloada -p sparksee.path=/my/path/to/db.gdb
 
 Then, run the workload:
 
-    ./bin/ycsb run sparksee -s -P workloads/workloada 
+    ./bin/ycsb run sparksee -s -P workloads/workloada -p sparksee.path=/my/path/to/db.gdb
 
 For further configuration see below: 
 
 ### Default Configuration Parameters
 The default settings for Sparksee are as follows:
 	
-    <!-- TODO -->
+- `sparksee.path`
+  - This sets the path for the database **file**. The file has to have the ending `.gdb`.
+  - Default: `sparkseeDB.gdb`
+    - This file will be created in the current directory.
+
+- `sparksee.logLevel`
+  - This sets the log level for the sparksee client.
+  - Available values are:
+    - `Off`
+    - `Info`
+    - `Fine`
+    - `Warning`
+    - `Debug`
+    - `Severe`
+    - `Config`
+  - Default: `Off`

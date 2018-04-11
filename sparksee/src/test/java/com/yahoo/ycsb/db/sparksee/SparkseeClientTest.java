@@ -17,7 +17,6 @@
 
 package com.yahoo.ycsb.db.sparksee;
 
-import com.sparsity.sparksee.gdb.LogLevel;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
@@ -79,11 +78,6 @@ public class SparkseeClientTest {
     sparkseeClient = new SparkseeClient();
     sparkseeClient.setProperties(properties);
     sparkseeClient.init();
-  }
-
-  @Test
-  public void testConfig() {
-    System.out.println(LogLevel.valueOf("Fine").name());
   }
 
   @After

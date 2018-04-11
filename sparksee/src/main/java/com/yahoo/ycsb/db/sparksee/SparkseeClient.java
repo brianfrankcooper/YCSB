@@ -34,15 +34,16 @@ public class SparkseeClient extends DB {
 
   static final String SPARKSEE_DATABASE_PATH_PROPERTY = "sparksee.path";
   private static final String SPARKSEE_DATABASE_PATH_DEFAULT = "sparkseeDB.gdb";
-
+  private static final String SPARKSEE_LOG_LEVEL_PROPERTY = "sparksee.logLevel";
+  private static final String SPARKSEE_LOG_LEVEL_DEFAULT = "Off";
   private static final Object INIT_LOCK = new Object();
   private static final AtomicInteger INIT_COUNT = new AtomicInteger();
 
   private static boolean initialised = false;
   private static Sparksee sparksee;
   private static Database database;
-  private Integer nodeIdAttribute = null;
-  private Integer edgeIdAttribute = null;
+  private static Integer nodeIdAttribute = null;
+  private static Integer edgeIdAttribute = null;
 
   @Override
   public void init() throws DBException {
@@ -52,13 +53,14 @@ public class SparkseeClient extends DB {
 
     synchronized (INIT_LOCK) {
       if (!initialised) {
-
         Properties properties = getProperties();
 
         String path = properties.getProperty(SPARKSEE_DATABASE_PATH_PROPERTY, SPARKSEE_DATABASE_PATH_DEFAULT);
+        String logLevel = properties.getProperty(SPARKSEE_LOG_LEVEL_PROPERTY, SPARKSEE_LOG_LEVEL_DEFAULT);
 
         SparkseeConfig sparkseeConfig = new SparkseeConfig();
-        sparkseeConfig.setLogLevel(LogLevel.Off);
+        setLogLevel(sparkseeConfig, logLevel);
+
         sparksee = new Sparksee(sparkseeConfig);
 
         try {
@@ -219,6 +221,27 @@ public class SparkseeClient extends DB {
     return Status.OK;
   }
 
+  private void setLogLevel(SparkseeConfig sparkseeConfig, String logLevel) {
+    boolean validLogLevel = validateLogLevel(logLevel);
+
+    if (validLogLevel) {
+      sparkseeConfig.setLogLevel(LogLevel.valueOf(logLevel));
+    } else {
+      sparkseeConfig.setLogLevel(LogLevel.valueOf(SPARKSEE_LOG_LEVEL_DEFAULT));
+    }
+  }
+
+  private boolean validateLogLevel(String logLevel) {
+    boolean validLogLevel = false;
+
+    for (LogLevel level : LogLevel.values()) {
+      if (level.name().equals(logLevel)) {
+        validLogLevel = true;
+      }
+    }
+    return validLogLevel;
+  }
+
   private void addValuesToMap(Graph graph, long component, Set<String> fields, Map<String, ByteIterator> result) {
     HashMap<String, String> availableAttributes = getAvailableAttributeMap(graph, component);
 
@@ -249,9 +272,7 @@ public class SparkseeClient extends DB {
     try (Objects outgoingEdges = graph.explode(component, getEdgeType(graph), EdgesDirection.Outgoing)) {
       outgoingEdges.forEach(edge -> {
         addValuesToMap(graph, edge, fields, values);
-
         result.add(values);
-
         scanEdges(graph, graph.getEdgeData(edge).getHead(), recordcount, fields, result);
       });
     }
