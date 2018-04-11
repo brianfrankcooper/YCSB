@@ -23,6 +23,7 @@ import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.generator.graph.Edge;
 import com.yahoo.ycsb.generator.graph.Node;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -64,26 +65,23 @@ public class SparkseeClient extends DB {
         sparksee = new Sparksee(sparkseeConfig);
 
         try {
-          database = sparksee.create(path, "SparkseeDB");
-          Session session = database.newSession();
-          Graph graph = session.getGraph();
-
-          nodeIdAttribute = graph.newAttribute(getNodeType(graph),
-              "sparksee.nodeId",
-              DataType.String,
-              AttributeKind.Basic);
-
-          edgeIdAttribute = graph.newAttribute(getEdgeType(graph),
-              "sparksee.edgeId",
-              DataType.String,
-              AttributeKind.Basic);
-
-          session.close();
-
-          initialised = true;
+          if (new File(path).exists()) {
+            database = sparksee.open(path, false);
+          } else {
+            database = sparksee.create(path, "SparkseeDB");
+          }
         } catch (FileNotFoundException e) {
           e.printStackTrace();
         }
+
+        try (Session session = database.newSession()) {
+          Graph graph = session.getGraph();
+
+          nodeIdAttribute = getAttribute(graph, getNodeType(graph), "sparksee.nodeId");
+          edgeIdAttribute = getAttribute(graph, getEdgeType(graph), "sparksee.edgeId");
+        }
+
+        initialised = true;
       }
     }
   }
@@ -307,8 +305,6 @@ public class SparkseeClient extends DB {
 
       availableAttributes.put(attributeName, attributeValue);
     });
-
-    attributes.delete();
 
     return availableAttributes;
   }

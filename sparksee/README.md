@@ -43,7 +43,10 @@ For further configuration see below:
 The default settings for Sparksee are as follows:
 	
 - `sparksee.path`
-  - This sets the path for the database **file**. The file has to have the ending `.gdb`.
+  - This sets the path for the database **file**. 
+    - The file has to have the ending `.gdb`.
+    - If you specify a path with folders, those folders have to exist. The client will only create the file in the 
+    folder if needed.
   - Default: `sparkseeDB.gdb`
     - This file will be created in the current directory.
 
