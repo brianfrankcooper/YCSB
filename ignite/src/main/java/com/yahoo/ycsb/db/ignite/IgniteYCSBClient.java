@@ -1,4 +1,20 @@
-package com.yahoo.ycsb.db;
+/*
+  Copyright (c) 2018 YCSB contributors. All rights reserved.
+
+  Licensed under the Apache License, Version 2.0 (the "License"); you
+  may not use this file except in compliance with the License. You
+  may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+  implied. See the License for the specific language governing
+  permissions and limitations under the License. See accompanying
+  LICENSE file.
+ */
+package com.yahoo.ycsb.db.ignite;
 
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
@@ -7,10 +23,12 @@ import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.workloads.CoreWorkload;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.lang.IgniteFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -23,6 +41,7 @@ public class IgniteYCSBClient extends com.yahoo.ycsb.DB {
 
   private static final Logger LOG = LoggerFactory.getLogger(IgniteYCSBClient.class);
   private static Ignite ignite;
+  private static Stack igniteUsingThreads = new Stack<Thread>();
   private static IgniteCache<String, Map<String, String>> cache;
 
   private boolean asyncInsert = false;
@@ -34,10 +53,11 @@ public class IgniteYCSBClient extends com.yahoo.ycsb.DB {
 
   static synchronized void createIgniteClient(String cacheName, String igniteIPs) {
     if (ignite == null) {
-      LOG.debug("IgniteYCSBClient.createIgniteClient");
+      LOG.info("IgniteYCSBClient.createIgniteClient");
       ignite = IgniteClient.startIgnite(igniteIPs, true);
       cache = ignite.getOrCreateCache(cacheName);
     }
+    igniteUsingThreads.push(Thread.currentThread()); //cleanup() method will use this to close client when appropriate
   }
 
   public String getTableName() {
@@ -147,20 +167,32 @@ public class IgniteYCSBClient extends com.yahoo.ycsb.DB {
   public void cleanup() throws DBException {
     //will submit all the remaining records in batch
     if (!batchBuffer.isEmpty()) {
-      insertBuffer();
+      Optional<IgniteFuture<Void>> insertOp =  insertBuffer();
+      if(insertOp.isPresent()){
+        //lets wait till it completes
+        IgniteFuture<Void> insertFuture = insertOp.get();
+        insertFuture.get(5, TimeUnit.MINUTES);
+      }
+    }
+    igniteUsingThreads.pop();
+    if(igniteUsingThreads.isEmpty()) { //no threads are using Ignite anymore
+      LOG.info("Closing Ignite client");
+      ignite.close();
     }
     super.cleanup();
 
   }
 
-  private void insertBuffer() {
+  private Optional<IgniteFuture<Void>> insertBuffer() {
+    Optional<IgniteFuture<Void>> res = Optional.empty();
     if (asyncInsert) {
-      cache.putAllAsync(batchBuffer);
+      res = Optional.of(cache.putAllAsync(batchBuffer));
     } else {
       cache.putAll(batchBuffer);
     }
     batchBuffer.clear();
     batchCount = 0;
+    return res;
   }
 
   private Map<String, String> toCachedValue(Map<String, ByteIterator> values) {
