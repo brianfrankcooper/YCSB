@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
-Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
+<!--
+Copyright (c) 2012 - 2017 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -68,43 +68,46 @@ LICENSE file.
   <properties>
     <maven.assembly.version>2.5.5</maven.assembly.version>
     <maven.dependency.version>2.10</maven.dependency.version>
-    <asynchbase.version>1.7.1</asynchbase.version>
-    <hbase098.version>0.98.14-hadoop2</hbase098.version>
-    <hbase10.version>1.0.2</hbase10.version>
-    <hbase12.version>1.2.5</hbase12.version>
+
+    <!-- datastore binding versions, lex sorted -->
     <accumulo.1.6.version>1.6.6</accumulo.1.6.version>
     <accumulo.1.7.version>1.7.3</accumulo.1.7.version>
     <accumulo.1.8.version>1.8.1</accumulo.1.8.version>
-    <cassandra.cql.version>3.0.0</cassandra.cql.version>
-    <geode.version>1.2.0</geode.version>
+    <aerospike.version>3.1.2</aerospike.version>
+    <arangodb.version>2.7.3</arangodb.version>
+    <arangodb3.version>4.1.7</arangodb3.version>
+    <asynchbase.version>1.7.1</asynchbase.version>
     <azuredocumentdb.version>1.8.1</azuredocumentdb.version>
+    <azurestorage.version>4.0.0</azurestorage.version>
+    <cassandra.cql.version>3.0.0</cassandra.cql.version>
+    <cloudspanner.version>0.24.0-beta</cloudspanner.version>
+    <couchbase.version>1.4.10</couchbase.version>
+    <couchbase2.version>2.3.1</couchbase2.version>
+    <elasticsearch5-version>5.5.1</elasticsearch5-version>
+    <geode.version>1.2.0</geode.version>
     <googlebigtable.version>0.9.7</googlebigtable.version>
-    <ignite.version>2.4.0</ignite.version>
+    <hbase098.version>0.98.14-hadoop2</hbase098.version>
+    <hbase10.version>1.0.2</hbase10.version>
+    <hbase12.version>1.2.5</hbase12.version>
+    <hbase14.version>1.4.2</hbase14.version>
+    <hbase20.version>2.0.0-beta-2</hbase20.version>
+    <hypertable.version>0.9.5.6</hypertable.version>
     <infinispan.version>7.2.2.Final</infinispan.version>
     <kudu.version>1.1.0</kudu.version>
-    <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
     <!--<mapkeeper.version>1.0</mapkeeper.version>-->
     <mongodb.version>3.0.3</mongodb.version>
     <mongodb.async.version>2.0.1</mongodb.async.version>
+    <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
     <orientdb.version>2.2.10</orientdb.version>
-    <redis.version>2.0.0</redis.version>
-    <s3.version>1.10.20</s3.version>
-    <voldemort.version>0.81</voldemort.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <thrift.version>0.8.0</thrift.version>
-    <hypertable.version>0.9.5.6</hypertable.version>
-    <elasticsearch5-version>5.5.1</elasticsearch5-version>
-    <couchbase.version>1.4.10</couchbase.version>
-    <couchbase2.version>2.3.1</couchbase2.version>
-    <tarantool.version>1.6.5</tarantool.version>
+    <redis.version>2.0.0</redis.version>
     <riak.version>2.0.5</riak.version>
-    <aerospike.version>3.1.2</aerospike.version>
+    <s3.version>1.10.20</s3.version>
     <solr.version>5.5.3</solr.version>
     <solr6.version>6.4.1</solr6.version>
-    <arangodb.version>2.7.3</arangodb.version>
-    <arangodb3.version>4.1.7</arangodb3.version>
-    <azurestorage.version>4.0.0</azurestorage.version>
-    <cloudspanner.version>0.24.0-beta</cloudspanner.version>
+    <tarantool.version>1.6.5</tarantool.version>
+    <thrift.version>0.8.0</thrift.version>
+    <voldemort.version>0.81</voldemort.version>
   </properties>
 
   <modules>
@@ -135,6 +138,8 @@ LICENSE file.
     <module>hbase098</module>
     <module>hbase10</module>
     <module>hbase12</module>
+    <module>hbase14</module>
+    <module>hbase20</module>
     <module>hypertable</module>
     <module>ignite</module>
     <module>infinispan</module>
@@ -182,7 +187,7 @@ LICENSE file.
                 <requireMavenVersion>
                   <version>3.1.0</version>
                 </requireMavenVersion>
-              </rules>    
+              </rules>
             </configuration>
           </execution>
         </executions>
@@ -192,8 +197,8 @@ LICENSE file.
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.7.0</version>
         <configuration>
-          <source>1.7</source>
-          <target>1.7</target>
+          <source>1.8</source>
+          <target>1.8</target>
         </configuration>
       </plugin>
       <plugin>
