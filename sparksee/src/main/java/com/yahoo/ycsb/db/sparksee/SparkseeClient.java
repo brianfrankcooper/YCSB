@@ -160,7 +160,7 @@ public class SparkseeClient extends DB {
         type = getNodeType(graph);
       }
 
-      values.entrySet().forEach(entry -> updateAttribute(graph, type, component, entry));
+      values.entrySet().forEach(entry -> setAttribute(graph, type, component, entry));
     }
 
     return Status.OK;
@@ -289,8 +289,8 @@ public class SparkseeClient extends DB {
     addValuesToMap(graph, component, fields, values);
     result.add(values);
 
-    try (Objects outgoingEdges = graph.explode(component, getEdgeType(graph), EdgesDirection.Outgoing)) {
-      outgoingEdges.forEach(edge -> scanNodes(graph, graph.getEdgeData(edge).getHead(), recordcount, fields, result));
+    try (Objects neighbors = graph.neighbors(component, getEdgeType(graph), EdgesDirection.Outgoing)) {
+      neighbors.forEach(neighbor -> scanNodes(graph, neighbor, recordcount, fields, result));
     }
   }
 
@@ -329,13 +329,6 @@ public class SparkseeClient extends DB {
   private int getNodeType(Graph graph) {
     return graph.findType(Node.NODE_IDENTIFIER) != Type.InvalidType
         ? graph.findType(Node.NODE_IDENTIFIER) : graph.newNodeType(Node.NODE_IDENTIFIER);
-  }
-
-  private void updateAttribute(Graph graph, int type, long oid, Map.Entry<String, ByteIterator> entry) {
-    int attributeIdentifier = getAttribute(graph, type, entry.getKey());
-    graph.removeAttribute(attributeIdentifier);
-
-    setAttribute(graph, type, oid, entry);
   }
 
   private void setAttribute(Graph graph, int type, long oid, Map.Entry<String, ByteIterator> entry) {
