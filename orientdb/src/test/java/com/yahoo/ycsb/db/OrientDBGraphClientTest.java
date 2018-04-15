@@ -24,7 +24,7 @@ import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.generator.graph.Edge;
 import com.yahoo.ycsb.generator.graph.Node;
 import org.apache.commons.io.FileUtils;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -39,8 +39,6 @@ import static org.junit.Assert.assertEquals;
 
 public class OrientDBGraphClientTest {
 
-  private static OrientDBGraphClient orientDBGraphClient;
-  private static File directory = new File(System.getProperty("user.dir"), "test");
   private static int counter = 0;
 
   private final String firstNodeId = "0";
@@ -67,26 +65,30 @@ public class OrientDBGraphClientTest {
   private final String thirdEdgeId = "3";
   private final String thirdEdgeLabel = "thirdEdgeLabel";
 
-  @AfterClass
-  public static void removeLastFolder() throws IOException {
-    FileUtils.deleteDirectory(directory);
-  }
+  private OrientDBGraphClient orientDBGraphClient;
+  private File directory;
 
   @Before
-  public void setUpClientForNextTest() throws DBException, IOException {
-    FileUtils.deleteDirectory(directory);
-
-    directory = new File(System.getProperty("user.dir"), "test" + counter++);
+  public void setUpClientForNextTest() throws DBException {
+    directory = new File(System.getProperty("user.dir"), counter++ + "test");
+    directory.mkdirs();
 
     Properties properties = new Properties();
     properties.remove(OrientDBClient.URL_PROPERTY);
     properties.setProperty(OrientDBClient.URL_PROPERTY, "plocal:" + directory.getAbsolutePath());
     properties.setProperty("orientdb.uselightweightedges", "false");
+    properties.setProperty("orientdb.index", "true");
 
     orientDBGraphClient = new OrientDBGraphClient();
     orientDBGraphClient.setProperties(properties);
 
     orientDBGraphClient.init();
+  }
+
+  @After
+  public void tearDown() throws DBException, IOException {
+    orientDBGraphClient.cleanup();
+    FileUtils.deleteDirectory(directory);
   }
 
   @Test
@@ -128,6 +130,8 @@ public class OrientDBGraphClientTest {
     readEdge(firstEdgeId, firstEdgeLabel, firstNodeId, secondNodeId);
 
     assertEquals(Status.NOT_FOUND, orientDBGraphClient.read(Node.NODE_IDENTIFIER, "6", null, new HashMap<>()));
+
+    System.out.println("Done!!!");
   }
 
   @Test

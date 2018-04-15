@@ -18,6 +18,7 @@
 package com.yahoo.ycsb.db;
 
 import com.tinkerpop.blueprints.Direction;
+import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.impls.orient.OrientEdge;
 import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory;
@@ -45,6 +46,8 @@ public class OrientDBGraphClient extends DB {
    */
   private static final String USE_LIGHTWEIGHT_EDGES_PROPERTY = "orientdb.uselightweightedges";
   private static final String USE_LIGHTWEIGHT_EDGES_DEFAULT = "false";
+  private static final String USE_INDEX_PROPERTY = "orientdb.index";
+  private static final String USE_INDEX_DEFAULT = "false";
   private static final Object INIT_LOCK = new Object();
   private static final AtomicInteger INIT_COUNT = new AtomicInteger();
   private static OrientGraphFactory factory;
@@ -68,6 +71,7 @@ public class OrientDBGraphClient extends DB {
         String url = properties.getProperty(URL_PROPERTY, URL_PROPERTY_DEFAULT);
         String userName = properties.getProperty(USER_PROPERTY, USER_PROPERTY_DEFAULT);
         String password = properties.getProperty(PASSWORD_PROPERTY, PASSWORD_PROPERTY_DEFAULT);
+        boolean useIndex = Boolean.parseBoolean(properties.getProperty(USE_INDEX_PROPERTY, USE_INDEX_DEFAULT));
 
         boolean useLightweightEdges = Boolean.parseBoolean(properties.getProperty(
             USE_LIGHTWEIGHT_EDGES_PROPERTY,
@@ -76,6 +80,12 @@ public class OrientDBGraphClient extends DB {
         factory = new OrientGraphFactory(url, userName, password);
         factory.setupPool(1, threadCount);
         factory.setUseLightweightEdges(useLightweightEdges);
+
+        if (useIndex) {
+          OrientGraph graph = factory.getTx();
+          graph.createKeyIndex(nodeIdIdentifier, Vertex.class);
+          graph.createKeyIndex(edgeIdIdentifier, com.tinkerpop.blueprints.Edge.class);
+        }
 
         initialised = true;
       }
@@ -86,6 +96,7 @@ public class OrientDBGraphClient extends DB {
   public void cleanup() throws DBException {
     if (INIT_COUNT.decrementAndGet() == 0) {
       factory.close();
+      initialised = false;
     }
 
     super.cleanup();
