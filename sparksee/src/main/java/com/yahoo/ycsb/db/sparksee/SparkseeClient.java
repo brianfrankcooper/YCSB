@@ -36,6 +36,8 @@ public class SparkseeClient extends DB {
   static final String SPARKSEE_DATABASE_PATH_PROPERTY = "sparksee.path";
   private static final String SPARKSEE_DATABASE_PATH_DEFAULT = "sparkseeDB.gdb";
   private static final String SPARKSEE_LOG_LEVEL_PROPERTY = "sparksee.logLevel";
+  private static final String USE_INDEX_PROPERTY = "sparksee.index";
+  private static final String USE_INDEX_DEFAULT = "false";
   private static final String SPARKSEE_LOG_LEVEL_DEFAULT = "Off";
   private static final Object INIT_LOCK = new Object();
   private static final AtomicInteger INIT_COUNT = new AtomicInteger();
@@ -45,6 +47,7 @@ public class SparkseeClient extends DB {
   private static Database database;
   private static Integer nodeIdAttribute = null;
   private static Integer edgeIdAttribute = null;
+  private boolean useIndex;
 
   @Override
   public void init() throws DBException {
@@ -58,6 +61,7 @@ public class SparkseeClient extends DB {
 
         String path = properties.getProperty(SPARKSEE_DATABASE_PATH_PROPERTY, SPARKSEE_DATABASE_PATH_DEFAULT);
         String logLevel = properties.getProperty(SPARKSEE_LOG_LEVEL_PROPERTY, SPARKSEE_LOG_LEVEL_DEFAULT);
+        useIndex = Boolean.parseBoolean(properties.getProperty(USE_INDEX_PROPERTY, USE_INDEX_DEFAULT));
 
         SparkseeConfig sparkseeConfig = new SparkseeConfig();
         setLogLevel(sparkseeConfig, logLevel);
@@ -79,6 +83,11 @@ public class SparkseeClient extends DB {
 
           nodeIdAttribute = getAttribute(graph, getNodeType(graph), "sparksee.nodeId");
           edgeIdAttribute = getAttribute(graph, getEdgeType(graph), "sparksee.edgeId");
+
+          if (useIndex) {
+            graph.indexAttribute(nodeIdAttribute, AttributeKind.Indexed);
+            graph.indexAttribute(edgeIdAttribute, AttributeKind.Indexed);
+          }
         }
 
         initialised = true;

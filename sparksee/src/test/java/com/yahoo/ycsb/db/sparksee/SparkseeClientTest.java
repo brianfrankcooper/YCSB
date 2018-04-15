@@ -53,6 +53,7 @@ public class SparkseeClientTest {
   @BeforeClass
   public static void setUpClass() {
     properties = new Properties();
+    properties.setProperty("sparksee.index", "true");
 
     firstNodeValues = new HashMap<>();
     firstNodeValues.put(Node.ID_IDENTIFIER, new StringByteIterator(FIRST_NODE_KEY));
