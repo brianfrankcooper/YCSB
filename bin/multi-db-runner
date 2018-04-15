@@ -215,6 +215,8 @@ folderOptionString=""
 for pathOption in ${folderOptions[*]}; do
     if [ "$pathOption" == "orientdb.url" ]; then
         folderOptionString+="-p $pathOption=plocal:$databaseFolder "
+    elif [ "$pathOption" == "sparksee.path" ]; then
+        folderOptionString+="-p $pathOption=$databaseFolder/database.gdb "
     else
         folderOptionString+="-p $pathOption=$databaseFolder "
     fi
