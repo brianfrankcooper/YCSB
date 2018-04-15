@@ -55,7 +55,8 @@ public class Neo4jClientTest {
     basePath = new File("test.db");
 
     properties = new Properties();
-    properties.setProperty(Neo4jClient.BASE_PATH, basePath.getAbsolutePath());
+    properties.setProperty(Neo4jClient.BASE_PATH_PROPERTY, basePath.getAbsolutePath());
+    properties.setProperty(Neo4jClient.USE_INDEX_PROPERTY, "true");
 
     firstNodeValues = new HashMap<>();
     firstNodeValues.put(Node.ID_IDENTIFIER, new StringByteIterator(FIRST_NODE_KEY));

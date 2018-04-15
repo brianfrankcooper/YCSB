@@ -24,6 +24,8 @@ import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.generator.graph.Edge;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.graphdb.index.Index;
+import org.neo4j.graphdb.index.IndexManager;
 
 import java.io.File;
 import java.util.*;
@@ -38,12 +40,17 @@ public class Neo4jClient extends DB {
   /**
    * Path used to create the database directory.
    */
-  static final String BASE_PATH = "neo4j.path";
+  static final String BASE_PATH_PROPERTY = "neo4j.path";
+  static final String USE_INDEX_PROPERTY = "neo4j.index";
+
   private static final String BASE_PATH_DEFAULT = "neo4j.db";
+  private static final String USE_INDEX_DEFAULT = "false";
+
   /**
    * The name of the node identifier field.
    */
   private static final String NODE_ID = "node_id";
+  private static final String RELATIONSHIP_ID = "relationship_id";
   /**
    * Integer used to keep track of current threads.
    */
@@ -53,14 +60,29 @@ public class Neo4jClient extends DB {
    */
   private static GraphDatabaseService graphDbInstance;
 
+  private static Index<Node> nodeIndex;
+  private static Index<Relationship> relationshipIndex;
+  private boolean useIndex;
+
   @Override
   public void init() {
     INIT_COUNT.incrementAndGet();
 
     synchronized (Neo4jClient.class) {
       if (graphDbInstance == null) {
-        String path = getProperties().getProperty(BASE_PATH, BASE_PATH_DEFAULT);
+        String path = getProperties().getProperty(BASE_PATH_PROPERTY, BASE_PATH_DEFAULT);
+        useIndex = Boolean.parseBoolean(getProperties().getProperty(USE_INDEX_PROPERTY, USE_INDEX_DEFAULT));
+
         graphDbInstance = new GraphDatabaseFactory().newEmbeddedDatabase(new File(path));
+
+        if (useIndex) {
+          try (Transaction transaction = graphDbInstance.beginTx()) {
+            IndexManager index = graphDbInstance.index();
+            nodeIndex = index.forNodes("nodes");
+            relationshipIndex = index.forRelationships("relationships");
+            transaction.success();
+          }
+        }
       }
     }
   }
@@ -221,10 +243,22 @@ public class Neo4jClient extends DB {
         RelationshipType relationshipType = RelationshipType.withName(key);
 
         startNode.createRelationshipTo(endNode, relationshipType);
-        container = startNode.getSingleRelationship(relationshipType, Direction.OUTGOING);
+        Relationship edge = startNode.getSingleRelationship(relationshipType, Direction.OUTGOING);
+
+        if (useIndex) {
+          relationshipIndex.add(edge, RELATIONSHIP_ID, key);
+        }
+
+        container = edge;
       } else {
-        container = graphDbInstance.createNode(Label.label(key));
-        container.setProperty(NODE_ID, key);
+        Node node = graphDbInstance.createNode(Label.label(key));
+
+        if (useIndex) {
+          nodeIndex.add(node, NODE_ID, key);
+        }
+
+        node.setProperty(NODE_ID, key);
+        container = node;
       }
 
       setProperties(container, values);
@@ -255,12 +289,20 @@ public class Neo4jClient extends DB {
           return NOT_FOUND;
         }
 
+        if (useIndex) {
+          relationshipIndex.remove(relationship.get());
+        }
+
         relationship.get().delete();
       } else {
         Optional<Node> node = getNode(key);
 
         if (!node.isPresent()) {
           return NOT_FOUND;
+        }
+
+        if (useIndex) {
+          nodeIndex.remove(node.get());
         }
 
         node.get().delete();
@@ -320,7 +362,13 @@ public class Neo4jClient extends DB {
   }
 
   private Optional<Node> getNode(String key) {
-    Node node = graphDbInstance.findNode(Label.label(key), NODE_ID, key);
+    Node node;
+
+    if (useIndex) {
+      node = nodeIndex.get(NODE_ID, key).getSingle();
+    } else {
+      node = graphDbInstance.findNode(Label.label(key), NODE_ID, key);
+    }
 
     if (node == null) {
       return Optional.empty();
@@ -330,11 +378,15 @@ public class Neo4jClient extends DB {
   }
 
   private Optional<Relationship> getRelationship(String key) {
-    return graphDbInstance
-        .getAllRelationships()
-        .stream()
-        .filter(relationship -> relationship.getType().name().equals(key))
-        .findAny();
+    if (useIndex) {
+      return Optional.of(relationshipIndex.get(RELATIONSHIP_ID, key).getSingle());
+    } else {
+      return graphDbInstance
+          .getAllRelationships()
+          .stream()
+          .filter(relationship -> relationship.getType().name().equals(key))
+          .findFirst();
+    }
   }
 
   private void setProperties(PropertyContainer container, Map<String, ByteIterator> values) {
