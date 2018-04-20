@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
+Copyright (c) 2012 - 2018 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -28,7 +28,9 @@ Clone the YCSB git repository and compile:
     mvn clean package
 
 ### 2. Run YCSB
-    
+
+#### 2.1 with OrientDB Document API
+
 Now you are ready to run! First, load the data:
 
     ./bin/ycsb load orientdb -s -P workloads/workloada
@@ -37,31 +39,51 @@ Then, run the workload:
 
     ./bin/ycsb run orientdb -s -P workloads/workloada
 
-See the next section for the list of configuration parameters for OrientDB.
+#### 2.2 with OrientDB Graph API
 
-## DB creation with the OrientDBClient
+To load data into the orientdb run this command:
+
+    ./bin/ycsb load orientdbgraph -s -P workloads/graphworkloada
+
+Then, run the workload:
+
+    ./bin/ycsb run orientdbgraph -s -P workloads/graphworkloada
+
+
+## DB creation with the OrientDBClient (not OrientDBGraphClient)
 This client will create a database for you if the connection database you specify does not exists. You can also specify connection information to a preexisting database.
 
-You can use the ```orientdb.newdb=true``` property to allow this client to drop and create a new database instance during the ```load``` phase.
+You can use the `orientdb.newdb=true` property to allow this client to drop and create a new database instance during the `load` phase.
 
-NOTE: understand that using the ```orientdb.newdb=true``` property will drop and recreate databases even if it was a preexisting instance.
+NOTE: understand that using the `orientdb.newdb=true` property will drop and recreate databases even if it was a preexisting instance.
 
-WARNING: Creating a new database will be done safely with multiple threads on a single YCSB instance, but is not guaranteed to work when launching multiple YCSB instances. In that scenario it is suggested that you create the db before hand, or run the ```load``` phase with a single YCSB instance.
+WARNING: Creating a new database will be done safely with multiple threads on a single YCSB instance, but is not guaranteed to work when launching multiple YCSB instances. In that scenario it is suggested that you create the db before hand, or run the `load` phase with a single YCSB instance.
+
 
 ## OrientDB Configuration Parameters
 
-* ```orientdb.url``` - (required) The address to your database.
+### Document and Graph API
+* `orientdb.url` - (required) The address to your database.
     * Supported storage types: memory, plocal, remote
-    * EX. ```plocal:/path/to/database```
-* ```orientdb.user``` - The user to connect to the database with.
-    * Default: ```admin```
-* ```orientdb.password``` - The password to connect to the database with.
-    * Default: ```admin```
-* ```orientdb.newdb``` - Overwrite the database if it already exists.
-    * Only effects the ```load``` phase.
-    * Default: ```false```
-* ```orientdb.remote.storagetype``` - Storage type of the database on remote server
-    * This is only required if using a ```remote:``` connection url
+    * e.g. `plocal:/path/to/database`
+* `orientdb.user` - The user to connect to the database with.
+    * Default: `admin`
+* `orientdb.password` - The password to connect to the database with.
+    * Default: `admin`
+    
+### Document API specific
+* `orientdb.newdb` - Overwrite the database if it already exists.
+    * Only effects the `load` phase.
+    * Default: `false`
+* `orientdb.remote.storagetype` - Storage type of the database on remote server
+    * This is only required if using a `remote:` connection url
+
+### Graph API specific
+* `orientdb:uselightweightedges` - Use lightweight edges in the graph or not. For more information see 
+[here](https://orientdb.com/docs/2.2.x/Lightweight-Edges.html).
+    * Important: if set to `true` you can't do any db operations on edges except `db.insert()`.
+    * Default: `false`
+
 
 ## Known Issues
 
