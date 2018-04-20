@@ -25,6 +25,7 @@ import com.yahoo.ycsb.generator.graph.Edge;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.index.Index;
+import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.index.IndexManager;
 
 import java.io.File;
@@ -233,17 +234,17 @@ public class Neo4jClient extends DB {
       PropertyContainer container;
 
       if (table.equals(Edge.EDGE_IDENTIFIER)) {
-        Node startNode = graphDbInstance.findNodes(Label.label(values.get(Edge.START_IDENTIFIER).toString())).next();
-        Node endNode = graphDbInstance.findNodes(Label.label(values.get(Edge.END_IDENTIFIER).toString())).next();
+        Optional<Node> startNode = getNode(values.get(Edge.START_IDENTIFIER).toString());
+        Optional<Node> endNode = getNode(values.get(Edge.END_IDENTIFIER).toString());
 
-        if (startNode == null || endNode == null) {
+        if (!startNode.isPresent() || !endNode.isPresent()) {
           return BAD_REQUEST;
         }
 
         RelationshipType relationshipType = RelationshipType.withName(key);
 
-        startNode.createRelationshipTo(endNode, relationshipType);
-        Relationship edge = startNode.getSingleRelationship(relationshipType, Direction.OUTGOING);
+        startNode.get().createRelationshipTo(endNode.get(), relationshipType);
+        Relationship edge = startNode.get().getSingleRelationship(relationshipType, Direction.OUTGOING);
 
         if (useIndex) {
           relationshipIndex.add(edge, RELATIONSHIP_ID, key);
@@ -365,7 +366,9 @@ public class Neo4jClient extends DB {
     Node node;
 
     if (useIndex) {
-      node = nodeIndex.get(NODE_ID, key).getSingle();
+      IndexHits<Node> nodeHits = nodeIndex.get(NODE_ID, key);
+      node = nodeHits.getSingle();
+      nodeHits.close();
     } else {
       node = graphDbInstance.findNode(Label.label(key), NODE_ID, key);
     }
@@ -379,7 +382,11 @@ public class Neo4jClient extends DB {
 
   private Optional<Relationship> getRelationship(String key) {
     if (useIndex) {
-      return Optional.of(relationshipIndex.get(RELATIONSHIP_ID, key).getSingle());
+      IndexHits<Relationship> relationshipHits = relationshipIndex.get(RELATIONSHIP_ID, key);
+      Optional<Relationship> result = Optional.of(relationshipHits.getSingle());
+      relationshipHits.close();
+
+      return result;
     } else {
       return graphDbInstance
           .getAllRelationships()
