@@ -19,6 +19,7 @@
 dataSetBaseFolder=""
 databases=('basic')
 folderOptions=()
+hdrProcessorPath=""
 outputFolder=""
 parameters=()
 runTypes=("load" "run")
@@ -34,6 +35,7 @@ Options:
                         Default is 'basic'.
     -f folderOption     The different path option identifiers for the databases.
     -h                  show this help text.
+    -l                  HDRLogProcessor path. Used to decode the measurements.
     -o outputFolder     path to a folder in which all measurements will be stored.
                         Default will use the current directory.
     -p parameter        Parameter for the databases. See in the bindings README.md for more information.
@@ -46,7 +48,7 @@ Options:
 
 
 # Parse options
-while getopts ':d:f:ho:p:s:t:w:' option; do
+while getopts ':d:f:hl:o:p:s:t:w:' option; do
   case "$option" in
     d)  if [ ${databases[0]} == "basic" ]; then
             databases=($OPTARG)
@@ -60,6 +62,10 @@ while getopts ':d:f:ho:p:s:t:w:' option; do
         echo "$description"
         echo "$options"
         exit 0
+        ;;
+    l)  if [ "$(basename ${OPTARG})" == "HistogramLogProcessor" ]; then
+            hdrProcessorPath=${OPTARG}
+        fi
         ;;
     o)  outputFolder=$OPTARG
         ;;
@@ -116,7 +122,7 @@ function progress()
     if [ ${CURRENT_PROGRESS} -le 85 -a ${PARAM_PROGRESS} -ge 85 ]  ; then echo -ne "[######################....] (85%) $PARAM_PHASE \033[0K\r" ; fi;
     if [ ${CURRENT_PROGRESS} -le 90 -a ${PARAM_PROGRESS} -ge 90 ]  ; then echo -ne "[#######################...] (90%) $PARAM_PHASE \033[0K\r" ; fi;
     if [ ${CURRENT_PROGRESS} -le 95 -a ${PARAM_PROGRESS} -ge 95 ]  ; then echo -ne "[#########################.] (95%) $PARAM_PHASE \033[0K\r" ; fi;
-    if [ ${CURRENT_PROGRESS} -le 100 -a ${PARAM_PROGRESS} -ge 100 ]; then echo -e "Done! \033[0K" ; PARAM_PROGRESS=0; fi;
+    if [ ${CURRENT_PROGRESS} -le 100 -a ${PARAM_PROGRESS} -ge 100 ]; then echo -e "$PARAM_PHASE \033[0K" ; PARAM_PROGRESS=0; fi;
 
     CURRENT_PROGRESS=${PARAM_PROGRESS};
 }
@@ -224,7 +230,7 @@ done
 
 
 # Create data set
-current=100
+current=0
 numOfDataSetCreations=$(( ${#runTypes[@]} * ${#workloadFiles[@]} ))
 for workload in ${workloadFiles[*]}; do
     dataSetFolder=$(getDataSetFolderForWorkload ${workload})
@@ -238,19 +244,24 @@ for workload in ${workloadFiles[*]}; do
             current=$(( $current + 100 ))
         done
     else
-        echo "Don't create data set for $workload, because it is already present."
+        progress $(( current / numOfDataSetCreations )) "$workload already present"
+        current=$(( $current * ${#runTypes[*]} + 100 ))
     fi
 done
+progress $(( current / numOfDataSetCreations )) "Data sets created!"
 
 # Execute benchmark
-currentRun=100
+current=0
 numOfTotalBenchmarkRuns=$(( ${#databases[@]} * ${#runTypes[@]} * ${#workloadFiles[@]} * ${times} ))
-sizeFile=${outputFolder}/databaseSizes.txt
-if [ -e ${sizeFile} ]; then
-    rm ${sizeFile}
+if [ -n "$hdrProcessorPath" ] && [ -e "$hdrProcessorPath" ]; then
+    numOfTotalBenchmarkRuns=$(( ${numOfTotalBenchmarkRuns} * 2 ))
 fi
-touch ${sizeFile}
-progress 0 Starting
+sizeFile="${outputFolder}/databaseSizes.txt"
+if [ ! -e ${sizeFile} ]; then
+    touch ${sizeFile}
+fi
+
+echo "$(date)" >> ${sizeFile}
 
 for workload in ${workloadFiles[*]}; do
     for database in ${databases[*]}; do
@@ -263,7 +274,7 @@ for workload in ${workloadFiles[*]}; do
                 measurementsFolder="$outputFolder/$database/$(basename ${workload})-$runType-$i"
 
                 currentRunName="$database - $(basename ${workload}) - $i/$times - $runType"
-                progress $(( currentRun / numOfTotalBenchmarkRuns )) "$currentRunName"
+                progress $(( current / numOfTotalBenchmarkRuns )) "$currentRunName"
 
                 if [ ! -d ${measurementsFolder} ]; then
                     mkdir -p ${measurementsFolder}
@@ -276,14 +287,32 @@ for workload in ${workloadFiles[*]}; do
                     -p measurementtype=hdrhistogram \
                     -p hdrhistogram.fileoutput=true \
                     -p hdrhistogram.output.path=${measurementsFolder}/ \
-                    -p exportfile=${measurementsFolder}/measure &> /dev/null
+                    -p exportfile=${measurementsFolder}/measure &> ${measurementsFolder}/consoleOutput.txt
                 fi
 
-                echo $(du -sh ${databaseFolder}) ${currentRunName} >> ${sizeFile}
-                currentRun=$(( $currentRun + 100 ))
+                current=$(( $current + 100 ))
+
+                if [ -n "$hdrProcessorPath" ] && [ -e "$hdrProcessorPath" ]; then
+                    progress $(( current / numOfTotalBenchmarkRuns )) "Processing histograms of $currentRunName"
+
+                    for measurement in ${measurementsFolder}/*.hdr; do
+                        if [ ! -e "$measurement" ]; then
+                            filename=$(basename ${measurement})
+
+                            $(${hdrProcessorPath} -i ${measurement} \
+                            -o ${measurementsFolder}/${filename%.*} \
+                            -outputValueUnitRatio 1000)
+                        fi
+                    done
+
+                    current=$(( $current + 100 ))
+                fi
+
+                echo "$(du -sh ${databaseFolder}) $currentRunName" >> ${sizeFile}
             done
 
             rm -r ${databaseFolder}
         done
     done
 done
+progress $(( current / numOfTotalBenchmarkRuns )) "Done!"
