@@ -85,8 +85,12 @@ public class SparkseeClient extends DB {
           edgeIdAttribute = getAttribute(graph, getEdgeType(graph), "sparksee.edgeId");
 
           if (useIndex) {
-            graph.indexAttribute(nodeIdAttribute, AttributeKind.Indexed);
-            graph.indexAttribute(edgeIdAttribute, AttributeKind.Indexed);
+            try {
+              graph.indexAttribute(nodeIdAttribute, AttributeKind.Indexed);
+              graph.indexAttribute(edgeIdAttribute, AttributeKind.Indexed);
+            } catch (RuntimeException e) {
+              e.printStackTrace();
+            }
           }
         }
 
