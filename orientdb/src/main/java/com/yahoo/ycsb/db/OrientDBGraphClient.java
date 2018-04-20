@@ -83,8 +83,13 @@ public class OrientDBGraphClient extends DB {
 
         if (useIndex) {
           OrientGraph graph = factory.getTx();
-          graph.createKeyIndex(nodeIdIdentifier, Vertex.class);
-          graph.createKeyIndex(edgeIdIdentifier, com.tinkerpop.blueprints.Edge.class);
+          if (graph.getIndexedKeys(Vertex.class).size() == 0) {
+            graph.createKeyIndex(nodeIdIdentifier, Vertex.class);
+          }
+
+          if (graph.getIndexedKeys(com.tinkerpop.blueprints.Edge.class).size() == 0) {
+            graph.createKeyIndex(edgeIdIdentifier, com.tinkerpop.blueprints.Edge.class);
+          }
         }
 
         initialised = true;
