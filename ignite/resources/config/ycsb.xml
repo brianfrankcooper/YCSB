@@ -42,9 +42,9 @@
         <property name="dataStorageConfiguration">
             <bean class="org.apache.ignite.configuration.DataStorageConfiguration">
                 <property name="walMode" value="LOG_ONLY"/>
-                <property name="storagePath" value="/storage/ssd/ignite/store"/>
-                <property name="walPath" value="/storage/ssd/ignite/wal"/>
-                <property name="walArchivePath" value="/storage/ssd/ignite/walArch"/>
+                <property name="storagePath" value="/path/to/ignite/db/dir"/>
+                <property name="walPath" value="/path/to/ignite/wal/dir"/>
+                <property name="walArchivePath" value="/path/to/ignite/walArch/dir"/>
                 <property name="walHistorySize" value="1"/>
                 <property name="metricsEnabled" value="true"/>
 
@@ -52,7 +52,9 @@
                     <bean class="org.apache.ignite.configuration.DataRegionConfiguration">
                         <property name="name" value="default_data_region"/>
                         <property name="persistenceEnabled" value="true"/>
+                        <!-- Setting the max size of the default region to 50GB. -->
                         <property name="maxSize" value="#{50L * 1024 * 1024 * 1024}"/>
+                        <!-- Setting the initial size of the default region to 50GB. -->
                         <property name="initialSize" value="#{50L * 1024 * 1024 * 1024}"/>
                         <property name="checkpointPageBufferSize" value="#{2L * 1024 * 1024 * 1024}"/>
                         <property name="metricsEnabled" value="true"/>
@@ -112,7 +114,7 @@
                 <bean class="org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder">
                     <property name="addresses">
                         <list>
-                            <!--The list of host includes client host -->
+                            <!--The list of hosts includes client host. -->
                             <!--<value><hostname_or_IP>:47500..47509</value>-->
                             <!--<value><hostname_or_IP>:47500..47509</value>-->
                         </list>
