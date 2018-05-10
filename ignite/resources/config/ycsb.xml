@@ -73,7 +73,7 @@
                     <property name="backups" value="1"/>
                     <property name="writeSynchronizationMode" value="FULL_SYNC"/>
 
-                    <!-- This part should be used for work with ignite-sql client-->
+                    <!-- This part should be used ONLY for work with ignite-sql client-->
                     <!--<property name="queryEntities">
                         <list>
                             <bean class="org.apache.ignite.cache.QueryEntity">
