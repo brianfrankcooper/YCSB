@@ -20,19 +20,21 @@ LICENSE file.
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <repositories>
-    <repository>
-      <id>GridGain External Repository</id>
-      <url>http://www.gridgainsystems.com/nexus/content/repositories/gridgain_staging-2515</url>
-    </repository>
-  </repositories>
+
   <parent>
     <groupId>com.yahoo.ycsb</groupId>
     <artifactId>binding-parent</artifactId>
     <version>0.14.0-SNAPSHOT</version>
     <relativePath>../binding-parent</relativePath>
   </parent>
-
+  
+  <repositories>
+    <repository>
+      <id>GridGain External Repository</id>
+      <url>http://www.gridgainsystems.com/nexus/content/repositories/external</url>
+    </repository>
+  </repositories>
+  
   <artifactId>ignite-binding</artifactId>
   <name>Apache Ignite</name>
   <packaging>jar</packaging>
