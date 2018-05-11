@@ -60,6 +60,13 @@ LICENSE file.
       <version>4.12</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.xerial.snappy</groupId>
+      <artifactId>snappy-java</artifactId>
+      <version>1.1.7.1</version>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
   </dependencies>
   <repositories>
     <repository>
