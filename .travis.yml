@@ -28,7 +28,7 @@ addons:
     - myshorthost
   hostname: myshorthost
 
-#install: mvn install -q -DskipTests=true
+install: mvn install -q -DskipTests=true
 install: travis_wait mvn install -q -DskipTests=true
 script: mvn -q test 
 
