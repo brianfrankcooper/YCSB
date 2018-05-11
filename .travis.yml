@@ -29,13 +29,13 @@ addons:
   hostname: myshorthost
 
 #install: mvn install -q -DskipTests=true
-install: travis_wait mvn -q install -DskipTests=true
+install: travis_wait mvn install -q -DskipTests=true
 script: mvn -q test 
 
 
 # Services to start for tests.
 services:
-  - mongodb
+  - ignite
 # temporarily disable riak. failing, docs offline.
 #  - riak
 
