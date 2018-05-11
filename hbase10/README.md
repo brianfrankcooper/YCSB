@@ -49,19 +49,20 @@ hbase(main):002:0> create 'usertable', 'cf', {SPLITS => (1..n_splits).map {|i| "
 
 Make a note of the column family, in this example it's `cf``.
 
-### 4. Fetch the Proper ALPN Boot Jar
+### 4. Download the Bigtable Client Jar with required dependencies:
 
-The Bigtable protocol uses HTTP/2 which requires an ALPN protocol negotiation implementation. On JVM instantiation the implementation must be loaded before attempting to connect to the cluster. If you're using Java 7 or 8, use this [Jetty Version Table](http://www.eclipse.org/jetty/documentation/current/alpn-chapter.html#alpn-versions) to determine the version appropriate for your JVM. (ALPN is included in JDK 9+). Download the proper jar from [Maven](http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.mortbay.jetty.alpn%22%20AND%20a%3A%22alpn-boot%22) somewhere on your system.
+```
+mvn -N dependency:copy -Dartifact=com.google.cloud.bigtable:bigtable-hbase-1.x-hadoop:1.0.0 -DoutputDirectory=target/bigtable-deps
+mvn -N dependency:copy -Dartifact=io.dropwizard.metrics:metrics-core:3.1.2 -DoutputDirectory=target/bigtable-deps
+```
 
-### 5. Download the Bigtable Client Jar
+Download the latest `bigtable-hbase-1.x-hadoop` jar from [Maven](http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22com.google.cloud.bigtable%22%20AND%20a%3A%22bigtable-hbase-1.x-hadoop%22) to your host.
 
-Download one of the `bigtable-hbase-1.#` jars from [Maven](http://search.maven.org/#search%7Cga%7C1%7Ccom.google.cloud.bigtable) to your host.
-
-### 6. Download JSON Credentials
+### 5. Download JSON Credentials
 
 Follow these instructions for [Generating a JSON key](https://cloud.google.com/bigtable/docs/installing-hbase-shell#service-account) and save it to your host.
 
-### 7. Create or Edit hbase-site.xml
+### 6. Create or Edit hbase-site.xml
 
 If you have an existing HBase configuration directory with an `hbase-site.xml` file, edit the file as per below. If not, create a directory called `conf` under the `hbase10` directory. Create a file in the conf directory named `hbase-site.xml`. Provide the following settings in the XML file, making sure to replace the bracketed examples with the proper values from your Cloud console.
 
@@ -69,19 +70,15 @@ If you have an existing HBase configuration directory with an `hbase-site.xml` f
 <configuration>
   <property>
     <name>hbase.client.connection.impl</name>
-    <value>com.google.cloud.bigtable.hbase1_0.BigtableConnection</value>
-  </property>
-  <property>
-    <name>google.bigtable.cluster.name</name>
-    <value>[YOUR-CLUSTER-ID]</value>
+    <value>com.google.cloud.bigtable.hbase1_x.BigtableConnection</value>
   </property>
   <property>
     <name>google.bigtable.project.id</name>
     <value>[YOUR-PROJECT-ID]</value>
   </property>
   <property>
-    <name>google.bigtable.zone.name</name>
-    <value>[YOUR-ZONE-NAME]</value>
+    <name>google.bigtable.instance.id</name>
+    <value>[YOUR-INSTANCE-ID]</value>
   </property>
   <property>
     <name>google.bigtable.auth.service.account.enable</name>
@@ -94,22 +91,20 @@ If you have an existing HBase configuration directory with an `hbase-site.xml` f
 </configuration>
 ```
 
-If you wish to try other API implementations (1.1.x or 1.2.x) change the `hbase.client.connection.impl` appropriately to match the JAR you downloaded.
-
 If you have an existing HBase config directory, make sure to add it to the class path via `-cp <PATH_TO_BIGTABLE_JAR>:<CONF_DIR>`.
 
-### 8. Execute a Workload
+### 7. Execute a Workload
 
 Switch to the root of the YCSB repo and choose the workload you want to run and `load` it first. With the CLI you must provide the column family, cluster properties and the ALPN jar to load.
 
 ```
-bin/ycsb load hbase10 -p columnfamily=cf -cp <PATH_TO_BIGTABLE_JAR> -jvm-args='-Xbootclasspath/p:<PATH_TO_ALPN_JAR>' -P workloads/workloada
+bin/ycsb load hbase10 -p columnfamily=cf -cp 'target/bigtable-deps/*' -P workloads/workloada
 
 ```
 
 The `load` step only executes inserts into the datastore. After loading data, run the same workload to mix reads with writes.
 
 ```
-bin/ycsb run hbase10 -p columnfamily=cf -jvm-args='-Xbootclasspath/p:<PATH_TO_ALPN_JAR>' -P workloads/workloada
+bin/ycsb run hbase10 -p columnfamily=cf -cp 'target/bigtable-deps/* -P workloads/workloada
 
 ```
