@@ -128,6 +128,33 @@ public class TestTimeSeriesWorkload {
     final MockDB db = new MockDB();
     wl.doInsert(db, null);
   }
+
+  @Test
+  public void insertOneKeyOneTagCardinalityOne() throws Exception {
+    final Properties p = getUTProperties();
+    p.put(CoreWorkload.FIELD_COUNT_PROPERTY, "1");
+    p.put(TimeSeriesWorkload.TAG_COUNT_PROPERTY, "1");
+    p.put(TimeSeriesWorkload.TAG_CARDINALITY_PROPERTY, "1");
+    final TimeSeriesWorkload wl = getWorkload(p, true);
+    final Object threadState = wl.initThread(p, 0, 1);
+
+    final MockDB db = new MockDB();
+    for (int i = 0; i < 74; i++) {
+      assertTrue(wl.doInsert(db, threadState));
+    }
+    assertEquals(db.keys.size(), 74);
+    assertEquals(db.values.size(), 74);
+    long timestamp = 1451606400;
+    for (int i = 0; i < db.keys.size(); i++) {
+      assertEquals(db.keys.get(i), "AAAA");
+      assertEquals(db.values.get(i).get("AA").toString(), "AAAA");
+      assertEquals(Utils.bytesToLong(db.values.get(i).get(
+          TimeSeriesWorkload.TIMESTAMP_KEY_PROPERTY_DEFAULT).toArray()), timestamp);
+      assertTrue(((NumericByteIterator) db.values.get(i)
+          .get(TimeSeriesWorkload.VALUE_KEY_PROPERTY_DEFAULT)).isFloatingPoint());
+      timestamp += 60;
+    }
+  }
   
   @Test
   public void insertOneKeyTwoTagsLowCardinality() throws Exception {
