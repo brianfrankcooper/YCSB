@@ -85,6 +85,8 @@ DATABASES = {
     "jdbc"         : "com.yahoo.ycsb.db.JdbcDBClient",
     "kudu"         : "com.yahoo.ycsb.db.KuduYCSBClient",
     "memcached"    : "com.yahoo.ycsb.db.MemcachedClient",
+    "maprdb"       : "com.yahoo.ycsb.db.mapr.MapRDBClient",
+    "maprjsondb"   : "com.yahoo.ycsb.db.mapr.MapRJSONDBClient",
     "mongodb"      : "com.yahoo.ycsb.db.MongoDbClient",
     "mongodb-async": "com.yahoo.ycsb.db.AsyncMongoDbClient",
     "nosqldb"      : "com.yahoo.ycsb.db.NoSqlDbClient",
@@ -258,6 +260,11 @@ def main():
              "Accumulo 1.6, which is named 'accumulo-1.6'. This alias will "
              "be removed in a future YCSB release.")
         binding = "accumulo1.6"
+
+    if binding == "accumulo1.6":
+        warn("The 'accumulo1.6' client has been deprecated because Accumulo 1.6 "
+             "is EOM. If you are using Accumulo 1.7+ try using the 'accumulo1.7' "
+             "client instead.")
 
     if binding == "cassandra2":
         warn("The 'cassandra2-cql' client has been deprecated. It has been "

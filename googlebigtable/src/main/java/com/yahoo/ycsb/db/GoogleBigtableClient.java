@@ -34,7 +34,6 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.ExecutionException;
 
-import com.google.bigtable.repackaged.com.google.protobuf.ByteString;
 import com.google.bigtable.v2.Column;
 import com.google.bigtable.v2.Family;
 import com.google.bigtable.v2.MutateRowRequest;
@@ -51,10 +50,10 @@ import com.google.cloud.bigtable.config.BigtableOptions;
 import com.google.cloud.bigtable.grpc.BigtableDataClient;
 import com.google.cloud.bigtable.grpc.BigtableSession;
 import com.google.cloud.bigtable.grpc.BigtableTableName;
-import com.google.cloud.bigtable.grpc.async.AsyncExecutor;
 import com.google.cloud.bigtable.grpc.async.BulkMutation;
 import com.google.cloud.bigtable.hbase.BigtableOptionsFactory;
 import com.google.cloud.bigtable.util.ByteStringer;
+import com.google.protobuf.ByteString;
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
@@ -89,10 +88,9 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
   private static BigtableOptions options;
   private static BigtableSession session;
   
-  /** Thread loacal Bigtable native API objects. */
+  /** Thread local Bigtable native API objects. */
   private BigtableDataClient client;
-  private AsyncExecutor asyncExecutor;
-  
+
   /** The column family use for the workload. */
   private byte[] columnFamilyBytes;
   
@@ -128,8 +126,8 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
       CONFIG.set((String)entry.getKey(), (String)entry.getValue());
     }
     
-    clientSideBuffering = getProperties().getProperty(CLIENT_SIDE_BUFFERING, "false")
-        .equals("true") ? true : false;
+    clientSideBuffering = getProperties()
+        .getProperty(CLIENT_SIDE_BUFFERING, "false").equals("true");
     
     System.err.println("Running Google Bigtable with Proto API" +
          (clientSideBuffering ? " and client side buffering." : "."));
@@ -149,10 +147,6 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
         }
       } else {
         client = session.getDataClient();
-      }
-      
-      if (clientSideBuffering) {
-        asyncExecutor = session.createAsyncExecutor();
       }
     }
     
@@ -174,17 +168,14 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
     if (bulkMutation != null) {
       try {
         bulkMutation.flush();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new DBException(e);
       } catch(RuntimeException e){
         throw new DBException(e);
       }
     }
-    if (asyncExecutor != null) {
-      try {
-        asyncExecutor.flush();
-      } catch (IOException e) {
-        throw new DBException(e);
-      }
-    }
+
     synchronized (CONFIG) {
       --threadCount;
       if (threadCount <= 0) {
@@ -446,9 +437,14 @@ public class GoogleBigtableClient extends com.yahoo.ycsb.DB {
           .getBytes();
       synchronized(this) {
         if (bulkMutation != null) {
-          bulkMutation.flush();
+          try {
+            bulkMutation.flush();
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+          }
         }
-        bulkMutation = session.createBulkMutation(tableName, asyncExecutor);
+        bulkMutation = session.createBulkMutation(tableName);
       }
     }
   }

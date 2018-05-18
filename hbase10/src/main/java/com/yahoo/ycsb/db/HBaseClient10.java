@@ -15,9 +15,6 @@
 
 package com.yahoo.ycsb.db;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
@@ -438,7 +435,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
 
     try {
       if (clientSideBuffering) {
-        Preconditions.checkNotNull(bufferedMutator);
+        // removed Preconditions.checkNotNull, which throws NPE, in favor of NPE on next line
         bufferedMutator.mutate(p);
       } else {
         currentTable.put(p);
@@ -506,7 +503,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
     d.setDurability(durability);
     try {
       if (clientSideBuffering) {
-        Preconditions.checkNotNull(bufferedMutator);
+        // removed Preconditions.checkNotNull, which throws NPE, in favor of NPE on next line
         bufferedMutator.mutate(d);
       } else {
         currentTable.delete(d);
@@ -521,7 +518,7 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
     return Status.OK;
   }
 
-  @VisibleForTesting
+  // Only non-private for testing.
   void setConfiguration(final Configuration newConfig) {
     this.config = newConfig;
   }
