@@ -51,6 +51,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.helpers.MessageFormatter;
 
 /**
  * Cassandra 2.x CQL client.
@@ -209,7 +210,7 @@ public class CassandraCQLClient extends DB {
         }
 
         Metadata metadata = cluster.getMetadata();
-        logger.error("Connected to cluster: {}\n",
+        logger.info("Connected to cluster: {}\n",
             metadata.getClusterName());
 
         for (Host discoveredHost : metadata.getAllHosts()) {
@@ -329,8 +330,7 @@ public class CassandraCQLClient extends DB {
       return Status.OK;
 
     } catch (Exception e) {
-      e.printStackTrace();
-      logger.error("Error reading key: {}", key);
+      logger.error(MessageFormatter.format("Error reading key: {}", key).getMessage(), e);
       return Status.ERROR;
     }
 
@@ -433,8 +433,8 @@ public class CassandraCQLClient extends DB {
       return Status.OK;
 
     } catch (Exception e) {
-      e.printStackTrace();
-      logger.error("Error scanning with startkey: {}", startkey);
+      logger.error(
+          MessageFormatter.format("Error scanning with startkey: {}", startkey).getMessage(), e);
       return Status.ERROR;
     }
 
@@ -506,7 +506,7 @@ public class CassandraCQLClient extends DB {
 
       return Status.OK;
     } catch (Exception e) {
-      e.printStackTrace();
+      logger.error(MessageFormatter.format("Error updating key: {}", key).getMessage(), e);
     }
 
     return Status.ERROR;
@@ -577,7 +577,7 @@ public class CassandraCQLClient extends DB {
 
       return Status.OK;
     } catch (Exception e) {
-      e.printStackTrace();
+      logger.error(MessageFormatter.format("Error inserting key: {}", key).getMessage(), e);
     }
 
     return Status.ERROR;
@@ -620,8 +620,7 @@ public class CassandraCQLClient extends DB {
 
       return Status.OK;
     } catch (Exception e) {
-      e.printStackTrace();
-      logger.error("Error deleting key: {}", key);
+      logger.error(MessageFormatter.format("Error deleting key: {}", key).getMessage(), e);
     }
 
     return Status.ERROR;
