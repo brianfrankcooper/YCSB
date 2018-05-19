@@ -52,14 +52,10 @@ LICENSE file.
         <artifactId>google-collections</artifactId>
         <version>1.0</version>
       </dependency>
-      <!--
-      Nail down slf4j version to 1.6 so that it defaults to no-op logger.
-      http://www.slf4j.org/codes.html#StaticLoggerBinder
-      -->
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
-        <version>1.6.4</version>
+        <version>1.7.25</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
