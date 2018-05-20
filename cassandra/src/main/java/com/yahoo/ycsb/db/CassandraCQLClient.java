@@ -214,9 +214,9 @@ public class CassandraCQLClient extends DB {
             metadata.getClusterName());
 
         for (Host discoveredHost : metadata.getAllHosts()) {
-          logger.info("Datacenter: {}; Host: {}; Rack: {}\n", new Object[] {
+          logger.info("Datacenter: {}; Host: {}; Rack: {}\n",
               discoveredHost.getDatacenter(), discoveredHost.getAddress(),
-              discoveredHost.getRack() });
+              discoveredHost.getRack());
         }
 
         session = cluster.connect(keyspace);
