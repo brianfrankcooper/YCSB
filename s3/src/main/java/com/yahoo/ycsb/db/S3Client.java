@@ -51,7 +51,6 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.SSECustomerKey;
 import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 
 /**
  * S3 Storage client for YCSB framework.
@@ -350,11 +349,11 @@ public class S3Client extends DB {
       totalSize = sizeArray*fieldCount;
     } else {
       try {
-        Map.Entry<S3Object, ObjectMetadata> objectAndMetadata = getS3ObjectAndMetadata(bucket, key, ssecLocal);
-        int sizeOfFile = (int)objectAndMetadata.getValue().getContentLength();
+        S3Object object = getS3ObjectAndMetadata(bucket, key, ssecLocal);
+        int sizeOfFile = (int)object.getObjectMetadata().getContentLength();
         fieldCount = sizeOfFile/sizeArray;
         totalSize = sizeOfFile;
-        objectAndMetadata.getKey().close();
+        object.close();
       } catch (Exception e){
         System.err.println("Not possible to get the object :"+key);
         e.printStackTrace();
@@ -425,12 +424,12 @@ public class S3Client extends DB {
   protected Status readFromStorage(String bucket, String key,
                                    Map<String, ByteIterator> result, SSECustomerKey ssecLocal) {
     try {
-      Map.Entry<S3Object, ObjectMetadata> objectAndMetadata = getS3ObjectAndMetadata(bucket, key, ssecLocal);
-      InputStream objectData = objectAndMetadata.getKey().getObjectContent(); //consuming the stream
+      S3Object object = getS3ObjectAndMetadata(bucket, key, ssecLocal);
+      InputStream objectData = object.getObjectContent(); //consuming the stream
       // writing the stream to bytes and to results
       result.put(key, new ByteArrayByteIterator(IOUtils.toByteArray(objectData)));
       objectData.close();
-      objectAndMetadata.getKey().close();
+      object.close();
     } catch (Exception e){
       System.err.println("Not possible to get the object "+key);
       e.printStackTrace();
@@ -440,23 +439,17 @@ public class S3Client extends DB {
     return Status.OK;
   }
 
-  private Map.Entry<S3Object, ObjectMetadata> getS3ObjectAndMetadata(String bucket,
+  private S3Object getS3ObjectAndMetadata(String bucket,
                                                                      String key, SSECustomerKey ssecLocal) {
     GetObjectRequest getObjectRequest;
-    GetObjectMetadataRequest getObjectMetadataRequest;
     if (ssecLocal != null) {
       getObjectRequest = new GetObjectRequest(bucket,
               key).withSSECustomerKey(ssecLocal);
-      getObjectMetadataRequest = new GetObjectMetadataRequest(bucket,
-              key).withSSECustomerKey(ssecLocal);
     } else {
       getObjectRequest = new GetObjectRequest(bucket, key);
-      getObjectMetadataRequest = new GetObjectMetadataRequest(bucket,
-              key);
     }
 
-    return new AbstractMap.SimpleEntry<>(s3Client.getObject(getObjectRequest),
-            s3Client.getObjectMetadata(getObjectMetadataRequest));
+    return s3Client.getObject(getObjectRequest);
   }
 
   /**

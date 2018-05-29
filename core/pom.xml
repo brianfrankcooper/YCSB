@@ -21,7 +21,7 @@ LICENSE file.
   <parent>
     <groupId>com.yahoo.ycsb</groupId>
     <artifactId>root</artifactId>
-    <version>0.14.0-SNAPSHOT</version>
+    <version>0.15.0-SNAPSHOT</version>
   </parent>
   
   <artifactId>core</artifactId>
@@ -60,6 +60,7 @@ LICENSE file.
       <version>2.1.4</version>
     </dependency>
   </dependencies>
+
   <build>
     <resources>
       <resource>
@@ -68,4 +69,31 @@ LICENSE file.
       </resource>
     </resources>
   </build>
+  
+  <profiles>
+    <profile>
+      <!-- Build profile when running via yscb.sh or yscb.bat-->
+      <id>source-run</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>stage-dependencies</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>copy-dependencies</goal>
+                </goals>
+                <configuration>
+                  <includeScope>runtime</includeScope>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

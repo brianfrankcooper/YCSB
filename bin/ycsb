@@ -85,6 +85,8 @@ DATABASES = {
     "jdbc"         : "com.yahoo.ycsb.db.JdbcDBClient",
     "kudu"         : "com.yahoo.ycsb.db.KuduYCSBClient",
     "memcached"    : "com.yahoo.ycsb.db.MemcachedClient",
+    "maprdb"       : "com.yahoo.ycsb.db.mapr.MapRDBClient",
+    "maprjsondb"   : "com.yahoo.ycsb.db.mapr.MapRJSONDBClient",
     "mongodb"      : "com.yahoo.ycsb.db.MongoDbClient",
     "mongodb-async": "com.yahoo.ycsb.db.AsyncMongoDbClient",
     "nosqldb"      : "com.yahoo.ycsb.db.NoSqlDbClient",
