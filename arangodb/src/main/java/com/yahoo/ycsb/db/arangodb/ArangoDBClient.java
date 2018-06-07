@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import com.arangodb.ArangoCursor;
 import com.arangodb.ArangoDB;
 import com.arangodb.ArangoDBException;
+import com.arangodb.Protocol;
 import com.arangodb.entity.BaseDocument;
 import com.arangodb.model.DocumentCreateOptions;
 import com.arangodb.model.TransactionOptions;
@@ -55,9 +56,9 @@ import com.yahoo.ycsb.StringByteIterator;
  * @see <a href="https://github.com/arangodb/arangodb-java-driver">ArangoDB Inc.
  *      driver</a>
  */
-public class ArangoDB3Client extends DB {
+public class ArangoDBClient extends DB {
 
-  private static Logger logger = LoggerFactory.getLogger(ArangoDB3Client.class);
+  private static Logger logger = LoggerFactory.getLogger(ArangoDBClient.class);
   
   /**
    * Count the number of times initialized to teardown on the last
@@ -82,7 +83,7 @@ public class ArangoDB3Client extends DB {
    */
   @Override
   public void init() throws DBException {
-    synchronized (ArangoDB3Client.class) {
+    synchronized (ArangoDBClient.class) {
       Properties props = getProperties();
 
       collectionName = props.getProperty("table", "usertable");
@@ -91,6 +92,10 @@ public class ArangoDB3Client extends DB {
       String ip = props.getProperty("arangodb.ip", "localhost");
       String portStr = props.getProperty("arangodb.port", "8529");
       int port = Integer.parseInt(portStr);
+
+      // Set network protocol
+      String protocolStr = props.getProperty("arangodb.protocol", "VST");
+      Protocol protocol = Protocol.valueOf(protocolStr);
 
       // If clear db before run
       String dropDBBeforeRunStr = props.getProperty("arangodb.dropDBBeforeRun", "false");
@@ -106,7 +111,7 @@ public class ArangoDB3Client extends DB {
       
       // Init ArangoDB connection
       try {
-        arangoDB = new ArangoDB.Builder().host(ip).port(port).build();
+        arangoDB = new ArangoDB.Builder().host(ip).port(port).useProtocol(protocol).build();
       } catch (Exception e) {
         logger.error("Failed to initialize ArangoDB", e);
         System.exit(-1);

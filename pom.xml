@@ -70,8 +70,7 @@ LICENSE file.
     <accumulo.1.7.version>1.7.3</accumulo.1.7.version>
     <accumulo.1.8.version>1.8.1</accumulo.1.8.version>
     <aerospike.version>3.1.2</aerospike.version>
-    <arangodb.version>2.7.3</arangodb.version>
-    <arangodb3.version>4.1.7</arangodb3.version>
+    <arangodb.version>4.4.1</arangodb.version>
     <asynchbase.version>1.7.1</asynchbase.version>
     <azuredocumentdb.version>1.8.1</azuredocumentdb.version>
     <azurestorage.version>4.0.0</azurestorage.version>
@@ -118,7 +117,6 @@ LICENSE file.
     <module>accumulo1.8</module>
     <module>aerospike</module>
     <module>arangodb</module>
-    <module>arangodb3</module>
     <module>asynchbase</module>
     <module>azuredocumentdb</module>
     <module>azuretablestorage</module>
