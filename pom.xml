@@ -67,8 +67,8 @@ LICENSE file.
 
     <!-- datastore binding versions, lex sorted -->
     <accumulo.1.6.version>1.6.6</accumulo.1.6.version>
-    <accumulo.1.7.version>1.7.3</accumulo.1.7.version>
-    <accumulo.1.8.version>1.8.1</accumulo.1.8.version>
+    <accumulo.1.7.version>1.7.4</accumulo.1.7.version>
+    <accumulo.1.8.version>1.9.1</accumulo.1.8.version>
     <aerospike.version>3.1.2</aerospike.version>
     <arangodb.version>2.7.3</arangodb.version>
     <arangodb3.version>4.1.7</arangodb3.version>
