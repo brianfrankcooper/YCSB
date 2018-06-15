@@ -25,8 +25,8 @@ import org.apache.ignite.internal.util.typedef.F;
 import javax.cache.CacheException;
 import java.util.*;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Ignite client.
@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
  */
 public class IgniteSqlClient extends IgniteAbstractClient {
   /** */
-  private static Logger log = LoggerFactory.getLogger(IgniteSqlClient.class);
+  private static Logger log = LogManager.getLogger(IgniteSqlClient.class);
   /** */
   private static final String PRIMARY_KEY = "YCSB_KEY";
   /**

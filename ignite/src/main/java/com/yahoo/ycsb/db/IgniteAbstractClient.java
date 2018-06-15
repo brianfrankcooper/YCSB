@@ -5,6 +5,7 @@ import com.yahoo.ycsb.DBException;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.ignite.logger.log4j2.Log4J2Logger;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
@@ -13,15 +14,15 @@ import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * 
  */
 public abstract class IgniteAbstractClient extends DB {
   /** */
-  protected static Logger log = LoggerFactory.getLogger(IgniteAbstractClient.class);
+  protected static Logger log = LogManager.getLogger(IgniteAbstractClient.class);
   
   protected static final String DEFAULT_CACHE_NAME = "usertable";
   protected static final String HOSTS_PROPERTY = "hosts";
@@ -98,6 +99,9 @@ public abstract class IgniteAbstractClient extends DB {
         igcfg.setDiscoverySpi(disco);
         igcfg.setNetworkTimeout(2000);
         igcfg.setClientMode(true);
+
+        Log4J2Logger logger = new Log4J2Logger(this.getClass().getClassLoader().getResource("log4j2.xml"));
+        igcfg.setGridLogger(logger);
 
         log.info("Start Ignite client node.");
         cluster = Ignition.start(igcfg);
