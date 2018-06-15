@@ -7,9 +7,7 @@
       The ASF licenses this file to You under the Apache License, Version 2.0
       (the "License"); you may not use this file except in compliance with
       the License.  You may obtain a copy of the License at
-
            http://www.apache.org/licenses/LICENSE-2.0
-
       Unless required by applicable law or agreed to in writing, software
       distributed under the License is distributed on an "AS IS" BASIS,
       WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,15 +17,11 @@
 
     <!--
         Ignite Spring configuration file to startup Ignite cache.
-
         This file demonstrates how to configure cache using Spring. Provided cache
         will be created on node startup.
-
         Use this configuration file when running HTTP REST examples (see 'examples/rest' folder).
-
         When starting a standalone node, you need to execute the following command:
         {IGNITE_HOME}/bin/ignite.{bat|sh} examples/config/example-cache.xml
-
         When starting Ignite from Java IDE, pass path to this file to Ignition:
         Ignition.start("examples/config/example-cache.xml");
     -->
@@ -81,7 +75,6 @@
                                 <property name="valueType" value="UsertableType"/>
                                 <property name="tableName" value="usertable"/>
                                 <property name="keyFieldName" value="ycsb_key"/>
-
                                 <property name="fields">
                                     <map>
                                         <entry key="ycsb_key" value="java.lang.String"/>
@@ -125,6 +118,3 @@
     </property>
 </bean>
 </beans>
-
-
-
