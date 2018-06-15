@@ -163,13 +163,13 @@ public class IgniteSqlClient extends IgniteAbstractClient {
         return Status.OK;
       } catch (CacheException e) {
         if (!e.getMessage().contains("Failed to update some keys because they had been modified concurrently")) {
-          log.error("Error in processing update table: " + table);
-          e.printStackTrace(System.err);
+          log.error(String.format("Error in processing update table: %s", table), e);
+
           return Status.ERROR;
         }
       } catch (Exception e) {
-        log.error("Error in processing update table: " + table);
-        e.printStackTrace(System.err);
+        log.error(String.format("Error in processing update table: %s", table), e);
+
         return Status.ERROR;
       }
     }
@@ -200,8 +200,8 @@ public class IgniteSqlClient extends IgniteAbstractClient {
 
       return Status.OK;
     } catch (Exception e) {
-      log.error("Error in processing insert to table: " + table);
-      e.printStackTrace(System.err);
+      log.error(String.format("Error in processing insert to table: %s", table), e);
+
       return Status.ERROR;
     }
   }
@@ -224,8 +224,8 @@ public class IgniteSqlClient extends IgniteAbstractClient {
       cache.query(qry).getAll();
       return Status.OK;
     } catch (Exception e) {
-      log.error("Error in processing read from table: " + table);
-      e.printStackTrace(System.err);
+      log.error(String.format("Error in processing read from table: %s", table), e);
+
       return Status.ERROR;
     }
   }
