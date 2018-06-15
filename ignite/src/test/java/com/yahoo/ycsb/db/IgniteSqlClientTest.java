@@ -23,10 +23,12 @@ import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.measurements.Measurements;
 import org.apache.ignite.Ignite;
+import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.cache.QueryEntity;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
+import org.apache.ignite.logger.log4j2.Log4J2Logger;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
@@ -61,7 +63,7 @@ public class IgniteSqlClientTest extends IgniteClientCommonTest {
    *
    */
   @BeforeClass
-  public static void beforeTest() {
+  public static void beforeTest() throws IgniteCheckedException {
     IgniteConfiguration igcfg = new IgniteConfiguration();
     igcfg.setIgniteInstanceName(SERVER_NODE_NAME);
     igcfg.setClientMode(false);
@@ -96,6 +98,9 @@ public class IgniteSqlClientTest extends IgniteClientCommonTest {
 
     igcfg.setDiscoverySpi(disco);
     igcfg.setNetworkTimeout(2000);
+
+    Log4J2Logger logger = new Log4J2Logger(IgniteSqlClientTest.class.getClassLoader().getResource("log4j2.xml"));
+    igcfg.setGridLogger(logger);
 
     cluster = Ignition.start(igcfg);
     cluster.active();
