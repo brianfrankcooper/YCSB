@@ -38,6 +38,10 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
 /**
  * Ignite client.
  * <p>
@@ -46,6 +50,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author spuchnin
  */
 public class IgniteClient extends DB {
+  /** */
+  private static Logger log = LoggerFactory.getLogger(IgniteClient.class);
+
   private static final String DEFAULT_CACHE_NAME = "usertable";
   private static final String HOSTS_PROPERTY = "hosts";
   private static final String PORTS_PROPERTY = "ports";
@@ -125,13 +132,15 @@ public class IgniteClient extends DB {
         igcfg.setNetworkTimeout(2000);
         igcfg.setClientMode(true);
 
-        System.out.println("Before cluster start");
+        log.info("Before cluster start");
         cluster = Ignition.start(igcfg);
-        System.out.println("Before cluster activate");
+        log.info("Before cluster activate");
         cluster.active(true);
 
         cache = cluster.cache(DEFAULT_CACHE_NAME).withKeepBinary();
       } catch (Exception e) {
+        log.error(e.getMessage());
+
         throw new DBException(e);
       }
     } // synchronized
@@ -197,17 +206,17 @@ public class IgniteClient extends DB {
         }
 
         if (debug) {
-          System.out.println("table:{" + table + "}, key:{" + key + "}" + ", fields:{" + fields + "}");
-          System.out.println("fields in po{" + binType.fieldNames() + "}");
-          System.out.println("result {" + result + "}");
+          log.info("table:{" + table + "}, key:{" + key + "}" + ", fields:{" + fields + "}");
+          log.info("fields in po{" + binType.fieldNames() + "}");
+          log.info("result {" + result + "}");
         }
       }
 
       return Status.OK;
 
     } catch (Exception e) {
-      e.printStackTrace(System.err);
-      System.out.println("Error reading key: " + key);
+      log.error(String.format("Error reading key: %s", key), e);
+
       return Status.ERROR;
     }
   }
@@ -251,8 +260,8 @@ public class IgniteClient extends DB {
 
       return Status.OK;
     } catch (Exception e) {
-      e.printStackTrace(System.err);
-      System.out.println("Error updating key: " + key);
+      log.error(String.format("Error updating key: %s", key), e);
+
       return Status.ERROR;
     }
   }
@@ -277,7 +286,7 @@ public class IgniteClient extends DB {
         bob.setField(entry.getKey(), entry.getValue().toString());
 
         if (debug) {
-          System.out.println(entry.getKey() + ":" + entry.getValue());
+          log.info(entry.getKey() + ":" + entry.getValue());
         }
       }
 
@@ -291,8 +300,8 @@ public class IgniteClient extends DB {
 
       return Status.OK;
     } catch (Exception e) {
-      e.printStackTrace(System.err);
-      System.out.println("Error inserting key: " + key);
+      log.error(String.format("Error inserting key: %s", key), e);
+
       return Status.ERROR;
     }
   }
@@ -310,8 +319,7 @@ public class IgniteClient extends DB {
       cache.remove(key);
       return Status.OK;
     } catch (Exception e) {
-      e.printStackTrace();
-      System.out.println("Error deleting key: " + key);
+      log.error(String.format("Error deleting key: %s ", key), e);
     }
 
     return Status.ERROR;

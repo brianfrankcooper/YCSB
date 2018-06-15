@@ -49,15 +49,13 @@ import static org.hamcrest.Matchers.is;
 /**
  * Integration tests for the Ignite client
  */
-public class IgniteSqlClientTest {
+public class IgniteSqlClientTest extends IgniteClientCommonTest {
   private static final String DEFAULT_CACHE_NAME = "usertable";
   private static final String TABLE_NAME = "usertable";
   private final static String HOST = "127.0.0.1";
   private final static String PORTS = "47500..47509";
   private final static String SERVER_NODE_NAME = "YCSB Server Node";
   private static TcpDiscoveryIpFinder ipFinder = new TcpDiscoveryVmIpFinder(true);
-  private static Ignite cluster = null;
-  private DB client;
 
   /**
    *
@@ -310,28 +308,5 @@ public class IgniteSqlClientTest {
     final Status sGet = client.read(TABLE_NAME, newKey, fld, result1);
     assertThat(sGet, is(Status.NOT_FOUND));
 
-  }
-
-  /**
-   *
-   */
-  @After
-  public void tearDown() throws Exception {
-    client.cleanup();
-  }
-
-  /**
-   *
-   */
-  @AfterClass
-  public static void afterClass() {
-    cluster.close();
-
-    try {
-      Thread.sleep(1000);
-    }
-    catch (InterruptedException e) {
-      e.printStackTrace();
-    }
   }
 }

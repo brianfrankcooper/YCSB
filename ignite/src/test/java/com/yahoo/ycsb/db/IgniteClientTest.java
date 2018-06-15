@@ -44,15 +44,12 @@ import static org.hamcrest.Matchers.is;
 /**
  * Integration tests for the Ignite client
  */
-public class IgniteClientTest {
+public class IgniteClientTest extends IgniteClientCommonTest {
   private static final String DEFAULT_CACHE_NAME = "usertable";
   private final static String HOST = "127.0.0.1";
   private final static String PORTS = "47500..47509";
   private final static String SERVER_NODE_NAME = "YCSB Server Node";
   private static TcpDiscoveryIpFinder ipFinder = new TcpDiscoveryVmIpFinder(true);
-
-  private DB client;
-  private static Ignite cluster = null;
 
   @BeforeClass
   public static void beforeTest() {
@@ -206,29 +203,4 @@ public class IgniteClientTest {
     assertThat(sGet, is(Status.NOT_FOUND));
 
   }
-
-  /**
-   *
-   */
-  @After
-  public void tearDown() throws Exception {
-    client.cleanup();
-  }
-
-
-  /**
-   *
-   */
-  @AfterClass
-  public static void afterClass() {
-    cluster.close();
-
-    try {
-      Thread.sleep(1000);
-    }
-    catch (InterruptedException e) {
-      e.printStackTrace();
-    }
-  }
-
 }

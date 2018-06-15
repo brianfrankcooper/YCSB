@@ -34,6 +34,9 @@ import javax.cache.CacheException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Ignite client.
  * <p>
@@ -42,6 +45,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author spuchnin
  */
 public class IgniteSqlClient extends DB {
+  /** */
+  private static Logger log = LoggerFactory.getLogger(IgniteSqlClient.class);
+
   private static final String DEFAULT_CACHE_NAME = "usertable";
   private static final String HOSTS_PROPERTY = "hosts";
   private static final String PORTS_PROPERTY = "ports";
@@ -113,10 +119,10 @@ public class IgniteSqlClient extends DB {
         igcfg.setNetworkTimeout(2000);
         igcfg.setClientMode(true);
 
-        System.out.println("Start Ignite client node.");
+        log.info("Start Ignite client node.");
         cluster = Ignition.start(igcfg);
 
-        System.out.println("Activate Ignite cluster.");
+        log.info("Activate Ignite cluster.");
         cluster.active(true);
 
         cache = cluster.cache(DEFAULT_CACHE_NAME).withKeepBinary();
@@ -202,8 +208,8 @@ public class IgniteSqlClient extends DB {
 
       return Status.OK;
     } catch (Exception e) {
-      System.err.println("Error in processing read from table: " + table);
-      e.printStackTrace(System.err);
+      log.error(String.format("Error in processing read from table: %s", table), e);
+
       return Status.ERROR;
     }
   }
@@ -230,8 +236,8 @@ public class IgniteSqlClient extends DB {
       return Status.OK;
 
     } catch (Exception e) {
-      e.printStackTrace();
-      System.out.println("Error scanning with startkey: " + startkey);
+      log.error(String.format("Error scanning with startkey: %s", startkey), e);
+      
       return Status.ERROR;
     }
 
@@ -272,12 +278,12 @@ public class IgniteSqlClient extends DB {
         return Status.OK;
       } catch (CacheException e) {
         if (!e.getMessage().contains("Failed to update some keys because they had been modified concurrently")) {
-          System.err.println("Error in processing update table: " + table);
+          log.error("Error in processing update table: " + table);
           e.printStackTrace(System.err);
           return Status.ERROR;
         }
       } catch (Exception e) {
-        System.err.println("Error in processing update table: " + table);
+        log.error("Error in processing update table: " + table);
         e.printStackTrace(System.err);
         return Status.ERROR;
       }
@@ -309,7 +315,7 @@ public class IgniteSqlClient extends DB {
 
       return Status.OK;
     } catch (Exception e) {
-      System.err.println("Error in processing insert to table: " + table);
+      log.error("Error in processing insert to table: " + table);
       e.printStackTrace(System.err);
       return Status.ERROR;
     }
@@ -333,7 +339,7 @@ public class IgniteSqlClient extends DB {
       cache.query(qry).getAll();
       return Status.OK;
     } catch (Exception e) {
-      System.err.println("Error in processing read from table: " + table);
+      log.error("Error in processing read from table: " + table);
       e.printStackTrace(System.err);
       return Status.ERROR;
     }
