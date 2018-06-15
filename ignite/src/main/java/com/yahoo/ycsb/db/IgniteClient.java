@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2013-2015 YCSB contributors. All rights reserved.
+ * Copyright (c) 2013-2018 YCSB contributors. All rights reserved.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -13,7 +13,6 @@
  * License for the specific language governing permissions and limitations under
  * the License. See accompanying LICENSE file.
  * <p>
- * Submitted by Chrisjan Matser on 10/11/2010.
  */
 package com.yahoo.ycsb.db;
 
@@ -43,7 +42,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>
  * See {@code ignite/README.md} for details.
  *
- * @author spuchnin
+ * @author Sergey Puchnin
+ * @author Taras Ledkov
  */
 public class IgniteClient extends DB {
   private static final String DEFAULT_CACHE_NAME = "usertable";
@@ -215,9 +215,6 @@ public class IgniteClient extends DB {
   /**
    * Perform a range scan for a set of records in the database. Each field/value
    * pair from the result will be stored in a HashMap.
-   * <p>
-   * Cassandra CQL uses "token" method for range scan which doesn't always yield
-   * intuitive results.
    *
    * @param table       The name of the table
    * @param startkey    The record key of the first record to read.

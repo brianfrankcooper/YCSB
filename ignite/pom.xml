@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
-Copyright (c) 2012-2016 YCSB contributors. All rights reserved.
+Copyright (c) 2012-2018 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -39,10 +39,21 @@ LICENSE file.
   <name>Apache Ignite</name>
   <packaging>jar</packaging>
 
-  <properties>
+  <!--properties-->
     <!-- Skip tests by default. will be activated by jdk8 profile -->
-    <skipTests>true</skipTests>
-  </properties>
+    <!--skipTests>true</skipTests>
+  </properties-->
+  <profiles>
+  <profile>
+    <id>jdk8-tests</id>
+    <activation>
+      <jdk>1.8</jdk>
+    </activation>
+    <properties>
+      <skipTests>true</skipTests>
+    </properties>
+  </profile>
+  </profiles>
 
   <dependencies>
     <dependency>
