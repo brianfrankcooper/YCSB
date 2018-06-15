@@ -29,6 +29,8 @@ import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
+import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -205,5 +207,28 @@ public class IgniteClientTest {
 
   }
 
+  /**
+   *
+   */
+  @After
+  public void tearDown() throws Exception {
+    client.cleanup();
+  }
+
+
+  /**
+   *
+   */
+  @AfterClass
+  public static void afterClass() {
+    cluster.close();
+
+    try {
+      Thread.sleep(1000);
+    }
+    catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+  }
 
 }

@@ -32,10 +32,10 @@ LICENSE file.
   <name>Apache Ignite</name>
   <packaging>jar</packaging>
 
-  <properties>
-    <!-- Skip tests by default. will be activated by jdk8 profile -->
-    <skipTests>true</skipTests>
-  </properties>
+  <!--<properties>-->
+    <!--&lt;!&ndash; Skip tests by default. will be activated by jdk8 profile &ndash;&gt;-->
+    <!--<skipTests>true</skipTests>-->
+  <!--</properties>-->
 
   <dependencies>
     <dependency>
