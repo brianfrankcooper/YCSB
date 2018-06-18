@@ -1,83 +1,384 @@
-package com.yahoo.ycsb.db;
+/*
+ * Copyright (c) 2018 YCSB contributors. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
+ */
 
-import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.DB;
+package com.yahoo.ycsb.db.rocksdb;
+
+import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.Status;
+import net.jcip.annotations.GuardedBy;
+import org.rocksdb.*;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
+import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.file.*;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+/**
+ * RocksDB binding for <a href="http://rocksdb.org/">RocksDB</a>.
+ *
+ * See {@code rocksdb/README.md} for details.
+ */
 public class RocksDBClient extends DB {
 
-  /**
-   * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
-   *
-   * @param table  The name of the table
-   * @param key    The record key of the record to read.
-   * @param fields The list of fields to read, or null for all of them
-   * @param result A HashMap of field/value pairs for the result
-   * @return The result of the operation.
-   */
+  static final String PROPERTY_ROCKSDB_DIR = "rocksdb.dir";
+  private static final String COLUMN_FAMILY_NAMES_FILENAME = "CF_NAMES";
+
+  @GuardedBy("RocksDBClient.class") private static Path rocksDbDir = null;
+  @GuardedBy("RocksDBClient.class") private static RocksObject dbOptions = null;
+  @GuardedBy("RocksDBClient.class") private static RocksDB rocksDb = null;
+  @GuardedBy("RocksDBClient.class") private static int references = 0;
+
+  private static final ConcurrentMap<String, ColumnFamily> COLUMN_FAMILIES = new ConcurrentHashMap<>();
+  private static final ConcurrentMap<String, Lock> COLUMN_FAMILY_LOCKS = new ConcurrentHashMap<>();
+
   @Override
-  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
-    return null;
+  public void init() throws DBException {
+    synchronized(RocksDBClient.class) {
+      if(rocksDb == null) {
+        rocksDbDir = Paths.get(getProperties().getProperty(PROPERTY_ROCKSDB_DIR));
+        System.out.println("RocksDB data dir: " + rocksDbDir);
+
+        try {
+          rocksDb = initRocksDB();
+        } catch (final IOException | RocksDBException e) {
+          throw new DBException(e);
+        }
+      }
+
+      references++;
+    }
   }
 
-  /**
-   * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored
-   * in a HashMap.
-   *
-   * @param table       The name of the table
-   * @param startkey    The record key of the first record to read.
-   * @param recordcount The number of records to read
-   * @param fields      The list of fields to read, or null for all of them
-   * @param result      A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
-   * @return The result of the operation.
-   */
-  @Override
-  public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-    return null;
+  private RocksDB initRocksDB() throws IOException, RocksDBException {
+    if(!Files.exists(rocksDbDir)) {
+      Files.createDirectories(rocksDbDir);
+    }
+
+    final List<String> cfNames = loadColumnFamilyNames();
+    final List<ColumnFamilyOptions> cfOptionss = new ArrayList<>();
+    final List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList<>();
+
+    for(final String cfName : cfNames) {
+      final ColumnFamilyOptions cfOptions = new ColumnFamilyOptions()
+          .optimizeLevelStyleCompaction();
+      final ColumnFamilyDescriptor cfDescriptor = new ColumnFamilyDescriptor(
+          cfName.getBytes(UTF_8),
+          cfOptions
+      );
+      cfOptionss.add(cfOptions);
+      cfDescriptors.add(cfDescriptor);
+    }
+
+    final int rocksThreads = Runtime.getRuntime().availableProcessors() * 2;
+
+    if(cfDescriptors.isEmpty()) {
+      final Options options = new Options()
+          .optimizeLevelStyleCompaction()
+          .setCreateIfMissing(true)
+          .setCreateMissingColumnFamilies(true)
+          .setIncreaseParallelism(rocksThreads)
+          .setMaxBackgroundCompactions(rocksThreads)
+          .setInfoLogLevel(InfoLogLevel.INFO_LEVEL);
+      dbOptions = options;
+      return RocksDB.open(options, rocksDbDir.toAbsolutePath().toString());
+    } else {
+      final DBOptions options = new DBOptions()
+          .setCreateIfMissing(true)
+          .setCreateMissingColumnFamilies(true)
+          .setIncreaseParallelism(rocksThreads)
+          .setMaxBackgroundCompactions(rocksThreads)
+          .setInfoLogLevel(InfoLogLevel.INFO_LEVEL);
+      dbOptions = options;
+
+      final List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
+      final RocksDB db = RocksDB.open(options, rocksDbDir.toAbsolutePath().toString(), cfDescriptors, cfHandles);
+      for(int i = 0; i < cfNames.size(); i++) {
+        COLUMN_FAMILIES.put(cfNames.get(i), new ColumnFamily(cfHandles.get(i), cfOptionss.get(i)));
+      }
+      return db;
+    }
   }
 
-  /**
-   * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the
-   * record with the specified record key, overwriting any existing values with the same field name.
-   *
-   * @param table  The name of the table
-   * @param key    The record key of the record to write.
-   * @param values A HashMap of field/value pairs to update in the record
-   * @return The result of the operation.
-   */
   @Override
-  public Status update(String table, String key, Map<String, ByteIterator> values) {
-    return null;
+  public void cleanup() throws DBException {
+    super.cleanup();
+
+    synchronized (RocksDBClient.class) {
+      try {
+        if (references == 1) {
+          for (final ColumnFamily cf : COLUMN_FAMILIES.values()) {
+            cf.getHandle().close();
+          }
+
+          rocksDb.close();
+          rocksDb = null;
+
+          dbOptions.close();
+          dbOptions = null;
+
+          for (final ColumnFamily cf : COLUMN_FAMILIES.values()) {
+            cf.getOptions().close();
+          }
+          saveColumnFamilyNames();
+          COLUMN_FAMILIES.clear();
+
+          rocksDbDir = null;
+        }
+
+      } catch (final IOException e) {
+        throw new DBException(e);
+      } finally {
+        references--;
+      }
+    }
   }
 
-  /**
-   * Insert a record in the database. Any field/value pairs in the specified values HashMap will be written into the
-   * record with the specified record key.
-   *
-   * @param table  The name of the table
-   * @param key    The record key of the record to insert.
-   * @param values A HashMap of field/value pairs to insert in the record
-   * @return The result of the operation.
-   */
   @Override
-  public Status insert(String table, String key, Map<String, ByteIterator> values) {
-    return null;
+  public Status read(final String table, final String key, final Set<String> fields,
+      final Map<String, ByteIterator> result) {
+    try {
+      if (!COLUMN_FAMILIES.containsKey(table)) {
+        createColumnFamily(table);
+      }
+
+      final ColumnFamilyHandle cf = COLUMN_FAMILIES.get(table).getHandle();
+      final byte[] values = rocksDb.get(cf, key.getBytes(UTF_8));
+      if(values == null) {
+        return Status.NOT_FOUND;
+      }
+      deserializeValues(values, fields, result);
+      return Status.OK;
+    } catch(final RocksDBException e) {
+      e.printStackTrace();
+      return Status.ERROR;
+    }
   }
 
-  /**
-   * Delete a record from the database.
-   *
-   * @param table The name of the table
-   * @param key   The record key of the record to delete.
-   * @return The result of the operation.
-   */
   @Override
-  public Status delete(String table, String key) {
-    return null;
+  public Status scan(final String table, final String startkey, final int recordcount, final Set<String> fields,
+        final Vector<HashMap<String, ByteIterator>> result) {
+    try {
+      if (!COLUMN_FAMILIES.containsKey(table)) {
+        createColumnFamily(table);
+      }
+
+      final ColumnFamilyHandle cf = COLUMN_FAMILIES.get(table).getHandle();
+      try(final RocksIterator iterator = rocksDb.newIterator(cf)) {
+        int iterations = 0;
+        for (iterator.seek(startkey.getBytes(UTF_8)); iterator.isValid() && iterations < recordcount;
+             iterator.next()) {
+          final HashMap<String, ByteIterator> values = new HashMap<>();
+          deserializeValues(iterator.value(), fields, values);
+          result.add(values);
+          iterations++;
+        }
+      }
+
+      return Status.OK;
+    } catch(final RocksDBException e) {
+      e.printStackTrace();
+      return Status.ERROR;
+    }
+  }
+
+  @Override
+  public Status update(final String table, final String key, final Map<String, ByteIterator> values) {
+    //TODO(AR) consider if this would be faster with merge operator
+
+    try {
+      if (!COLUMN_FAMILIES.containsKey(table)) {
+        createColumnFamily(table);
+      }
+
+      final ColumnFamilyHandle cf = COLUMN_FAMILIES.get(table).getHandle();
+      final Map<String, ByteIterator> result = new HashMap<>();
+      final byte[] currentValues = rocksDb.get(cf, key.getBytes(UTF_8));
+      if(currentValues == null) {
+        return Status.NOT_FOUND;
+      }
+      deserializeValues(currentValues, null, result);
+
+      //update
+      result.putAll(values);
+
+      //store
+      rocksDb.put(cf, key.getBytes(UTF_8), serializeValues(result));
+
+      return Status.OK;
+
+    } catch(final RocksDBException | IOException e) {
+      e.printStackTrace();
+      return Status.ERROR;
+    }
+  }
+
+  @Override
+  public Status insert(final String table, final String key, final Map<String, ByteIterator> values) {
+    try {
+      if (!COLUMN_FAMILIES.containsKey(table)) {
+        createColumnFamily(table);
+      }
+
+      final ColumnFamilyHandle cf = COLUMN_FAMILIES.get(table).getHandle();
+      rocksDb.put(cf, key.getBytes(UTF_8), serializeValues(values));
+
+      return Status.OK;
+    } catch(final RocksDBException | IOException e) {
+      e.printStackTrace();
+      return Status.ERROR;
+    }
+  }
+
+  @Override
+  public Status delete(final String table, final String key) {
+    try {
+      if (!COLUMN_FAMILIES.containsKey(table)) {
+        createColumnFamily(table);
+      }
+
+      final ColumnFamilyHandle cf = COLUMN_FAMILIES.get(table).getHandle();
+      rocksDb.delete(cf, key.getBytes(UTF_8));
+
+      return Status.OK;
+    } catch(final RocksDBException e) {
+      e.printStackTrace();
+      return Status.ERROR;
+    }
+  }
+
+  private void saveColumnFamilyNames() throws IOException {
+    final Path file = rocksDbDir.resolve(COLUMN_FAMILY_NAMES_FILENAME);
+    try(final PrintWriter writer = new PrintWriter(Files.newBufferedWriter(file, UTF_8))) {
+      writer.println(new String(RocksDB.DEFAULT_COLUMN_FAMILY, UTF_8));
+      for(final String cfName : COLUMN_FAMILIES.keySet()) {
+        writer.println(cfName);
+      }
+    }
+  }
+
+  private List<String> loadColumnFamilyNames() throws IOException {
+    final List<String> cfNames = new ArrayList<>();
+    final Path file = rocksDbDir.resolve(COLUMN_FAMILY_NAMES_FILENAME);
+    if(Files.exists(file)) {
+      try (final LineNumberReader reader =
+               new LineNumberReader(Files.newBufferedReader(file, UTF_8))) {
+        String line = null;
+        while ((line = reader.readLine()) != null) {
+          cfNames.add(line);
+        }
+      }
+    }
+    return cfNames;
+  }
+
+  private Map<String, ByteIterator> deserializeValues(final byte[] values, final Set<String> fields,
+      final Map<String, ByteIterator> result) {
+    final ByteBuffer buf = ByteBuffer.allocate(4);
+
+    int offset = 0;
+    while(offset < values.length) {
+      buf.put(values, offset, 4);
+      buf.flip();
+      final int keyLen = buf.getInt();
+      buf.clear();
+      offset += 4;
+
+      final String key = new String(values, offset, keyLen);
+      offset += keyLen;
+
+      buf.put(values, offset, 4);
+      buf.flip();
+      final int valueLen = buf.getInt();
+      buf.clear();
+      offset += 4;
+
+      if(fields == null || fields.contains(key)) {
+        result.put(key, new ByteArrayByteIterator(values, offset, valueLen));
+      }
+
+      offset += valueLen;
+    }
+
+    return result;
+  }
+
+  private byte[] serializeValues(final Map<String, ByteIterator> values) throws IOException {
+    try(final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+      final ByteBuffer buf = ByteBuffer.allocate(4);
+
+      for(final Map.Entry<String, ByteIterator> value : values.entrySet()) {
+        final byte[] keyBytes = value.getKey().getBytes(UTF_8);
+        final byte[] valueBytes = value.getValue().toArray();
+
+        buf.putInt(keyBytes.length);
+        baos.write(buf.array());
+        baos.write(keyBytes);
+
+        buf.clear();
+
+        buf.putInt(valueBytes.length);
+        baos.write(buf.array());
+        baos.write(valueBytes);
+
+        buf.clear();
+      }
+      return baos.toByteArray();
+    }
+  }
+
+  private void createColumnFamily(final String name) throws RocksDBException {
+    COLUMN_FAMILY_LOCKS.putIfAbsent(name, new ReentrantLock());
+
+    final Lock l = COLUMN_FAMILY_LOCKS.get(name);
+    l.lock();
+    try {
+      if(!COLUMN_FAMILIES.containsKey(name)) {
+        final ColumnFamilyOptions cfOptions = new ColumnFamilyOptions().optimizeLevelStyleCompaction();
+        final ColumnFamilyHandle cfHandle = rocksDb.createColumnFamily(
+            new ColumnFamilyDescriptor(name.getBytes(UTF_8), cfOptions)
+        );
+        COLUMN_FAMILIES.put(name, new ColumnFamily(cfHandle, cfOptions));
+      }
+    } finally {
+      l.unlock();
+    }
+  }
+
+  private static final class ColumnFamily {
+    private final ColumnFamilyHandle handle;
+    private final ColumnFamilyOptions options;
+
+    private ColumnFamily(final ColumnFamilyHandle handle, final ColumnFamilyOptions options) {
+      this.handle = handle;
+      this.options = options;
+    }
+
+    public ColumnFamilyHandle getHandle() {
+      return handle;
+    }
+
+    public ColumnFamilyOptions getOptions() {
+      return options;
+    }
   }
 }
