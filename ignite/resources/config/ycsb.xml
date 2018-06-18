@@ -48,11 +48,11 @@
                     <bean class="org.apache.ignite.configuration.DataRegionConfiguration">
                         <property name="name" value="default_data_region"/>
                         <property name="persistenceEnabled" value="true"/>
-                        <!-- Setting the max size of the default region to 50GB. -->
-                        <property name="maxSize" value="#{50L * 1024 * 1024 * 1024}"/>
+                        <!-- Setting the max size of the default region to 10GB. -->
+                        <property name="maxSize" value="#{10L * 1024 * 1024 * 1024}"/>
                         <!-- Setting the initial size of the default region to 50GB. -->
-                        <property name="initialSize" value="#{50L * 1024 * 1024 * 1024}"/>
-                        <property name="checkpointPageBufferSize" value="#{2L * 1024 * 1024 * 1024}"/>
+                        <property name="initialSize" value="#{10L * 1024 * 1024 * 1024}"/>
+                        <property name="checkpointPageBufferSize" value="#{1L * 1024 * 1024 * 1024}"/>
                         <property name="metricsEnabled" value="true"/>
                     </bean>
                 </property>
