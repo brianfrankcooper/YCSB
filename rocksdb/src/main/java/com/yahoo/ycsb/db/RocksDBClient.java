@@ -15,7 +15,7 @@
  * LICENSE file.
  */
 
-package com.yahoo.ycsb.db.rocksdb;
+package com.yahoo.ycsb.db;
 
 import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.Status;
