@@ -50,7 +50,7 @@
                         <property name="persistenceEnabled" value="true"/>
                         <!-- Setting the max size of the default region to 10GB. -->
                         <property name="maxSize" value="#{10L * 1024 * 1024 * 1024}"/>
-                        <!-- Setting the initial size of the default region to 50GB. -->
+                        <!-- Setting the initial size of the default region to 10GB. -->
                         <property name="initialSize" value="#{10L * 1024 * 1024 * 1024}"/>
                         <property name="checkpointPageBufferSize" value="#{1L * 1024 * 1024 * 1024}"/>
                         <property name="metricsEnabled" value="true"/>
@@ -69,8 +69,7 @@
                     <property name="backups" value="1"/>
                     <property name="writeSynchronizationMode" value="FULL_SYNC"/>
 
-                    <!-- This part should be used ONLY for work with ignite-sql client-->
-                    <!--<property name="queryEntities">
+                     <property name="queryEntities">
                         <list>
                             <bean class="org.apache.ignite.cache.QueryEntity">
                                 <property name="keyType" value="java.lang.String"/>
@@ -94,7 +93,7 @@
                                 </property>
                             </bean>
                         </list>
-                    </property>-->
+                    </property>
 
                 </bean>
             </list>

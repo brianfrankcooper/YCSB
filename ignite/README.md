@@ -21,6 +21,8 @@ This section describes how to run YCSB on [Apache Ignite](https://ignite.apache.
 
 ### 1. Start Apache Ignite
 
+https://apacheignite-sql.readme.io/docs
+
 See the [Apache Ignite Documentation](https://apacheignite.readme.io/docs/getting-started)
 for details on installing and running Apache Ignite.
 
