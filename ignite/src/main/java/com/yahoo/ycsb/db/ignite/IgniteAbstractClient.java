@@ -5,6 +5,7 @@ import com.yahoo.ycsb.DBException;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.logger.log4j2.Log4J2Logger;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
@@ -111,6 +112,9 @@ public abstract class IgniteAbstractClient extends DB {
 
         cache = cluster.cache(DEFAULT_CACHE_NAME).withKeepBinary();
 
+        if(cache == null) {
+          throw new DBException(new IgniteCheckedException("Failed to find cache " + DEFAULT_CACHE_NAME));
+        }
       } catch (Exception e) {
         throw new DBException(e);
       }
