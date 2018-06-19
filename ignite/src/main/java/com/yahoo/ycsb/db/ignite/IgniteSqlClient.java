@@ -14,24 +14,18 @@
  * the License. See accompanying LICENSE file.
  * <p>
  */
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.ignite;
 
 import com.yahoo.ycsb.*;
-import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteCache;
-import org.apache.ignite.Ignition;
-import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.query.FieldsQueryCursor;
 import org.apache.ignite.cache.query.SqlFieldsQuery;
-import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.internal.util.typedef.F;
-import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
-import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
-import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 
 import javax.cache.CacheException;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Ignite client.
@@ -41,114 +35,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Sergey Puchnin
  * @author Taras Ledkov
  */
-public class IgniteSqlClient extends DB {
-  private static final String DEFAULT_CACHE_NAME = "usertable";
-  private static final String HOSTS_PROPERTY = "hosts";
-  private static final String PORTS_PROPERTY = "ports";
-  private static final String CLIENT_NODE_NAME = "YCSB client node";
-  private static final String PORTS_DEFAULTS = "47500..47509";
+public class IgniteSqlClient extends IgniteAbstractClient {
+  /** */
+  private static Logger log = LogManager.getLogger(IgniteSqlClient.class);
+  /** */
   private static final String PRIMARY_KEY = "YCSB_KEY";
-  /**
-   * Count the number of times initialized to teardown on the last
-   * {@link #cleanup()}.
-   */
-  private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
-  private static Ignite cluster = null;
-  private static IgniteCache<String, BinaryObject> cache = null;
-  private static TcpDiscoveryIpFinder ipFinder = new TcpDiscoveryVmIpFinder(true);
-  private static boolean debug = false;
-
-  /**
-   * Initialize any state for this DB. Called once per DB instance; there is one
-   * DB instance per client thread.
-   */
-  @Override
-  public void init() throws DBException {
-
-    // Keep track of number of calls to init (for later cleanup)
-    INIT_COUNT.incrementAndGet();
-
-    // Synchronized so that we only have a single
-    // cluster/session instance for all the threads.
-    synchronized (INIT_COUNT) {
-
-      // Check if the cluster has already been initialized
-      if (cluster != null) {
-        return;
-      }
-
-      try {
-        debug = Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
-
-        IgniteConfiguration igcfg = new IgniteConfiguration();
-        igcfg.setIgniteInstanceName(CLIENT_NODE_NAME);
-
-        String host = getProperties().getProperty(HOSTS_PROPERTY);
-        if (host == null) {
-          throw new DBException(String.format(
-                    "Required property \"%s\" missing for Ignite Cluster",
-                    HOSTS_PROPERTY));
-        }
-
-        String ports = getProperties().getProperty(PORTS_PROPERTY, PORTS_DEFAULTS);
-
-        if (ports == null) {
-          throw new DBException(String.format(
-                    "Required property \"%s\" missing for Ignite Cluster",
-                    PORTS_PROPERTY));
-
-        }
-
-        System.setProperty("IGNITE_QUIET", "false");
-
-        TcpDiscoverySpi disco = new TcpDiscoverySpi();
-
-        Collection<String> addrs = new LinkedHashSet<>();
-        addrs.add(host + ":" + ports);
-
-        ((TcpDiscoveryVmIpFinder) ipFinder).setAddresses(addrs);
-        disco.setIpFinder(ipFinder);
-
-        igcfg.setDiscoverySpi(disco);
-        igcfg.setNetworkTimeout(2000);
-        igcfg.setClientMode(true);
-
-        System.out.println("Start Ignite client node.");
-        cluster = Ignition.start(igcfg);
-
-        System.out.println("Activate Ignite cluster.");
-        cluster.active(true);
-
-        cache = cluster.cache(DEFAULT_CACHE_NAME).withKeepBinary();
-
-      } catch (Exception e) {
-        throw new DBException(e);
-      }
-    } // synchronized
-  }
-
-  /**
-   * Cleanup any state for this DB. Called once per DB instance; there is one DB
-   * instance per client thread.
-   */
-  @Override
-  public void cleanup() throws DBException {
-    synchronized (INIT_COUNT) {
-      final int curInitCount = INIT_COUNT.decrementAndGet();
-
-      if (curInitCount <= 0) {
-        cluster.close();
-        cluster = null;
-      }
-
-      if (curInitCount < 0) {
-        // This should never happen.
-        throw new DBException(
-                  String.format("initCount is negative: %d", curInitCount));
-      }
-    }
-  }
-
   /**
    * Read a record from the database. Each field/value pair from the result will
    * be stored in a HashMap.
@@ -202,8 +93,8 @@ public class IgniteSqlClient extends DB {
 
       return Status.OK;
     } catch (Exception e) {
-      System.err.println("Error in processing read from table: " + table);
-      e.printStackTrace(System.err);
+      log.error(String.format("Error in processing read from table: %s", table), e);
+
       return Status.ERROR;
     }
   }
@@ -230,8 +121,8 @@ public class IgniteSqlClient extends DB {
       return Status.OK;
 
     } catch (Exception e) {
-      e.printStackTrace();
-      System.out.println("Error scanning with startkey: " + startkey);
+      log.error(String.format("Error scanning with startkey: %s", startkey), e);
+      
       return Status.ERROR;
     }
 
@@ -272,13 +163,13 @@ public class IgniteSqlClient extends DB {
         return Status.OK;
       } catch (CacheException e) {
         if (!e.getMessage().contains("Failed to update some keys because they had been modified concurrently")) {
-          System.err.println("Error in processing update table: " + table);
-          e.printStackTrace(System.err);
+          log.error(String.format("Error in processing update table: %s", table), e);
+
           return Status.ERROR;
         }
       } catch (Exception e) {
-        System.err.println("Error in processing update table: " + table);
-        e.printStackTrace(System.err);
+        log.error(String.format("Error in processing update table: %s", table), e);
+
         return Status.ERROR;
       }
     }
@@ -309,8 +200,8 @@ public class IgniteSqlClient extends DB {
 
       return Status.OK;
     } catch (Exception e) {
-      System.err.println("Error in processing insert to table: " + table);
-      e.printStackTrace(System.err);
+      log.error(String.format("Error in processing insert to table: %s", table), e);
+
       return Status.ERROR;
     }
   }
@@ -333,8 +224,8 @@ public class IgniteSqlClient extends DB {
       cache.query(qry).getAll();
       return Status.OK;
     } catch (Exception e) {
-      System.err.println("Error in processing read from table: " + table);
-      e.printStackTrace(System.err);
+      log.error(String.format("Error in processing read from table: %s", table), e);
+
       return Status.ERROR;
     }
   }

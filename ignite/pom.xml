@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
-Copyright (c) 2012-2018 YCSB contributors. All rights reserved.
+Copyright (c) 2012-2016 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -27,18 +27,19 @@ LICENSE file.
     <version>0.14.0-SNAPSHOT</version>
     <relativePath>../binding-parent</relativePath>
   </parent>
-  
-  <repositories>
-    <repository>
-      <id>GridGain External Repository</id>
-      <url>http://www.gridgainsystems.com/nexus/content/repositories/external</url>
-    </repository>
-  </repositories>
-  
+
   <artifactId>ignite-binding</artifactId>
   <name>Apache Ignite</name>
   <packaging>jar</packaging>
 
+  <properties>
+
+    <slf4jVersion>1.6.1</slf4jVersion>
+
+    <!--&lt;!&ndash; Skip tests by default. will be activated by jdk8 profile &ndash;&gt;-->
+    <!--<skipTests>true</skipTests>-->
+
+  </properties>
   <!--properties-->
     <!-- Skip tests by default. will be activated by jdk8 profile -->
     <!--skipTests>true</skipTests>
@@ -66,6 +67,13 @@ LICENSE file.
       <artifactId>ignite-indexing</artifactId>
       <version>${ignite.version}</version>
     </dependency>
+
+    <dependency>
+      <groupId>org.apache.ignite</groupId>
+      <artifactId>ignite-log4j2</artifactId>
+      <version>${ignite.version}</version>
+    </dependency>
+
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>core</artifactId>
@@ -88,6 +96,18 @@ LICENSE file.
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest-library</artifactId>
       <version>1.3</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-api</artifactId>
+      <version>2.11.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+      <version>2.11.0</version>
     </dependency>
   </dependencies>
 

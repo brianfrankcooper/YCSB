@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Configuration status="INFO">
+    <Appenders>
+        <Console name="CONSOLE" target="SYSTEM_OUT">
+            <PatternLayout pattern="[%d{HH:mm:ss}][%-5p][%t] %m%n"/>
+        </Console>
+
+        <RollingFile name="ROLLING_FILE" fileName="ignite-binding.log"
+                     filePattern="${env:LOG_FILE_NAME}-%i-%d{yyyy-MM-dd}.log.gz">
+            <PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss,SSS}][%-5p][%t] %m%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="2 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="200"/>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <Root level="info">
+            <AppenderRef ref="CONSOLE"/>
+            <AppenderRef ref="ROLLING_FILE"/>
+        </Root>
+    </Loggers>
+</Configuration>
