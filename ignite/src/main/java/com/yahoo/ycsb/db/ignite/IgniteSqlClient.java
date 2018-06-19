@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Logger;
  *
  * @author Sergey Puchnin
  * @author Taras Ledkov
+ * @author Oleg Ostanin
  */
 public class IgniteSqlClient extends IgniteAbstractClient {
   /** */

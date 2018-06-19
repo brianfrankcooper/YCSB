@@ -19,7 +19,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * 
+ * Ignite abstract client.
+ * <p>
+ * See {@code ignite/README.md} for details.
+ *
+ * @author Sergey Puchnin
+ * @author Taras Ledkov
+ * @author Oleg Ostanin
  */
 public abstract class IgniteAbstractClient extends DB {
   /** */
