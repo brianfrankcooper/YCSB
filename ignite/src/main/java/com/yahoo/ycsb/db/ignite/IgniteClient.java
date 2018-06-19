@@ -15,7 +15,7 @@
  * <p>
  * Submitted by Chrisjan Matser on 10/11/2010.
  */
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.ignite;
 
 import com.yahoo.ycsb.*;
 import org.apache.ignite.binary.BinaryField;

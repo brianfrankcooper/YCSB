@@ -1,4 +1,4 @@
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.ignite;
 
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;

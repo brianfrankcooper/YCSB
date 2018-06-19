@@ -15,14 +15,12 @@
  * LICENSE file.
  */
 
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.ignite;
 
 import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.measurements.Measurements;
-import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.cache.QueryEntity;
@@ -32,8 +30,6 @@ import org.apache.ignite.logger.log4j2.Log4J2Logger;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;

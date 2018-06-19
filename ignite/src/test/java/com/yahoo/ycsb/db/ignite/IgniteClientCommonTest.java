@@ -1,4 +1,4 @@
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.ignite;
 
 import com.yahoo.ycsb.DB;
 import org.apache.ignite.Ignite;
