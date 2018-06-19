@@ -32,10 +32,6 @@ LICENSE file.
   <name>Apache Ignite</name>
   <packaging>jar</packaging>
 
-  <properties>
-    <slf4jVersion>1.6.1</slf4jVersion>
-  </properties>
-
   <profiles>
     <profile>
       <id>tests-on-jdk9</id>
