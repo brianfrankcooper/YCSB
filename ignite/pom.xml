@@ -32,6 +32,7 @@ LICENSE file.
   <name>Apache Ignite</name>
   <packaging>jar</packaging>
 
+
   <profiles>
     <profile>
       <id>tests-on-jdk9</id>
@@ -39,7 +40,7 @@ LICENSE file.
         <jdk>1.9</jdk>
       </activation>
       <properties>
-        <skipTests>true</skipTests>
+        <skipJDK9Tests>true</skipJDK9Tests>
       </properties>
     </profile>
   </profiles>
