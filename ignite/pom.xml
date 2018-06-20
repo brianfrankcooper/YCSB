@@ -32,7 +32,7 @@ LICENSE file.
   <name>Apache Ignite</name>
   <packaging>jar</packaging>
 
-  <!--profiles>
+  <profiles>
     <profile>
       <id>tests-on-jdk9</id>
       <activation>
@@ -42,7 +42,7 @@ LICENSE file.
         <skipTests>true</skipTests>
       </properties>
     </profile>
-  </profiles-->
+  </profiles>
 
   <dependencies>
     <dependency>
