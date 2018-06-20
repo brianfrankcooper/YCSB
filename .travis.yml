@@ -29,8 +29,8 @@ addons:
   hostname: myshorthost
 
 install: mvn install -q -DskipTests=true
-install: travis_wait 60 mvn install -q -DskipTests=true
-script: mvn -q test
+
+script: mvn test -q
 
 
 # Services to start for tests.
