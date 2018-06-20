@@ -142,8 +142,8 @@ LICENSE file.
     <module>hbase14</module>
     <module>hbase20</module>
     <module>hypertable</module>
-    <module>infinispan</module>
     <module>ignite</module>
+    <module>infinispan</module>
     <module>jdbc</module>
     <module>kudu</module>
     <!--<module>mapkeeper</module>-->
