@@ -36,7 +36,7 @@ LICENSE file.
     <profile>
       <id>tests-on-jdk9</id>
       <activation>
-        <jdk>1.8</jdk>
+        <jdk>1.9</jdk>
       </activation>
       <properties>
         <skipTests>true</skipTests>

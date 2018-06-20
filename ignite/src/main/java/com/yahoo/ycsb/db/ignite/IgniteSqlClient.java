@@ -101,19 +101,7 @@ public class IgniteSqlClient extends IgniteAbstractClient {
   }
 
   /**
-   * Perform a range scan for a set of records in the database. Each field/value
-   * pair from the result will be stored in a HashMap.
-   * <p>
-   * Cassandra CQL uses "token" method for range scan which doesn't always yield
-   * intuitive results.
-   *
-   * @param table       The name of the table
-   * @param startkey    The record key of the first record to read.
-   * @param recordcount The number of records to read
-   * @param fields      The list of fields to read, or null for all of them
-   * @param result      A Vector of HashMaps, where each HashMap is a set field/value
-   *                    pairs for one record
-   * @return Zero on success, a non-zero error code on error
+      Unsupported operation.
    */
   @Override
   public Status scan(String table, String startkey, int recordcount,
