@@ -17,7 +17,8 @@ LICENSE file.
 
 ## Quick Start
 
-This section describes how to run YCSB on RocksDB running locally.
+This section describes how to run YCSB on RocksDB running locally (within the same JVM).
+NOTE: RocksDB is an embedded database and so articles like [How to run in parallel](https://github.com/brianfrankcooper/YCSB/wiki/Running-a-Workload-in-Parallel) are not applicable here.
 
 ### 1. Set Up YCSB
 
