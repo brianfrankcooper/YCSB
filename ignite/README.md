@@ -32,6 +32,8 @@ Git clone YCSB and compile:
 
 1.2 Start ignite nodes using apache-ignite-fabric-2.5.0-bin/bin/**ignite.sh** ignite.xml
 
+1.3 Copy YCSB/ignite/target/ignite-binding-0.15.0-SNAPSHOT.jar to apache-ignite-fabric-2.5.0-bin/libs
+
 Note: Please use YCSB/ignite/resources/**ignite.xml** for running **IgniteClient** tests and **ignite-sql.xml** for 
 **IgniteSqlClient** tests. Pay attention that some parameters such us **storagePath**, ****_walPath_****, ****_walArchivePath_**** 
 should be overwritten by certain pathes. Also please add ip addresses of your host inside the bean **TcpDiscoveryVmIpFinder**
