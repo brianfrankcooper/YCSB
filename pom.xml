@@ -79,6 +79,7 @@ LICENSE file.
     <cloudspanner.version>0.24.0-beta</cloudspanner.version>
     <couchbase.version>1.4.10</couchbase.version>
     <couchbase2.version>2.3.1</couchbase2.version>
+    <crail.version>1.0</crail.version>
     <elasticsearch5-version>5.5.1</elasticsearch5-version>
     <geode.version>1.2.0</geode.version>
     <googlebigtable.version>1.3.0</googlebigtable.version>
@@ -126,6 +127,7 @@ LICENSE file.
     <module>cloudspanner</module>
     <module>couchbase</module>
     <module>couchbase2</module>
+    <module>crail</module>
     <module>dynamodb</module>
     <module>elasticsearch</module>
     <module>elasticsearch5</module>
