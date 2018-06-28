@@ -36,18 +36,6 @@ LICENSE file.
     <skipJDK9Tests>true</skipJDK9Tests>
   </properties>
 
-  <!--<profiles>
-    <profile>
-      <id>tests-on-jdk9</id>
-      <activation>
-        <jdk>1.9</jdk>
-      </activation>
-      <properties>
-        <skipJDK9Tests>true</skipJDK9Tests>
-      </properties>
-    </profile>
-  </profiles>-->
-
   <dependencies>
     <dependency>
       <groupId>org.apache.ignite</groupId>
