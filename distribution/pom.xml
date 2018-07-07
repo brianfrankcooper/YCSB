@@ -166,6 +166,11 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>ignite-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
       <artifactId>infinispan-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -182,6 +187,16 @@ LICENSE file.
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>memcached-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+        <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>maprdb-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+        <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>maprjsondb-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
