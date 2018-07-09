@@ -75,6 +75,10 @@ Then, run the workload:
 
 See the next section for the list of configuration parameters for ArangoDB.
 
+### 5. Run against ArangoDB 3.0 and previews versions
+
+Running YCSB on ArangoDB in version 3.0 or previews versions requires to use HTTP as network protocol. Since VST (VelcoyStream) is the default used protocol one have to set the configuration parameter `arangodb.protocol` to `HTTP_JSON`. For more infos take a look into the official [ArangoDB Java Driver Docs](https://github.com/arangodb/arangodb-java-driver/blob/master/docs/Drivers/Java/Reference/README.md#network-protocol). 
+
 ## ArangoDB Configuration Parameters
 
 - `arangodb.ip`
@@ -82,7 +86,10 @@ See the next section for the list of configuration parameters for ArangoDB.
 
 - `arangodb.port`
   - Default value is `8529`.
-  
+
+- `arangodb.protocol`
+  - Default value is 'VST'
+
 - `arangodb.waitForSync`
   - Default value is `true`.
   
