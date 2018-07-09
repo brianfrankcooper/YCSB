@@ -57,6 +57,7 @@ DATABASES = {
     "accumulo1.8"     : "com.yahoo.ycsb.db.accumulo.AccumuloClient",
     "aerospike"    : "com.yahoo.ycsb.db.AerospikeClient",
     "arangodb"     : "com.yahoo.ycsb.db.arangodb.ArangoDBClient",
+    "arangodb3"     : "com.yahoo.ycsb.db.arangodb.ArangoDBClient",
     "asynchbase"   : "com.yahoo.ycsb.db.AsyncHBaseClient",
     "azuredocumentdb"   : "com.yahoo.ycsb.db.azuredocumentdb.AzureDocumentDBClient",
     "azuretablestorage" : "com.yahoo.ycsb.db.azuretablestorage.AzureClient",
@@ -284,6 +285,12 @@ def main():
         warn("The 'hbase10' client has been deprecated because HBase 1.0 "
              "is EOM. If you are using HBase 1.2+ try using the 'hbase12' "
              "client instead.")
+
+    if binding == "arangodb3":
+        warn("The 'arangodb3' client has been deprecated. The binding 'arangodb' "
+             "now covers every ArangoDB version. This alias will be removed "
+             "in the next YCSB release.")
+        binding = "arangodb"
 
     if is_distribution():
         db_dir = os.path.join(ycsb_home, binding + "-binding")

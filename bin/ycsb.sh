@@ -158,6 +158,14 @@ YCSB release."
   BINDING_DIR="cassandra"
 fi
 
+# arangodb3 deprecation message
+if [ "${BINDING_DIR}" = "arangodb3" ] ; then
+  echo "[WARN] The 'arangodb3' client has been deprecated. The binding 'arangodb' \
+now covers every ArangoDB version. This alias will be removed \
+in the next YCSB release."
+  BINDING_DIR="arangodb"
+fi
+
 # Build classpath
 #   The "if" check after the "for" is because glob may just return the pattern
 #   when no files are found.  The "if" makes sure the file is really there.
