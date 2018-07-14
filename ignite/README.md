@@ -51,7 +51,7 @@ Load the data:
          > outputload.txt
 Note: '10.0.0.1' is ip address of one of hosts where was started Apache Ignite nodes.
 
-Run the workload test with IgniteClient:
+Run the workload test with ignite:
 
     .bin/ycsb run ignite -p hosts="10.0.0.1"
          -s -P workloads/workloada \
@@ -60,7 +60,7 @@ Run the workload test with IgniteClient:
          -p recordcount=100000 \
           > outputload.txt
 
-Run the workload test with IgniteSqlClient:
+Run the workload test with ignite-sql:
 
     .bin/ycsb run ignite-sql -p hosts="10.0.0.1"
          -s -P workloads/workloada \
