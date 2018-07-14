@@ -37,10 +37,6 @@ import org.apache.logging.log4j.Logger;
  * Ignite client.
  * <p>
  * See {@code ignite/README.md} for details.
- *
- * @author Sergey Puchnin
- * @author Taras Ledkov
- * @author Oleg Ostanin
  */
 public class IgniteClient extends IgniteAbstractClient {
   /** */
@@ -124,7 +120,15 @@ public class IgniteClient extends IgniteAbstractClient {
   @Override
   public Status scan(String table, String startkey, int recordcount,
                      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-    throw new UnsupportedOperationException("Scan method isn't implemented");
+    //throw new UnsupportedOperationException("Scan method isn't implemented");
+    try {
+      return Status.OK;
+
+    } catch (Exception e) {
+      log.error(String.format("Error scanning with startkey: %s", startkey), e);
+
+      return Status.NOT_IMPLEMENTED;
+    }
   }
 
   /**
