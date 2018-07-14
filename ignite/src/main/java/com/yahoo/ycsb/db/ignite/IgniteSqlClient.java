@@ -31,10 +31,6 @@ import org.apache.logging.log4j.Logger;
  * Ignite client.
  * <p>
  * See {@code ignite/README.md} for details.
- *
- * @author Sergey Puchnin
- * @author Taras Ledkov
- * @author Oleg Ostanin
  */
 public class IgniteSqlClient extends IgniteAbstractClient {
   /** */
@@ -112,7 +108,7 @@ public class IgniteSqlClient extends IgniteAbstractClient {
     } catch (Exception e) {
       log.error(String.format("Error scanning with startkey: %s", startkey), e);
 
-      return Status.ERROR;
+      return Status.NOT_IMPLEMENTED;
     }
 
   }
