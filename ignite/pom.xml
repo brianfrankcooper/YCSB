@@ -41,6 +41,8 @@ LICENSE file.
 
   <properties>
     <skipJDK9Tests>true</skipJDK9Tests>
+    <skipJDK10Tests>true</skipJDK10Tests>
+    <skipJDK11Tests>true</skipJDK11Tests>
   </properties>
 
   <dependencies>
