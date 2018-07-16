@@ -189,6 +189,16 @@ LICENSE file.
       <artifactId>memcached-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
+        <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>maprdb-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+        <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>maprjsondb-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>maprdb-binding</artifactId>
