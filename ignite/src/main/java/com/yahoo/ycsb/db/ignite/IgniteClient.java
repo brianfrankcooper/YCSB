@@ -120,7 +120,6 @@ public class IgniteClient extends IgniteAbstractClient {
   @Override
   public Status scan(String table, String startkey, int recordcount,
                      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-    //throw new UnsupportedOperationException("Scan method isn't implemented");
     try {
       return Status.OK;
 

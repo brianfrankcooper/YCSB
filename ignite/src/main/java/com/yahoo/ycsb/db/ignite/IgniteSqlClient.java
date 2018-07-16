@@ -107,7 +107,7 @@ public class IgniteSqlClient extends IgniteAbstractClient {
 
     } catch (Exception e) {
       log.error(String.format("Error scanning with startkey: %s", startkey), e);
-      
+
       return Status.NOT_IMPLEMENTED;
     }
 

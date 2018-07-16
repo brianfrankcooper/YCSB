@@ -17,7 +17,7 @@ LICENSE file.
 
 ## Quick Start
 
-This section describes how to run YCSB on [Apache Ignite](https://ignite.apache.org). 
+This section describes how to run YCSB on [Apache Ignite](https://ignite.apache.org).
 
 ### 1. Set Up YCSB
 
@@ -34,8 +34,8 @@ Git clone YCSB and compile:
 
 1.3 Copy YCSB/ignite/target/ignite-binding-0.15.0-SNAPSHOT.jar to apache-ignite-fabric-2.5.0-bin/libs
 
-Note: Please use YCSB/ignite/resources/**ignite.xml** for running **IgniteClient** tests and **ignite-sql.xml** for 
-**IgniteSqlClient** tests. Pay attention that some parameters such us **storagePath**, ****_walPath_****, ****_walArchivePath_**** 
+Note: Please use YCSB/ignite/resources/**ignite.xml** for running **IgniteClient** tests and **ignite-sql.xml** for
+**IgniteSqlClient** tests. Pay attention that some parameters such us **storagePath**, ****_walPath_****, ****_walArchivePath_****
 should be overwritten by certain pathes. Also please add ip addresses of your host inside the bean **TcpDiscoveryVmIpFinder**
 
 More information about Apache Ignite WAL (Write Ahead Log): https://apacheignite.readme.io/docs/write-ahead-log
@@ -43,28 +43,28 @@ More information about Apache Ignite WAL (Write Ahead Log): https://apacheignite
 
 Load the data:
 
-    .bin/ycsb load ignite -p hosts="10.0.0.1" 
+    .bin/ycsb load ignite -p hosts="10.0.0.1"
         -s -P workloads/workloada \
         -threads 4 \
-        -p operationcount=100000 \ 
-        -p recordcount=100000 \ 
-         > outputload.txt 
+        -p operationcount=100000 \
+        -p recordcount=100000 \
+         > outputload.txt
 Note: '10.0.0.1' is ip address of one of hosts where was started Apache Ignite nodes.
 
-Run the workload test with ignite client:
+Run the workload test with ignite:
 
-    .bin/ycsb run ignite -p hosts="10.0.0.1" 
+    .bin/ycsb run ignite -p hosts="10.0.0.1"
          -s -P workloads/workloada \
          -threads 4 \
-         -p operationcount=100000 \ 
-         -p recordcount=100000 \ 
+         -p operationcount=100000 \
+         -p recordcount=100000 \
           > outputload.txt
 
-Run the workload test with ignite-sql client:
+Run the workload test with ignite-sql:
 
-    .bin/ycsb run ignite-sql -p hosts="10.0.0.1" 
+    .bin/ycsb run ignite-sql -p hosts="10.0.0.1"
          -s -P workloads/workloada \
          -threads 4 \
-         -p operationcount=100000 \ 
-         -p recordcount=100000 \ 
+         -p operationcount=100000 \
+         -p recordcount=100000 \
           > outputload.txt

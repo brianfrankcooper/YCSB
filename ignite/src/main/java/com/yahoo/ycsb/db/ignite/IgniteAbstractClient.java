@@ -39,12 +39,11 @@ import org.apache.logging.log4j.Logger;
  * Ignite abstract client.
  * <p>
  * See {@code ignite/README.md} for details.
- *
  */
 public abstract class IgniteAbstractClient extends DB {
   /** */
   protected static Logger log = LogManager.getLogger(IgniteAbstractClient.class);
-  
+
   protected static final String DEFAULT_CACHE_NAME = "usertable";
   protected static final String HOSTS_PROPERTY = "hosts";
   protected static final String PORTS_PROPERTY = "ports";
