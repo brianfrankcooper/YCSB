@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
+<!-- 
 Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -22,34 +22,30 @@ LICENSE file.
     <groupId>com.yahoo.ycsb</groupId>
     <artifactId>binding-parent</artifactId>
     <version>0.15.0-SNAPSHOT</version>
-    <relativePath>../binding-parent/</relativePath>
+    <relativePath>../binding-parent</relativePath>
   </parent>
 
-  <artifactId>hbase10-binding</artifactId>
-  <name>HBase 1.0 DB Binding</name>
+  <artifactId>foundationdb-binding</artifactId>
+  <name>FoundationDB Binding</name>
 
+  <packaging>jar</packaging>
   <properties>
+    <!-- Tests do not run on jdk9,10,11 -->
     <skipJDK9Tests>true</skipJDK9Tests>
     <skipJDK10Tests>true</skipJDK10Tests>
     <skipJDK11Tests>true</skipJDK11Tests>
   </properties>
   <dependencies>
     <dependency>
-      <groupId>org.apache.hbase</groupId>
-      <artifactId>hbase-client</artifactId>
-      <version>${hbase10.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>jdk.tools</groupId>
-          <artifactId>jdk.tools</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.foundationdb</groupId>
+      <artifactId>fdb-java</artifactId>
+      <version>${foundationdb.version}</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -58,16 +54,9 @@ LICENSE file.
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.hbase</groupId>
-      <artifactId>hbase-testing-util</artifactId>
-      <version>${hbase10.version}</version>
-      <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>jdk.tools</groupId>
-          <artifactId>jdk.tools</artifactId>
-        </exclusion>
-      </exclusions>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+      <version>1.7.10</version>
     </dependency>
   </dependencies>
 </project>

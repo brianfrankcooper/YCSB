@@ -32,8 +32,9 @@ LICENSE file.
   <packaging>jar</packaging>
 
   <properties>
-    <!-- Skip tests by default. will be activated by jdk8 profile -->
-    <skipTests>true</skipTests>
+    <skipJDK9Tests>true</skipJDK9Tests>
+    <skipJDK10Tests>true</skipJDK10Tests>
+    <skipJDK11Tests>true</skipJDK11Tests>
   </properties>
 
   <dependencies>

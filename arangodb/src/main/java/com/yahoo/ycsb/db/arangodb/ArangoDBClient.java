@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2012 - 2015 YCSB contributors. All rights reserved.
+ * Copyright (c) 2017 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -14,36 +14,37 @@
  * permissions and limitations under the License. See accompanying
  * LICENSE file.
  */
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.arangodb;
 
-import com.arangodb.ArangoConfigure;
-import com.arangodb.ArangoDriver;
-import com.arangodb.ArangoException;
-import com.arangodb.ArangoHost;
-import com.arangodb.DocumentCursor;
-import com.arangodb.ErrorNums;
-import com.arangodb.entity.BaseDocument;
-import com.arangodb.entity.DocumentEntity;
-import com.arangodb.entity.EntityFactory;
-import com.arangodb.entity.TransactionEntity;
-import com.arangodb.util.MapBuilder;
-
-import com.yahoo.ycsb.DB;
-import com.yahoo.ycsb.Status;
-import com.yahoo.ycsb.DBException;
-import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.StringByteIterator;
-
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.arangodb.ArangoCursor;
+import com.arangodb.ArangoDB;
+import com.arangodb.ArangoDBException;
+import com.arangodb.Protocol;
+import com.arangodb.entity.BaseDocument;
+import com.arangodb.model.DocumentCreateOptions;
+import com.arangodb.model.TransactionOptions;
+import com.arangodb.util.MapBuilder;
+import com.arangodb.velocypack.VPackBuilder;
+import com.arangodb.velocypack.VPackSlice;
+import com.arangodb.velocypack.ValueType;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.DB;
+import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
+import com.yahoo.ycsb.StringByteIterator;
 
 /**
  * ArangoDB binding for YCSB framework using the ArangoDB Inc. <a
@@ -60,21 +61,18 @@ public class ArangoDBClient extends DB {
   private static Logger logger = LoggerFactory.getLogger(ArangoDBClient.class);
   
   /**
-   * The database name to access.
-   */
-  private static String databaseName = "ycsb";
-
-  /**
    * Count the number of times initialized to teardown on the last
    * {@link #cleanup()}.
    */
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
   /** ArangoDB Driver related, Singleton. */
-  private static ArangoDriver arangoDriver;
-  private static Boolean dropDBBeforeRun;
-  private static Boolean waitForSync = true;
-  private static Boolean transactionUpdate = false;
+  private ArangoDB arangoDB;
+  private String databaseName = "ycsb";
+  private String collectionName;
+  private Boolean dropDBBeforeRun;
+  private Boolean waitForSync = false;
+  private Boolean transactionUpdate = false;
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is
@@ -85,18 +83,19 @@ public class ArangoDBClient extends DB {
    */
   @Override
   public void init() throws DBException {
-    INIT_COUNT.incrementAndGet();
     synchronized (ArangoDBClient.class) {
-      if (arangoDriver != null) {
-        return;
-      }
-
       Properties props = getProperties();
+
+      collectionName = props.getProperty("table", "usertable");
 
       // Set the DB address
       String ip = props.getProperty("arangodb.ip", "localhost");
       String portStr = props.getProperty("arangodb.port", "8529");
       int port = Integer.parseInt(portStr);
+
+      // Set network protocol
+      String protocolStr = props.getProperty("arangodb.protocol", "VST");
+      Protocol protocol = Protocol.valueOf(protocolStr);
 
       // If clear db before run
       String dropDBBeforeRunStr = props.getProperty("arangodb.dropDBBeforeRun", "false");
@@ -112,48 +111,41 @@ public class ArangoDBClient extends DB {
       
       // Init ArangoDB connection
       try {
-        ArangoConfigure arangoConfigure = new ArangoConfigure();
-        arangoConfigure.setArangoHost(new ArangoHost(ip, port));
-        arangoConfigure.init();
-        arangoDriver = new ArangoDriver(arangoConfigure);
+        arangoDB = new ArangoDB.Builder().host(ip).port(port).useProtocol(protocol).build();
       } catch (Exception e) {
         logger.error("Failed to initialize ArangoDB", e);
         System.exit(-1);
       }
 
-      // Init the database
-      if (dropDBBeforeRun) {
-        // Try delete first
-        try {
-          arangoDriver.deleteDatabase(databaseName);
-        } catch (ArangoException e) {
-          if (e.getErrorNumber() != ErrorNums.ERROR_ARANGO_DATABASE_NOT_FOUND) {
-            logger.error("Failed to delete database: {} with ex: {}", databaseName, e.toString());
-            System.exit(-1);
-          } else {
-            logger.info("Fail to delete DB, already deleted: {}", databaseName);
+      if(INIT_COUNT.getAndIncrement() == 0) {
+        // Init the database
+        if (dropDBBeforeRun) {
+          // Try delete first
+          try {
+            arangoDB.db(databaseName).drop();
+          } catch (ArangoDBException e) {
+            logger.info("Fail to delete DB: {}", databaseName);
           }
         }
-      }
-      try {
-        arangoDriver.createDatabase(databaseName);
-        logger.info("Database created: " + databaseName);
-      } catch (ArangoException e) {
-        if (e.getErrorNumber() != ErrorNums.ERROR_ARANGO_DUPLICATE_NAME) {
+        try {
+          arangoDB.createDatabase(databaseName);
+          logger.info("Database created: " + databaseName);
+        } catch (ArangoDBException e) {
           logger.error("Failed to create database: {} with ex: {}", databaseName, e.toString());
-          System.exit(-1);
-        } else {
-          logger.info("DB already exists: {}", databaseName);
         }
+        try {
+          arangoDB.db(databaseName).createCollection(collectionName);
+          logger.info("Collection created: " + collectionName);
+        } catch (ArangoDBException e) {
+          logger.error("Failed to create collection: {} with ex: {}", collectionName, e.toString());
+        }
+        logger.info("ArangoDB client connection created to {}:{}", ip, port);
+
+        // Log the configuration
+        logger.info("Arango Configuration: dropDBBeforeRun: {}; address: {}:{}; databaseName: {};"
+                    + " waitForSync: {}; transactionUpdate: {};",
+                    dropDBBeforeRun, ip, port, databaseName, waitForSync, transactionUpdate);
       }
-      // Always set the default db
-      arangoDriver.setDefaultDatabase(databaseName);
-      logger.info("ArangoDB client connection created to {}:{}", ip, port);
-      
-      // Log the configuration
-      logger.info("Arango Configuration: dropDBBeforeRun: {}; address: {}:{}; databaseName: {};"
-                  + " waitForSync: {}; transactionUpdate: {};",
-                  dropDBBeforeRun, ip, port, databaseName, waitForSync, transactionUpdate);
     }
   }
 
@@ -167,7 +159,8 @@ public class ArangoDBClient extends DB {
   @Override
   public void cleanup() throws DBException {
     if (INIT_COUNT.decrementAndGet() == 0) {
-      arangoDriver = null;
+      arangoDB.shutdown();
+      arangoDB = null;
       logger.info("Local cleaned up.");
     }
   }
@@ -193,17 +186,10 @@ public class ArangoDBClient extends DB {
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
         toInsert.addAttribute(entry.getKey(), byteIteratorToString(entry.getValue()));
       }
-      arangoDriver.createDocument(table, toInsert, true/*create collection if not exist*/,
-                                  waitForSync);
+      DocumentCreateOptions options = new DocumentCreateOptions().waitForSync(waitForSync);
+      arangoDB.db(databaseName).collection(table).insertDocument(toInsert, options);
       return Status.OK;
-    } catch (ArangoException e) {
-      if (e.getErrorNumber() != ErrorNums.ERROR_ARANGO_UNIQUE_CONSTRAINT_VIOLATED) {
-        logger.error("Fail to insert: {} {} with ex {}", table, key, e.toString());
-      } else {
-        logger.debug("Trying to create document with duplicate key: {} {}", table, key);
-        return Status.BAD_REQUEST;
-      }
-    }  catch (RuntimeException e) {
+    } catch (ArangoDBException e) {
       logger.error("Exception while trying insert {} {} with ex {}", table, key, e.toString());
     }
     return Status.ERROR;
@@ -223,24 +209,15 @@ public class ArangoDBClient extends DB {
    *      A HashMap of field/value pairs for the result
    * @return Zero on success, a non-zero error code on error or "not found".
    */
-  @SuppressWarnings("unchecked")
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try {
-      DocumentEntity<BaseDocument> targetDoc = arangoDriver.getDocument(table, key, BaseDocument.class);
-      BaseDocument aDocument = targetDoc.getEntity();
-      if (!this.fillMap(result, aDocument.getProperties(), fields)) {
+      VPackSlice document = arangoDB.db(databaseName).collection(table).getDocument(key, VPackSlice.class, null);
+      if (!this.fillMap(result, document, fields)) {
         return Status.ERROR;
       }
       return Status.OK;
-    } catch (ArangoException e) {
-      if (e.getErrorNumber() != ErrorNums.ERROR_ARANGO_DOCUMENT_NOT_FOUND) {
-        logger.error("Fail to read: {} {} with ex {}", table, key, e.toString());
-      } else {
-        logger.debug("Trying to read document not exist: {} {}", table, key);
-        return Status.NOT_FOUND;
-      }
-    } catch (RuntimeException e) {
+    } catch (ArangoDBException e) {
       logger.error("Exception while trying read {} {} with ex {}", table, key, e.toString());
     }
     return Status.ERROR;
@@ -263,13 +240,12 @@ public class ArangoDBClient extends DB {
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
     try {
-      
       if (!transactionUpdate) {
         BaseDocument updateDoc = new BaseDocument();
-        for (String field : values.keySet()) {
-          updateDoc.addAttribute(field, byteIteratorToString(values.get(field)));
+        for (Entry<String, ByteIterator> field : values.entrySet()) {
+          updateDoc.addAttribute(field.getKey(), byteIteratorToString(field.getValue()));
         }
-        arangoDriver.updateDocument(table, key, updateDoc);
+        arangoDB.db(databaseName).collection(table).updateDocument(key, updateDoc);
         return Status.OK;
       } else {
         // id for documentHandle
@@ -279,20 +255,13 @@ public class ArangoDBClient extends DB {
               // collection.update(document, data, overwrite, keepNull, waitForSync)
             + String.format("db._update(id, %s, true, false, %s);}",
                 mapToJson(values), Boolean.toString(waitForSync).toLowerCase());
-        TransactionEntity transaction = arangoDriver.createTransaction(transactionAction);
-        transaction.addWriteCollection(table);
-        transaction.setParams(createDocumentHandle(table, key));
-        arangoDriver.executeTransaction(transaction);
+        TransactionOptions options = new TransactionOptions();
+        options.writeCollections(table);
+        options.params(createDocumentHandle(table, key));
+        arangoDB.db(databaseName).transaction(transactionAction, Void.class, options);
         return Status.OK;
       }
-    } catch (ArangoException e) {
-      if (e.getErrorNumber() != ErrorNums.ERROR_ARANGO_DOCUMENT_NOT_FOUND) {
-        logger.error("Fail to update: {} {} with ex {}", table, key, e.toString());
-      } else {
-        logger.debug("Trying to update document not exist: {} {}", table, key);
-        return Status.NOT_FOUND;
-      }
-    } catch (RuntimeException e) {
+    } catch (ArangoDBException e) {
       logger.error("Exception while trying update {} {} with ex {}", table, key, e.toString());
     }
     return Status.ERROR;
@@ -311,16 +280,9 @@ public class ArangoDBClient extends DB {
   @Override
   public Status delete(String table, String key) {
     try {
-      arangoDriver.deleteDocument(table, key);
+      arangoDB.db(databaseName).collection(table).deleteDocument(key);
       return Status.OK;
-    } catch (ArangoException e) {
-      if (e.getErrorNumber() != ErrorNums.ERROR_ARANGO_DOCUMENT_NOT_FOUND) {
-        logger.error("Fail to delete: {} {} with ex {}", table, key, e.toString());
-      } else {
-        logger.debug("Trying to delete document not exist: {} {}", table, key);
-        return Status.NOT_FOUND;
-      }
-    } catch (RuntimeException e) {
+    } catch (ArangoDBException e) {
       logger.error("Exception while trying delete {} {} with ex {}", table, key, e.toString());
     }
     return Status.ERROR;
@@ -347,19 +309,18 @@ public class ArangoDBClient extends DB {
   @Override
   public Status scan(String table, String startkey, int recordcount, Set<String> fields,
       Vector<HashMap<String, ByteIterator>> result) {
-    DocumentCursor<BaseDocument> cursor = null;
+    ArangoCursor<VPackSlice> cursor = null;
     try {
       String aqlQuery = String.format(
           "FOR target IN %s FILTER target._key >= @key SORT target._key ASC LIMIT %d RETURN %s ", table,
           recordcount, constructReturnForAQL(fields, "target"));
 
       Map<String, Object> bindVars = new MapBuilder().put("key", startkey).get();
-      cursor = arangoDriver.executeDocumentQuery(aqlQuery, bindVars, null, BaseDocument.class);
-      Iterator<BaseDocument> iterator = cursor.entityIterator();
-      while (iterator.hasNext()) {
-        BaseDocument aDocument = iterator.next();
-        HashMap<String, ByteIterator> aMap = new HashMap<String, ByteIterator>(aDocument.getProperties().size());
-        if (!this.fillMap(aMap, aDocument.getProperties())) {
+      cursor = arangoDB.db(databaseName).query(aqlQuery, bindVars, null, VPackSlice.class);
+      while (cursor.hasNext()) {
+        VPackSlice aDocument = cursor.next();
+        HashMap<String, ByteIterator> aMap = new HashMap<String, ByteIterator>(aDocument.size());
+        if (!this.fillMap(aMap, aDocument)) {
           return Status.ERROR;
         }
         result.add(aMap);
@@ -371,7 +332,7 @@ public class ArangoDBClient extends DB {
       if (cursor != null) {
         try {
           cursor.close();
-        } catch (ArangoException e) {
+        } catch (IOException e) {
           logger.error("Fail to close cursor", e);
         }
       }
@@ -379,14 +340,14 @@ public class ArangoDBClient extends DB {
     return Status.ERROR;
   }
 
-  private String createDocumentHandle(String collectionName, String documentKey) throws ArangoException {
-    validateCollectionName(collectionName);
-    return collectionName + "/" + documentKey;
+  private String createDocumentHandle(String collection, String documentKey) throws ArangoDBException {
+    validateCollectionName(collection);
+    return collection + "/" + documentKey;
   }
 
-  private void validateCollectionName(String name) throws ArangoException {
+  private void validateCollectionName(String name) throws ArangoDBException {
     if (name.indexOf('/') != -1) {
-      throw new ArangoException("does not allow '/' in name.");
+      throw new ArangoDBException("does not allow '/' in name.");
     }
   }
 
@@ -407,8 +368,8 @@ public class ArangoDBClient extends DB {
     return resultDes;
   }
   
-  private boolean fillMap(Map<String, ByteIterator> resultMap, Map<String, Object> properties) {
-    return fillMap(resultMap, properties, null);
+  private boolean fillMap(Map<String, ByteIterator> resultMap, VPackSlice document) {
+    return fillMap(resultMap, document, null);
   }
   
   /**
@@ -416,30 +377,33 @@ public class ArangoDBClient extends DB {
    * 
    * @param resultMap
    *      The map to fill/
-   * @param obj
-   *      The object to copy values from.
+   * @param document
+   *      The record to read from
+   * @param fields
+   *      The list of fields to read, or null for all of them
    * @return isSuccess
    */
-  @SuppressWarnings("unchecked")
-  private boolean fillMap(Map<String, ByteIterator> resultMap, Map<String, Object> properties, Set<String> fields) {
+  private boolean fillMap(Map<String, ByteIterator> resultMap, VPackSlice document, Set<String> fields) {
     if (fields == null || fields.size() == 0) {
-      for (Map.Entry<String, Object> entry : properties.entrySet()) {
-        if (entry.getValue() instanceof String) {
-          resultMap.put(entry.getKey(),
-              stringToByteIterator((String)(entry.getValue())));
-        } else {
+      for (Iterator<Entry<String, VPackSlice>> iterator = document.objectIterator(); iterator.hasNext();) {
+        Entry<String, VPackSlice> next = iterator.next();
+        VPackSlice value = next.getValue();
+        if (value.isString()) {
+          resultMap.put(next.getKey(), stringToByteIterator(value.getAsString()));
+        } else if (!value.isCustom()) {
           logger.error("Error! Not the format expected! Actually is {}",
-              entry.getValue().getClass().getName());
+              value.getClass().getName());
           return false;
         }
       }
     } else {
       for (String field : fields) {
-        if (properties.get(field) instanceof String) {
-          resultMap.put(field, stringToByteIterator((String)(properties.get(field))));
-        } else {
+        VPackSlice value = document.get(field);
+        if (value.isString()) {
+          resultMap.put(field, stringToByteIterator(value.getAsString()));
+        } else if (!value.isCustom()) {
           logger.error("Error! Not the format expected! Actually is {}",
-              properties.get(field).getClass().getName());
+              value.getClass().getName());
           return false;
         }
       }
@@ -456,11 +420,12 @@ public class ArangoDBClient extends DB {
   }
   
   private String mapToJson(Map<String, ByteIterator> values) {
-    Map<String, String> intervalRst = new HashMap<String, String>();
+    VPackBuilder builder = new VPackBuilder().add(ValueType.OBJECT);
     for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-      intervalRst.put(entry.getKey(), byteIteratorToString(entry.getValue()));
+      builder.add(entry.getKey(), byteIteratorToString(entry.getValue()));
     }
-    return EntityFactory.toJsonString(intervalRst);
+    builder.close();
+    return arangoDB.util().deserialize(builder.slice(), String.class);
   }
   
 }

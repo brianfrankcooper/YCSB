@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-Copyright (c) 2012 - 2017 YCSB contributors. All rights reserved.
+Copyright (c) 2012 - 2018 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -70,8 +70,7 @@ LICENSE file.
     <accumulo.1.7.version>1.7.4</accumulo.1.7.version>
     <accumulo.1.8.version>1.9.1</accumulo.1.8.version>
     <aerospike.version>3.1.2</aerospike.version>
-    <arangodb.version>2.7.3</arangodb.version>
-    <arangodb3.version>4.1.7</arangodb3.version>
+    <arangodb.version>4.4.1</arangodb.version>
     <asynchbase.version>1.7.1</asynchbase.version>
     <azuredocumentdb.version>1.8.1</azuredocumentdb.version>
     <azurestorage.version>4.0.0</azurestorage.version>
@@ -80,6 +79,7 @@ LICENSE file.
     <couchbase.version>1.4.10</couchbase.version>
     <couchbase2.version>2.3.1</couchbase2.version>
     <elasticsearch5-version>5.5.1</elasticsearch5-version>
+    <foundationdb.version>5.2.5</foundationdb.version>
     <geode.version>1.2.0</geode.version>
     <googlebigtable.version>1.3.0</googlebigtable.version>
     <hbase098.version>0.98.14-hadoop2</hbase098.version>
@@ -100,6 +100,7 @@ LICENSE file.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <redis.version>2.9.0</redis.version>
     <riak.version>2.0.5</riak.version>
+    <rocksdb.version>5.11.3</rocksdb.version>
     <s3.version>1.10.20</s3.version>
     <solr.version>5.5.3</solr.version>
     <solr6.version>6.4.1</solr6.version>
@@ -119,7 +120,6 @@ LICENSE file.
     <module>accumulo1.8</module>
     <module>aerospike</module>
     <module>arangodb</module>
-    <module>arangodb3</module>
     <module>asynchbase</module>
     <module>azuredocumentdb</module>
     <module>azuretablestorage</module>
@@ -130,6 +130,7 @@ LICENSE file.
     <module>dynamodb</module>
     <module>elasticsearch</module>
     <module>elasticsearch5</module>
+    <module>foundationdb</module>
     <module>geode</module>
     <module>googlebigtable</module>
     <module>googledatastore</module>
@@ -154,6 +155,7 @@ LICENSE file.
     <module>redis</module>
     <module>rest</module>
     <module>riak</module>
+    <module>rocksdb</module>
     <module>s3</module>
     <module>solr</module>
     <module>solr6</module>

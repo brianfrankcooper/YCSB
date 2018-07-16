@@ -158,6 +158,14 @@ YCSB release."
   BINDING_DIR="cassandra"
 fi
 
+# arangodb3 deprecation message
+if [ "${BINDING_DIR}" = "arangodb3" ] ; then
+  echo "[WARN] The 'arangodb3' client has been deprecated. The binding 'arangodb' \
+now covers every ArangoDB version. This alias will be removed \
+in the next YCSB release."
+  BINDING_DIR="arangodb"
+fi
+
 # Build classpath
 #   The "if" check after the "for" is because glob may just return the pattern
 #   when no files are found.  The "if" makes sure the file is really there.
@@ -184,28 +192,31 @@ if $DISTRIBUTION; then
 # Source checkout
 else
   # Check for some basic libraries to see if the source has been built.
-  for f in "$YCSB_HOME"/"$BINDING_DIR"/target/*.jar ; do
-
+  if ! ls "$YCSB_HOME"/core/target/*.jar 1> /dev/null 2>&1 || \
+     ! ls "$YCSB_HOME"/"$BINDING_DIR"/target/*.jar 1>/dev/null 2>&1; then
     # Call mvn to build source checkout.
-    if [ ! -e "$f" ] ; then
-      if [ "$BINDING_NAME" = "basic" ] ; then
-        MVN_PROJECT=core
-      else
-        MVN_PROJECT="$BINDING_DIR"-binding
-      fi
-
-      echo "[WARN] YCSB libraries not found.  Attempting to build..."
-      mvn -pl com.yahoo.ycsb:"$MVN_PROJECT" -am package -DskipTests
-      if [ "$?" -ne 0 ] ; then
-        echo "[ERROR] Error trying to build project. Exiting."
-        exit 1;
-      fi
+    if [ "$BINDING_NAME" = "basic" ] ; then
+      MVN_PROJECT=core
+    else
+      MVN_PROJECT="$BINDING_DIR"-binding
     fi
 
-  done
+    echo "[WARN] YCSB libraries not found.  Attempting to build..."
+    if mvn -Psource-run -pl com.yahoo.ycsb:"$MVN_PROJECT" -am package -DskipTests; then
+      echo "[ERROR] Error trying to build project. Exiting."
+      exit 1;
+    fi
+  fi
 
   # Core libraries
   for f in "$YCSB_HOME"/core/target/*.jar ; do
+    if [ -r "$f" ] ; then
+      CLASSPATH="$CLASSPATH:$f"
+    fi
+  done
+
+  # Core dependency libraries
+  for f in "$YCSB_HOME"/core/target/dependency/*.jar ; do
     if [ -r "$f" ] ; then
       CLASSPATH="$CLASSPATH:$f"
     fi
@@ -216,7 +227,6 @@ else
   if [ "x$CLASSPATH_CONF" != "x" ]; then
     CLASSPATH="$CLASSPATH$CLASSPATH_CONF"
   fi
-
 
   # Database libraries
   for f in "$YCSB_HOME"/"$BINDING_DIR"/target/*.jar ; do

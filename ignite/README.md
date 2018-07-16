@@ -51,6 +51,7 @@ Load the data:
          > outputload.txt
 Note: '10.0.0.1' is ip address of one of hosts where was started Apache Ignite nodes.
 
+
 Run the workload test with ignite:
 
     .bin/ycsb run ignite -p hosts="10.0.0.1"

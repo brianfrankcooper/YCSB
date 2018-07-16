@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
+Copyright (c) 2017 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -22,28 +22,18 @@ LICENSE file.
     <groupId>com.yahoo.ycsb</groupId>
     <artifactId>binding-parent</artifactId>
     <version>0.15.0-SNAPSHOT</version>
-    <relativePath>../binding-parent/</relativePath>
+    <relativePath>../binding-parent</relativePath>
   </parent>
 
-  <artifactId>hbase10-binding</artifactId>
-  <name>HBase 1.0 DB Binding</name>
+  <artifactId>rocksdb-binding</artifactId>
+  <name>RocksDB Java Binding</name>
+  <packaging>jar</packaging>
 
-  <properties>
-    <skipJDK9Tests>true</skipJDK9Tests>
-    <skipJDK10Tests>true</skipJDK10Tests>
-    <skipJDK11Tests>true</skipJDK11Tests>
-  </properties>
   <dependencies>
     <dependency>
-      <groupId>org.apache.hbase</groupId>
-      <artifactId>hbase-client</artifactId>
-      <version>${hbase10.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>jdk.tools</groupId>
-          <artifactId>jdk.tools</artifactId>
-        </exclusion>
-      </exclusions>
+      <groupId>org.rocksdb</groupId>
+      <artifactId>rocksdbjni</artifactId>
+      <version>${rocksdb.version}</version>
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
@@ -52,22 +42,27 @@ LICENSE file.
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>net.jcip</groupId>
+      <artifactId>jcip-annotations</artifactId>
+      <version>1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>1.7.25</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>1.7.25</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>4.12</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.apache.hbase</groupId>
-      <artifactId>hbase-testing-util</artifactId>
-      <version>${hbase10.version}</version>
-      <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>jdk.tools</groupId>
-          <artifactId>jdk.tools</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
+
   </dependencies>
 </project>
