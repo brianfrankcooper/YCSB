@@ -99,7 +99,7 @@ public class CoreWorkload extends Workload {
    */
   public static final String FIELD_NAME_TITLES_DEFAULT = "0";
 
-  public static String fieldnametitles;
+  private String fieldnametitles;
   
   /**
    * The name of the property for the field length distribution. Options are "uniform", "zipfian"
@@ -399,17 +399,17 @@ public class CoreWorkload extends Workload {
         Long.parseLong(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
     fieldnametitles = p.getProperty(FIELD_NAME_TITLES, FIELD_NAME_TITLES_DEFAULT);
     if (fieldnametitles == "0") {
-        fieldnames = new ArrayList<>();
-        for (int i = 0; i < fieldcount; i++) {
-            fieldnames.add("field" + i);
-        }
+      fieldnames = new ArrayList<>();
+      for (int i = 0; i < fieldcount; i++) {
+        fieldnames.add("field" + i);
+      }
     } else {
-        fieldnames = new ArrayList<>(Arrays.asList(FIELD_NAME_TITLES.split(",")));
-        int fieldcountadj = fieldcount - fieldnames.size();
-        for (int i = 0; i < fieldcountadj; i++) {
-            fieldnames.add("field" + i);
-        }
-	  }
+      fieldnames = new ArrayList<>(Arrays.asList(FIELD_NAME_TITLES.split(",")));
+      int fieldcountadj = fieldcount - fieldnames.size();
+      for (int i = 0; i < fieldcountadj; i++) {
+        fieldnames.add("field" + i);
+      }
+    }
     fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
 
     recordcount =
