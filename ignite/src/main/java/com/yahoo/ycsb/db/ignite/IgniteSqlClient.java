@@ -97,23 +97,6 @@ public class IgniteSqlClient extends IgniteAbstractClient {
   }
 
   /**
-      Unsupported operation.
-   */
-  @Override
-  public Status scan(String table, String startkey, int recordcount,
-                     Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-    try {
-      return Status.OK;
-
-    } catch (Exception e) {
-      log.error(String.format("Error scanning with startkey: %s", startkey), e);
-
-      return Status.NOT_IMPLEMENTED;
-    }
-
-  }
-
-  /**
    * Update a record in the database. Any field/value pairs in the specified
    * values HashMap will be written into the record with the specified record
    * key, overwriting any existing values with the same field name.

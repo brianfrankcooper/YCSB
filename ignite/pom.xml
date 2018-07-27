@@ -28,13 +28,6 @@ LICENSE file.
     <relativePath>../binding-parent</relativePath>
   </parent>
 
-  <repositories>
-    <repository>
-      <id>GridGain External Repository</id>
-      <url>http://www.gridgainsystems.com/nexus/content/repositories/external</url>
-    </repository>
-  </repositories>
-
   <artifactId>ignite-binding</artifactId>
   <name>Apache Ignite</name>
   <packaging>jar</packaging>

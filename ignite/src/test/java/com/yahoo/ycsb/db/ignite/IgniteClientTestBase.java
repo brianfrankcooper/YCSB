@@ -17,15 +17,26 @@
 
 package com.yahoo.ycsb.db.ignite;
 
+import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
+import com.yahoo.ycsb.Status;
+import com.yahoo.ycsb.StringByteIterator;
 import org.apache.ignite.Ignite;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Test;
+
+import java.util.*;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 /**
  * Common test class.
  */
-public class IgniteClientCommonTest {
+public class IgniteClientTestBase {
+  protected static final String DEFAULT_CACHE_NAME = "usertable";
+
   /** */
   protected static Ignite cluster;
 
@@ -53,5 +64,20 @@ public class IgniteClientCommonTest {
     catch (InterruptedException e) {
       e.printStackTrace();
     }
+  }
+
+  @Test
+  public void scanNotImplemented() {
+    cluster.cache(DEFAULT_CACHE_NAME).clear();
+    final String key = "key";
+    final Map<String, String> input = new HashMap<>();
+    input.put("field0", "value1");
+    input.put("field1", "value2");
+    final Status status = client.insert(DEFAULT_CACHE_NAME, key, StringByteIterator.getByteIteratorMap(input));
+    assertThat(status, is(Status.OK));
+    assertThat(cluster.cache(DEFAULT_CACHE_NAME).size(), is(1));
+    final Vector<HashMap<String, ByteIterator>> results = new Vector<>();
+    final Status scan = client.scan(DEFAULT_CACHE_NAME, key, 1, null, results);
+    assertThat(scan, is(Status.NOT_IMPLEMENTED));
   }
 }
