@@ -42,8 +42,7 @@ import static org.hamcrest.Matchers.is;
 /**
  * Integration tests for the Ignite client
  */
-public class IgniteClientTest extends IgniteClientCommonTest {
-  private static final String DEFAULT_CACHE_NAME = "usertable";
+public class IgniteClientTest extends IgniteClientTestBase {
   private final static String HOST = "127.0.0.1";
   private final static String PORTS = "47500..47509";
   private final static String SERVER_NODE_NAME = "YCSB Server Node";

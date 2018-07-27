@@ -17,10 +17,15 @@
 
 package com.yahoo.ycsb.db.ignite;
 
+import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.Status;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.logger.log4j2.Log4J2Logger;
@@ -160,5 +165,11 @@ public abstract class IgniteAbstractClient extends DB {
             String.format("initCount is negative: %d", curInitCount));
       }
     }
+  }
+
+  @Override
+  public Status scan(String table, String startkey, int recordcount,
+                     Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    return Status.NOT_IMPLEMENTED;
   }
 }
