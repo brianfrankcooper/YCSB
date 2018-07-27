@@ -398,7 +398,7 @@ public class CoreWorkload extends Workload {
     fieldcount =
         Long.parseLong(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
     fieldnametitles = p.getProperty(FIELD_NAME_TITLES, FIELD_NAME_TITLES_DEFAULT);
-    if (fieldnametitles == "0") {
+    if (fieldnametitles.equals("0")) {
       fieldnames = new ArrayList<>();
       for (int i = 0; i < fieldcount; i++) {
         fieldnames.add("field" + i);
