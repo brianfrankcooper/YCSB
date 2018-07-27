@@ -70,6 +70,9 @@ Controls the number of seconds between status reports and therefore between HdrH
 * -p basicdb.randomizedelay=[true|false] (default=true)
 Controls weather the delay simulated by the mock DB is uniformly random or not.
 
+* -p fieldnametitles=[title1,title2,title3] (default=0)
+Adds ability to customize any number of field titles, will still only run tests on number set in fieldcount.
+
 Further suggestions:
 
 1. Correction load control: currently after a pause the load generator will do

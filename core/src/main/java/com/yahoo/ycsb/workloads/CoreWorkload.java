@@ -34,6 +34,7 @@ import java.util.*;
  * <UL>
  * <LI><b>fieldcount</b>: the number of fields in a record (default: 10)
  * <LI><b>fieldlength</b>: the size of each field (default: 100)
+ * <LI><b>fieldnametitles</b>: comma separated custom field titles (default: 0)
  * <LI><b>minfieldlength</b>: the minimum size of each field (default: 1)
  * <LI><b>readallfields</b>: should reads read all fields (true) or just one (false) (default: true)
  * <LI><b>writeallfields</b>: should updates and read/modify/writes update all fields (true) or just
@@ -88,6 +89,18 @@ public class CoreWorkload extends Workload {
   
   private List<String> fieldnames;
 
+  /**
+   * A comma seperated list of custom field titles.
+   */
+  public static final String FIELD_NAME_TITLES = "fieldnametitles";
+
+  /**
+   * The default will use the standard field names.
+   */
+  public static final String FIELD_NAME_TITLES_DEFAULT = "0";
+
+  private String fieldnametitles;
+  
   /**
    * The name of the property for the field length distribution. Options are "uniform", "zipfian"
    * (favouring short records), "constant", and "histogram".
@@ -384,9 +397,18 @@ public class CoreWorkload extends Workload {
 
     fieldcount =
         Long.parseLong(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
-    fieldnames = new ArrayList<>();
-    for (int i = 0; i < fieldcount; i++) {
-      fieldnames.add("field" + i);
+    fieldnametitles = p.getProperty(FIELD_NAME_TITLES, FIELD_NAME_TITLES_DEFAULT);
+    if (fieldnametitles.equals("0")) {
+      fieldnames = new ArrayList<>();
+      for (int i = 0; i < fieldcount; i++) {
+        fieldnames.add("field" + i);
+      }
+    } else {
+      fieldnames = new ArrayList<>(Arrays.asList(FIELD_NAME_TITLES.split(",")));
+      int fieldcountadj = fieldcount - (int) fieldnames.size();
+      for (int i = 0; i < fieldcountadj; i++) {
+        fieldnames.add("field" + i);
+      }
     }
     fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
 
