@@ -405,7 +405,7 @@ public class CoreWorkload extends Workload {
       }
     } else {
       fieldnames = new ArrayList<>(Arrays.asList(FIELD_NAME_TITLES.split(",")));
-      int fieldcountadj = fieldcount - fieldnames.size();
+      int fieldcountadj = fieldcount - (int) fieldnames.size();
       for (int i = 0; i < fieldcountadj; i++) {
         fieldnames.add("field" + i);
       }
