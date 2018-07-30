@@ -88,6 +88,18 @@ public class CoreWorkload extends Workload {
   
   private List<String> fieldnames;
 
+    /**
+   * A comma seperated list of custom field titles.
+   */
+  public static final String FIELD_NAME_TITLES = "fieldnametitles";
+
+  /**
+   * The default will use the standard field names.
+   */
+  public static final String FIELD_NAME_TITLES_DEFAULT = "0";
+
+  private String fieldnametitles;
+  
   /**
    * The name of the property for the field length distribution. Options are "uniform", "zipfian"
    * (favouring short records), "constant", and "histogram".
@@ -128,7 +140,7 @@ public class CoreWorkload extends Workload {
    * used if fieldlengthdistribution is "histogram").
    */
   public static final String FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY = "fieldlengthhistogram";
-
+flint-dominic/YCSB
   /**
    * The default filename containing a field length histogram.
    */
@@ -384,9 +396,18 @@ public class CoreWorkload extends Workload {
 
     fieldcount =
         Long.parseLong(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
-    fieldnames = new ArrayList<>();
-    for (int i = 0; i < fieldcount; i++) {
-      fieldnames.add("field" + i);
+    fieldnametitles = p.getProperty(FIELD_NAME_TITLES, FIELD_NAME_TITLES_DEFAULT);
+    if (fieldnametitles.equals("0")) {
+      fieldnames = new ArrayList<>();
+      for (int i = 0; i < fieldcount; i++) {
+        fieldnames.add("field" + i);
+      }
+    } else {
+      fieldnames = new ArrayList<>(Arrays.asList(FIELD_NAME_TITLES.split(",")));
+      long fieldcountadj = fieldcount - fieldnames.size();
+      for (int i = 0; i < fieldcountadj; i++) {
+        fieldnames.add("field" + i);
+      }
     }
     fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
 
