@@ -140,7 +140,7 @@ public class CoreWorkload extends Workload {
    * used if fieldlengthdistribution is "histogram").
    */
   public static final String FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY = "fieldlengthhistogram";
-flint-dominic/YCSB
+    
   /**
    * The default filename containing a field length histogram.
    */
