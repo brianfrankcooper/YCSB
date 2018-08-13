@@ -35,8 +35,8 @@ Git clone YCSB and compile:
     cp YCSB/ignite/resources/ignite.xml path/to/apache-ignite-fabric-**ignite_version**-bin
     cp YCSB/ignite/resources/ignite-sql.xml path/to/apache-ignite-fabric-**ignite_version**-bin
 
-NOTE: Pay attention that some parameters such us **storagePath**, ****_walPath_****, ****_walArchivePath_****
-     should be overwritten by certain pathes. Also please add ip addresses of your host(s) inside the bean **TcpDiscoveryVmIpFinder**
+NOTE: Pay attention that some parameters such us ****_storagePath_****, ****_walPath_****, ****_walArchivePath_****
+     should be overwritten by certain pathes. Also please add ip addresses of your host(s) inside the bean ****_TcpDiscoveryVmIpFinder_****
 
 1.3 Copy ignite-binding-**YCSB version**-SNAPSHOT.jar to Ignite libs: 
     
