@@ -93,7 +93,7 @@ LICENSE file.
     <kudu.version>1.6.0</kudu.version>
     <maprhbase.version>1.1.8-mapr-1710</maprhbase.version>
     <!--<mapkeeper.version>1.0</mapkeeper.version>-->
-    <mongodb.version>3.6.3</mongodb.version>
+    <mongodb.version>3.8.0</mongodb.version>
     <mongodb.async.version>2.0.1</mongodb.async.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
     <orientdb.version>2.2.10</orientdb.version>
