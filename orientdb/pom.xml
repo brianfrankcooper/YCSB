@@ -21,7 +21,7 @@ LICENSE file.
   <parent>
     <groupId>com.yahoo.ycsb</groupId>
     <artifactId>binding-parent</artifactId>
-    <version>0.15.0-SNAPSHOT</version>
+    <version>0.16.0-SNAPSHOT</version>
     <relativePath>../binding-parent</relativePath>
   </parent>
 
@@ -36,8 +36,9 @@ LICENSE file.
     </repository>
   </repositories>
   <properties>
-    <!-- Tests do not run on jdk9 -->
     <skipJDK9Tests>true</skipJDK9Tests>
+    <skipJDK10Tests>true</skipJDK10Tests>
+    <skipJDK11Tests>true</skipJDK11Tests>
   </properties>
   <dependencies>
     <dependency>

@@ -21,7 +21,7 @@ LICENSE file.
   <parent>
     <groupId>com.yahoo.ycsb</groupId>
     <artifactId>root</artifactId>
-    <version>0.15.0-SNAPSHOT</version>
+    <version>0.16.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>ycsb</artifactId>
@@ -62,11 +62,6 @@ LICENSE file.
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>arangodb-binding</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>arangodb3-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -121,6 +116,11 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>foundationdb-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
       <artifactId>geode-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -162,6 +162,11 @@ LICENSE file.
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>hypertable-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>ignite-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

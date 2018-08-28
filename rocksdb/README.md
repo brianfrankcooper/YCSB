@@ -17,8 +17,8 @@ LICENSE file.
 
 ## Quick Start
 
-This section describes how to run YCSB on RocksDB running locally.
-
+This section describes how to run YCSB on RocksDB running locally (within the same JVM).
+NOTE: RocksDB is an embedded database and so articles like [How to run in parallel](https://github.com/brianfrankcooper/YCSB/wiki/Running-a-Workload-in-Parallel) are not applicable here.
 
 ### 1. Set Up YCSB
 
@@ -27,7 +27,6 @@ Clone the YCSB git repository and compile:
     git clone https://github.com/brianfrankcooper/YCSB.git
     cd YCSB
     mvn clean package
-
 
 ### 2. Run YCSB
 
@@ -39,10 +38,8 @@ Then, run the workload:
 
     ./bin/ycsb run rocksdb -s -P workloads/workloada -p rocksdb.dir=/tmp/ycsb-rocksdb-data
 
-
 ## RocksDB Configuration Parameters
 
 * ```rocksdb.dir``` - (required) A path to a folder to hold the RocksDB data files.
     * EX. ```/tmp/ycsb-rocksdb-data```
 
-* Since RocksDB is always embedded and so things like [How to run in parallel](https://github.com/brianfrankcooper/YCSB/wiki/Running-a-Workload-in-Parallel) don't make sense to do in this case.

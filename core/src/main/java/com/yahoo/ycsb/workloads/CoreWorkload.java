@@ -34,6 +34,7 @@ import java.util.*;
  * <UL>
  * <LI><b>fieldcount</b>: the number of fields in a record (default: 10)
  * <LI><b>fieldlength</b>: the size of each field (default: 100)
+ * <LI><b>minfieldlength</b>: the minimum size of each field (default: 1)
  * <LI><b>readallfields</b>: should reads read all fields (true) or just one (false) (default: true)
  * <LI><b>writeallfields</b>: should updates and read/modify/writes update all fields (true) or just
  * one (false) (default: false)
@@ -45,6 +46,7 @@ import java.util.*;
  * modify it, write it back (default: 0)
  * <LI><b>requestdistribution</b>: what distribution should be used to select the records to operate
  * on - uniform, zipfian, hotspot, sequential, exponential or latest (default: uniform)
+ * <LI><b>minscanlength</b>: for scans, what is the minimum number of records to scan (default: 1)
  * <LI><b>maxscanlength</b>: for scans, what is the maximum number of records to scan (default: 1000)
  * <LI><b>scanlengthdistribution</b>: for scans, what distribution should be used to choose the
  * number of records to scan, for each scan, between 1 and maxscanlength (default: uniform)
@@ -110,6 +112,16 @@ public class CoreWorkload extends Workload {
    * The default maximum length of a field in bytes.
    */
   public static final String FIELD_LENGTH_PROPERTY_DEFAULT = "100";
+
+  /**
+   * The name of the property for the minimum length of a field in bytes.
+   */
+  public static final String MIN_FIELD_LENGTH_PROPERTY = "minfieldlength";
+
+  /**
+   * The default minimum length of a field in bytes.
+   */
+  public static final String MIN_FIELD_LENGTH_PROPERTY_DEFAULT = "1";
 
   /**
    * The name of a property that specifies the filename containing the field length histogram (only
@@ -245,6 +257,16 @@ public class CoreWorkload extends Workload {
 
 
   /**
+   * The name of the property for the min scan length (number of records).
+   */
+  public static final String MIN_SCAN_LENGTH_PROPERTY = "minscanlength";
+
+  /**
+   * The default min scan length.
+   */
+  public static final String MIN_SCAN_LENGTH_PROPERTY_DEFAULT = "1";
+
+  /**
    * The name of the property for the max scan length (number of records).
    */
   public static final String MAX_SCAN_LENGTH_PROPERTY = "maxscanlength";
@@ -328,14 +350,16 @@ public class CoreWorkload extends Workload {
         FIELD_LENGTH_DISTRIBUTION_PROPERTY, FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
     int fieldlength =
         Integer.parseInt(p.getProperty(FIELD_LENGTH_PROPERTY, FIELD_LENGTH_PROPERTY_DEFAULT));
+    int minfieldlength =
+        Integer.parseInt(p.getProperty(MIN_FIELD_LENGTH_PROPERTY, MIN_FIELD_LENGTH_PROPERTY_DEFAULT));
     String fieldlengthhistogram = p.getProperty(
         FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY, FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY_DEFAULT);
     if (fieldlengthdistribution.compareTo("constant") == 0) {
       fieldlengthgenerator = new ConstantIntegerGenerator(fieldlength);
     } else if (fieldlengthdistribution.compareTo("uniform") == 0) {
-      fieldlengthgenerator = new UniformLongGenerator(1, fieldlength);
+      fieldlengthgenerator = new UniformLongGenerator(minfieldlength, fieldlength);
     } else if (fieldlengthdistribution.compareTo("zipfian") == 0) {
-      fieldlengthgenerator = new ZipfianGenerator(1, fieldlength);
+      fieldlengthgenerator = new ZipfianGenerator(minfieldlength, fieldlength);
     } else if (fieldlengthdistribution.compareTo("histogram") == 0) {
       try {
         fieldlengthgenerator = new HistogramGenerator(fieldlengthhistogram);
@@ -373,6 +397,8 @@ public class CoreWorkload extends Workload {
     }
     String requestdistrib =
         p.getProperty(REQUEST_DISTRIBUTION_PROPERTY, REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
+    int minscanlength =
+        Integer.parseInt(p.getProperty(MIN_SCAN_LENGTH_PROPERTY, MIN_SCAN_LENGTH_PROPERTY_DEFAULT));
     int maxscanlength =
         Integer.parseInt(p.getProperty(MAX_SCAN_LENGTH_PROPERTY, MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
     String scanlengthdistrib =
@@ -461,9 +487,9 @@ public class CoreWorkload extends Workload {
     fieldchooser = new UniformLongGenerator(0, fieldcount - 1);
 
     if (scanlengthdistrib.compareTo("uniform") == 0) {
-      scanlength = new UniformLongGenerator(1, maxscanlength);
+      scanlength = new UniformLongGenerator(minscanlength, maxscanlength);
     } else if (scanlengthdistrib.compareTo("zipfian") == 0) {
-      scanlength = new ZipfianGenerator(1, maxscanlength);
+      scanlength = new ZipfianGenerator(minscanlength, maxscanlength);
     } else {
       throw new WorkloadException(
           "Distribution \"" + scanlengthdistrib + "\" not allowed for scan length");

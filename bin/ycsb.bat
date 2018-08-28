@@ -134,6 +134,14 @@ echo [WARN] The 'cassandra2-cql' client has been deprecated. It has been renamed
 SET BINDING_DIR=cassandra
 :notAliasCassandra
 
+@REM arangodb3 deprecation message
+IF NOT "%BINDING_DIR%" == "arangodb3" GOTO notAliasArangodb3
+echo [WARN] The 'arangodb3' client has been deprecated. The binding 'arangodb' now covers every ArangoDB version. This alias will be removed in the next YCSB release.
+SET BINDING_DIR=arangodb
+:notAliasArangodb3
+
+@REM Build classpath according to source checkout or release distribution
+IF EXIST "%YCSB_HOME%\pom.xml" GOTO gotSource
 @REM Build classpath according to source checkout or release distribution
 IF EXIST "%YCSB_HOME%\pom.xml" GOTO gotSource
 

@@ -21,7 +21,7 @@ LICENSE file.
   <parent>
     <groupId>com.yahoo.ycsb</groupId>
     <artifactId>binding-parent</artifactId>
-    <version>0.15.0-SNAPSHOT</version>
+    <version>0.16.0-SNAPSHOT</version>
     <relativePath>../binding-parent/</relativePath>
   </parent>
 
@@ -29,8 +29,10 @@ LICENSE file.
   <name>HBase 1.2 DB Binding</name>
 
   <properties>
-    <!-- Tests do not run on jdk9 -->
     <skipJDK9Tests>true</skipJDK9Tests>
+    <skipJDK10Tests>true</skipJDK10Tests>
+    <skipJDK11Tests>true</skipJDK11Tests>
+
     <!-- Tests can't run without a shaded hbase testing util.
          See HBASE-15666, which blocks us.
          For now, we rely on the HBase 1.0 binding and manual testing.
