@@ -100,7 +100,7 @@ LICENSE file.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <redis.version>2.9.0</redis.version>
     <riak.version>2.0.5</riak.version>
-    <rocksdb.version>5.14.3</rocksdb.version>
+    <rocksdb.version>5.14.2</rocksdb.version>
     <s3.version>1.10.20</s3.version>
     <solr.version>5.5.3</solr.version>
     <solr6.version>6.4.1</solr6.version>
