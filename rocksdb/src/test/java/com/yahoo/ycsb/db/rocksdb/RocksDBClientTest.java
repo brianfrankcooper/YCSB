@@ -40,6 +40,7 @@ public class RocksDBClientTest {
   private static final int NUM_RECORDS = 10;
 
   private static final Map<String, ByteIterator> MOCK_DATA;
+
   static {
     MOCK_DATA = new HashMap<>(NUM_RECORDS);
     for (int i = 0; i < NUM_RECORDS; i++) {
