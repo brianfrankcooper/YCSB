@@ -135,12 +135,14 @@ public class CloudSpannerClient extends DB {
 
   private static void constructStandardQueriesAndFields(Properties properties) {
     String table = properties.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
+    final String fieldprefix = properties.getProperty(CoreWorkload.FIELD_NAME_PREFIX,
+                                                      CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
     standardQuery = new StringBuilder()
         .append("SELECT * FROM ").append(table).append(" WHERE id=@key").toString();
     standardScan = new StringBuilder()
         .append("SELECT * FROM ").append(table).append(" WHERE id>=@startKey LIMIT @count").toString();
     for (int i = 0; i < fieldCount; i++) {
-      STANDARD_FIELDS.add("field" + i);
+      STANDARD_FIELDS.add(fieldprefix + i);
     }
   }
 
