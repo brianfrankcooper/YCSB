@@ -92,6 +92,7 @@ DATABASES = {
     "maprjsondb"   : "com.yahoo.ycsb.db.mapr.MapRJSONDBClient",
     "mongodb"      : "com.yahoo.ycsb.db.MongoDbClient",
     "mongodb-async": "com.yahoo.ycsb.db.AsyncMongoDbClient",
+    "mysqljson"	   : "com.yahoo.ycsb.db.JdbcDBClient",
     "nosqldb"      : "com.yahoo.ycsb.db.NoSqlDbClient",
     "orientdb"     : "com.yahoo.ycsb.db.OrientDBClient",
     "rados"        : "com.yahoo.ycsb.db.RadosClient",
