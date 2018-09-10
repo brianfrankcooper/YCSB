@@ -82,7 +82,7 @@ LICENSE file.
     <cassandra.cql.version>3.0.0</cassandra.cql.version>
     <cloudspanner.version>0.24.0-beta</cloudspanner.version>
     <couchbase.version>1.4.10</couchbase.version>
-    <couchbase2.version>2.5.5</couchbase2.version>
+    <couchbase2.version>2.6.2</couchbase2.version>
     <elasticsearch5-version>5.5.1</elasticsearch5-version>
     <geode.version>1.2.0</geode.version>
     <googlebigtable.version>0.9.7</googlebigtable.version>
