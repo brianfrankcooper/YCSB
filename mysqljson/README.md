@@ -35,31 +35,20 @@ The expected table schema will look similar to the following, syntactical differ
 ```sql
 CREATE TABLE usertable (
 	YCSB_KEY VARCHAR(255) PRIMARY KEY,
-	FIELD0 TEXT, FIELD1 TEXT,
-	FIELD2 TEXT, FIELD3 TEXT,
-	FIELD4 TEXT, FIELD5 TEXT,
-	FIELD6 TEXT, FIELD7 TEXT,
-	FIELD8 TEXT, FIELD9 TEXT
+	FIELD0 JSON
 );
 ```
 
 Key take aways:
 
 * The primary key field needs to be named YCSB_KEY
-* The other fields need to be prefixed with FIELD and count up starting from 1
-* Add the same number of FIELDs as you specify in the YCSB core properties, default is 10.
+* FIELD0 will be a JSON object holding key value pairs.
+* The number of key value pairs can be set using property - fieldcount, default is 10
 * The type of the fields is not so important as long as they can accept strings of the length that you specify in the YCSB core properties, default is 100.
 
 #### JdbcDBCreateTable Utility
 YCSB has a utility to help create your SQL table. NOTE: It does not support all databases flavors, if it does not work for you, you will have to create your table manually with the schema given above. An example usage of the utility:
 
-```sh
-java -cp YCSB_HOME/jdbc-binding/lib/jdbc-binding-0.4.0.jar:mysql-connector-java-5.1.37-bin.jar com.yahoo.ycsb.db.JdbcDBCreateTable -P db.properties -n usertable
-```
-
-Hint: you need to include your Driver jar in the classpath as well as specify JDBC connection information via a properties file, and a table name with ```-n```. 
-
-Simply executing the JdbcDBCreateTable class without any other parameters will print out usage information.
 
 ### 4. Configure YCSB connection properties
 You need to set the following connection configurations:
@@ -82,13 +71,13 @@ There are several ways to do this, but a couple easy methods are to put a copy o
 Before you can actually run the workload, you need to "load" the data first.
 
 ```sh
-bin/ycsb load jdbc -P workloads/workloada -P db.properties -cp mysql-connector-java.jar
+bin/ycsb load mysqljson -P workloads/workloada -P db.properties -cp mysql-connector-java.jar
 ```
 
-Then, you can run the workload:
+Then, you can run the workload [NOT IMPLEMENTED YET]:
 
 ```sh
-bin/ycsb run jdbc -P workloads/workloada -P db.properties -cp mysql-connector-java.jar
+bin/ycsb run mysqljson -P workloads/workloada -P db.properties -cp mysql-connector-java.jar
 ```
 
 ## Configuration Properties
@@ -110,7 +99,7 @@ Please refer to https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties fo
 ## JDBC Parameter to Improve Insert Performance
 
 Some JDBC drivers support re-writing batched insert statements into multi-row insert statements. This technique can yield order of magnitude improvement in insert statement performance. To enable this feature:
-- **db.batchsize** must be greater than 0.  The magniute of the improvement can be adjusted by varying **batchsize**. Start with a small number and increase at small increments until diminishing return in the improvement is observed. 
+- **db.batchsize** must be greater than 0.  The magniute of the improvement can be adjusted by varying **batchsize**. Start with a small number and increase at small increments until diminishing return in the improvement is observed.
 - set **jdbc.batchupdateapi=true** to enable batching.
 - set JDBC driver specific connection parameter in **db.url** to enable the rewrite as shown in the examples below:
   * MySQL [rewriteBatchedStatements=true](https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html)
@@ -123,8 +112,3 @@ db.url=jdbc:mysql://127.0.0.1:3306/ycsb?rewriteBatchedStatements=true
     ```
 db.url=jdbc:postgresql://127.0.0.1:5432/ycsb?reWriteBatchedInserts=true
 ```
-
-
-
-
-
