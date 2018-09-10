@@ -26,7 +26,7 @@ LICENSE file.
   </parent>
   
   <artifactId>mysqljson-binding</artifactId>
-  <name>JDBC DB Binding</name>
+  <name>MySQL JSON Binding</name>
   <packaging>jar</packaging>
 
   <dependencies>
