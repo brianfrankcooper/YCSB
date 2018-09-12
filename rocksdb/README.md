@@ -40,6 +40,8 @@ Then, run the workload:
 
 ## RocksDB Configuration Parameters
 
-* ```rocksdb.dir``` - (required) A path to a folder to hold the RocksDB data files.
-    * EX. ```/tmp/ycsb-rocksdb-data```
+* `rocksdb.dir` - (required) A path to a folder to hold the RocksDB data files.
+    * EX. `/tmp/ycsb-rocksdb-data`
+* `options.file` - (optional) A path to the [RocksDB options file](https://github.com/facebook/rocksdb/wiki/RocksDB-Options-File).
+    * An example options file can be found in the test resources folder.
 
