@@ -46,7 +46,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class RocksDBClient extends DB {
 
   static final String PROPERTY_ROCKSDB_DIR = "rocksdb.dir";
-  private static final String PROPERTY_OPTIONS_FILE = "options.file";
+  static final String PROPERTY_OPTIONS_FILE = "options.file";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RocksDBClient.class);
 
@@ -54,7 +54,7 @@ public class RocksDBClient extends DB {
   private static Path rocksDbDir;
 
   @GuardedBy("RocksDBClient.class")
-  private static RocksObject dbOptions;
+  private static DBOptions dbOptions;
 
   @GuardedBy("RocksDBClient.class")
   private static RocksDB rocksDb;
@@ -88,15 +88,15 @@ public class RocksDBClient extends DB {
     }
   }
 
-  private RocksDB initDefaultDB(int rocksThreads) throws RocksDBException {
-    final Options options = new Options()
-        .optimizeLevelStyleCompaction()
+  private DBOptions getDefaultDBOptions() {
+    final int rocksThreads = Runtime.getRuntime().availableProcessors() * 2;
+
+    return new DBOptions()
         .setCreateIfMissing(true)
+        .setCreateMissingColumnFamilies(true)
         .setIncreaseParallelism(rocksThreads)
         .setMaxBackgroundCompactions(rocksThreads)
         .setInfoLogLevel(InfoLogLevel.INFO_LEVEL);
-    dbOptions = options;
-    return RocksDB.open(options, rocksDbDir.toAbsolutePath().toString());
   }
 
   /**
@@ -111,28 +111,30 @@ public class RocksDBClient extends DB {
         OptionsUtil.getLatestOptionsFileName(
             rocksDbDir.toAbsolutePath().toString(), Env.getDefault()));
 
-    final int rocksThreads = Runtime.getRuntime().availableProcessors() * 2;
-
+    List<ColumnFamilyDescriptor> cfDescs;
     if (optionsFileName.isEmpty()) {
-      return initDefaultDB(rocksThreads);
+      dbOptions = getDefaultDBOptions();
+      cfDescs = Arrays.asList(
+          new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, cfOptions));
+    } else {
+      dbOptions = new DBOptions();
+      cfDescs = new ArrayList<>();
+
+      // We don't wnat to hide incompatible options
+      OptionsUtil.loadOptionsFromFile(
+          rocksDbDir.resolve(optionsFileName).toAbsolutePath().toString(),
+          Env.getDefault(),
+          dbOptions, cfDescs);
+
+      LOGGER.info("Load column families: " + cfDescs.stream()
+          .map(cf -> new String(cf.columnFamilyName(), UTF_8))
+          .collect(Collectors.toList()).toString() +
+          " from options file: " + optionsFileName);
     }
-
-    dbOptions = new DBOptions();
-    final List<ColumnFamilyDescriptor> cfDescs = new ArrayList<>();
-
-    // We don't wnat to hide incompatible options
-    OptionsUtil.loadOptionsFromFile(
-        rocksDbDir.resolve(optionsFileName).toAbsolutePath().toString(),
-        Env.getDefault(),
-        (DBOptions) dbOptions, cfDescs);
-
-    LOGGER.info("Found column families: " + cfDescs.stream()
-        .map(cf -> new String(cf.columnFamilyName(), UTF_8))
-        .collect(Collectors.toList()).toString());
 
     final List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
     final RocksDB db = RocksDB.open(
-        (DBOptions) dbOptions,
+        dbOptions,
         rocksDbDir.toAbsolutePath().toString(),
         cfDescs, cfHandles);
 

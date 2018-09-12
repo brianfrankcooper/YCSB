@@ -18,6 +18,7 @@
 package com.yahoo.ycsb.db.rocksdb;
 
 import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 import org.junit.After;
@@ -29,6 +30,7 @@ import org.rocksdb.RocksDB;
 
 import java.util.*;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
 public class RocksDBClientTest {
@@ -55,33 +57,64 @@ public class RocksDBClientTest {
   private RocksDBClient instance;
 
   @Before
-  public void setup() throws Exception {
+  public void setup() throws DBException {
     instance = new RocksDBClient();
 
     final Properties properties = new Properties();
     properties.setProperty(RocksDBClient.PROPERTY_ROCKSDB_DIR, tmpFolder.getRoot().getAbsolutePath());
     instance.setProperties(properties);
-
-    instance.init();
   }
 
   @After
-  public void tearDown() throws Exception {
+  public void tearDown() throws DBException {
     instance.cleanup();
   }
 
   @Test
-  public void verifyColumnFamilies() throws Exception {
+  public void recoverFromExternalOptionsFile() throws DBException {
+    instance.getProperties().setProperty(
+        RocksDBClient.PROPERTY_OPTIONS_FILE,
+        getClass().getClassLoader().getResource("OPTIONS").getFile());
+    instance.init();
+
+    // The column families should be able to be recovered by reading
+    // from the external options file.
+    assertEquals(instance.getColumnFamilies().keySet(),
+        new HashSet<>(
+            Arrays.asList(new String(RocksDB.DEFAULT_COLUMN_FAMILY, UTF_8),
+                "myusertable")));
+  }
+
+  @Test
+  public void verifyRecoveryOfColumnFamilies() throws DBException {
+    instance.init();
+
+    // Initially it does not have the MOCK_TABLE column family
+    assertEquals(
+        new HashSet<>(Arrays.asList(new String(RocksDB.DEFAULT_COLUMN_FAMILY, UTF_8))),
+        instance.getColumnFamilies().keySet());
+
+    // MOCK_TABLE should be created after the insert operation
     instance.insert(MOCK_TABLE, MOCK_KEY0, MOCK_DATA);
+
     instance.cleanup();
 
     setup();
-    instance.getColumnFamilies().keySet().equals(
-        new HashSet<>(Arrays.asList(RocksDB.DEFAULT_COLUMN_FAMILY, MOCK_TABLE)));
+    instance.init();
+
+    // The MOCK_TABLE column family should be able to be automatially recovered
+    // by reading from the options file in the dbPath.
+    assertEquals(
+        new HashSet<>(
+            Arrays.asList(new String(RocksDB.DEFAULT_COLUMN_FAMILY, UTF_8),
+                MOCK_TABLE)),
+        instance.getColumnFamilies().keySet());
   }
 
   @Test
-  public void insertAndRead() {
+  public void insertAndRead() throws DBException {
+    instance.init();
+
     final Status insertResult = instance.insert(MOCK_TABLE, MOCK_KEY0, MOCK_DATA);
     assertEquals(Status.OK, insertResult);
 
@@ -92,7 +125,9 @@ public class RocksDBClientTest {
   }
 
   @Test
-  public void insertAndDelete() {
+  public void insertAndDelete() throws DBException {
+    instance.init();
+
     final Status insertResult = instance.insert(MOCK_TABLE, MOCK_KEY1, MOCK_DATA);
     assertEquals(Status.OK, insertResult);
 
@@ -101,7 +136,9 @@ public class RocksDBClientTest {
   }
 
   @Test
-  public void insertUpdateAndRead() {
+  public void insertUpdateAndRead() throws DBException {
+    instance.init();
+
     final Map<String, ByteIterator> newValues = new HashMap<>(NUM_RECORDS);
 
     final Status insertResult = instance.insert(MOCK_TABLE, MOCK_KEY2, MOCK_DATA);
@@ -124,7 +161,9 @@ public class RocksDBClientTest {
   }
 
   @Test
-  public void insertAndScan() {
+  public void insertAndScan() throws DBException {
+    instance.init();
+
     final Status insertResult = instance.insert(MOCK_TABLE, MOCK_KEY3, MOCK_DATA);
     assertEquals(Status.OK, insertResult);
 
