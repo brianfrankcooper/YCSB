@@ -20,8 +20,12 @@ package com.yahoo.ycsb.db.rocksdb;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.rocksdb.RocksDB;
 
 import java.util.*;
 
@@ -67,7 +71,17 @@ public class RocksDBClientTest {
   }
 
   @Test
-  public void insertAndRead() throws Exception {
+  public void verifyColumnFamilies() throws Exception {
+    instance.insert(MOCK_TABLE, MOCK_KEY0, MOCK_DATA);
+    instance.cleanup();
+
+    setup();
+    instance.getColumnFamilies().keySet().equals(
+        new HashSet<>(Arrays.asList(RocksDB.DEFAULT_COLUMN_FAMILY, MOCK_TABLE)));
+  }
+
+  @Test
+  public void insertAndRead() {
     final Status insertResult = instance.insert(MOCK_TABLE, MOCK_KEY0, MOCK_DATA);
     assertEquals(Status.OK, insertResult);
 
@@ -78,7 +92,7 @@ public class RocksDBClientTest {
   }
 
   @Test
-  public void insertAndDelete() throws Exception {
+  public void insertAndDelete() {
     final Status insertResult = instance.insert(MOCK_TABLE, MOCK_KEY1, MOCK_DATA);
     assertEquals(Status.OK, insertResult);
 
@@ -87,7 +101,7 @@ public class RocksDBClientTest {
   }
 
   @Test
-  public void insertUpdateAndRead() throws Exception {
+  public void insertUpdateAndRead() {
     final Map<String, ByteIterator> newValues = new HashMap<>(NUM_RECORDS);
 
     final Status insertResult = instance.insert(MOCK_TABLE, MOCK_KEY2, MOCK_DATA);
@@ -110,7 +124,7 @@ public class RocksDBClientTest {
   }
 
   @Test
-  public void insertAndScan() throws Exception {
+  public void insertAndScan() {
     final Status insertResult = instance.insert(MOCK_TABLE, MOCK_KEY3, MOCK_DATA);
     assertEquals(Status.OK, insertResult);
 
