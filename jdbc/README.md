@@ -73,6 +73,24 @@ db.passwd=admin
 
 Be sure to use your driver class, a valid JDBC connection string, and credentials to your database.
 
+For connection fail-over in a DBMS cluster  specify the connection string as follows (example based on Postgres):
+
+```sh
+db.driver=org.postgresql.Driver
+db.url=jdbc:postgresql://IP1:PORT1,IP2:PORT2,IP3:PORT3/ycsb
+db.user=admin
+db.passwd=admin
+```
+
+For using multiple shards  in a DBMS cluster specify the connection string as follows by using `;`as delimiter (example based on PostgreSQL):
+
+```sh
+db.driver=org.postgresql.Driver
+db.url=jdbc:postgresql://host1:port1/ycsb;jdbc:postgresql://host2:port2/ycsb
+db.user=admin
+db.passwd=admin
+```
+
 You can add these to your workload configuration or a separate properties file and specify it with ```-P``` or you can add the properties individually to your ycsb command with ```-p```.
 
 ### 5. Add your JDBC Driver to the classpath
@@ -116,11 +134,12 @@ Some JDBC drivers support re-writing batched insert statements into multi-row in
   * MySQL [rewriteBatchedStatements=true](https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html)
 
     ```
-db.url=jdbc:mysql://127.0.0.1:3306/ycsb?rewriteBatchedStatements=true
+    db.url=jdbc:mysql://127.0.0.1:3306/ycsb?rewriteBatchedStatements=true
+    ```
 ```
   * Postgres [reWriteBatchedInserts=true](https://jdbc.postgresql.org/documentation/head/connect.html#connection-parameters)
 
-    ```
+```
 db.url=jdbc:postgresql://127.0.0.1:5432/ycsb?reWriteBatchedInserts=true
 ```
 
@@ -128,3 +147,5 @@ db.url=jdbc:postgresql://127.0.0.1:5432/ycsb?reWriteBatchedInserts=true
 
 
 
+
+```
