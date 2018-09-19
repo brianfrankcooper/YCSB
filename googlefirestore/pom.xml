@@ -25,15 +25,15 @@ LICENSE file.
     <relativePath>../binding-parent</relativePath>
   </parent>
 
-  <artifactId>googledatastore-binding</artifactId>
-  <name>Google Cloud Datastore Binding</name>
+  <artifactId>googlefirestore-binding</artifactId>
+  <name>Google Cloud Firestore Binding</name>
   <url>https://github.com/GoogleCloudPlatform/google-cloud-datastore</url>
 
   <dependencies>
     <dependency>
-      <groupId>com.google.cloud.datastore</groupId>
-      <artifactId>datastore-v1-proto-client</artifactId>
-      <version>1.6.0</version>
+      <groupId>com.google.firebase</groupId>
+      <artifactId>firebase-admin</artifactId>
+      <version>6.4.0</version>
     </dependency>
     <dependency>
       <groupId>log4j</groupId>
