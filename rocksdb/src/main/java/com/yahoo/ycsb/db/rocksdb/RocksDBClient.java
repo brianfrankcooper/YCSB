@@ -19,7 +19,6 @@ package com.yahoo.ycsb.db.rocksdb;
 
 import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.Status;
-import net.jcip.annotations.GuardedBy;
 import org.rocksdb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,17 +30,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * RocksDB binding for <a href="http://rocksdb.org/">RocksDB</a>.
- * <p>
- * See {@code rocksdb/README.md} for details.
+ *
+ * <p>See {@code rocksdb/README.md} for details.
  */
 public class RocksDBClient extends DB {
 
@@ -50,33 +47,21 @@ public class RocksDBClient extends DB {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RocksDBClient.class);
 
-  @GuardedBy("RocksDBClient.class")
-  private static Path rocksDbDir;
+  private Path rocksDbDir;
 
-  @GuardedBy("RocksDBClient.class")
   private static DBOptions dbOptions;
 
-  @GuardedBy("RocksDBClient.class")
   private static RocksDB rocksDb;
 
-  @GuardedBy("RocksDBClient.class")
-  private static int references;
+  private static ColumnFamilyOptions cfOptions;
 
-  private ColumnFamilyOptions cfOptions;
-
-  private static ConcurrentMap<String, ColumnFamilyHandle> columnFamilies = new ConcurrentHashMap<>();
-  private static ConcurrentMap<String, Lock> columnFamilyLocks = new ConcurrentHashMap<>();
-
+  private static AtomicInteger references = new AtomicInteger();
+  private static Map<String, ColumnFamilyHandle> columnFamilies = new ConcurrentHashMap<>();
 
   @Override
   public void init() throws DBException {
     synchronized (RocksDBClient.class) {
       if (rocksDb == null) {
-        rocksDbDir = Paths.get(getProperties().getProperty(PROPERTY_ROCKSDB_DIR));
-        LOGGER.info("RocksDB data dir: " + rocksDbDir);
-
-        cfOptions = new ColumnFamilyOptions().optimizeLevelStyleCompaction();
-
         try {
           rocksDb = initRocksDB();
         } catch (final RocksDBException e) {
@@ -84,7 +69,7 @@ public class RocksDBClient extends DB {
         }
       }
 
-      references++;
+      references.incrementAndGet();
     }
   }
 
@@ -101,21 +86,31 @@ public class RocksDBClient extends DB {
 
   /**
    * Initializes and opens the RocksDB database.
-   * <p>
-   * Should only be called with a {@code synchronized(RocksDBClient.class)` block}.
+   *
+   * <p>Should only be called with a {@code synchronized(RocksDBClient.class)` block}.
    *
    * @return The initialized and open RocksDB instance.
    */
   private RocksDB initRocksDB() throws RocksDBException {
-    String optionsFileName = getProperties().getProperty(PROPERTY_OPTIONS_FILE,
-        OptionsUtil.getLatestOptionsFileName(
-            rocksDbDir.toAbsolutePath().toString(), Env.getDefault()));
+    rocksDbDir = Paths.get(getProperties().getProperty(PROPERTY_ROCKSDB_DIR));
+    LOGGER.info("RocksDB data dir: " + rocksDbDir);
+
+    // a static method that loads the RocksDB C++ library.
+    RocksDB.loadLibrary();
+
+    String optionsFileName =
+        getProperties()
+            .getProperty(
+                PROPERTY_OPTIONS_FILE,
+                OptionsUtil.getLatestOptionsFileName(
+                    rocksDbDir.toAbsolutePath().toString(), Env.getDefault()));
+
+    cfOptions = new ColumnFamilyOptions().optimizeLevelStyleCompaction();
 
     List<ColumnFamilyDescriptor> cfDescs;
     if (optionsFileName.isEmpty()) {
       dbOptions = getDefaultDBOptions();
-      cfDescs = Arrays.asList(
-          new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, cfOptions));
+      cfDescs = Arrays.asList(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, cfOptions));
     } else {
       dbOptions = new DBOptions();
       cfDescs = new ArrayList<>();
@@ -124,19 +119,23 @@ public class RocksDBClient extends DB {
       OptionsUtil.loadOptionsFromFile(
           rocksDbDir.resolve(optionsFileName).toAbsolutePath().toString(),
           Env.getDefault(),
-          dbOptions, cfDescs);
+          dbOptions,
+          cfDescs);
 
-      LOGGER.info("Load column families: " + cfDescs.stream()
-          .map(cf -> new String(cf.columnFamilyName(), UTF_8))
-          .collect(Collectors.toList()).toString() +
-          " from options file: " + optionsFileName);
+      LOGGER.info(
+          "Load column families: "
+              + cfDescs
+                  .stream()
+                  .map(cf -> new String(cf.columnFamilyName(), UTF_8))
+                  .collect(Collectors.toList())
+                  .toString()
+              + " from options file: "
+              + optionsFileName);
     }
 
     final List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
-    final RocksDB db = RocksDB.open(
-        dbOptions,
-        rocksDbDir.toAbsolutePath().toString(),
-        cfDescs, cfHandles);
+    final RocksDB db =
+        RocksDB.open(dbOptions, rocksDbDir.toAbsolutePath().toString(), cfDescs, cfHandles);
 
     for (int i = 0; i < cfDescs.size(); i++) {
       columnFamilies.put(new String(cfDescs.get(i).columnFamilyName(), UTF_8), cfHandles.get(i));
@@ -149,31 +148,33 @@ public class RocksDBClient extends DB {
   public void cleanup() throws DBException {
     super.cleanup();
 
-    synchronized (RocksDBClient.class) {
-      if (references == 1) {
-        for (final ColumnFamilyHandle cfHandle : columnFamilies.values()) {
-          cfHandle.close();
-        }
-        columnFamilies.clear();
-
-        rocksDb.close();
-        rocksDb = null;
-
-        dbOptions.close();
-        dbOptions = null;
-
-        cfOptions.close();
-
-        rocksDbDir = null;
-      }
-
-      references--;
+    // Only the last DB instance can reap the resources since the others
+    // may still use it. That's also why we need most of the member variables
+    // to be static.
+    if (references.decrementAndGet() != 0) {
+      return;
     }
+
+    for (final ColumnFamilyHandle cfHandle : columnFamilies.values()) {
+      cfHandle.close();
+    }
+    columnFamilies.clear();
+
+    rocksDb.close();
+    rocksDb = null;
+
+    dbOptions.close();
+    dbOptions = null;
+
+    cfOptions.close();
   }
 
   @Override
-  public Status read(final String table, final String key, final Set<String> fields,
-                     final Map<String, ByteIterator> result) {
+  public Status read(
+      final String table,
+      final String key,
+      final Set<String> fields,
+      final Map<String, ByteIterator> result) {
     try {
       if (!columnFamilies.containsKey(table)) {
         createColumnFamily(table);
@@ -193,8 +194,12 @@ public class RocksDBClient extends DB {
   }
 
   @Override
-  public Status scan(final String table, final String startkey, final int recordcount, final Set<String> fields,
-                     final Vector<HashMap<String, ByteIterator>> result) {
+  public Status scan(
+      final String table,
+      final String startkey,
+      final int recordcount,
+      final Set<String> fields,
+      final Vector<HashMap<String, ByteIterator>> result) {
     try {
       if (!columnFamilies.containsKey(table)) {
         createColumnFamily(table);
@@ -203,8 +208,9 @@ public class RocksDBClient extends DB {
       final ColumnFamilyHandle cfHandle = columnFamilies.get(table);
       try (final RocksIterator iterator = rocksDb.newIterator(cfHandle)) {
         int iterations = 0;
-        for (iterator.seek(startkey.getBytes(UTF_8)); iterator.isValid() && iterations < recordcount;
-             iterator.next()) {
+        for (iterator.seek(startkey.getBytes(UTF_8));
+            iterator.isValid() && iterations < recordcount;
+            iterator.next()) {
           final HashMap<String, ByteIterator> values = new HashMap<>();
           deserializeValues(iterator.value(), fields, values);
           result.add(values);
@@ -220,8 +226,9 @@ public class RocksDBClient extends DB {
   }
 
   @Override
-  public Status update(final String table, final String key, final Map<String, ByteIterator> values) {
-    //TODO(AR) consider if this would be faster with merge operator
+  public Status update(
+      final String table, final String key, final Map<String, ByteIterator> values) {
+    // TODO(AR) consider if this would be faster with merge operator
 
     try {
       if (!columnFamilies.containsKey(table)) {
@@ -236,10 +243,10 @@ public class RocksDBClient extends DB {
       }
       deserializeValues(currentValues, null, result);
 
-      //update
+      // update
       result.putAll(values);
 
-      //store
+      // store
       rocksDb.put(cf, key.getBytes(UTF_8), serializeValues(result));
 
       return Status.OK;
@@ -251,7 +258,8 @@ public class RocksDBClient extends DB {
   }
 
   @Override
-  public Status insert(final String table, final String key, final Map<String, ByteIterator> values) {
+  public Status insert(
+      final String table, final String key, final Map<String, ByteIterator> values) {
     try {
       if (!columnFamilies.containsKey(table)) {
         createColumnFamily(table);
@@ -284,8 +292,8 @@ public class RocksDBClient extends DB {
     }
   }
 
-  private Map<String, ByteIterator> deserializeValues(final byte[] values, final Set<String> fields,
-                                                      final Map<String, ByteIterator> result) {
+  private Map<String, ByteIterator> deserializeValues(
+      final byte[] values, final Set<String> fields, final Map<String, ByteIterator> result) {
     final ByteBuffer buf = ByteBuffer.allocate(4);
 
     int offset = 0;
@@ -340,22 +348,18 @@ public class RocksDBClient extends DB {
   }
 
   private void createColumnFamily(final String name) throws RocksDBException {
-    columnFamilyLocks.putIfAbsent(name, new ReentrantLock());
-
-    final Lock l = columnFamilyLocks.get(name);
-    l.lock();
-    try {
-      if (!columnFamilies.containsKey(name)) {
-        final ColumnFamilyHandle cfHandle = rocksDb.createColumnFamily(
-            new ColumnFamilyDescriptor(name.getBytes(UTF_8), cfOptions));
-        columnFamilies.put(name, cfHandle);
+    synchronized (columnFamilies) {
+      if (columnFamilies.containsKey(name)) {
+        return;
       }
-    } finally {
-      l.unlock();
+
+      final ColumnFamilyHandle cfHandle =
+          rocksDb.createColumnFamily(new ColumnFamilyDescriptor(name.getBytes(UTF_8), cfOptions));
+      columnFamilies.put(name, cfHandle);
     }
   }
 
-  ConcurrentMap<String, ColumnFamilyHandle> getColumnFamilies() {
+  Map<String, ColumnFamilyHandle> getColumnFamilies() {
     return columnFamilies;
   }
 }
