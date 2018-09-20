@@ -39,10 +39,10 @@ import redis.clients.jedis.Protocol;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
@@ -60,8 +60,6 @@ public class RedisClient extends DB {
   public static final String PORT_PROPERTY = "redis.port";
   public static final String PASSWORD_PROPERTY = "redis.password";
   public static final String CLUSTER_PROPERTY = "redis.cluster";
-
-  public static final String INDEX_KEY = "_indices";
 
   public void init() throws DBException {
     Properties props = getProperties();
@@ -138,7 +136,6 @@ public class RedisClient extends DB {
       Map<String, ByteIterator> values) {
     if (jedis.hmset(key, StringByteIterator.getStringMap(values))
         .equals("OK")) {
-      jedis.zadd(INDEX_KEY, hash(key), key);
       return Status.OK;
     }
     return Status.ERROR;
@@ -146,8 +143,7 @@ public class RedisClient extends DB {
 
   @Override
   public Status delete(String table, String key) {
-    return jedis.del(key) == 0 && jedis.zrem(INDEX_KEY, key) == 0 ? Status.ERROR
-        : Status.OK;
+    return jedis.del(key) == 0 ? Status.ERROR : Status.OK;
   }
 
   @Override
@@ -160,17 +156,6 @@ public class RedisClient extends DB {
   @Override
   public Status scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-    Set<String> keys = jedis.zrangeByScore(INDEX_KEY, hash(startkey),
-        Double.POSITIVE_INFINITY, 0, recordcount);
-
-    HashMap<String, ByteIterator> values;
-    for (String key : keys) {
-      values = new HashMap<String, ByteIterator>();
-      read(table, key, fields, values);
-      result.add(values);
-    }
-
     return Status.OK;
   }
-
 }
