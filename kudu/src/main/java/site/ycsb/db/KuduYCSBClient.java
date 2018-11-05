@@ -40,6 +40,8 @@ import java.util.Vector;
 
 import static site.ycsb.Client.DEFAULT_RECORD_COUNT;
 import static site.ycsb.Client.RECORD_COUNT_PROPERTY;
+import static site.ycsb.workloads.CoreWorkload.INSERT_ORDER_PROPERTY;
+import static site.ycsb.workloads.CoreWorkload.INSERT_ORDER_PROPERTY_DEFAULT;
 import static site.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY;
 import static site.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY_DEFAULT;
 import static site.ycsb.workloads.CoreWorkload.ZERO_PADDING_PROPERTY;
@@ -214,8 +216,8 @@ public class KuduYCSBClient extends site.ycsb.DB {
         hashPartitionColumns.add(KEY);
         builder.addHashPartitions(hashPartitionColumns, numTablets);
       } else if (partitionSchema.equals("rangePartition")) {
-        if (prop.getProperty(CoreWorkload.INSERT_ORDER_PROPERTY, CoreWorkload.INSERT_ORDER_PROPERTY_DEFAULT)
-            .compareTo("ordered") != 0) {
+        if (!orderedinserts) {
+          // We need to use ordered keys to determine how to split range partitions.
           throw new DBException("Must specify `insertorder=ordered` if using rangePartition schema.");
         }
 
@@ -239,9 +241,9 @@ public class KuduYCSBClient extends site.ycsb.DB {
             ++upperNum;
           }
           PartialRow lower = schema.newPartialRow();
-          lower.addString(KEY, CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts));
+          lower.addString(KEY, CoreWorkload.buildKeyName(lowerNum, zeropadding, orderedinserts));
           PartialRow upper = schema.newPartialRow();
-          upper.addString(KEY, CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts));
+          upper.addString(KEY, CoreWorkload.buildKeyName(upperNum, zeropadding, orderedinserts));
           builder.addRangePartition(lower, upper);
         }
       } else {
