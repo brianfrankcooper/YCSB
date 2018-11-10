@@ -71,7 +71,7 @@ LICENSE file.
     <accumulo.1.8.version>1.9.1</accumulo.1.8.version>
     <aerospike.version>3.1.2</aerospike.version>
     <arangodb.version>4.4.1</arangodb.version>
-    <asynchbase.version>1.7.1</asynchbase.version>
+    <asynchbase.version>1.8.2</asynchbase.version>
     <azuredocumentdb.version>1.8.1</azuredocumentdb.version>
     <azurestorage.version>4.0.0</azurestorage.version>
     <cassandra.cql.version>3.0.0</cassandra.cql.version>
