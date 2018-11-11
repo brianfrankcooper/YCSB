@@ -185,10 +185,9 @@ public class OrientDBClient extends DB {
       clientCounter--;
       if (clientCounter == 0) {
         databasePool.close();
+        databasePool = null;
+        initialized = false;
       }
-
-      databasePool = null;
-      initialized = false;
     } finally {
       INIT_LOCK.unlock();
     }
