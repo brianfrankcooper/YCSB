@@ -134,6 +134,7 @@ LICENSE file.
     <module>geode</module>
     <module>googlebigtable</module>
     <module>googledatastore</module>
+    <module>griddb</module>
     <module>hbase098</module>
     <module>hbase10</module>
     <module>hbase12</module>
