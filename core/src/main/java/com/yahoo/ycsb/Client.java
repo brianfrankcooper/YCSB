@@ -367,10 +367,10 @@ class ClientThread implements Runnable {
   private DB db;
   private boolean dotransactions;
   private Workload workload;
-  private int opcount;
+  private long opcount;
   private double targetOpsPerMs;
 
-  private int opsdone;
+  private long opsdone;
   private int threadid;
   private int threadcount;
   private Object workloadstate;
@@ -389,7 +389,7 @@ class ClientThread implements Runnable {
    * @param targetperthreadperms target number of operations per thread per ms
    * @param completeLatch        The latch tracking the completion of all clients.
    */
-  public ClientThread(DB db, boolean dotransactions, Workload workload, Properties props, int opcount,
+  public ClientThread(DB db, boolean dotransactions, Workload workload, Properties props, long opcount,
                       double targetperthreadperms, CountDownLatch completeLatch) {
     this.db = db;
     this.dotransactions = dotransactions;
@@ -414,7 +414,7 @@ class ClientThread implements Runnable {
     threadcount = threadCount;
   }
   
-  public int getOpsDone() {
+  public long getOpsDone() {
     return opsdone;
   }
 
@@ -512,8 +512,8 @@ class ClientThread implements Runnable {
   /**
    * The total amount of work this thread is still expected to do.
    */
-  int getOpsTodo() {
-    int todo = opcount - opsdone;
+  long getOpsTodo() {
+    long todo = opcount - opsdone;
     return todo < 0 ? 0 : todo;
   }
 }
@@ -659,7 +659,7 @@ public final class Client {
    *
    * @throws IOException Either failed to write to output stream or failed to close it.
    */
-  private static void exportMeasurements(Properties props, int opcount, long runtime)
+  private static void exportMeasurements(Properties props, long opcount, long runtime)
       throws IOException {
     MeasurementsExporter exporter = null;
     try {
@@ -775,7 +775,7 @@ public final class Client {
     Thread terminator = null;
     long st;
     long en;
-    int opsDone;
+    long opsDone;
 
     try (final TraceScope span = tracer.newScope(CLIENT_WORKLOAD_SPAN)) {
 
@@ -856,14 +856,14 @@ public final class Client {
 
     final List<ClientThread> clients = new ArrayList<>(threadcount);
     try (final TraceScope span = tracer.newScope(CLIENT_INIT_SPAN)) {
-      int opcount;
+      long opcount;
       if (dotransactions) {
-        opcount = Integer.parseInt(props.getProperty(OPERATION_COUNT_PROPERTY, "0"));
+        opcount = Long.parseLong(props.getProperty(OPERATION_COUNT_PROPERTY, "0"));
       } else {
         if (props.containsKey(INSERT_COUNT_PROPERTY)) {
-          opcount = Integer.parseInt(props.getProperty(INSERT_COUNT_PROPERTY, "0"));
+          opcount = Long.parseLong(props.getProperty(INSERT_COUNT_PROPERTY, "0"));
         } else {
-          opcount = Integer.parseInt(props.getProperty(RECORD_COUNT_PROPERTY, DEFAULT_RECORD_COUNT));
+          opcount = Long.parseLong(props.getProperty(RECORD_COUNT_PROPERTY, DEFAULT_RECORD_COUNT));
         }
       }
 
@@ -877,7 +877,7 @@ public final class Client {
           break;
         }
 
-        int threadopcount = opcount / threadcount;
+        long threadopcount = opcount / threadcount;
 
         // ensure correct number of operations, in case opcount is not a multiple of threadcount
         if (threadid < opcount % threadcount) {
