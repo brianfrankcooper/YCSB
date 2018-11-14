@@ -45,9 +45,6 @@ import com.yahoo.ycsb.Status;
 /**
  * A class representing GridDBClient.
  *
- * @version
- * @Timestamps
- *
  */
 public class GridDBClient extends com.yahoo.ycsb.DB {
   //(A)multicast method
