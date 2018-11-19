@@ -435,14 +435,6 @@ public class CoreWorkload extends Workload {
 
     if (p.getProperty(INSERT_ORDER_PROPERTY, INSERT_ORDER_PROPERTY_DEFAULT).compareTo("hashed") == 0) {
       orderedinserts = false;
-    } else if (requestdistrib.compareTo("exponential") == 0) {
-      double percentile = Double.parseDouble(p.getProperty(
-          ExponentialGenerator.EXPONENTIAL_PERCENTILE_PROPERTY,
-          ExponentialGenerator.EXPONENTIAL_PERCENTILE_DEFAULT));
-      double frac = Double.parseDouble(p.getProperty(
-          ExponentialGenerator.EXPONENTIAL_FRAC_PROPERTY,
-          ExponentialGenerator.EXPONENTIAL_FRAC_DEFAULT));
-      keychooser = new ExponentialGenerator(percentile, recordcount * frac);
     } else {
       orderedinserts = true;
     }
@@ -453,6 +445,14 @@ public class CoreWorkload extends Workload {
     transactioninsertkeysequence = new AcknowledgedCounterGenerator(recordcount);
     if (requestdistrib.compareTo("uniform") == 0) {
       keychooser = new UniformLongGenerator(insertstart, insertstart + insertcount - 1);
+    } else if (requestdistrib.compareTo("exponential") == 0) {
+      double percentile = Double.parseDouble(p.getProperty(
+          ExponentialGenerator.EXPONENTIAL_PERCENTILE_PROPERTY,
+          ExponentialGenerator.EXPONENTIAL_PERCENTILE_DEFAULT));
+      double frac = Double.parseDouble(p.getProperty(
+          ExponentialGenerator.EXPONENTIAL_FRAC_PROPERTY,
+          ExponentialGenerator.EXPONENTIAL_FRAC_DEFAULT));
+      keychooser = new ExponentialGenerator(percentile, recordcount * frac);
     } else if (requestdistrib.compareTo("sequential") == 0) {
       keychooser = new SequentialGenerator(insertstart, insertstart + insertcount - 1);
     } else if (requestdistrib.compareTo("zipfian") == 0) {
