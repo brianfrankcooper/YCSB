@@ -15,7 +15,7 @@
  * LICENSE file.
  */
 
-// Authors: Anthony F. Voelln and Khoa Dang
+// Authors: Anthony F. Voellm and Khoa Dang
 
 package com.yahoo.ycsb.db;
 
@@ -169,15 +169,15 @@ public class AzureCosmosClient extends DB {
               this.queryText);
       AzureCosmosClient.client = new DocumentClient(uri, primaryKey, connectionPolicy, consistencyLevel);
       LOGGER.info("Azure Cosmos connection created: {}", uri);
-    } catch (Exception e) {
-      throw new DBException("Could not initialize Azure Cosmos client", e);
+    } catch (IllegalArgumentException e) {
+      throw new DBException("Illegal argument passed in.  Check the format of your parameters.", e);
     }
 
     // Verify the database exists
     try {
       AzureCosmosClient.client.readDatabase(getDatabaseLink(this.databaseName), new RequestOptions());
-    } catch (Exception e) {
-      throw new DBException("Could not read the database: " + this.databaseName, e);
+    } catch (DocumentClientException e) {
+      throw new DBException("Invalid database name (" + this.databaseName + ") or failed to read database.", e);
     }
   }
 
