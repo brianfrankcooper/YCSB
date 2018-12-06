@@ -45,7 +45,7 @@ public class CrailClient extends DB {
   private long startTime;
   private long endTime;
   private String usertable;
-  
+
   @Override
   public void init() throws DBException {
     super.init();
@@ -60,10 +60,10 @@ public class CrailClient extends DB {
       this.startTime = System.nanoTime();
       System.out.println("YCSB/Crail client initialized");
     } catch(Exception e){
-      throw new DBException(e);  
+      throw new DBException(e);
     }
   }
-  
+
   @Override
   public void cleanup() throws DBException {
     try {
@@ -104,7 +104,7 @@ public class CrailClient extends DB {
       return Status.ERROR;
     }
   }
-  
+
   @Override
   public Status scan(String table, String startKey, int recordCount, Set<String> fields, 
       Vector<HashMap<String, ByteIterator>> result) {
@@ -114,7 +114,7 @@ public class CrailClient extends DB {
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
     return insert(table, key, values);
-  }  
+  }
 
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
