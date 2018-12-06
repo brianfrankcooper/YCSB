@@ -82,26 +82,39 @@ public class CrailClient extends DB {
       String path = table + "/" + key;
       CrailKeyValue file = client.lookup(path).get().asKeyValue();
       CrailBufferedInputStream stream = file.getBufferedInputStream(1024);
-      while(stream.available() > 0){
-        int fieldKeyLength = stream.readInt();
-        byte[] fieldKey = new byte[fieldKeyLength];
-        int res = stream.read(fieldKey);
-        if (res != fieldKey.length){
-          return Status.ERROR;
-        }
-        int fieldValueLength = stream.readInt();
-        byte[] fieldValue = new byte[fieldValueLength];
-        res = stream.read(fieldValue);
-        if (res != fieldValue.length){
-          return Status.ERROR;
-        }
-        result.put(new String(fieldKey), new ByteArrayByteIterator(fieldValue));
+      while(stream.available() < Integer.BYTES){
+        assert true;
       }
+      int fieldKeyLength = stream.readInt();
+      while(stream.available() < fieldKeyLength){
+        assert true;
+      }
+      byte[] fieldKey = new byte[fieldKeyLength];
+      int res = stream.read(fieldKey);
+      if (res != fieldKey.length){
+        stream.close();
+        return Status.ERROR;
+      }
+      while(stream.available() < Integer.BYTES){
+        assert true;
+      }
+      int fieldValueLength = stream.readInt();
+      while(stream.available() < fieldValueLength){
+        assert true;
+      }
+      byte[] fieldValue = new byte[fieldValueLength];
+      res = stream.read(fieldValue);
+      if (res != fieldValue.length){
+        stream.close();
+        return Status.ERROR;
+      }
+      result.put(new String(fieldKey), new ByteArrayByteIterator(fieldValue));
+
       stream.close();
       return Status.OK;
     } catch(Exception e){
-      System.out.println("error when reading " + table + "/" + key + ", exception " + e.getMessage());
-      return Status.ERROR;
+      e.printStackTrace();
+      return new Status("read error", "reading exception");
     }
   }
 
