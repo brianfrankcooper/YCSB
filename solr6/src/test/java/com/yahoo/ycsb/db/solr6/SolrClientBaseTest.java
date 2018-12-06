@@ -21,6 +21,7 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
+import com.yahoo.ycsb.workloads.CoreWorkload;
 import org.apache.solr.client.solrj.embedded.JettyConfig;
 import org.apache.solr.cloud.MiniSolrCloudCluster;
 import org.apache.solr.common.util.NamedList;
@@ -47,11 +48,12 @@ public abstract class SolrClientBaseTest {
   private final static String MOCK_KEY0 = "0";
   private final static String MOCK_KEY1 = "1";
   private final static int NUM_RECORDS = 10;
+  private final static String FIELD_PREFIX = CoreWorkload.FIELD_NAME_PREFIX_DEFAULT;
 
   static {
     MOCK_DATA = new HashMap<>(NUM_RECORDS);
     for (int i = 0; i < NUM_RECORDS; i++) {
-      MOCK_DATA.put("field" + i, new StringByteIterator("value" + i));
+      MOCK_DATA.put(FIELD_PREFIX + i, new StringByteIterator("value" + i));
     }
   }
 
@@ -117,7 +119,7 @@ public abstract class SolrClientBaseTest {
     HashMap<String, ByteIterator> newValues = new HashMap<>(NUM_RECORDS);
 
     for (int i = 0; i < NUM_RECORDS; i++) {
-      newValues.put("field" + i, new StringByteIterator("newvalue" + i));
+      newValues.put(FIELD_PREFIX + i, new StringByteIterator("newvalue" + i));
     }
 
     Status result = instance.update(MOCK_TABLE, MOCK_KEY1, newValues);
@@ -128,7 +130,7 @@ public abstract class SolrClientBaseTest {
     instance.read(MOCK_TABLE, MOCK_KEY1, MOCK_DATA.keySet(), resultParam);
 
     for (int i = 0; i < NUM_RECORDS; i++) {
-      assertEquals("newvalue" + i, resultParam.get("field" + i).toString());
+      assertEquals("newvalue" + i, resultParam.get(FIELD_PREFIX + i).toString());
     }
   }
 

@@ -59,6 +59,7 @@ DATABASES = {
     "arangodb"     : "com.yahoo.ycsb.db.arangodb.ArangoDBClient",
     "arangodb3"     : "com.yahoo.ycsb.db.arangodb.ArangoDBClient",
     "asynchbase"   : "com.yahoo.ycsb.db.AsyncHBaseClient",
+    "azurecosmos" : "com.yahoo.ycsb.db.AzureCosmosClient",
     "azuredocumentdb"   : "com.yahoo.ycsb.db.azuredocumentdb.AzureDocumentDBClient",
     "azuretablestorage" : "com.yahoo.ycsb.db.azuretablestorage.AzureClient",
     "basic"        : "com.yahoo.ycsb.BasicDB",

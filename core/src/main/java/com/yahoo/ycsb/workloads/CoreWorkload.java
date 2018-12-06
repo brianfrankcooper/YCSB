@@ -61,6 +61,8 @@ import java.util.*;
  * digits in the record number.
  * <LI><b>insertorder</b>: should records be inserted in order by key ("ordered"), or in hashed
  * order ("hashed") (default: hashed)
+ * <LI><b>fieldnameprefix</b>: what should be a prefix for field names, the shorter may decrease the
+ * required storage size (default: "field")
  * </ul>
  */
 public class CoreWorkload extends Workload {
@@ -329,6 +331,16 @@ public class CoreWorkload extends Workload {
   public static final String INSERTION_RETRY_INTERVAL = "core_workload_insertion_retry_interval";
   public static final String INSERTION_RETRY_INTERVAL_DEFAULT = "3";
 
+  /**
+   * Field name prefix.
+   */
+  public static final String FIELD_NAME_PREFIX = "fieldnameprefix";
+
+  /**
+   * Default value of the field name prefix.
+   */
+  public static final String FIELD_NAME_PREFIX_DEFAULT = "field";
+
   protected NumberGenerator keysequence;
   protected DiscreteGenerator operationchooser;
   protected NumberGenerator keychooser;
@@ -384,9 +396,10 @@ public class CoreWorkload extends Workload {
 
     fieldcount =
         Long.parseLong(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
+    final String fieldnameprefix = p.getProperty(FIELD_NAME_PREFIX, FIELD_NAME_PREFIX_DEFAULT);
     fieldnames = new ArrayList<>();
     for (int i = 0; i < fieldcount; i++) {
-      fieldnames.add("field" + i);
+      fieldnames.add(fieldnameprefix + i);
     }
     fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
 

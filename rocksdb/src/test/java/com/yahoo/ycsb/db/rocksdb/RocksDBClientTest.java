@@ -21,6 +21,7 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
+import com.yahoo.ycsb.workloads.CoreWorkload;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -44,13 +45,14 @@ public class RocksDBClientTest {
   private static final String MOCK_KEY2 = "2";
   private static final String MOCK_KEY3 = "3";
   private static final int NUM_RECORDS = 10;
+  private static final String FIELD_PREFIX = CoreWorkload.FIELD_NAME_PREFIX_DEFAULT;
 
   private static final Map<String, ByteIterator> MOCK_DATA;
 
   static {
     MOCK_DATA = new HashMap<>(NUM_RECORDS);
     for (int i = 0; i < NUM_RECORDS; i++) {
-      MOCK_DATA.put("field" + i, new StringByteIterator("value" + i));
+      MOCK_DATA.put(FIELD_PREFIX + i, new StringByteIterator("value" + i));
     }
   }
 
@@ -145,7 +147,7 @@ public class RocksDBClientTest {
     assertEquals(Status.OK, insertResult);
 
     for (int i = 0; i < NUM_RECORDS; i++) {
-      newValues.put("field" + i, new StringByteIterator("newvalue" + i));
+      newValues.put(FIELD_PREFIX + i, new StringByteIterator("newvalue" + i));
     }
 
     final Status result = instance.update(MOCK_TABLE, MOCK_KEY2, newValues);
@@ -156,7 +158,7 @@ public class RocksDBClientTest {
     instance.read(MOCK_TABLE, MOCK_KEY2, MOCK_DATA.keySet(), resultParam);
 
     for (int i = 0; i < NUM_RECORDS; i++) {
-      assertEquals("newvalue" + i, resultParam.get("field" + i).toString());
+      assertEquals("newvalue" + i, resultParam.get(FIELD_PREFIX + i).toString());
     }
   }
 
