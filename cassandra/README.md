@@ -81,3 +81,6 @@ For keyspace `ycsb`, table `usertable`:
 * `cassandra.tracing`
   * Default is false
   * https://docs.datastax.com/en/cql/3.3/cql/cql_reference/tracing_r.html
+* `cassandra.loadbalancingpolicy`
+  * Default value is `dcawareroundrobinpolicy`, and `roundrobinpolicy` is supported too.
+  * *Note that the policies use TokenAwarePolicy as their parent policy: https://docs.datastax.com/en/developer/java-driver/3.3/manual/load_balancing/#load-balancing*

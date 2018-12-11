@@ -28,6 +28,10 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
+import com.datastax.driver.core.policies.LoadBalancingPolicy;
+import com.datastax.driver.core.policies.RoundRobinPolicy;
+import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
@@ -90,6 +94,8 @@ public class CassandraCQLClient extends DB {
   public static final String KEYSPACE_PROPERTY_DEFAULT = "ycsb";
   public static final String USERNAME_PROPERTY = "cassandra.username";
   public static final String PASSWORD_PROPERTY = "cassandra.password";
+  public static final String LOAD_BALANCING_POLICY_PROPERTY = "cassandra.loadbalancingpolicy";
+  public static final String LOAD_BALANCING_POLICY_PROPERTY_DEFAULT = "dcawareroundrobinpolicy";
 
   public static final String HOSTS_PROPERTY = "hosts";
   public static final String PORT_PROPERTY = "port";
@@ -163,6 +169,8 @@ public class CassandraCQLClient extends DB {
 
         String keyspace = getProperties().getProperty(KEYSPACE_PROPERTY,
             KEYSPACE_PROPERTY_DEFAULT);
+        String policyname = getProperties().getProperty(LOAD_BALANCING_POLICY_PROPERTY,
+            LOAD_BALANCING_POLICY_PROPERTY_DEFAULT);
 
         readConsistencyLevel = ConsistencyLevel.valueOf(
             getProperties().getProperty(READ_CONSISTENCY_LEVEL_PROPERTY,
@@ -171,13 +179,21 @@ public class CassandraCQLClient extends DB {
             getProperties().getProperty(WRITE_CONSISTENCY_LEVEL_PROPERTY,
                 WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT));
 
+
+        Cluster.Builder builder = Cluster.builder().addContactPoints(hosts).withPort(Integer.valueOf(port));
         if ((username != null) && !username.isEmpty()) {
-          cluster = Cluster.builder().withCredentials(username, password)
-              .withPort(Integer.valueOf(port)).addContactPoints(hosts).build();
-        } else {
-          cluster = Cluster.builder().withPort(Integer.valueOf(port))
-              .addContactPoints(hosts).build();
+          builder.withCredentials(username, password);
         }
+        if ((policyname != null) && !policyname.isEmpty()) {
+          LoadBalancingPolicy lbp;
+          if (policyname.equalsIgnoreCase("rounrobinpolicy")) {
+            lbp = new RoundRobinPolicy();
+          } else {
+            lbp = DCAwareRoundRobinPolicy.builder().build();
+          }
+          builder.withLoadBalancingPolicy(new TokenAwarePolicy(lbp));
+        }
+        cluster = builder.build();
 
         String maxConnections = getProperties().getProperty(
             MAX_CONNECTIONS_PROPERTY);
