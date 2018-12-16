@@ -277,7 +277,7 @@ public class MemcachedClient extends DB {
          /* increment in loop body */) {
       Map.Entry<String, JsonNode> jsonField = jsonFields.next();
       String name = jsonField.getKey();
-      if (checkFields && fields.contains(name)) {
+      if (checkFields && !fields.contains(name)) {
         continue;
       }
       JsonNode jsonValue = jsonField.getValue();
