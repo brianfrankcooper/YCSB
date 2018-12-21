@@ -40,14 +40,18 @@ Use our deployment tool [cdepl](https://github.com/hhu-bsinfo/cdepl) for quick a
 First, please refer to the README in the DXRAM repository for manual deployment and configuration of a DXRAM cluster and single instances of it.
 
 Use the ycsb script from *bin/* to manually run YCSB clients. You can and also must override some DXRAM settings using JVM arguments or use multiple configuration files (see also DXRAM setup guide).
+Example running workloada with a DXRAM cluster consisting of one superpeer and one storage peer and minimal test configuration (low record and thread count).
+
 Load client:
 ```
-./bin/ycsb load dxram -jvm-args -Ddxram.config=<path to dxram configuration file> -Ddxram.m_engineConfig.m_address.m_ip=<IP address of the current instance> -Ddxram.m_engineConfig.m_address.m_port=<port to use for current instance> -Ddxram.m_componentConfigs[ZookeeperBootComponent].m_connection.m_ip=<IP of Zookeeper server> -Ddxram.m_componentConfigs[ZookeeperBootComponent].m_connection.m_port=<port of Zookeeper server> -Ddxram.m_engineConfig.m_role=Peer -P workloads/workloada -p insertorder=ordered -p dxram.stores=<total number of storage nodes in the target cluster> -p dxram.recordsPerStoreNode=<per node record count> -p dxram.load.targetNodeIdx=<load data to the X-th node of the total number of storage nodes, e.g. 0 for first, 1 for second etc>
+./bin/ycsb load dxram -jvm-args '-Ddxram.config=./config/dxram.json -Ddxram.m_engineConfig.m_address.m_ip=<IP ADDRESS OF YOUR INSTANCE> -Ddxram.m_engineConfig.m_address.m_port=22222 -Ddxram.m_componentConfigs[ZookeeperBootComponent].m_connection.m_ip=<IP ADDRESS OF ZOOKEEPER INSTANCE> -Ddxram.m_componentConfigs[ZookeeperBootComponent].m_connection.m_port=<PORT OF ZOOKEEPER INSTANCE> -Ddxram.m_engineConfig.m_role=Peer' -P workloads/workloada -p insertorder=ordered -p dxram.stores=1 -p dxram.recordsPerStoreNode=1000 -p dxram.load.targetNodeIdx=0 -p insertorder=ordered -p fieldcount=10 -p fieldlength=100 -threads 1
 ```
+
+* *dxram.stores* must specify the total number of storage clients in the target DXRAM cluster
+* "dxram.recordsPerStoreNode" must specify the total number of records stored on all nodes (i.e. records_per_node * total_storage_nodes)
+* insertorder=ordered is required because DXRAM does not support "hashed"
 
 Benchmark client:
 ```
-./bin/ycsb load dxram -jvm-args -Ddxram.config=<path to dxram configuration file> -Ddxram.m_engineConfig.m_address.m_ip=<IP address of the current instance> -Ddxram.m_engineConfig.m_address.m_port=<port to use for current instance> -Ddxram.m_componentConfigs[ZookeeperBootComponent].m_connection.m_ip=<IP of Zookeeper server> -Ddxram.m_componentConfigs[ZookeeperBootComponent].m_connection.m_port=<port of Zookeeper server> -Ddxram.m_engineConfig.m_role=Peer -P workloads/workloada -p insertorder=ordered -p dxram.stores=<total number of storage nodes in the target cluster>
+./bin/ycsb load dxram -jvm-args '-Ddxram.config=./config/dxram.json -Ddxram.m_engineConfig.m_address.m_ip=<IP ADDRESS OF YOUR INSTANCE> -Ddxram.m_engineConfig.m_address.m_port=22222 -Ddxram.m_componentConfigs[ZookeeperBootComponent].m_connection.m_ip=<IP ADDRESS OF ZOOKEEPER INSTANCE> -Ddxram.m_componentConfigs[ZookeeperBootComponent].m_connection.m_port=<PORT OF ZOOKEEPER INSTANCE> -Ddxram.m_engineConfig.m_role=Peer' -P workloads/workloada -p insertorder=ordered -p dxram.stores=1 -p insertorder=ordered -p fieldcount=10 -p fieldlength=100 -threads 1
 ```
-
-Note: DXRAM requires insertorder=ordered and does not support "hashed".
