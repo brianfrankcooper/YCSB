@@ -32,12 +32,12 @@ Git clone YCSB and compile:
 
 1.2 Copy Ignite configs:
     
-    cp YCSB/ignite/resources/ignite.xml path/to/apache-ignite-fabric-**ignite_version**-bin
-    cp YCSB/ignite/resources/ignite-sql.xml path/to/apache-ignite-fabric-**ignite_version**-bin
+    cp YCSB/ignite/resources/ignite.xml path/to/apache-ignite-**ignite_version**-bin
+    cp YCSB/ignite/resources/ignite-sql.xml path/to/apache-ignite-**ignite_version**-bin
 
 NOTE: Pay attention that some parameters such us ****_storagePath_****, ****_walPath_****, ****_walArchivePath_****
      should be overwritten by certain pathes. Also please add ip addresses of your host(s) inside the bean ****_TcpDiscoveryVmIpFinder_****
-
+           
 1.3 Copy ignite-binding-**YCSB version**-SNAPSHOT.jar to Ignite libs: 
     
     cp YCSB/ignite/target/ignite-binding-**YCSB_version**-SNAPSHOT.jar path/to/apache-ignite-fabric-**ignite_version**-bin/libs
@@ -49,7 +49,7 @@ More information about Apache Ignite WAL (Write Ahead Log): https://apacheignite
 
 1.4 Start ignite nodes:
  
-    cd path/to/apache-ignite-fabric-**ignite_version**-bin
+    cd path/to/apache-ignite-**ignite_version**-bin
     bin/**ignite.sh** ignite.xml
 or
 
