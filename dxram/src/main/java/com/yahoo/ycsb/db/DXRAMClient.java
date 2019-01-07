@@ -199,7 +199,7 @@ public class DXRAMClient extends DB {
       }
 
       storageNodes = bootService.getSupportingNodes(NodeCapabilities.STORAGE);
-      System.out.println(storageNodes.size() + " storage nodes available");
+      System.out.println(storageNodes.size() + " storage nodes available (" + storageNodes + ')');
     }
 
     // Sort the list, so that all client instances use the same order
