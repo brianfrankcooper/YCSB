@@ -29,9 +29,7 @@ LICENSE file.
     <artifactId>griddb-binding</artifactId>
     <name>GridDB Binding</name>
     <packaging>jar</packaging>
-    <properties>
-        <gridstore-version>4.0.0</gridstore-version>
-    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.yahoo.ycsb</groupId>
@@ -40,11 +38,9 @@ LICENSE file.
             <scope>provided</scope>
         </dependency>
         <dependency>
-	    <groupId>com.toshiba.mwcloud.gs</groupId>
-	    <artifactId>gridstore</artifactId>
-	    <version>${gridstore-version}</version>
-	    <scope>system</scope>
-	    <systemPath>${basedir}/lib/gridstore.jar</systemPath>
-	</dependency>
+            <groupId>com.github.griddb</groupId>
+            <artifactId>gridstore</artifactId>
+            <version>4.0.0</version>
+        </dependency>
     </dependencies>
 </project>

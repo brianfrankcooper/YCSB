@@ -16,20 +16,10 @@ Library building and program execution have been checked in the following enviro
 
 ### Preparations
 
-#### 1. Set Up YCSB
-
 Clone the YCSB source code from git repository:
 
     git clone https://github.com/brianfrankcooper/YCSB.git
     cd YCSB
-
-#### 2. Install GridDB 4.0 CE and place the "gridstore.jar" file (Java Client) under the following directory
-
-    griddb/lib/
-
-Please download [GridDB 4.0 CE](https://github.com/griddb/griddb_nosql/releases/tag/v4.0.0).
-
-To see "How to install GridDB with RPM", please refer to [RPM Installation Guide](https://griddb.github.io/griddb_nosql/manual/GridDB_RPM_InstallGuide.html).
 
 ### Build
 
