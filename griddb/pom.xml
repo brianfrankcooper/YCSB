@@ -40,7 +40,7 @@ LICENSE file.
         <dependency>
             <groupId>com.github.griddb</groupId>
             <artifactId>gridstore</artifactId>
-            <version>4.0.0</version>
+            <version>${griddb.version}</version>
         </dependency>
     </dependencies>
 </project>
