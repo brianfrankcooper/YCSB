@@ -107,6 +107,7 @@ LICENSE file.
     <tarantool.version>1.6.5</tarantool.version>
     <thrift.version>0.8.0</thrift.version>
     <voldemort.version>0.81</voldemort.version>
+    <tablestore.version>4.8.0</tablestore.version>
   </properties>
 
   <modules>
@@ -161,6 +162,7 @@ LICENSE file.
     <module>solr</module>
     <module>solr6</module>
     <module>tarantool</module>
+    <module>tablestore</module>
     <!--<module>voldemort</module>-->
   </modules>
 

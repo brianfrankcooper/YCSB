@@ -105,6 +105,7 @@ DATABASES = {
     "solr"         : "com.yahoo.ycsb.db.solr.SolrClient",
     "solr6"        : "com.yahoo.ycsb.db.solr6.SolrClient",
     "tarantool"    : "com.yahoo.ycsb.db.TarantoolClient",
+    "tablestore"   : "com.yahoo.ycsb.db.tablestore.TableStoreClient"
 }
 
 OPTIONS = {
