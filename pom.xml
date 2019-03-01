@@ -80,7 +80,7 @@ LICENSE file.
     <cloudspanner.version>0.24.0-beta</cloudspanner.version>
     <couchbase.version>1.4.10</couchbase.version>
     <couchbase2.version>2.3.1</couchbase2.version>
-    <dxram.version>0.6.0</dxram.version>
+    <dxram.version>0.7.0</dxram.version>
     <elasticsearch5-version>5.5.1</elasticsearch5-version>
     <foundationdb.version>5.2.5</foundationdb.version>
     <geode.version>1.2.0</geode.version>
