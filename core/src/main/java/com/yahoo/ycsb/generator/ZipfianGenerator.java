@@ -17,7 +17,7 @@
 
 package com.yahoo.ycsb.generator;
 
-import com.yahoo.ycsb.Utils;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * A generator of a zipfian distribution. It produces a sequence of items, such that some items are more popular than
@@ -247,7 +247,7 @@ public class ZipfianGenerator extends NumberGenerator {
       }
     }
 
-    double u = Utils.random().nextDouble();
+    double u = ThreadLocalRandom.current().nextDouble();
     double uz = u * zetan;
 
     if (uz < 1.0) {

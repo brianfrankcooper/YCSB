@@ -179,6 +179,7 @@ public class Couchbase2Client extends DB {
               .builder()
               .queryEndpoints(queryEndpoints)
               .callbacksOnIoPool(true)
+              .mutationTokensEnabled(true)
               .runtimeMetricsCollectorConfig(runtimeConfig)
               .networkLatencyMetricsCollectorConfig(latencyConfig)
               .socketConnectTimeout(10000) // 10 secs socket connect timeout

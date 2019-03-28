@@ -16,9 +16,8 @@
  */
 package com.yahoo.ycsb.generator;
 
-import com.yahoo.ycsb.Utils;
-
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Generate integers resembling a hotspot distribution where x% of operations
@@ -75,13 +74,13 @@ public class HotspotIntegerGenerator extends NumberGenerator {
   @Override
   public Long nextValue() {
     long value = 0;
-    Random random = Utils.random();
+    Random random = ThreadLocalRandom.current();
     if (random.nextDouble() < hotOpnFraction) {
       // Choose a value from the hot set.
-      value = lowerBound + Math.abs(Utils.random().nextLong()) % hotInterval;
+      value = lowerBound + Math.abs(random.nextLong()) % hotInterval;
     } else {
       // Choose a value from the cold set.
-      value = lowerBound + hotInterval + Math.abs(Utils.random().nextLong()) % coldInterval;
+      value = lowerBound + hotInterval + Math.abs(random.nextLong()) % coldInterval;
     }
     setLastValue(value);
     return value;
