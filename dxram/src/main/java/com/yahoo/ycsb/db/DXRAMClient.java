@@ -78,7 +78,7 @@ public class DXRAMClient extends DB {
       objectPool = new YCSBObjectPool(properties.getThreadCount(), properties.getFieldsPerKey(),
           properties.getSizeOfField());
       threadsActive = new AtomicInteger(properties.getThreadCount());
-      chunkIDConverter = new ChunkIDConverter(storageNodes, properties.getRecordsPerNode());
+      chunkIDConverter = new ChunkIDConverter(storageNodes, properties.getRecordCount());
       LATCH_INIT.countDown();
     } else {
       try {
@@ -101,10 +101,12 @@ public class DXRAMClient extends DB {
   public Status insert(final String table, final String key, final Map<String, ByteIterator> values) {
     YCSBObject object = objectPool.get();
 
-    // objects must be created with ordered insert and increasing IDs (not hashed)
-    chunkService.create().create(storageNodes.get(properties.getTargetLoadNodeIdx()), object);
+    long chunkId = chunkIDConverter.toChunkId(key);
 
-    object.setID(chunkIDConverter.toChunkId(key));
+    // objects must be created with ordered insert and increasing IDs (not hashed)
+    chunkService.create().create((short) (chunkId >> 48), object);
+
+    object.setID(chunkId);
 
     for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
       object.setFieldValue(entry.getKey(), entry.getValue());
@@ -118,8 +120,7 @@ public class DXRAMClient extends DB {
   }
 
   @Override
-  public Status read(final String table, final String key, Set<String> fields,
-      final Map<String, ByteIterator> result) {
+  public Status read(final String table, final String key, Set<String> fields, final Map<String, ByteIterator> result) {
     YCSBObject object = objectPool.get();
 
     object.setID(chunkIDConverter.toChunkId(key));
@@ -183,26 +184,8 @@ public class DXRAMClient extends DB {
    * Searches all storage nodes within the network.
    */
   private void searchStorageNodes() {
-    int expectedCount = properties.getStorageNodeCount();
-
-    System.out.println("Waiting for " + expectedCount + " storage nodes...");
-
-    // Wait until the storage node list contains the expected count of entries
+    // Get all available storage nodes
     storageNodes = bootService.getSupportingNodes(NodeCapabilities.STORAGE);
-
-    while (storageNodes.size() != expectedCount) {
-      // Wait until DXRAM finds other nodes
-      try {
-        Thread.sleep(1000);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-
-      storageNodes = bootService.getSupportingNodes(NodeCapabilities.STORAGE);
-      System.out.println(storageNodes.size() + " storage nodes available " + storageNodes.stream()
-              .map(NodeID::toHexString)
-              .collect(Collectors.toList()));
-    }
 
     // Sort the list, so that all client instances use the same order
     Collections.sort(storageNodes);

@@ -12,14 +12,14 @@ import de.hhu.bsinfo.dxmem.data.ChunkID;
  */
 class ChunkIDConverter {
   // skip chunk 0 on every node which is used to store the nameservice entries
-  private final long chunkIDOffset = 1;
+  private static  final long CHUNK_ID_OFFSET = 1;
 
   private final List<Short> storageNodes;
   private final int recordsPerNode;
 
-  ChunkIDConverter(final List<Short> storageNodes, final int recordsPerNode) {
+  ChunkIDConverter(final List<Short> storageNodes, final int totalRecords) {
     this.storageNodes = storageNodes;
-    this.recordsPerNode = recordsPerNode;
+    this.recordsPerNode = totalRecords / storageNodes.size() + 1;
   }
 
   long toChunkId(final String key) {
@@ -28,6 +28,6 @@ class ChunkIDConverter {
     int nodeIdx = keyVal / recordsPerNode;
     int recordIdx = keyVal % recordsPerNode;
 
-    return ChunkID.getChunkID(storageNodes.get(nodeIdx), recordIdx + chunkIDOffset);
+    return ChunkID.getChunkID(storageNodes.get(nodeIdx), recordIdx + CHUNK_ID_OFFSET);
   }
 }
