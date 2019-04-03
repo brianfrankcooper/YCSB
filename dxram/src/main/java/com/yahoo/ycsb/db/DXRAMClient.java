@@ -33,11 +33,12 @@ import de.hhu.bsinfo.dxmem.data.ChunkID;
 import de.hhu.bsinfo.dxmem.data.ChunkLockOperation;
 import de.hhu.bsinfo.dxram.DXRAM;
 import de.hhu.bsinfo.dxram.boot.BootService;
+import de.hhu.bsinfo.dxram.boot.ZookeeperBootComponent;
+import de.hhu.bsinfo.dxram.boot.ZookeeperBootComponentConfig;
+import de.hhu.bsinfo.dxram.chunk.ChunkComponent;
+import de.hhu.bsinfo.dxram.chunk.ChunkComponentConfig;
 import de.hhu.bsinfo.dxram.chunk.ChunkService;
-import de.hhu.bsinfo.dxram.engine.DXRAMConfig;
-import de.hhu.bsinfo.dxram.engine.DXRAMConfigBuilderException;
-import de.hhu.bsinfo.dxram.engine.DXRAMConfigBuilderJVMArgs;
-import de.hhu.bsinfo.dxram.engine.DXRAMConfigBuilderJsonFile2;
+import de.hhu.bsinfo.dxram.engine.*;
 import de.hhu.bsinfo.dxram.util.NodeCapabilities;
 import de.hhu.bsinfo.dxutils.NodeID;
 
@@ -203,20 +204,17 @@ public class DXRAMClient extends DB {
 
     client = new DXRAM();
 
-    DXRAMConfig config = client.createDefaultConfigInstance();
+    DXRAMConfig dxramConfig = client.createDefaultConfigInstance();
+    DXRAMEngineConfig engineConfig = dxramConfig.getEngineConfig();
+    ZookeeperBootComponentConfig bootComponentConfig = dxramConfig.getComponentConfig(ZookeeperBootComponent.class);
+    ChunkComponentConfig chunkComponentConfig = dxramConfig.getComponentConfig(ChunkComponent.class);
 
-    DXRAMConfigBuilderJsonFile2 configBuilderFile = new DXRAMConfigBuilderJsonFile2();
-    DXRAMConfigBuilderJVMArgs configBuilderJvmArgs = new DXRAMConfigBuilderJVMArgs();
+    engineConfig.setRole("Peer");
+    engineConfig.setAddress(properties.getBindAddress());
+    bootComponentConfig.setConnection(properties.getJoinAddress());
+    chunkComponentConfig.setChunkStorageEnabled(false);
 
-    // JVM args override any default and/or config values loaded from file
-    try {
-      config = configBuilderJvmArgs.build(configBuilderFile.build(config));
-    } catch (final DXRAMConfigBuilderException e) {
-      System.out.println("ERROR: Bootstrapping configuration failed: " + e.getMessage());
-      System.exit(-1);
-    }
-
-    if (!client.initialize(config, true)) {
+    if (!client.initialize(dxramConfig, true)) {
       System.err.println("ERROR: Couldn't initialize DXRAM! Aborting.");
       System.exit(-1);
     }
