@@ -81,7 +81,8 @@ public class DXRAMClient extends DB {
       objectPool = new YCSBObjectPool(properties.getThreadCount(), properties.getFieldsPerKey(),
           properties.getSizeOfField(), properties.usePooling());
       threadsActive = new AtomicInteger(properties.getThreadCount());
-      chunkIDConverter = new ChunkIDConverter(storageNodes, properties.getRecordCount());
+      chunkIDConverter = new ChunkIDConverter(storageNodes, properties.getRecordCount(),
+          properties.getDistributionStrategy());
       LATCH_INIT.countDown();
     } else {
       try {
@@ -106,7 +107,6 @@ public class DXRAMClient extends DB {
 
     long chunkId = chunkIDConverter.toChunkId(key);
 
-    // objects must be created with ordered insert and increasing IDs (not hashed)
     chunkService.create().create((short) (chunkId >> 48), object);
 
     object.setID(chunkId);

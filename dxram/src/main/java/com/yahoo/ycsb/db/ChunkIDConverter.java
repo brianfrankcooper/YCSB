@@ -16,18 +16,29 @@ class ChunkIDConverter {
 
   private final List<Short> storageNodes;
   private final int recordsPerNode;
+  private final DXRAMProperties.DistributionStrategy distributionStrategy;
 
-  ChunkIDConverter(final List<Short> storageNodes, final int totalRecords) {
+  ChunkIDConverter(final List<Short> storageNodes, final int totalRecords,
+                   final DXRAMProperties.DistributionStrategy distributionStrategy) {
     this.storageNodes = storageNodes;
     this.recordsPerNode = totalRecords / storageNodes.size() + 1;
+    this.distributionStrategy = distributionStrategy;
   }
 
   long toChunkId(final String key) {
-    // key is of format: userX, e.g. user1, user 12 etc
+    // key is of format: userX, e.g. user1, user12, etc.
     int keyVal = Integer.parseInt(key.substring(4));
-    int nodeIdx = keyVal / recordsPerNode;
-    int recordIdx = keyVal % recordsPerNode;
 
-    return ChunkID.getChunkID(storageNodes.get(nodeIdx), recordIdx + CHUNK_ID_OFFSET);
+    if(distributionStrategy == DXRAMProperties.DistributionStrategy.LINEAR) {
+      int nodeIdx = keyVal / recordsPerNode;
+      int recordIdx = keyVal % recordsPerNode;
+
+      return ChunkID.getChunkID(storageNodes.get(nodeIdx), recordIdx + CHUNK_ID_OFFSET);
+    } else {
+      int nodeIdx = keyVal % storageNodes.size();
+      int recordIdx = keyVal / storageNodes.size();
+
+      return ChunkID.getChunkID(storageNodes.get(nodeIdx), recordIdx + CHUNK_ID_OFFSET);
+    }
   }
 }

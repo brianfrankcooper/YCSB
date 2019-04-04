@@ -12,10 +12,37 @@ import de.hhu.bsinfo.dxutils.unit.IPV4Unit;
  * @author Stefan Nothaas, stefan.nothaas@hhu.de, 09.11.2018
  */
 class DXRAMProperties {
+
+  enum DistributionStrategy {
+    LINEAR("linear"),
+    SCATTERED("scattered");
+
+    private String string;
+
+    DistributionStrategy(String string) {
+      this.string = string;
+    }
+
+    public String toString() {
+      return string;
+    }
+
+    public static DistributionStrategy fromString(String string) {
+      if(LINEAR.string.startsWith(string)) {
+        return LINEAR;
+      } else if(SCATTERED.string.startsWith(string)) {
+        return SCATTERED;
+      }
+
+      return LINEAR;
+    }
+  }
+
   private static final String NETWORK_TYPE_ETHERNET = "ethernet";
   private static final String NETWORK_TYPE_INFINIBAND = "infiniband";
 
   private static final String USE_POOLING = "dxram.pooling";
+  private static final String DISTRIBUTION_STRATEGY = "dxram.distribution";
   private static final String BIND_ADDRESS = "dxram.bind";
   private static final String JOIN_ADDRESS = "dxram.join";
   private static final String NETWORK_TYPE = "dxram.network";
@@ -26,6 +53,7 @@ class DXRAMProperties {
   private final int sizeOfField;
 
   private final boolean usePooling;
+  private final DistributionStrategy distributionStrategy;
   private final IPV4Unit bindAddress;
   private final IPV4Unit joinAddress;
   private final String networkType;
@@ -44,6 +72,9 @@ class DXRAMProperties {
     checkParameter(CoreWorkload.FIELD_LENGTH_PROPERTY, sizeOfField);
 
     usePooling = Boolean.parseBoolean(properties.getProperty(USE_POOLING, "true"));
+
+    distributionStrategy = DistributionStrategy.fromString(
+        properties.getProperty(DISTRIBUTION_STRATEGY, DistributionStrategy.LINEAR.toString()));
 
     String bind = properties.getProperty(BIND_ADDRESS, "-1");
     checkParameter(BIND_ADDRESS, bind);
@@ -98,6 +129,10 @@ class DXRAMProperties {
 
   boolean usePooling() {
     return usePooling;
+  }
+
+  DistributionStrategy getDistributionStrategy() {
+    return distributionStrategy;
   }
 
   private void checkParameter(final String name, final int val) {
