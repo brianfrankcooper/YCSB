@@ -79,7 +79,7 @@ public class DXRAMClient extends DB {
       searchStorageNodes();
 
       objectPool = new YCSBObjectPool(properties.getThreadCount(), properties.getFieldsPerKey(),
-          properties.getSizeOfField());
+          properties.getSizeOfField(), properties.usePooling());
       threadsActive = new AtomicInteger(properties.getThreadCount());
       chunkIDConverter = new ChunkIDConverter(storageNodes, properties.getRecordCount());
       LATCH_INIT.countDown();

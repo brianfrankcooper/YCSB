@@ -15,6 +15,7 @@ class DXRAMProperties {
   private static final String NETWORK_TYPE_ETHERNET = "ethernet";
   private static final String NETWORK_TYPE_INFINIBAND = "infiniband";
 
+  private static final String USE_POOLING = "dxram.pooling";
   private static final String BIND_ADDRESS = "dxram.bind";
   private static final String JOIN_ADDRESS = "dxram.join";
   private static final String NETWORK_TYPE = "dxram.network";
@@ -24,6 +25,7 @@ class DXRAMProperties {
   private final int fieldsPerKey;
   private final int sizeOfField;
 
+  private final boolean usePooling;
   private final IPV4Unit bindAddress;
   private final IPV4Unit joinAddress;
   private final String networkType;
@@ -40,6 +42,8 @@ class DXRAMProperties {
 
     sizeOfField = Integer.parseInt(properties.getProperty(CoreWorkload.FIELD_LENGTH_PROPERTY, "-1"));
     checkParameter(CoreWorkload.FIELD_LENGTH_PROPERTY, sizeOfField);
+
+    usePooling = Boolean.parseBoolean(properties.getProperty(USE_POOLING, "true"));
 
     String bind = properties.getProperty(BIND_ADDRESS, "-1");
     checkParameter(BIND_ADDRESS, bind);
@@ -88,8 +92,12 @@ class DXRAMProperties {
     return joinAddress;
   }
 
-  public String getNetworkType() {
+  String getNetworkType() {
     return networkType;
+  }
+
+  boolean usePooling() {
+    return usePooling;
   }
 
   private void checkParameter(final String name, final int val) {
