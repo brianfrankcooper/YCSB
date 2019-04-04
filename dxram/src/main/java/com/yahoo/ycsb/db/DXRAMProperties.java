@@ -12,8 +12,12 @@ import de.hhu.bsinfo.dxutils.unit.IPV4Unit;
  * @author Stefan Nothaas, stefan.nothaas@hhu.de, 09.11.2018
  */
 class DXRAMProperties {
+  private static final String NETWORK_TYPE_ETHERNET = "ethernet";
+  private static final String NETWORK_TYPE_INFINIBAND = "infiniband";
+
   private static final String BIND_ADDRESS = "dxram.bind";
   private static final String JOIN_ADDRESS = "dxram.join";
+  private static final String NETWORK_TYPE = "dxram.network";
 
   private final int threadCount;
   private final int recordCount;
@@ -22,6 +26,7 @@ class DXRAMProperties {
 
   private final IPV4Unit bindAddress;
   private final IPV4Unit joinAddress;
+  private final String networkType;
 
   DXRAMProperties(final Properties properties) {
     threadCount = Integer.parseInt(properties.getProperty(Client.THREAD_COUNT_PROPERTY, "-1"));
@@ -47,6 +52,16 @@ class DXRAMProperties {
 
     String[] joinArr = join.split(":");
     joinAddress = new IPV4Unit(joinArr[0], Integer.parseInt(joinArr[1]));
+
+    String tmpNetworkType = properties.getProperty(NETWORK_TYPE, "ethernet");
+
+    if(NETWORK_TYPE_ETHERNET.startsWith(tmpNetworkType)) {
+      tmpNetworkType = NETWORK_TYPE_ETHERNET;
+    } else if(NETWORK_TYPE_INFINIBAND.startsWith(tmpNetworkType) || tmpNetworkType.equals("ib")) {
+      tmpNetworkType = NETWORK_TYPE_INFINIBAND;
+    }
+
+    networkType = tmpNetworkType;
   }
 
   int getThreadCount() {
@@ -71,6 +86,10 @@ class DXRAMProperties {
 
   IPV4Unit getJoinAddress() {
     return joinAddress;
+  }
+
+  public String getNetworkType() {
+    return networkType;
   }
 
   private void checkParameter(final String name, final int val) {

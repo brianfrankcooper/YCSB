@@ -39,6 +39,8 @@ import de.hhu.bsinfo.dxram.chunk.ChunkComponent;
 import de.hhu.bsinfo.dxram.chunk.ChunkComponentConfig;
 import de.hhu.bsinfo.dxram.chunk.ChunkService;
 import de.hhu.bsinfo.dxram.engine.*;
+import de.hhu.bsinfo.dxram.net.NetworkComponent;
+import de.hhu.bsinfo.dxram.net.NetworkComponentConfig;
 import de.hhu.bsinfo.dxram.util.NodeCapabilities;
 import de.hhu.bsinfo.dxutils.NodeID;
 
@@ -208,11 +210,13 @@ public class DXRAMClient extends DB {
     DXRAMEngineConfig engineConfig = dxramConfig.getEngineConfig();
     ZookeeperBootComponentConfig bootComponentConfig = dxramConfig.getComponentConfig(ZookeeperBootComponent.class);
     ChunkComponentConfig chunkComponentConfig = dxramConfig.getComponentConfig(ChunkComponent.class);
+    NetworkComponentConfig networkComponentConfig = dxramConfig.getComponentConfig(NetworkComponent.class);
 
     engineConfig.setRole("Peer");
     engineConfig.setAddress(properties.getBindAddress());
     bootComponentConfig.setConnection(properties.getJoinAddress());
     chunkComponentConfig.setChunkStorageEnabled(false);
+    networkComponentConfig.getCoreConfig().setDevice(properties.getNetworkType());
 
     if (!client.initialize(dxramConfig, true)) {
       System.err.println("ERROR: Couldn't initialize DXRAM! Aborting.");
