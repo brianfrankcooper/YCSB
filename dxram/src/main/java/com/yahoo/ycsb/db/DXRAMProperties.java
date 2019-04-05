@@ -59,8 +59,7 @@ class DXRAMProperties {
   private final String networkType;
 
   DXRAMProperties(final Properties properties) {
-    threadCount = Integer.parseInt(properties.getProperty(Client.THREAD_COUNT_PROPERTY, "-1"));
-    checkParameter(Client.THREAD_COUNT_PROPERTY, threadCount);
+    threadCount = Integer.parseInt(properties.getProperty(Client.THREAD_COUNT_PROPERTY, "1"));
 
     recordCount = Integer.parseInt(properties.getProperty(Client.RECORD_COUNT_PROPERTY, "-1"));
     checkParameter(Client.RECORD_COUNT_PROPERTY, recordCount);
