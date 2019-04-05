@@ -42,6 +42,7 @@ class DXRAMProperties {
   private static final String NETWORK_TYPE_INFINIBAND = "infiniband";
 
   private static final String USE_POOLING = "dxram.pooling";
+  private static final String MAXIMUM_RETRIES = "dxram.maxretries";
   private static final String DISTRIBUTION_STRATEGY = "dxram.distribution";
   private static final String BIND_ADDRESS = "dxram.bind";
   private static final String JOIN_ADDRESS = "dxram.join";
@@ -53,6 +54,7 @@ class DXRAMProperties {
   private final int sizeOfField;
 
   private final boolean usePooling;
+  private final int maxRetries;
   private final DistributionStrategy distributionStrategy;
   private final IPV4Unit bindAddress;
   private final IPV4Unit joinAddress;
@@ -71,6 +73,9 @@ class DXRAMProperties {
     checkParameter(CoreWorkload.FIELD_LENGTH_PROPERTY, sizeOfField);
 
     usePooling = Boolean.parseBoolean(properties.getProperty(USE_POOLING, "true"));
+
+    int tmpMaxRetries = Integer.parseInt(properties.getProperty(MAXIMUM_RETRIES, "100"));
+    maxRetries = tmpMaxRetries >= 1 ? tmpMaxRetries : 100;
 
     distributionStrategy = DistributionStrategy.fromString(
         properties.getProperty(DISTRIBUTION_STRATEGY, DistributionStrategy.LINEAR.toString()));
@@ -128,6 +133,10 @@ class DXRAMProperties {
 
   boolean usePooling() {
     return usePooling;
+  }
+
+  int getMaxRetries() {
+    return maxRetries;
   }
 
   DistributionStrategy getDistributionStrategy() {

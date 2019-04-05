@@ -115,11 +115,14 @@ public class DXRAMClient extends DB {
       object.setFieldValue(entry.getKey(), entry.getValue());
     }
 
-    while (!chunkService.put().put(object)) {
-      System.out.println("Putting chunk " + ChunkID.toHexString(object.getID()) + " failed. Retry...");
+    int retries = 0;
+
+    while (!chunkService.put().put(object) && retries < properties.getMaxRetries()) {
+      System.out.printf("Putting chunk %s failed. Retrying (%d)...\n", ChunkID.toHexString(object.getID()), retries);
+      retries++;
     }
 
-    return Status.OK;
+    return retries < properties.getMaxRetries() ? Status.OK : Status.ERROR;
   }
 
   @Override
@@ -128,8 +131,11 @@ public class DXRAMClient extends DB {
 
     object.setID(chunkIDConverter.toChunkId(key));
 
-    while (!chunkService.get().get(object, ChunkLockOperation.NONE)) {
-      System.out.println("Getting chunk " + ChunkID.toHexString(object.getID()) + " failed. Retry...");
+    int retries = 0;
+
+    while (!chunkService.get().get(object, ChunkLockOperation.NONE) && retries < properties.getMaxRetries()) {
+      System.out.printf("Getting chunk %s failed. Retrying (%d)...\n", ChunkID.toHexString(object.getID()), retries);
+      retries++;
     }
 
     // read all fields
@@ -143,7 +149,7 @@ public class DXRAMClient extends DB {
       }
     }
 
-    return Status.OK;
+    return retries < properties.getMaxRetries() ? Status.OK : Status.ERROR;
   }
 
   @Override
@@ -156,11 +162,14 @@ public class DXRAMClient extends DB {
       object.setFieldValue(entry.getKey(), entry.getValue());
     }
 
-    while (!chunkService.put().put(object, ChunkLockOperation.NONE)) {
-      System.out.println("Putting chunk " + ChunkID.toHexString(object.getID()) + " failed. Retry...");
+    int retries = 0;
+
+    while (!chunkService.put().put(object, ChunkLockOperation.NONE) && retries < properties.getMaxRetries()) {
+      System.out.printf("Putting chunk %s failed. Retrying (%d)...\n", ChunkID.toHexString(object.getID()), retries);
+      retries++;
     }
 
-    return Status.OK;
+    return retries < properties.getMaxRetries() ? Status.OK : Status.ERROR;
   }
 
   @Override
@@ -170,7 +179,7 @@ public class DXRAMClient extends DB {
     object.setID(chunkIDConverter.toChunkId(key));
 
     if (chunkService.remove().remove(object) != 1) {
-      System.out.println("Removing chunk " + ChunkID.toHexString(object.getID()) + " failed.");
+      System.out.printf("Removing chunk %s failed.\n", ChunkID.toHexString(object.getID()));
       return Status.ERROR;
     }
 
