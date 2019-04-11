@@ -27,16 +27,16 @@ class ChunkIDConverter {
 
   long toChunkId(final String key) {
     // key is of format: userX, e.g. user1, user12, etc.
-    int keyVal = Integer.parseInt(key.substring(4));
+    long keyVal = Integer.parseInt(key.substring(4));
 
     if(distributionStrategy == DXRAMProperties.DistributionStrategy.LINEAR) {
-      int nodeIdx = keyVal / recordsPerNode;
-      int recordIdx = keyVal % recordsPerNode;
+      int nodeIdx = (int) (keyVal / recordsPerNode);
+      long recordIdx = keyVal % recordsPerNode;
 
       return ChunkID.getChunkID(storageNodes.get(nodeIdx), recordIdx + CHUNK_ID_OFFSET);
     } else {
-      int nodeIdx = keyVal % storageNodes.size();
-      int recordIdx = keyVal / storageNodes.size();
+      int nodeIdx = (int) (keyVal % storageNodes.size());
+      long recordIdx = keyVal / storageNodes.size();
 
       return ChunkID.getChunkID(storageNodes.get(nodeIdx), recordIdx + CHUNK_ID_OFFSET);
     }
