@@ -84,7 +84,7 @@ class DXRAMProperties {
     checkParameter(BIND_ADDRESS, bind);
 
     String join = properties.getProperty(JOIN_ADDRESS, "-1");
-    checkParameter(JOIN_ADDRESS, bind);
+    checkParameter(JOIN_ADDRESS, join);
 
     String[] bindArr = bind.split(":");
     bindAddress = new IPV4Unit(bindArr[0], Integer.parseInt(bindArr[1]));
