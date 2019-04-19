@@ -113,7 +113,10 @@ public class CassandraCQLClient extends DB {
 
   public static final String TRACING_PROPERTY = "cassandra.tracing";
   public static final String TRACING_PROPERTY_DEFAULT = "false";
-  
+
+  public static final String USE_SSL_CONNECTION = "cassandra.useSSL";
+  private static final String DEFAULT_USE_SSL_CONNECTION = "false";
+
   /**
    * Count the number of times initialized to teardown on the last
    * {@link #cleanup()}.
@@ -148,7 +151,7 @@ public class CassandraCQLClient extends DB {
         debug =
             Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
         trace = Boolean.valueOf(getProperties().getProperty(TRACING_PROPERTY, TRACING_PROPERTY_DEFAULT));
-        
+
         String host = getProperties().getProperty(HOSTS_PROPERTY);
         if (host == null) {
           throw new DBException(String.format(
@@ -171,9 +174,17 @@ public class CassandraCQLClient extends DB {
             getProperties().getProperty(WRITE_CONSISTENCY_LEVEL_PROPERTY,
                 WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT));
 
+        Boolean useSSL = Boolean.parseBoolean(getProperties().getProperty(USE_SSL_CONNECTION,
+            DEFAULT_USE_SSL_CONNECTION));
+
         if ((username != null) && !username.isEmpty()) {
-          cluster = Cluster.builder().withCredentials(username, password)
-              .withPort(Integer.valueOf(port)).addContactPoints(hosts).build();
+          if (useSSL) {
+            cluster = Cluster.builder().withCredentials(username, password)
+                       .withPort(Integer.valueOf(port)).addContactPoints(hosts).withSSL().build();
+          } else {
+            cluster = Cluster.builder().withCredentials(username, password)
+                       .withPort(Integer.valueOf(port)).addContactPoints(hosts).build();
+          }
         } else {
           cluster = Cluster.builder().withPort(Integer.valueOf(port))
               .addContactPoints(hosts).build();

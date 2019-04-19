@@ -76,6 +76,9 @@ For keyspace `ycsb`, table `usertable`:
 * `cassandra.coreconnections`
   * Defaults for max and core connections can be found here: https://datastax.github.io/java-driver/2.1.8/features/pooling/#pool-size. Cassandra 2.0.X falls under protocol V2, Cassandra 2.1+ falls under protocol V3.
 * `cassandra.connecttimeoutmillis`
+* `cassandra.useSSL`
+  * Default value is false.
+  - To connect with SSL set this value to true.
 * `cassandra.readtimeoutmillis`
   * Defaults for connect and read timeouts can be found here: https://docs.datastax.com/en/drivers/java/2.0/com/datastax/driver/core/SocketOptions.html.
 * `cassandra.tracing`
