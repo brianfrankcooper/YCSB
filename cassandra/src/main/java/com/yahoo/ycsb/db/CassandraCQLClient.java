@@ -178,13 +178,12 @@ public class CassandraCQLClient extends DB {
             DEFAULT_USE_SSL_CONNECTION));
 
         if ((username != null) && !username.isEmpty()) {
+          Cluster.Builder clusterBuilder = Cluster.builder().withCredentials(username, password)
+              .withPort(Integer.valueOf(port)).addContactPoints(hosts);
           if (useSSL) {
-            cluster = Cluster.builder().withCredentials(username, password)
-                       .withPort(Integer.valueOf(port)).addContactPoints(hosts).withSSL().build();
-          } else {
-            cluster = Cluster.builder().withCredentials(username, password)
-                       .withPort(Integer.valueOf(port)).addContactPoints(hosts).build();
-          }
+            clusterBuilder = clusterBuilder.withSSL();
+          } 
+          cluster = clusterBuilder.build();
         } else {
           cluster = Cluster.builder().withPort(Integer.valueOf(port))
               .addContactPoints(hosts).build();
