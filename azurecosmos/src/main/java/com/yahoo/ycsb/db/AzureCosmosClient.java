@@ -286,7 +286,7 @@ public class AzureCosmosClient extends DB {
   public Status update(String table, String key, Map<String, ByteIterator> values) {
     // Azure Cosmos does not have patch support.  Until then we need to read
     // the document, update in place, and then write back.
-    // This could actually me made more efficient by using a stored procedure
+    // This could actually be made more efficient by using a stored procedure
     // and doing the read/modify write on the server side.  Perhaps
     // that will be a future improvement.
 
