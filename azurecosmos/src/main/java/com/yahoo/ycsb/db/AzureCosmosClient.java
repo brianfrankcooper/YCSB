@@ -53,9 +53,7 @@ public class AzureCosmosClient extends DB {
   private static final String DEFAULT_CONSISTENCY_LEVEL = "Session";
   private static final String DEFAULT_DATABASE_NAME = "ycsb";
   private static final String DEFAULT_CONNECTION_MODE = "DirectHttps";
-  private static final boolean DEFAULT_USE_SINGLE_PARTITION_COLLECTION = true;
   private static final boolean DEFAULT_USE_UPSERT = false;
-  private static final boolean DEFAULT_USE_HASH_QUERY_FOR_SCAN = false;
   private static final int DEFAULT_MAX_DEGREE_OF_PARALLELISM_FOR_QUERY = 0;
   private static final boolean DEFAULT_INCLUDE_EXCEPTION_STACK_IN_LOG = false;
 
@@ -68,12 +66,8 @@ public class AzureCosmosClient extends DB {
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
   private static DocumentClient client;
-
-  private String queryText;
   private String databaseName;
-  private boolean useSinglePartitionCollection;
   private boolean useUpsert;
-  private boolean useHashQueryForScan;
   private int maxDegreeOfParallelismForQuery;
   private boolean includeExceptionStackInLog;
 
@@ -99,17 +93,9 @@ public class AzureCosmosClient extends DB {
       throw new DBException("Missing uri required to connect to the database.");
     }
 
-    this.useSinglePartitionCollection = this.getBooleanProperty(
-            "azurecosmos.useSinglePartitionCollection",
-            DEFAULT_USE_SINGLE_PARTITION_COLLECTION);
-
     this.useUpsert = this.getBooleanProperty(
             "azurecosmos.useUpsert",
             DEFAULT_USE_UPSERT);
-
-    this.useHashQueryForScan = this.getBooleanProperty(
-            "azurecosmos.useHashQueryForScan",
-            DEFAULT_USE_HASH_QUERY_FOR_SCAN);
 
     this.databaseName = this.getStringProperty(
             "azurecosmos.databaseName",
@@ -147,23 +133,16 @@ public class AzureCosmosClient extends DB {
               retryOptions.getMaxRetryWaitTimeInSeconds()));
     connectionPolicy.setRetryOptions(retryOptions);
 
-    // Query text
-    this.queryText = this.getQueryText();
-
     try {
       LOGGER.info("Creating azurecosmos client {}.. connectivityMode={}, consistencyLevel={},"
                       + " maxRetryAttemptsOnThrottledRequests={}, maxRetryWaitTimeInSeconds={}"
-                      + " useSinglePartitionCollection={}, useUpsert={}, useHashQueryForScan={}, "
-                      + "queryText={}",
+                      + " useUpsert={}",
               uri,
               connectionPolicy.getConnectionMode(),
               consistencyLevel.toString(),
               connectionPolicy.getRetryOptions().getMaxRetryAttemptsOnThrottledRequests(),
               connectionPolicy.getRetryOptions().getMaxRetryWaitTimeInSeconds(),
-              this.useSinglePartitionCollection,
-              this.useUpsert,
-              this.useHashQueryForScan,
-              this.queryText);
+              this.useUpsert);
       AzureCosmosClient.client = new DocumentClient(uri, primaryKey, connectionPolicy, consistencyLevel);
       LOGGER.info("Azure Cosmos connection created: {}", uri);
     } catch (IllegalArgumentException e) {
@@ -200,12 +179,6 @@ public class AzureCosmosClient extends DB {
     } catch (NumberFormatException e) {
       return defaultValue;
     }
-  }
-
-  private String getQueryText() {
-    return this.useHashQueryForScan ?
-             "SELECT * FROM root r WHERE r.id = @startkey" :
-             "SELECT TOP @recordcount * FROM root r WHERE r.myid >= @startkey";
   }
 
   /**
@@ -246,7 +219,7 @@ public class AzureCosmosClient extends DB {
       return Status.ERROR;
     }
 
-    if (null != document) {
+    if (document != null) {
       result.putAll(extractResult(document));
     }
 
@@ -259,11 +232,14 @@ public class AzureCosmosClient extends DB {
     List<Document> documents;
     FeedResponse<Document> feedResponse = null;
     try {
+      FeedOptions feedOptions = new FeedOptions();
+      feedOptions.setEnableCrossPartitionQuery(true);
+      feedOptions.setMaxDegreeOfParallelism(this.maxDegreeOfParallelismForQuery);
       feedResponse = AzureCosmosClient.client.queryDocuments(getDocumentCollectionLink(this.databaseName, table),
-            new SqlQuerySpec(queryText,
+            new SqlQuerySpec("SELECT TOP @recordcount * FROM root r WHERE r.id >= @startkey",
                     new SqlParameterCollection(new SqlParameter("@recordcount", recordcount),
-                            new SqlParameter("@startkey", startkey))),
-            getFeedOptions(startkey));
+                                               new SqlParameter("@startkey", startkey))),
+                    feedOptions);
       documents = feedResponse.getQueryIterable().toList();
     } catch (Exception e) {
       if (!this.includeExceptionStackInLog) {
@@ -392,21 +368,6 @@ public class AzureCosmosClient extends DB {
     return rItems;
   }
 
-  private FeedOptions getFeedOptions(String key) {
-    if (useSinglePartitionCollection) {
-      return null;
-    }
-    FeedOptions feedOptions = new FeedOptions();
-    if (this.useHashQueryForScan) {
-      feedOptions.setEnableCrossPartitionQuery(false);
-      feedOptions.setPartitionKey(new PartitionKey(key));
-    } else {
-      feedOptions.setEnableCrossPartitionQuery(true);
-      feedOptions.setMaxDegreeOfParallelism(this.maxDegreeOfParallelismForQuery);
-    }
-    return feedOptions;
-  }
-
   private RequestOptions getRequestOptions(String key) {
     RequestOptions requestOptions = new RequestOptions();
     requestOptions.setPartitionKey(new PartitionKey(key));
@@ -434,12 +395,6 @@ public class AzureCosmosClient extends DB {
   private Document getDocumentDefinition(String key, Map<String, ByteIterator> values) {
     Document document = new Document();
     document.set("id", key);
-    if (!this.useHashQueryForScan) {
-      // This field is only needed for range scans.
-      // Even if this field is present in the document you
-      // should still partition on id for simplicity of config.
-      document.set("myid", key);
-    }
     for (Entry<String, ByteIterator> entry : values.entrySet()) {
       document.set(entry.getKey(), entry.getValue().toString());
     }
