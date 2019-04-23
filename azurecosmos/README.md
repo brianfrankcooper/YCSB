@@ -25,9 +25,13 @@ https://azure.microsoft.com/services/cosmos-db/
 
 ### 1. Setup
 This benchmark expects you to have pre-created the database "ycsb" and
-collection "usertable" before running the benchmark commands.  You can
-override the default database name with the azurecosmos.databaseName
-configuration value.
+collection "usertable" before running the benchmark commands.  When
+prompted for a Partition Key use id and for RUs select a value you
+want to benchmark.  [RUs are the measure of provisioned thoughput](https://docs.microsoft.com/azure/cosmos-db/request-units)
+that Azure Cosmos defines. The higher the RUs the more throughput you will
+get. You can override the default database name with the 
+azurecosmos.databaseName configuration value for side-by-side
+benchmarking.
 
 You must set the uri and the primaryKey in the azurecosmos.properties file in the commands below.
     $YCSB_HOME/bin/ycsb load azurecosmos -P workloads/workloada -P azurecosmos/conf/azurecosmos.properties
@@ -57,12 +61,6 @@ Optionally you can set the uri and primaryKey as follows:
     - Name of the database to use.
     - Default: ycsb
 
-- azurecosmos.useSinglePartitionCollection (true | false):
-	- It should be true if you created the collection with a single parition. If
-	  you created the collection with a partitioning key this value should be set
-	  to false.  
-    - Default: true
-
 - azurecosmos.useUpsert (true | false):
 	- Set to true to allow inserts to update existing documents.  If this is 
 	  false and a document already exists the insert will fail.
@@ -87,12 +85,6 @@ Optionally you can set the uri and primaryKey as follows:
 - azurecosmos.maxRetryWaitTimeInSeconds < integer >
     - Sets the maximum timeout to for retry in seconds
     - Default: uses default value of azurecosmos Java SDK
-
-- azurecosmos.useHashQueryForScan (true | false):
-    - This setting indicates whether SCAN operation should use hash query instead of range query.
-        Range query: SELECT * FROM root r WHERE r.id = @startkey
-        Hash query: SELECT TOP @recordcount * FROM root r WHERE r.id >= @startkey
-    - Default: false
 
 - azurecosmos.maxDegreeOfParallelismForQuery < integer >
     - Sets the maximum degree of parallelism for the FeedOptions used in Query operation
