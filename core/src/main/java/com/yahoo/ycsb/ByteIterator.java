@@ -96,9 +96,8 @@ public abstract class ByteIterator implements Iterator<Byte> {
       throw new ArrayIndexOutOfBoundsException("Too much data to fit in one array!");
     }
     byte[] ret = new byte[(int) left];
-    int off = 0;
-    while (off < ret.length) {
-      off = nextBuf(ret, off);
+    for (int i = 0; i < ret.length; i++) {
+      ret[i] = nextByte();
     }
     return ret;
   }
