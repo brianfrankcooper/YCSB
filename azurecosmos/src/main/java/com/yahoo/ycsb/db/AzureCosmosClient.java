@@ -53,14 +53,9 @@ public class AzureCosmosClient extends DB {
   private static final String DEFAULT_CONSISTENCY_LEVEL = "Session";
   private static final String DEFAULT_DATABASE_NAME = "ycsb";
   private static final String DEFAULT_CONNECTION_MODE = "DirectHttps";
-  private static final boolean DEFAULT_USE_SINGLE_PARTITION_COLLECTION = true;
   private static final boolean DEFAULT_USE_UPSERT = false;
-  private static final boolean DEFAULT_USE_HASH_QUERY_FOR_SCAN = false;
   private static final int DEFAULT_MAX_DEGREE_OF_PARALLELISM_FOR_QUERY = 0;
   private static final boolean DEFAULT_INCLUDE_EXCEPTION_STACK_IN_LOG = false;
-
-  private static final int NS_IN_US = 1000;
-  private static final String NA_STRING = "N/A";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AzureCosmosClient.class);
 
@@ -71,12 +66,8 @@ public class AzureCosmosClient extends DB {
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
   private static DocumentClient client;
-
-  private String queryText;
   private String databaseName;
-  private boolean useSinglePartitionCollection;
   private boolean useUpsert;
-  private boolean useHashQueryForScan;
   private int maxDegreeOfParallelismForQuery;
   private boolean includeExceptionStackInLog;
 
@@ -102,17 +93,9 @@ public class AzureCosmosClient extends DB {
       throw new DBException("Missing uri required to connect to the database.");
     }
 
-    this.useSinglePartitionCollection = this.getBooleanProperty(
-            "azurecosmos.useSinglePartitionCollection",
-            DEFAULT_USE_SINGLE_PARTITION_COLLECTION);
-
     this.useUpsert = this.getBooleanProperty(
             "azurecosmos.useUpsert",
             DEFAULT_USE_UPSERT);
-
-    this.useHashQueryForScan = this.getBooleanProperty(
-            "azurecosmos.useHashQueryForScan",
-            DEFAULT_USE_HASH_QUERY_FOR_SCAN);
 
     this.databaseName = this.getStringProperty(
             "azurecosmos.databaseName",
@@ -150,23 +133,16 @@ public class AzureCosmosClient extends DB {
               retryOptions.getMaxRetryWaitTimeInSeconds()));
     connectionPolicy.setRetryOptions(retryOptions);
 
-    // Query text
-    this.queryText = this.getQueryText();
-
     try {
       LOGGER.info("Creating azurecosmos client {}.. connectivityMode={}, consistencyLevel={},"
                       + " maxRetryAttemptsOnThrottledRequests={}, maxRetryWaitTimeInSeconds={}"
-                      + " useSinglePartitionCollection={}, useUpsert={}, useHashQueryForScan={}, "
-                      + "queryText={}",
+                      + " useUpsert={}",
               uri,
               connectionPolicy.getConnectionMode(),
               consistencyLevel.toString(),
               connectionPolicy.getRetryOptions().getMaxRetryAttemptsOnThrottledRequests(),
               connectionPolicy.getRetryOptions().getMaxRetryWaitTimeInSeconds(),
-              this.useSinglePartitionCollection,
-              this.useUpsert,
-              this.useHashQueryForScan,
-              this.queryText);
+              this.useUpsert);
       AzureCosmosClient.client = new DocumentClient(uri, primaryKey, connectionPolicy, consistencyLevel);
       LOGGER.info("Azure Cosmos connection created: {}", uri);
     } catch (IllegalArgumentException e) {
@@ -205,12 +181,6 @@ public class AzureCosmosClient extends DB {
     }
   }
 
-  private String getQueryText() {
-    return this.useHashQueryForScan ?
-             "SELECT * FROM root r WHERE r.id = @startkey" :
-             "SELECT TOP @recordcount * FROM root r WHERE r.myid >= @startkey";
-  }
-
   /**
    * Cleanup any state for this DB. Called once per DB instance; there is one DB
    * instance per client thread.
@@ -236,8 +206,7 @@ public class AzureCosmosClient extends DB {
     String documentLink = getDocumentLink(this.databaseName, table, key);
 
     ResourceResponse<Document> readResource = null;
-    Document document;
-    long startTime = System.nanoTime();
+    Document document = null;
 
     try {
       readResource = AzureCosmosClient.client.readDocument(documentLink, getRequestOptions(key));
@@ -248,31 +217,29 @@ public class AzureCosmosClient extends DB {
       }
       LOGGER.error("Failed to read key {} in collection {} in database {}", key, table, this.databaseName, e);
       return Status.ERROR;
-    } finally {
-      long elapsed = (System.nanoTime() - startTime) / NS_IN_US;
-      LOGGER.debug("Read key {} in {}us - ActivityID: {}", key, elapsed,
-              readResource != null ? readResource.getActivityId() : NA_STRING);
     }
 
-    if (null != document) {
+    if (document != null) {
       result.putAll(extractResult(document));
-      LOGGER.trace("Read result: {}", document);
     }
+
     return Status.OK;
   }
 
   @Override
   public Status scan(String table, String startkey, int recordcount, Set<String> fields,
                      Vector<HashMap<String, ByteIterator>> result) {
-    long startTime = System.nanoTime();
     List<Document> documents;
     FeedResponse<Document> feedResponse = null;
     try {
+      FeedOptions feedOptions = new FeedOptions();
+      feedOptions.setEnableCrossPartitionQuery(true);
+      feedOptions.setMaxDegreeOfParallelism(this.maxDegreeOfParallelismForQuery);
       feedResponse = AzureCosmosClient.client.queryDocuments(getDocumentCollectionLink(this.databaseName, table),
-            new SqlQuerySpec(queryText,
+            new SqlQuerySpec("SELECT TOP @recordcount * FROM root r WHERE r.id >= @startkey",
                     new SqlParameterCollection(new SqlParameter("@recordcount", recordcount),
-                            new SqlParameter("@startkey", startkey))),
-            getFeedOptions(startkey));
+                                               new SqlParameter("@startkey", startkey))),
+                    feedOptions);
       documents = feedResponse.getQueryIterable().toList();
     } catch (Exception e) {
       if (!this.includeExceptionStackInLog) {
@@ -280,11 +247,6 @@ public class AzureCosmosClient extends DB {
       }
       LOGGER.error("Failed to scan with startKey={}, recordCount={}", startkey, recordcount, e);
       return Status.ERROR;
-    } finally {
-      long elapsed = (System.nanoTime() - startTime) / NS_IN_US;
-      LOGGER.debug("Queried {} records for key {} in {}us - ActivityID: {}",
-              recordcount, startkey, elapsed,
-              feedResponse != null ? feedResponse.getActivityId() : NA_STRING);
     }
 
     if (documents != null) {
@@ -298,20 +260,41 @@ public class AzureCosmosClient extends DB {
 
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
-    String documentLink = getDocumentLink(this.databaseName, table, key);
-    Document document = getDocumentDefinition(key, values);
+    // Azure Cosmos does not have patch support.  Until then we need to read
+    // the document, update in place, and then write back.
+    // This could actually be made more efficient by using a stored procedure
+    // and doing the read/modify write on the server side.  Perhaps
+    // that will be a future improvement.
 
-    RequestOptions reqOptions = getRequestOptions(key);
-    if (reqOptions == null) {
-      reqOptions = new RequestOptions();
+    String documentLink = getDocumentLink(this.databaseName, table, key);
+    ResourceResponse<Document> updatedResource = null;
+    ResourceResponse<Document> readResouce = null;
+    RequestOptions reqOptions = null;
+    Document document = null;
+
+    try {
+      reqOptions = getRequestOptions(key);
+      readResouce = AzureCosmosClient.client.readDocument(documentLink, reqOptions);
+      document = readResouce.getResource();
+    } catch (DocumentClientException e) {
+      if (!this.includeExceptionStackInLog) {
+        e = null;
+      }
+      LOGGER.error("Failed to read key {} in collection {} in database {} during update operation",
+          key, table, this.databaseName, e);
+      return Status.ERROR;
     }
+
+    // Update values
+    for (Entry<String, ByteIterator> entry : values.entrySet()) {
+      document.set(entry.getKey(), entry.getValue().toString());
+    }
+
     AccessCondition accessCondition = new AccessCondition();
     accessCondition.setCondition(document.getETag());
     accessCondition.setType(AccessConditionType.IfMatch);
     reqOptions.setAccessCondition(accessCondition);
 
-    ResourceResponse<Document> updatedResource = null;
-    long startTime = System.nanoTime();
     try {
       updatedResource = AzureCosmosClient.client.replaceDocument(documentLink, document, reqOptions);
     } catch (DocumentClientException e) {
@@ -320,12 +303,8 @@ public class AzureCosmosClient extends DB {
       }
       LOGGER.error("Failed to update key {}", key, e);
       return Status.ERROR;
-    } finally {
-      long elapsed = (System.nanoTime() - startTime) / NS_IN_US;
-      LOGGER.debug("Updated key {} in {}us - ActivityID: {}", key, elapsed,
-              updatedResource != null ? updatedResource.getActivityId() : NA_STRING);
     }
-
+  
     return Status.OK;
   }
 
@@ -333,17 +312,18 @@ public class AzureCosmosClient extends DB {
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     Document documentDefinition = getDocumentDefinition(key, values);
     ResourceResponse<Document> resourceResponse = null;
-    long startTime = System.nanoTime();
+    RequestOptions requestOptions = getRequestOptions(key);
+  
     try {
       if (this.useUpsert) {
         resourceResponse = AzureCosmosClient.client.upsertDocument(getDocumentCollectionLink(this.databaseName, table),
             documentDefinition,
-            getRequestOptions(key),
+            requestOptions,
             true);
       } else {
         resourceResponse = AzureCosmosClient.client.createDocument(getDocumentCollectionLink(this.databaseName, table),
             documentDefinition,
-            getRequestOptions(key),
+            requestOptions,
             true);
       }
 
@@ -353,10 +333,6 @@ public class AzureCosmosClient extends DB {
       }
       LOGGER.error("Failed to insert key {} to collection {} in database {}", key, table, this.databaseName, e);
       return Status.ERROR;
-    } finally {
-      long elapsed = (System.nanoTime() - startTime) / NS_IN_US;
-      LOGGER.debug("Inserted key {} in {}us - ActivityID: {}", key, elapsed,
-              resourceResponse != null ? resourceResponse.getActivityId() : NA_STRING);
     }
 
     return Status.OK;
@@ -365,7 +341,7 @@ public class AzureCosmosClient extends DB {
   @Override
   public Status delete(String table, String key) {
     ResourceResponse<Document> deletedResource = null;
-    long startTime = System.nanoTime();
+
     try {
       deletedResource = AzureCosmosClient.client.deleteDocument(getDocumentLink(this.databaseName, table, key),
               getRequestOptions(key));
@@ -375,10 +351,6 @@ public class AzureCosmosClient extends DB {
       }
       LOGGER.error("Failed to delete key {} in collection {} in database {}", key, table, this.databaseName, e);
       return Status.ERROR;
-    } finally {
-      long elapsed = (System.nanoTime() - startTime) / NS_IN_US;
-      LOGGER.debug("Deleted key {} in {}us - ActivityID: {}", key, elapsed,
-              deletedResource != null ? deletedResource.getActivityId() : NA_STRING);
     }
 
     return Status.OK;
@@ -391,25 +363,9 @@ public class AzureCosmosClient extends DB {
     HashMap<String, ByteIterator> rItems = new HashMap<>(item.getHashMap().size());
 
     for (Entry<String, Object> attr : item.getHashMap().entrySet()) {
-      LOGGER.trace("Result- key: {}, value: {}", attr.getKey(), attr.getValue().toString());
       rItems.put(attr.getKey(), new StringByteIterator(attr.getValue().toString()));
     }
     return rItems;
-  }
-
-  private FeedOptions getFeedOptions(String key) {
-    if (useSinglePartitionCollection) {
-      return null;
-    }
-    FeedOptions feedOptions = new FeedOptions();
-    if (this.useHashQueryForScan) {
-      feedOptions.setEnableCrossPartitionQuery(false);
-      feedOptions.setPartitionKey(new PartitionKey(key));
-    } else {
-      feedOptions.setEnableCrossPartitionQuery(true);
-      feedOptions.setMaxDegreeOfParallelism(this.maxDegreeOfParallelismForQuery);
-    }
-    return feedOptions;
   }
 
   private RequestOptions getRequestOptions(String key) {
@@ -439,12 +395,6 @@ public class AzureCosmosClient extends DB {
   private Document getDocumentDefinition(String key, Map<String, ByteIterator> values) {
     Document document = new Document();
     document.set("id", key);
-    if (!this.useHashQueryForScan) {
-      // This field is only needed for range scans.
-      // Even if this field is present in the document you
-      // should still partition on id for simplicity of config.
-      document.set("myid", key);
-    }
     for (Entry<String, ByteIterator> entry : values.entrySet()) {
       document.set(entry.getKey(), entry.getValue().toString());
     }
