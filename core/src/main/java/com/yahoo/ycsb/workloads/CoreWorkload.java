@@ -347,7 +347,7 @@ public class CoreWorkload extends Workload {
    * request counter as part of the key and add code in the mongodbclient to accept it. The key will now be
    * "keyname:<requestsSent>"
    */
-  public static int requestsSent = 0;
+  private static int requestsSent = 0;
 
   protected NumberGenerator keysequence;
   protected DiscreteGenerator operationchooser;
