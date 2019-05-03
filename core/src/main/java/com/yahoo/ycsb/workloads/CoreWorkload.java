@@ -719,6 +719,9 @@ public class CoreWorkload extends Workload {
     }
 
     HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
+    System.err.println("aw528 table "+table);
+    System.err.println("aw528 key "+keyname);
+
     db.read(table, keyname, fields, cells);
 
     if (dataintegrity) {
@@ -759,6 +762,9 @@ public class CoreWorkload extends Workload {
 
     long ist = measurements.getIntendedtartTimeNs();
     long st = System.nanoTime();
+    System.err.println("aw528 table "+table);
+    System.err.println("aw528 key "+keyname);
+
     db.read(table, keyname, fields, cells);
 
     db.update(table, keyname, values);
@@ -810,6 +816,9 @@ public class CoreWorkload extends Workload {
       // update a random field
       values = buildSingleValue(keyname);
     }
+
+    System.err.println("aw528 table "+table);
+    System.err.println("aw528 key "+keyname);
 
     db.update(table, keyname, values);
   }
