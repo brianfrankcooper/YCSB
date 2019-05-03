@@ -308,7 +308,9 @@ public class MongoDbClient extends DB {
 
     int previous = 0;
     for(int i = 0; i<requestRanges.size(); i++){
-      if(requestRanges.get(i) > currentRequest) break;
+      if(requestRanges.get(i) > currentRequest){
+        break;
+      }
       previous = requestRanges.get(i);
     }
 
