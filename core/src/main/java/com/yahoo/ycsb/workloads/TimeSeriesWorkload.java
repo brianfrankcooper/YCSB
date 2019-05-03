@@ -543,6 +543,9 @@ public class TimeSeriesWorkload extends Workload {
   
   @Override
   public void init(final Properties p) throws WorkloadException {
+
+    System.err.println("aw528 TimeSeriesWorkload");
+
     properties = p;
     recordcount =
         Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY, 

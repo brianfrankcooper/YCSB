@@ -114,6 +114,8 @@ public class RestWorkload extends CoreWorkload {
   @Override
   public void init(Properties p) throws WorkloadException {
 
+    System.err.println("aw528 RestWorkload");
+
     readRecordCount = Integer.parseInt(p.getProperty(READ_RECORD_COUNT_PROPERTY, String.valueOf(Integer.MAX_VALUE)));
     insertRecordCount = Integer
       .parseInt(p.getProperty(INSERT_RECORD_COUNT_PROPERTY, String.valueOf(Integer.MAX_VALUE)));
