@@ -182,8 +182,9 @@ public class MongoDbClient extends DB {
       urls.add(url1);
 
       //Hardcode entries as a string
+      //If currentRequest > entry1 and < entry2 then we use that URI
       List<Integer> entries = new ArrayList<>();
-      Integer entry1 = new Integer(100);
+      Integer entry1 = new Integer(500);
       entries.add(entry1);
       requestRanges.add(entry1);
 
@@ -306,7 +307,7 @@ public class MongoDbClient extends DB {
     String actualKey = splittedString[0];
     int currentRequest = Integer.parseInt(splittedString[1]);
 
-    int previous = 0;
+    int previous = -1;
     for(int i = 0; i<requestRanges.size(); i++){
       if(requestRanges.get(i) > currentRequest){
         break;
@@ -314,7 +315,7 @@ public class MongoDbClient extends DB {
       previous = requestRanges.get(i);
     }
 
-    if(remoteDestinations.containsKey(previous) && (previous != 0)){
+    if(remoteDestinations.containsKey(previous) && (previous > 0)){
       return remoteDestinations.get(previous).getCollection(table);
     } else {
       return database.getCollection(table);
