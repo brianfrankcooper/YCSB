@@ -185,8 +185,9 @@ public class MongoDbClient extends DB {
 
       //Create client and add to map
       Properties props = getProperties();
+      String url = "";
       for (int i = 0; i < urls.size(); i++) {
-        String url = OptionsSupport.updateUrl(url, props);
+        url = OptionsSupport.updateUrl(url, props);
         MongoClientURI clientURI = new MongoClientURI(url);
         String uriDb = clientURI.getDatabase();
         MongoClient remoteClient = new MongoClient(clientURI);
@@ -204,7 +205,6 @@ public class MongoDbClient extends DB {
       e.printStackTrace();
       return false;
     }
-    return false;
   }
 
   /**
