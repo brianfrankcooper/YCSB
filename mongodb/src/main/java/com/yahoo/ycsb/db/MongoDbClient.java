@@ -118,11 +118,6 @@ public class MongoDbClient extends DB {
   private static List<Integer> requestRanges = new ArrayList<Integer>();
 
   /**
-   * Number of remoteRequests
-   */
-  public static final int numRemoteRequests = 1337;
-
-  /**
    * Cleanup any state for this DB. Called once per DB instance; there is one DB
    * instance per client thread.
    */
@@ -317,7 +312,7 @@ public class MongoDbClient extends DB {
       previous = requestRanges.get(i);
     }
 
-    if(remoteDestinations.containsKey(previous) && previous != 0){
+    if(remoteDestinations.containsKey(previous) && (previous != 0)){
       return remoteDestinations.get(previous).getCollection(table);
     } else {
       return database.getCollection(table);
