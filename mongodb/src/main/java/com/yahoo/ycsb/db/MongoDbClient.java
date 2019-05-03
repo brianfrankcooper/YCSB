@@ -111,6 +111,9 @@ public class MongoDbClient extends DB {
   /** The bulk inserts pending for the thread. */
   private final List<Document> bulkInserts = new ArrayList<Document>();
 
+  /** String -> MongoDatabase Mapping */
+  private static HashMap<String, MongoDatabase> remoteDestinations = new HashMap<String, MongoDatabase>();
+
   /**
    * Cleanup any state for this DB. Called once per DB instance; there is one DB
    * instance per client thread.
@@ -134,7 +137,7 @@ public class MongoDbClient extends DB {
 
   /**
    * Delete a record from the database.
-   * 
+   *
    * @param table
    *          The name of the table
    * @param key
@@ -162,6 +165,49 @@ public class MongoDbClient extends DB {
   }
 
   /**
+   * Hardcode custom endpoints for remote destinations, initialize remote clients, and fill map
+   * @return true = success, false = fail
+   */
+  private boolean initRemoteDestinations(){
+    try {
+      //Hardcode destinations as a string
+      int numberOfDestinations;
+      String url1 = "mongodb://localhost:27017/ycsb?w=1";
+
+      //Hardcode adding to a list
+      List<String> urls = new ArrayList<>();
+      urls.add(url1);
+
+      //Hardcode entries as a string
+      List<String> entries = new ArrayList<>();
+      String entry1 = "anyEntryName";
+      entries.add(entry1);
+
+      //Create client and add to map
+      Properties props = getProperties();
+      for (int i = 0; i < urls.size(); i++) {
+        String url = OptionsSupport.updateUrl(url, props);
+        MongoClientURI clientURI = new MongoClientURI(url);
+        String uriDb = clientURI.getDatabase();
+        MongoClient remoteClient = new MongoClient(clientURI);
+        MongoDatabase remoteDatabase =
+            remoteClient.getDatabase(uriDb)
+                .withReadPreference(readPreference)
+                .withWriteConcern(writeConcern);
+        remoteDestinations.put(entries.get(i), remoteDatabase);
+      }
+      return true;
+    } catch (Exception e) {
+      System.err
+          .println("Failed initializing remote destinations: "
+              + e.toString());
+      e.printStackTrace();
+      return false;
+    }
+    return false;
+  }
+
+  /**
    * Initialize any state for this DB. Called once per DB instance; there is one
    * DB instance per client thread.
    */
@@ -185,6 +231,7 @@ public class MongoDbClient extends DB {
       // Just use the standard connection format URL
       // http://docs.mongodb.org/manual/reference/connection-string/
       // to configure the client.
+      //TOOD: This is the IP address that requests get sent to... make the change here
       String url = props.getProperty("mongodb.url", null);
       boolean defaultedUrl = false;
       if (url == null) {
@@ -232,6 +279,23 @@ public class MongoDbClient extends DB {
         e1.printStackTrace();
         return;
       }
+      try {
+        initRemoteDestinations();
+      } catch (Exception e2) {
+        System.err
+            .println("Could not initialize remote destinations: "
+                + e2.toString());
+        e2.printStackTrace();
+        return;
+      }
+    }
+  }
+
+  private MongoCollection<Document> retrieveCollection(String table, String key){
+    if(remoteDestinations.containsKey(key)){
+      return remoteDestinations.get(key).getCollection(table);
+    } else {
+      return database.getCollection(table);
     }
   }
 
@@ -239,7 +303,7 @@ public class MongoDbClient extends DB {
    * Insert a record in the database. Any field/value pairs in the specified
    * values HashMap will be written into the record with the specified record
    * key.
-   * 
+   *
    * @param table
    *          The name of the table
    * @param key
@@ -253,8 +317,9 @@ public class MongoDbClient extends DB {
   public Status insert(String table, String key,
       Map<String, ByteIterator> values) {
     try {
-      MongoCollection<Document> collection = database.getCollection(table);
+      MongoCollection<Document> collection = retrieveCollection(table, key);
       Document toInsert = new Document("_id", key);
+
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
         toInsert.put(entry.getKey(), entry.getValue().toArray());
       }
@@ -273,7 +338,7 @@ public class MongoDbClient extends DB {
         bulkInserts.add(toInsert);
         if (bulkInserts.size() == batchSize) {
           if (useUpsert) {
-            List<UpdateOneModel<Document>> updates = 
+            List<UpdateOneModel<Document>> updates =
                 new ArrayList<UpdateOneModel<Document>>(bulkInserts.size());
             for (Document doc : bulkInserts) {
               updates.add(new UpdateOneModel<Document>(
@@ -302,7 +367,7 @@ public class MongoDbClient extends DB {
   /**
    * Read a record from the database. Each field/value pair from the result will
    * be stored in a HashMap.
-   * 
+   *
    * @param table
    *          The name of the table
    * @param key
@@ -317,7 +382,7 @@ public class MongoDbClient extends DB {
   public Status read(String table, String key, Set<String> fields,
       Map<String, ByteIterator> result) {
     try {
-      MongoCollection<Document> collection = database.getCollection(table);
+      MongoCollection<Document> collection = retrieveCollection(table, key);
       Document query = new Document("_id", key);
 
       FindIterable<Document> findIterable = collection.find(query);
@@ -345,7 +410,7 @@ public class MongoDbClient extends DB {
   /**
    * Perform a range scan for a set of records in the database. Each field/value
    * pair from the result will be stored in a HashMap.
-   * 
+   *
    * @param table
    *          The name of the table
    * @param startkey
@@ -365,7 +430,7 @@ public class MongoDbClient extends DB {
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     MongoCursor<Document> cursor = null;
     try {
-      MongoCollection<Document> collection = database.getCollection(table);
+      MongoCollection<Document> collection = retrieveCollection(table, startkey);
 
       Document scanRange = new Document("$gte", startkey);
       Document query = new Document("_id", scanRange);
@@ -416,7 +481,7 @@ public class MongoDbClient extends DB {
    * Update a record in the database. Any field/value pairs in the specified
    * values HashMap will be written into the record with the specified record
    * key, overwriting any existing values with the same field name.
-   * 
+   *
    * @param table
    *          The name of the table
    * @param key
@@ -430,7 +495,7 @@ public class MongoDbClient extends DB {
   public Status update(String table, String key,
       Map<String, ByteIterator> values) {
     try {
-      MongoCollection<Document> collection = database.getCollection(table);
+      MongoCollection<Document> collection = retrieveCollection(table, key);
 
       Document query = new Document("_id", key);
       Document fieldsToSet = new Document();
