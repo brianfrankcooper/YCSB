@@ -111,7 +111,7 @@ public class MongoDbClient extends DB {
   /** The bulk inserts pending for the thread. */
   private final List<Document> bulkInserts = new ArrayList<Document>();
 
-  /** String -> MongoDatabase Mapping */
+  /** String -> MongoDatabase mapping. */
   private static HashMap<String, MongoDatabase> remoteDestinations = new HashMap<String, MongoDatabase>();
 
   /**
@@ -165,7 +165,7 @@ public class MongoDbClient extends DB {
   }
 
   /**
-   * Hardcode custom endpoints for remote destinations, initialize remote clients, and fill map
+   * Hardcode custom endpoints for remote destinations, initialize remote clients, and fill map.
    * @return true = success, false = fail
    */
   private boolean initRemoteDestinations(){
