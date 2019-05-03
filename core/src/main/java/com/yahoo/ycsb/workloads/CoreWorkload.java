@@ -815,7 +815,7 @@ public class CoreWorkload extends Workload {
       fields.add(fieldname);
     }
 
-    keyname = encodeKeyname(keyname);
+    startkeyname = encodeKeyname(startkeyname);
     db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
   }
 
@@ -850,7 +850,7 @@ public class CoreWorkload extends Workload {
       String dbkey = buildKeyName(keynum);
 
       HashMap<String, ByteIterator> values = buildValues(dbkey);
-      keyname = encodeKeyname(keyname);
+      dbkey = encodeKeyname(dbkey);
       db.insert(table, dbkey, values);
     } finally {
       transactioninsertkeysequence.acknowledge(keynum);
