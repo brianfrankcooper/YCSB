@@ -1,0 +1,12 @@
+recordcount=40000000
+operationcount=40000
+workload=com.yahoo.ycsb.workloads.CoreWorkload
+
+readallfields=true
+
+readproportion=1
+updateproportion=0
+scanproportion=0
+insertproportion=0
+
+requestdistribution=uniform

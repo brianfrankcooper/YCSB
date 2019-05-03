@@ -184,7 +184,7 @@ public class MongoDbClient extends DB {
       //Hardcode entries as a string
       //If currentRequest > entry1 and < entry2 then we use that URI
       List<Integer> entries = new ArrayList<>();
-      Integer entry1 = new Integer(500);
+      Integer entry1 = new Integer(10000000);
       entries.add(entry1);
       requestRanges.add(entry1);
 
@@ -192,7 +192,7 @@ public class MongoDbClient extends DB {
       Properties props = getProperties();
       String url = "";
       for (int i = 0; i < urls.size(); i++) {
-        url = OptionsSupport.updateUrl(url, props);
+        url = OptionsSupport.updateUrl(urls.get(i), props);
         MongoClientURI clientURI = new MongoClientURI(url);
         String uriDb = clientURI.getDatabase();
         MongoClient remoteClient = new MongoClient(clientURI);
@@ -303,6 +303,7 @@ public class MongoDbClient extends DB {
 
   private MongoCollection<Document> retrieveCollection(String table, String key){
     //Going to have some bad code, always assume it's correctly formatted.
+    System.err.println(key);
     String[] splittedString = key.split(":", 2);
     String actualKey = splittedString[0];
     int currentRequest = Integer.parseInt(splittedString[1]);

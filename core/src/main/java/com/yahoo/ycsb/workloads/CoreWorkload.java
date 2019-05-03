@@ -783,7 +783,6 @@ public class CoreWorkload extends Workload {
     keyname = encodeKeyname(keyname);
     db.read(table, keyname, fields, cells);
 
-    keyname = encodeKeyname(keyname);
     db.update(table, keyname, values);
 
     long en = System.nanoTime();
