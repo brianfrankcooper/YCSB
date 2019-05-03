@@ -341,6 +341,14 @@ public class CoreWorkload extends Workload {
    */
   public static final String FIELD_NAME_PREFIX_DEFAULT = "field";
 
+  /**
+   * Number of requests to use for dissaggregation. Because I don't want to change the DB abstract class to support
+   * a new counter parameter (which means then changing a bunch of classes which implement it... going to encode the
+   * request counter as part of the key and add code in the mongodbclient to accept it. The key will now be
+   * "keyname:<requestsSent>"
+   */
+  private static int requestsSent = 0;
+
   protected NumberGenerator keysequence;
   protected DiscreteGenerator operationchooser;
   protected NumberGenerator keychooser;
@@ -699,6 +707,12 @@ public class CoreWorkload extends Workload {
     return keynum;
   }
 
+  public String encodeKeyname(String keyname){
+    String encodedName = keyname+":"+Integer.toString(requestsSent);
+    requestsSent = requestsSent+1;
+    return encodedName;
+  }
+
   public void doTransactionRead(DB db) {
     // choose a random key
     long keynum = nextKeynum();
@@ -722,6 +736,7 @@ public class CoreWorkload extends Workload {
     System.err.println("aw528 table "+table);
     System.err.println("aw528 key "+keyname);
 
+    keyname = encodeKeyname(keyname);
     db.read(table, keyname, fields, cells);
 
     if (dataintegrity) {
@@ -765,8 +780,10 @@ public class CoreWorkload extends Workload {
     System.err.println("aw528 table "+table);
     System.err.println("aw528 key "+keyname);
 
+    keyname = encodeKeyname(keyname);
     db.read(table, keyname, fields, cells);
 
+    keyname = encodeKeyname(keyname);
     db.update(table, keyname, values);
 
     long en = System.nanoTime();
@@ -798,6 +815,7 @@ public class CoreWorkload extends Workload {
       fields.add(fieldname);
     }
 
+    startkeyname = encodeKeyname(startkeyname);
     db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
   }
 
@@ -820,6 +838,7 @@ public class CoreWorkload extends Workload {
     System.err.println("aw528 table "+table);
     System.err.println("aw528 key "+keyname);
 
+    keyname = encodeKeyname(keyname);
     db.update(table, keyname, values);
   }
 
@@ -831,6 +850,7 @@ public class CoreWorkload extends Workload {
       String dbkey = buildKeyName(keynum);
 
       HashMap<String, ByteIterator> values = buildValues(dbkey);
+      dbkey = encodeKeyname(dbkey);
       db.insert(table, dbkey, values);
     } finally {
       transactioninsertkeysequence.acknowledge(keynum);

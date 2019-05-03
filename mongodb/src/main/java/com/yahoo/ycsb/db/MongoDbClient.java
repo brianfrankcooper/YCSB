@@ -112,7 +112,10 @@ public class MongoDbClient extends DB {
   private final List<Document> bulkInserts = new ArrayList<Document>();
 
   /** String -> MongoDatabase mapping. */
-  private static HashMap<String, MongoDatabase> remoteDestinations = new HashMap<String, MongoDatabase>();
+  private static HashMap<Integer, MongoDatabase> remoteDestinations = new HashMap<Integer, MongoDatabase>();
+
+  /** String -> MongoDatabase mapping. */
+  private static List<Integer> requestRanges = new ArrayList<Integer>();
 
   /**
    * Cleanup any state for this DB. Called once per DB instance; there is one DB
@@ -179,9 +182,11 @@ public class MongoDbClient extends DB {
       urls.add(url1);
 
       //Hardcode entries as a string
-      List<String> entries = new ArrayList<>();
-      String entry1 = "anyEntryName";
+      //If currentRequest > entry1 and < entry2 then we use that URI
+      List<Integer> entries = new ArrayList<>();
+      Integer entry1 = new Integer(500);
       entries.add(entry1);
+      requestRanges.add(entry1);
 
       //Create client and add to map
       Properties props = getProperties();
@@ -291,9 +296,27 @@ public class MongoDbClient extends DB {
     }
   }
 
+  private String getActualKey(String key){
+    String[] splittedString = key.split(":", 2);
+    return splittedString[0];
+  }
+
   private MongoCollection<Document> retrieveCollection(String table, String key){
-    if(remoteDestinations.containsKey(key)){
-      return remoteDestinations.get(key).getCollection(table);
+    //Going to have some bad code, always assume it's correctly formatted.
+    String[] splittedString = key.split(":", 2);
+    String actualKey = splittedString[0];
+    int currentRequest = Integer.parseInt(splittedString[1]);
+
+    int previous = -1;
+    for(int i = 0; i<requestRanges.size(); i++){
+      if(requestRanges.get(i) > currentRequest){
+        break;
+      }
+      previous = requestRanges.get(i);
+    }
+
+    if(remoteDestinations.containsKey(previous) && (previous > 0)){
+      return remoteDestinations.get(previous).getCollection(table);
     } else {
       return database.getCollection(table);
     }
