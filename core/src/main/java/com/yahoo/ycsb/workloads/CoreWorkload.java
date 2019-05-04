@@ -609,6 +609,7 @@ public class CoreWorkload extends Workload {
     Status status;
     int numOfRetries = 0;
     do {
+      dbkey=encodeKeyname(dbkey);
       status = db.insert(table, dbkey, values);
       if (null != status && status.isOk()) {
         break;
