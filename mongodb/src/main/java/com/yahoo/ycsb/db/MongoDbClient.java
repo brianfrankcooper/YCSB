@@ -153,11 +153,11 @@ public class MongoDbClient extends DB {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
 
-      Document query = new Document("_id", key);
+      Document query = new Document("_id", getActualKey(key));
       DeleteResult result =
           collection.withWriteConcern(writeConcern).deleteOne(query);
       if (result.wasAcknowledged() && result.getDeletedCount() == 0) {
-        System.err.println("Nothing deleted for key " + key);
+        System.err.println("Nothing deleted for key " + getActualKey(key));
         return Status.NOT_FOUND;
       }
       return Status.OK;
@@ -342,7 +342,7 @@ public class MongoDbClient extends DB {
       Map<String, ByteIterator> values) {
     try {
       MongoCollection<Document> collection = retrieveCollection(table, key);
-      Document toInsert = new Document("_id", key);
+      Document toInsert = new Document("_id", getActualKey(key));
 
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
         toInsert.put(entry.getKey(), entry.getValue().toArray());
@@ -407,7 +407,7 @@ public class MongoDbClient extends DB {
       Map<String, ByteIterator> result) {
     try {
       MongoCollection<Document> collection = retrieveCollection(table, key);
-      Document query = new Document("_id", key);
+      Document query = new Document("_id", getActualKey(key));
 
       FindIterable<Document> findIterable = collection.find(query);
 
@@ -456,7 +456,7 @@ public class MongoDbClient extends DB {
     try {
       MongoCollection<Document> collection = retrieveCollection(table, startkey);
 
-      Document scanRange = new Document("$gte", startkey);
+      Document scanRange = new Document("$gte", getActualKey(startkey));
       Document query = new Document("_id", scanRange);
       Document sort = new Document("_id", INCLUDE);
 
@@ -474,7 +474,7 @@ public class MongoDbClient extends DB {
       cursor = findIterable.iterator();
 
       if (!cursor.hasNext()) {
-        System.err.println("Nothing found in scan for key " + startkey);
+        System.err.println("Nothing found in scan for key " + getActualKey(startkey));
         return Status.ERROR;
       }
 
@@ -521,7 +521,7 @@ public class MongoDbClient extends DB {
     try {
       MongoCollection<Document> collection = retrieveCollection(table, key);
 
-      Document query = new Document("_id", key);
+      Document query = new Document("_id", getActualKey(key));
       Document fieldsToSet = new Document();
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
         fieldsToSet.put(entry.getKey(), entry.getValue().toArray());
@@ -530,7 +530,7 @@ public class MongoDbClient extends DB {
 
       UpdateResult result = collection.updateOne(query, update);
       if (result.wasAcknowledged() && result.getMatchedCount() == 0) {
-        System.err.println("Nothing updated for key " + key);
+        System.err.println("Nothing updated for key " + getActualKey(key));
         return Status.NOT_FOUND;
       }
       return Status.OK;
