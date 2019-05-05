@@ -153,7 +153,6 @@ public class MongoDbClient extends DB {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
       System.err.println("aw528 table "+table);
-      System.err.println("aw528 key "+getActualkey(key));
       Document query = new Document("_id", getActualKey(key));
       DeleteResult result =
           collection.withWriteConcern(writeConcern).deleteOne(query);
@@ -344,7 +343,6 @@ public class MongoDbClient extends DB {
     try {
       MongoCollection<Document> collection = retrieveCollection(table, key);
       System.err.println("aw528 table "+table);
-      System.err.println("aw528 key "+getActualkey(key));
       Document toInsert = new Document("_id", getActualKey(key));
 
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
@@ -411,7 +409,6 @@ public class MongoDbClient extends DB {
     try {
       MongoCollection<Document> collection = retrieveCollection(table, key);
       System.err.println("aw528 table "+table);
-      System.err.println("aw528 key "+getActualkey(key));
       Document query = new Document("_id", getActualKey(key));
 
       FindIterable<Document> findIterable = collection.find(query);
@@ -462,7 +459,6 @@ public class MongoDbClient extends DB {
       MongoCollection<Document> collection = retrieveCollection(table, startkey);
 
       System.err.println("aw528 table "+table);
-      System.err.println("aw528 key "+getActualkey(startkey));
       Document scanRange = new Document("$gte", getActualKey(startkey));
       Document query = new Document("_id", scanRange);
       Document sort = new Document("_id", INCLUDE);
@@ -528,7 +524,6 @@ public class MongoDbClient extends DB {
     try {
       MongoCollection<Document> collection = retrieveCollection(table, key);
       System.err.println("aw528 table "+table);
-      System.err.println("aw528 key "+getActualkey(key));
       Document query = new Document("_id", getActualKey(key));
       Document fieldsToSet = new Document();
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
