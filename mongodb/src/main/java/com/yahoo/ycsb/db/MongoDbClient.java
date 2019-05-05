@@ -152,196 +152,13 @@ public class MongoDbClient extends DB {
   public Status delete(String table, String key) {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
-
+      System.err.println("aw528 table "+table);
+      System.err.println("aw528 key "+getActualkey(key))
       Document query = new Document("_id", getActualKey(key));
       DeleteResult result =
-          collection.withWriteConcern(writeConcern).deleteOne(query);
-      if (result.wasAcknowledged() && result.getDeletedCount() == 0) {
-        System.err.println("Nothing deleted for key " + getActualKey(key));
-        return Status.NOT_FOUND;
-      }
-      return Status.OK;
-    } catch (Exception e) {
-      System.err.println(e.toString());
-      return Status.ERROR;
-    }
-  }
-
-  /**
-   * Hardcode custom endpoints for remote destinations, initialize remote clients, and fill map.
-   * @return true = success, false = fail
-   */
-  private boolean initRemoteDestinations(){
-    try {
-      //Hardcode destinations as a string
-      int numberOfDestinations;
-      String url1 = "mongodb://localhost:27017/ycsb?w=1";
-
-      //Hardcode adding to a list
-      List<String> urls = new ArrayList<>();
-      urls.add(url1);
-
-      //Hardcode entries as a string
-      //If currentRequest > entry1 and < entry2 then we use that URI
-      List<Integer> entries = new ArrayList<>();
-      Integer entry1 = new Integer(10000000);
-      entries.add(entry1);
-      requestRanges.add(entry1);
-
-      //Create client and add to map
-      Properties props = getProperties();
-      String url = "";
-      for (int i = 0; i < urls.size(); i++) {
-        url = OptionsSupport.updateUrl(urls.get(i), props);
-        MongoClientURI clientURI = new MongoClientURI(url);
-        String uriDb = clientURI.getDatabase();
-        MongoClient remoteClient = new MongoClient(clientURI);
-        MongoDatabase remoteDatabase =
-            remoteClient.getDatabase(uriDb)
-                .withReadPreference(readPreference)
-                .withWriteConcern(writeConcern);
-        remoteDestinations.put(entries.get(i), remoteDatabase);
-      }
-      return true;
-    } catch (Exception e) {
-      System.err
-          .println("Failed initializing remote destinations: "
-              + e.toString());
-      e.printStackTrace();
-      return false;
-    }
-  }
-
-  /**
-   * Initialize any state for this DB. Called once per DB instance; there is one
-   * DB instance per client thread.
-   */
-  @Override
-  public void init() throws DBException {
-    INIT_COUNT.incrementAndGet();
-    synchronized (INCLUDE) {
-      if (mongoClient != null) {
-        return;
-      }
-
-      Properties props = getProperties();
-
-      // Set insert batchsize, default 1 - to be YCSB-original equivalent
-      batchSize = Integer.parseInt(props.getProperty("batchsize", "1"));
-
-      // Set is inserts are done as upserts. Defaults to false.
-      useUpsert = Boolean.parseBoolean(
-          props.getProperty("mongodb.upsert", "false"));
-
-      // Just use the standard connection format URL
-      // http://docs.mongodb.org/manual/reference/connection-string/
-      // to configure the client.
-      //TOOD: This is the IP address that requests get sent to... make the change here
-      String url = props.getProperty("mongodb.url", null);
-      boolean defaultedUrl = false;
-      if (url == null) {
-        defaultedUrl = true;
-        url = "mongodb://localhost:27017/ycsb?w=1";
-      }
-
-      url = OptionsSupport.updateUrl(url, props);
-
-      if (!url.startsWith("mongodb://")) {
-        System.err.println("ERROR: Invalid URL: '" + url
-            + "'. Must be of the form "
-            + "'mongodb://<host1>:<port1>,<host2>:<port2>/database?options'. "
-            + "http://docs.mongodb.org/manual/reference/connection-string/");
-        System.exit(1);
-      }
-
-      try {
-        MongoClientURI uri = new MongoClientURI(url);
-
-        String uriDb = uri.getDatabase();
-        if (!defaultedUrl && (uriDb != null) && !uriDb.isEmpty()
-            && !"admin".equals(uriDb)) {
-          databaseName = uriDb;
-        } else {
-          // If no database is specified in URI, use "ycsb"
-          databaseName = "ycsb";
-
-        }
-
-        readPreference = uri.getOptions().getReadPreference();
-        writeConcern = uri.getOptions().getWriteConcern();
-
-        mongoClient = new MongoClient(uri);
-        database =
-            mongoClient.getDatabase(databaseName)
-                .withReadPreference(readPreference)
-                .withWriteConcern(writeConcern);
-
-        System.out.println("mongo client connection created with " + url);
-      } catch (Exception e1) {
-        System.err
-            .println("Could not initialize MongoDB connection pool for Loader: "
-                + e1.toString());
-        e1.printStackTrace();
-        return;
-      }
-      try {
-        initRemoteDestinations();
-      } catch (Exception e2) {
-        System.err
-            .println("Could not initialize remote destinations: "
-                + e2.toString());
-        e2.printStackTrace();
-        return;
-      }
-    }
-  }
-
-  private String getActualKey(String key){
-    String[] splittedString = key.split(":", 2);
-    return splittedString[0];
-  }
-
-  private MongoCollection<Document> retrieveCollection(String table, String key){
-    //Going to have some bad code, always assume it's correctly formatted.
-    System.err.println(key);
-    String[] splittedString = key.split(":", 2);
-    String actualKey = splittedString[0];
-    int currentRequest = Integer.parseInt(splittedString[1]);
-
-    int previous = -1;
-    for(int i = 0; i<requestRanges.size(); i++){
-      if(requestRanges.get(i) > currentRequest){
-        break;
-      }
-      previous = requestRanges.get(i);
-    }
-
-    if(remoteDestinations.containsKey(previous) && (previous > 0)){
-      return remoteDestinations.get(previous).getCollection(table);
-    } else {
-      return database.getCollection(table);
-    }
-  }
-
-  /**
-   * Insert a record in the database. Any field/value pairs in the specified
-   * values HashMap will be written into the record with the specified record
-   * key.
-   *
-   * @param table
-   *          The name of the table
-   * @param key
-   *          The record key of the record to insert.
-   * @param values
-   *          A HashMap of field/value pairs to insert in the record
-   * @return Zero on success, a non-zero error code on error. See the {@link DB}
-   *         class's description for a discussion of error codes.
-   */
-  @Override
-  public Status insert(String table, String key,
-      Map<String, ByteIterator> values) {
-    try {
-      MongoCollection<Document> collection = retrieveCollection(table, key);
+          MongoCollection<Document> collection = retrieveCollection(table, key);
+      System.err.println("aw528 table "+table);
+      System.err.println("aw528 key "+getActualkey(key))
       Document toInsert = new Document("_id", getActualKey(key));
 
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
@@ -457,7 +274,8 @@ public class MongoDbClient extends DB {
     MongoCursor<Document> cursor = null;
     try {
       MongoCollection<Document> collection = retrieveCollection(table, startkey);
-
+      System.err.println("aw528 table "+table);
+      System.err.println("aw528 key "+getActualkey(startkey))
       Document scanRange = new Document("$gte", getActualKey(startkey));
       Document query = new Document("_id", scanRange);
       Document sort = new Document("_id", INCLUDE);
@@ -522,7 +340,8 @@ public class MongoDbClient extends DB {
       Map<String, ByteIterator> values) {
     try {
       MongoCollection<Document> collection = retrieveCollection(table, key);
-
+      System.err.println("aw528 table "+table);
+      System.err.println("aw528 key "+getActualkey(key))
       Document query = new Document("_id", getActualKey(key));
       Document fieldsToSet = new Document();
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
