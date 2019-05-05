@@ -407,6 +407,8 @@ public class MongoDbClient extends DB {
       Map<String, ByteIterator> result) {
     try {
       MongoCollection<Document> collection = retrieveCollection(table, key);
+      System.err.println("aw528 table "+table);
+      System.err.println("aw528 key "+getActualkey(key));
       Document query = new Document("_id", getActualKey(key));
 
       FindIterable<Document> findIterable = collection.find(query);
