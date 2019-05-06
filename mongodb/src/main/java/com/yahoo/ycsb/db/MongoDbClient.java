@@ -184,7 +184,8 @@ public class MongoDbClient extends DB {
 
       //Hardcode entries as a string
       //If currentRequest > entry1 and < entry2 then we use that URI
-      int count = Integer.parseInt(props.getProperty("mongodb.remoteCount", null));
+      Properties props = getProperties();
+      int count = Integer.parseInt(props.getProperty("mongodb.remoteCount", 16000000));
       List<Integer> entries = new ArrayList<>();
       Integer entry1 = new Integer(count);
       System.err.println("random aw528"+count);
