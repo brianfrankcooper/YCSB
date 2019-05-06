@@ -185,7 +185,7 @@ public class MongoDbClient extends DB {
       //Hardcode entries as a string
       //If currentRequest > entry1 and < entry2 then we use that URI
       Properties props = getProperties();
-      int count = Integer.parseInt(props.getProperty("mongodb.remoteCount", 16000000));
+      int count = Integer.parseInt(props.getProperty("mongodb.remoteCount", "16000000"));
       List<Integer> entries = new ArrayList<>();
       Integer entry1 = new Integer(count);
       System.err.println("random aw528"+count);
@@ -193,7 +193,6 @@ public class MongoDbClient extends DB {
       requestRanges.add(entry1);
 
       //Create client and add to map
-      Properties props = getProperties();
       String url = "";
       for (int i = 0; i < urls.size(); i++) {
         url = OptionsSupport.updateUrl(urls.get(i), props);
