@@ -320,8 +320,10 @@ public class MongoDbClient extends DB {
     }
 
     if(remoteDestinations.containsKey(previous) && (previous > 0)){
+      System.err.println("going remote "+currentRequest);
       return remoteDestinations.get(previous).getCollection(table);
     } else {
+      System.err.println("going local "+currentRequest);
       return database.getCollection(table);
     }
   }
