@@ -48,7 +48,7 @@ import org.apache.geode.pdx.PdxInstance;
 import org.apache.geode.pdx.PdxInstanceFactory;
 
 /**
- * Apache Geode (incubating) client for the YCSB benchmark.<br />
+ * Apache Geode client for the YCSB benchmark.<br />
  * <p>By default acts as a Geode client and tries to connect
  * to Geode cache server running on localhost with default
  * cache server port. Hostname and port of a Geode cacheServer
