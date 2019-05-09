@@ -100,7 +100,17 @@ public class StringByteIterator extends ByteIterator {
   public void reset() {
     off = 0;
   }
-  
+
+  @Override
+  public byte[] toArray() {
+    byte[] bytes = new byte[(int) bytesLeft()];
+    for (int i = 0; i < bytes.length; i++) {
+      bytes[i] = (byte) str.charAt(off + i);
+    }
+    off = str.length();
+    return bytes;
+  }
+
   /**
    * Specialization of general purpose toString() to avoid unnecessary
    * copies.

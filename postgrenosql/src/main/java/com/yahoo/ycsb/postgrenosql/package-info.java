@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 YCSB Contributors. All Rights Reserved.
+ * Copyright 2017 YCSB Contributors. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -16,7 +16,6 @@
  */
 
 /**
- * The YCSB binding for Azure DocumentDB.
+ * The YCSB binding for PostgreNoSQL client.
  */
-package com.yahoo.ycsb.db.azuredocumentdb;
-
+package com.yahoo.ycsb.postgrenosql;

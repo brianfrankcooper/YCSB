@@ -96,11 +96,6 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>azuredocumentdb-binding</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
       <artifactId>azuretablestorage-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -217,6 +212,11 @@ LICENSE file.
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>orientdb-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>postgrenosql-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
