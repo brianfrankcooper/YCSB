@@ -44,6 +44,15 @@ Connction parameters have to be defined in $CRAIL_HOME/conf/crail-site.conf.
   * `crail.cachepath` - Directory where to mmap memory from (no default)
   * `crail.storage.types` - Comma separated list of storage tiers (default: `org.apache.crail.storage.tcp.TcpStorageTier`)
 
+The following benchmark parameters are available.
+
+  * `crail.enumeratekeys` - Whether to make keys visible for enumeration or not (default: `false`)
+
+Add them to the workload or set them with the shell command, as in:
+
+    ./bin/ycsb load crail -s -P workloads/workloada -p crail.enumeratekeys=true >outputLoad.txt
+
+
 ### 5. Load Data and Run Tests
 
 Load the data:

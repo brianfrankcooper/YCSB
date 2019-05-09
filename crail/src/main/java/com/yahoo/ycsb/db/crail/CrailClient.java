@@ -49,6 +49,7 @@ public class CrailClient extends DB {
   private long startTime;
   private long endTime;
   private String usertable;
+  private boolean enumerateKeys;
 
   @Override
   public void init() throws DBException {
@@ -56,7 +57,10 @@ public class CrailClient extends DB {
     try {
       CrailConfiguration crailConf = new CrailConfiguration();
       this.client = CrailStore.newInstance(crailConf);
-      this.usertable = "usertable";
+
+      usertable = getProperties().getProperty("table", "usertable");
+      enumerateKeys = Boolean.parseBoolean(getProperties().getProperty("crail.enumeratekeys", "false"));
+
       if (client.lookup(usertable).get() == null) {
         client.create(usertable, CrailNodeType.TABLE, CrailStorageClass.DEFAULT, 
           CrailLocationClass.DEFAULT, true).get().syncDir();
@@ -136,7 +140,7 @@ public class CrailClient extends DB {
     try {
       String path = table + "/" + key;
       CrailKeyValue file = client.create(path, CrailNodeType.KEYVALUE, CrailStorageClass.DEFAULT, 
-          CrailLocationClass.DEFAULT, false).get().asKeyValue();
+          CrailLocationClass.DEFAULT, enumerateKeys).get().asKeyValue();
       CrailBufferedOutputStream stream = file.getBufferedOutputStream(1024);
       for (Entry<String, ByteIterator> entry : values.entrySet()){
         byte[] fieldKey = entry.getKey().getBytes();
