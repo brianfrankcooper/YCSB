@@ -18,4 +18,4 @@
 /**
  * YCSB binding for <a href="http://www.crail.io/">Crail</a>.
  */
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.crail;

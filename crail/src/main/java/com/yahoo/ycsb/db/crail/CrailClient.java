@@ -15,7 +15,7 @@
  * LICENSE file.
  */
 
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.crail;
 
 import java.util.HashMap;
 import java.util.Map;
