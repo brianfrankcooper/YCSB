@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Vector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.apache.crail.CrailBufferedInputStream;
 import org.apache.crail.CrailBufferedOutputStream;
@@ -41,6 +43,8 @@ import com.yahoo.ycsb.Status;
  * Crail binding for <a href="http://crail.apache.org/">Crail</a>.
  */
 public class CrailClient extends DB {
+  private static final Logger LOG = LoggerFactory.getLogger(CrailClient.class);
+
   private CrailStore client;
   private long startTime;
   private long endTime;
@@ -58,7 +62,6 @@ public class CrailClient extends DB {
           CrailLocationClass.DEFAULT, true).get().syncDir();
       }
       this.startTime = System.nanoTime();
-      System.out.println("YCSB/Crail client initialized");
     } catch(Exception e){
       throw new DBException(e);
     }
@@ -69,7 +72,6 @@ public class CrailClient extends DB {
     try {
       this.endTime = System.nanoTime();
       long runTime = (endTime - startTime) / 1000000;
-      System.out.println("runTime " + runTime);
       client.close();
     } catch(Exception e){
       throw new DBException(e);
@@ -113,7 +115,7 @@ public class CrailClient extends DB {
       stream.close();
       return Status.OK;
     } catch(Exception e){
-      e.printStackTrace();
+      LOG.error("Error during read, table " + table + ", key " + key + ", exception " + e.getMessage());
       return new Status("read error", "reading exception");
     }
   }
@@ -149,7 +151,7 @@ public class CrailClient extends DB {
       file.syncDir();
       stream.close();
     } catch(Exception e){
-      System.out.println("error when inserting " + table + "/" + key + ", exception " + e.getMessage());
+      LOG.error("Error during insert, table " + table + ", key " + key + ", exception " + e.getMessage());
       return Status.ERROR;
     }
     return Status.OK;
@@ -161,7 +163,7 @@ public class CrailClient extends DB {
       String path = table + "/" + key;
       client.delete(path, false).get().syncDir();
     } catch(Exception e){
-      System.out.println("error when deleting " + table + "/" + key + ", exception " + e.getMessage());
+      LOG.error("Error during delete, table " + table + ", key " + key + ", exception " + e.getMessage());
       return Status.ERROR;
     }
     return Status.OK;
