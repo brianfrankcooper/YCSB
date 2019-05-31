@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
+import java.util.logging.Logger;
 
 import com.toshiba.mwcloud.gs.ColumnInfo;
 import com.toshiba.mwcloud.gs.Container;
@@ -71,6 +72,7 @@ public class GridDBClient extends com.yahoo.ycsb.DB {
 
   private GridStore store;
   private ContainerInfo containerInfo = null;
+  private static final Logger LOGGER = Logger.getLogger(GridDBClient.class.getName());
 
   class RowComparator implements Comparator<Row> {
     public int compare(Row row1, Row row2) throws NullPointerException {
@@ -80,7 +82,7 @@ public class GridDBClient extends com.yahoo.ycsb.DB {
         Object val2 = row2.getValue(0);
         result = ((String)val1).compareTo((String)val2);
       } catch (GSException e) {
-        e.printStackTrace();
+        LOGGER.severe("There is a exception: " + e.getMessage());
         throw new NullPointerException();
       }
       return result;
@@ -88,7 +90,7 @@ public class GridDBClient extends com.yahoo.ycsb.DB {
   }
 
   public void init() throws DBException {
-    System.out.println("GridDBClient");
+    LOGGER.info("GridDBClient");
 
     final Properties props = getProperties();
     notificationAddress = props.getProperty("notificationAddress");
@@ -101,29 +103,30 @@ public class GridDBClient extends com.yahoo.ycsb.DB {
     String fieldcount = props.getProperty("fieldcount");
     String fieldlength = props.getProperty("fieldlength");
 
-    System.out.println("notificationAddress=" + notificationAddress + " notificationPort=" + notificationPort +
+    LOGGER.info("notificationAddress=" + notificationAddress + " notificationPort=" + notificationPort +
             " notificationMember=" + notificationMember);
-    System.out.println("clusterName=" + clusterName + " userName=" + userName + " password=" + password);
-    System.out.println("fieldcount=" + fieldcount + " fieldlength=" + fieldlength);
+    LOGGER.info("clusterName=" + clusterName + " userName=" + userName + " password=" + password);
+    LOGGER.info("fieldcount=" + fieldcount + " fieldlength=" + fieldlength);
+
 
     final Properties gridstoreProp = new Properties();
     if (clusterName == null || userName == null || password == null) {
-      System.err.println("[ERROR] clusterName or userName or password argument not specified");
-      return;
+      LOGGER.severe("[ERROR] clusterName or userName or password argument not specified");
+      throw new DBException();
     }
     if (fieldcount == null || fieldlength == null) {
-      System.err.println("[ERROR] fieldcount or fieldlength argument not specified");
-      return;
+      LOGGER.severe("[ERROR] fieldcount or fieldlength argument not specified");
+      throw new DBException();
     } else {
       if (!fieldcount.equals(String.valueOf(FIELD_NUM)) || !fieldlength.equals("100")) {
-        System.err.println("[ERROR] Invalid argment: fieldcount or fieldlength");
-        return;
+        LOGGER.severe("[ERROR] Invalid argment: fieldcount or fieldlength");
+        throw new DBException();
       }
     }
     if (notificationAddress != null) {
       if (notificationPort == null) {
-        System.err.println("[ERROR] notificationPort argument not specified");
-        return;
+        LOGGER.severe("[ERROR] notificationPort argument not specified");
+        throw new DBException();
       }
       //(A)multicast method
       gridstoreProp.setProperty("notificationAddress", notificationAddress);
@@ -132,7 +135,8 @@ public class GridDBClient extends com.yahoo.ycsb.DB {
       //(B)fixed list method
       gridstoreProp.setProperty("notificationMember", notificationMember);
     } else {
-      System.err.println("[ERROR] notificationAddress and notificationMember argument not specified");
+      LOGGER.severe("[ERROR] notificationAddress and notificationMember argument not specified");
+      throw new DBException();
     }
     gridstoreProp.setProperty("clusterName", clusterName);
     gridstoreProp.setProperty("user", userName);
@@ -158,14 +162,14 @@ public class GridDBClient extends com.yahoo.ycsb.DB {
 
       for(int k = 0; k < numContainer; k++) {
         String name = containerPrefix + k;
-        final Container<?, ?> container = store.putContainer(name, containerInfo, false);
+        store.putContainer(name, containerInfo, false);
       }
     } catch (GSException e) {
-      e.printStackTrace();
+      LOGGER.severe("Exception: " + e.getMessage());
       throw new DBException();
     }
 
-    System.out.println("numContainer=" + numContainer + " containerCasheSize=" +
+    LOGGER.info("numContainer=" + numContainer + " containerCasheSize=" + 
             String.valueOf(DEFAULT_CACHE_CONTAINER_NUM));
 
   }
@@ -174,7 +178,8 @@ public class GridDBClient extends com.yahoo.ycsb.DB {
     try {
       store.close();
     } catch (GSException e) {
-      e.printStackTrace();
+      LOGGER.severe("Exception when close." + e.getMessage());
+      throw new DBException();
     }
   }
 
@@ -186,17 +191,16 @@ public class GridDBClient extends com.yahoo.ycsb.DB {
 
       final Container<Object, Row> container = store.getContainer(containerKey);
       if(container == null) {
-        System.err.println("[ERROR]getCollection " + containerKey + " in read()");
+        LOGGER.severe("[ERROR]getCollection " + containerKey + " in read()");
         return Status.ERROR;
       }
 
       Row targetRow = container.get(rowKey);
       if (targetRow == null) {
-        System.err.println("[ERROR]get(rowKey)" + " in read()");
+        LOGGER.severe("[ERROR]get(rowKey) in read()");
         return Status.ERROR;
       }
 
-      //
       for (int i = 1; i < containerInfo.getColumnCount(); i++) {
         result.put(containerInfo.getColumnInfo(i).getName(),
             new ByteArrayByteIterator(targetRow.getValue(i).toString().getBytes()));
@@ -205,14 +209,14 @@ public class GridDBClient extends com.yahoo.ycsb.DB {
       return Status.OK;
 
     } catch (GSException e) {
-      e.printStackTrace();
+      LOGGER.severe("Exception: " + e.getMessage());
       return Status.ERROR;
     }
   }
 
   public Status scan(String table, String startkey, int recordcount, Set<String> fields,
           Vector<HashMap<String, ByteIterator>> result) {
-    System.err.println("[ERROR]scan() not supported");
+    LOGGER.severe("[ERROR]scan() not supported");
     return Status.ERROR;
   }
 
@@ -223,20 +227,19 @@ public class GridDBClient extends com.yahoo.ycsb.DB {
 
       final Container<Object, Row> container = store.getContainer(containerKey);
       if(container == null) {
-        System.err.println("[ERROR]getCollection " + containerKey + " in update()");
+        LOGGER.severe("[ERROR]getCollection " + containerKey + " in update()");
         return Status.ERROR;
       }
 
       Row targetRow = container.get(rowKey);
       if (targetRow == null) {
-        System.err.println("[ERROR]get(rowKey)" + " in update()");
+        LOGGER.severe("[ERROR]get(rowKey) in update()");
         return Status.ERROR;
       }
 
-      //
       int setCount = 0;
       for (int i = 1; i < containerInfo.getColumnCount() && setCount < values.size(); i++) {
-        String columnName = containerInfo.getColumnInfo(i).getName();
+        containerInfo.getColumnInfo(i).getName();
         ByteIterator byteIterator = values.get(containerInfo.getColumnInfo(i).getName());
         if (byteIterator != null) {
           Object value = makeValue(byteIterator);
@@ -245,7 +248,7 @@ public class GridDBClient extends com.yahoo.ycsb.DB {
         }
       }
       if (setCount != values.size()) {
-        System.err.println("Error setCount = " + setCount);
+        LOGGER.severe("Error setCount = " + setCount);
         return Status.ERROR;
       }
 
@@ -253,7 +256,7 @@ public class GridDBClient extends com.yahoo.ycsb.DB {
 
       return Status.OK;
     } catch (GSException e) {
-      e.printStackTrace();
+      LOGGER.severe("Exception: " + e.getMessage());
       return Status.ERROR;
     }
   }
@@ -263,18 +266,16 @@ public class GridDBClient extends com.yahoo.ycsb.DB {
 
       Object rowKey = makeRowKey(key);
       String containerKey = makeContainerKey(key);
-      //
 
       final Container<Object, Row> container = store.getContainer(containerKey);
       if(container == null) {
-        System.err.println("[ERROR]getCollection " + containerKey + " in insert()");
+        LOGGER.severe("[ERROR]getCollection " + containerKey + " in insert()");
       }
 
       Row row = container.createRow();
 
       row.setValue(ROW_KEY_COLUMN_POS, rowKey);
 
-      //
       for (int i = 1; i < containerInfo.getColumnCount(); i++) {
         ByteIterator byteIterator = values.get(containerInfo.getColumnInfo(i).getName());
         Object value = makeValue(byteIterator);
@@ -284,7 +285,7 @@ public class GridDBClient extends com.yahoo.ycsb.DB {
       container.put(row);
 
     } catch (GSException e) {
-      e.printStackTrace();
+      LOGGER.severe("Exception: " + e.getMessage());
       return Status.ERROR;
     }
 
@@ -298,17 +299,17 @@ public class GridDBClient extends com.yahoo.ycsb.DB {
 
       final Container<Object, Row> container = store.getContainer(containerKey);
       if(container == null) {
-        System.err.println("[ERROR]getCollection " + containerKey + " in read()");
+        LOGGER.severe("[ERROR]getCollection " + containerKey + " in read()");
         return Status.ERROR;
       }
 
       boolean isDelete = container.remove(rowKey);
       if (!isDelete) {
-        System.err.println("[ERROR]remove(rowKey)" + " in remove()");
+        LOGGER.severe("[ERROR]remove(rowKey) in remove()");
         return Status.ERROR;
       }
     }catch (GSException e) {
-      e.printStackTrace();
+      LOGGER.severe("Exception: " + e.getMessage());
       return Status.ERROR;
     }
     return Status.OK;
