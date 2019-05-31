@@ -19,4 +19,4 @@
 /**
  * The YCSB binding for <a href="https://griddb.net/">GridDB</a>.
  */
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.griddb;

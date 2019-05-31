@@ -16,7 +16,7 @@
  * LICENSE file.
  */
  
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.griddb;
 
 import java.util.ArrayList;
 import java.util.Comparator;
