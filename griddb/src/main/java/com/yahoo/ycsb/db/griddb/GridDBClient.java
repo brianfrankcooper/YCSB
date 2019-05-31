@@ -105,7 +105,7 @@ public class GridDBClient extends com.yahoo.ycsb.DB {
 
     LOGGER.info("notificationAddress=" + notificationAddress + " notificationPort=" + notificationPort +
             " notificationMember=" + notificationMember);
-    LOGGER.info("clusterName=" + clusterName + " userName=" + userName + " password=" + password);
+    LOGGER.info("clusterName=" + clusterName + " userName=" + userName);
     LOGGER.info("fieldcount=" + fieldcount + " fieldlength=" + fieldlength);
 
 
