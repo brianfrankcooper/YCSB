@@ -60,7 +60,8 @@ public class GridDBClient extends com.yahoo.ycsb.DB {
 
   public static final String VALUE_COLUMN_NAME_PREFIX= "field";
   public static final int ROW_KEY_COLUMN_POS = 0;
-  public static final String CONTAINER_PREFIX = "usertable@";
+
+  private String containerPrefix = "";
 
   public static final int DEFAULT_CACHE_CONTAINER_NUM = 1000;
   public static final int FIELD_NUM = 10;
@@ -96,6 +97,7 @@ public class GridDBClient extends com.yahoo.ycsb.DB {
     clusterName = props.getProperty("clusterName");
     userName = props.getProperty("userName");
     password = props.getProperty("password");
+    containerPrefix = props.getProperty("table", "usertable") + "@";
     String fieldcount = props.getProperty("fieldcount");
     String fieldlength = props.getProperty("fieldlength");
 
@@ -155,7 +157,7 @@ public class GridDBClient extends com.yahoo.ycsb.DB {
       numContainer = controller.getPartitionCount();
 
       for(int k = 0; k < numContainer; k++) {
-        String name = CONTAINER_PREFIX + k;
+        String name = containerPrefix + k;
         final Container<?, ?> container = store.putContainer(name, containerInfo, false);
       }
     } catch (GSException e) {
@@ -313,8 +315,7 @@ public class GridDBClient extends com.yahoo.ycsb.DB {
   }
 
   protected String makeContainerKey(String key) {
-    String name = CONTAINER_PREFIX + Math.abs(key.hashCode() % numContainer);
-    return name;
+    return containerPrefix + Math.abs(key.hashCode() % numContainer);
   }
 
   protected Object makeRowKey(String key) {
