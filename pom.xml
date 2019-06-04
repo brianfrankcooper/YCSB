@@ -83,6 +83,7 @@ LICENSE file.
     <foundationdb.version>5.2.5</foundationdb.version>
     <geode.version>1.2.0</geode.version>
     <googlebigtable.version>1.4.0</googlebigtable.version>
+    <griddb.version>4.0.0</griddb.version>
     <hbase098.version>0.98.14-hadoop2</hbase098.version>
     <hbase10.version>1.0.2</hbase10.version>
     <hbase12.version>1.2.5</hbase12.version>
@@ -137,6 +138,7 @@ LICENSE file.
     <module>geode</module>
     <module>googlebigtable</module>
     <module>googledatastore</module>
+    <module>griddb</module>
     <module>hbase098</module>
     <module>hbase10</module>
     <module>hbase12</module>
