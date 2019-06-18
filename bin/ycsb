@@ -59,7 +59,7 @@ DATABASES = {
     "arangodb"     : "com.yahoo.ycsb.db.arangodb.ArangoDBClient",
     "arangodb3"     : "com.yahoo.ycsb.db.arangodb.ArangoDBClient",
     "asynchbase"   : "com.yahoo.ycsb.db.AsyncHBaseClient",
-    "azuredocumentdb"   : "com.yahoo.ycsb.db.azuredocumentdb.AzureDocumentDBClient",
+    "azurecosmos" : "com.yahoo.ycsb.db.AzureCosmosClient",
     "azuretablestorage" : "com.yahoo.ycsb.db.azuretablestorage.AzureClient",
     "basic"        : "com.yahoo.ycsb.BasicDB",
     "basicts"      : "com.yahoo.ycsb.BasicTSDB",
@@ -68,13 +68,16 @@ DATABASES = {
     "cloudspanner" : "com.yahoo.ycsb.db.cloudspanner.CloudSpannerClient",
     "couchbase"    : "com.yahoo.ycsb.db.CouchbaseClient",
     "couchbase2"   : "com.yahoo.ycsb.db.couchbase2.Couchbase2Client",
+    "crail"        : "com.yahoo.ycsb.db.crail.CrailClient",
     "dynamodb"     : "com.yahoo.ycsb.db.DynamoDBClient",
     "elasticsearch": "com.yahoo.ycsb.db.ElasticsearchClient",
     "elasticsearch5": "com.yahoo.ycsb.db.elasticsearch5.ElasticsearchClient",
+    "elasticsearch5-rest": "com.yahoo.ycsb.db.elasticsearch5.ElasticsearchRestClient",
     "foundationdb" : "com.yahoo.ycsb.db.foundationdb.FoundationDBClient",
     "geode"        : "com.yahoo.ycsb.db.GeodeClient",
     "googlebigtable"  : "com.yahoo.ycsb.db.GoogleBigtableClient",
     "googledatastore" : "com.yahoo.ycsb.db.GoogleDatastoreClient",
+    "griddb"       : "com.yahoo.ycsb.db.griddb.GridDBClient",
     "hbase098"     : "com.yahoo.ycsb.db.HBaseClient",
     "hbase10"      : "com.yahoo.ycsb.db.HBaseClient10",
     "hbase12"      : "com.yahoo.ycsb.db.hbase12.HBaseClient12",
@@ -94,6 +97,7 @@ DATABASES = {
     "mongodb-async": "com.yahoo.ycsb.db.AsyncMongoDbClient",
     "nosqldb"      : "com.yahoo.ycsb.db.NoSqlDbClient",
     "orientdb"     : "com.yahoo.ycsb.db.OrientDBClient",
+    "postgrenosql" : "com.yahoo.ycsb.postgrenosql.PostgreNoSQLDBClient",
     "rados"        : "com.yahoo.ycsb.db.RadosClient",
     "redis"        : "com.yahoo.ycsb.db.RedisClient",
     "rest"         : "com.yahoo.ycsb.webservice.rest.RestClient",
@@ -103,6 +107,7 @@ DATABASES = {
     "solr"         : "com.yahoo.ycsb.db.solr.SolrClient",
     "solr6"        : "com.yahoo.ycsb.db.solr6.SolrClient",
     "tarantool"    : "com.yahoo.ycsb.db.TarantoolClient",
+    "tablestore"   : "com.yahoo.ycsb.db.tablestore.TableStoreClient"
 }
 
 OPTIONS = {

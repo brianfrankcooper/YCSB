@@ -24,16 +24,9 @@ LICENSE file.
   <parent>
     <groupId>com.yahoo.ycsb</groupId>
     <artifactId>binding-parent</artifactId>
-    <version>0.15.0-SNAPSHOT</version>
+    <version>0.17.0-SNAPSHOT</version>
     <relativePath>../binding-parent</relativePath>
   </parent>
-
-  <repositories>
-    <repository>
-      <id>GridGain External Repository</id>
-      <url>http://www.gridgainsystems.com/nexus/content/repositories/external</url>
-    </repository>
-  </repositories>
 
   <artifactId>ignite-binding</artifactId>
   <name>Apache Ignite</name>

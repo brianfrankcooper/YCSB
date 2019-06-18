@@ -16,6 +16,6 @@
  */
 
 /**
- * YCSB binding for <a href="https://geode.incubator.apache.org/">Apache Geode (incubating)</a>.
+ * YCSB binding for <a href="https://geode.apache.org/">Apache Geode</a>.
  */
 package com.yahoo.ycsb.db;

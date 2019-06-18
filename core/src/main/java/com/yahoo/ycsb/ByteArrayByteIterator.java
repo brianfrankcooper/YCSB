@@ -21,7 +21,7 @@ package com.yahoo.ycsb;
  */
 public class ByteArrayByteIterator extends ByteIterator {
   private final int originalOffset;
-  private byte[] str;
+  private final byte[] str;
   private int off;
   private final int len;
 
@@ -60,5 +60,14 @@ public class ByteArrayByteIterator extends ByteIterator {
   public void reset() {
     off = originalOffset;
   }
-  
+
+  @Override
+  public byte[] toArray() {
+    int size = (int) bytesLeft();
+    byte[] bytes = new byte[size];
+    System.arraycopy(str, off, bytes, 0, size);
+    off = len;
+    return bytes;
+  }
+
 }

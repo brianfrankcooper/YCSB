@@ -378,15 +378,15 @@ public class BasicDB extends DB {
 
     bdb.init();
 
-    HashMap<String, String> fields = new HashMap<String, String>();
-    fields.put("A", "X");
-    fields.put("B", "Y");
+    HashMap<String, String> fields = new HashMap<String, ByteIterator>();
+    fields.put("A", new StringByteIterator("X"));
+    fields.put("B", new StringByteIterator("Y"));
 
     bdb.read("table", "key", null, null);
     bdb.insert("table", "key", fields);
 
-    fields = new HashMap<String, String>();
-    fields.put("C", "Z");
+    fields = new HashMap<String, ByteIterator>();
+    fields.put("C", new StringByteIterator("Z"));
 
     bdb.update("table", "key", fields);
 

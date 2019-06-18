@@ -23,8 +23,8 @@ import java.io.InputStream;
  *  A ByteIterator that iterates through an inputstream of bytes.
  */
 public class InputStreamByteIterator extends ByteIterator {
-  private long len;
-  private InputStream ins;
+  private final long len;
+  private final InputStream ins;
   private long off;
   private final boolean resetable;
 
@@ -64,16 +64,33 @@ public class InputStreamByteIterator extends ByteIterator {
   }
 
   @Override
+  public byte[] toArray() {
+    int size = (int) bytesLeft();
+    byte[] bytes = new byte[size];
+    try {
+      if (ins.read(bytes) < size) {
+        throw new IllegalStateException("Past EOF!");
+      }
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
+    off = len;
+    return bytes;
+  }
+  
+  @Override
   public void reset() {
     if (resetable) {
       try {
         ins.reset();
         ins.mark((int) len);
+        off = 0;
       } catch (IOException e) {
         throw new IllegalStateException("Failed to reset the input stream", e);
       }
+    } else {
+      throw new UnsupportedOperationException();
     }
-    throw new UnsupportedOperationException();
   }
   
 }

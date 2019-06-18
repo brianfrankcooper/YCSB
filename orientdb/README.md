@@ -53,6 +53,7 @@ WARNING: Creating a new database will be done safely with multiple threads on a 
 * ```orientdb.url``` - (required) The address to your database.
     * Supported storage types: memory, plocal, remote
     * EX. ```plocal:/path/to/database```
+    * remote EX. ```remote:172.16.50.15:2424/database```
 * ```orientdb.user``` - The user to connect to the database with.
     * Default: ```admin```
 * ```orientdb.password``` - The password to connect to the database with.

@@ -37,10 +37,6 @@ import org.apache.logging.log4j.Logger;
  * Ignite client.
  * <p>
  * See {@code ignite/README.md} for details.
- *
- * @author Sergey Puchnin
- * @author Taras Ledkov
- * @author Oleg Ostanin
  */
 public class IgniteClient extends IgniteAbstractClient {
   /** */
@@ -107,24 +103,6 @@ public class IgniteClient extends IgniteAbstractClient {
 
       return Status.ERROR;
     }
-  }
-
-  /**
-   * Perform a range scan for a set of records in the database. Each field/value
-   * pair from the result will be stored in a HashMap.
-   *
-   * @param table       The name of the table
-   * @param startkey    The record key of the first record to read.
-   * @param recordcount The number of records to read
-   * @param fields      The list of fields to read, or null for all of them
-   * @param result      A Vector of HashMaps, where each HashMap is a set field/value
-   *                    pairs for one record
-   * @return Zero on success, a non-zero error code on error
-   */
-  @Override
-  public Status scan(String table, String startkey, int recordcount,
-                     Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-    throw new UnsupportedOperationException("Scan method isn't implemented");
   }
 
   /**

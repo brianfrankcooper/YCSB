@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 YCSB contributors All rights reserved.
+ * Copyright (c) 2018 YCSB contributors All rights reserved.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -42,8 +42,7 @@ import static org.hamcrest.Matchers.is;
 /**
  * Integration tests for the Ignite client
  */
-public class IgniteClientTest extends IgniteClientCommonTest {
-  private static final String DEFAULT_CACHE_NAME = "usertable";
+public class IgniteClientTest extends IgniteClientTestBase {
   private final static String HOST = "127.0.0.1";
   private final static String PORTS = "47500..47509";
   private final static String SERVER_NODE_NAME = "YCSB Server Node";

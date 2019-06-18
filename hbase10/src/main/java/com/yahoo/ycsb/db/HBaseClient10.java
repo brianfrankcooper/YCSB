@@ -27,6 +27,7 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.BufferedMutator;
 import org.apache.hadoop.hbase.client.BufferedMutatorParams;
 import org.apache.hadoop.hbase.client.Connection;
@@ -152,7 +153,11 @@ public class HBaseClient10 extends com.yahoo.ycsb.DB {
           // will not propagate this error upstream once the workload
           // starts.
           final TableName tName = TableName.valueOf(table);
-          connection.getTable(tName).getTableDescriptor();
+          try (Admin admin = connection.getAdmin()) {
+            if (!admin.tableExists(tName)) {
+              throw new DBException("Table " + tName + " does not exists");
+            }
+          }
         }
       }
     } catch (java.io.IOException e) {

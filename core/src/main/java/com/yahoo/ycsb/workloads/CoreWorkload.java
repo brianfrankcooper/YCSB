@@ -61,6 +61,8 @@ import java.util.*;
  * digits in the record number.
  * <LI><b>insertorder</b>: should records be inserted in order by key ("ordered"), or in hashed
  * order ("hashed") (default: hashed)
+ * <LI><b>fieldnameprefix</b>: what should be a prefix for field names, the shorter may decrease the
+ * required storage size (default: "field")
  * </ul>
  */
 public class CoreWorkload extends Workload {
@@ -334,6 +336,16 @@ public class CoreWorkload extends Workload {
   public static final String INSERTION_RETRY_INTERVAL = "core_workload_insertion_retry_interval";
   public static final String INSERTION_RETRY_INTERVAL_DEFAULT = "3";
 
+  /**
+   * Field name prefix.
+   */
+  public static final String FIELD_NAME_PREFIX = "fieldnameprefix";
+
+  /**
+   * Default value of the field name prefix.
+   */
+  public static final String FIELD_NAME_PREFIX_DEFAULT = "field";
+
   protected NumberGenerator keysequence;
   protected DiscreteGenerator operationchooser;
   protected NumberGenerator keychooser;
@@ -389,9 +401,10 @@ public class CoreWorkload extends Workload {
 
     fieldcount =
         Long.parseLong(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
+    final String fieldnameprefix = p.getProperty(FIELD_NAME_PREFIX, FIELD_NAME_PREFIX_DEFAULT);
     fieldnames = new ArrayList<>();
     for (int i = 0; i < fieldcount; i++) {
-      fieldnames.add("field" + i);
+      fieldnames.add(fieldnameprefix + i);
     }
     fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
 
@@ -440,14 +453,6 @@ public class CoreWorkload extends Workload {
 
     if (p.getProperty(INSERT_ORDER_PROPERTY, INSERT_ORDER_PROPERTY_DEFAULT).compareTo("hashed") == 0) {
       orderedinserts = false;
-    } else if (requestdistrib.compareTo("exponential") == 0) {
-      double percentile = Double.parseDouble(p.getProperty(
-          ExponentialGenerator.EXPONENTIAL_PERCENTILE_PROPERTY,
-          ExponentialGenerator.EXPONENTIAL_PERCENTILE_DEFAULT));
-      double frac = Double.parseDouble(p.getProperty(
-          ExponentialGenerator.EXPONENTIAL_FRAC_PROPERTY,
-          ExponentialGenerator.EXPONENTIAL_FRAC_DEFAULT));
-      keychooser = new ExponentialGenerator(percentile, recordcount * frac);
     } else {
       orderedinserts = true;
     }
@@ -458,6 +463,14 @@ public class CoreWorkload extends Workload {
     transactioninsertkeysequence = new AcknowledgedCounterGenerator(recordcount);
     if (requestdistrib.compareTo("uniform") == 0) {
       keychooser = new UniformLongGenerator(insertstart, insertstart + insertcount - 1);
+    } else if (requestdistrib.compareTo("exponential") == 0) {
+      double percentile = Double.parseDouble(p.getProperty(
+          ExponentialGenerator.EXPONENTIAL_PERCENTILE_PROPERTY,
+          ExponentialGenerator.EXPONENTIAL_PERCENTILE_DEFAULT));
+      double frac = Double.parseDouble(p.getProperty(
+          ExponentialGenerator.EXPONENTIAL_FRAC_PROPERTY,
+          ExponentialGenerator.EXPONENTIAL_FRAC_DEFAULT));
+      keychooser = new ExponentialGenerator(percentile, recordcount * frac);
     } else if (requestdistrib.compareTo("sequential") == 0) {
       keychooser = new SequentialGenerator(insertstart, insertstart + insertcount - 1);
     } else if (requestdistrib.compareTo("zipfian") == 0) {

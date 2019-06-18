@@ -31,10 +31,6 @@ import org.apache.logging.log4j.Logger;
  * Ignite client.
  * <p>
  * See {@code ignite/README.md} for details.
- *
- * @author Sergey Puchnin
- * @author Taras Ledkov
- * @author Oleg Ostanin
  */
 public class IgniteSqlClient extends IgniteAbstractClient {
   /** */
@@ -98,23 +94,6 @@ public class IgniteSqlClient extends IgniteAbstractClient {
 
       return Status.ERROR;
     }
-  }
-
-  /**
-      Unsupported operation.
-   */
-  @Override
-  public Status scan(String table, String startkey, int recordcount,
-                     Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-    try {
-      return Status.OK;
-
-    } catch (Exception e) {
-      log.error(String.format("Error scanning with startkey: %s", startkey), e);
-
-      return Status.ERROR;
-    }
-
   }
 
   /**
