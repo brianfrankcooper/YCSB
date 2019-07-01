@@ -26,7 +26,7 @@ import org.voltdb.VoltTable;
 
 /**
  * 
- * Update a value in STORE
+ * Update a value in STORE.
  * 
  * @author srmadscience / VoltDB
  *
