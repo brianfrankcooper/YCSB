@@ -110,6 +110,7 @@ LICENSE file.
     <thrift.version>0.8.0</thrift.version>
     <voldemort.version>0.81</voldemort.version>
     <tablestore.version>4.8.0</tablestore.version>
+    <voltdb.version>9.0</voltdb.version>
   </properties>
 
   <modules>
@@ -168,6 +169,7 @@ LICENSE file.
     <module>tarantool</module>
     <module>tablestore</module>
     <!--<module>voldemort</module>-->
+    <module>voltdb</module>
   </modules>
 
   <build>
