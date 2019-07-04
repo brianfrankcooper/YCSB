@@ -42,6 +42,13 @@ Additional configurations:
 * `kudu_block_size`: The data block size used to configure columns. The default
   is 4096 bytes.
 
+To connect to Kudu on a cluster that requires Kerberos authentication, some additional 
+configuration is needed:
+* `kudu_krb5_conf_file`: The location of the kerberos configuration file.  If not 
+  explicitly specified, the default configuration `/etc/krb5.conf` will be used. 
+* `kudu_krb5_keytab`: The location of the keytab to use for authentication
+* `kudu_krb5_principal`: The kerberos principal name
+
 Then, you can run the workload:
 
 ```

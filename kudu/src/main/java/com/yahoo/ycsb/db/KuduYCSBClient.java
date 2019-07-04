@@ -23,13 +23,19 @@ import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.workloads.CoreWorkload;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.apache.hadoop.conf.Configuration;
 
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.client.*;
 
+import java.io.IOException;
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -79,6 +85,9 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
   private static final String BLOCK_SIZE_OPT = "kudu_block_size";
   private static final String MASTER_ADDRESSES_OPT = "kudu_master_addresses";
   private static final String NUM_CLIENTS_OPT = "kudu_num_clients";
+  private static final String KRB5_PRINCIPAL_OPT = "kudu_krb5_principal";
+  private static final String KRB5_KEYTAB_OPT = "kudu_krb5_keytab";
+  private static final String KRB5_CONF_FILE_OPT = "kudu_krb5_conf_file";
 
   private static final int BLOCK_SIZE_DEFAULT = 4096;
   private static final int BUFFER_NUM_OPS_DEFAULT = 2000;
@@ -127,18 +136,79 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
 
       Properties prop = getProperties();
 
-      String masterAddresses = prop.getProperty(MASTER_ADDRESSES_OPT,
+      final String masterAddresses = prop.getProperty(MASTER_ADDRESSES_OPT,
                                                 "localhost:7051");
       LOG.debug("Connecting to the masters at {}", masterAddresses);
 
-      int numClients = getIntFromProp(prop, NUM_CLIENTS_OPT, DEFAULT_NUM_CLIENTS);
-      for (int i = 0; i < numClients; i++) {
-        clients.add(new KuduClient.KuduClientBuilder(masterAddresses)
-                                  .defaultSocketReadTimeoutMs(DEFAULT_SLEEP)
-                                  .defaultOperationTimeoutMs(DEFAULT_SLEEP)
-                                  .defaultAdminOperationTimeoutMs(DEFAULT_SLEEP)
-                                  .build());
+      try {
+        int numClients = getIntFromProp(prop, NUM_CLIENTS_OPT, DEFAULT_NUM_CLIENTS);
+        UserGroupInformation loginUser = getKerberosUser(prop);
+        for (int i = 0; i < numClients; i++) {
+          if (loginUser != null) {
+            // Kerberos connection
+            clients.add(loginUser.doAs(
+                new PrivilegedExceptionAction<KuduClient>() {
+                  @Override
+                  public KuduClient run() {
+                    return new KuduClient.KuduClientBuilder(masterAddresses)
+                        .defaultSocketReadTimeoutMs(DEFAULT_SLEEP)
+                        .defaultOperationTimeoutMs(DEFAULT_SLEEP)
+                        .defaultAdminOperationTimeoutMs(DEFAULT_SLEEP)
+                        .build();
+                  }
+                }));
+          } else {
+            // Simple connection
+            clients.add(new KuduClient.KuduClientBuilder(masterAddresses)
+                .defaultSocketReadTimeoutMs(DEFAULT_SLEEP)
+                .defaultOperationTimeoutMs(DEFAULT_SLEEP)
+                .defaultAdminOperationTimeoutMs(DEFAULT_SLEEP)
+                .build());
+          }
+        }
+      } catch (Exception e) {
+        LOG.error("Unable to create KuduClient", e);
+        throw new DBException(e);
       }
+    }
+  }
+
+  private UserGroupInformation getKerberosUser(Properties prop) throws DBException {
+    final String krb5Principal = prop.getProperty(KRB5_PRINCIPAL_OPT);
+    final String krb5Keytab = prop.getProperty(KRB5_KEYTAB_OPT);
+    final String krb5Conf = prop.getProperty(KRB5_CONF_FILE_OPT, "/etc/krb5.conf");
+
+    if (krb5Principal == null || krb5Keytab == null) {
+      LOG.info("Using SIMPLE authentication");
+      return null;
+    }
+
+    LOG.info("Using KERBEROS authentication, principal {}, keytab {}", krb5Principal, krb5Keytab);
+    LOG.debug("Kerberos configuration: {}", krb5Conf);
+    System.setProperty("java.security.krb5.conf", krb5Conf);
+
+    // HADOOP_HOME is not used, but if it is not set kerberos login throws an exception.
+    if (System.getProperty("hadoop.home.dir", System.getenv("HADOOP_HOME")) == null) {
+      System.setProperty("hadoop.home.dir", "/tmp");
+    }
+
+    Configuration config = new Configuration();
+    final String hadoopConfDir = System.getProperty("hadoop.conf.dir", System.getenv("HADOOP_CONF_DIR"));
+    if (hadoopConfDir != null) {
+      LOG.info("Loading hadoop configuration from {}", hadoopConfDir);
+      config.addResource(new Path(hadoopConfDir, "core-defaults.xml"));
+      config.addResource(new Path(hadoopConfDir, "core-site.xml"));
+    }
+    config.set("hadoop.security.authentication", "Kerberos");
+
+    UserGroupInformation.setConfiguration(config);
+
+    try {
+      UserGroupInformation.loginUserFromKeytab(krb5Principal, krb5Keytab);
+      return UserGroupInformation.getLoginUser();
+    } catch (IOException e) {
+      LOG.error("Keytab file is not readable or not found", e);
+      throw new DBException(e);
     }
   }
 
