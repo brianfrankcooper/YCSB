@@ -117,8 +117,14 @@ public class OneMeasurementTimeSeries extends OneMeasurement {
   @Override
   public void exportMeasurements(MeasurementsExporter exporter) throws IOException {
     checkEndOfUnit(true);
-
+    long totalDurationMs = System.currentTimeMillis() - startTime;
+    // avoid division by zero
+    if (totalDurationMs == 0) { 
+      totalDurationMs = 1; 
+    }
     exporter.write(getName(), "Operations", operations);
+    float rps = operations / ((float)totalDurationMs / 1000);
+    exporter.write(getName(), "Throughput(ops/s)", rps);
     exporter.write(getName(), "AverageLatency(us)", (((double) totallatency) / ((double) operations)));
     exporter.write(getName(), "MinLatency(us)", min);
     exporter.write(getName(), "MaxLatency(us)", max);

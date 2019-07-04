@@ -32,6 +32,7 @@ public abstract class OneMeasurement {
 
   private final String name;
   private final ConcurrentHashMap<Status, AtomicInteger> returncodes;
+  protected final long startTime;
 
   public String getName() {
     return name;
@@ -43,6 +44,7 @@ public abstract class OneMeasurement {
   public OneMeasurement(String name) {
     this.name = name;
     this.returncodes = new ConcurrentHashMap<>();
+    this.startTime = System.currentTimeMillis();
   }
 
   public abstract void measure(int latency);

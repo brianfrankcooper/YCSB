@@ -106,6 +106,11 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
    */
   @Override
   public void exportMeasurements(MeasurementsExporter exporter) throws IOException {
+    long totalDurationMs = System.currentTimeMillis() - startTime;
+    // avoid division by zero
+    if (totalDurationMs == 0) { 
+      totalDurationMs = 1; 
+    }
     // accumulate the last interval which was not caught by status thread
     Histogram intervalHistogram = getIntervalHistogramAndAccumulate();
     if (histogramLogWriter != null) {
@@ -114,6 +119,8 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
       log.close();
     }
     exporter.write(getName(), "Operations", totalHistogram.getTotalCount());
+    float rps = totalHistogram.getTotalCount() / ((float)totalDurationMs / 1000);
+    exporter.write(getName(), "Throughput(ops/s)", rps);
     exporter.write(getName(), "AverageLatency(us)", totalHistogram.getMean());
     exporter.write(getName(), "MinLatency(us)", totalHistogram.getMinValue());
     exporter.write(getName(), "MaxLatency(us)", totalHistogram.getMaxValue());

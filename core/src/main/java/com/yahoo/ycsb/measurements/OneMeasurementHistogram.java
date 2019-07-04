@@ -119,9 +119,16 @@ public class OneMeasurementHistogram extends OneMeasurement {
 
   @Override
   public void exportMeasurements(MeasurementsExporter exporter) throws IOException {
+    long totalDurationMs = System.currentTimeMillis() - startTime;
+    // avoid division by zero
+    if (totalDurationMs == 0) { 
+      totalDurationMs = 1; 
+    }
     double mean = totallatency / ((double) operations);
     double variance = totalsquaredlatency / ((double) operations) - (mean * mean);
     exporter.write(getName(), "Operations", operations);
+    float rps = operations / ((float) totalDurationMs / 1000);
+    exporter.write(getName(), "Throughput(ops/s)", rps);
     exporter.write(getName(), "AverageLatency(us)", mean);
     exporter.write(getName(), "LatencyVariance(us)", variance);
     exporter.write(getName(), "MinLatency(us)", min);

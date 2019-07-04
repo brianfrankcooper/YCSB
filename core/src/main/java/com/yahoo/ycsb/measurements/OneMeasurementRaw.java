@@ -141,9 +141,13 @@ public class OneMeasurementRaw extends OneMeasurement {
   @Override
   public void exportMeasurements(MeasurementsExporter exporter)
       throws IOException {
+    long totalDurationMs = System.currentTimeMillis() - startTime;
+    // avoid division by zero
+    if (totalDurationMs == 0) { 
+      totalDurationMs = 1; 
+    }
     // Output raw data points first then print out a summary of percentiles to
     // stdout.
-
     outputStream.println(getName() +
         " latency raw data: op, timestamp(ms), latency(us)");
     for (RawDataPoint point : measurements) {
@@ -157,6 +161,8 @@ public class OneMeasurementRaw extends OneMeasurement {
 
     int totalOps = measurements.size();
     exporter.write(getName(), "Total Operations", totalOps);
+    float rps = totalOps / ((float)totalDurationMs / 1000);
+    exporter.write(getName(), "Throughput(ops/s)", rps);
     if (totalOps > 0 && !noSummaryStats) {
       exporter.write(getName(),
           "Below is a summary of latency in microseconds:", -1);

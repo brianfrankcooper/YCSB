@@ -133,8 +133,9 @@ public class Measurements {
           new OneMeasurementHistogram("Bucket" + name, props));
     case HDRHISTOGRAM_AND_RAW:
       return new TwoInOneMeasurement(name,
-          new OneMeasurementHdrHistogram("Hdr" + name, props),
-          new OneMeasurementRaw("Raw" + name, props));
+          new OneMeasurementRaw("Raw" + name, props), // Raw first, to timestamp requests
+          new OneMeasurementHdrHistogram("Hdr" + name, props)
+      );
     case TIMESERIES:
       return new OneMeasurementTimeSeries(name, props);
     case RAW:
