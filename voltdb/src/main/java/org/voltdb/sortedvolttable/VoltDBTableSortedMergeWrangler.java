@@ -31,8 +31,6 @@ import org.voltdb.client.ClientResponseWithPartitionKey;
  * rather get the individual VoltDB partitions to issue the query independently
  * and then somehow merge the results.
  * 
- * @author srmadscience / VoltDB
- *
  */
 public class VoltDBTableSortedMergeWrangler {
 
@@ -53,9 +51,9 @@ public class VoltDBTableSortedMergeWrangler {
    * @param columnid
    * @param limit    How many rows we want
    * @return A new VoltTable.
-   * @throws NeedsToBeComparableException
-   * @throws IncomingVoltTablesNeedToBeSortedException
-   * @throws ClientResponseIsBadException
+   * @throws NeedsToBeComparableException - if column columnId doesn't implement Comparable.
+   * @throws IncomingVoltTablesNeedToBeSortedException - incoming data isn't already sorted.
+   * @throws ClientResponseIsBadException - The procedure worked but is complaining.
    */
   public VoltTable getSortedTable(int columnid, int limit)
       throws NeedsToBeComparableException, IncomingVoltTablesNeedToBeSortedException, ClientResponseIsBadException {

@@ -15,8 +15,11 @@
  * LICENSE file.
  */ 
 
-package org.voltdbycsb.procs;
+package com.yahoo.ycsb.db.voltdb.procs;
 
+/**
+ * Utility class to map data structures used by YCSB to a VoltDB VARBINARY column.
+ */
 class ByteWrapper {
   private byte[] marr;
   private int moff;

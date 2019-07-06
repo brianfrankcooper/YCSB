@@ -15,7 +15,7 @@
  * LICENSE file.
  */ 
 
-package com.yahoo.ycsb.db.voltdb;
+package com.yahoo.ycsb.db.voltdb.test;
 
 import static org.junit.Assert.*;
 import static org.junit.Assume.assumeNoException;
@@ -24,10 +24,10 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
-import com.yahoo.ycsb.db.VoltClient4;
+import com.yahoo.ycsb.db.voltdb.ConnectionHelper;
+import com.yahoo.ycsb.db.voltdb.VoltClient4;
 
 import org.junit.*;
-import org.voltdb.ycsb.ConnectionHelper;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -43,8 +43,6 @@ import java.util.Properties;
 /**
  * Test harness for YCSB / VoltDB. Note that not much happens if voltb isn't visible.
  * 
- * @author srmadscience / VoltDB
- *
  */
 public class VoltDBClientTest {
 

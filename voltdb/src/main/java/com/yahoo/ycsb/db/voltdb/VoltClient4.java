@@ -22,7 +22,7 @@
  * be found at https://github.com/brianfrankcooper/YCSB. The YCSB jar must be
  * in your classpath to compile this client.
  */
-package com.yahoo.ycsb.db;
+package com.yahoo.ycsb.db.voltdb;
 
 import java.io.File;
 import java.nio.ByteBuffer;
@@ -40,8 +40,6 @@ import org.voltdb.client.ClientResponse;
 import org.voltdb.client.ClientResponseWithPartitionKey;
 import org.voltdb.client.ProcCallException;
 import org.voltdb.sortedvolttable.VoltDBTableSortedMergeWrangler;
-import org.voltdb.ycsb.ConnectionHelper;
-import org.voltdb.ycsb.YCSBSchemaBuilder;
 
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
@@ -50,8 +48,7 @@ import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 
 /**
- * @author srmadscience / VoltDB
- *
+ * A client that can be used by YCSB to work with VoltDB.
  */
 public class VoltClient4 extends DB {
 

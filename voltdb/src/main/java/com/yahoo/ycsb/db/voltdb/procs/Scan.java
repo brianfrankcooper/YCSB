@@ -15,27 +15,25 @@
  * LICENSE file.
  */ 
 
-package org.voltdbycsb.procs;
+package com.yahoo.ycsb.db.voltdb.procs;
 
 import org.voltdb.SQLStmt;
 import org.voltdb.VoltProcedure;
 import org.voltdb.VoltTable;
 
 /**
- * Query STORE using a multi partition query..
  * 
- * @author srmadscience / VoltDB
- *
+ * Query STORE using a single partition query.
+ * 
  */
-public class ScanAll extends VoltProcedure {
+public class Scan extends VoltProcedure {
 
   private final SQLStmt getBddStmt = new SQLStmt(
       "SELECT value, key FROM Store WHERE keyspace = ? AND key >= ? ORDER BY key, keyspace LIMIT ?");
-  
   private final SQLStmt getUnbddStmt = new SQLStmt(
       "SELECT value, key FROM Store WHERE keyspace = ? ORDER BY key, keyspace LIMIT ?");
 
-  public VoltTable[] run(byte[] keyspace, byte[] rangeMin, int count) throws Exception {
+  public VoltTable[] run(String partKey, byte[] keyspace, byte[] rangeMin, int count) throws Exception {
     if (rangeMin != null) {
       voltQueueSQL(getBddStmt, keyspace, new String(rangeMin, "UTF-8"), count);
     } else {

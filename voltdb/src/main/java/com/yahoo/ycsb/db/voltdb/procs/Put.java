@@ -15,7 +15,7 @@
  * LICENSE file.
  */ 
 
-package org.voltdbycsb.procs;
+package com.yahoo.ycsb.db.voltdb.procs;
 
 import java.nio.ByteBuffer;
 import java.util.HashSet;
@@ -28,8 +28,6 @@ import org.voltdb.VoltTable;
  * 
  * Update a value in STORE.
  * 
- * @author srmadscience / VoltDB
- *
  */
 public class Put extends VoltProcedure {
   private final SQLStmt selectStmt = new SQLStmt("SELECT value FROM Store WHERE keyspace = ? AND key = ?");

@@ -8,7 +8,5 @@
  * rather get the individual VoltDB partitions to issue the query independently
  * and then somehow merge the results.
  *
- * @author srmadscience / VoltDB
- *
  */
 package org.voltdb.sortedvolttable;

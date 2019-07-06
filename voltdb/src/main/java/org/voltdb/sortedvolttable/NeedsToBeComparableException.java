@@ -18,8 +18,6 @@ package org.voltdb.sortedvolttable;
  */ 
 
 /**
- * @author srmadscience / VoltDB
- *
  */
 @SuppressWarnings("serial")
 public class NeedsToBeComparableException extends Exception {

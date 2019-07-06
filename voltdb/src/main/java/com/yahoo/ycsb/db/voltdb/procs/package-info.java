@@ -16,7 +16,10 @@
  */
 
 /**
- * YCSB binding for VoltDB.
+ * VoltDB com.yahoo.ycsb.db.voltdb.procs for Put, Scan and ScanAll.  
+ * Other com.yahoo.ycsb.db.voltdb.procs are defined using DDL.
+ * 
+ * ByteWrapper is a utility class, not a procedure.
  */
-package com.yahoo.ycsb.db.voltdb;
+package com.yahoo.ycsb.db.voltdb.procs;
 

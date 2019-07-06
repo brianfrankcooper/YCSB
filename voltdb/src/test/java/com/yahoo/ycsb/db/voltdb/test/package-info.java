@@ -16,8 +16,7 @@
  */
 
 /**
- * VoltDB org.voltdbycsb.procs for Put and Scan.  Other org.voltdbycsb.procs
- * are defined using DDL in ycsb_ddl.sql
+ * YCSB binding for VoltDB.
  */
-package org.voltdbycsb.procs;
+package com.yahoo.ycsb.db.voltdb.test;
 

@@ -14,7 +14,7 @@
  * permissions and limitations under the License. See accompanying
  * LICENSE file.
  */
-package org.voltdb.ycsb;
+package com.yahoo.ycsb.db.voltdb;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -33,8 +33,6 @@ import org.voltdb.client.ClientResponse;
 /**
  * Utility class to build the YCSB schema.
  * 
- * @author srmadscience / VoltDB
- *
  */
 public final class YCSBSchemaBuilder {
 
@@ -50,12 +48,12 @@ public final class YCSBSchemaBuilder {
       + "AS SELECT value FROM Store WHERE keyspace = ? AND key = ?;";
 
   private final String createPutDDL = "CREATE PROCEDURE PARTITION ON TABLE Store COLUMN key PARAMETER 1\n"
-      + "FROM CLASS org.voltdbycsb.procs.Put;";
+      + "FROM CLASS com.yahoo.ycsb.db.voltdb.procs.Put;";
 
   private final String createScanDDL = "CREATE PROCEDURE PARTITION ON TABLE Store COLUMN key \n"
-      + "FROM CLASS org.voltdbycsb.procs.Scan;";
+      + "FROM CLASS com.yahoo.ycsb.db.voltdb.procs.Scan;";
 
-  private final String createScanAllDDL = "CREATE PROCEDURE \n" + "FROM CLASS org.voltdbycsb.procs.ScanAll;";
+  private final String createScanAllDDL = "CREATE PROCEDURE \n" + "FROM CLASS com.yahoo.ycsb.db.voltdb.procs.ScanAll;";
 
   private final String[] ddlStatements = {createTableDDL, partitionTableDDL };
 

@@ -18,7 +18,7 @@
 /*
  * Manage a mapping of one VoltDB client to every 50 YCSB client threads.
  */
-package org.voltdb.ycsb;
+package com.yahoo.ycsb.db.voltdb;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -32,8 +32,7 @@ import org.voltdb.client.ClientFactory;
 import org.voltdb.client.NoConnectionsException;
 
 /**
- * @author srmadscience / VoltDB
- *
+ * Help class to create VoltDB connections for YCSB benchmark.
  */
 public final class ConnectionHelper {
   private static final int THREADS_PER_CLIENT = 2;
