@@ -128,8 +128,8 @@ public final class YCSBSchemaBuilder {
         manifest);
 
     for (int i = 0; i < jarFiles.length; i++) {
-      InputStream is = getClass().getResourceAsStream("/org/voltdbycsb/procs/" + jarFiles[i]);
-      add("org/voltdbycsb/procs/" + jarFiles[i], is, newJarFile);
+      InputStream is = getClass().getResourceAsStream("/com/yahoo/ycsb/db/voltdb/procs/" + jarFiles[i]);
+      add("com/yahoo/ycsb/db/voltdb/procs/" + jarFiles[i], is, newJarFile);
     }
 
     newJarFile.close();
