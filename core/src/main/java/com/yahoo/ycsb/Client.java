@@ -857,10 +857,7 @@ public final class Client {
           opcount = Integer.parseInt(props.getProperty(RECORD_COUNT_PROPERTY, DEFAULT_RECORD_COUNT));
         }
       }
-      if (threadcount > opcount){
-        threadcount = opcount;
-        System.out.println("Warning: the threadcount is bigger than recordcount, the threadcount will be recordcount!");
-      }
+
       for (int threadid = 0; threadid < threadcount; threadid++) {
         DB db;
         try {
