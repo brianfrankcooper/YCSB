@@ -61,7 +61,7 @@ Other possible entries would be:
 - `voltdb.ratelimit`
    	- Maximum number of transactions allowed per second per 50 threads - e.g. 'voltdb.ratelimit=70000'. Note that as you increase the workload you eventually get to a point where throwing more and more transactions at a given configuration is counterproductive. For the three node configuration we mentioned above 70000 would be a good starting point for this value.
 - `voltdb.scanall` 
-	- Uses a single query to return data for 'Scan' operations ('workload e') instead of a separate query per partition. The later is much more scalable but generates more network traffic.
+	- When set to 'yes' uses a single query to return data for 'Scan' operations ('workload e') instead of a separate query per partition. The later is much more scalable but generates more network traffic.
    
 ### 6. Run YCSB
 
