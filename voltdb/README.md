@@ -50,7 +50,7 @@ Create a file called (for example) voltdb.properties:
     recordcount=10000000
     operationcount=10000000
     voltdb.servers=localhost
-    threadcount=40
+    threadcount=1
 
 Other possible entries would be:
 
