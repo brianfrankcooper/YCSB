@@ -114,15 +114,13 @@ Some JDBC drivers support re-writing batched insert statements into multi-row in
 - set **jdbc.batchupdateapi=true** to enable batching.
 - set JDBC driver specific connection parameter in **db.url** to enable the rewrite as shown in the examples below:
   * MySQL [rewriteBatchedStatements=true](https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html)
-
-    ```
-db.url=jdbc:mysql://127.0.0.1:3306/ycsb?rewriteBatchedStatements=true
-```
+  ```
+  db.url=jdbc:mysql://127.0.0.1:3306/ycsb?rewriteBatchedStatements=true
+  ```
   * Postgres [reWriteBatchedInserts=true](https://jdbc.postgresql.org/documentation/head/connect.html#connection-parameters)
-
-    ```
-db.url=jdbc:postgresql://127.0.0.1:5432/ycsb?reWriteBatchedInserts=true
-```
+  ```
+  db.url=jdbc:postgresql://127.0.0.1:5432/ycsb?reWriteBatchedInserts=true
+  ```
 
 
 
