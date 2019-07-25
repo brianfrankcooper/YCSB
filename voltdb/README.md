@@ -51,6 +51,7 @@ Create a file called (for example) voltdb.properties:
     operationcount=10000000
     voltdb.servers=localhost
     threadcount=1
+    maxexecutiontime=300
 
 Other possible entries would be:
 
