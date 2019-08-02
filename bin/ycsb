@@ -15,21 +15,16 @@
 # permissions and limitations under the License. See accompanying
 # LICENSE file.
 #
+from __future__ import print_function, unicode_literals
 
+import argparse
 import errno
 import fnmatch
 import io
 import os
 import shlex
-import sys
 import subprocess
-
-try:
-    mod = __import__('argparse')
-    import argparse
-except ImportError:
-    print >> sys.stderr, '[ERROR] argparse not found. Try installing it via "pip".'
-    exit(1)
+import sys
 
 BASE_URL = "https://github.com/brianfrankcooper/YCSB/tree/master/"
 COMMANDS = {
@@ -120,92 +115,64 @@ OPTIONS = {
     "-jvm-args args" : "Additional arguments to the JVM",
 }
 
+
 def usage():
-    output = io.BytesIO()
-    print >> output, "%s command database [options]" % sys.argv[0]
+    output = io.StringIO()
+    print("%s command database [options]" % sys.argv[0], file=output)
 
-    print >> output, "\nCommands:"
+    print("\nCommands:", file=output)
     for command in sorted(COMMANDS.keys()):
-        print >> output, "    %s %s" % (command.ljust(14),
-                                        COMMANDS[command]["description"])
+        print("    %s %s" % (command.ljust(14),
+                             COMMANDS[command]["description"]), file=output)
 
-    print >> output, "\nDatabases:"
+    print("\nDatabases:", file=output)
     for db in sorted(DATABASES.keys()):
-        print >> output, "    %s %s" % (db.ljust(14), BASE_URL +
-                                        db.split("-")[0])
+        print("    %s %s" % (db.ljust(14), BASE_URL +
+                             db.split("-")[0]), file=output)
 
-    print >> output, "\nOptions:"
+    print("\nOptions:", file=output)
     for option in sorted(OPTIONS.keys()):
-        print >> output, "    %s %s" % (option.ljust(14), OPTIONS[option])
+        print("    %s %s" % (option.ljust(14), OPTIONS[option]), file=output)
 
-    print >> output, """\nWorkload Files:
+    print("""\nWorkload Files:
     There are various predefined workloads under workloads/ directory.
     See https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties
-    for the list of workload properties."""
+    for the list of workload properties.""", file=output)
 
     return output.getvalue()
 
-# Python 2.6 doesn't have check_output. Add the method as it is in Python 2.7
-# Based on https://github.com/python/cpython/blob/2.7/Lib/subprocess.py#L545
-def check_output(*popenargs, **kwargs):
-    r"""Run command with arguments and return its output as a byte string.
-
-    If the exit code was non-zero it raises a CalledProcessError.  The
-    CalledProcessError object will have the return code in the returncode
-    attribute and output in the output attribute.
-
-    The arguments are the same as for the Popen constructor.  Example:
-
-    >>> check_output(["ls", "-l", "/dev/null"])
-    'crw-rw-rw- 1 root root 1, 3 Oct 18  2007 /dev/null\n'
-
-    The stdout argument is not allowed as it is used internally.
-    To capture standard error in the result, use stderr=STDOUT.
-
-    >>> check_output(["/bin/sh", "-c",
-    ...               "ls -l non_existent_file ; exit 0"],
-    ...              stderr=STDOUT)
-    'ls: non_existent_file: No such file or directory\n'
-    """
-    if 'stdout' in kwargs:
-        raise ValueError('stdout argument not allowed, it will be overridden.')
-    process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
-    output, unused_err = process.communicate()
-    retcode = process.poll()
-    if retcode:
-        cmd = kwargs.get("args")
-        if cmd is None:
-            cmd = popenargs[0]
-        error = subprocess.CalledProcessError(retcode, cmd)
-        error.output = output
-        raise error
-    return output
 
 def debug(message):
-    print >> sys.stderr, "[DEBUG] ", message
+    print("[DEBUG] ", message, file=sys.stderr)
+
 
 def warn(message):
-    print >> sys.stderr, "[WARN] ", message
+    print("[WARN] ", message, file=sys.stderr)
+
 
 def error(message):
-    print >> sys.stderr, "[ERROR] ", message
+    print("[ERROR] ", message, file=sys.stderr)
 
-def find_jars(dir, glob='*.jar'):
+
+def find_jars(_dir, glob='*.jar'):
     jars = []
-    for (dirpath, dirnames, filenames) in os.walk(dir):
+    for (dirpath, dirnames, filenames) in os.walk(_dir):
         for filename in fnmatch.filter(filenames, glob):
             jars.append(os.path.join(dirpath, filename))
     return jars
 
+
 def get_ycsb_home():
-    dir = os.path.abspath(os.path.dirname(sys.argv[0]))
-    while "LICENSE.txt" not in os.listdir(dir):
-        dir = os.path.join(dir, os.path.pardir)
-    return os.path.abspath(dir)
+    _dir = os.path.abspath(os.path.dirname(sys.argv[0]))
+    while "LICENSE.txt" not in os.listdir(_dir):
+        _dir = os.path.join(_dir, os.path.pardir)
+    return os.path.abspath(_dir)
+
 
 def is_distribution():
     # If there's a top level pom, we're a source checkout. otherwise a dist artifact
     return "pom.xml" not in os.listdir(get_ycsb_home())
+
 
 # Run the maven dependency plugin to get the local jar paths.
 # presumes maven can run, so should only be run on source checkouts
@@ -215,29 +182,34 @@ def is_distribution():
 def get_classpath_from_maven(module):
     try:
         debug("Running 'mvn -pl com.yahoo.ycsb:" + module + " -am package -DskipTests "
-              "dependency:build-classpath -DincludeScope=compile -Dmdep.outputFilterFile=true'")
-        mvn_output = check_output(["mvn", "-pl", "com.yahoo.ycsb:" + module,
-                                   "-am", "package", "-DskipTests",
-                                   "dependency:build-classpath",
-                                   "-DincludeScope=compile",
-                                   "-Dmdep.outputFilterFile=true"])
+                                                            "dependency:build-classpath -DincludeScope=compile "
+                                                            "-Dmdep.outputFilterFile=true'")
+        mvn_output = subprocess.check_output(["mvn", "-pl", "com.yahoo.ycsb:" + module,
+                                              "-am", "package", "-DskipTests",
+                                              "dependency:build-classpath",
+                                              "-DincludeScope=compile",
+                                              "-Dmdep.outputFilterFile=true"])
         # the above outputs a "classpath=/path/tojar:/path/to/other/jar" for each module
         # the last module will be the datastore binding
         line = [x for x in mvn_output.splitlines() if x.startswith("classpath=")][-1:]
         return line[0][len("classpath="):]
-    except subprocess.CalledProcessError, err:
+    except subprocess.CalledProcessError as err:
         error("Attempting to generate a classpath from Maven failed "
-              "with return code '" + str(err.returncode) + "'. The output from "
-              "Maven follows, try running "
-              "'mvn -DskipTests package dependency:build=classpath' on your "
-              "own and correct errors." + os.linesep + os.linesep + "mvn output:" + os.linesep
+              "with return code '"
+              + str(err.returncode) + "'. The output from "
+                                      "Maven follows, try running "
+                                      "'mvn -DskipTests "
+                                      "package dependency:build=classpath' on your "
+                                      "own and correct errors."
+              + os.linesep + os.linesep + "mvn output:" + os.linesep
               + err.output)
         sys.exit(err.returncode)
 
+
 def main():
     p = argparse.ArgumentParser(
-            usage=usage(),
-            formatter_class=argparse.RawDescriptionHelpFormatter)
+        usage=usage(),
+        formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('-cp', dest='classpath', help="""Additional classpath
                    entries, e.g.  '-cp /tmp/hbase-1.0.1.1/conf'. Will be
                    prepended to the YCSB classpath.""")
@@ -333,7 +305,7 @@ def main():
                      main_classname, "-db", db_classname] + remaining)
     if command:
         ycsb_command.append(command)
-    print >> sys.stderr, " ".join(ycsb_command)
+    print(" ".join(ycsb_command), file=sys.stderr)
     try:
         return subprocess.call(ycsb_command)
     except OSError as e:
@@ -342,6 +314,7 @@ def main():
             return 1
         else:
             raise
+
 
 if __name__ == '__main__':
     sys.exit(main())
