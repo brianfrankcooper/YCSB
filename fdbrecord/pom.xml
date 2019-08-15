@@ -50,7 +50,7 @@ LICENSE file.
     <dependency>
       <groupId>org.foundationdb</groupId>
       <artifactId>fdb-record-layer-core</artifactId>
-      <version>2.7.74.0</version>
+      <version>${fdbrecord.version}</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
