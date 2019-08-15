@@ -39,7 +39,7 @@ public class FDBRecordClient extends DB {
   private static final String KEY_SPACE_PATH_NAME = "fdb.keyspacepath";
   private static final String KEY_SPACE_PATH_DEFAULT = "YCSB";
   private static final String DB_BATCH_SIZE_DEFAULT = "0";
-  private static final String DB_BATCH_SIZE = "foundationdb.batchsize";
+  private static final String DB_BATCH_SIZE = "fdb.batchsize";
   private static final String FIELD_COUNT = "fieldcount";
   private static final String FIELD_COUNT_DEFAULT = "10";
   private static Logger logger = LoggerFactory.getLogger(FDBRecordClient.class);
