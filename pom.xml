@@ -134,6 +134,7 @@ LICENSE file.
     <module>dynamodb</module>
     <module>elasticsearch</module>
     <module>elasticsearch5</module>
+    <module>fdbrecord</module>
     <module>foundationdb</module>
     <module>geode</module>
     <module>googlebigtable</module>
