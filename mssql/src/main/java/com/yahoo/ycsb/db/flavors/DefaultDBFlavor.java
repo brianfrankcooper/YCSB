@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2016 YCSB contributors. All rights reserved.
+ * Copyright (c) 2019 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -85,14 +85,13 @@ public class DefaultDBFlavor extends DBFlavor {
 
   @Override
   public String createScanStatement(StatementType scanType, String key) {
-    StringBuilder select = new StringBuilder("SELECT * FROM ");
+    StringBuilder select = new StringBuilder("SELECT TOP (?) * FROM ");
     select.append(scanType.getTableName());
     select.append(" WHERE ");
     select.append(JdbcDBClient.PRIMARY_KEY);
     select.append(" >= ?");
     select.append(" ORDER BY ");
     select.append(JdbcDBClient.PRIMARY_KEY);
-    select.append(" LIMIT ?");
     return select.toString();
   }
 }

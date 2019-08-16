@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010 - 2016 Yahoo! Inc., 2016 YCSB contributors. All rights reserved.
+ * Copyright (c) 2010 - 2019 Yahoo! Inc., 2019 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -181,7 +181,7 @@ public class JdbcDBClient extends DB {
     String urls = props.getProperty(CONNECTION_URL, DEFAULT_PROP);
     String user = props.getProperty(CONNECTION_USER, DEFAULT_PROP);
     String passwd = props.getProperty(CONNECTION_PASSWD, DEFAULT_PROP);
-    String driver = props.getProperty(DRIVER_CLASS);
+    String driver = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
 
     this.jdbcFetchSize = getIntProperty(props, JDBC_FETCH_SIZE);
     this.batchSize = getIntProperty(props, DB_BATCH_SIZE);
@@ -348,8 +348,8 @@ public class JdbcDBClient extends DB {
       if (scanStatement == null) {
         scanStatement = createAndCacheScanStatement(type, startKey);
       }
-      scanStatement.setString(1, startKey);
-      scanStatement.setInt(2, recordcount);
+      scanStatement.setInt(1, recordcount);
+      scanStatement.setString(2, startKey);
       ResultSet resultSet = scanStatement.executeQuery();
       for (int i = 0; i < recordcount && resultSet.next(); i++) {
         if (result != null && fields != null) {
