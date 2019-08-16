@@ -35,7 +35,6 @@ arangodb/
 asynchbase/
 azurecosmos/
 azuretablestorage/
-bin/
 binding-parent/
 cassandra/
 cloudspanner/

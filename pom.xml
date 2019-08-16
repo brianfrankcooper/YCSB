@@ -154,6 +154,7 @@ LICENSE file.
     <module>maprjsondb</module>
     <module>memcached</module>
     <module>mongodb</module>
+    <module>mssql</module>
     <module>nosqldb</module>
     <module>orientdb</module>
     <module>postgrenosql</module>
