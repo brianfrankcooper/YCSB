@@ -28,7 +28,7 @@ Start your SQL Server Database service.
 
 ### 2. Set up MSSQL BINDING
 ```
-mvn -pl com.yahoo.ycsb:mssql-binding -am clean package -Dcheckstyle.skip -DskipTests
+mvn -pl com.yahoo.ycsb:jdbc-mssql-binding -am clean package -Dcheckstyle.skip -DskipTests
 ```
 ### 3. Configure your database and table.
 ```

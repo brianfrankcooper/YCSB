@@ -26,8 +26,8 @@ LICENSE file.
     <relativePath>../binding-parent</relativePath>
   </parent>
 
-  <artifactId>jdbc-binding</artifactId>
-  <name>JDBC DB Binding</name>
+  <artifactId>jdbc-mssql-binding</artifactId>
+  <name>JDBC MSSQL DB Binding</name>
   <packaging>jar</packaging>
 
   <dependencies>
