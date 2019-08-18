@@ -181,7 +181,8 @@ public class JdbcDBClient extends DB {
     String urls = props.getProperty(CONNECTION_URL, DEFAULT_PROP);
     String user = props.getProperty(CONNECTION_USER, DEFAULT_PROP);
     String passwd = props.getProperty(CONNECTION_PASSWD, DEFAULT_PROP);
-    String driver = props.getProperty(DRIVER_CLASS);
+    // String driver = props.getProperty(DRIVER_CLASS);
+    String driver = "com.mysql.jdbc.Driver";
 
     this.jdbcFetchSize = getIntProperty(props, JDBC_FETCH_SIZE);
     this.batchSize = getIntProperty(props, DB_BATCH_SIZE);
