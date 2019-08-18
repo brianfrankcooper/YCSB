@@ -62,7 +62,6 @@ hbase20/
 hypertable/
 ignite/
 infinispan/
-jdbc/
 kudu/
 mapkeeper/
 maprdb/
