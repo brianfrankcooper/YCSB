@@ -39,13 +39,13 @@ import org.voltdb.client.Client;
 import org.voltdb.client.ClientResponse;
 import org.voltdb.client.ClientResponseWithPartitionKey;
 import org.voltdb.client.ProcCallException;
-import org.voltdb.sortedvolttable.VoltDBTableSortedMergeWrangler;
 
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
+import com.yahoo.ycsb.db.voltdb.sortedvolttable.VoltDBTableSortedMergeWrangler;
 
 /**
  * A client that can be used by YCSB to work with VoltDB.

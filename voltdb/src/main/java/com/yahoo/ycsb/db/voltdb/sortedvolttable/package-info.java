@@ -25,4 +25,4 @@
  * and then somehow merge the results.
  *
  */
-package org.voltdb.sortedvolttable;
+package com.yahoo.ycsb.db.voltdb.sortedvolttable;

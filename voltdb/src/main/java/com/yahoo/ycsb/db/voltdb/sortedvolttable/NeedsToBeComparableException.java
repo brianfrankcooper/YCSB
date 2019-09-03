@@ -1,4 +1,4 @@
-package org.voltdb.sortedvolttable;
+package com.yahoo.ycsb.db.voltdb.sortedvolttable;
 
 /**
  * Copyright (c) 2015-2019 YCSB contributors. All rights reserved.
@@ -20,9 +20,12 @@ package org.voltdb.sortedvolttable;
 /**
  */
 @SuppressWarnings("serial")
-public class IncomingVoltTablesNeedToBeSortedException extends Exception {
+public class NeedsToBeComparableException extends Exception {
 
-  public IncomingVoltTablesNeedToBeSortedException(String string) {
+  /**
+   * @param string
+   */
+  public NeedsToBeComparableException(String string) {
     super(string);
   }
 

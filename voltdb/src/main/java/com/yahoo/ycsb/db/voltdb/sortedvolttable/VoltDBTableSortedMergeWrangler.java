@@ -1,4 +1,4 @@
-package org.voltdb.sortedvolttable;
+package com.yahoo.ycsb.db.voltdb.sortedvolttable;
 
 /**
  * Copyright (c) 2015-2019 YCSB contributors. All rights reserved.
