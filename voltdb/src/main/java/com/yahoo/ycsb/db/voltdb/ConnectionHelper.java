@@ -26,6 +26,8 @@ import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.voltdb.client.Client;
 import org.voltdb.client.ClientConfig;
 import org.voltdb.client.ClientFactory;
@@ -101,24 +103,28 @@ public final class ConnectionHelper {
    * @param server hostname:port or just hostname (hostname can be ip).
    */
   private static void connectToOneServerWithRetry(final Client client, String server) {
+    
+    Logger logger = LoggerFactory.getLogger(ConnectionHelper.class);
+           
     int sleep = 1000;
     while (true) {
       try {
         client.createConnection(server);
         break;
       } catch (Exception e) {
-        System.err.printf("Connection failed - retrying in %d second(s).\n", sleep / 1000);
+        logger.error("Connection failed - retrying in %d second(s).\n", sleep / 1000);
         try {
           Thread.sleep(sleep);
         } catch (java.lang.InterruptedException e2) {
-          e.printStackTrace();
+          logger.error(e2.getMessage());
         }
         if (sleep < 8000) {
           sleep += sleep;
         }
       }
     }
-    System.out.printf("Connected to VoltDB node at: %s.\n", server);
+    
+    logger.info("Connected to VoltDB node at: %s.\n", server);
   }
 
   /**
@@ -163,7 +169,10 @@ public final class ConnectionHelper {
    * @throws InterruptedException if anything bad happens with the threads.
    */
   private static void connect(final Client client, String servers) throws InterruptedException {
-    System.out.println("Connecting to VoltDB...");
+    
+    Logger logger = LoggerFactory.getLogger(ConnectionHelper.class);
+    
+    logger.info("Connecting to VoltDB...");
 
     String[] serverArray = servers.split(",");
     final CountDownLatch connections = new CountDownLatch(serverArray.length);
@@ -185,6 +194,7 @@ public final class ConnectionHelper {
   private static class ClientConnection {
     private Client mclient;
     private AtomicInteger mconnectionCount;
+    private Logger logger = LoggerFactory.getLogger(ClientConnection.class);
 
     ClientConnection(Client client) {
       mclient = client;
@@ -203,9 +213,9 @@ public final class ConnectionHelper {
             mclient.drain();
             mclient.close();
           } catch (NoConnectionsException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage(),e);
           } catch (InterruptedException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage(),e);
           }
           mclient = null;
         }

@@ -34,6 +34,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.voltdb.VoltTable;
 import org.voltdb.client.Client;
 import org.voltdb.client.ClientResponse;
@@ -45,6 +47,7 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
+import com.yahoo.ycsb.db.voltdb.ConnectionHelper.ClientConnection;
 import com.yahoo.ycsb.db.voltdb.sortedvolttable.VoltDBTableSortedMergeWrangler;
 
 /**
@@ -59,6 +62,8 @@ public class VoltClient4 extends DB {
   private boolean useScanAll = false;
 
   private static final Charset UTF8 = Charset.forName("UTF-8");
+  
+  private Logger logger = LoggerFactory.getLogger(VoltClient4.class);
 
   @Override
   public void init() throws DBException {
@@ -80,7 +85,7 @@ public class VoltClient4 extends DB {
       createYCSBDBIfNeeded();
 
     } catch (Exception e) {
-      e.printStackTrace();
+      logger.error("Error while creating connection: ", e);
       throw new DBException(e.getMessage());
     }
     mworkingData = new byte[1024 * 1024];
@@ -117,7 +122,7 @@ public class VoltClient4 extends DB {
       }
 
     } catch (Exception e) {
-      e.printStackTrace();
+      logger.error("Error while creating classes.", e);
 
     }
 
@@ -147,7 +152,7 @@ public class VoltClient4 extends DB {
       ClientResponse response = mclient.callProcedure("STORE.delete", key, keyspace.getBytes(UTF8));
       return response.getStatus() == ClientResponse.SUCCESS ? Status.OK : Status.ERROR;
     } catch (Exception e) {
-      e.printStackTrace();
+      logger.error("Error while deleting row",e);
       return Status.ERROR;
     }
   }
@@ -170,7 +175,7 @@ public class VoltClient4 extends DB {
       }
       return Status.OK;
     } catch (Exception e) {
-      e.printStackTrace();
+      logger.error("Error while GETing row",e);
       return Status.ERROR;
     }
   }
@@ -225,7 +230,7 @@ public class VoltClient4 extends DB {
 
       return Status.OK;
     } catch (Exception e) {
-      e.printStackTrace();
+      logger.error("Error while calling SCAN",e);
       return Status.ERROR;
     }
   }
@@ -236,7 +241,7 @@ public class VoltClient4 extends DB {
       ClientResponse response = mclient.callProcedure("Put", keyspace.getBytes(UTF8), key, packRowData(columns));
       return response.getStatus() == ClientResponse.SUCCESS ? Status.OK : Status.ERROR;
     } catch (Exception e) {
-      e.printStackTrace();
+      logger.error("Error while calling Update",e);
       return Status.ERROR;
     }
   }

@@ -27,6 +27,8 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.voltdb.client.Client;
 import org.voltdb.client.ClientResponse;
 
@@ -64,6 +66,8 @@ public final class YCSBSchemaBuilder {
   private final String jarFileName = "ycsb-procs.jar";
 
   private Client voltClient;
+  
+  private Logger logger = LoggerFactory.getLogger(YCSBSchemaBuilder.class);
 
   /**
    * Utility class to build the YCSB schema.
@@ -109,7 +113,7 @@ public final class YCSBSchemaBuilder {
         if (cr.getStatus() != ClientResponse.SUCCESS) {
           throw new Exception("Attempt to execute '" + ddlStatements[i] + "' failed:" + cr.getStatusString());
         }
-        System.out.println(ddlStatements[i]);
+        logger.info(ddlStatements[i]);
       } catch (Exception e) {
         
         if (e.getMessage().indexOf("object name already exists") > -1) {
@@ -121,7 +125,7 @@ public final class YCSBSchemaBuilder {
       }
     }
 
-    System.out.println("Creating JAR file in " + baseDir + File.separator + jarFileName);
+    logger.info("Creating JAR file in " + baseDir + File.separator + jarFileName);
     Manifest manifest = new Manifest();
     manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
     JarOutputStream newJarFile = new JarOutputStream(new FileOutputStream(baseDir + File.separator + jarFileName),
@@ -139,7 +143,7 @@ public final class YCSBSchemaBuilder {
     FileInputStream fis = new FileInputStream(file);
     fis.read(jarFileContents);
     fis.close();
-    System.out.println("Calling @UpdateClasses to load JAR file containing procedures");
+    logger.info("Calling @UpdateClasses to load JAR file containing procedures");
 
     cr = voltClient.callProcedure("@UpdateClasses", jarFileContents, null);
     if (cr.getStatus() != ClientResponse.SUCCESS) {
@@ -147,7 +151,7 @@ public final class YCSBSchemaBuilder {
     }
 
     for (int i = 0; i < procStatements.length; i++) {
-      System.out.println(procStatements[i]);
+      logger.info(procStatements[i]);
       cr = voltClient.callProcedure("@AdHoc", procStatements[i]);
       if (cr.getStatus() != ClientResponse.SUCCESS) {
         throw new Exception("Attempt to execute '" + procStatements[i] + "' failed:" + cr.getStatusString());
