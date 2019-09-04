@@ -192,7 +192,7 @@ public final class ConnectionHelper {
   }
 
   /**
-   * Help class to track connection usage
+   * Help class to track connection usage.
    *
    */
   public static class ClientConnection {
