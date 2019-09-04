@@ -191,6 +191,10 @@ public final class ConnectionHelper {
     connections.await();
   }
 
+  /**
+   * Help class to track connection usage
+   *
+   */
   public static class ClientConnection {
     private Client mclient;
     private AtomicInteger mconnectionCount;
