@@ -191,7 +191,7 @@ public final class ConnectionHelper {
     connections.await();
   }
 
-  private static class ClientConnection {
+  public static class ClientConnection {
     private Client mclient;
     private AtomicInteger mconnectionCount;
     private Logger logger = LoggerFactory.getLogger(ClientConnection.class);
@@ -213,9 +213,9 @@ public final class ConnectionHelper {
             mclient.drain();
             mclient.close();
           } catch (NoConnectionsException e) {
-            logger.error(e.getMessage(),e);
+            logger.error(e.getMessage(), e);
           } catch (InterruptedException e) {
-            logger.error(e.getMessage(),e);
+            logger.error(e.getMessage(), e);
           }
           mclient = null;
         }

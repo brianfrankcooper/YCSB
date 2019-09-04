@@ -47,7 +47,6 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
-import com.yahoo.ycsb.db.voltdb.ConnectionHelper.ClientConnection;
 import com.yahoo.ycsb.db.voltdb.sortedvolttable.VoltDBTableSortedMergeWrangler;
 
 /**
@@ -152,7 +151,7 @@ public class VoltClient4 extends DB {
       ClientResponse response = mclient.callProcedure("STORE.delete", key, keyspace.getBytes(UTF8));
       return response.getStatus() == ClientResponse.SUCCESS ? Status.OK : Status.ERROR;
     } catch (Exception e) {
-      logger.error("Error while deleting row",e);
+      logger.error("Error while deleting row", e);
       return Status.ERROR;
     }
   }
@@ -175,7 +174,7 @@ public class VoltClient4 extends DB {
       }
       return Status.OK;
     } catch (Exception e) {
-      logger.error("Error while GETing row",e);
+      logger.error("Error while GETing row", e);
       return Status.ERROR;
     }
   }
@@ -230,7 +229,7 @@ public class VoltClient4 extends DB {
 
       return Status.OK;
     } catch (Exception e) {
-      logger.error("Error while calling SCAN",e);
+      logger.error("Error while calling SCAN", e);
       return Status.ERROR;
     }
   }
@@ -241,7 +240,7 @@ public class VoltClient4 extends DB {
       ClientResponse response = mclient.callProcedure("Put", keyspace.getBytes(UTF8), key, packRowData(columns));
       return response.getStatus() == ClientResponse.SUCCESS ? Status.OK : Status.ERROR;
     } catch (Exception e) {
-      logger.error("Error while calling Update",e);
+      logger.error("Error while calling Update", e);
       return Status.ERROR;
     }
   }
