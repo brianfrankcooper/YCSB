@@ -67,6 +67,7 @@
 			<groupId>org.voltdb</groupId>
 			<artifactId>voltdb</artifactId>
 			<version>9.1.1</version>
+			<scope>runtime</scope>
 		</dependency>
 	</dependencies>
 </project>
