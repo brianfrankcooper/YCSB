@@ -40,7 +40,7 @@ import java.util.Vector;
 import java.util.Properties;
 
 /**
- * Test harness for YCSB / VoltDB. Note that not much happens if voltb isn't
+ * Test harness for YCSB / VoltDB. Note that not much happens if VoltDB isn't
  * visible.
  * 
  */
@@ -63,7 +63,6 @@ public class VoltDBClientTest {
 
   private static VoltClient4 voltClient = null;
   private static boolean haveDb = false;
-  
 
   @BeforeClass
   public static void setup() {
@@ -94,7 +93,7 @@ public class VoltDBClientTest {
       // The call to checkDBServers above looks for activity on
       // the ip and port we expect VoltDB to be on. If we get to this
       // line it's because 'something' is running on localhost:21212,
-      // but whatever it is it isn't a happy copy of VoltDB.
+      // but whatever it is, it isn't a happy copy of VoltDB.
       assumeNoException("Something was running on VoltDB's port but it wasn't a usable copy of VoltDB", e);
     }
   }
@@ -112,7 +111,7 @@ public class VoltDBClientTest {
 
     } catch (Exception e) {
       Logger logger = LoggerFactory.getLogger(VoltDBClientTest.class);
-      logger.error("Error while calling 'removeExistingData()'",e);
+      logger.error("Error while calling 'removeExistingData()'", e);
       fail("Failed removeExistingData");
     }
   }
@@ -120,18 +119,18 @@ public class VoltDBClientTest {
   @AfterClass
   public static void teardown() {
 
-    if (haveDb) {
+    Assume.assumeTrue(haveDb);
 
-      try {
-        if (voltClient != null) {
+    try {
+      if (voltClient != null) {
 
-          removeExistingData();
-          voltClient.cleanup();
-        }
-      } catch (DBException e) {
-        e.printStackTrace();
+        removeExistingData();
+        voltClient.cleanup();
       }
+    } catch (DBException e) {
+      e.printStackTrace();
     }
+
   }
 
   @Before
@@ -184,34 +183,36 @@ public class VoltDBClientTest {
 
   @Test
   public void insertAndReadTest() {
+
+    Assume.assumeTrue(haveDb);
+
     try {
 
-      if (haveDb) {
-        // Create some test data
-        final String insertKey = INSERT_TEST_KEY;
-        final Set<String> columns = getColumnNameMap();
+      // Create some test data
+      final String insertKey = INSERT_TEST_KEY;
+      final Set<String> columns = getColumnNameMap();
 
-        // Insert row
-        HashMap<String, ByteIterator> insertMap = new HashMap<String, ByteIterator>();
-        for (int i = 0; i < NUM_FIELDS; i++) {
-          insertMap.put(FIELD_PREFIX + i, new StringByteIterator(buildDeterministicValue(insertKey, FIELD_PREFIX + i)));
-        }
-        voltClient.insert(TABLE_NAME, insertKey, insertMap);
-
-        // Create a object to put retrieved row in...
-        Map<String, ByteIterator> testResult = new HashMap<String, ByteIterator>();
-
-        // Read row...
-        Status s = voltClient.read(TABLE_NAME, insertKey, columns, testResult);
-
-        if (!s.equals(Status.OK)) {
-          fail("Didn't get OK on read.");
-        }
-
-        if (!compareContents(insertMap, testResult)) {
-          fail("Returned data not the same as inserted data");
-        }
+      // Insert row
+      HashMap<String, ByteIterator> insertMap = new HashMap<String, ByteIterator>();
+      for (int i = 0; i < NUM_FIELDS; i++) {
+        insertMap.put(FIELD_PREFIX + i, new StringByteIterator(buildDeterministicValue(insertKey, FIELD_PREFIX + i)));
       }
+      voltClient.insert(TABLE_NAME, insertKey, insertMap);
+
+      // Create a object to put retrieved row in...
+      Map<String, ByteIterator> testResult = new HashMap<String, ByteIterator>();
+
+      // Read row...
+      Status s = voltClient.read(TABLE_NAME, insertKey, columns, testResult);
+
+      if (!s.equals(Status.OK)) {
+        fail("Didn't get OK on read.");
+      }
+
+      if (!compareContents(insertMap, testResult)) {
+        fail("Returned data not the same as inserted data");
+      }
+
     } catch (Exception e) {
       e.printStackTrace();
       fail("Failed insertTest");
@@ -220,45 +221,46 @@ public class VoltDBClientTest {
 
   @Test
   public void insertDeleteAndReadTest() {
+
+    Assume.assumeTrue(haveDb);
+
     try {
-      if (haveDb) {
 
-        // Create some test data
-        final String insertKey = INSERT_DELETE_AND_READ_TEST_KEY;
-        final Set<String> columns = getColumnNameMap();
+      // Create some test data
+      final String insertKey = INSERT_DELETE_AND_READ_TEST_KEY;
+      final Set<String> columns = getColumnNameMap();
 
-        // Insert row
-        HashMap<String, ByteIterator> insertMap = new HashMap<String, ByteIterator>();
-        for (int i = 0; i < NUM_FIELDS; i++) {
-          insertMap.put(FIELD_PREFIX + i, new StringByteIterator(buildDeterministicValue(insertKey, FIELD_PREFIX + i)));
-        }
-        voltClient.insert(TABLE_NAME, insertKey, insertMap);
+      // Insert row
+      HashMap<String, ByteIterator> insertMap = new HashMap<String, ByteIterator>();
+      for (int i = 0; i < NUM_FIELDS; i++) {
+        insertMap.put(FIELD_PREFIX + i, new StringByteIterator(buildDeterministicValue(insertKey, FIELD_PREFIX + i)));
+      }
+      voltClient.insert(TABLE_NAME, insertKey, insertMap);
 
-        // Create a object to put retrieved row in...
-        Map<String, ByteIterator> testResult = new HashMap<String, ByteIterator>();
+      // Create a object to put retrieved row in...
+      Map<String, ByteIterator> testResult = new HashMap<String, ByteIterator>();
 
-        // Read row...
-        Status s = voltClient.read(TABLE_NAME, insertKey, columns, testResult);
+      // Read row...
+      Status s = voltClient.read(TABLE_NAME, insertKey, columns, testResult);
 
-        if (!s.equals(Status.OK)) {
-          fail("Didn't get OK on read.");
-        }
+      if (!s.equals(Status.OK)) {
+        fail("Didn't get OK on read.");
+      }
 
-        if (!compareContents(insertMap, testResult)) {
-          fail("Returned data not the same as inserted data");
-        }
+      if (!compareContents(insertMap, testResult)) {
+        fail("Returned data not the same as inserted data");
+      }
 
-        voltClient.delete(TABLE_NAME, insertKey);
+      voltClient.delete(TABLE_NAME, insertKey);
 
-        // Create another object to put retrieved row in...
-        Map<String, ByteIterator> testResultAfterDelete = new HashMap<String, ByteIterator>();
+      // Create another object to put retrieved row in...
+      Map<String, ByteIterator> testResultAfterDelete = new HashMap<String, ByteIterator>();
 
-        // Read row...
-        voltClient.read(TABLE_NAME, insertKey, columns, testResultAfterDelete);
+      // Read row...
+      voltClient.read(TABLE_NAME, insertKey, columns, testResultAfterDelete);
 
-        if (testResultAfterDelete.size() > 0) {
-          fail("testResultAfterDelete has value.");
-        }
+      if (testResultAfterDelete.size() > 0) {
+        fail("testResultAfterDelete has value.");
       }
 
     } catch (Exception e) {
@@ -269,22 +271,25 @@ public class VoltDBClientTest {
 
   @Test
   public void deleteNonExistentRecordTest() {
+
+    Assume.assumeTrue(haveDb);
+
     try {
-      if (haveDb) {
-        // Create some test data
-        final String insertKey = NON_EXISTENT_KEY;
-        final Set<String> columns = getColumnNameMap();
 
-        // Create a object to put retrieved row in...
-        Map<String, ByteIterator> testResult = new HashMap<String, ByteIterator>();
+      // Create some test data
+      final String insertKey = NON_EXISTENT_KEY;
+      final Set<String> columns = getColumnNameMap();
 
-        // Read row...
-        voltClient.read(TABLE_NAME, insertKey, columns, testResult);
+      // Create a object to put retrieved row in...
+      Map<String, ByteIterator> testResult = new HashMap<String, ByteIterator>();
 
-        if (testResult.size() > 0) {
-          fail("testResult.size() > 0.");
-        }
+      // Read row...
+      voltClient.read(TABLE_NAME, insertKey, columns, testResult);
+
+      if (testResult.size() > 0) {
+        fail("testResult.size() > 0.");
       }
+
     } catch (Exception e) {
       e.printStackTrace();
       fail("Failed deleteNonExistentRecordTest");
@@ -294,72 +299,75 @@ public class VoltDBClientTest {
   @Test
   public void scanReadTest() {
 
-    if (haveDb) {
-      try {
+    Assume.assumeTrue(haveDb);
 
-        for (int z = 0; z < SCAN_RECORD_COUNT; z++) {
-          // Create some test data
-          final String insertKey = SCAN_KEY_PREFIX + z;
+    try {
 
-          // Insert row
-          HashMap<String, ByteIterator> insertMap = new HashMap<String, ByteIterator>();
-          for (int i = 0; i < NUM_FIELDS; i++) {
-            insertMap.put(FIELD_PREFIX + i,
-                new StringByteIterator("Data for " + SCAN_KEY_PREFIX + z + " element " + i));
-          }
-          voltClient.insert(TABLE_NAME, insertKey, insertMap);
+      for (int z = 0; z < SCAN_RECORD_COUNT; z++) {
+        // Create some test data
+        final String insertKey = SCAN_KEY_PREFIX + z;
+
+        // Insert row
+        HashMap<String, ByteIterator> insertMap = new HashMap<String, ByteIterator>();
+        for (int i = 0; i < NUM_FIELDS; i++) {
+          insertMap.put(FIELD_PREFIX + i, new StringByteIterator("Data for " + SCAN_KEY_PREFIX + z + " element " + i));
         }
-
-        final String firstInsertKey = SCAN_KEY_PREFIX + 0;
-        final String lastInsertKey = SCAN_KEY_PREFIX + (SCAN_RECORD_COUNT - 1);
-        final String beyondLastInsertKey = SCAN_KEY_PREFIX + (SCAN_RECORD_COUNT + 1);
-        final String oneHundredFromEndInsertKey = SCAN_KEY_PREFIX + (SCAN_RECORD_COUNT - 101);
-        final String fiftyFromEndInsertKey = SCAN_KEY_PREFIX + (SCAN_RECORD_COUNT - 101);
-
-        // test non existent records
-        singleScanReadTest(NON_EXISTENT_KEY, 1000, 0, NON_EXISTENT_KEY);
-
-        // test single record
-        singleScanReadTest(firstInsertKey, 1, 1, firstInsertKey);
-
-        // test scan of SCAN_RECORD_COUNT records
-        singleScanReadTest(firstInsertKey, SCAN_RECORD_COUNT, SCAN_RECORD_COUNT, lastInsertKey);
-
-        // test single record in middle
-        singleScanReadTest(oneHundredFromEndInsertKey, 1, 1, oneHundredFromEndInsertKey);
-
-        // test request of 100 starting 50 from end.
-        singleScanReadTest(fiftyFromEndInsertKey, 100, 50, lastInsertKey);
-
-        // test request of 100 starting beyond the end
-        singleScanReadTest(beyondLastInsertKey, 100, 0, lastInsertKey);
-
-      } catch (Exception e) {
-        e.printStackTrace();
-        fail("Failed scanReadTest");
+        voltClient.insert(TABLE_NAME, insertKey, insertMap);
       }
+
+      final String firstInsertKey = SCAN_KEY_PREFIX + 0;
+      final String lastInsertKey = SCAN_KEY_PREFIX + (SCAN_RECORD_COUNT - 1);
+      final String beyondLastInsertKey = SCAN_KEY_PREFIX + (SCAN_RECORD_COUNT + 1);
+      final String oneHundredFromEndInsertKey = SCAN_KEY_PREFIX + (SCAN_RECORD_COUNT - 101);
+      final String fiftyFromEndInsertKey = SCAN_KEY_PREFIX + (SCAN_RECORD_COUNT - 101);
+
+      // test non existent records
+      singleScanReadTest(NON_EXISTENT_KEY, 1000, 0, NON_EXISTENT_KEY);
+
+      // test single record
+      singleScanReadTest(firstInsertKey, 1, 1, firstInsertKey);
+
+      // test scan of SCAN_RECORD_COUNT records
+      singleScanReadTest(firstInsertKey, SCAN_RECORD_COUNT, SCAN_RECORD_COUNT, lastInsertKey);
+
+      // test single record in middle
+      singleScanReadTest(oneHundredFromEndInsertKey, 1, 1, oneHundredFromEndInsertKey);
+
+      // test request of 100 starting 50 from end.
+      singleScanReadTest(fiftyFromEndInsertKey, 100, 50, lastInsertKey);
+
+      // test request of 100 starting beyond the end
+      singleScanReadTest(beyondLastInsertKey, 100, 0, lastInsertKey);
+
+    } catch (Exception e) {
+      e.printStackTrace();
+      fail("Failed scanReadTest");
     }
+
   }
 
   private void singleScanReadTest(String startKey, int requestedCount, int expectedCount, String lastKey) {
+
+    Assume.assumeTrue(haveDb);
+
     try {
-      if (haveDb) {
-        final Set<String> columns = getColumnNameMap();
 
-        // Create a object to put retrieved row in...
-        Vector<HashMap<String, ByteIterator>> testResult = new Vector<HashMap<String, ByteIterator>>();
+      final Set<String> columns = getColumnNameMap();
 
-        // Read row...
-        Status s = voltClient.scan(TABLE_NAME, startKey, expectedCount, columns, testResult);
+      // Create a object to put retrieved row in...
+      Vector<HashMap<String, ByteIterator>> testResult = new Vector<HashMap<String, ByteIterator>>();
 
-        if (!s.equals(Status.OK)) {
-          fail("Didn't get OK on read.");
-        }
+      // Read row...
+      Status s = voltClient.scan(TABLE_NAME, startKey, expectedCount, columns, testResult);
 
-        if (testResult.size() != expectedCount) {
-          fail("Failed singleScanReadTest " + startKey + " " + expectedCount + " " + lastKey);
-        }
+      if (!s.equals(Status.OK)) {
+        fail("Didn't get OK on read.");
       }
+
+      if (testResult.size() != expectedCount) {
+        fail("Failed singleScanReadTest " + startKey + " " + expectedCount + " " + lastKey);
+      }
+
     } catch (Exception e) {
       e.printStackTrace();
       fail("Failed singleScanReadTest " + startKey + ". Asked for " + requestedCount + ", expected " + expectedCount
@@ -369,43 +377,46 @@ public class VoltDBClientTest {
 
   @Test
   public void updateTest() {
+
+    Assume.assumeTrue(haveDb);
+
     try {
-      if (haveDb) {
-        // Create some test data
-        final String insertKey = UPDATE_TEST_KEY;
 
-        // Insert row
-        // Insert row
-        HashMap<String, ByteIterator> insertThenUpdateMap = new HashMap<String, ByteIterator>();
-        for (int i = 0; i < NUM_FIELDS; i++) {
-          insertThenUpdateMap.put(FIELD_PREFIX + i,
-              new StringByteIterator(buildDeterministicValue(insertKey, FIELD_PREFIX + i)));
-        }
-        voltClient.insert(TABLE_NAME, insertKey, insertThenUpdateMap);
+      // Create some test data
+      final String insertKey = UPDATE_TEST_KEY;
 
-        // Change the data we inserted...
-        for (int i = 0; i < NUM_FIELDS; i++) {
-          insertThenUpdateMap.put(FIELD_PREFIX + i, new StringByteIterator(FIELD_PREFIX + i + " has changed"));
-        }
-
-        // now do an update
-        voltClient.update(TABLE_NAME, insertKey, insertThenUpdateMap);
-
-        // Create a object to put retrieved row in...
-        final Set<String> columns = getColumnNameMap();
-        Map<String, ByteIterator> testResult = new HashMap<String, ByteIterator>();
-
-        // Read row...
-        Status s = voltClient.read(TABLE_NAME, insertKey, columns, testResult);
-
-        if (!s.equals(Status.OK)) {
-          fail("Didn't get OK on read.");
-        }
-
-        if (!compareContents(insertThenUpdateMap, testResult)) {
-          fail("Returned data not the same as inserted data");
-        }
+      // Insert row
+      // Insert row
+      HashMap<String, ByteIterator> insertThenUpdateMap = new HashMap<String, ByteIterator>();
+      for (int i = 0; i < NUM_FIELDS; i++) {
+        insertThenUpdateMap.put(FIELD_PREFIX + i,
+            new StringByteIterator(buildDeterministicValue(insertKey, FIELD_PREFIX + i)));
       }
+      voltClient.insert(TABLE_NAME, insertKey, insertThenUpdateMap);
+
+      // Change the data we inserted...
+      for (int i = 0; i < NUM_FIELDS; i++) {
+        insertThenUpdateMap.put(FIELD_PREFIX + i, new StringByteIterator(FIELD_PREFIX + i + " has changed"));
+      }
+
+      // now do an update
+      voltClient.update(TABLE_NAME, insertKey, insertThenUpdateMap);
+
+      // Create a object to put retrieved row in...
+      final Set<String> columns = getColumnNameMap();
+      Map<String, ByteIterator> testResult = new HashMap<String, ByteIterator>();
+
+      // Read row...
+      Status s = voltClient.read(TABLE_NAME, insertKey, columns, testResult);
+
+      if (!s.equals(Status.OK)) {
+        fail("Didn't get OK on read.");
+      }
+
+      if (!compareContents(insertThenUpdateMap, testResult)) {
+        fail("Returned data not the same as inserted data");
+      }
+
     } catch (Exception e) {
       e.printStackTrace();
       fail("Failed updateTest");
