@@ -45,8 +45,6 @@ public final class YCSBSchemaBuilder {
 
   private static final Charset UTF8 = Charset.forName("UTF-8");
 
-  private static YCSBSchemaBuilder instance = null;
-
   private final String createTableDDL = "CREATE TABLE Store (keyspace VARBINARY(128)  NOT NULL\n"
       + ",   key      VARCHAR(128)    NOT NULL,   value    VARBINARY(2056) NOT NULL\n"
       + ",   PRIMARY KEY (key, keyspace));";
@@ -72,8 +70,6 @@ public final class YCSBSchemaBuilder {
 
   private final String jarFileName = "ycsb-procs.jar";
 
-  private Client voltClient;
-
   private Logger logger = LoggerFactory.getLogger(YCSBSchemaBuilder.class);
 
   /**
@@ -82,27 +78,8 @@ public final class YCSBSchemaBuilder {
    * @author srmadscience / VoltDB
    *
    */
-  private YCSBSchemaBuilder(Client c) {
+  YCSBSchemaBuilder() {
     super();
-    this.voltClient = c;
-  }
-
-  /**
-   * We use a single instance of YCSBSchemaBuilder because YCSB can spawn an
-   * arbitrary number of threads that will each try and call init(). Our single
-   * YCSBSchemaBuilder instance remembers requests to load classes and DDL and
-   * only does it once.
-   * 
-   * @param c
-   * @return YCSBSchemaBuilder instance
-   */
-  public static YCSBSchemaBuilder getInstance(Client c) {
-
-    if (instance == null) {
-      instance = new YCSBSchemaBuilder(c);
-    }
-
-    return instance;
   }
 
   /**
@@ -111,7 +88,7 @@ public final class YCSBSchemaBuilder {
    * @return true if the 'Get' procedure exists and takes one string as a
    *         parameter.
    */
-  public boolean schemaExists() {
+  public boolean schemaExists(Client voltClient) {
 
     final String testString = "Test";
     boolean schemaExists = false;
@@ -149,9 +126,9 @@ public final class YCSBSchemaBuilder {
    * 
    * @throws Exception
    */
-  public synchronized void loadClassesAndDDLIfNeeded() throws Exception {
+  public synchronized void loadClassesAndDDLIfNeeded(Client voltClient) throws Exception {
     
-    if (schemaExists()) {
+    if (schemaExists(voltClient)) {
       return;
     }
     

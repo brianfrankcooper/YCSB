@@ -79,8 +79,8 @@ public class VoltClient4 extends DB {
     try {
       mclient = ConnectionHelper.createConnection(Thread.currentThread().getId(), servers, user, password, ratelimit);
       
-      ysb = YCSBSchemaBuilder.getInstance(mclient);
-      ysb.loadClassesAndDDLIfNeeded();
+      ysb = StaticHolder.INSTANCE;
+      ysb.loadClassesAndDDLIfNeeded(mclient);
 
     } catch (Exception e) {
       logger.error("Error while creating connection: ", e);
@@ -294,5 +294,11 @@ public class VoltClient4 extends DB {
     }
     return result;
   }
+  
+  private static class StaticHolder {
+    static final YCSBSchemaBuilder INSTANCE = new YCSBSchemaBuilder();
+  }
+  
+  
 
 }
