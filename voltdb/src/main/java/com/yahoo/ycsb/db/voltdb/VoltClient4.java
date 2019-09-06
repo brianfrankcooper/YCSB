@@ -24,10 +24,8 @@
  */
 package com.yahoo.ycsb.db.voltdb;
 
-import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -40,7 +38,7 @@ import org.voltdb.VoltTable;
 import org.voltdb.client.Client;
 import org.voltdb.client.ClientResponse;
 import org.voltdb.client.ClientResponseWithPartitionKey;
-import org.voltdb.client.ProcCallException;
+import org.voltdb.client.NoConnectionsException;
 
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
@@ -54,15 +52,15 @@ import com.yahoo.ycsb.db.voltdb.sortedvolttable.VoltDBTableSortedMergeWrangler;
  */
 public class VoltClient4 extends DB {
 
-  private static final String PROCEDURE_GET_WAS_NOT_FOUND = "Procedure Get was not found";
   private Client mclient;
   private byte[] mworkingData;
   private ByteBuffer mwriteBuf;
   private boolean useScanAll = false;
-
   private static final Charset UTF8 = Charset.forName("UTF-8");
   
   private Logger logger = LoggerFactory.getLogger(VoltClient4.class);
+  
+  YCSBSchemaBuilder ysb =  null;
 
   @Override
   public void init() throws DBException {
@@ -72,16 +70,17 @@ public class VoltClient4 extends DB {
     String password = props.getProperty("voltdb.password", "");
     String strLimit = props.getProperty("voltdb.ratelimit");
     String useScanAllParam = props.getProperty("voltdb.scanall", "no");
-    
-    if (useScanAllParam.equalsIgnoreCase("YES")) { 
+
+    if (useScanAllParam.equalsIgnoreCase("YES")) {
       useScanAll = true;
     }
-    
+
     int ratelimit = strLimit != null ? Integer.parseInt(strLimit) : Integer.MAX_VALUE;
     try {
       mclient = ConnectionHelper.createConnection(Thread.currentThread().getId(), servers, user, password, ratelimit);
-
-      createYCSBDBIfNeeded();
+      
+      ysb = YCSBSchemaBuilder.getInstance(mclient);
+      ysb.loadClassesAndDDLIfNeeded();
 
     } catch (Exception e) {
       logger.error("Error while creating connection: ", e);
@@ -89,42 +88,6 @@ public class VoltClient4 extends DB {
     }
     mworkingData = new byte[1024 * 1024];
     mwriteBuf = ByteBuffer.wrap(mworkingData);
-  }
-
-  /**
-   * Create the VoltDB YCSB DB if needed...
-   * 
-   * @throws Exception
-   */
-  private void createYCSBDBIfNeeded() throws Exception {
-
-    final String testString = "Test";
-
-    try {
-      ClientResponse response = mclient.callProcedure("Get", testString.getBytes(UTF8), testString);
-      if (response.getStatus() == ClientResponse.SUCCESS) {
-        // YCSB Database exists...
-        return;
-      } else {
-        throw new Exception(
-            "createYCSBDBIfNeeded(): got " + response.getStatusString() + " while testing for DB existence");
-      }
-    } catch (ProcCallException pce) {
-      if (pce.getMessage().equals(PROCEDURE_GET_WAS_NOT_FOUND)) {
-
-        YCSBSchemaBuilder ysb = YCSBSchemaBuilder.getInstance(mclient);
-
-        File tempDir = Files.createTempDirectory("voltdbYCSB").toFile();
-
-        ysb.loadClassesAndDDL(tempDir);
-
-      }
-
-    } catch (Exception e) {
-      logger.error("Error while creating classes.", e);
-
-    }
-
   }
 
   /**
@@ -142,7 +105,17 @@ public class VoltClient4 extends DB {
 
   @Override
   public void cleanup() throws DBException {
-    ConnectionHelper.disconnect(Thread.currentThread().getId());
+    
+    try {
+      mclient.drain();
+      mclient.close();
+    } catch (NoConnectionsException e) {
+      logger.error(e.getMessage(), e);
+    } catch (InterruptedException e) {
+      logger.error(e.getMessage(), e);
+    }
+    mclient = null;
+    
   }
 
   @Override
@@ -182,7 +155,7 @@ public class VoltClient4 extends DB {
   @Override
   public Status scan(String keyspace, String lowerBound, int recordCount, Set<String> columns,
       Vector<HashMap<String, ByteIterator>> result) {
-    
+
     try {
 
       if (useScanAll) {

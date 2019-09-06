@@ -13,7 +13,7 @@
  * implied. See the License for the specific language governing
  * permissions and limitations under the License. See accompanying
  * LICENSE file.
- */ 
+ */
 
 package com.yahoo.ycsb.db.voltdb.test;
 
@@ -29,9 +29,6 @@ import com.yahoo.ycsb.db.voltdb.VoltClient4;
 
 import org.junit.*;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.HashSet;
@@ -41,7 +38,8 @@ import java.util.Vector;
 import java.util.Properties;
 
 /**
- * Test harness for YCSB / VoltDB. Note that not much happens if voltb isn't visible.
+ * Test harness for YCSB / VoltDB. Note that not much happens if voltb isn't
+ * visible.
  * 
  */
 public class VoltDBClientTest {
@@ -92,8 +90,11 @@ public class VoltDBClientTest {
       }
 
     } catch (Exception e) {
-      e.printStackTrace();
-      fail("Could not create Database Client");
+      // The call to checkDBServers above looks for activity on
+      // the ip and port we expect VoltDB to be on. If we get to this
+      // line it's because 'something' is running on localhost:21212,
+      // but whatever it is it isn't a happy copy of VoltDB.
+      assumeNoException("Something was running on VoltDB's port but it wasn't a usable copy of VoltDB", e);
     }
   }
 
@@ -123,7 +124,6 @@ public class VoltDBClientTest {
         if (voltClient != null) {
 
           removeExistingData();
-
           voltClient.cleanup();
         }
       } catch (DBException e) {

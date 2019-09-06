@@ -22,25 +22,22 @@ package com.yahoo.ycsb.db.voltdb;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.voltdb.client.Client;
 import org.voltdb.client.ClientConfig;
 import org.voltdb.client.ClientFactory;
-import org.voltdb.client.NoConnectionsException;
 
 /**
  * Help class to create VoltDB connections for YCSB benchmark.
  */
 public final class ConnectionHelper {
-  private static final int THREADS_PER_CLIENT = 2;
-
-  private static HashMap<Long, ClientConnection> clientMapping = new HashMap<Long, ClientConnection>();
-  private static ClientConnection activeConnection = null;
+  
+  /**
+   * Default port for VoltDB
+   */
   private static final int VOLTDB_DEFAULT_PORT = 21212;
 
   /**
@@ -70,30 +67,18 @@ public final class ConnectionHelper {
    */
   public static synchronized Client createConnection(Long clientId, String servers, String user, String password,
       int ratelimit) throws IOException, InterruptedException {
-    ClientConnection conn = clientMapping.get(clientId);
-    if (conn != null) {
-      return conn.mclient;
-    }
-    if (activeConnection != null && activeConnection.mconnectionCount.get() <= THREADS_PER_CLIENT) {
-      activeConnection.connect();
-      clientMapping.put(clientId, activeConnection);
-      return activeConnection.mclient;
-    }
+ 
     ClientConfig config = new ClientConfig(user, password);
     config.setMaxTransactionsPerSecond(ratelimit);
     Client client = ClientFactory.createClient(config);
+    
+    // Note that in VoltDB there is a distinction between creating an instance of a client
+    // and actually connecting to the DB...
     connect(client, servers);
-    activeConnection = new ClientConnection(client);
-    clientMapping.put(clientId, activeConnection);
+    
     return client;
   }
 
-  public static void disconnect(Long clientId) {
-    ClientConnection connection = clientMapping.get(clientId);
-    if (connection != null) {
-      connection.disconnect();
-    }
-  }
 
   /**
    * Connect to a single server with retry. Limited exponential backoff. No
@@ -191,39 +176,5 @@ public final class ConnectionHelper {
     connections.await();
   }
 
-  /**
-   * Help class to track connection usage.
-   *
-   */
-  public static class ClientConnection {
-    private Client mclient;
-    private AtomicInteger mconnectionCount;
-    private Logger logger = LoggerFactory.getLogger(ClientConnection.class);
 
-    ClientConnection(Client client) {
-      mclient = client;
-      mconnectionCount = new AtomicInteger(1);
-    }
-
-    void connect() {
-      mconnectionCount.incrementAndGet();
-    }
-
-    void disconnect() {
-      int count = mconnectionCount.decrementAndGet();
-      if (count <= 0 && mclient != null) {
-        synchronized (this) {
-          try {
-            mclient.drain();
-            mclient.close();
-          } catch (NoConnectionsException e) {
-            logger.error(e.getMessage(), e);
-          } catch (InterruptedException e) {
-            logger.error(e.getMessage(), e);
-          }
-          mclient = null;
-        }
-      }
-    }
-  }
 }
