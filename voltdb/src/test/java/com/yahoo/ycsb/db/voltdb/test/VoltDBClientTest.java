@@ -28,6 +28,8 @@ import com.yahoo.ycsb.db.voltdb.ConnectionHelper;
 import com.yahoo.ycsb.db.voltdb.VoltClient4;
 
 import org.junit.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -61,8 +63,7 @@ public class VoltDBClientTest {
 
   private static VoltClient4 voltClient = null;
   private static boolean haveDb = false;
-
-  boolean hasVoltDBInstance = false;
+  
 
   @BeforeClass
   public static void setup() {
@@ -110,7 +111,8 @@ public class VoltDBClientTest {
       }
 
     } catch (Exception e) {
-      e.printStackTrace();
+      Logger logger = LoggerFactory.getLogger(VoltDBClientTest.class);
+      logger.error("Error while calling 'removeExistingData()'",e);
       fail("Failed removeExistingData");
     }
   }

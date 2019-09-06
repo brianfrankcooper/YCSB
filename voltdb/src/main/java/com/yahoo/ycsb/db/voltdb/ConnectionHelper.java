@@ -16,7 +16,7 @@
  */ 
 
 /*
- * Manage a mapping of one VoltDB client to every 50 YCSB client threads.
+ * VoltDB Connection Utility.
  */
 package com.yahoo.ycsb.db.voltdb;
 
@@ -65,7 +65,7 @@ public final class ConnectionHelper {
    *                              different server string.
    * @throws InterruptedException
    */
-  public static synchronized Client createConnection(Long clientId, String servers, String user, String password,
+  public static Client createConnection(Long clientId, String servers, String user, String password,
       int ratelimit) throws IOException, InterruptedException {
  
     ClientConfig config = new ClientConfig(user, password);

@@ -105,16 +105,22 @@ public class VoltClient4 extends DB {
 
   @Override
   public void cleanup() throws DBException {
-    
-    try {
-      mclient.drain();
-      mclient.close();
-    } catch (NoConnectionsException e) {
-      logger.error(e.getMessage(), e);
-    } catch (InterruptedException e) {
-      logger.error(e.getMessage(), e);
-    }
-    mclient = null;
+ 
+    // If VoltDB client exists and has a live connection...
+    if (mclient != null && mclient.getConnectedHostList().size() > 0) {
+
+      try {
+        mclient.drain();
+        mclient.close();
+      } catch (NoConnectionsException e) {
+        logger.error(e.getMessage(), e);
+      } catch (InterruptedException e) {
+        logger.error(e.getMessage(), e);
+      }
+
+      mclient = null;
+    }    
+   
     
   }
 
