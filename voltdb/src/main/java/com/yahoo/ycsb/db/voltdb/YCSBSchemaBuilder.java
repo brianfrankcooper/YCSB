@@ -64,11 +64,11 @@ public final class YCSBSchemaBuilder {
 
   private final String createScanAllDDL = "CREATE PROCEDURE \n" + "FROM CLASS com.yahoo.ycsb.db.voltdb.procs.ScanAll;";
 
-  private final String[] ddlStatements = { createTableDDL, partitionTableDDL };
+  private final String[] ddlStatements = {createTableDDL, partitionTableDDL };
 
-  private final String[] procStatements = { createGetDDL, createPutDDL, createScanDDL, createScanAllDDL };
+  private final String[] procStatements = {createGetDDL, createPutDDL, createScanDDL, createScanAllDDL };
 
-  private final String[] jarFiles = { "Put.class", "Scan.class", "ScanAll.class", "ByteWrapper.class" };
+  private final String[] jarFiles = {"Put.class", "Scan.class", "ScanAll.class", "ByteWrapper.class" };
 
   private final String jarFileName = "ycsb-procs.jar";
 
@@ -132,7 +132,7 @@ public final class YCSBSchemaBuilder {
       schemaExists = false;
       
       // Sanity check: Make sure we've got the *right* ProcCallException...
-      if (! pce.getMessage().equals(PROCEDURE_GET_WAS_NOT_FOUND)) {
+      if (!pce.getMessage().equals(PROCEDURE_GET_WAS_NOT_FOUND)) {
         logger.error("Got unexpected Exception while calling schemaExists()", pce);
       }
 
@@ -157,8 +157,9 @@ public final class YCSBSchemaBuilder {
     
     File tempDir = Files.createTempDirectory("voltdbYCSB").toFile();
     
-    if (! tempDir.canWrite()) {
-      throw new Exception("Temp Directory (from Files.createTempDirectory()) '" + tempDir.getAbsolutePath() + "' is not writable"); 
+    if (!tempDir.canWrite()) {
+      throw new Exception("Temp Directory (from Files.createTempDirectory()) '" 
+            + tempDir.getAbsolutePath() + "' is not writable"); 
     }
   
     ClientResponse cr;

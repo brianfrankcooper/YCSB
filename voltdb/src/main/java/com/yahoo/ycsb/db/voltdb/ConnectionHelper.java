@@ -36,7 +36,7 @@ import org.voltdb.client.ClientFactory;
 public final class ConnectionHelper {
   
   /**
-   * Default port for VoltDB
+   * Default port for VoltDB.
    */
   private static final int VOLTDB_DEFAULT_PORT = 21212;
 

@@ -60,7 +60,7 @@ public class VoltClient4 extends DB {
   
   private Logger logger = LoggerFactory.getLogger(VoltClient4.class);
   
-  YCSBSchemaBuilder ysb =  null;
+  private YCSBSchemaBuilder ysb =  null;
 
   @Override
   public void init() throws DBException {
