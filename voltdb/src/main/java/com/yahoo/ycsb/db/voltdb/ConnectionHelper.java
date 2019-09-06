@@ -109,7 +109,7 @@ public final class ConnectionHelper {
       }
     }
     
-    logger.info("Connected to VoltDB node at: %s.\n", server);
+    logger.info("Connected to VoltDB node at:" + server);
   }
 
   /**
