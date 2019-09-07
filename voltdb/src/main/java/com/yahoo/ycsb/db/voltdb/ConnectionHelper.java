@@ -52,7 +52,6 @@ public final class ConnectionHelper {
    * corresponding connection exists, all parameters other than 'servers' are
    * ignored)
    * 
-   * @param clientId  A unique identifier for the connecting client
    * @param servers   The comma separated list of VoltDB servers in
    *                  hostname[:port] format that the instance will use.
    * @param user      The username for the connection
@@ -65,7 +64,7 @@ public final class ConnectionHelper {
    *                              different server string.
    * @throws InterruptedException
    */
-  public static Client createConnection(Long clientId, String servers, String user, String password,
+  public static Client createConnection(String servers, String user, String password,
       int ratelimit) throws IOException, InterruptedException {
  
     ClientConfig config = new ClientConfig(user, password);

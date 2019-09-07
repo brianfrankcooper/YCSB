@@ -77,7 +77,7 @@ public class VoltClient4 extends DB {
 
     int ratelimit = strLimit != null ? Integer.parseInt(strLimit) : Integer.MAX_VALUE;
     try {
-      mclient = ConnectionHelper.createConnection(Thread.currentThread().getId(), servers, user, password, ratelimit);
+      mclient = ConnectionHelper.createConnection(servers, user, password, ratelimit);
       
       ysb = StaticHolder.INSTANCE;
       ysb.loadClassesAndDDLIfNeeded(mclient);
