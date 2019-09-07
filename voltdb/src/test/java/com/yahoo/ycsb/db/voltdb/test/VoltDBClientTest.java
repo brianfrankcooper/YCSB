@@ -121,6 +121,8 @@ public class VoltDBClientTest {
   @AfterClass
   public static void teardown() {
 
+    Assume.assumeTrue(haveDb);
+    
     try {
       if (voltClient != null) {
 
