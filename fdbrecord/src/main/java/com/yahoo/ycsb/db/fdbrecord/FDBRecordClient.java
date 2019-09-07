@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2015 - 2016, Yahoo!, Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
+ */
+
 package com.yahoo.ycsb.db.fdbrecord;
 
 import com.apple.foundationdb.record.*;
@@ -42,7 +59,7 @@ public class FDBRecordClient extends DB {
   private static final String DB_BATCH_SIZE = "fdb.batchsize";
   private static final String FIELD_COUNT = "fieldcount";
   private static final String FIELD_COUNT_DEFAULT = "10";
-  private static Logger logger = LoggerFactory.getLogger(FDBRecordClient.class);
+  private static final Logger logger = LoggerFactory.getLogger(FDBRecordClient.class);
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one DB instance per client thread.
@@ -55,7 +72,6 @@ public class FDBRecordClient extends DB {
     String dbBatchSize = props.getProperty(DB_BATCH_SIZE, DB_BATCH_SIZE_DEFAULT);
     String dbfieldCount = props.getProperty(FIELD_COUNT, FIELD_COUNT_DEFAULT);
     String keySpacePathName = props.getProperty(KEY_SPACE_PATH_NAME, KEY_SPACE_PATH_DEFAULT);
-    db = FDBDatabaseFactory.instance().getDatabase(clusterFile);
 
     KeySpace keySpace = new KeySpace(new KeySpaceDirectory(
         "YCSB-key-space",
@@ -246,8 +262,7 @@ public class FDBRecordClient extends DB {
             logger.debug("key not found: {}", rowKey);
             return Status.NOT_FOUND;
           }
-          Message origin = storedRecord.getRecord();
-          Message.Builder originBuilder = origin.toBuilder();
+          Message.Builder originBuilder = storedRecord.getRecord().toBuilder();
           for (Map.Entry<String, ByteIterator> k : values.entrySet()) {
             String field = k.getKey();
             String value = k.getValue().toString();
@@ -272,7 +287,6 @@ public class FDBRecordClient extends DB {
         });
     } catch (Exception e) {
       logger.error(MessageFormatter.format("Error updating key: {}", rowKey).getMessage(), e);
-      e.printStackTrace();
     }
     return Status.ERROR;
   }

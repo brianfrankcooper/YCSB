@@ -46,4 +46,4 @@ See the next section for the list of configuration parameters for FoundationDB.
 * ```fdb.keyspacepath``` - The key space path.
   * Default: ```YCSB```
 * ```fdb.batchsize``` - The number of rows to be batched before commit.
-  * Default: ```0```
+  * Default: ```0``` Which disables batching.
