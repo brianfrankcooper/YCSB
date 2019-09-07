@@ -59,7 +59,7 @@ public class FDBRecordClient extends DB {
   private static final String DB_BATCH_SIZE = "fdb.batchsize";
   private static final String FIELD_COUNT = "fieldcount";
   private static final String FIELD_COUNT_DEFAULT = "10";
-  private static final Logger logger = LoggerFactory.getLogger(FDBRecordClient.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FDBRecordClient.class);
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one DB instance per client thread.
@@ -83,7 +83,7 @@ public class FDBRecordClient extends DB {
     DynamicSchema.Builder schemaBuilder = DynamicSchema.newBuilder();
     schemaBuilder.setName("YCSB.proto");
 
-    logger.info("Cluster File: {}\n", clusterFile);
+    LOGGER.info("Cluster File: {}\n", clusterFile);
 
     try {
       db = FDBDatabaseFactory.instance().getDatabase(clusterFile);
@@ -121,7 +121,7 @@ public class FDBRecordClient extends DB {
           .createOrOpen();
 
     } catch (RecordCoreException e) {
-      logger.error(MessageFormatter.format("Error in database operation: {}", "init").getMessage(), e);
+      LOGGER.error(MessageFormatter.format("Error in database operation: {}", "init").getMessage(), e);
       throw new DBException(e);
     } catch (Descriptors.DescriptorValidationException e) {
       throw new DBException(e);
@@ -137,7 +137,7 @@ public class FDBRecordClient extends DB {
     try {
       db.close();
     } catch (RecordCoreException e) {
-      logger.error(MessageFormatter.format("Error in database operation: {}", "cleanup").getMessage(), e);
+      LOGGER.error(MessageFormatter.format("Error in database operation: {}", "cleanup").getMessage(), e);
       throw new DBException(e);
     }
   }
@@ -160,7 +160,7 @@ public class FDBRecordClient extends DB {
     if (fields != null) {
       for (String field : fields) {
         if (result.get(field) == null) {
-          logger.debug("field not found: {}", field);
+          LOGGER.debug("field not found: {}", field);
           return Status.NOT_FOUND;
         }
       }
@@ -181,7 +181,7 @@ public class FDBRecordClient extends DB {
         });
     } catch (Throwable e) {
       for (int i = 0; i < batchCount; ++i) {
-        logger.error(MessageFormatter.format("Error batch inserting key {}", batchRecords.get(i)).getMessage(), e);
+        LOGGER.error(MessageFormatter.format("Error batch inserting key {}", batchRecords.get(i)).getMessage(), e);
       }
     } finally {
       batchRecords.clear();
@@ -192,7 +192,7 @@ public class FDBRecordClient extends DB {
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     Message record = getRecord(key, values);
     String rowKey = (String) record.getField(msgDesc.findFieldByName("YCSB"));
-    logger.debug("insert key = {}", rowKey);
+    LOGGER.debug("insert key = {}", rowKey);
     try {
       batchRecords.add(record);
       batchCount++;
@@ -202,7 +202,7 @@ public class FDBRecordClient extends DB {
       }
       return Status.OK;
     } catch (Throwable e) {
-      logger.error(MessageFormatter.format("Error inserting key: {}", rowKey).getMessage(), e);
+      LOGGER.error(MessageFormatter.format("Error inserting key: {}", rowKey).getMessage(), e);
     }
     return Status.ERROR;
   }
@@ -210,7 +210,7 @@ public class FDBRecordClient extends DB {
   @Override
   public Status delete(String table, String key) {
     Tuple rowKey = Tuple.from(key);
-    logger.debug("delete key = {}", rowKey);
+    LOGGER.debug("delete key = {}", rowKey);
     try {
       db.run(context -> {
           FDBRecordStore recordStore = recordStoreProvider.apply(context);
@@ -220,7 +220,7 @@ public class FDBRecordClient extends DB {
         });
       return Status.OK;
     } catch (Exception e) {
-      logger.error(MessageFormatter.format("Error deleting key: {}", rowKey).getMessage(), e);
+      LOGGER.error(MessageFormatter.format("Error deleting key: {}", rowKey).getMessage(), e);
     }
     return Status.ERROR;
   }
@@ -228,14 +228,14 @@ public class FDBRecordClient extends DB {
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     Tuple rowKey = Tuple.from(key);
-    logger.debug("read key = {}", rowKey);
+    LOGGER.debug("read key = {}", rowKey);
     try {
       FDBStoredRecord<Message> storedRecord = db.run(context ->
           // load the record
           recordStoreProvider.apply(context).loadRecord(rowKey)
         );
       if (storedRecord == null) {
-        logger.debug("key not found: {}", rowKey);
+        LOGGER.debug("key not found: {}", rowKey);
         return Status.NOT_FOUND;
       }
 
@@ -244,7 +244,7 @@ public class FDBRecordClient extends DB {
           .build();
       return convRecordToMap(record, fields, result);
     } catch (Exception e) {
-      logger.error(MessageFormatter.format("Error reading key: {}", rowKey).getMessage(), e);
+      LOGGER.error(MessageFormatter.format("Error reading key: {}", rowKey).getMessage(), e);
     }
     return Status.ERROR;
   }
@@ -252,14 +252,14 @@ public class FDBRecordClient extends DB {
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
     Tuple rowKey = Tuple.from(key);
-    logger.debug("update key = {}", rowKey);
+    LOGGER.debug("update key = {}", rowKey);
     try {
       return db.run(context -> {
           FDBRecordStore recordStore = recordStoreProvider.apply(context);
 
           FDBStoredRecord<Message> storedRecord = recordStore.loadRecord(Tuple.from(key));
           if (storedRecord == null) {
-            logger.debug("key not found: {}", rowKey);
+            LOGGER.debug("key not found: {}", rowKey);
             return Status.NOT_FOUND;
           }
           Message.Builder originBuilder = storedRecord.getRecord().toBuilder();
@@ -279,14 +279,14 @@ public class FDBRecordClient extends DB {
             if (result.containsKey(k)) {
               result.put(k, values.get(k));
             } else {
-              logger.debug("field not fount: {}", k);
+              LOGGER.debug("field not fount: {}", k);
               return Status.NOT_FOUND;
             }
           }
           return Status.OK;
         });
     } catch (Exception e) {
-      logger.error(MessageFormatter.format("Error updating key: {}", rowKey).getMessage(), e);
+      LOGGER.error(MessageFormatter.format("Error updating key: {}", rowKey).getMessage(), e);
     }
     return Status.ERROR;
   }
@@ -295,7 +295,7 @@ public class FDBRecordClient extends DB {
   public Status scan(String table, String startkey, int recordcount, Set<String> fields,
                      Vector<HashMap<String, ByteIterator>> result) {
     Tuple startRowKey = Tuple.from(startkey);
-    logger.debug("scan key from {} limit {}", startkey, recordcount);
+    LOGGER.debug("scan key from {} limit {}", startkey, recordcount);
     try {
       return db.run(context -> {
           FDBRecordStore recordStore = recordStoreProvider.apply(context);
@@ -307,7 +307,7 @@ public class FDBRecordClient extends DB {
                   .join()) {
             final HashMap<String, ByteIterator> map = new HashMap<>();
             if (convRecordToMap(record.getRecord(), null, map) != Status.OK) {
-              logger.error("Error scanning keys: from {} limit {}", startRowKey, recordcount);
+              LOGGER.error("Error scanning keys: from {} limit {}", startRowKey, recordcount);
               return Status.ERROR;
             }
             result.add(map);
@@ -315,7 +315,7 @@ public class FDBRecordClient extends DB {
           return Status.OK;
         });
     } catch (Exception e) {
-      logger.error(MessageFormatter.format("Error scanning keys: from {} limit {} ",
+      LOGGER.error(MessageFormatter.format("Error scanning keys: from {} limit {} ",
           startRowKey, recordcount).getMessage(), e);
     }
     return Status.ERROR;
