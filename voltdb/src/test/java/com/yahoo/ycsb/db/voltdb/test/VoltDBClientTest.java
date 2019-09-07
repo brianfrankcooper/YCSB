@@ -96,6 +96,8 @@ public class VoltDBClientTest {
       // but whatever it is, it isn't a happy copy of VoltDB.
       assumeNoException("Something was running on VoltDB's port but it wasn't a usable copy of VoltDB", e);
     }
+    
+    Assume.assumeTrue(haveDb);
   }
 
   private static void removeExistingData() {
@@ -118,8 +120,6 @@ public class VoltDBClientTest {
 
   @AfterClass
   public static void teardown() {
-
-    Assume.assumeTrue(haveDb);
 
     try {
       if (voltClient != null) {
@@ -184,8 +184,6 @@ public class VoltDBClientTest {
   @Test
   public void insertAndReadTest() {
 
-    Assume.assumeTrue(haveDb);
-
     try {
 
       // Create some test data
@@ -221,8 +219,6 @@ public class VoltDBClientTest {
 
   @Test
   public void insertDeleteAndReadTest() {
-
-    Assume.assumeTrue(haveDb);
 
     try {
 
@@ -272,8 +268,6 @@ public class VoltDBClientTest {
   @Test
   public void deleteNonExistentRecordTest() {
 
-    Assume.assumeTrue(haveDb);
-
     try {
 
       // Create some test data
@@ -298,8 +292,6 @@ public class VoltDBClientTest {
 
   @Test
   public void scanReadTest() {
-
-    Assume.assumeTrue(haveDb);
 
     try {
 
@@ -348,8 +340,6 @@ public class VoltDBClientTest {
 
   private void singleScanReadTest(String startKey, int requestedCount, int expectedCount, String lastKey) {
 
-    Assume.assumeTrue(haveDb);
-
     try {
 
       final Set<String> columns = getColumnNameMap();
@@ -377,8 +367,6 @@ public class VoltDBClientTest {
 
   @Test
   public void updateTest() {
-
-    Assume.assumeTrue(haveDb);
 
     try {
 
