@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010 - 2019 Yahoo! Inc., 2019 YCSB contributors. All rights reserved.
+ * Copyright (c) 2010 - 2016 Yahoo! Inc., 2016, 2019 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
