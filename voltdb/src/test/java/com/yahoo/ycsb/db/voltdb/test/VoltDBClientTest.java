@@ -97,7 +97,6 @@ public class VoltDBClientTest {
       assumeNoException("Something was running on VoltDB's port but it wasn't a usable copy of VoltDB", e);
     }
     
-    Assume.assumeTrue(haveDb);
   }
 
   private static void removeExistingData() {
@@ -120,11 +119,9 @@ public class VoltDBClientTest {
 
   @AfterClass
   public static void teardown() {
-
-    Assume.assumeTrue(haveDb);
     
     try {
-      if (voltClient != null) {
+      if (voltClient != null && haveDb) {
         removeExistingData();
         voltClient.cleanup();
       }
