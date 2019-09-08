@@ -59,7 +59,7 @@ LICENSE file.
     <dependencySet>
       <outputDirectory>lib</outputDirectory>
       <includes>
-        <include>com.yahoo.ycsb:core</include>
+        <include>site.ycsb:core</include>
       </includes>
       <scope>runtime</scope>
       <useProjectArtifact>false</useProjectArtifact>
@@ -73,11 +73,11 @@ LICENSE file.
       <useAllReactorProjects>true</useAllReactorProjects>
       <includeSubModules>true</includeSubModules>
       <excludes>
-        <exclude>com.yahoo.ycsb:core</exclude>
-        <exclude>com.yahoo.ycsb:binding-parent</exclude>
-        <exclude>com.yahoo.ycsb:datastore-specific-descriptor</exclude>
-        <exclude>com.yahoo.ycsb:ycsb</exclude>
-        <exclude>com.yahoo.ycsb:root</exclude>
+        <exclude>site.ycsb:core</exclude>
+        <exclude>site.ycsb:binding-parent</exclude>
+        <exclude>site.ycsb:datastore-specific-descriptor</exclude>
+        <exclude>site.ycsb:ycsb</exclude>
+        <exclude>site.ycsb:root</exclude>
       </excludes>
       <sources>
         <fileSets>

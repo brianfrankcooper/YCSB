@@ -39,7 +39,7 @@ Git clone YCSB and compile:
 
     git clone http://github.com/brianfrankcooper/YCSB.git
     cd YCSB
-    mvn -pl com.yahoo.ycsb:memcached-binding -am clean package
+    mvn -pl site.ycsb:memcached-binding -am clean package
 
 ## 4. Load data and run tests
 

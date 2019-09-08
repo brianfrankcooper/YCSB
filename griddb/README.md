@@ -43,7 +43,7 @@ Clone the YCSB source code from git repository:
 
 Run following command
 
-    $ mvn -pl com.yahoo.ycsb:griddb-binding -am clean package
+    $ mvn -pl site.ycsb:griddb-binding -am clean package
 
 Then, some jar files are created in:
 
