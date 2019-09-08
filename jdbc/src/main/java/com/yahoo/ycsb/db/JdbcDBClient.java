@@ -200,7 +200,10 @@ public class JdbcDBClient extends DB {
       }
       int shardCount = 0;
       conns = new ArrayList<Connection>(3);
-      final String[] urlArr = urls.split(",");
+      // for a longer explanation see the README.md
+      // semicolons aren't present in JDBC urls, so we use them to delimit
+      // multiple JDBC connections to shard across.
+      final String[] urlArr = urls.split(";");
       for (String url : urlArr) {
         System.out.println("Adding shard node URL: " + url);
         Connection conn = DriverManager.getConnection(url, user, passwd);
