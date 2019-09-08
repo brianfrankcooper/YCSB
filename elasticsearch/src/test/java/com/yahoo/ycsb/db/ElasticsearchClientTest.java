@@ -25,6 +25,7 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
+import com.yahoo.ycsb.workloads.CoreWorkload;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -49,11 +50,12 @@ public class ElasticsearchClientTest {
     private final static String MOCK_KEY0 = "0";
     private final static String MOCK_KEY1 = "1";
     private final static String MOCK_KEY2 = "2";
+    private final static String FIELD_PREFIX = CoreWorkload.FIELD_NAME_PREFIX_DEFAULT;
 
     static {
         MOCK_DATA = new HashMap<>(10);
         for (int i = 1; i <= 10; i++) {
-            MOCK_DATA.put("field" + i, new StringByteIterator("value" + i));
+            MOCK_DATA.put(FIELD_PREFIX + i, new StringByteIterator("value" + i));
         }
     }
 
@@ -120,7 +122,7 @@ public class ElasticsearchClientTest {
         HashMap<String, ByteIterator> newValues = new HashMap<>(10);
 
         for (i = 1; i <= 10; i++) {
-            newValues.put("field" + i, new StringByteIterator("newvalue" + i));
+            newValues.put(FIELD_PREFIX + i, new StringByteIterator("newvalue" + i));
         }
 
         Status result = instance.update(MOCK_TABLE, MOCK_KEY1, newValues);
@@ -131,7 +133,7 @@ public class ElasticsearchClientTest {
         instance.read(MOCK_TABLE, MOCK_KEY1, MOCK_DATA.keySet(), resultParam);
 
         for (i = 1; i <= 10; i++) {
-            assertEquals("newvalue" + i, resultParam.get("field" + i).toString());
+            assertEquals("newvalue" + i, resultParam.get(FIELD_PREFIX + i).toString());
         }
     }
 

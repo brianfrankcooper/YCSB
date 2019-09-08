@@ -23,5 +23,5 @@ See `hbase098/README.md` for a quickstart to setup HBase for load testing and co
 ## Configuration Options
 In addition to those options available for the `hbase098` binding, the following options are available for the `hbase12` binding:
 
-* `durability`: Whether or not writes should be appended to the WAL. Bypassing the WAL can improve throughput but data cannot be recovered in the event of a crash. The default is true.
+* `durability`: Whether or not writes should be appended to the WAL. Bypassing the WAL can improve throughput but data cannot be recovered in the event of a crash. The default is true. We can set it to flase by option '-p durability=SKIP_WAL'.
 

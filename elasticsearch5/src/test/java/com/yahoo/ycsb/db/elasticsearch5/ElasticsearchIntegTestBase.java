@@ -22,6 +22,7 @@ import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
+import com.yahoo.ycsb.workloads.CoreWorkload;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,11 +42,12 @@ public abstract class ElasticsearchIntegTestBase {
 
     private final static HashMap<String, ByteIterator> MOCK_DATA;
     private final static String MOCK_TABLE = "MOCK_TABLE";
+    private final static String FIELD_PREFIX = CoreWorkload.FIELD_NAME_PREFIX_DEFAULT;
 
     static {
         MOCK_DATA = new HashMap<>(10);
         for (int i = 1; i <= 10; i++) {
-            MOCK_DATA.put("field" + i, new StringByteIterator("value" + i));
+            MOCK_DATA.put(FIELD_PREFIX + i, new StringByteIterator("value" + i));
         }
     }
 
@@ -101,7 +103,7 @@ public abstract class ElasticsearchIntegTestBase {
         final HashMap<String, ByteIterator> newValues = new HashMap<>(10);
 
         for (int i = 1; i <= 10; i++) {
-            newValues.put("field" + i, new StringByteIterator("newvalue" + i));
+            newValues.put(FIELD_PREFIX + i, new StringByteIterator("newvalue" + i));
         }
 
         final Status updateResult = db.update(MOCK_TABLE, "1", newValues);
@@ -113,7 +115,7 @@ public abstract class ElasticsearchIntegTestBase {
         assertEquals(Status.OK, readResult);
 
         for (int i = 1; i <= 10; i++) {
-            assertEquals("newvalue" + i, resultParam.get("field" + i).toString());
+            assertEquals("newvalue" + i, resultParam.get(FIELD_PREFIX + i).toString());
         }
 
     }

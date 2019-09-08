@@ -21,7 +21,7 @@ LICENSE file.
   <parent>
     <groupId>com.yahoo.ycsb</groupId>
     <artifactId>root</artifactId>
-    <version>0.16.0-SNAPSHOT</version>
+    <version>0.17.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>ycsb</artifactId>
@@ -88,10 +88,15 @@ LICENSE file.
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>couchbase2-binding</artifactId>
       <version>${project.version}</version>
+		</dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>crail-binding</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>azuredocumentdb-binding</artifactId>
+      <artifactId>azurecosmos-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -132,6 +137,11 @@ LICENSE file.
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>googlebigtable-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>griddb-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -216,6 +226,11 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>postgrenosql-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
       <artifactId>rados-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -258,6 +273,11 @@ LICENSE file.
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>tarantool-binding</artifactId>
       <version>${project.version}</version>
+    </dependency>
+    <dependency>
+        <groupId>com.yahoo.ycsb</groupId>
+        <artifactId>tablestore-binding</artifactId>
+        <version>${project.version}</version>
     </dependency>
 <!--
     <dependency>

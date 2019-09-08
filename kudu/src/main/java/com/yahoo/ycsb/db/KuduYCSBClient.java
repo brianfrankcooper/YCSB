@@ -166,6 +166,8 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
       int blockSize = getIntFromProp(prop, BLOCK_SIZE_OPT, BLOCK_SIZE_DEFAULT);
       int fieldCount = getIntFromProp(prop, CoreWorkload.FIELD_COUNT_PROPERTY,
                                       Integer.parseInt(CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
+      final String fieldprefix = prop.getProperty(CoreWorkload.FIELD_NAME_PREFIX,
+                                                  CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
 
       List<ColumnSchema> columns = new ArrayList<ColumnSchema>(fieldCount + 1);
 
@@ -176,7 +178,7 @@ public class KuduYCSBClient extends com.yahoo.ycsb.DB {
       columns.add(keyColumn);
       COLUMN_NAMES.add(KEY);
       for (int i = 0; i < fieldCount; i++) {
-        String name = "field" + i;
+        String name = fieldprefix + i;
         COLUMN_NAMES.add(name);
         columns.add(new ColumnSchema.ColumnSchemaBuilder(name, STRING)
                                     .desiredBlockSize(blockSize)
