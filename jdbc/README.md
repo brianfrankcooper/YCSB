@@ -73,7 +73,7 @@ db.passwd=admin
 
 Be sure to use your driver class, a valid JDBC connection string, and credentials to your database.
 
-For connection fail-over in a DBMS cluster  specify the connection string as follows (example based on Postgres):
+For connection fail-over in a DBMS cluster specify the connection string as follows (example based on Postgres):
 
 ```sh
 db.driver=org.postgresql.Driver
@@ -82,7 +82,7 @@ db.user=admin
 db.passwd=admin
 ```
 
-For using multiple shards  in a DBMS cluster specify the connection string as follows by using `;`as delimiter (example based on PostgreSQL):
+For using multiple shards in a DBMS cluster specify the connection string as follows by using `;`as delimiter (example based on PostgreSQL):
 
 ```sh
 db.driver=org.postgresql.Driver
