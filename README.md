@@ -24,7 +24,7 @@ YCSB
 
 Links
 -----
-* To get here, use http://ycsb.site
+* To get here, use https://ycsb.site
 * [Our project docs](https://github.com/brianfrankcooper/YCSB/wiki)
 * [The original announcement from Yahoo!](https://labs.yahoo.com/news/yahoo-cloud-serving-benchmark/)
 
