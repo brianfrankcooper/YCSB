@@ -16,15 +16,17 @@ permissions and limitations under the License. See accompanying
 LICENSE file.
 -->
 
-Yahoo! Cloud System Benchmark (YCSB)
+YCSB
 ====================================
 [![Build Status](https://travis-ci.org/brianfrankcooper/YCSB.png?branch=master)](https://travis-ci.org/brianfrankcooper/YCSB)
 
+
+
 Links
 -----
-http://wiki.github.com/brianfrankcooper/YCSB/  
-https://labs.yahoo.com/news/yahoo-cloud-serving-benchmark/
-ycsb-users@yahoogroups.com  
+* To get here, use https://ycsb.site
+* [Our project docs](https://github.com/brianfrankcooper/YCSB/wiki)
+* [The original announcement from Yahoo!](https://labs.yahoo.com/news/yahoo-cloud-serving-benchmark/)
 
 Getting Started
 ---------------
@@ -62,6 +64,7 @@ Getting Started
   See https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties for 
   the list of available workload properties.
 
+
 Building from source
 --------------------
 
@@ -74,4 +77,4 @@ To build the full distribution, with all database bindings:
 
 To build a single database binding:
 
-    mvn -pl com.yahoo.ycsb:mongodb-binding -am clean package
+    mvn -pl mongodb-binding -am clean package
