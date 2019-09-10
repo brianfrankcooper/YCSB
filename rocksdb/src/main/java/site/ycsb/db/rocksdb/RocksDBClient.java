@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 YCSB contributors. All rights reserved.
+ * Copyright (c) 2018 - 2019 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -43,11 +43,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class RocksDBClient extends DB {
 
   static final String PROPERTY_ROCKSDB_DIR = "rocksdb.dir";
+  static final String PROPERTY_ROCKSDB_OPTIONS_FILE = "rocksdb.optionsfile";
   private static final String COLUMN_FAMILY_NAMES_FILENAME = "CF_NAMES";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RocksDBClient.class);
 
   @GuardedBy("RocksDBClient.class") private static Path rocksDbDir = null;
+  @GuardedBy("RocksDBClient.class") private static Path optionsFile = null;
   @GuardedBy("RocksDBClient.class") private static RocksObject dbOptions = null;
   @GuardedBy("RocksDBClient.class") private static RocksDB rocksDb = null;
   @GuardedBy("RocksDBClient.class") private static int references = 0;
@@ -62,8 +64,18 @@ public class RocksDBClient extends DB {
         rocksDbDir = Paths.get(getProperties().getProperty(PROPERTY_ROCKSDB_DIR));
         LOGGER.info("RocksDB data dir: " + rocksDbDir);
 
+        String optionsFileString = getProperties().getProperty(PROPERTY_ROCKSDB_OPTIONS_FILE);
+        if (optionsFileString != null) {
+          optionsFile = Paths.get(optionsFileString);
+          LOGGER.info("RocksDB options file: " + optionsFile);
+        }
+
         try {
-          rocksDb = initRocksDB();
+          if (optionsFile != null) {
+            rocksDb = initRocksDBWithOptionsFile();
+          } else {
+            rocksDb = initRocksDB();
+          }
         } catch (final IOException | RocksDBException e) {
           throw new DBException(e);
         }
@@ -71,6 +83,39 @@ public class RocksDBClient extends DB {
 
       references++;
     }
+  }
+
+  /**
+   * Initializes and opens the RocksDB database.
+   *
+   * Should only be called with a {@code synchronized(RocksDBClient.class)` block}.
+   *
+   * @return The initialized and open RocksDB instance.
+   */
+  private RocksDB initRocksDBWithOptionsFile() throws IOException, RocksDBException {
+    if(!Files.exists(rocksDbDir)) {
+      Files.createDirectories(rocksDbDir);
+    }
+
+    final DBOptions options = new DBOptions();
+    final List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList<>();
+    final List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
+
+    RocksDB.loadLibrary();
+    OptionsUtil.loadOptionsFromFile(optionsFile.toAbsolutePath().toString(), Env.getDefault(), options, cfDescriptors);
+    dbOptions = options;
+
+    final RocksDB db = RocksDB.open(options, rocksDbDir.toAbsolutePath().toString(), cfDescriptors, cfHandles);
+
+    for(int i = 0; i < cfDescriptors.size(); i++) {
+      String cfName = new String(cfDescriptors.get(i).getName());
+      final ColumnFamilyHandle cfHandle = cfHandles.get(i);
+      final ColumnFamilyOptions cfOptions = cfDescriptors.get(i).getOptions();
+
+      COLUMN_FAMILIES.put(cfName, new ColumnFamily(cfHandle, cfOptions));
+    }
+
+    return db;
   }
 
   /**
@@ -357,6 +402,24 @@ public class RocksDBClient extends DB {
     }
   }
 
+  private ColumnFamilyOptions getDefaultColumnFamilyOptions(final String destinationCfName) {
+    final ColumnFamilyOptions cfOptions;
+
+    if (COLUMN_FAMILIES.containsKey("default")) {
+      LOGGER.warn("no column family options for \"" + destinationCfName + "\" " +
+                  "in options file - using options from \"default\"");
+      cfOptions = COLUMN_FAMILIES.get("default").getOptions();
+    } else {
+      LOGGER.warn("no column family options for either \"" + destinationCfName + "\" or " +
+                  "\"default\" in options file - initializing with empty configuration");
+      cfOptions = new ColumnFamilyOptions();
+    }
+    LOGGER.warn("Add a CFOptions section for \"" + destinationCfName + "\" to the options file, " +
+                "or subsequent runs on this DB will fail.");
+
+    return cfOptions;
+  }
+
   private void createColumnFamily(final String name) throws RocksDBException {
     COLUMN_FAMILY_LOCKS.putIfAbsent(name, new ReentrantLock());
 
@@ -364,7 +427,16 @@ public class RocksDBClient extends DB {
     l.lock();
     try {
       if(!COLUMN_FAMILIES.containsKey(name)) {
-        final ColumnFamilyOptions cfOptions = new ColumnFamilyOptions().optimizeLevelStyleCompaction();
+        final ColumnFamilyOptions cfOptions;
+
+        if (optionsFile != null) {
+          // RocksDB requires all options files to include options for the "default" column family;
+          // apply those options to this column family
+          cfOptions = getDefaultColumnFamilyOptions(name);
+        } else {
+          cfOptions = new ColumnFamilyOptions().optimizeLevelStyleCompaction();
+        }
+
         final ColumnFamilyHandle cfHandle = rocksDb.createColumnFamily(
             new ColumnFamilyDescriptor(name.getBytes(UTF_8), cfOptions)
         );
