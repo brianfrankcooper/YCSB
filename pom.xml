@@ -156,6 +156,7 @@ LICENSE file.
     <module>memcached</module>
     <module>mongodb</module>
     <module>nosqldb</module>
+    <module>oracledemo</module>
     <module>orientdb</module>
     <module>postgrenosql</module>
     <module>rados</module>
