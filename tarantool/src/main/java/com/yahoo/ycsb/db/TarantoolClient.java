@@ -19,28 +19,25 @@ package com.yahoo.ycsb.db;
 import com.yahoo.ycsb.*;
 import org.tarantool.TarantoolConnection16;
 import org.tarantool.TarantoolConnection16Impl;
-import org.tarantool.TarantoolException;
 
+import java.io.IOException;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * YCSB binding for <a href="http://tarantool.org/">Tarantool</a>.
  */
 public class TarantoolClient extends DB {
-  private static final Logger LOGGER = Logger.getLogger(TarantoolClient.class.getName());
-
   private static final String HOST_PROPERTY = "tarantool.host";
   private static final String PORT_PROPERTY = "tarantool.port";
   private static final String SPACE_PROPERTY = "tarantool.space";
   private static final String DEFAULT_HOST = "localhost";
-  private static final String DEFAULT_PORT = "3301";
+  private static final String DEFAULT_PORT = "3303";
   private static final String DEFAULT_SPACE = "1024";
 
   private TarantoolConnection16 connection;
   private int spaceNo;
 
+  @Override
   public void init() throws DBException {
     Properties props = getProperties();
 
@@ -50,11 +47,12 @@ public class TarantoolClient extends DB {
 
     try {
       this.connection = new TarantoolConnection16Impl(host, port);
-    } catch (Exception exc) {
+    } catch (IOException exc) {
       throw new DBException("Can't initialize Tarantool connection", exc);
     }
   }
 
+  @Override
   public void cleanup() throws DBException {
     this.connection.close();
   }
@@ -64,50 +62,36 @@ public class TarantoolClient extends DB {
     return replace(key, values, "Can't insert element");
   }
 
-  private HashMap<String, ByteIterator> tupleConvertFilter(List<String> input, Set<String> fields) {
-    HashMap<String, ByteIterator> result = new HashMap<>();
+  private static <T extends Map<String, ByteIterator>>
+      void tupleConvertFilter(List<String> input, Set<String> fields, T result) {
     if (input == null) {
-      return result;
+      return;
     }
-    for (int i = 1; i < input.toArray().length; i += 2) {
+    for (int i = 1; i < input.size(); i += 2) {
       if (fields == null || fields.contains(input.get(i))) {
         result.put(input.get(i), new StringByteIterator(input.get(i + 1)));
       }
     }
-    return result;
   }
 
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
-    try {
-      List<String> response = this.connection.select(this.spaceNo, 0, Arrays.asList(key), 0, 1, 0);
-      result = tupleConvertFilter(response, fields);
-      return Status.OK;
-    } catch (TarantoolException exc) {
-      LOGGER.log(Level.SEVERE, "Can't select element", exc);
-      return Status.ERROR;
-    } catch (NullPointerException exc) {
-      return Status.ERROR;
-    }
+    List<String> response = this.connection.select(this.spaceNo, 0, Arrays.asList(key), 0, 1, 0);
+    tupleConvertFilter(response, fields, result);
+    return Status.OK;
   }
 
   @Override
   public Status scan(String table, String startkey,
                      int recordcount, Set<String> fields,
                      Vector<HashMap<String, ByteIterator>> result) {
-    List<List<String>> response;
-    try {
-      response = this.connection.select(this.spaceNo, 0, Arrays.asList(startkey), 0, recordcount, 6);
-    } catch (TarantoolException exc) {
-      LOGGER.log(Level.SEVERE, "Can't select range elements", exc);
-      return Status.ERROR;
-    } catch (NullPointerException exc) {
-      return Status.ERROR;
-    }
+    List<List<String>> response =
+            this.connection.select(this.spaceNo, 0, Collections.singletonList(startkey), 0, recordcount, 5);
     for (List<String> i : response) {
-      HashMap<String, ByteIterator> temp = tupleConvertFilter(i, fields);
+      HashMap<String, ByteIterator> temp = new HashMap<String, ByteIterator>();
+      tupleConvertFilter(i, fields, temp);
       if (!temp.isEmpty()) {
-        result.add((HashMap<String, ByteIterator>) temp.clone());
+        result.add(temp);
       }
     }
     return Status.OK;
@@ -115,14 +99,7 @@ public class TarantoolClient extends DB {
 
   @Override
   public Status delete(String table, String key) {
-    try {
-      this.connection.delete(this.spaceNo, Collections.singletonList(key));
-    } catch (TarantoolException exc) {
-      LOGGER.log(Level.SEVERE, "Can't delete element", exc);
-      return Status.ERROR;
-    } catch (NullPointerException e) {
-      return Status.ERROR;
-    }
+    this.connection.delete(this.spaceNo, Collections.singletonList(key));
     return Status.OK;
   }
 
@@ -140,13 +117,7 @@ public class TarantoolClient extends DB {
       tuple[j + 2] = i.getValue().toString();
       j += 2;
     }
-    try {
-      this.connection.replace(this.spaceNo, tuple);
-    } catch (TarantoolException exc) {
-      LOGGER.log(Level.SEVERE, exceptionDescription, exc);
-      return Status.ERROR;
-    }
+    this.connection.replace(this.spaceNo, tuple);
     return Status.OK;
-
   }
 }
