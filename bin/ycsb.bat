@@ -62,17 +62,17 @@ GOTO exit
 @REM Determine YCSB command argument
 IF NOT "load" == "%1" GOTO noload
 SET YCSB_COMMAND=-load
-SET YCSB_CLASS=com.yahoo.ycsb.Client
+SET YCSB_CLASS=site.ycsb.Client
 GOTO gotCommand
 :noload
 IF NOT "run" == "%1" GOTO noRun
 SET YCSB_COMMAND=-t
-SET YCSB_CLASS=com.yahoo.ycsb.Client
+SET YCSB_CLASS=site.ycsb.Client
 GOTO gotCommand
 :noRun
 IF NOT "shell" == "%1" GOTO noShell
 SET YCSB_COMMAND=
-SET YCSB_CLASS=com.yahoo.ycsb.CommandLine
+SET YCSB_CLASS=site.ycsb.CommandLine
 GOTO gotCommand
 :noShell
 ECHO [ERROR] Found unknown command '%1'

@@ -79,13 +79,13 @@ fi
 # Determine YCSB command argument
 if [ "load" = "$1" ] ; then
   YCSB_COMMAND=-load
-  YCSB_CLASS=com.yahoo.ycsb.Client
+  YCSB_CLASS=site.ycsb.Client
 elif [ "run" = "$1" ] ; then
   YCSB_COMMAND=-t
-  YCSB_CLASS=com.yahoo.ycsb.Client
+  YCSB_CLASS=site.ycsb.Client
 elif [ "shell" = "$1" ] ; then
   YCSB_COMMAND=
-  YCSB_CLASS=com.yahoo.ycsb.CommandLine
+  YCSB_CLASS=site.ycsb.CommandLine
 else
   echo "[ERROR] Found unknown command '$1'"
   echo "[ERROR] Expected one of 'load', 'run', or 'shell'. Exiting."
