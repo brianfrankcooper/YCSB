@@ -178,7 +178,7 @@ SET MVN_PROJECT=core
 :gotMvnProject
 
 ECHO [WARN] YCSB libraries not found.  Attempting to build...
-CALL mvn -Psource-run -pl com.yahoo.ycsb:%MVN_PROJECT% -am package -DskipTests
+CALL mvn -Psource-run -pl site.ycsb:%MVN_PROJECT% -am package -DskipTests
 IF %ERRORLEVEL% NEQ 0 (
   ECHO [ERROR] Error trying to build project. Exiting.
   GOTO exit

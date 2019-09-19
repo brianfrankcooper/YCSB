@@ -30,7 +30,7 @@ Clone the YCSB git repository and compile:
 
     git clone git://github.com/brianfrankcooper/YCSB.git
     cd YCSB
-    mvn -pl com.yahoo.ycsb:rest-binding -am clean package
+    mvn -pl site.ycsb:rest-binding -am clean package
 
 ### 2. Set Up an HTTP Web Service
 

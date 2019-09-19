@@ -25,7 +25,7 @@ Git clone YCSB and compile:
 
     git clone http://github.com/brianfrankcooper/YCSB.git
     cd YCSB
-    mvn -pl com.yahoo.ycsb:ignite-binding -am clean package
+    mvn -pl site.ycsb:ignite-binding -am clean package
 
 ### 2. Start Apache Ignite
 1.1 Download latest binary [Apache Ignite release](https://ignite.apache.org/download.cgi#binaries)

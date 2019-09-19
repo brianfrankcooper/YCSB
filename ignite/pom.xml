@@ -22,7 +22,7 @@ LICENSE file.
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.yahoo.ycsb</groupId>
+    <groupId>site.ycsb</groupId>
     <artifactId>binding-parent</artifactId>
     <version>0.17.0-SNAPSHOT</version>
     <relativePath>../binding-parent</relativePath>
@@ -58,7 +58,7 @@ LICENSE file.
     </dependency>
 
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
