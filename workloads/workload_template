@@ -28,7 +28,7 @@
 # https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties
 
 # The name of the workload class to use
-workload=com.yahoo.ycsb.workloads.CoreWorkload
+workload=site.ycsb.workloads.CoreWorkload
 
 # There is no default setting for recordcount but it is
 # required to be set.

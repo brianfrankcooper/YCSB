@@ -28,7 +28,7 @@
 # https://github.com/brianfrankcooper/YCSB/wiki/TimeSeriesWorkload
 
 # The name of the workload class to use. Always the following.
-workload=com.yahoo.ycsb.workloads.TimeSeriesWorkload
+workload=site.ycsb.workloads.TimeSeriesWorkload
 
 # The default is Java's Long.MAX_VALUE.
 # The number of records in the table to be inserted in
