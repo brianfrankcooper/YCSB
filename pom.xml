@@ -21,7 +21,7 @@ LICENSE file.
 
   <groupId>site.ycsb</groupId>
   <artifactId>root</artifactId>
-  <version>0.17.0-SNAPSHOT</version>
+  <version>0.17.0-RC1</version>
   <packaging>pom</packaging>
 
   <name>YCSB Root</name>
