@@ -77,4 +77,4 @@ To build the full distribution, with all database bindings:
 
 To build a single database binding:
 
-    mvn -pl mongodb-binding -am clean package
+    mvn -pl site.ycsb:mongodb-binding -am clean package
