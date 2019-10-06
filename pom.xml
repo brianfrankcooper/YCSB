@@ -30,11 +30,56 @@ LICENSE file.
     This is the top level project that builds, packages the core and all the DB bindings for YCSB infrastructure.
   </description>
 
+  <url>https://ycsb.site/</url>
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <developers>
+    <!-- Please see git for authorship information.
+         This list is project maintainers -->
+    <developer>
+      <id>allanbank</id>
+      <name>Robert J. Moore</name>
+      <email>robert.j.moore@allanbank.com</email>
+    </developer>
+    <developer>
+      <id>busbey</id>
+      <name>Sean Busbey</name>
+      <email>sean.busbey@gmail.com</email>
+    </developer>
+    <developer>
+      <id>cmatser</id>
+      <name>Chrisjan Matser</name>
+      <email>cmatser@codespinnerinc.com</email>
+    </developer>
+    <developer>
+      <id>stfeng2</id>
+      <name>Stanley Feng</name>
+      <email>stfeng@google.com</email>
+    </developer>
+  </developers>
+
   <scm>
     <connection>scm:git:git://github.com/brianfrankcooper/YCSB.git</connection>
     <tag>master</tag>
     <url>https://github.com/brianfrankcooper/YCSB</url>
   </scm>
+  <distributionManagement>
+    <repository>
+      <id>sonatype.releases.https</id>
+      <name>Release Repo at sonatype oss.</name>
+      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+    </repository>
+    <snapshotRepository>
+      <id>sonatype.snapshots.https</id>
+      <name>snapshot Repo at sonatype oss.</name>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+    </snapshotRepository>
+  </distributionManagement>
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -230,4 +275,65 @@ LICENSE file.
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <!-- plugins needed to pass sonatype repo checks -->
+      <id>ycsb-release</id>
+      <properties>
+        <doclint>none</doclint>
+      </properties>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-deploy-plugin</artifactId>
+              <version>3.0.0-M1</version>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>3.1.0</version>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <goals>
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>3.1.1</version>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>1.6</version>
+            <executions>
+              <execution>
+                <id>sign-release-artifacts</id>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
