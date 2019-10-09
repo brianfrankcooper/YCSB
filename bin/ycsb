@@ -48,6 +48,11 @@ COMMANDS = {
         "description" : "Execute the transaction phase",
         "main"        : "com.yahoo.ycsb.Client",
     },
+    "cperf" : {
+        "command"     : "",
+        "description" : "Get performance statistics from Cassandra",
+        "main"        : "com.yahoo.ycsb.db.PerformanceStateCollector",
+    },
 }
 
 DATABASES = {
