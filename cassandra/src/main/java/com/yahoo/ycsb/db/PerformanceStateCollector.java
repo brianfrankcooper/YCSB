@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Collecting Cassandra performance
+ * Collecting Cassandra performance.
  */
 public class PerformanceStateCollector {
 //  Post to https://jsonplaceholder.typicode.com/posts
