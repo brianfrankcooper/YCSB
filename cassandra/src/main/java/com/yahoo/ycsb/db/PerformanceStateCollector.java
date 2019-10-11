@@ -9,14 +9,18 @@ import java.util.Map;
 /**
  * Collecting Cassandra performance.
  */
-public class PerformanceStateCollector {
+public final class PerformanceStateCollector {
 //  Post to https://jsonplaceholder.typicode.com/posts
   // Get from /users
 
   private static String port = "8778";
   private static String url = "http://localhost";
-
-  public void main(String[] args) throws Exception {
+  private PerformanceStateCollector(){
+    //Here's what you got
+  }
+  //CHECKSTYLE:OFF
+  public static void main(String[] args) throws Exception {
+  //CHECKSTYLE:ON
     String basePath = String.format("%s:%s/jolokia", url, port);
     J4pClient j4pClient = new J4pClient(basePath);
 
@@ -25,7 +29,7 @@ public class PerformanceStateCollector {
 
     J4pReadRequest req = new J4pReadRequest("java.lang:type=Memory", "HeapMemoryUsage");
     J4pReadResponse resp = j4pClient.execute(req);
-    System.out.println((String) resp.getValue());
+    //System.out.println((String) resp.getValue());
 
     System.out.println("------------------------------");
 
