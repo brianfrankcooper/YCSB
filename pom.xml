@@ -67,6 +67,21 @@ LICENSE file.
         <artifactId>slf4j-simple</artifactId>
         <version>1.6.1</version>
       </dependency>
+      <dependency>
+        <groupId>org.apache.htrace</groupId>
+        <artifactId>htrace-core</artifactId>
+        <version>3.1.0-incubating</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jolokia</groupId>
+        <artifactId>jolokia-client-java</artifactId>
+        <version>1.2.2</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jmx4perl</groupId>
+        <artifactId>j4p-client</artifactId>
+        <version>0.70.0.M3</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
