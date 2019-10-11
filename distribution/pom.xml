@@ -318,6 +318,14 @@ LICENSE file.
 
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>ycsb-release</id>
+      <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+      </properties>
+    </profile>
+  </profiles>
 
 </project>
 
