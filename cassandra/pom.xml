@@ -78,16 +78,11 @@ LICENSE file.
 	  </dependency>
 
     <!--    For communicating with Jolokia -->
-    <dependency>
-      <groupId>org.jolokia</groupId>
-      <artifactId>jolokia-core</artifactId>
-      <version>1.6.2</version>
-    </dependency>
-    <dependency>
-      <groupId>org.jolokia</groupId>
-      <artifactId>jolokia-client-java</artifactId>
-      <version>1.6.2</version>
-    </dependency>
+          <dependency>
+            <groupId>org.jolokia</groupId>
+            <artifactId>jolokia-client-java</artifactId>
+            <version>1.2.2</version>
+          </dependency>
   </dependencies>
 
   <profiles>
@@ -112,10 +107,20 @@ LICENSE file.
 			<url>http://repository.jboss.org/nexus/content/groups/public-jboss/</url>
 			<layout>default</layout>
 			<snapshots>
-				<enabled>false</enabled>
+				<enabled>true</enabled>
 			</snapshots>
 		</repository>
+                <repository>
+                        <id>local</id>
+                        <url>file:///home/csd/.m2/repository/</url>
+                </repository>
 	</repositories>
+        <pluginRepositories>
+                <pluginRepository>
+                        <id>local</id>
+                        <url>file:///home/csd/.m2/repository/</url>
+                </pluginRepository>
+        </pluginRepositories>
 	<!-- unzip sigar-dist/lib files. 
 		References: 
 		http://stackoverflow.com/questions/5388661/unzip-dependency-in-maven 
