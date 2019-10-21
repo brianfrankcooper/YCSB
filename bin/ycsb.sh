@@ -232,20 +232,6 @@ if [ "${BINDING_DIR}" = "couchbase" ] ; then
 Couchbase 4.0+ try using the 'couchbase2' client instead."
 fi
 
-# HBase 0.98 deprecation message
-if [ "${BINDING_DIR}" = "hbase098" ] ; then
-  echo "[WARN] The 'hbase098' client is deprecated because HBase 0.98 \
-is EOM. If you are using HBase 1.2+ try using the 'hbase12' client \
-instead."
-fi
-
-# HBase 1.0 deprecation message
-if [ "${BINDING_DIR}" = "hbase10" ] ; then
-  echo "[WARN] The 'hbase10' client is deprecated because HBase 1.0 \
-is EOM. If you are using HBase 1.2+ try using the 'hbase12' client \
-instead."
-fi
-
 # For Cygwin, switch paths to Windows format before running java
 if $CYGWIN; then
   [ -n "$JAVA_HOME" ] && JAVA_HOME=$(cygpath --unix "$JAVA_HOME")

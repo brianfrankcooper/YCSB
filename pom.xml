@@ -127,11 +127,8 @@ LICENSE file.
     <geode.version>1.2.0</geode.version>
     <googlebigtable.version>1.4.0</googlebigtable.version>
     <griddb.version>4.0.0</griddb.version>
-    <hbase098.version>0.98.14-hadoop2</hbase098.version>
-    <hbase10.version>1.0.2</hbase10.version>
-    <hbase12.version>1.2.5</hbase12.version>
-    <hbase14.version>1.4.2</hbase14.version>
-    <hbase20.version>2.0.0</hbase20.version>
+    <hbase14.version>1.4.12</hbase14.version>
+    <hbase22.version>2.2.3</hbase22.version>
     <hypertable.version>0.9.5.6</hypertable.version>
     <ignite.version>2.7.6</ignite.version>
     <infinispan.version>7.2.2.Final</infinispan.version>
@@ -181,11 +178,8 @@ LICENSE file.
     <module>googlebigtable</module>
     <module>googledatastore</module>
     <module>griddb</module>
-    <module>hbase098</module>
-    <module>hbase10</module>
-    <module>hbase12</module>
     <module>hbase14</module>
-    <module>hbase20</module>
+    <module>hbase22</module>
     <module>hypertable</module>
     <module>ignite</module>
     <module>infinispan</module>

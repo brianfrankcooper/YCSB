@@ -25,8 +25,8 @@ LICENSE file.
     <relativePath>../binding-parent/</relativePath>
   </parent>
 
-  <artifactId>hbase14-binding</artifactId>
-  <name>HBase 1.4 DB Binding</name>
+  <artifactId>hbase22-binding</artifactId>
+  <name>HBase 2.2 DB Binding</name>
 
   <properties>
     <!-- Tests do not run on jdk9 -->
@@ -42,7 +42,7 @@ LICENSE file.
     <dependency>
       <groupId>org.apache.hbase</groupId>
       <artifactId>hbase-shaded-client</artifactId>
-      <version>${hbase14.version}</version>
+      <version>${hbase22.version}</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -53,8 +53,14 @@ LICENSE file.
     <dependency>
       <groupId>org.apache.hbase</groupId>
       <artifactId>hbase-shaded-testing-util</artifactId>
-      <version>${hbase14.version}</version>
+      <version>${hbase22.version}</version>
       <scope>test</scope>
+    </dependency>
+    <!-- We're going to use log4j for logging here. -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+      <version>1.7.25</version>
     </dependency>
   </dependencies>
 </project>

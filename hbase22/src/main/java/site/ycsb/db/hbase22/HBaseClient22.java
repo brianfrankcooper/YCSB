@@ -13,7 +13,7 @@
  * LICENSE file.
  */
 
-package site.ycsb.db.hbase14;
+package site.ycsb.db.hbase22;
 
 import site.ycsb.ByteArrayByteIterator;
 import site.ycsb.ByteIterator;
@@ -55,11 +55,11 @@ import static site.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY;
 import static site.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY_DEFAULT;
 
 /**
- * HBase 1 client for YCSB framework.
+ * HBase 2 client for YCSB framework.
  *
  * Intended for use with HBase's shaded client.
  */
-public class HBaseClient14 extends site.ycsb.DB {
+public class HBaseClient22 extends site.ycsb.DB {
   private static final AtomicInteger THREAD_COUNT = new AtomicInteger(0);
   
   private Configuration config = HBaseConfiguration.create();
