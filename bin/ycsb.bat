@@ -117,17 +117,6 @@ GOTO confAdded
 SET CLASSPATH=%YCSB_HOME%\conf
 :confAdded
 
-@REM Accumulo deprecation message
-IF NOT "%BINDING_DIR%" == "accumulo" GOTO notAliasAccumulo
-echo [WARN] The 'accumulo' client has been deprecated in favor of version specific bindings. This name still maps to the binding for Accumulo 1.6, which is named 'accumulo-1.6'. This alias will be removed in a future YCSB release.
-SET BINDING_DIR=accumulo1.6
-:notAliasAccumulo
-
-@REM Accumulo 1.6 deprecation message
-IF NOT "%BINDING_DIR%" == "accumulo1.6" GOTO notAccumulo16
-echo [WARN] The 'accumulo1.6' client has been deprecated because Accumulo 1.6 is EOM. If you are using Accumulo 1.7+ try using the 'accumulo1.7' client instead.
-:notAccumulo16
-
 @REM Cassandra2 deprecation message
 IF NOT "%BINDING_DIR%" == "cassandra2" GOTO notAliasCassandra
 echo [WARN] The 'cassandra2-cql' client has been deprecated. It has been renamed to simply 'cassandra-cql'. This alias will be removed in the next YCSB release.

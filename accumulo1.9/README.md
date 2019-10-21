@@ -21,20 +21,16 @@ This section describes how to run YCSB on [Accumulo](https://accumulo.apache.org
 
 ### 1. Start Accumulo
 
-See the [Accumulo Documentation](https://accumulo.apache.org/1.6/accumulo_user_manual.html#_installation)
+See the [Accumulo Documentation](https://accumulo.apache.org/1.9/accumulo_user_manual.html#_installation)
 for details on installing and running Accumulo.
 
 Before running the YCSB test you must create the Accumulo table. Again see the 
-[Accumulo Documentation](https://accumulo.apache.org/1.6/accumulo_user_manual.html#_basic_administration)
-for details. The default table name is `ycsb`.
+[Accumulo Documentation](https://accumulo.apache.org/1.9/accumulo_user_manual.html#_basic_administration)
+for details. The default table name is `usertable`.
 
 ### 2. Set Up YCSB
 
-Git clone YCSB and compile:
-
-    git clone http://github.com/brianfrankcooper/YCSB.git
-    cd YCSB
-    mvn -pl site.ycsb:accumulo1.6-binding -am clean package
+Download the [latest YCSB](https://github.com/brianfrankcooper/YCSB/releases/latest) file. Follow the instructions.
 
 ### 3. Create the Accumulo table
 
@@ -57,9 +53,6 @@ is a faster and similarly-efficient option. The mutation queue property controls
 that Accumulo will buffer in memory before performing a flush; this property should be set relative
 to the amount of JVM heap the TabletServers are given.
 
-Please note that the `table.durability` and `tserver.total.mutation.queue.max` properties only
-exists for >=Accumulo-1.7. There are no concise replacements for these properties in earlier versions.
-
     accumulo> config -s table.durability=flush
     accumulo> config -s tserver.total.mutation.queue.max=256M
     accumulo> config -t usertable -s table.file.compress.type=snappy
@@ -75,7 +68,7 @@ On repeated data loads, the following commands may be helpful to re-set the stat
 
 Load the data:
 
-    ./bin/ycsb load accumulo1.6 -s -P workloads/workloada \
+    ./bin/ycsb load accumulo1.9 -s -P workloads/workloada \
          -p accumulo.zooKeepers=localhost \
          -p accumulo.columnFamily=ycsb \
          -p accumulo.instanceName=ycsb \
@@ -85,7 +78,7 @@ Load the data:
 
 Run the workload test:
 
-    ./bin/ycsb run accumulo1.6 -s -P workloads/workloada  \
+    ./bin/ycsb run accumulo1.9 -s -P workloads/workloada  \
          -p accumulo.zooKeepers=localhost \
          -p accumulo.columnFamily=ycsb \
          -p accumulo.instanceName=ycsb \
@@ -96,7 +89,7 @@ Run the workload test:
 ## Accumulo Configuration Parameters
 
 - `accumulo.zooKeepers`
-  - The Accumulo cluster's [zookeeper servers](https://accumulo.apache.org/1.6/accumulo_user_manual.html#_connecting).
+  - The Accumulo cluster's [zookeeper servers](https://accumulo.apache.org/1.9/accumulo_user_manual.html#_connecting).
   - Should contain a comma separated list of of hostname or hostname:port values.
   - No default value.
 
@@ -105,7 +98,7 @@ Run the workload test:
   - No default value.
 
 - `accumulo.instanceName`
-  - Name of the Accumulo [instance](https://accumulo.apache.org/1.6/accumulo_user_manual.html#_connecting).
+  - Name of the Accumulo [instance](https://accumulo.apache.org/1.9/accumulo_user_manual.html#_connecting).
   - No default value.
 
 - `accumulo.username`
