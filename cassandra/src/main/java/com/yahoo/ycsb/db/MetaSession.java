@@ -2,10 +2,12 @@ package com.yahoo.ycsb.db;
 
 import com.datastax.driver.core.*;
 import com.google.common.util.concurrent.ListenableFuture;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.Map;
 
+/**
+ * MetaSession which contains multiple sessions and a performance state.
+ */
 public class MetaSession implements Session {
   // These should be implemented
   @Override
@@ -46,66 +48,66 @@ public class MetaSession implements Session {
   // These could be ignored.
   @Override
   public String getLoggedKeyspace() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public Session init() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public ListenableFuture<Session> initAsync() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public ResultSetFuture executeAsync(String query) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public ResultSetFuture executeAsync(String query, Object... values) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public ResultSetFuture executeAsync(String query, Map<String, Object> values) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public ResultSetFuture executeAsync(Statement statement) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public ListenableFuture<PreparedStatement> prepareAsync(String query) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public ListenableFuture<PreparedStatement> prepareAsync(RegularStatement statement) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public CloseFuture closeAsync() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean isClosed() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public Cluster getCluster() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public State getState() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 }
