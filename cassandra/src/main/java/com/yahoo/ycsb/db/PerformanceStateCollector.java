@@ -55,13 +55,23 @@ public final class PerformanceStateCollector {
     );
     valueList.add(rates);
 
-    for (int i = 0; i < 10; i++) {
-      Thread.sleep(1000);
-      System.out.println("Collecting state!");
-      try (PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter("c:/temp/samplefile1.txt")))) {
+    try (PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter("./collected-state")))) {
+      writer.println(
+          "MemoryUsed, " +
+              "ReadLatency1, ReadLatency5, " +
+              "ReadTimeout1, ReadTimeout5, " +
+              "WriteLatency1, WriteLatency5, " +
+              "WriteTimeout1, WriteTimeout5, " +
+              "PendingTasks, " +
+              "WaitingOnCommit1, WaitingOnCommit5, " +
+              "ReadLatency1, ReadLatency5 " +
+              "WriteLatency1, WriteLatency5");
+      for (int i = 0; i < 100; i++) {
+        Thread.sleep(1000);
+        System.out.println("Collecting state!");
         List<J4pResponse<J4pRequest>> responses = j4pClient.execute(requestList);
-
         Iterator<String[]> valueIt = valueList.iterator();
+
         for (J4pResponse<J4pRequest> response : responses) {
           String[] values = valueIt.next();
           Map responseMap = response.getValue();
@@ -71,6 +81,7 @@ public final class PerformanceStateCollector {
         }
 
         writer.println("");
+        writer.flush();
 //
 //      // Memory related
 //
