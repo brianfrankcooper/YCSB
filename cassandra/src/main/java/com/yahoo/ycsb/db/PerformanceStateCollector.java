@@ -9,23 +9,29 @@ import java.util.Map;
 /**
  * Collecting Cassandra performance.
  */
-public class PerformanceStateCollector {
-//  Post to https://jsonplaceholder.typicode.com/posts
+public final class PerformanceStateCollector {
+  //  Post to https://jsonplaceholder.typicode.com/posts
   // Get from /users
+
+  private PerformanceStateCollector() {
+    // NOP
+  }
 
   private static String port = "8778";
   private static String url = "http://localhost";
 
-  public void main(String[] args) throws Exception {
+  //CHECKSTYLE:OFF
+  public static void main(String[] args) throws Exception {
+  //CHECKSTYLE:ON
     String basePath = String.format("%s:%s/jolokia", url, port);
     J4pClient j4pClient = new J4pClient(basePath);
 
-    J4pRequest req1 = new J4pExecRequest("java.lang:type=Memory", "gc");
+    J4pRequest req1 = new J4pReadRequest("java.lang:type=Memory", "gc");
     J4pRequest req2 = new J4pReadRequest("java.lang:type=Memory", "HeapMemoryUsage");
 
-    J4pReadRequest req = new J4pReadRequest("java.lang:type=Memory", "HeapMemoryUsage");
-    J4pReadResponse resp = j4pClient.execute(req);
-    System.out.println((String) resp.getValue());
+//    J4pReadRequest req = new J4pReadRequest("java.lang:type=Memory", "HeapMemoryUsage");
+//    J4pReadResponse resp = j4pClient.execute(req);
+    // System.out.println(resp.getValue());
 
     System.out.println("------------------------------");
 
