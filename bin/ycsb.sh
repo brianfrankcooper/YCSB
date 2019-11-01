@@ -86,6 +86,9 @@ elif [ "run" = "$1" ] ; then
 elif [ "shell" = "$1" ] ; then
   YCSB_COMMAND=
   YCSB_CLASS=com.yahoo.ycsb.CommandLine
+elif [ "cperf" = "$1" ] ; then
+  YCSB_COMMAND=
+  YCSB_CLASS=com.yahoo.ycsb.db.PerformanceStateCollector
 else
   echo "[ERROR] Found unknown command '$1'"
   echo "[ERROR] Expected one of 'load', 'run', or 'shell'. Exiting."
