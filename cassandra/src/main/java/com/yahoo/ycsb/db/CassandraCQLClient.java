@@ -153,8 +153,8 @@ public class CassandraCQLClient extends DB {
         long speculativeTimeout = Long.parseLong(speculativeTimeoutString);
         String targetOpsPerSeconds = getProperties().getProperty(OPS_TARGET, "0");
 
-        logger.info("Speculative execution policy: " + speculativeTimeoutString);
-        logger.info("Target operations: " + targetOpsPerSeconds);
+        System.out.println("Speculative execution policy: " + speculativeTimeoutString);
+        System.out.println("Target operations: " + targetOpsPerSeconds);
 
         String keyspace = getProperties().getProperty(KEYSPACE_PROPERTY,
             KEYSPACE_PROPERTY_DEFAULT);
