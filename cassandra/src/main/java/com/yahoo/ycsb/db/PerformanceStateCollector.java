@@ -140,7 +140,7 @@ public final class PerformanceStateCollector implements Runnable {
     List<PrintWriter> writers = new LinkedList<>();
     for (String ip : this.nodes) {
       String filename = String.format("./res_performance/state_%s_%s_%s", ip, thresholdString, loadString);
-      System.out.println("Creating peformance file: " + filename);
+      logger.warn("Creating peformance file: " + filename);
       PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(filename)));
       pw.println("Timestamp, MemoryUsed, ReadLatency1, WriteLatency1, PendingTasks, WaitingOnCommit1, ");
 
@@ -178,7 +178,7 @@ public final class PerformanceStateCollector implements Runnable {
   @Override
   public void run() {
     try {
-      System.out.println("Performance thread started");
+      logger.warn("Performance thread started");
       this.performBenchmarkDataCollection(this.threshold, this.load);
     } catch (Exception e) {
       e.printStackTrace();
@@ -193,7 +193,7 @@ public final class PerformanceStateCollector implements Runnable {
 
   public void stopThread() {
     if (this.isRunning) {
-      System.out.println("Performance collection stopped");
+      logger.warn("Performance collection stopped");
       this.isRunning = false;
       try {
         t.join();

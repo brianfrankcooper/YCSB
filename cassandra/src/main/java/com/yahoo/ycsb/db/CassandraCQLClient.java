@@ -153,8 +153,8 @@ public class CassandraCQLClient extends DB {
         long speculativeTimeout = Long.parseLong(speculativeTimeoutString);
         String targetOpsPerSeconds = getProperties().getProperty(OPS_TARGET, "0");
 
-        System.out.println("Speculative execution policy: " + speculativeTimeoutString);
-        System.out.println("Target operations: " + targetOpsPerSeconds);
+        logger.warn("Speculative execution policy: " + speculativeTimeoutString);
+        logger.error("Target operations: " + targetOpsPerSeconds);
 
         String keyspace = getProperties().getProperty(KEYSPACE_PROPERTY,
             KEYSPACE_PROPERTY_DEFAULT);
@@ -217,11 +217,11 @@ public class CassandraCQLClient extends DB {
         }
 
         Metadata metadata = cluster.getMetadata();
-        logger.info("Connected to cluster: {}\n",
+        logger.warn("Connected to cluster: {}\n",
             metadata.getClusterName());
 
         for (Host discoveredHost : metadata.getAllHosts()) {
-          logger.info("Datacenter: {}; Host: {}; Rack: {}\n",
+          logger.warn("Datacenter: {}; Host: {}; Rack: {}\n",
               discoveredHost.getDatacenter(), discoveredHost.getAddress(),
               discoveredHost.getRack());
         }
