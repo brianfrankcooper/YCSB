@@ -5,6 +5,8 @@ import org.jolokia.client.exception.J4pException;
 import org.jolokia.client.request.J4pReadRequest;
 import org.jolokia.client.request.J4pRequest;
 import org.jolokia.client.request.J4pResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.management.MalformedObjectNameException;
 import java.io.BufferedWriter;
@@ -18,6 +20,8 @@ import java.util.*;
  * Collecting Cassandra performance.
  */
 public final class PerformanceStateCollector implements Runnable {
+  private static Logger logger = LoggerFactory.getLogger(CassandraCQLClient.class);
+
   private static String port = "8778";
   private static String defaultIP = "127.0.0.1";
   private static String[] rates = {"OneMinuteRate"};
@@ -136,6 +140,7 @@ public final class PerformanceStateCollector implements Runnable {
     List<PrintWriter> writers = new LinkedList<>();
     for (String ip : this.nodes) {
       String filename = String.format("./res_performance/state_%s_%s_%s", ip, thresholdString, loadString);
+      logger.info("Creating peformance file: " + filename);
       PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(filename)));
       pw.println("Timestamp, MemoryUsed, ReadLatency1, WriteLatency1, PendingTasks, WaitingOnCommit1, ");
 
@@ -173,6 +178,7 @@ public final class PerformanceStateCollector implements Runnable {
   @Override
   public void run() {
     try {
+      logger.info("Performance thread started");
       this.performBenchmarkDataCollection(this.threshold, this.load);
     } catch (Exception e) {
       e.printStackTrace();
@@ -187,6 +193,7 @@ public final class PerformanceStateCollector implements Runnable {
 
   public void stopThread() {
     if (this.isRunning) {
+      logger.info("Performance collection stopped");
       this.isRunning = false;
       try {
         t.join();
