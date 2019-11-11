@@ -1,76 +1,157 @@
 package com.yahoo.ycsb.db;
 
 import org.jolokia.client.J4pClient;
+import org.jolokia.client.exception.J4pException;
 import org.jolokia.client.request.J4pReadRequest;
 import org.jolokia.client.request.J4pRequest;
 import org.jolokia.client.request.J4pResponse;
 
+import javax.management.MalformedObjectNameException;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.sql.Timestamp;
+import java.util.*;
 
 /**
  * Collecting Cassandra performance.
  */
-public final class PerformanceStateCollector {
+public final class PerformanceStateCollector implements Runnable {
   private static String port = "8778";
-  private static String url = "http://127.0.0.1";
-  private static String[] rates = {"OneMinuteRate", "FiveMinuteRate"};
+  private static String defaultIP = "127.0.0.1";
+  private static String[] rates = {"OneMinuteRate"};
 
-  private PerformanceStateCollector() {
-    // NOP
+  private String threshold;
+  private String load;
+
+  private double readThroughputAvg = 0.0;
+  private double writeThroughputAvg = 0.0;
+  private double[] readThroughput;
+  private double[] writeThroughput;
+  private String[] nodes;
+  private List<J4pClient> clients;
+  private List<J4pRequest> metricRequests;
+
+  private boolean isRunning = false;
+  private Thread t;
+
+  /**
+   * Create a performance state collector that collects state from it IPs specified.
+   *
+   * @param nodes IP addresses of the nodes
+   */
+  PerformanceStateCollector(String[] nodes, String threshold, String load) {
+    // Setting up averages
+    readThroughput = new double[nodes.length];
+    writeThroughput = new double[nodes.length];
+
+    this.threshold = threshold;
+    this.load = load;
+
+    // Setting up the clients for the different nodes
+    this.nodes = nodes;
+    this.clients = new LinkedList<>();
+    for (String node : nodes) {
+      String basePath = String.format("http://%s:%s/jolokia/", node, port);
+      J4pClient j4pClient = new J4pClient(basePath);
+      this.clients.add(j4pClient);
+    }
+
+    // Creating the list of metrics
+    try {
+      this.metricRequests = new LinkedList<>();
+      this.metricRequests.add(new J4pReadRequest(
+          "org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Latency"));
+      this.metricRequests.add(new J4pReadRequest(
+          "org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Latency"));
+
+    } catch (MalformedObjectNameException e) {
+      e.printStackTrace();
+    }
   }
 
-  //CHECKSTYLE:OFF
-  public static void main(String[] args) throws Exception {
-    String basePath = String.format("%s:%s/jolokia/", url, port);
-    J4pClient j4pClient = new J4pClient(basePath);
+  /**
+   * Collect all metrics once.
+   */
+  public void collectCurrentMetrics() {
+    try {
+      int currentId = 0;
+      double tempReadSum = 0;
+      double tempWriteSum = 0;
 
+      for (J4pClient client : clients) {
+        List<J4pResponse<J4pRequest>> responses = client.execute(metricRequests);
+        Iterator<J4pResponse<J4pRequest>> iterator = responses.iterator();
+
+        Map value = iterator.next().getValue();
+        String rrate = (String) value.get("OneMinuteRate");
+        value = iterator.next().getValue();
+        String wrate = (String) value.get("OneMinuteRate");
+
+        // Parsing the values and adding
+        readThroughput[currentId] = Integer.parseInt(rrate);
+        writeThroughput[currentId] = Integer.parseInt(wrate);
+        tempReadSum += readThroughput[currentId];
+        tempWriteSum += writeThroughput[currentId];
+
+        currentId++;
+      }
+
+      readThroughputAvg = tempReadSum / this.clients.size();
+      writeThroughputAvg = tempWriteSum / this.clients.size();
+    } catch (J4pException e) {
+      e.printStackTrace();
+    }
+  }
+
+  /**
+   * Collect benchmark metrics and save them to file.
+   *
+   * @throws Exception
+   */
+  private void performBenchmarkDataCollection(String thresholdString, String loadString) throws Exception {
+
+    // Setting up request objects
     List<J4pRequest> requestList = new LinkedList<>();
     List<String[]> valueList = new LinkedList<>();
     requestList.add(new J4pReadRequest("java.lang:type=Memory", "HeapMemoryUsage"));
     valueList.add(new String[]{"used"});
     requestList.add(new J4pReadRequest("org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Latency"));
     valueList.add(rates);
-    requestList.add(new J4pReadRequest("org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Timeouts"));
-    valueList.add(rates);
     requestList.add(new J4pReadRequest("org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Latency"));
-    valueList.add(rates);
-    requestList.add(new J4pReadRequest("org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Timeouts"));
     valueList.add(rates);
     requestList.add(new J4pReadRequest("org.apache.cassandra.metrics:type=CommitLog,name=PendingTasks"));
     valueList.add(new String[]{"Value"});
     requestList.add(new J4pReadRequest("org.apache.cassandra.metrics:type=CommitLog,name=WaitingOnCommit"));
     valueList.add(rates);
-    requestList.add(
-        new J4pReadRequest("org.apache.cassandra.metrics:keyspace=ycsb,name=ReadLatency,scope=usertable,type=Table")
-    );
-    valueList.add(rates);
-    requestList.add(
-        new J4pReadRequest("org.apache.cassandra.metrics:keyspace=ycsb,name=WriteLatency,scope=usertable,type=Table")
-    );
-    valueList.add(rates);
 
-    try (PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter("./collected-state")))) {
-      writer.println(
-          "MemoryUsed, " +
-              "ReadLatency1, ReadLatency5, " +
-              "ReadTimeout1, ReadTimeout5, " +
-              "WriteLatency1, WriteLatency5, " +
-              "WriteTimeout1, WriteTimeout5, " +
-              "PendingTasks, " +
-              "WaitingOnCommit1, WaitingOnCommit5, " +
-              "ReadLatency1, ReadLatency5 " +
-              "WriteLatency1, WriteLatency5");
-      for (int i = 0; i < 100; i++) {
-        Thread.sleep(1000);
-        System.out.println("Collecting state!");
-        List<J4pResponse<J4pRequest>> responses = j4pClient.execute(requestList);
+    // Ensure directory exists
+    File directory = new File("./res_performance");
+    if (!directory.exists()) {
+      directory.mkdir();
+    }
+
+    // Create file writers
+    List<PrintWriter> writers = new LinkedList<>();
+    for (String ip : this.nodes) {
+      String filename = String.format("./res_performance/state_%s_%s_%s", ip, thresholdString, loadString);
+      PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(filename)));
+      pw.println("Timestamp, MemoryUsed, ReadLatency1, WriteLatency1, PendingTasks, WaitingOnCommit1, ");
+
+      writers.add(pw);
+    }
+
+    while (isRunning) {
+      Thread.sleep(1000);
+
+      Iterator<PrintWriter> writerIT = writers.iterator();
+      for (J4pClient client : clients) {
+        List<J4pResponse<J4pRequest>> responses = client.execute(requestList);
         Iterator<String[]> valueIt = valueList.iterator();
+
+        PrintWriter writer = writerIT.next();
+        writer.printf("%s,", new Timestamp(new Date().getTime()).toString());
 
         for (J4pResponse<J4pRequest> response : responses) {
           String[] values = valueIt.next();
@@ -81,50 +162,41 @@ public final class PerformanceStateCollector {
         }
 
         writer.println("");
-        writer.flush();
-//
-//      // Memory related
-//
-//      System.out.println("Memory used: " + memVals.get("used") + " b");
-//
-//
-//
-//      // Latency
-//      System.out.println("\nRead");
-//      Map readLatencyVals = iterator.next().getValue();
-//      // We also have the list "RecentValues" which contains all the recent values here
-//      System.out.println("Latency: One minute rate: " + readLatencyVals.get("OneMinuteRate") + " e/s");
-//      System.out.println("Latency: Five minute rate: " + readLatencyVals.get("FiveMinuteRate") + " e/s");
-//
-//      readLatencyVals = iterator.next().getValue();
-//      System.out.println("Timeouts: One minute rate: " + readLatencyVals.get("OneMinuteRate") + " e/s");
-//      System.out.println("Timeouts: Five minute rate: " + readLatencyVals.get("FiveMinuteRate") + " e/s");
-//
-//      System.out.println("\nWrite");
-//      Map writeLatencyVals = iterator.next().getValue();
-//      System.out.println("Latency: One minute rate: " + writeLatencyVals.get("OneMinuteRate") + " e/s");
-//      System.out.println("Latency: Five minute rate: " + writeLatencyVals.get("FiveMinuteRate") + " e/s");
-//
-//      writeLatencyVals = iterator.next().getValue();
-//      System.out.println("Timeouts: One minute rate: " + writeLatencyVals.get("OneMinuteRate") + " e/s");
-//      System.out.println("Timeouts: Five minute rate: " + writeLatencyVals.get("FiveMinuteRate") + " e/s");
-//
-//      System.out.println("\nCommit log");
-//      Map commitLogVals = iterator.next().getValue();
-//      System.out.println("Pending tasks: " + commitLogVals.get("Value"));
-//      commitLogVals = iterator.next().getValue();
-//      System.out.println("Waiting on commit: " + commitLogVals.get("OneMinuteRate"));
-//
-//      System.out.println("\nTable info");
-//      Map tableVals = iterator.next().getValue();
-//      System.out.println("Read: One minute rate: " + tableVals.get("OneMinuteRate") + " e/s");
-//      System.out.println("Read: Five minute rate: " + tableVals.get("FiveMinuteRate") + " e/s");
-//      tableVals = iterator.next().getValue();
-//      System.out.println("One minute rate: " + tableVals.get("OneMinuteRate") + " e/s");
-//      System.out.println("Five minute rate: " + tableVals.get("FiveMinuteRate") + " e/s");
       }
     }
 
+    for (PrintWriter writer : writers) {
+      writer.close();
+    }
   }
-  //CHECKSTYLE:ON
+
+  @Override
+  public void run() {
+    try {
+      this.performBenchmarkDataCollection(this.threshold, this.load);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  public void startThread() {
+    t = new Thread(this);
+    this.isRunning = true;
+    t.start();
+  }
+
+  public void stopThread() {
+    if (this.isRunning) {
+      this.isRunning = false;
+      try {
+        t.join();
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
+  public static void main(String[] args) throws Exception {
+//    performBenchmarkDataCollection("10.0.0.11", "");
+  }
 }
