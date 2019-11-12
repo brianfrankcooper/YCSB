@@ -194,7 +194,7 @@ public class JdbcDBClient extends DB {
 
     try {
       if (driver.contains("sqlserver")) {
-	sqlserver = true;
+        sqlserver = true;
       }
       if (driver != null) {
         Class.forName(driver);
