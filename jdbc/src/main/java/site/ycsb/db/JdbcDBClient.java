@@ -196,7 +196,7 @@ public class JdbcDBClient extends DB {
       if (driver != null) {
         if (driver.contains("sqlserver")) {
           sqlserver = true;
-	}
+        }
         Class.forName(driver);
       }
       int shardCount = 0;
