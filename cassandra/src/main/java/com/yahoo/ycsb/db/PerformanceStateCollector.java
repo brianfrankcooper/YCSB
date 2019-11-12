@@ -5,8 +5,6 @@ import org.jolokia.client.exception.J4pException;
 import org.jolokia.client.request.J4pReadRequest;
 import org.jolokia.client.request.J4pRequest;
 import org.jolokia.client.request.J4pResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.management.MalformedObjectNameException;
 import java.io.BufferedWriter;
