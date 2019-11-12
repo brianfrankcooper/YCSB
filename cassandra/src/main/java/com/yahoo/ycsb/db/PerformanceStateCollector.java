@@ -25,6 +25,7 @@ public final class PerformanceStateCollector implements Runnable {
   private static String port = "8778";
   private static String defaultIP = "127.0.0.1";
   private static String[] rates = {"OneMinuteRate"};
+  private static String resultsDir = "~/cassandra-strict-slo/performance";
 
   private String threshold;
   private String load;
@@ -131,7 +132,7 @@ public final class PerformanceStateCollector implements Runnable {
     valueList.add(rates);
 
     // Ensure directory exists
-    File directory = new File("./res_performance");
+    File directory = new File(resultsDir);
     if (!directory.exists()) {
       directory.mkdir();
     }
@@ -139,8 +140,8 @@ public final class PerformanceStateCollector implements Runnable {
     // Create file writers
     List<PrintWriter> writers = new LinkedList<>();
     for (String ip : this.nodes) {
-      String filename = String.format("./res_performance/state_%s_%s_%s", ip, thresholdString, loadString);
-      logger.warn("Creating peformance file: " + filename);
+      String filename = String.format("%s/state_%s_%s_%s", resultsDir, ip, thresholdString, loadString);
+      System.out.println("Creating peformance file: " + filename);
       PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(filename)));
       pw.println("Timestamp, MemoryUsed, ReadLatency1, WriteLatency1, PendingTasks, WaitingOnCommit1, ");
 
@@ -178,7 +179,7 @@ public final class PerformanceStateCollector implements Runnable {
   @Override
   public void run() {
     try {
-      logger.warn("Performance thread started");
+      System.out.println("Performance thread started: " + new Timestamp(new Date().getTime()).toString());
       this.performBenchmarkDataCollection(this.threshold, this.load);
     } catch (Exception e) {
       e.printStackTrace();
@@ -193,7 +194,7 @@ public final class PerformanceStateCollector implements Runnable {
 
   public void stopThread() {
     if (this.isRunning) {
-      logger.warn("Performance collection stopped");
+      System.out.println("Performance collection stopped: " + new Timestamp(new Date().getTime()).toString());
       this.isRunning = false;
       try {
         t.join();
