@@ -247,11 +247,6 @@ public class CassandraCQLClient extends DB {
   @Override
   public void cleanup() throws DBException {
     synchronized (INIT_COUNT) {
-      if (stateCollector != null) {
-        stateCollector.stopThread();
-        stateCollector = null;
-      }
-
       final int curInitCount = INIT_COUNT.decrementAndGet();
       if (curInitCount <= 0) {
         readStmts.clear();
@@ -265,6 +260,11 @@ public class CassandraCQLClient extends DB {
         cluster.close();
         cluster = null;
         session = null;
+
+        if (stateCollector != null) {
+          stateCollector.stopThread();
+          stateCollector = null;
+        }
       }
       if (curInitCount < 0) {
         // This should never happen.
