@@ -82,6 +82,9 @@ public class JdbcDBClient extends DB {
   /** The field name prefix in the table. */
   public static final String COLUMN_PREFIX = "FIELD";
 
+  /** Use SQL:2008 FETCH FIRST for Scan. */
+  private boolean ansiFetchFirst = false;
+  
   private boolean sqlserver = false;
   private List<Connection> conns;
   private boolean initialized = false;
