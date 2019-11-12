@@ -20,12 +20,10 @@ import java.util.*;
  * Collecting Cassandra performance.
  */
 public final class PerformanceStateCollector implements Runnable {
-  private static Logger logger = LoggerFactory.getLogger(CassandraCQLClient.class);
-
   private static String port = "8778";
   private static String defaultIP = "127.0.0.1";
   private static String[] rates = {"OneMinuteRate"};
-  private static String resultsDir = "~/cassandra-strict-slo/performance";
+  private static String resultsDir = "/home/csd/cassandra-strict-slo/performance";
 
   private String threshold;
   private String load;
@@ -134,7 +132,7 @@ public final class PerformanceStateCollector implements Runnable {
     // Ensure directory exists
     File directory = new File(resultsDir);
     if (!directory.exists()) {
-      directory.mkdir();
+      directory.mkdirs();
     }
 
     // Create file writers
