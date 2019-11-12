@@ -193,10 +193,10 @@ public class JdbcDBClient extends DB {
     this.batchUpdates = getBoolProperty(props, JDBC_BATCH_UPDATES, false);
 
     try {
-      if (driver.contains("sqlserver")) {
-        sqlserver = true;
-      }
       if (driver != null) {
+        if (driver.contains("sqlserver")) {
+          sqlserver = true;
+	}
         Class.forName(driver);
       }
       int shardCount = 0;
