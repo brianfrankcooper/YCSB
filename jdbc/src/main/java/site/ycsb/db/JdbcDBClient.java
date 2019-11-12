@@ -184,9 +184,7 @@ public class JdbcDBClient extends DB {
     String passwd = props.getProperty(CONNECTION_PASSWD, DEFAULT_PROP);
     String driver = props.getProperty(DRIVER_CLASS);
 
-    if (driver.contains("sqlserver")) {
-      sqlserver = true;
-    }
+  
 
     this.jdbcFetchSize = getIntProperty(props, JDBC_FETCH_SIZE);
     this.batchSize = getIntProperty(props, DB_BATCH_SIZE);
@@ -196,6 +194,9 @@ public class JdbcDBClient extends DB {
 
     try {
       if (driver != null) {
+        if (driver.contains("sqlserver")) {
+          sqlserver = true;
+        }
         Class.forName(driver);
       }
       int shardCount = 0;
