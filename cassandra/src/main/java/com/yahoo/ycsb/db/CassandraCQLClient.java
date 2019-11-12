@@ -149,7 +149,7 @@ public class CassandraCQLClient extends DB {
         String username = getProperties().getProperty(USERNAME_PROPERTY);
         String password = getProperties().getProperty(PASSWORD_PROPERTY);
 
-        String speculativeTimeoutString = getProperties().getProperty(SPECULATIVE_EXECUTION_TIMING_PROPERTY, "0");
+        String speculativeTimeoutString = getProperties().getProperty(SPECULATIVE_EXECUTION_TIMING_PROPERTY, "1");
         long speculativeTimeout = Long.parseLong(speculativeTimeoutString);
         String targetOpsPerSeconds = getProperties().getProperty(OPS_TARGET, "0");
 

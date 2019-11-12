@@ -20,7 +20,7 @@ import java.util.*;
 public final class PerformanceStateCollector implements Runnable {
   private static String port = "8778";
   private static String defaultIP = "127.0.0.1";
-  private static String[] rates = {"OneMinuteRate"};
+  private static String[] rates = {"OneMinuteRate", "Count"};
   private static String resultsDir = "/home/csd/cassandra-strict-slo/performance";
 
   private String threshold;
@@ -28,8 +28,14 @@ public final class PerformanceStateCollector implements Runnable {
 
   private double readThroughputAvg = 0.0;
   private double writeThroughputAvg = 0.0;
+  private double readCountAvg = 0.0;
+  private double writeCountAvg = 0.0;
   private double[] readThroughput;
   private double[] writeThroughput;
+  private int[] readCount;
+  private int[] writeCount;
+  private int[] readCountLast;
+  private int[] writeCountLast;
   private String[] nodes;
   private List<J4pClient> clients;
   private List<J4pRequest> metricRequests;
@@ -80,6 +86,8 @@ public final class PerformanceStateCollector implements Runnable {
       int currentId = 0;
       double tempReadSum = 0;
       double tempWriteSum = 0;
+      int tempReadCountSum = 0;
+      int tempWriteCountSum = 0;
 
       for (J4pClient client : clients) {
         List<J4pResponse<J4pRequest>> responses = client.execute(metricRequests);
@@ -87,8 +95,10 @@ public final class PerformanceStateCollector implements Runnable {
 
         Map value = iterator.next().getValue();
         String rrate = (String) value.get("OneMinuteRate");
+        String rcount = (String) value.get("Count");
         value = iterator.next().getValue();
         String wrate = (String) value.get("OneMinuteRate");
+        String wcount = (String) value.get("Count");
 
         // Parsing the values and adding
         readThroughput[currentId] = Integer.parseInt(rrate);
@@ -96,11 +106,22 @@ public final class PerformanceStateCollector implements Runnable {
         tempReadSum += readThroughput[currentId];
         tempWriteSum += writeThroughput[currentId];
 
+        int rNewCount = Integer.parseInt(rcount);
+        int wNewCount = Integer.parseInt(wcount);
+        readCount[currentId] = rNewCount - readCountLast[currentId];
+        writeCount[currentId] = wNewCount - writeCountLast[currentId];
+        readCountLast[currentId] = rNewCount;
+        writeCountLast[currentId] = wNewCount;
+        tempReadCountSum += readCount[currentId];
+        tempWriteCountSum += writeCount[currentId];
+
         currentId++;
       }
 
       readThroughputAvg = tempReadSum / this.clients.size();
       writeThroughputAvg = tempWriteSum / this.clients.size();
+      readCountAvg = ((double) tempReadCountSum) / this.clients.size();
+      writeCountAvg = ((double) tempWriteCountSum) / this.clients.size();
     } catch (J4pException e) {
       e.printStackTrace();
     }
@@ -125,7 +146,7 @@ public final class PerformanceStateCollector implements Runnable {
     requestList.add(new J4pReadRequest("org.apache.cassandra.metrics:type=CommitLog,name=PendingTasks"));
     valueList.add(new String[]{"Value"});
     requestList.add(new J4pReadRequest("org.apache.cassandra.metrics:type=CommitLog,name=WaitingOnCommit"));
-    valueList.add(rates);
+    valueList.add(new String[] {"OneMinuteRate"});
 
     // Ensure directory exists
     File directory = new File(resultsDir);
@@ -139,7 +160,7 @@ public final class PerformanceStateCollector implements Runnable {
       String filename = String.format("%s/state_%s_%s_%s", resultsDir, ip, thresholdString, loadString);
       System.out.println("Creating peformance file: " + filename);
       PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(filename)));
-      pw.println("Timestamp, MemoryUsed, ReadLatency1, WriteLatency1, PendingTasks, WaitingOnCommit1, ");
+      pw.println("Timestamp, MemoryUsed, ReadLatency1, ReadCount, WriteLatency1, WriteCount, PendingTasks, WaitingOnCommit1, ");
 
       writers.add(pw);
     }
