@@ -84,7 +84,7 @@ public class DefaultDBFlavor extends DBFlavor {
   }
 
   @Override
-  public String createScanStatement(StatementType scanType, String key, boolean sqlserver) {
+  public String createScanStatement(StatementType scanType, String key, boolean sqlserver, boolean ansiFetchFirst) {
     StringBuilder select;
     if (sqlserver) {
       select = new StringBuilder("SELECT TOP (?) * FROM ");
@@ -98,7 +98,11 @@ public class DefaultDBFlavor extends DBFlavor {
     select.append(" ORDER BY ");
     select.append(JdbcDBClient.PRIMARY_KEY);
     if (!sqlserver) {
-      select.append(" LIMIT ?");
+      if (ansiFetchFirst) {
+        select.append(" FETCH FIRST ? ROWS ONLY");
+      } else {
+        select.append(" LIMIT ?");
+      }
     }
     return select.toString();
   }
