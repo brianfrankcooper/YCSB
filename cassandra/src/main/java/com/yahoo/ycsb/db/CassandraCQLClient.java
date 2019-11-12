@@ -112,7 +112,7 @@ public class CassandraCQLClient extends DB {
 
   private static boolean trace = false;
 
-  private PerformanceStateCollector stateCollector;
+  private static PerformanceStateCollector stateCollector = null;
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
@@ -153,8 +153,8 @@ public class CassandraCQLClient extends DB {
         long speculativeTimeout = Long.parseLong(speculativeTimeoutString);
         String targetOpsPerSeconds = getProperties().getProperty(OPS_TARGET, "0");
 
-        logger.warn("Speculative execution policy: " + speculativeTimeoutString);
-        logger.error("Target operations: " + targetOpsPerSeconds);
+        System.out.println("Speculative execution policy: " + speculativeTimeoutString);
+        System.out.println("Target operations: " + targetOpsPerSeconds);
 
         String keyspace = getProperties().getProperty(KEYSPACE_PROPERTY,
             KEYSPACE_PROPERTY_DEFAULT);
@@ -229,8 +229,10 @@ public class CassandraCQLClient extends DB {
         session = cluster.connect(keyspace);
 
         // Create the performance logger
-        stateCollector = new PerformanceStateCollector(hosts, speculativeTimeoutString, targetOpsPerSeconds);
-        stateCollector.startThread();
+        if (stateCollector == null) {
+          stateCollector = new PerformanceStateCollector(hosts, speculativeTimeoutString, targetOpsPerSeconds);
+          stateCollector.startThread();
+        }
 
       } catch (Exception e) {
         throw new DBException(e);
@@ -245,7 +247,10 @@ public class CassandraCQLClient extends DB {
   @Override
   public void cleanup() throws DBException {
     synchronized (INIT_COUNT) {
-      stateCollector.stopThread();
+      if (stateCollector != null) {
+        stateCollector.stopThread();
+        stateCollector = null;
+      }
 
       final int curInitCount = INIT_COUNT.decrementAndGet();
       if (curInitCount <= 0) {
