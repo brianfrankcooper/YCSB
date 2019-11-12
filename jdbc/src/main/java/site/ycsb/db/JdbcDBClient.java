@@ -184,9 +184,7 @@ public class JdbcDBClient extends DB {
     String passwd = props.getProperty(CONNECTION_PASSWD, DEFAULT_PROP);
     String driver = props.getProperty(DRIVER_CLASS);
 
-    if (driver.contains("sqlserver")) {
-      sqlserver = true;
-    }
+  
 
     this.jdbcFetchSize = getIntProperty(props, JDBC_FETCH_SIZE);
     this.batchSize = getIntProperty(props, DB_BATCH_SIZE);
@@ -195,6 +193,9 @@ public class JdbcDBClient extends DB {
     this.batchUpdates = getBoolProperty(props, JDBC_BATCH_UPDATES, false);
 
     try {
+      if (driver.contains("sqlserver")) {
+	sqlserver = true;
+      }
       if (driver != null) {
         Class.forName(driver);
       }
