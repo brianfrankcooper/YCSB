@@ -111,9 +111,7 @@ LICENSE file.
     <maven.dependency.version>2.10</maven.dependency.version>
 
     <!-- datastore binding versions, lex sorted -->
-    <accumulo.1.6.version>1.6.6</accumulo.1.6.version>
-    <accumulo.1.7.version>1.7.4</accumulo.1.7.version>
-    <accumulo.1.8.version>1.9.1</accumulo.1.8.version>
+    <accumulo.1.9.version>1.9.3</accumulo.1.9.version>
     <aerospike.version>3.1.2</aerospike.version>
     <arangodb.version>4.4.1</arangodb.version>
     <asynchbase.version>1.8.2</asynchbase.version>
@@ -164,9 +162,7 @@ LICENSE file.
     <module>binding-parent</module>
     <module>distribution</module>
     <!-- all the datastore bindings, lex sorted please -->
-    <module>accumulo1.6</module>
-    <module>accumulo1.7</module>
-    <module>accumulo1.8</module>
+    <module>accumulo1.9</module>
     <module>aerospike</module>
     <module>arangodb</module>
     <module>asynchbase</module>
