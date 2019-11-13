@@ -82,7 +82,11 @@ public class JdbcDBClient extends DB {
   /** The field name prefix in the table. */
   public static final String COLUMN_PREFIX = "FIELD";
 
-  private boolean sqlserver = false;
+  /** SQL:2008 standard: FETCH FIRST n ROWS after the ORDER BY. */
+  private boolean sqlansiScans = false;
+  /** SQL Server before 2012: TOP n after the SELECT. */
+  private boolean sqlserverScans = false;
+
   private List<Connection> conns;
   private boolean initialized = false;
   private Properties props;
@@ -184,8 +188,6 @@ public class JdbcDBClient extends DB {
     String passwd = props.getProperty(CONNECTION_PASSWD, DEFAULT_PROP);
     String driver = props.getProperty(DRIVER_CLASS);
 
-  
-
     this.jdbcFetchSize = getIntProperty(props, JDBC_FETCH_SIZE);
     this.batchSize = getIntProperty(props, DB_BATCH_SIZE);
 
@@ -193,9 +195,23 @@ public class JdbcDBClient extends DB {
     this.batchUpdates = getBoolProperty(props, JDBC_BATCH_UPDATES, false);
 
     try {
+//  The SQL Syntax for Scan depends on the DB engine
+//  - SQL:2008 standard: FETCH FIRST n ROWS after the ORDER BY
+//  - SQL Server before 2012: TOP n after the SELECT
+//  - others (MySQL,MariaDB, PostgreSQL before 8.4)
+//  TODO: check product name and version rather than driver name
       if (driver != null) {
         if (driver.contains("sqlserver")) {
-          sqlserver = true;
+          sqlserverScans = true;
+          sqlansiScans = false;
+        }
+        if (driver.contains("oracle")) {
+          sqlserverScans = false;
+          sqlansiScans = true;
+        }
+        if (driver.contains("postgres")) {
+          sqlserverScans = false;
+          sqlansiScans = true;
         }
         Class.forName(driver);
       }
@@ -308,7 +324,7 @@ public class JdbcDBClient extends DB {
 
   private PreparedStatement createAndCacheScanStatement(StatementType scanType, String key)
       throws SQLException {
-    String select = dbFlavor.createScanStatement(scanType, key, sqlserver);
+    String select = dbFlavor.createScanStatement(scanType, key, sqlserverScans, sqlansiScans);
     PreparedStatement scanStatement = getShardConnectionByKey(key).prepareStatement(select);
     if (this.jdbcFetchSize > 0) {
       scanStatement.setFetchSize(this.jdbcFetchSize);
@@ -357,9 +373,11 @@ public class JdbcDBClient extends DB {
       if (scanStatement == null) {
         scanStatement = createAndCacheScanStatement(type, startKey);
       }
-      if (sqlserver) {
+      // SQL Server TOP syntax is at first
+      if (sqlserverScans) {
         scanStatement.setInt(1, recordcount);
         scanStatement.setString(2, startKey);
+      // FETCH FIRST and LIMIT are at the end
       } else {
         scanStatement.setString(1, startKey);
         scanStatement.setInt(2, recordcount);
