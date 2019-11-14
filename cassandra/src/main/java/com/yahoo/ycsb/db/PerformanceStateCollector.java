@@ -25,6 +25,7 @@ public final class PerformanceStateCollector implements Runnable {
 
   private String threshold;
   private String load;
+  private String prefix;
 
   private double readThroughputAvg = 0.0;
   private double writeThroughputAvg = 0.0;
@@ -48,13 +49,14 @@ public final class PerformanceStateCollector implements Runnable {
    *
    * @param nodes IP addresses of the nodes
    */
-  PerformanceStateCollector(String[] nodes, String threshold, String load) {
+  PerformanceStateCollector(String[] nodes, String threshold, String load, String prefix) {
     // Setting up averages
     readThroughput = new double[nodes.length];
     writeThroughput = new double[nodes.length];
 
     this.threshold = threshold;
     this.load = load;
+    this.prefix = prefix;
 
     // Setting up the clients for the different nodes
     this.nodes = nodes;
@@ -132,7 +134,7 @@ public final class PerformanceStateCollector implements Runnable {
    *
    * @throws Exception
    */
-  private void performBenchmarkDataCollection(String thresholdString, String loadString) throws Exception {
+  private void performBenchmarkDataCollection(String thresholdString, String loadString, String prefix) throws Exception {
 
     // Setting up request objects
     List<J4pRequest> requestList = new LinkedList<>();
@@ -146,7 +148,7 @@ public final class PerformanceStateCollector implements Runnable {
     requestList.add(new J4pReadRequest("org.apache.cassandra.metrics:type=CommitLog,name=PendingTasks"));
     valueList.add(new String[]{"Value"});
     requestList.add(new J4pReadRequest("org.apache.cassandra.metrics:type=CommitLog,name=WaitingOnCommit"));
-    valueList.add(new String[] {"OneMinuteRate"});
+    valueList.add(new String[]{"OneMinuteRate"});
 
     // Ensure directory exists
     File directory = new File(resultsDir);
@@ -157,7 +159,7 @@ public final class PerformanceStateCollector implements Runnable {
     // Create file writers
     List<PrintWriter> writers = new LinkedList<>();
     for (String ip : this.nodes) {
-      String filename = String.format("%s/state_%s_%s_%s", resultsDir, ip, thresholdString, loadString);
+      String filename = String.format("%s/%s_%s_%s_%s", resultsDir, prefix, thresholdString, loadString, ip);
       System.out.println("Creating peformance file: " + filename);
       PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(filename)));
       pw.println("Timestamp, MemoryUsed, ReadLatency1, ReadCount, WriteLatency1, WriteCount, PendingTasks, WaitingOnCommit1, ");
@@ -197,7 +199,7 @@ public final class PerformanceStateCollector implements Runnable {
   public void run() {
     try {
       System.out.println("Performance thread started: " + new Timestamp(new Date().getTime()).toString());
-      this.performBenchmarkDataCollection(this.threshold, this.load);
+      this.performBenchmarkDataCollection(this.threshold, this.load, this.prefix);
     } catch (Exception e) {
       e.printStackTrace();
     }

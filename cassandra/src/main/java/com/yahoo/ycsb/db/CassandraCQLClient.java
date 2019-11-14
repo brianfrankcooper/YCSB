@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Cassandra 2.x CQL client.
- *
+ * <p>
  * See {@code cassandra2/README.md} for details.
  *
  * @author cmatser
@@ -101,6 +101,7 @@ public class CassandraCQLClient extends DB {
 
   private static final String SPECULATIVE_EXECUTION_TIMING_PROPERTY = "cassandra.speculative";
   private static final String OPS_TARGET = "target";
+  private static final String PERFORMANCE_PREFIX_PROPERTY = "performance.prefix";
 
   /**
    * Count the number of times initialized to teardown on the last
@@ -152,6 +153,7 @@ public class CassandraCQLClient extends DB {
         String speculativeTimeoutString = getProperties().getProperty(SPECULATIVE_EXECUTION_TIMING_PROPERTY, "1");
         long speculativeTimeout = Long.parseLong(speculativeTimeoutString);
         String targetOpsPerSeconds = getProperties().getProperty(OPS_TARGET, "0");
+        String performanceFilePrefix = getProperties().getProperty(PERFORMANCE_PREFIX_PROPERTY, "perf");
 
         System.out.println("Speculative execution policy: " + speculativeTimeoutString);
         System.out.println("Target operations: " + targetOpsPerSeconds);
@@ -230,7 +232,12 @@ public class CassandraCQLClient extends DB {
 
         // Create the performance logger
         if (stateCollector == null) {
-          stateCollector = new PerformanceStateCollector(hosts, speculativeTimeoutString, targetOpsPerSeconds);
+          stateCollector = new PerformanceStateCollector(
+              hosts,
+              speculativeTimeoutString,
+              targetOpsPerSeconds,
+              performanceFilePrefix
+          );
           stateCollector.startThread();
         }
 
@@ -278,14 +285,10 @@ public class CassandraCQLClient extends DB {
    * Read a record from the database. Each field/value pair from the result will
    * be stored in a HashMap.
    *
-   * @param table
-   *          The name of the table
-   * @param key
-   *          The record key of the record to read.
-   * @param fields
-   *          The list of fields to read, or null for all of them
-   * @param result
-   *          A HashMap of field/value pairs for the result
+   * @param table  The name of the table
+   * @param key    The record key of the record to read.
+   * @param fields The list of fields to read, or null for all of them
+   * @param result A HashMap of field/value pairs for the result
    * @return Zero on success, a non-zero error code on error
    */
   @Override
@@ -357,21 +360,16 @@ public class CassandraCQLClient extends DB {
   /**
    * Perform a range scan for a set of records in the database. Each field/value
    * pair from the result will be stored in a HashMap.
-   *
+   * <p>
    * Cassandra CQL uses "token" method for range scan which doesn't always yield
    * intuitive results.
    *
-   * @param table
-   *          The name of the table
-   * @param startkey
-   *          The record key of the first record to read.
-   * @param recordcount
-   *          The number of records to read
-   * @param fields
-   *          The list of fields to read, or null for all of them
-   * @param result
-   *          A Vector of HashMaps, where each HashMap is a set field/value
-   *          pairs for one record
+   * @param table       The name of the table
+   * @param startkey    The record key of the first record to read.
+   * @param recordcount The number of records to read
+   * @param fields      The list of fields to read, or null for all of them
+   * @param result      A Vector of HashMaps, where each HashMap is a set field/value
+   *                    pairs for one record
    * @return Zero on success, a non-zero error code on error
    */
   @Override
@@ -400,7 +398,7 @@ public class CassandraCQLClient extends DB {
         // So, we need to build it manually.
         String initialStmt = selectStmt.toString();
         StringBuilder scanStmt = new StringBuilder();
-        scanStmt.append(initialStmt.substring(0, initialStmt.length() - 1));
+        scanStmt.append(initialStmt, 0, initialStmt.length() - 1);
         scanStmt.append(" WHERE ");
         scanStmt.append(QueryBuilder.token(YCSB_KEY));
         scanStmt.append(" >= ");
@@ -463,12 +461,9 @@ public class CassandraCQLClient extends DB {
    * values HashMap will be written into the record with the specified record
    * key, overwriting any existing values with the same field name.
    *
-   * @param table
-   *          The name of the table
-   * @param key
-   *          The record key of the record to write.
-   * @param values
-   *          A HashMap of field/value pairs to update in the record
+   * @param table  The name of the table
+   * @param key    The record key of the record to write.
+   * @param values A HashMap of field/value pairs to update in the record
    * @return Zero on success, a non-zero error code on error
    */
   @Override
@@ -535,12 +530,9 @@ public class CassandraCQLClient extends DB {
    * values HashMap will be written into the record with the specified record
    * key.
    *
-   * @param table
-   *          The name of the table
-   * @param key
-   *          The record key of the record to insert.
-   * @param values
-   *          A HashMap of field/value pairs to insert in the record
+   * @param table  The name of the table
+   * @param key    The record key of the record to insert.
+   * @param values A HashMap of field/value pairs to insert in the record
    * @return Zero on success, a non-zero error code on error
    */
   @Override
@@ -604,10 +596,8 @@ public class CassandraCQLClient extends DB {
   /**
    * Delete a record from the database.
    *
-   * @param table
-   *          The name of the table
-   * @param key
-   *          The record key of the record to delete.
+   * @param table The name of the table
+   * @param key   The record key of the record to delete.
    * @return Zero on success, a non-zero error code on error
    */
   @Override
