@@ -18,7 +18,6 @@
 package com.yahoo.ycsb.db;
 
 import com.datastax.driver.core.*;
-import com.datastax.driver.core.policies.ConstantSpeculativeExecutionPolicy;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
@@ -50,19 +49,19 @@ public class CassandraCQLClient extends DB {
   private static Session session = null;
 
   private static ConcurrentMap<Set<String>, PreparedStatement> readStmts =
-      new ConcurrentHashMap<Set<String>, PreparedStatement>();
+      new ConcurrentHashMap<>();
   private static ConcurrentMap<Set<String>, PreparedStatement> scanStmts =
-      new ConcurrentHashMap<Set<String>, PreparedStatement>();
+      new ConcurrentHashMap<>();
   private static ConcurrentMap<Set<String>, PreparedStatement> insertStmts =
-      new ConcurrentHashMap<Set<String>, PreparedStatement>();
+      new ConcurrentHashMap<>();
   private static ConcurrentMap<Set<String>, PreparedStatement> updateStmts =
-      new ConcurrentHashMap<Set<String>, PreparedStatement>();
+      new ConcurrentHashMap<>();
   private static AtomicReference<PreparedStatement> readAllStmt =
-      new AtomicReference<PreparedStatement>();
+      new AtomicReference<>();
   private static AtomicReference<PreparedStatement> scanAllStmt =
-      new AtomicReference<PreparedStatement>();
+      new AtomicReference<>();
   private static AtomicReference<PreparedStatement> deleteStmt =
-      new AtomicReference<PreparedStatement>();
+      new AtomicReference<>();
 
   private static ConsistencyLevel readConsistencyLevel = ConsistencyLevel.ONE;
   private static ConsistencyLevel writeConsistencyLevel = ConsistencyLevel.ONE;
@@ -114,6 +113,7 @@ public class CassandraCQLClient extends DB {
   private static boolean trace = false;
 
   private static PerformanceStateCollector stateCollector = null;
+  private static DynamicSpeculativeExecutionPolicy speculativeExecutionPolicy = null;
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
@@ -136,7 +136,7 @@ public class CassandraCQLClient extends DB {
 
       try {
         debug = Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
-        trace = Boolean.valueOf(getProperties().getProperty(TRACING_PROPERTY, TRACING_PROPERTY_DEFAULT));
+        trace = Boolean.parseBoolean(getProperties().getProperty(TRACING_PROPERTY, TRACING_PROPERTY_DEFAULT));
 
         String host = getProperties().getProperty(HOSTS_PROPERTY);
         if (host == null) {
@@ -150,6 +150,7 @@ public class CassandraCQLClient extends DB {
         String username = getProperties().getProperty(USERNAME_PROPERTY);
         String password = getProperties().getProperty(PASSWORD_PROPERTY);
 
+        // Loading our settings
         String speculativeTimeoutString = getProperties().getProperty(SPECULATIVE_EXECUTION_TIMING_PROPERTY, "1");
         long speculativeTimeout = Long.parseLong(speculativeTimeoutString);
         String targetOpsPerSeconds = getProperties().getProperty(OPS_TARGET, "0");
@@ -179,11 +180,15 @@ public class CassandraCQLClient extends DB {
           }
           cluster = clusterBuilder.build();
         } else {
+
+          // Create the execution policy. This policy can be updated during execution.
+          speculativeExecutionPolicy = new DynamicSpeculativeExecutionPolicy(2);
+
           cluster = Cluster.builder()
               .withPort(Integer.valueOf(port))
               .addContactPoints(hosts)
               .withSpeculativeExecutionPolicy(
-                  new ConstantSpeculativeExecutionPolicy(speculativeTimeout, 2)
+                  this.speculativeExecutionPolicy
               )
               .build();
         }
