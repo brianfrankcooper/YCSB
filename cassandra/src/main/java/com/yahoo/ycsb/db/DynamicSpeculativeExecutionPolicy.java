@@ -19,7 +19,7 @@ class DynamicExecutionPlan implements SpeculativeExecutionPolicy.SpeculativeExec
     this.remaining = new AtomicInteger(maxSpeculativeExecutions);
   }
 
-  void setDynamicDelay(long delay) {
+  void setDynamicDelay(final long delay) {
     this.dynamicDelay = delay;
   }
 
@@ -50,7 +50,7 @@ public class DynamicSpeculativeExecutionPolicy implements SpeculativeExecutionPo
     this.executionPlan = new DynamicExecutionPlan(maxSpeculativeExecutions);
   }
 
-  public void setDynamicDelay(final int newDelay) {
+  public void setDynamicDelay(final long newDelay) {
     this.executionPlan.setDynamicDelay(newDelay);
   }
 

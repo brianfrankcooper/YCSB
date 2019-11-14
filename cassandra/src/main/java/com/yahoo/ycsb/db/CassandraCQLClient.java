@@ -183,6 +183,7 @@ public class CassandraCQLClient extends DB {
 
           // Create the execution policy. This policy can be updated during execution.
           speculativeExecutionPolicy = new DynamicSpeculativeExecutionPolicy(2);
+          speculativeExecutionPolicy.setDynamicDelay(speculativeTimeout);
 
           cluster = Cluster.builder()
               .withPort(Integer.valueOf(port))
