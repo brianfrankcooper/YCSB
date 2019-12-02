@@ -170,7 +170,7 @@ public final class PerformanceStateCollector implements Runnable {
       String filename = String.format("%s/%s_%s_%s_%s", resultsDir, prefix, thresholdString, loadString, ip);
       System.out.println("Creating peformance file: " + filename);
       PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(filename)));
-      pw.println("Timestamp, MemoryUsed, ReadLatency1, ReadCount, WriteLatency1, WriteCount, PendingTasks, WaitingOnCommit1, ");
+      pw.println("Timestamp, MemoryUsed, ReadLatency1, ReadCount, WriteLatency1, WriteCount, PendingTasks, WaitingOnCommit1, SRDelay, ");
 
       writers.add(pw);
     }
@@ -215,7 +215,6 @@ public final class PerformanceStateCollector implements Runnable {
           valueIndex++;
         }
 
-        writer.println("");
         clientIndex++;
       }
 
@@ -256,6 +255,11 @@ public final class PerformanceStateCollector implements Runnable {
 
       int nextSRDelay = calculateDelay(readMean, readVariance, writeMean, writeVariance);
       policy.setDynamicDelay(nextSRDelay);
+
+      for (PrintWriter writer : writers) {
+        writer.printf("%s, ", nextSRDelay);
+        writer.println("");
+      }
     }
 
     for (PrintWriter writer : writers) {
