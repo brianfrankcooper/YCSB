@@ -23,6 +23,13 @@ class DynamicExecutionPlan implements SpeculativeExecutionPolicy.SpeculativeExec
     this.dynamicDelay = delay;
   }
 
+  /**
+   * @return the dynamicDelay
+   */
+  public long getDynamicDelay() {
+    return dynamicDelay;
+  }
+
   @Override
   public long nextExecution(Host lastQueried) {
     return (remaining.getAndDecrement() > 0) ? dynamicDelay : -1;
@@ -52,6 +59,10 @@ public class DynamicSpeculativeExecutionPolicy implements SpeculativeExecutionPo
 
   public void setDynamicDelay(final long newDelay) {
     this.executionPlan.setDynamicDelay(newDelay);
+  }
+
+  public long getDynamicDelay() {
+    return this.executionPlan.getDynamicDelay();
   }
 
   /**

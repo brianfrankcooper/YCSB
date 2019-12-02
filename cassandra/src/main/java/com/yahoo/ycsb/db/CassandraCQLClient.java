@@ -242,7 +242,9 @@ public class CassandraCQLClient extends DB {
               hosts,
               speculativeTimeoutString,
               targetOpsPerSeconds,
-              performanceFilePrefix
+              performanceFilePrefix,
+              speculativeExecutionPolicy,
+              speculativeTimeout == 0
           );
           stateCollector.startThread();
         }

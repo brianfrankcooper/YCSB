@@ -27,6 +27,7 @@ public final class PerformanceStateCollector implements Runnable {
   private String load;
   private String prefix;
   private DynamicSpeculativeExecutionPolicy policy;
+  private boolean dynamicMode;
 
   private double readThroughputAvg = 0.0;
   private double writeThroughputAvg = 0.0;
@@ -50,7 +51,7 @@ public final class PerformanceStateCollector implements Runnable {
    *
    * @param nodes IP addresses of the nodes
    */
-  PerformanceStateCollector(String[] nodes, String threshold, String load, String prefix, DynamicSpeculativeExecutionPolicy policy) {
+  PerformanceStateCollector(String[] nodes, String threshold, String load, String prefix, DynamicSpeculativeExecutionPolicy policy, boolean dynamicMode) {
     // Setting up averages
     readThroughput = new double[nodes.length];
     writeThroughput = new double[nodes.length];
@@ -59,6 +60,7 @@ public final class PerformanceStateCollector implements Runnable {
     this.load = load;
     this.prefix = prefix;
     this.policy = policy;
+    this.dynamicMode = dynamicMode;
 
     // Setting up the clients for the different nodes
     this.nodes = nodes;
@@ -201,18 +203,17 @@ public final class PerformanceStateCollector implements Runnable {
         for (J4pResponse<J4pRequest> response : responses) {
           String[] values = valueIt.next();
           Map responseMap = response.getValue();
-          String value = responseMap.get(value);
           for (String value : values) {
-            writer.printf("%s, ", value);
-          }
+            String valueString = (String) responseMap.get(value).toString();
+            writer.printf("%s, ", valueString);
 
-          if(valueIndex == 3) { // ReadCount
-            readCounts[clientIndex] = Integer.parseInt(value);
-          } else if (valueIndex == 5) { // WriteCount
-            writeCounts[clientIndex] = Integer.parseInt(value);
+            if(valueIndex == 3) { // ReadCount
+              readCounts[clientIndex] = Integer.parseInt(value);
+            } else if (valueIndex == 5) { // WriteCount
+              writeCounts[clientIndex] = Integer.parseInt(value);
+            }
+            valueIndex++;
           }
-
-          valueIndex++;
         }
 
         clientIndex++;
@@ -253,8 +254,13 @@ public final class PerformanceStateCollector implements Runnable {
       double readVariance = squaredReadSums / (readThroughputs.length - 1);
       double writeVariance = squaredWriteSums / (writeThroughputs.length - 1);
 
-      int nextSRDelay = calculateDelay(readMean, readVariance, writeMean, writeVariance);
-      policy.setDynamicDelay(nextSRDelay);
+      long nextSRDelay;
+      if(this.dynamicMode) {
+        nextSRDelay = calculateDelay(readMean, readVariance, writeMean, writeVariance);
+        policy.setDynamicDelay(nextSRDelay);
+      } else {
+        nextSRDelay = policy.getDynamicDelay();
+      }
 
       for (PrintWriter writer : writers) {
         writer.printf("%s, ", nextSRDelay);
