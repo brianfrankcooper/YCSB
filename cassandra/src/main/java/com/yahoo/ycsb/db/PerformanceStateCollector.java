@@ -26,6 +26,8 @@ public final class PerformanceStateCollector implements Runnable {
   private String threshold;
   private String load;
   private String prefix;
+  private DynamicSpeculativeExecutionPolicy policy;
+  private boolean dynamicMode;
 
   private double readThroughputAvg = 0.0;
   private double writeThroughputAvg = 0.0;
@@ -49,7 +51,7 @@ public final class PerformanceStateCollector implements Runnable {
    *
    * @param nodes IP addresses of the nodes
    */
-  PerformanceStateCollector(String[] nodes, String threshold, String load, String prefix) {
+  PerformanceStateCollector(String[] nodes, String threshold, String load, String prefix, DynamicSpeculativeExecutionPolicy policy, boolean dynamicMode) {
     // Setting up averages
     readThroughput = new double[nodes.length];
     writeThroughput = new double[nodes.length];
@@ -57,6 +59,8 @@ public final class PerformanceStateCollector implements Runnable {
     this.threshold = threshold;
     this.load = load;
     this.prefix = prefix;
+    this.policy = policy;
+    this.dynamicMode = dynamicMode;
 
     // Setting up the clients for the different nodes
     this.nodes = nodes;
@@ -129,6 +133,12 @@ public final class PerformanceStateCollector implements Runnable {
     }
   }
 
+  private int calculateDelay(double readMean, double readVariance, double writeMean, double writeVariance) {
+    // Hardcoded from model
+    double delay = 13.803020995708664 - 0.08933508 * readMean + 0.04679561 * readVariance + 1.66462934 * writeMean - 2.25407561 * writeVariance;
+    return (int) Math.round(delay);
+  }
+
   /**
    * Collect benchmark metrics and save them to file.
    *
@@ -162,15 +172,26 @@ public final class PerformanceStateCollector implements Runnable {
       String filename = String.format("%s/%s_%s_%s_%s", resultsDir, prefix, thresholdString, loadString, ip);
       System.out.println("Creating peformance file: " + filename);
       PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(filename)));
-      pw.println("Timestamp, MemoryUsed, ReadLatency1, ReadCount, WriteLatency1, WriteCount, PendingTasks, WaitingOnCommit1, ");
+      pw.println("Timestamp, MemoryUsed, ReadLatency1, ReadCount, WriteLatency1, WriteCount, PendingTasks, WaitingOnCommit1, SRDelay, ");
 
       writers.add(pw);
     }
+
+    // Create a list of previous counts
+    int[] lastReadCounts = new int[clients.size()];
+    int[] lastWriteCounts = new int[clients.size()];
+    Arrays.fill(lastReadCounts, 0);
+    Arrays.fill(lastWriteCounts, 0);
 
     while (isRunning) {
       Thread.sleep(1000);
 
       Iterator<PrintWriter> writerIT = writers.iterator();
+
+      int[] readCounts = new int[clients.size()];
+      int[] writeCounts = new int[clients.size()];
+
+      int clientIndex = 0;
       for (J4pClient client : clients) {
         List<J4pResponse<J4pRequest>> responses = client.execute(requestList);
         Iterator<String[]> valueIt = valueList.iterator();
@@ -178,14 +199,71 @@ public final class PerformanceStateCollector implements Runnable {
         PrintWriter writer = writerIT.next();
         writer.printf("%s,", new Timestamp(new Date().getTime()).toString());
 
+        int valueIndex = 0;
         for (J4pResponse<J4pRequest> response : responses) {
           String[] values = valueIt.next();
           Map responseMap = response.getValue();
           for (String value : values) {
-            writer.printf("%s, ", responseMap.get(value));
+            String valueString = (String) responseMap.get(value).toString();
+            writer.printf("%s, ", valueString);
+
+            if(valueIndex == 3) { // ReadCount
+              readCounts[clientIndex] = Integer.parseInt(value);
+            } else if (valueIndex == 5) { // WriteCount
+              writeCounts[clientIndex] = Integer.parseInt(value);
+            }
+            valueIndex++;
           }
         }
 
+        clientIndex++;
+      }
+
+      // Calculate per second throuhgput
+      int[] readThroughputs = new int[clients.size()];
+      int[] writeThroughputs = new int[clients.size()];
+
+      for(int i = 0; i < readThroughputs.length; i++) {
+        readThroughputs[i] = readCounts[i] - lastReadCounts[i];
+        writeThroughputs[i] = writeCounts[i] - lastWriteCounts[i];
+      }
+
+      // Save the current total count
+      lastReadCounts = readCounts;
+      lastWriteCounts = writeCounts;
+
+      // Calculate mean and variance
+      int readSum = 0;
+      int writeSum = 0;
+      for (int i = 0; i < readThroughputs.length; i++) {
+        readSum += readThroughputs[i];
+        writeSum += writeThroughputs[i];
+      }
+
+      double readMean = readSum / readThroughputs.length;
+      double writeMean = writeSum / writeThroughputs.length;
+
+      double squaredReadSums = 0;
+      double squaredWriteSums = 0;
+
+      for (int i = 0; i < readThroughputs.length; i++) {
+        squaredReadSums += Math.pow((readThroughputs[i] - readMean), 2);
+        squaredWriteSums += Math.pow((writeThroughputs[i] - writeMean), 2);
+      }
+
+      double readVariance = squaredReadSums / (readThroughputs.length - 1);
+      double writeVariance = squaredWriteSums / (writeThroughputs.length - 1);
+
+      long nextSRDelay;
+      if(this.dynamicMode) {
+        nextSRDelay = calculateDelay(readMean, readVariance, writeMean, writeVariance);
+        policy.setDynamicDelay(nextSRDelay);
+      } else {
+        nextSRDelay = policy.getDynamicDelay();
+      }
+
+      for (PrintWriter writer : writers) {
+        writer.printf("%s, ", nextSRDelay);
         writer.println("");
       }
     }
