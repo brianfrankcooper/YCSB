@@ -9,7 +9,7 @@ import com.google.common.base.Preconditions;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * This provides the execution plan that can dynamically update
+ * This provides the execution plan that can dynamically update.
  */
 class DynamicExecutionPlan implements SpeculativeExecutionPolicy.SpeculativeExecutionPlan {
   private final AtomicInteger remaining;

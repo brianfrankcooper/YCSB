@@ -51,7 +51,8 @@ public final class PerformanceStateCollector implements Runnable {
    *
    * @param nodes IP addresses of the nodes
    */
-  PerformanceStateCollector(String[] nodes, String threshold, String load, String prefix, DynamicSpeculativeExecutionPolicy policy, boolean dynamicMode) {
+  PerformanceStateCollector(String[] nodes, String threshold, String load, String prefix,
+      DynamicSpeculativeExecutionPolicy policy, boolean dynamicMode) {
     // Setting up averages
     readThroughput = new double[nodes.length];
     writeThroughput = new double[nodes.length];
@@ -135,7 +136,13 @@ public final class PerformanceStateCollector implements Runnable {
 
   private int calculateDelay(double readMean, double readVariance, double writeMean, double writeVariance) {
     // Hardcoded from model
-    double delay = 13.803020995708664 - 0.08933508 * readMean + 0.04679561 * readVariance + 1.66462934 * writeMean - 2.25407561 * writeVariance;
+    double delay =
+        13.803020995708664 
+        - 0.08933508 * readMean
+        + 0.04679561 * readVariance
+        + 1.66462934 * writeMean
+        - 2.25407561 * writeVariance;
+
     return (int) Math.round(delay);
   }
 
@@ -144,7 +151,8 @@ public final class PerformanceStateCollector implements Runnable {
    *
    * @throws Exception
    */
-  private void performBenchmarkDataCollection(String thresholdString, String loadString, String prefix) throws Exception {
+  private void performBenchmarkDataCollection(String thresholdString, String loadString,
+      String prefix1) throws Exception {
 
     // Setting up request objects
     List<J4pRequest> requestList = new LinkedList<>();
@@ -169,10 +177,11 @@ public final class PerformanceStateCollector implements Runnable {
     // Create file writers
     List<PrintWriter> writers = new LinkedList<>();
     for (String ip : this.nodes) {
-      String filename = String.format("%s/%s_%s_%s_%s", resultsDir, prefix, thresholdString, loadString, ip);
+      String filename = String.format("%s/%s_%s_%s_%s", resultsDir, prefix1, thresholdString, loadString, ip);
       System.out.println("Creating peformance file: " + filename);
       PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(filename)));
-      pw.println("Timestamp, MemoryUsed, ReadLatency1, ReadCount, WriteLatency1, WriteCount, PendingTasks, WaitingOnCommit1, SRDelay, ");
+      pw.println("Timestamp, MemoryUsed, ReadLatency1, ReadCount, WriteLatency1," 
+          + " WriteCount, PendingTasks, WaitingOnCommit1, SRDelay, ");
 
       writers.add(pw);
     }
