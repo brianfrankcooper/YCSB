@@ -114,9 +114,18 @@ public abstract class TimeseriesDB extends DB {
       if (field.startsWith(timestampKey)) {
         String[] timestampParts = field.split(tagPairDelimiter);
         if (timestampParts[1].contains(queryTimeSpanDelimiter)) {
-          // Since we're looking for a single datapoint, a range of timestamps makes no sense.
-          // As we cannot throw an exception to bail out here, we return `BAD_REQUEST` instead.
-          return Status.BAD_REQUEST;
+          String[] rangeParts = timestampParts[1].split(queryTimeSpanDelimiter);
+          Long start = Long.valueOf(rangeParts[0]);
+          Long end = Long.valueOf(rangeParts[1]);
+          if (start == end) {
+            // we are reading just a single timestamp
+            timestamp = start;
+          } else {
+            // Since we're looking for a single datapoint, a range of timestamps makes no sense.
+            // As we cannot throw an exception to bail out here, we return `BAD_REQUEST` instead.
+            System.out.println("[TimeseriesDB.java] read query with timestamp range received, returning BAD_REQUEST");
+            return Status.BAD_REQUEST;
+          }
         }
         timestamp = Long.valueOf(timestampParts[1]);
       } else {
@@ -128,7 +137,7 @@ public abstract class TimeseriesDB extends DB {
       return Status.BAD_REQUEST;
     }
 
-    return read(table, timestamp, tagQueries);
+    return read(key, timestamp, tagQueries);
   }
 
   /**
@@ -224,9 +233,9 @@ public abstract class TimeseriesDB extends DB {
     NumericByteIterator tsContainer = (NumericByteIterator) values.remove(timestampKey);
     NumericByteIterator valueContainer = (NumericByteIterator) values.remove(valueKey);
     if (valueContainer.isFloatingPoint()) {
-      return insert(table, tsContainer.getLong(), valueContainer.getDouble(), values);
+      return insert(key, tsContainer.getLong(), valueContainer.getDouble(), values);
     } else {
-      return insert(table, tsContainer.getLong(), valueContainer.getLong(), values);
+      return insert(key, tsContainer.getLong(), valueContainer.getLong(), values);
     }
   }
 

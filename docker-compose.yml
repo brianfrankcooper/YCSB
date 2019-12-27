@@ -1,0 +1,22 @@
+version: '3'
+services:
+  ycsb-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/usr/ycsb
+      - ./tmp/maven:/root/.m2
+    depends_on:
+      - cassandra
+  cassandra:
+    image: cassandra:3
+    ports:
+      - "9042"
+    volumes:
+      - "./cassandra-ts/cassandra-init.sh:/cassandra-init.sh"
+      - "./tmp/cassandra:/var/lib/cassandra"
+    command: "sh /cassandra-init.sh"
+    healthcheck:
+      test: ["CMD-SHELL", "[ $$(nodetool statusgossip) = running ]"]
+
