@@ -426,79 +426,85 @@ public class CassandraCQLClientTS extends TimeseriesDB {
   @Override
   public Status scan(String metric, long startTs, long endTs, Map<String, List<String>> tags,
                      AggregationOperation aggreg, int timeValue, TimeUnit timeUnit) {
-
-    String tagsQueryAsJson = new Gson().toJson(tags);
-    System.out.println(">>[SCAN] metric: " + metric + ", startTs: " + startTs + ", endTs: " + endTs + ", tags: " + tagsQueryAsJson + ", aggreg: " + aggreg + ", timeValue: " + timeValue + ", timeUnit: " + timeUnit + "<<");
-    logger.info(">>[SCAN] metric: " + metric + ", startTs: " + startTs + ", endTs: " + endTs + ", tags: " + tagsQueryAsJson + ", aggreg: " + aggreg + ", timeValue: " + timeValue + ", timeUnit: " + timeUnit + "<<");
     try {
-      //PreparedStatement stmt = (fields == null) ? scanAllStmt.get() : scanStmts.get(fields);
+      Map<String, String> tagsMap = new HashMap();
+      // Tags are passed as a Map with the values being a list
+      // (for some reason, even though tags should only have
+      // one value?)
+      // Here we pull the value out of the array so that we
+      // have a simple map.
+      for(Map.Entry<String, List<String>> entry : tags.entrySet()) {
+        tagsMap.put(entry.getKey(), ((List<String>)entry.getValue()).get(0));
+      }
+      String tagsQueryAsJson = new Gson().toJson(tagsMap);
+      if (debug) {
+        logger.info(">>[SCAN] metric: " + metric + ", startTs: " + startTs + ", endTs: " + endTs + ", tags: " + tagsQueryAsJson + ", aggreg: " + aggreg + ", timeValue: " + timeValue + ", timeUnit: " + timeUnit + "<<");
+      }
 
-      //// Prepare statement on demand
-      //if (stmt == null) {
-        //Select.Builder selectBuilder;
 
-        //if (fields == null) {
-          //selectBuilder = QueryBuilder.select().all();
-        //} else {
-          //selectBuilder = QueryBuilder.select();
-          //for (String col : fields) {
-            //((Select.Selection) selectBuilder).column(col);
-          //}
-        //}
+      Set<String> queryFields = new HashSet();
+      queryFields.add("valuetime");
+      queryFields.add("value");
+      
 
-        //Select selectStmt = selectBuilder.from(table);
+      PreparedStatement stmt = scanStmts.get(queryFields);
 
-        //// The statement builder is not setup right for tokens.
-        //// So, we need to build it manually.
-        //String initialStmt = selectStmt.toString();
-        //StringBuilder scanStmt = new StringBuilder();
-        //scanStmt.append(initialStmt.substring(0, initialStmt.length() - 1));
-        //scanStmt.append(" WHERE ");
-        //scanStmt.append(QueryBuilder.token(YCSB_KEY));
-        //scanStmt.append(" >= ");
-        //scanStmt.append("token(");
-        //scanStmt.append(QueryBuilder.bindMarker());
-        //scanStmt.append(")");
-        //scanStmt.append(" LIMIT ");
-        //scanStmt.append(QueryBuilder.bindMarker());
+      // Prepare statement on demand
+      if (stmt == null) {
+        Select.Builder selectBuilder;
 
-        //stmt = session.prepare(scanStmt.toString());
-        //stmt.setConsistencyLevel(readConsistencyLevel);
-        //if (trace) {
-          //stmt.enableTracing();
-        //}
+        selectBuilder = QueryBuilder.select();
+        ((Select.Selection) selectBuilder).column("valuetime");
+        ((Select.Selection) selectBuilder).column("value");
+        
+        stmt = session.prepare(selectBuilder.from(table)
+                               .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker()))
+                               .and(QueryBuilder.eq("tags", QueryBuilder.bindMarker()))
+                               .and(QueryBuilder.gte("valuetime", QueryBuilder.bindMarker("startTs")))
+                               .and(QueryBuilder.lte("valuetime", QueryBuilder.bindMarker("endTs"))));
+        stmt.setConsistencyLevel(readConsistencyLevel);
+        if (trace) {
+          stmt.enableTracing();
+        }
 
-        //PreparedStatement prevStmt = (fields == null) ?
-                                     //scanAllStmt.getAndSet(stmt) :
-                                     //scanStmts.putIfAbsent(new HashSet(fields), stmt);
-        //if (prevStmt != null) {
-          //stmt = prevStmt;
-        //}
-      //}
+        PreparedStatement prevStmt = scanStmts.putIfAbsent(new HashSet(queryFields), stmt);
+        if (prevStmt != null) {
+          stmt = prevStmt;
+        }
+      }
+      if (debug) {
+        logger.info("[SCAN][query string] " + stmt.getQueryString());
+      }
 
-      //logger.debug(stmt.getQueryString());
-      //logger.debug("startKey = {}, recordcount = {}", startkey, recordcount);
+      // Add metric
+      BoundStatement boundStmt = stmt.bind().setString(YCSB_KEY, metric);
 
-      //ResultSet rs = session.execute(stmt.bind(startkey, Integer.valueOf(recordcount)));
+      // Add timestamps
+      Date startTimestampDate = new Date(startTs* 1000);
+      Date endTimestampDate = new Date(endTs* 1000);
+      boundStmt.setTimestamp("startTs", startTimestampDate);
+      boundStmt.setTimestamp("endTs", endTimestampDate);
 
-      //HashMap<String, ByteIterator> tuple;
-      //while (!rs.isExhausted()) {
-        //Row row = rs.one();
-        //tuple = new HashMap<String, ByteIterator>();
+      // Add tags
+      boundStmt.setString("tags", tagsQueryAsJson);
+      
+      ResultSet rs = session.execute(boundStmt);
 
-        //ColumnDefinitions cd = row.getColumnDefinitions();
+      if (rs.isExhausted()) {
+        if (debug) {
+          logger.info("[SCAN][NOT FOUND]\n\n");
+        }
+        return Status.NOT_FOUND;
+      }
 
-        //for (ColumnDefinitions.Definition def : cd) {
-          //ByteBuffer val = row.getBytesUnsafe(def.getName());
-          //if (val != null) {
-            //tuple.put(def.getName(), new ByteArrayByteIterator(val.array()));
-          //} else {
-            //tuple.put(def.getName(), null);
-          //}
-        //}
+      for (Row row : rs) {
+        Date resultTimestamp = row.getTimestamp("valuetime");
+        Double resultValue = row.getDouble("value");
+        if (debug) {
+          logger.info("[SCAN][result] timestamp: (date: " + resultTimestamp + ", unix: " + resultTimestamp.getTime() + "), value: " + resultValue);
+        }
+      }
 
-        //result.add(tuple);
-      //}
 
       return Status.OK;
 

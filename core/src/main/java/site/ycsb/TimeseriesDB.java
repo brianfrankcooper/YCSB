@@ -202,7 +202,7 @@ public abstract class TimeseriesDB extends DB {
     if (!rangeSet) {
       return Status.BAD_REQUEST;
     }
-    return scan(table, start, end, tagQueries, downsamplingFunction, downsamplingInterval, timestampUnit);
+    return scan(startkey, start, end, tagQueries, downsamplingFunction, downsamplingInterval, timestampUnit);
   }
 
   /**
