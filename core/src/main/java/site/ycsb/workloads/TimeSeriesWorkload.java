@@ -641,7 +641,11 @@ public class TimeSeriesWorkload extends Workload {
         QUERY_RANDOM_TIMESPAN_PROPERTY_DEFAULT));
     queryTimeSpanDelimiter = p.getProperty(QUERY_TIMESPAN_DELIMITER_PROPERTY, 
         QUERY_TIMESPAN_DELIMITER_PROPERTY_DEFAULT);
-    
+
+    // Need to init keys and tags here because they are used as part of setting up
+    // the groupBy stuff below
+    initKeysAndTags();
+
     groupByKey = p.getProperty(GROUPBY_KEY_PROPERTY, GROUPBY_KEY_PROPERTY_DEFAULT);
     groupByFunction = p.getProperty(GROUPBY_PROPERTY);
     if (groupByFunction != null && !groupByFunction.isEmpty()) {
@@ -678,7 +682,6 @@ public class TimeSeriesWorkload extends Workload {
     
     valueType = ValueType.fromString(p.getProperty(VALUE_TYPE_PROPERTY, VALUE_TYPE_PROPERTY_DEFAULT));
     table = p.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
-    initKeysAndTags();
     validateSettings();
   }
   

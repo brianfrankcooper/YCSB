@@ -41,13 +41,17 @@ import site.ycsb.Status;
 import site.ycsb.TimeseriesDB;
 import site.ycsb.workloads.CoreWorkload;
 
+import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.time.Instant;
+import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
@@ -55,12 +59,16 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 
 /**
@@ -414,18 +422,21 @@ public class CassandraCQLClientTS extends TimeseriesDB {
    * Perform a range scan for a set of records in the database. Each value from the result will be stored in a
    * HashMap.
    *
-   * @param metric    The name of the metric
-   * @param startTs   The timestamp of the first record to read.
-   * @param endTs     The timestamp of the last record to read.
-   * @param tags      actual tags that were want to receive (can be empty).
-   * @param aggreg    The aggregation operation to perform.
-   * @param timeValue value for timeUnit for aggregation
-   * @param timeUnit  timeUnit for aggregation
+   * @param metric                The name of the metric
+   * @param startTs               The timestamp of the first record to read.
+   * @param endTs                 The timestamp of the last record to read.
+   * @param tags                  The actual tags that were want to receive (can be empty).
+   * @param downsamplingFunction  The aggregation operation for downsampling.
+   * @param timeValue             value for timeUnit for aggregation.
+   * @param timeUnit              timeUnit for aggregation.
+   * @param groupByFunction       The aggregation function for group by.
+   * @param groupByTags           The tag(s) that should be grouped by.
    * @return A {@link Status} detailing the outcome of the scan operation.
    */
   @Override
   public Status scan(String metric, long startTs, long endTs, Map<String, List<String>> tags,
-                     AggregationOperation aggreg, int timeValue, TimeUnit timeUnit) {
+                     AggregationOperation downsamplingFunction, int timeValue, TimeUnit timeUnit,
+                     AggregationOperation groupByFunction, Set<String> groupByTags) {
     try {
       Map<String, String> tagsMap = new HashMap();
       // Tags are passed as a Map with the values being a list
@@ -436,15 +447,20 @@ public class CassandraCQLClientTS extends TimeseriesDB {
       for(Map.Entry<String, List<String>> entry : tags.entrySet()) {
         tagsMap.put(entry.getKey(), ((List<String>)entry.getValue()).get(0));
       }
-      String tagsQueryAsJson = new Gson().toJson(tagsMap);
+      Gson gson = new Gson();
+      String tagsQueryAsJson = gson.toJson(tagsMap);
       if (debug) {
-        logger.info(">>[SCAN] metric: " + metric + ", startTs: " + startTs + ", endTs: " + endTs + ", tags: " + tagsQueryAsJson + ", aggreg: " + aggreg + ", timeValue: " + timeValue + ", timeUnit: " + timeUnit + "<<");
+        logger.info("[SCAN] metric: " + metric + ", startTs: " + startTs + ", endTs: " + endTs + ", tags: " + tagsQueryAsJson + ", downsamplingFunction: " + downsamplingFunction + ", timeValue: " + timeValue + ", timeUnit: " + timeUnit + ", groupByFunction: " + groupByFunction + ", groupByTags: " + groupByTags);
       }
 
 
       Set<String> queryFields = new HashSet();
       queryFields.add("valuetime");
-      queryFields.add("value");
+      if (groupByFunction.toString() != "NONE") {
+        queryFields.add("value-groupby");
+      } else {
+        queryFields.add("value");
+      }
       
 
       PreparedStatement stmt = scanStmts.get(queryFields);
@@ -456,12 +472,32 @@ public class CassandraCQLClientTS extends TimeseriesDB {
         selectBuilder = QueryBuilder.select();
         ((Select.Selection) selectBuilder).column("valuetime");
         ((Select.Selection) selectBuilder).column("value");
-        
-        stmt = session.prepare(selectBuilder.from(table)
-                               .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker()))
-                               .and(QueryBuilder.eq("tags", QueryBuilder.bindMarker()))
-                               .and(QueryBuilder.gte("valuetime", QueryBuilder.bindMarker("startTs")))
-                               .and(QueryBuilder.lte("valuetime", QueryBuilder.bindMarker("endTs"))));
+        if (groupByFunction.toString() != "NONE") {
+          ((Select.Selection) selectBuilder).column("tags");
+        }
+
+        Select.Where scanStmt = selectBuilder.from(table).where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker()));
+
+        scanStmt.and(QueryBuilder.gte("valuetime", QueryBuilder.bindMarker("startTs")));
+        scanStmt.and(QueryBuilder.lte("valuetime", QueryBuilder.bindMarker("endTs")));
+        if (groupByFunction.toString() == "NONE") {
+          scanStmt.and(QueryBuilder.eq("tags", QueryBuilder.bindMarker()));
+        } else {
+          // We allow filtering because when doing a GroupBy, the tags parameter is empty
+          // We are grouping by one or more tags instead, which we will do after retrieving
+          // the relevant records, but because tags is not specified, we must enable
+          // filtering (NOTE: this has performance implications!)
+          scanStmt.allowFiltering(); 
+        }
+
+        stmt = session.prepare(scanStmt);
+
+        //stmt = session.prepare(selectBuilder.from(table)
+                               //.where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker()))
+                               //.and(QueryBuilder.eq("tags", QueryBuilder.bindMarker()))
+                               //.and(QueryBuilder.gte("valuetime", QueryBuilder.bindMarker("startts")))
+                               //.and(QueryBuilder.lte("valuetime", QueryBuilder.bindMarker("endTs"))));
+
         stmt.setConsistencyLevel(readConsistencyLevel);
         if (trace) {
           stmt.enableTracing();
@@ -485,9 +521,11 @@ public class CassandraCQLClientTS extends TimeseriesDB {
       boundStmt.setTimestamp("startTs", startTimestampDate);
       boundStmt.setTimestamp("endTs", endTimestampDate);
 
-      // Add tags
-      boundStmt.setString("tags", tagsQueryAsJson);
-      
+      // Add tags (if available)
+      if (groupByFunction.toString() == "NONE") {
+        boundStmt.setString("tags", tagsQueryAsJson);
+      }       
+
       ResultSet rs = session.execute(boundStmt);
 
       if (rs.isExhausted()) {
@@ -497,15 +535,80 @@ public class CassandraCQLClientTS extends TimeseriesDB {
         return Status.NOT_FOUND;
       }
 
-      for (Row row : rs) {
-        Date resultTimestamp = row.getTimestamp("valuetime");
-        Double resultValue = row.getDouble("value");
+      if (groupByFunction.toString() == "NONE") { // no client-side aggregation
+        for (Row row : rs) {
+          Date resultTimestamp = row.getTimestamp("valuetime");
+          Double resultValue = row.getDouble("value");
+          if (debug) {
+            logger.info("[SCAN][result] timestamp: (date: " + resultTimestamp + ", unix: " + resultTimestamp.getTime() + "), value: " + resultValue);
+          }
+        }
+      } else { // client-side group by aggregation required
+        Stream<Row> resultSetStream = StreamSupport.stream(rs.spliterator(), false);
+        // First filter by tag query if there was any
+        if (!tagsMap.isEmpty()) {
+          if (debug) { logger.info("[SCAN][filtering by tags client-side] tags: " + tagsQueryAsJson); }
+          resultSetStream = resultSetStream.filter(row -> {
+            if (debug) { logger.info("\t[filter test] row tags: " + row.getString("tags")); }
+            Map<String, String> rowTags = gson.fromJson(row.getString("tags"), Map.class);
+            // Check if all the tags k/v pairs in the tags query
+            // match those of the current row
+            boolean rowMatch = tagsMap.entrySet().stream().allMatch(entry -> {
+              return rowTags.get(entry.getKey()).equals(entry.getValue());
+            });
+            if (debug) { logger.info("\t[filter test] match with (" + tagsMap + ")? -> " + rowMatch); }
+            return rowMatch;
+          });
+        }
+        // When group by is enabled we are given one or more tags to group by
+        if (debug) { logger.info("[SCAN][grouping by tag(s)] tags: " + groupByTags); }
+        Map<String, List<Row>> rowsByTags = new HashMap();
+        Type jSonToMapType = new TypeToken<Map<String, String>>(){}.getType();
+        rowsByTags = resultSetStream.collect(
+          Collectors.groupingBy(row -> {
+            Map<String, String> rowTags = gson.fromJson(row.getString("tags"), jSonToMapType);
+            if (debug) { logger.info("\t[grouping] row tags: " + row.getString("tags")); }
+            String tagsToGroupByJson = gson.toJson(
+                rowTags.entrySet().stream()
+                .filter(entry -> groupByTags.contains(entry.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+            if (debug) { logger.info("\t[grouping] tag(s) to group by: " + tagsToGroupByJson); }
+            return tagsToGroupByJson;
+          }, Collectors.mapping(row -> row,Collectors.toList()))
+        );
         if (debug) {
-          logger.info("[SCAN][result] timestamp: (date: " + resultTimestamp + ", unix: " + resultTimestamp.getTime() + "), value: " + resultValue);
+          logger.info("[SCAN][Rows grouped by tag][groupByTags = " + groupByTags + "]");
+          rowsByTags.forEach((tagsGroup, rows) -> {
+            logger.info(tagsGroup + " -->");
+            rows.forEach(row -> logger.info("\t[row]: tags: " + row.getString("tags") + ", valuetime: " + row.getTimestamp("valuetime").getTime() + ", value: " + row.getDouble("value")));
+          });
+          logger.info("[SCAN][/Rows grouped by tag]");
+        }
+        Map<String, Number> groupByResults = rowsByTags.entrySet()
+          .stream().collect(Collectors.toMap(entry -> entry.getKey(), entry -> {
+            switch (groupByFunction.toString()) {
+              case "SUM":
+                return entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).sum();
+              case "AVERAGE":
+                return entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).average().orElse(0);
+              case "MAX":
+                return entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).max().orElse(0);
+              case "MIN":
+                return entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).min().orElse(0);
+              case "COUNT":
+                return entry.getValue().stream().count();
+              default:
+                throw new IllegalArgumentException("Unsupported groupByFunction: " + groupByFunction.toString());
+            }
+          }));
+        if (debug) {
+          logger.info("[SCAN][GroupBy Results][groupByTags = " + groupByTags + "][groupByFunction = " + groupByFunction.toString() + "]");
+          groupByResults.forEach((tagsGroup, value) -> {
+            logger.info(tagsGroup + " --> value = " + value);
+          });
+          logger.info("[SCAN][/GroupBy Result]");
         }
       }
-
-
       return Status.OK;
 
     } catch (Exception e) {

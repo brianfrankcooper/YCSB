@@ -31,11 +31,11 @@ Assuming a keyspace of `ycsb`, and table `metrics`:
     cqlsh> USE ycsb;
     cqlsh> create table metrics (
         metric text,
-        valuetime timestamp,
         tags text,
+        valuetime timestamp,
         value double,
-        PRIMARY KEY (metric, valuetime, tags))
-        WITH CLUSTERING ORDER BY (valuetime ASC);
+        PRIMARY KEY (metric, tags, valuetime))
+        WITH CLUSTERING ORDER BY (tags ASC, valuetime ASC);
 
 **Note that `replication_factor` and consistency levels (below) will affect performance.**
 

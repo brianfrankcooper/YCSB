@@ -159,8 +159,8 @@ public abstract class TimeseriesDB extends DB {
   public final Status scan(String table, String startkey, int recordcount, Set<String> fields,
                            Vector<HashMap<String, ByteIterator>> result) {
     Map<String, List<String>> tagQueries = new HashMap<>();
-    TimeseriesDB.AggregationOperation aggregationOperation = TimeseriesDB.AggregationOperation.NONE;
-    Set<String> groupByFields = new HashSet<>();
+    TimeseriesDB.AggregationOperation groupByFunction = TimeseriesDB.AggregationOperation.NONE;
+    Set<String> groupByTags = new HashSet<>();
 
     boolean rangeSet = false;
     long start = 0;
@@ -180,7 +180,7 @@ public abstract class TimeseriesDB extends DB {
         end = Long.valueOf(rangeParts[1]);
       } else if (field.startsWith(groupByKey)) {
         String groupBySpecifier = field.split(tagPairDelimiter)[1];
-        aggregationOperation = TimeseriesDB.AggregationOperation.valueOf(groupBySpecifier);
+        groupByFunction = TimeseriesDB.AggregationOperation.valueOf(groupBySpecifier);
       } else if (field.startsWith(downsamplingKey)) {
         String downsamplingSpec = field.split(tagPairDelimiter)[1];
         // apparently that needs to always hold true:
@@ -193,7 +193,7 @@ public abstract class TimeseriesDB extends DB {
         if (queryParts.length == 1) {
           // we should probably warn about this being ignored...
           System.err.println("Grouping by arbitrary series is currently not supported");
-          groupByFields.add(field);
+          groupByTags.add(field);
         } else {
           tagQueries.computeIfAbsent(queryParts[0], k -> new ArrayList<>()).add(queryParts[1]);
         }
@@ -202,24 +202,26 @@ public abstract class TimeseriesDB extends DB {
     if (!rangeSet) {
       return Status.BAD_REQUEST;
     }
-    return scan(startkey, start, end, tagQueries, downsamplingFunction, downsamplingInterval, timestampUnit);
+    return scan(startkey, start, end, tagQueries, downsamplingFunction, downsamplingInterval, timestampUnit, groupByFunction, groupByTags);
   }
 
   /**
    * Perform a range scan for a set of records in the database. Each value from the result will be stored in a
    * HashMap.
    *
-   * @param metric    The name of the metric
-   * @param startTs   The timestamp of the first record to read.
-   * @param endTs     The timestamp of the last record to read.
-   * @param tags      actual tags that were want to receive (can be empty).
-   * @param aggreg    The aggregation operation to perform.
-   * @param timeValue value for timeUnit for aggregation
-   * @param timeUnit  timeUnit for aggregation
+   * @param metric                The name of the metric
+   * @param startTs               The timestamp of the first record to read.
+   * @param endTs                 The timestamp of the last record to read.
+   * @param tags                  The actual tags that were want to receive (can be empty).
+   * @param downsamplingFunction  The aggregation operation for downsampling.
+   * @param timeValue             value for timeUnit for aggregation.
+   * @param timeUnit              timeUnit for aggregation.
+   * @param groupByFunction       The aggregation function for group by.
+   * @param groupByTags           The tag(s) that should be grouped by.
    * @return A {@link Status} detailing the outcome of the scan operation.
    */
   protected abstract Status scan(String metric, long startTs, long endTs, Map<String, List<String>> tags,
-                                 AggregationOperation aggreg, int timeValue, TimeUnit timeUnit);
+                                 AggregationOperation downsamplingFunction, int timeValue, TimeUnit timeUnit, AggregationOperation groupByFunction, Set<String> groupByTags);
 
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {

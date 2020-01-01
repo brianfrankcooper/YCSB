@@ -175,7 +175,7 @@ querytimespandelimiter=,
 # the configured function.
 groupbykey=YCSBGB
 
-# A function name (e.g. 'sum', 'max' or 'avg') passed during reads, 
+# A function name (e.g. 'SUM', 'MAX' or 'AVERAGE') passed during reads, 
 # scans and deletes to cause the database to perform a group-by 
 # operation on one or more tags. If this value is empty or null 
 # (default), group-by operations are not performed
