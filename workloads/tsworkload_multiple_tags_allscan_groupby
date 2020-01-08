@@ -61,6 +61,6 @@ groupbyfunction=SUM
 groupbykeys=1,0
 
 readproportion=0.00
-scanproportion=0.10
+scanproportion=1.00
 updateproportion=0.00
-insertproportion=0.90
+insertproportion=0.00

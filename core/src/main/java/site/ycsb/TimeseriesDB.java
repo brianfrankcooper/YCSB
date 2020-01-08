@@ -160,8 +160,9 @@ public abstract class TimeseriesDB extends DB {
                            Vector<HashMap<String, ByteIterator>> result) {
     Map<String, List<String>> tagQueries = new HashMap<>();
     TimeseriesDB.AggregationOperation groupByFunction = TimeseriesDB.AggregationOperation.NONE;
-    Set<String> groupByTags = new HashSet<>();
+    Set<String> groupByTags = new LinkedHashSet<>(); // LinkedHashSet to retain order
 
+    System.out.println("[TimeseriesDB] scan() -> table: " + table + ", startkey: " + startkey + ", recordcount: " + recordcount + ", fields: " + fields);
     boolean rangeSet = false;
     long start = 0;
     long end = 0;
@@ -191,8 +192,6 @@ public abstract class TimeseriesDB extends DB {
       } else {
         String[] queryParts = field.split(tagPairDelimiter);
         if (queryParts.length == 1) {
-          // we should probably warn about this being ignored...
-          System.err.println("Grouping by arbitrary series is currently not supported");
           groupByTags.add(field);
         } else {
           tagQueries.computeIfAbsent(queryParts[0], k -> new ArrayList<>()).add(queryParts[1]);
@@ -232,6 +231,7 @@ public abstract class TimeseriesDB extends DB {
 
   @Override
   public final Status insert(String table, String key, Map<String, ByteIterator> values) {
+    //System.out.println("[TimeseriesDB] insert() -> table: " + table + ", key: " + key + ", values: " + values);
     NumericByteIterator tsContainer = (NumericByteIterator) values.remove(timestampKey);
     NumericByteIterator valueContainer = (NumericByteIterator) values.remove(valueKey);
     if (valueContainer.isFloatingPoint()) {

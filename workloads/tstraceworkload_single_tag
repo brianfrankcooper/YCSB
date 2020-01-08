@@ -23,44 +23,24 @@
 #   Read/insert ratio: 10/90
 #   Cardinality: 16 per key (field), 64 fields for a total of 1,024 
 #                time series.
-workload=site.ycsb.workloads.TimeSeriesWorkload
+workload=site.ycsb.workloads.TimeSeriesTraceBasedWorkload
 
 recordcount=1024
 operationcount=2048
 
 fieldlength=8
 fieldcount=64
-tagcount=2
-tagcardinality=4,4
+tagcount=1
+tagcardinality=4
 
 sparsity=0.0
 delayedSeries=0.0
 delayedIntervals=0
 
-randomtimeseriesorder=false
-
 timestampunits=SECONDS
 timestampinterval=60
-querytimespan=300
+querytimespan=0
 
-# A unique key given to read, scan and delete operations when the
-# operation should perform a group-by (multi-series aggregation) on one 
-# or more tags. If 'groupbyfunction' is set, this key will be given with
-# the configured function.
-groupbykey=YCSBGB
-
-# A function name (e.g. 'SUM', 'MAX' or 'AVERAGE') passed during reads, 
-# scans and deletes to cause the database to perform a group-by 
-# operation on one or more tags. If this value is empty or null 
-# (default), group-by operations are not performed
-groupbyfunction=SUM
-
-# A comma separated list of 0s or 1s to denote which of the tag keys
-# should be grouped during group-by operations. The number of values
-# must match the number of tags in 'tagcount'.
-groupbykeys=1,0
-
-readproportion=0.00
-scanproportion=0.10
+readproportion=0.10
 updateproportion=0.00
 insertproportion=0.90
