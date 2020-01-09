@@ -60,7 +60,7 @@ above, and the option to record both the op and intended for comparison.
 This new option will enable periodical writes of the interval histogram into an output file. The path can be set using '-p hdrhistogram.output.path=<PATH>'.
 
 Example parameters:
--target 1000 -s -p workload=com.yahoo.ycsb.workloads.CoreWorkload -p basicdb.verbose=false -p basicdb.simulatedelay=4 -p measurement.interval=both -p measurementtype=hdrhistogram -p hdrhistogram.fileoutput=true -p maxexecutiontime=60
+-target 1000 -s -p workload=site.ycsb.workloads.CoreWorkload -p basicdb.verbose=false -p basicdb.simulatedelay=4 -p measurement.interval=both -p measurementtype=hdrhistogram -p hdrhistogram.fileoutput=true -p maxexecutiontime=60
 
 Further changes made:
 

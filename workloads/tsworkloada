@@ -23,7 +23,7 @@
 #   Read/insert ratio: 10/90
 #   Cardinality: 16 per key (field), 64 fields for a total of 1,024 
 #                time series.
-workload=com.yahoo.ycsb.workloads.TimeSeriesWorkload
+workload=site.ycsb.workloads.TimeSeriesWorkload
 
 recordcount=1474560
 operationcount=2949120
