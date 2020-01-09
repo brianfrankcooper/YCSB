@@ -211,6 +211,8 @@ LICENSE file.
     <module>tablestore</module>
     <!--<module>voldemort</module>-->
     <module>voltdb</module>
+    <module>ybcassandra</module>
+    <module>ybjdbc</module>
   </modules>
 
   <build>
