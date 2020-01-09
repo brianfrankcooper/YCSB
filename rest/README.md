@@ -30,7 +30,7 @@ Clone the YCSB git repository and compile:
 
     git clone git://github.com/brianfrankcooper/YCSB.git
     cd YCSB
-    mvn -pl com.yahoo.ycsb:rest-binding -am clean package
+    mvn -pl site.ycsb:rest-binding -am clean package
 
 ### 2. Set Up an HTTP Web Service
 
@@ -114,7 +114,7 @@ The default settings for the rest binding are as follows:
 
 - `url.prefix` 
   - The base endpoint URL where the webservice is running. URLs from trace files (DELETE, GET, POST, PUT) will be prefixed with this value before making an HTTP request. A common usage value would be http://127.0.0.1:8080/{yourService}
-  - Default value is `http://127.0.0.1:80/`.
+  - Default value is `http://127.0.0.1:8080/`.
   
 - `url.trace.read` 
   - The path to a trace file that holds the URLs to be invoked for HTTP GET method. URLs must be seperated by a newline.

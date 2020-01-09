@@ -29,7 +29,7 @@ Git clone YCSB and compile:
 
     git clone http://github.com/brianfrankcooper/YCSB.git
     cd YCSB
-    mvn -pl com.yahoo.ycsb:redis-binding -am clean package
+    mvn -pl site.ycsb:redis-binding -am clean package
 
 ### 4. Provide Redis Connection Parameters
     

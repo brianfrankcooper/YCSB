@@ -19,9 +19,9 @@ LICENSE file.
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.yahoo.ycsb</groupId>
+    <groupId>site.ycsb</groupId>
     <artifactId>root</artifactId>
-    <version>0.16.0-SNAPSHOT</version>
+    <version>0.18.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>binding-parent</artifactId>
@@ -53,7 +53,7 @@ LICENSE file.
           <version>${maven.assembly.version}</version>
           <dependencies>
             <dependency>
-              <groupId>com.yahoo.ycsb</groupId>
+              <groupId>site.ycsb</groupId>
               <artifactId>datastore-specific-descriptor</artifactId>
               <version>${project.version}</version>
             </dependency>
@@ -169,6 +169,36 @@ LICENSE file.
       <properties>
         <skipTests>${skipJDK11Tests}</skipTests>
       </properties>
+    </profile>
+    <!-- When doing a YCSB release, we want to make sure specific bindings aren't included in the maven repo -->
+    <profile>
+      <id>ycsb-release</id>
+      <properties>
+        <!-- Set the deploy plugin to skip wherever this property is inherited -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+      </properties>
+      <build>
+        <plugins>
+          <!-- We still want to make sure that *this* module gets deployed. -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-deploy-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>but-still-deploy-the-binding-parent</id>
+                <goals>
+                  <goal>deploy</goal>
+                </goals>
+                <phase>deploy</phase>
+                <inherited>false</inherited>
+                <configuration>
+                  <skip>false</skip>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 </project>

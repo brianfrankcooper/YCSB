@@ -25,7 +25,7 @@ Clone the YCSB git repository and compile:
 
     git clone git://github.com/brianfrankcooper/YCSB.git
     cd YCSB
-    mvn -pl com.yahoo.ycsb:solr6-binding -am clean package
+    mvn -pl site.ycsb:solr6-binding -am clean package
 
 ### 2. Set Up Solr
 

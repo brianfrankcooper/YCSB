@@ -38,8 +38,8 @@ The YCSB Client will load your implementation dynamically when it starts. Thus, 
 to add or change a database interface layer.
 <HR>
 <H2>Creating a new layer step-by-step</H2>
-<h3>Step 1 - Extend com.yahoo.ycsb.DB</h3>
-The base class of all database interface layer implementations is com.yahoo.ycsb.DB. This is an abstract class, so you need to create a new 
+<h3>Step 1 - Extend site.ycsb.DB</h3>
+The base class of all database interface layer implementations is site.ycsb.DB. This is an abstract class, so you need to create a new 
 class which extends the DB class. Your class must have a public no-argument constructor, because the instances will be constructed inside a factory
 which will use the no-argument constructor.
 <P>
@@ -102,7 +102,7 @@ Make sure that the classes for your implementation (or a jar containing those cl
 by your implementation. Now, when you run the YCSB Client, specify the "-db" argument on the command line and provide the fully qualified classname of your
 DB class. For example, to run workloada with your DB class:
 <pre>
-%  java -cp build/ycsb.jar:yourjarpath com.yahoo.ycsb.Client -t -db com.foo.YourDBClass -P workloads/workloada -P large.dat -s > transactions.dat
+%  java -cp build/ycsb.jar:yourjarpath site.ycsb.Client -t -db com.foo.YourDBClass -P workloads/workloada -P large.dat -s > transactions.dat
 </pre>  
 
 You can also specify the DB interface layer using the DB property in your parameter file:

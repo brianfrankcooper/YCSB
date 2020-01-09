@@ -23,9 +23,9 @@
 #   Request distribution: zipfian
 
 #	Core Properties
-workload=com.yahoo.ycsb.workloads.RestWorkload
-db=com.yahoo.ycsb.webservice.rest.RestClient
-exporter=com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter
+workload=site.ycsb.workloads.RestWorkload
+db=site.ycsb.webservice.rest.RestClient
+exporter=site.ycsb.measurements.exporter.TextMeasurementsExporter
 threadcount=1
 fieldlengthdistribution=uniform
 measurementtype=hdrhistogram
