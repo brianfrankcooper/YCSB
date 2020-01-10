@@ -211,8 +211,8 @@ LICENSE file.
     <module>tablestore</module>
     <!--<module>voldemort</module>-->
     <module>voltdb</module>
-    <module>ybcassandra</module>
-    <module>ybjdbc</module>
+    <module>yugabyteCQL</module>
+    <module>yugabyteSQL</module>
   </modules>
 
   <build>

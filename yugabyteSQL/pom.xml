@@ -24,7 +24,7 @@ LICENSE file.
     <version>0.18.0-SNAPSHOT</version>
     <relativePath>../binding-parent</relativePath>
   </parent>
-  <artifactId>ybjdbc-binding</artifactId>
+  <artifactId>yugabyteSQL-binding</artifactId>
   <name>JDBC DB Binding</name>
   <packaging>jar</packaging>
 

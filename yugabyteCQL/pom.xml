@@ -27,7 +27,7 @@ LICENSE file.
     <relativePath>../binding-parent</relativePath>
   </parent>
 
-  <artifactId>ybcassandra-binding</artifactId>
+  <artifactId>yugabyteCQL-binding</artifactId>
   <name>Cassandra 2.1+ DB Binding</name>
   <packaging>jar</packaging>
 
@@ -41,7 +41,7 @@ LICENSE file.
     <dependency>
       <groupId>com.yugabyte</groupId>
       <artifactId>cassandra-driver-core</artifactId>
-      <version>3.2.0-yb-12</version>
+      <version>3.2.0-yb-19</version>
     </dependency>
     <dependency>
       <groupId>site.ycsb</groupId>

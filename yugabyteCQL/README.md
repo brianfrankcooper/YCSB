@@ -15,37 +15,60 @@ permissions and limitations under the License. See accompanying
 LICENSE file.
 -->
 
-# Apache Cassandra 2.x CQL binding
+# YugabyteCQL binding
+This driver enables YCSB to work with Yugabyte DB using CQL.
 
-Binding for [Apache Cassandra](http://cassandra.apache.org), using the CQL API
-via the [DataStax
-driver](http://docs.datastax.com/en/developer/java-driver/2.1/java-driver/whatsNew2.html).
+## Getting Started
+### 1. Start your database
+Start the database using steps mentioned here: https://docs.yugabyte.com/latest/quick-start/explore-ysql/.
 
-To run against the (deprecated) Cassandra Thrift API, use the `cassandra-10` binding.
+### 2. Set up YCSB
+Clone the YCSB project:
 
-## Creating a table for use with YCSB
+```
+git clone https://github.com/yugabyte/YCSB.git && cd YCSB
+```
 
-For keyspace `ycsb`, table `usertable`:
+Compile the code:
+```
+mvn clean package
+```
 
-    cqlsh> create keyspace ycsb
-        WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 3 };
-    cqlsh> USE ycsb;
-    cqlsh> create table usertable (
-        y_id varchar primary key,
-        field0 varchar,
-        field1 varchar,
-        field2 varchar,
-        field3 varchar,
-        field4 varchar,
-        field5 varchar,
-        field6 varchar,
-        field7 varchar,
-        field8 varchar,
-        field9 varchar);
+We can also just compile the yugabyteCQL binding using:
+```
+mvn -pl yugabyteCQL -am clean package
+```
 
-**Note that `replication_factor` and consistency levels (below) will affect performance.**
+### 3. Configure your database and table.
+Create the Database and table using the cqlsh tool.
 
-## Cassandra Configuration Parameters
+```
+bin/cqlsh <ip> --execute "create keyspace ycsb"
+bin/cqlsh <ip> --keyspace ycsb --execute 'create table usertable (y_id varchar primary key, field0 varchar, field1 varchar, field2 varchar, field3 varchar, field4 varchar, field5 varchar, field6 varchar,  field7 varchar, field8 varchar, field9 varchar);'
+```
+
+### 4. Configure YCSB connection properties
+You need to set the following connection configurations in yugabyteCQL/db.properties:
+
+```sh
+hosts=127.0.0.1
+port=9042
+cassandra.username=yugabyte
+```
+### 5. Running the workload
+Before you can actually run the workload, you need to "load" the data first.
+
+```sh
+bin/ycsb load yugabyteCQL -P yugabyteCQL/db.properties -P workloads/workloada
+```
+
+Then, you can run the workload:
+
+```sh
+bin/ycsb run yugabyteCQL -P yugabyteCQL/db.properties -P workloads/workloada
+```
+
+## Other Configuration Parameters
 
 - `hosts` (**required**)
   - Cassandra nodes to connect to.
