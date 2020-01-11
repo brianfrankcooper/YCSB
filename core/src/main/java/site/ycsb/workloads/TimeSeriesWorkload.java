@@ -1105,7 +1105,7 @@ public class TimeSeriesWorkload extends Workload {
     protected int[] tagValueIdxs;
 
     /** Whether or not all time series have written values for the current timestamp. */
-    protected boolean rollover;
+    protected boolean timestampRollover;
     
     /** The starting timestamp. */
     protected long startTimestamp;
@@ -1180,9 +1180,9 @@ public class TimeSeriesWorkload extends Workload {
       }
       while (true) {
         iterations--;
-        if (rollover) {
+        if (timestampRollover) {
           timestampGenerator.nextValue();
-          rollover = false;
+          timestampRollover = false;
         }
         String key = null;
         if (iterations <= 0) {
@@ -1265,16 +1265,20 @@ public class TimeSeriesWorkload extends Workload {
               tagRollover = true;
             }
           } else {
+            // reset tagRollover to false (it may have been set to true earlier in the loop
+            // because a tag has reached it last value or only has one value),
+            // but this tag is still incrementing through values, so we are not done yet...
+            tagRollover = false;
             ++tagValueIdxs[i];
             break;
           }
         }
         
-        if (tagRollover) {
-          if (keyIdx + 1 >= keyIdxEnd) {
+        if (tagRollover) { // we are done iterating all the tag values
+          if (keyIdx + 1 >= keyIdxEnd) { // we are done iterating all the key values, go to next timestamp
             keyIdx = keyIdxStart;
-            rollover = true;
-          } else {
+            timestampRollover = true;
+          } else { // we are not done iterating key values, go to next key
             ++keyIdx;
           }
         }
