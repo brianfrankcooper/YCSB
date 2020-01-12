@@ -869,7 +869,7 @@ public class TimeSeriesWorkload extends Workload {
       fields.add(groupByKey + tagPairDelimiter + groupByFunction);
     }
     if (downsample) {
-      fields.add(downsampleKey + tagPairDelimiter + downsampleFunction + tagPairDelimiter + downsampleInterval);
+      fields.add(downsampleKey + tagPairDelimiter + downsampleFunction + downsampleInterval);
     }
     
     final Vector<HashMap<String, ByteIterator>> results = new Vector<HashMap<String, ByteIterator>>();
