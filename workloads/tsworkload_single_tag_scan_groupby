@@ -34,8 +34,8 @@ tagcount=1
 tagcardinality=4
 
 sparsity=0.0
-delayedSeries=0.0
-delayedIntervals=0
+delayedseries=0.0
+delayedintervals=0
 
 timestampunits=SECONDS
 timestampinterval=60

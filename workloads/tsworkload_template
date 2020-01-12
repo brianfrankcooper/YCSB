@@ -42,7 +42,14 @@ recordcount=1000000
 operationcount=3000000
 
 # The number of insertions to do, if different from recordcount.
-# Used with insertstart to grow an existing table.
+# primarily used when doing load runs split over multiple YCSB
+# clients, so you can set each client to start at a different
+# timestamp (see insertstart property). In this case, this
+# represents how many inserts each client should do.
+# The value then in recordcount (which is used in the transaction
+# run to know how many records exist) should then be the sum
+# of all the insertcount values across the different load
+# clients
 #insertcount=
 
 # ..::NOTE::.. This is different from the CoreWorkload!
@@ -50,7 +57,40 @@ operationcount=3000000
 # unit set in 'timestampunits'. This is used to determine what 
 # the first timestamp should be when writing or querying as well
 # as how many offsets (based on 'timestampinterval').
+# Otherwise inserts (and reads) start from the current system time.
 #insertstart=
+
+# Property only applies while doing a transaction run, when the
+# insertproportion property is > 0.0
+# This is the starting timestamp for inserts during a transaction
+# run as a Unix Epoch numeral in the unit set in 'timestampunits'.
+# If for example you want to continue inserting right where the
+# load run left off, then you would take the lowest insertstart 
+# timestamp (if spreading writes across multiple clients), and
+# add timestampinterval * (recordcount + 1), which should 
+# represent one offset after the timestamp of the last inserted
+# record(s).
+# If this property is not set and insertproportion is > 0.0, then
+# they will start being inserted at the value of insertstart.
+# If spreading load across multiple clients, then (similar to insertstart)
+# this property should be set staggered values to spread the writes
+# across different timestamp ranges.
+#inserttransactionstart=
+
+# A timestamp representing the first timestamp of the existing
+# data loaded into the table. If this property is not set then
+# the value of insertstart is used (or the current system time
+# if insertstart was not set). Should be used in conjuction with
+# insertstart.
+# Useful if spreading the load across multiple YCSB clients.
+# In that case you would normally set a different insertstart (and
+# if used, inserttransactionstart) for each client, to spread the
+# write load across different timestamp ranges. But during
+# the transaction run, you might want each client to be reading
+# randomly from the whole timestamp range for the loaded dataset.
+# In this case, readstart can be set to the lowest value
+# of insertstart from all the clients.
+#readstart=
 
 # The units represented by the 'insertstart' timestamp as well as
 # durations such as 'timestampinterval', 'querytimespan', etc.
@@ -143,11 +183,11 @@ sparsity=0.00
 # timestamp of the writer. This is used to mimic a common behavior where
 # most sources (agents, sensors, etc) are writing data in sync (same timestamp)
 # but a subset are running behind due to buffering, latency issues, etc.
-delayedSeries=0.10
+delayedseries=0.10
 
 # The maximum amount of delay for delayed series in interval counts. The 
 # actual delay is chosen based on a modulo of the series index.
-delayedIntervals=5
+delayedintervals=5
 
 # The fixed or maximum amount of time added to the start time of a 
 # read or scan operation to generate a query over a range of time 

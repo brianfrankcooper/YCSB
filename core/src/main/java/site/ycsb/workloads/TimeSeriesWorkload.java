@@ -16,6 +16,8 @@
  */
 package site.ycsb.workloads;
 
+import java.lang.Math;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -307,6 +309,31 @@ public class TimeSeriesWorkload extends Workload {
     }
   }
   
+  /** Name for the insert transaction start property
+   *  Should represent a unixstamp (in the units set by timestampunits property)
+   *  that indicates which timestamp should be considered the starting
+   *  timestamp for all insert queries that are performed *during a transaction run*.
+   *  This is a complement to the existing insertstart property which determines
+   *  the starting timestamp for a load run, and also is then the starting
+   *  timestamp for read/scan queries in a transaction run.
+   *  This is intended to be used when first loading data with a load run,
+   *  then running a mixed workload with read and/or scan queries, but
+   *  *also* more insert queries. Then the inserttransactionstart property would
+   *  indicate where the *new* inserts that occur during the transaction run
+   *  should start from.
+   * */
+  public static final String INSERT_TRANSACTION_START_PROPERTY = "inserttransactionstart";
+
+  /** Name for the read start property
+   *  Should represent a unixstamp (in the units set by timestampunits property)
+   *  that indicates which timestamp should be considered the starting
+   *  timestamp for all read/scan/update queries that are performed *during a transaction run*.
+   *  This is a complement to the existing insertstart property which determines
+   *  the starting timestamp for a load run, and also is then normally the starting
+   *  timestamp for read/scan queries in a transaction run.
+   * */
+  public static final String READ_START_PROPERTY = "readstart";
+
   /** Name and default value for the timestamp key property. */
   public static final String TIMESTAMP_KEY_PROPERTY = "timestampkey";
   public static final String TIMESTAMP_KEY_PROPERTY_DEFAULT = "YCSBTS";
@@ -405,6 +432,9 @@ public class TimeSeriesWorkload extends Workload {
   
   /** The properties to pull settings from. */
   protected Properties properties;
+
+  /** A boolean representing whether or not we are doing a transaction run or not */
+  protected boolean doTransactions;
   
   /** Generators for keys, tag keys and tag values. */
   protected Generator<String> keyGenerator;
@@ -544,6 +574,7 @@ public class TimeSeriesWorkload extends Workload {
   @Override
   public void init(final Properties p) throws WorkloadException {
     properties = p;
+    doTransactions = Boolean.parseBoolean(p.getProperty(Client.DO_TRANSACTIONS_PROPERTY, "false"));
     recordcount =
         Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY, 
             Client.DEFAULT_RECORD_COUNT));
@@ -1088,7 +1119,7 @@ public class TimeSeriesWorkload extends Workload {
   protected class ThreadState {
     /** The timestamp generator for this thread. */
     protected final UnixEpochTimestampGenerator timestampGenerator;
-    
+
     /** An offset generator to select a random offset for queries. */
     protected final NumberGenerator queryOffsetGenerator;
     
@@ -1107,8 +1138,11 @@ public class TimeSeriesWorkload extends Workload {
     /** Whether or not all time series have written values for the current timestamp. */
     protected boolean timestampRollover;
     
-    /** The starting timestamp. */
+    /** The starting timestamp for Insert queries, either as part of a load run or transaction run. */
     protected long startTimestamp;
+
+    /** The starting timestamp for Read / Scan Queries. */
+    protected long startTimestampRead;
     
     /**
      * Default ctor.
@@ -1138,29 +1172,55 @@ public class TimeSeriesWorkload extends Workload {
       }
       
       tagValueIdxs = new int[tagPairs]; // all zeros
-      
+     
+      // startingTimestamp is the starting point for inserts on a load run
       final String startingTimestamp = 
           properties.getProperty(CoreWorkload.INSERT_START_PROPERTY);
-      if (startingTimestamp == null || startingTimestamp.isEmpty()) {
+      // startTimestamp is the thread property referenced during read, scan, and update queries as the reference for
+      // what the starting timestamp is for existing data.
+      // In order of priority, based on if the properties exist, it will end up with the value as follows:-
+      //   1. value from READ_START_PROPERTY, if it exists
+      //   2. value from INSERT_START_PROPERTY, if it exists
+      //   3. first value from the insert timestampGenerator (see below)
+      startTimestamp = Long.parseLong(properties.getProperty(READ_START_PROPERTY, startingTimestamp));
+      // Insert-specific starting timestamp for initialising the timestamp generator which generates
+      // the timestamps for inserts.
+      // In a load run it's the same value as startingTimestamp,
+      // but in a transaction run, it'll check for the presence of the INSERT_TRANSACTION_START_PROPERTY,
+      // and if available will use that as the starting time stamp for inserts during the transaction run.
+      // This allows first doing an insert run, which will be the basis data for the reads/scans in a following
+      // transaction run, but for inserts during the transaction run, they will start
+      // from the timestamp specified in the property.
+      String startingInsertTimestamp = startingTimestamp;
+      if (doTransactions) {
+        startingInsertTimestamp = properties.getProperty(INSERT_TRANSACTION_START_PROPERTY, startingTimestamp);
+      }
+      if (startingInsertTimestamp == null || startingInsertTimestamp.isEmpty()) {
         timestampGenerator = randomizeTimestampOrder ? 
             new RandomDiscreteTimestampGenerator(timestampInterval, timeUnits, maxOffsets) :
             new UnixEpochTimestampGenerator(timestampInterval, timeUnits);
+        // Set startTimestamp as first timestamp from the generator
+        // (this also initialises the generator with the correct
+        // initial timestamp, because the first call to nextValue()
+        // is the one that sets & returns the correct initial timestamp
+        startTimestamp = timestampGenerator.nextValue();
       } else {
         try {
           timestampGenerator = randomizeTimestampOrder ? 
               new RandomDiscreteTimestampGenerator(timestampInterval, timeUnits, 
-                  Long.parseLong(startingTimestamp), maxOffsets) :
+                  Long.parseLong(startingInsertTimestamp), maxOffsets) :
               new UnixEpochTimestampGenerator(timestampInterval, timeUnits, 
-                  Long.parseLong(startingTimestamp));
+                  Long.parseLong(startingInsertTimestamp));
+          // timestampGenerator.currentValue() only returns the initial timestamp
+          // *after* calling nextValue() the first time, so we call it
+          // here.
+          timestampGenerator.nextValue();
         } catch (NumberFormatException nfe) {
           throw new WorkloadException("Unable to parse the " + 
-              CoreWorkload.INSERT_START_PROPERTY, nfe);
+              CoreWorkload.INSERT_START_PROPERTY + " or (if transaction run and property is present) " +
+              TimeSeriesWorkload.INSERT_TRANSACTION_START_PROPERTY, nfe);
         }
       }
-      // Set the last value properly for the timestamp, otherwise it may start 
-      // one interval ago.
-      startTimestamp = timestampGenerator.nextValue();
-      // TODO - pick it
       queryOffsetGenerator = new UniformLongGenerator(0, maxOffsets - 2);
     }
     
@@ -1195,6 +1255,10 @@ public class TimeSeriesWorkload extends Workload {
           key = keys[keyIdx];
           int overallIdx = keyIdx * cumulativeCardinality[0];
           for (int i = 0; i < tagPairs; ++i) {
+            // tagValueIdxs holds a current index for each tagPair that determines
+            // which tag value should be picked. 
+            // eg. if the 2nd tagPair has a cardinality of 3,
+            // then the value at tagValueIdxs[1] should cycle through 0 -> 1 -> 2 -> 0 (and so on...)
             int tvidx = tagValueIdxs[i];
             map.put(tagKeys[i], new StringByteIterator(tagValues[tvidx]));
             if (dataintegrity) {
@@ -1209,7 +1273,7 @@ public class TimeSeriesWorkload extends Workload {
             final long delta = (timestampGenerator.currentValue() - startTimestamp) / timestampInterval;
             final int intervals = random.nextInt((int) delta);
             map.put(timestampKey, new NumericByteIterator(startTimestamp + (intervals * timestampInterval)));
-          } else if (delayedSeries > 0) {
+          } else if (Math.abs(delayedSeries) > 2 * Double.MIN_VALUE) {
             // See if the series falls in a delay bucket and calculate an offset earlier
             // than the current timestamp value if so.
             double pct = (double) overallIdx / (double) totalCardinality;
@@ -1273,7 +1337,7 @@ public class TimeSeriesWorkload extends Workload {
             break;
           }
         }
-        
+
         if (tagRollover) { // we are done iterating all the tag values
           if (keyIdx + 1 >= keyIdxEnd) { // we are done iterating all the key values, go to next timestamp
             keyIdx = keyIdxStart;
