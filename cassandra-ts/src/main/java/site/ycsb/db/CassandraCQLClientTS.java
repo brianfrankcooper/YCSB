@@ -49,6 +49,7 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalDouble;
@@ -337,7 +338,7 @@ public class CassandraCQLClientTS extends TimeseriesDB {
       }
       String tagsQueryAsJson = new Gson().toJson(tagsMap);
       if (debug) {
-        logger.info("[READ][parameters] metric: " + metric + ", timestamp: " + timestamp + ", tags: " + tagsQueryAsJson);
+        logger.info("[READ]   metric: " + metric + ", tags: " + tagsQueryAsJson + ", timestamp: " + timestamp + "(" + new Date(timestamp * 1000) + ")");
       }
       Set<String> queryFields = new HashSet();
       queryFields.add("value");
@@ -450,7 +451,7 @@ public class CassandraCQLClientTS extends TimeseriesDB {
       Gson gson = new Gson();
       String tagsQueryAsJson = gson.toJson(tagsMap);
       if (debug) {
-        logger.info("[SCAN] metric: " + metric + ", startTs: " + startTs + ", endTs: " + endTs + ", tags: " + tagsQueryAsJson + ", downsamplingFunction: " + downsamplingFunction + ", timeValue: " + timeValue + ", timeUnit: " + timeUnit + ", groupByFunction: " + groupByFunction + ", groupByTags: " + groupByTags);
+        logger.info("[SCAN] metric: " + metric + ", tags: " + tagsQueryAsJson + ", startTs: " + startTs + ", endTs: " + endTs + ", downsamplingFunction: " + downsamplingFunction + ", timeValue: " + timeValue + ", timeUnit: " + timeUnit + ", groupByFunction: " + groupByFunction + ", groupByTags: " + groupByTags);
       }
 
 
@@ -535,15 +536,87 @@ public class CassandraCQLClientTS extends TimeseriesDB {
         return Status.NOT_FOUND;
       }
 
-      if (groupByFunction.toString() == "NONE") { // no client-side aggregation
-        for (Row row : rs) {
-          Date resultTimestamp = row.getTimestamp("valuetime");
-          Double resultValue = row.getDouble("value");
-          if (debug) {
-            logger.info("[SCAN][result] timestamp: (date: " + resultTimestamp + ", unix: " + resultTimestamp.getTime() + "), value: " + resultValue);
+      if (groupByFunction.toString() == "NONE") { // no client-side GROUP BY aggregation
+        if (downsamplingFunction.toString() == "NONE") { // no client-side downsampling
+          // Output results
+          for (Row row : rs) {
+            Date resultTimestamp = row.getTimestamp("valuetime");
+            Double resultValue = row.getDouble("value");
+            if (debug) {
+              logger.info("[SCAN][result] timestamp: (date: " + resultTimestamp + ", unix: " + resultTimestamp.getTime() + "), value: " + resultValue);
+            }
           }
-        }
-      } else { // client-side group by aggregation required
+        } else { // client-side downsampling required
+          logger.info("[SCAN][client-side downsampling] downsamplingFunction: " + downsamplingFunction.toString() + ", timeValue: " + timeValue + ", timeUnit: " + timeUnit);
+          Stream<Row> resultSetStream = StreamSupport.stream(rs.spliterator(), false);
+          Map<String, List<Row>> rowsByTimeBucket = new LinkedHashMap();
+          rowsByTimeBucket = resultSetStream.collect(
+            Collectors.groupingBy(row -> {
+              long timestamp = row.getTimestamp("valuetime").getTime();
+              long groupingTimestamp = timestamp;
+              switch (timeUnit) {
+                case MILLISECONDS:
+                  groupingTimestamp = timestamp / timeValue;
+                  break;
+                case SECONDS:
+                  groupingTimestamp = timestamp / (1000 * timeValue) * (1000 * timeValue);
+                  break;
+                case MINUTES:
+                  groupingTimestamp = timestamp / (1000 * 60 * timeValue) * (1000 * 60 * timeValue);
+                  break;
+                case HOURS:
+                  groupingTimestamp = timestamp / (1000 * 60 * 60 * timeValue) * (1000 * 60 * 60 * timeValue);
+                  break;
+                case DAYS:
+                  groupingTimestamp = timestamp / (1000 * 60 * 60 * 24 * timeValue) * (1000 * 60 * 60 * 24 * timeValue);
+                  break;
+                default:
+                  throw new IllegalArgumentException("Unsupported downsampling timeUnit: " + timeUnit);
+              }
+              if (debug) { 
+                logger.info("\t[grouping row] timestamp: " + row.getTimestamp("valuetime").getTime() + ", value: " + row.getDouble("value") + " --> timeBucket = " + groupingTimestamp);
+              }
+              return new Long(groupingTimestamp).toString();
+            }, LinkedHashMap::new, Collectors.toList())
+          );
+          if (debug) {
+            logger.info("[SCAN][Rows grouped by time bucket]");
+            rowsByTimeBucket.forEach((timeBucket, rows) -> {
+              logger.info(timeBucket + " -->");
+              rows.forEach(row -> logger.info("\t[row]: valuetime: " + row.getTimestamp("valuetime").getTime() + ", value: " + row.getDouble("value")));
+            });
+            logger.info("[SCAN][/Rows grouped by time bucket]");
+          }
+          Map<String, Number> downsamplingResults = rowsByTimeBucket.entrySet()
+            .stream().collect(Collectors.toMap(entry -> entry.getKey(), entry -> {
+              switch (downsamplingFunction.toString()) {
+                case "SUM":
+                  return entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).sum();
+                case "AVERAGE":
+                  return entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).average().orElse(0);
+                case "MAX":
+                  return entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).max().orElse(0);
+                case "MIN":
+                  return entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).min().orElse(0);
+                case "COUNT":
+                  return entry.getValue().stream().count();
+                default:
+                  throw new IllegalArgumentException("Unsupported downsamplingFunction: " + downsamplingFunction.toString());
+              }
+            },
+            (u, v) -> {
+              throw new IllegalStateException(String.format("Duplicate key %s", u));
+            },
+            LinkedHashMap::new));
+          if (debug) {
+            logger.info("[SCAN][Downsampling Results][downsamplingFunction = " + downsamplingFunction.toString() + "][timeValue = " + timeValue + "][timeUnit = " + timeUnit + "]");
+            downsamplingResults.forEach((timeBucket, value) -> {
+              logger.info(timeBucket + "(" + new Date(new Long(timeBucket)) + ") --> value = " + value);
+            });
+            logger.info("[SCAN][/Downsampling Result]");
+          }
+        } // END client-side downsampling
+      } else { // client-side GROUP BY aggregation required
         Stream<Row> resultSetStream = StreamSupport.stream(rs.spliterator(), false);
         // First filter by tag query if there was any
         if (!tagsMap.isEmpty()) {
@@ -728,7 +801,7 @@ public class CassandraCQLClientTS extends TimeseriesDB {
         tagsAsStrings.put(entry.getKey().toString(), entry.getValue().toString());
       }
       if (debug) {
-        logger.info("[INSERT] metric: " + metric + ", timestamp: " + timestamp + ", value: " + value + ", tags: " + new Gson().toJson(tagsAsStrings));
+        logger.info("[INSERT] metric: " + metric + ", tags: " + new Gson().toJson(tagsAsStrings) + ", timestamp: " + timestamp + "(" + new Date(timestamp * 1000) + "), value: " + value);
       }
 
       Set<String> queryFields = new HashSet();
