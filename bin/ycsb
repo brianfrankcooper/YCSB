@@ -104,7 +104,9 @@ DATABASES = {
     "solr"         : "site.ycsb.db.solr.SolrClient",
     "solr6"        : "site.ycsb.db.solr6.SolrClient",
     "tarantool"    : "site.ycsb.db.TarantoolClient",
-    "tablestore"   : "site.ycsb.db.tablestore.TableStoreClient"
+    "tablestore"   : "site.ycsb.db.tablestore.TableStoreClient",
+    "yugabyteCQL"  : "site.ycsb.db.CassandraCQLClient",
+    "yugabyteSQL"  : "site.ycsb.db.JdbcDBClient"
 }
 
 OPTIONS = {
