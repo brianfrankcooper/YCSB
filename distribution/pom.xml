@@ -282,6 +282,18 @@ LICENSE file.
        <version>${project.version}</version>
      </dependency>
 
+    <dependency>
+       <groupId>site.ycsb</groupId>
+       <artifactId>yugabyteCQL-binding</artifactId>
+       <version>${project.version}</version>
+     </dependency>
+
+    <dependency>
+       <groupId>site.ycsb</groupId>
+       <artifactId>yugabyteSQL-binding</artifactId>
+       <version>${project.version}</version>
+     </dependency>
+
   </dependencies>
   <build>
     <plugins>

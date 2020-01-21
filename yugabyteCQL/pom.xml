@@ -28,7 +28,7 @@ LICENSE file.
   </parent>
 
   <artifactId>yugabyteCQL-binding</artifactId>
-  <name>Cassandra 2.1+ DB Binding</name>
+  <name>Yugabyte Cassandra 2.1+ DB Binding</name>
   <packaging>jar</packaging>
 
   <properties>
