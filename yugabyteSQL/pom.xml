@@ -25,7 +25,7 @@ LICENSE file.
     <relativePath>../binding-parent</relativePath>
   </parent>
   <artifactId>yugabyteSQL-binding</artifactId>
-  <name>JDBC DB Binding</name>
+  <name>Yugabyte JDBC DB Binding</name>
   <packaging>jar</packaging>
 
   <dependencies>
