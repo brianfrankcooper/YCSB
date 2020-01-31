@@ -32,8 +32,8 @@ Git clone YCSB and compile:
 
 1.2 Copy Ignite configs:
     
-    cp YCSB/ignite/resources/ignite.xml path/to/apache-ignite-**ignite_version**-bin
-    cp YCSB/ignite/resources/ignite-sql.xml path/to/apache-ignite-**ignite_version**-bin
+    cp YCSB/ignite/resources/config/ignite.xml path/to/apache-ignite-**ignite_version**-bin
+    cp YCSB/ignite/resources/config/ignite-sql.xml path/to/apache-ignite-**ignite_version**-bin
 
 NOTE: Pay attention that some parameters such us ****_storagePath_****, ****_walPath_****, ****_walArchivePath_****
      should be overwritten by certain pathes. Also please add ip addresses of your host(s) inside the bean ****_TcpDiscoveryVmIpFinder_****
