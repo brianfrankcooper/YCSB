@@ -30,15 +30,16 @@ addons:
   hostname: myshorthost
   postgresql: "9.5"
 
-install: mvn install -q -DskipTests=true
+install:
+  - mvn -N io.takari:maven:0.7.7:wrapper -Dmaven=3.6.3
+  - ./mvnw install -q -DskipTests=true
 
-script: mvn test -q
+script: ./mvnw test -q
 
 before_script:
   - psql -c 'CREATE database test;' -U postgres
   - psql -c 'CREATE TABLE usertable (YCSB_KEY VARCHAR(255) PRIMARY KEY not NULL, YCSB_VALUE JSONB not NULL);' -U postgres -d test
   - psql -c 'GRANT ALL PRIVILEGES ON DATABASE test to postgres;' -U postgres
-
 
 # Services to start for tests.
 services:
@@ -47,7 +48,6 @@ services:
   - postgresql
 # temporarily disable riak. failing, docs offline.
 #  - riak
-
 
 # Can't use container based infra because of hosts/hostname
 sudo: true
