@@ -21,5 +21,5 @@ package site.ycsb.db.mapr;
  * MapR-DB(binary) client for YCSB framework.
  * 
  */
-public class MapRDBClient extends site.ycsb.db.HBaseClient10 {
+public class MapRDBClient extends site.ycsb.db.hbase14.HBaseClient14 {
 }

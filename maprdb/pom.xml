@@ -52,13 +52,13 @@
 		</dependency>
 		<dependency>
 			<groupId>site.ycsb</groupId>
-			<artifactId>hbase10-binding</artifactId>
+			<artifactId>hbase14-binding</artifactId>
 			<version>${project.version}</version>
 			<!-- Should match all compile scoped dependencies -->
 			<exclusions>
 				<exclusion>
 					<groupId>org.apache.hbase</groupId>
-					<artifactId>hbase-client</artifactId>
+					<artifactId>hbase-shaded-client</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
