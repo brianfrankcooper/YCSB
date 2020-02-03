@@ -78,3 +78,5 @@ To build the full distribution, with all database bindings:
 To build a single database binding:
 
     mvn -pl site.ycsb:mongodb-binding -am clean package
+
+Note: Add `-Psource-run` to support running workloads against a source build.
