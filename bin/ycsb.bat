@@ -201,11 +201,6 @@ FOR %%F IN (%YCSB_HOME%\%BINDING_DIR%\target\dependency\*.jar) DO (
 
 :classpathComplete
 
-@REM Couchbase deprecation message
-IF NOT "%BINDING_DIR%" == "couchbase" GOTO notOldCouchbase
-echo [WARN] The 'couchbase' client is deprecated. If you are using Couchbase 4.0+ try using the 'couchbase2' client instead.
-:notOldCouchbase
-
 @REM HBase 0.98 deprecation message
 IF NOT "%BINDING_DIR%" == "hbase098" GOTO not098HBase
 echo [WARN] The 'hbase098' client is deprecated because HBase 0.98 is EOM. If you are using HBase 1.2+ try using the 'hbase12' client instead.

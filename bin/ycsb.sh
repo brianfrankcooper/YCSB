@@ -226,12 +226,6 @@ else
   done
 fi
 
-# Couchbase deprecation message
-if [ "${BINDING_DIR}" = "couchbase" ] ; then
-  echo "[WARN] The 'couchbase' client is deprecated. If you are using \
-Couchbase 4.0+ try using the 'couchbase2' client instead."
-fi
-
 # HBase 0.98 deprecation message
 if [ "${BINDING_DIR}" = "hbase098" ] ; then
   echo "[WARN] The 'hbase098' client is deprecated because HBase 0.98 \

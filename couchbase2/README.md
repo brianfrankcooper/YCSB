@@ -52,7 +52,7 @@ Please see the general instructions in the `doc` folder if you are not sure how 
 (as seen in the next section) like this:
 
 ```
-bin/ycsb run couchbase -s -P workloads/workloada -p couchbase.epoll=true
+bin/ycsb run couchbase2 -s -P workloads/workloada -p couchbase.epoll=true
 ```
 
 ## N1QL Index Setup

@@ -63,7 +63,6 @@ DATABASES = {
     "cassandra-cql": "site.ycsb.db.CassandraCQLClient",
     "cassandra2-cql": "site.ycsb.db.CassandraCQLClient",
     "cloudspanner" : "site.ycsb.db.cloudspanner.CloudSpannerClient",
-    "couchbase"    : "site.ycsb.db.CouchbaseClient",
     "couchbase2"   : "site.ycsb.db.couchbase2.Couchbase2Client",
     "crail"        : "site.ycsb.db.crail.CrailClient",
     "dynamodb"     : "site.ycsb.db.DynamoDBClient",
@@ -265,10 +264,6 @@ def main():
              "renamed to simply 'cassandra-cql'. This alias will be removed"
              " in the next YCSB release.")
         binding = "cassandra"
-
-    if binding == "couchbase":
-        warn("The 'couchbase' client has been deprecated. If you are using "
-             "Couchbase 4.0+ try using the 'couchbase2' client instead.")
 
     if binding == "hbase098":
         warn("The 'hbase098' client has been deprecated because HBase 0.98 "
