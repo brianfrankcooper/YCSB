@@ -36,19 +36,11 @@ import site.ycsb.StringByteIterator;
 
 import com.redislabs.modules.rejson.JReJSON;
 import com.redislabs.modules.rejson.Path;
-//import redis.clients.jedis.BasicCommands;
-//import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
-//import redis.clients.jedis.JedisCluster;
-//import redis.clients.jedis.JedisCommands;
 import redis.clients.jedis.Protocol;
 
-//import java.io.Closeable;
-//import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-//import java.util.HashSet;
-//import java.util.Iterator;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
