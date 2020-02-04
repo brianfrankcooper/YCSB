@@ -60,13 +60,13 @@
 		<dependency>
 			<groupId>org.voltdb</groupId>
 			<artifactId>voltdbclient</artifactId>
-			<version>9.1.1</version>
+			<version>${voltdb.version}</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.voltdb/voltdb -->
 		<dependency>
 			<groupId>org.voltdb</groupId>
 			<artifactId>voltdb</artifactId>
-			<version>9.1.1</version>
+			<version>${voltdb.version}</version>
 			<scope>provided</scope>
 		</dependency>
 	</dependencies>
