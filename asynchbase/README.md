@@ -21,9 +21,24 @@ This driver provides a YCSB workload binding for Apache HBase using an alternati
 
 ## Quickstart
 
-### 1. Setup Hbase
+### 1. Start a HBase Server
+You need to start a single node or a cluster to point the client at. Please see [Apache HBase Reference Guide](http://hbase.apache.org/book.html) for more details and instructions.
 
-Follow directions 1 to 3 from ``hbase098``'s readme.
+### 2. Set up YCSB
+
+Download the [latest YCSB](https://github.com/brianfrankcooper/YCSB/releases/latest) file. Follow the instructions.
+
+### 3. Create a HBase table for testing
+
+For best results, use the pre-splitting strategy recommended in [HBASE-4163](https://issues.apache.org/jira/browse/HBASE-4163):
+
+```
+hbase(main):001:0> n_splits = 200 # HBase recommends (10 * number of regionservers)
+hbase(main):002:0> create 'usertable', 'family', {SPLITS => (1..n_splits).map {|i| "user#{1000+i*(9999-1000)/n_splits}"}}
+```
+
+*Failing to do so will cause all writes to initially target a single region server*.
+
 
 ### 2. Load a Workload
 
@@ -54,6 +69,3 @@ The following options can be configured using CLI (using the `-p` parameter) or 
 * `durable`: When set to false, writes and deletes bypass the WAL for quicker responses. Default is true.
 * `jointimeout`: A timeout value, in milliseconds, for waiting on operations synchronously before an error is thrown.
 * `prefetchmeta`: Whether or not to read meta for all regions in the table and connect to the proper region servers before starting operations. Defaults to false.
-
-
-Note: This module includes some Google Guava source files from version 12 that were later removed but are still required by HBase's test modules for setting up the mini cluster during integration testing.

@@ -123,6 +123,12 @@ echo [WARN] The 'cassandra2-cql' client has been deprecated. It has been renamed
 SET BINDING_DIR=cassandra
 :notAliasCassandra
 
+@REM hbase14 replaced with hbase1
+IF NOT "%BINDING_DIR%" == "hbase14" GOTO notAliasHBase14
+echo [WARN] The 'hbase14' client has been deprecated. HBase 1.y users should rely on the 'hbase1' client instead.
+SET BINDING_DIR=hbase1
+:notAliasHBase14
+
 @REM arangodb3 deprecation message
 IF NOT "%BINDING_DIR%" == "arangodb3" GOTO notAliasArangodb3
 echo [WARN] The 'arangodb3' client has been deprecated. The binding 'arangodb' now covers every ArangoDB version. This alias will be removed in the next YCSB release.
@@ -200,16 +206,6 @@ FOR %%F IN (%YCSB_HOME%\%BINDING_DIR%\target\dependency\*.jar) DO (
 )
 
 :classpathComplete
-
-@REM HBase 0.98 deprecation message
-IF NOT "%BINDING_DIR%" == "hbase098" GOTO not098HBase
-echo [WARN] The 'hbase098' client is deprecated because HBase 0.98 is EOM. If you are using HBase 1.2+ try using the 'hbase12' client instead.
-:not098HBase
-
-@REM HBase 1.0 deprecation message
-IF NOT "%BINDING_DIR%" == "hbase10" GOTO not10HBase
-echo [WARN] The 'hbase10' client is deprecated because HBase 1.0 is EOM. If you are using HBase 1.2+ try using the 'hbase12' client instead.
-:not10HBase
 
 @REM Get the rest of the arguments, skipping the first 2
 FOR /F "tokens=2*" %%G IN ("%*") DO (

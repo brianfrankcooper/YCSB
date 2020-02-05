@@ -74,11 +74,8 @@ DATABASES = {
     "googlebigtable"  : "site.ycsb.db.GoogleBigtableClient",
     "googledatastore" : "site.ycsb.db.GoogleDatastoreClient",
     "griddb"       : "site.ycsb.db.griddb.GridDBClient",
-    "hbase098"     : "site.ycsb.db.HBaseClient",
-    "hbase10"      : "site.ycsb.db.HBaseClient10",
-    "hbase12"      : "site.ycsb.db.hbase12.HBaseClient12",
-    "hbase14"      : "site.ycsb.db.hbase14.HBaseClient14",
-    "hbase20"      : "site.ycsb.db.hbase20.HBaseClient20",
+    "hbase1"      : "site.ycsb.db.hbase1.HBaseClient1",
+    "hbase2"      : "site.ycsb.db.hbase2.HBaseClient2",
     "hypertable"   : "site.ycsb.db.HypertableClient",
     "ignite"       : "site.ycsb.db.ignite.IgniteClient",
     "ignite-sql"   : "site.ycsb.db.ignite.IgniteSqlClient",
@@ -265,15 +262,10 @@ def main():
              " in the next YCSB release.")
         binding = "cassandra"
 
-    if binding == "hbase098":
-        warn("The 'hbase098' client has been deprecated because HBase 0.98 "
-             "is EOM. If you are using HBase 1.2+ try using the 'hbase12' "
-             "client instead.")
-
-    if binding == "hbase10":
-        warn("The 'hbase10' client has been deprecated because HBase 1.0 "
-             "is EOM. If you are using HBase 1.2+ try using the 'hbase12' "
-             "client instead.")
+    if binding == "hbase14":
+        warn("The 'hbase14' client has been deprecated. HBase 1.y users should "
+             "rely on the 'hbase1' client instead.")
+        binding = "hbase1"
 
     if binding == "arangodb3":
         warn("The 'arangodb3' client has been deprecated. The binding 'arangodb' "
