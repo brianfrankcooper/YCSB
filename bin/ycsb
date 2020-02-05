@@ -269,7 +269,7 @@ def main():
 
     if binding == "hbase14":
         warn("The 'hbase14' client has been deprecated. HBase 1.y users should "
-             "rely on the 'hbase1' client instead."
+             "rely on the 'hbase1' client instead.")
         binding = "hbase1"
 
     if binding == "arangodb3":
