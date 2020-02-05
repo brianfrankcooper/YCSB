@@ -18,5 +18,5 @@
 /**
  * The YCSB binding for <a href="http://redisjson.io/">RedisJSON</a>.
  */
-package site.ycsb.db;
+package site.ycsb.db.redisjson;
 
