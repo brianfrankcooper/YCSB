@@ -17,7 +17,7 @@ LICENSE file.
 
 # Google Bigtable  Driver for YCSB
 
-This driver provides a YCSB workload binding for Google's hosted Bigtable, the inspiration for a number of key-value stores like HBase and Cassandra. The Bigtable Java client provides both Protobuf based GRPC and HBase client APIs. This binding implements the Protobuf API for testing the native client. To test Bigtable using the HBase API, see the `hbase10` binding.
+This driver provides a YCSB workload binding for Google's hosted Bigtable, the inspiration for a number of key-value stores like HBase and Cassandra. The Bigtable Java client provides both Protobuf based GRPC and HBase client APIs. This binding implements the Protobuf API for testing the native client. To test Bigtable using the HBase API, see the `hbase1` binding.
 
 ## Quickstart
 

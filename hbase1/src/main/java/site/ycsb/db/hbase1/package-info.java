@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2017 Yahoo! Inc. All rights reserved.
+/*
+ * Copyright (c) 2014, Yahoo!, Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -15,11 +15,9 @@
  * LICENSE file.
  */
 
-package site.ycsb.db.mapr;
-
 /**
- * MapR-DB(binary) client for YCSB framework.
- * 
+ * The YCSB binding for <a href="https://hbase.apache.org/">HBase</a> 
+ * using the HBase 1 shaded API.
  */
-public class MapRDBClient extends site.ycsb.db.hbase1.HBaseClient1 {
-}
+package site.ycsb.db.hbase1;
+
