@@ -38,12 +38,12 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
-import static com.yahoo.ycsb.Client.DEFAULT_RECORD_COUNT;
-import static com.yahoo.ycsb.Client.RECORD_COUNT_PROPERTY;
-import static com.yahoo.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY;
-import static com.yahoo.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY_DEFAULT;
-import static com.yahoo.ycsb.workloads.CoreWorkload.ZERO_PADDING_PROPERTY;
-import static com.yahoo.ycsb.workloads.CoreWorkload.ZERO_PADDING_PROPERTY_DEFAULT;
+import static site.ycsb.Client.DEFAULT_RECORD_COUNT;
+import static site.ycsb.Client.RECORD_COUNT_PROPERTY;
+import static site.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY;
+import static site.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY_DEFAULT;
+import static site.ycsb.workloads.CoreWorkload.ZERO_PADDING_PROPERTY;
+import static site.ycsb.workloads.CoreWorkload.ZERO_PADDING_PROPERTY_DEFAULT;
 import static org.apache.kudu.Type.STRING;
 import static org.apache.kudu.client.KuduPredicate.ComparisonOp.EQUAL;
 import static org.apache.kudu.client.KuduPredicate.ComparisonOp.GREATER_EQUAL;
