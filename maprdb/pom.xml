@@ -52,7 +52,7 @@
 		</dependency>
 		<dependency>
 			<groupId>site.ycsb</groupId>
-			<artifactId>hbase14-binding</artifactId>
+			<artifactId>hbase1-binding</artifactId>
 			<version>${project.version}</version>
 			<!-- Should match all compile scoped dependencies -->
 			<exclusions>

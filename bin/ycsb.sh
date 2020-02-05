@@ -141,6 +141,13 @@ YCSB release."
   BINDING_DIR="cassandra"
 fi
 
+# hbase14 replaced by hbas1
+if [ "${BINDING_DIR}" = "hbase14" ] ; then
+  echo "[WARN] The 'hbase14' client has been deprecated. HBase 1.y users should \
+rely on the 'hbase1' client instead."
+  BINDING_DIR="hbase1"
+fi
+
 # arangodb3 deprecation message
 if [ "${BINDING_DIR}" = "arangodb3" ] ; then
   echo "[WARN] The 'arangodb3' client has been deprecated. The binding 'arangodb' \

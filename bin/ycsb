@@ -75,8 +75,8 @@ DATABASES = {
     "googlebigtable"  : "site.ycsb.db.GoogleBigtableClient",
     "googledatastore" : "site.ycsb.db.GoogleDatastoreClient",
     "griddb"       : "site.ycsb.db.griddb.GridDBClient",
-    "hbase14"      : "site.ycsb.db.hbase14.HBaseClient14",
-    "hbase22"      : "site.ycsb.db.hbase22.HBaseClient22",
+    "hbase1"      : "site.ycsb.db.hbase1.HBaseClient1",
+    "hbase2"      : "site.ycsb.db.hbase2.HBaseClient2",
     "hypertable"   : "site.ycsb.db.HypertableClient",
     "ignite"       : "site.ycsb.db.ignite.IgniteClient",
     "ignite-sql"   : "site.ycsb.db.ignite.IgniteSqlClient",
@@ -266,6 +266,11 @@ def main():
     if binding == "couchbase":
         warn("The 'couchbase' client has been deprecated. If you are using "
              "Couchbase 4.0+ try using the 'couchbase2' client instead.")
+
+    if binding == "hbase14":
+        warn("The 'hbase14' client has been deprecated. HBase 1.y users should "
+             "rely on the 'hbase1' client instead."
+        binding = "hbase1"
 
     if binding == "arangodb3":
         warn("The 'arangodb3' client has been deprecated. The binding 'arangodb' "

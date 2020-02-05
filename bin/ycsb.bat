@@ -123,6 +123,12 @@ echo [WARN] The 'cassandra2-cql' client has been deprecated. It has been renamed
 SET BINDING_DIR=cassandra
 :notAliasCassandra
 
+@REM hbase14 replaced with hbase1
+IF NOT "%BINDING_DIR%" == "hbase14" GOTO notAliasHBase14
+echo [WARN] The 'hbase14' client has been deprecated. HBase 1.y users should rely on the 'hbase1' client instead.
+SET BINDING_DIR=hbase1
+:notAliasHBase14
+
 @REM arangodb3 deprecation message
 IF NOT "%BINDING_DIR%" == "arangodb3" GOTO notAliasArangodb3
 echo [WARN] The 'arangodb3' client has been deprecated. The binding 'arangodb' now covers every ArangoDB version. This alias will be removed in the next YCSB release.

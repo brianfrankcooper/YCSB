@@ -136,12 +136,12 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>site.ycsb</groupId>
-      <artifactId>hbase14-binding</artifactId>
+      <artifactId>hbase1-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>site.ycsb</groupId>
-      <artifactId>hbase22-binding</artifactId>
+      <artifactId>hbase2-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
