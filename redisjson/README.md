@@ -34,8 +34,8 @@ Git clone YCSB and compile:
 ### 4. Set up JRedisJSON
 	In a separate directory ( the JAR will be installed in your local
 	maven repo ):
-	git clone -b reflection https://github.com/RedisJSON/JRedisJSON.git 
-	( You need the *reflection* branch, otherwise the client side
+	git clone https://github.com/RedisJSON/JRedisJSON.git 
+	( You need at least 1.2.0, otherwise the client side
 	won't be able to instantiate the right class when retrieving an
 	object from the DB using JSON.GET )
 	mvn clean install -Dmaven.test.skip=true
@@ -67,4 +67,3 @@ Load the data:
 Run the workload test:
 
     ./bin/ycsb run redisjson -s -P workloads/workloada > outputRun.txt
-
