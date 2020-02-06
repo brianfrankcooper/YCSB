@@ -446,23 +446,23 @@ public class TestTimeSeriesWorkload {
     } catch (WorkloadException e) { }
     
     p.setProperty(TimeSeriesWorkload.VALUE_TYPE_PROPERTY, "integers"); // now it's ok
-    p.setProperty(TimeSeriesWorkload.GROUPBY_PROPERTY, "sum"); // now it's not
+    p.setProperty(TimeSeriesWorkload.SCAN_GROUPBY_PROPERTY, "sum"); // now it's not
     try {
       getWorkload(p, true);
       fail("Expected WorkloadException");
     } catch (WorkloadException e) { }
     
-    p.setProperty(TimeSeriesWorkload.GROUPBY_PROPERTY, "");
-    p.setProperty(TimeSeriesWorkload.DOWNSAMPLING_FUNCTION_PROPERTY, "sum");
-    p.setProperty(TimeSeriesWorkload.DOWNSAMPLING_INTERVAL_PROPERTY, "60");
+    p.setProperty(TimeSeriesWorkload.SCAN_GROUPBY_PROPERTY, "");
+    p.setProperty(TimeSeriesWorkload.SCAN_DOWNSAMPLING_FUNCTION_PROPERTY, "sum");
+    p.setProperty(TimeSeriesWorkload.SCAN_DOWNSAMPLING_INTERVAL_PROPERTY, "60");
     try {
       getWorkload(p, true);
       fail("Expected WorkloadException");
     } catch (WorkloadException e) { }
     
-    p.setProperty(TimeSeriesWorkload.DOWNSAMPLING_FUNCTION_PROPERTY, "");
-    p.setProperty(TimeSeriesWorkload.DOWNSAMPLING_INTERVAL_PROPERTY, "");
-    p.setProperty(TimeSeriesWorkload.QUERY_TIMESPAN_PROPERTY, "60");
+    p.setProperty(TimeSeriesWorkload.SCAN_DOWNSAMPLING_FUNCTION_PROPERTY, "");
+    p.setProperty(TimeSeriesWorkload.SCAN_DOWNSAMPLING_INTERVAL_PROPERTY, "");
+    p.setProperty(TimeSeriesWorkload.SCAN_QUERY_TIMESPAN_PROPERTY, "60");
     try {
       getWorkload(p, true);
       fail("Expected WorkloadException");

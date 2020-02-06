@@ -189,67 +189,270 @@ delayedseries=0.10
 # actual delay is chosen based on a modulo of the series index.
 delayedintervals=5
 
-# The fixed or maximum amount of time added to the start time of a 
-# read or scan operation to generate a query over a range of time 
-# instead of a single timestamp. Units are shared with 'timestampunits'.
-# For example if the value is set to 3600 seconds (1 hour) then 
-# each read would pick a random start timestamp based on the 
-#'insertstart' value and number of intervals, then add 3600 seconds
-# to create the end time of the query. If this value is 0 then reads
-# will only provide a single timestamp. 
-# WARNING: Cannot be used with 'dataintegrity'.
-querytimespan=0
-
-# Whether or not reads should choose a random time span (aligned to
-# the 'timestampinterval' value) for each read or scan request starting
-# at 0 and reaching 'querytimespan' as the max.
-queryrandomtimespan=false
-
 # A delimiter character used to separate the start and end timestamps
-# of a read query when 'querytimespan' is enabled.
+# of a scan / delete query when 'scanquerytimespan' or 'deletequerytimespan' is enabled.
 querytimespandelimiter=,
 
-# A unique key given to read, scan and delete operations when the
+# A delimiter character used to separate the tags in the list of tags to group by, when
+# scangroupbyfunction & scangroupbytagkeys, or readgroupbyfunction & readgroupbytagkeys
+groupbytaglistdelimiter=;
+
+# A unique key given to read or scan operations when the
 # operation should perform a group-by (multi-series aggregation) on one 
-# or more tags. If 'groupbyfunction' is set, this key will be given with
+# or more tags. If 'readgroupbyfunction' or 'scan[n]groupbyfunction' is set,
+# this key will be passed through the standard YCSB data model with
+# the configured function as the value
+groupbyfunctionkey=YCSBGBF
+
+# A unique key given to read or scan operations when the
+# operation should perform a group-by (multi-series aggregation) on one 
+# or more tags. If 'readgroupbytagkeys' or 'scan[n]groupbytagkeys' is set,
+# this key will be passed through the standard YCSB data model with
+# the list of tags to group by as the value
+groupbytagskey=YCSBGBT
+
+# ***** READ QUERY PROPERTIES *****
+
+# Allows setting one or more of the tags to a fixed value for the READ query
+# Is a set of integers separated by commas. The number of values must
+# be equal to the 'tagcount' property. Eg. if tagcount is 3, then you
+# need to supply three values, eg. 1,2,0
+# If a 0 is given, this is interpreted that the value for this tag key
+# can be chosen at random.
+# If -1 or any negative number is given, then this means this key
+# should not be specified (primarily useful when doing a GroupBy)
+# Otherwise the number indicates the index of
+# the value that the tag key should be given, based on the cardinalities
+# set in the 'tagcardinality' property.
+# Full Example:
+#   tagcount=3
+#   tagcardinality=2,1,2
+#   tagkeylength=2
+#   tagvaluelength=3
+# This means that there are three tags keys: AA, AB, AC
+# For tag key AA, there are two possible values: AAA, AAB
+# For tag key AB, there is just one possible value: AAA
+# For tag key AC, there are again two possible values: AAA, AAB
+# You then set the values for each tag key simply by giving
+# the index. (starting at 1)
+# of the value you wish to be given to the key.
+# Eg. for AA=AAB, AB=AAA, AC=random --> readtags=2,1,0
+#     for AA=random, AB=random, AC=AAA --> readtags=0,0,1
+# Important note: when being combined with the GroupBy function
+# (see 'readgroupbyfunction' & 'readgroupbytagkeys' properties),
+# be aware that setting a tag to be grouped by in readgroupbytagkeys
+# will override any fixed selection set in this property (because
+# it is normally the case that one wants to do a Group By only
+# where there are multiple values for the grouped tag).
+# It is also normally only useful to do a group by when other tags
+# are not specified to a fixed value (otherwise there is nothing 
+# to group!). So if you had a tagcardinality=5,2,10 and you wanted
+# to do queries that were grouped by the 2nd tag, collapsing all
+# values of the third tag together, while randomly selecting a value
+# for the first tag, you'd specify readtags as follows:
+#   readtags=0,-1,-1
+# (Optional, default behaviour is random selection of all tags
+#  that are not selected for GroupBy)
+#readtags=
+
+# A comma separated list of 0s or 1s to denote which of the tag keys
+# should be grouped during group-by operations. The number of values
+# must match the number of tags in 'tagcount'.
+# Should be used together with readtags to specify which tags should
+# be given a fixed value or left unspecified. Any tags marked
+# for grouping here will be automatically left as unspecified, but
+# grouping also only makes sense when at least one other non-grouped
+# tags is also left unspecified (otherwise there's nothing to group!)
+#readgroupbytagkeys=0,0,1,1
+
+# ***** DELETE QUERY PROPERTIES *****
+
+# A comma separated list of 0s or 1s to denote which of the tag keys
+# should be used to select time series for deletion if wanting to
+# delete time series that contain particular keys with any value.
+# This is opposed to the default behaviour for delete queries
+# which select a fully-qualified random set of key-value pairs 
+# for the tags to select an individual time series. This query
+# is for multi-series delete based on tag regardless of value.
+# The number of values must match the number of tags in 'tagcount'.
+#deletetagkeys=0,0,1,1
+
+# The fixed or maximum amount of time added to the start time of a 
+# delete operation to generate a query over a range of time 
+# instead of a single timestamp. Units are shared with 'timestampunits'.
+# For example if the value is set to 3600 seconds (1 hour) then 
+# each delete would pick a random start timestamp based on the 
+#'insertstart' value and number of intervals, then add 3600 seconds
+# to create the end time of the query. If this value is 0 then the query
+# will only provide a single timestamp.
+# WARNING: Cannot be used with 'dataintegrity'.
+deletequerytimespan=0
+
+# Whether or not deletes should choose a random time span (aligned to
+# the 'timestampinterval' value) for each delete request starting
+# at 0 and reaching 'deletequerytimespan' as the max.
+deletequeryrandomtimespan=false
+
+# ***** SCAN QUERY PROPERTIES *****
+# SCAN queries play an outsized role in time series workload, therefore
+# extra flexibility for configuring SCAN workloads has been added.
+#
+# First: Multiple SCAN queries can be specified. This is different to
+#        all other query types which can only be specified once.
+#        This allows one workload to combine different SCAN queries
+#        each with their own proportion.
+# 
+# For simplicity's sake, if only one SCAN query is needed, then it can
+# simply be referenced by using 'scan' as the prefix to all the relevant
+# properties (see examples below). Otherwise each individual scan query
+# should have a numerical index, and each property should have the prefix
+# including the numerical property, eg. 'scan1'
+
+
+# Global SCAN query properties
+# These are either about setting the internals mapping of Timeseries
+# specific query properties onto the YCSB model
+
+
+# A unique key given to scan operations when the operation
+# should downsample the results of a query into lower resolution
+# data. If 'scan[n]downsamplingfunction' is set, this key will be given with
 # the configured function.
-groupbykey=YCSBGB
+scandownsamplingkey=YCSBDS
+
+# Individual SCAN query properties
+
+## Example properties are for the case where the workload only includes
+#  a single SCAN query. Therefore all scan-query-specific 
+
+# Proportion of the workload that should be made up of the SCAN query
+scanproportion=0.10
+
+# Allows setting one or more of the tags to a fixed value for the SCAN query
+# Is a set of integers separated by commas. The number of values must
+# be equal to the 'tagcount' property. Eg. if tagcount is 3, then you
+# need to supply three values, eg. 1,2,0
+# If a 0 is given, this is interpreted that the value for this tag key
+# can be chosen at random.
+# If -1 or any negative number is given, then this means this key
+# should not be specified (primarily useful when doing a GroupBy)
+# Otherwise the number indicates the index of
+# the value that the tag key should be given, based on the cardinalities
+# set in the 'tagcardinality' property.
+# Full Example:
+#   tagcount=3
+#   tagcardinality=2,1,2
+#   tagkeylength=2
+#   tagvaluelength=3
+# This means that there are three tags keys: AA, AB, AC
+# For tag key AA, there are two possible values: AAA, AAB
+# For tag key AB, there is just one possible value: AAA
+# For tag key AC, there are again two possible values: AAA, AAB
+# You then set the values for each tag key simply by giving
+# the index. (starting at 1)
+# of the value you wish to be given to the key.
+# Eg. for AA=AAB, AB=AAA, AC=random --> scantags=2,1,0
+#     for AA=random, AB=random, AC=AAA --> scantags=0,0,1
+# Important note: when being combined with the GroupBy function
+# (see 'scangroupbyfunction' & 'scangroupbytagkeys' properties),
+# be aware that setting a tag to be grouped by in scangroupbytagkeys
+# will override any fixed selection set in this property (because
+# it is normally the case that one wants to do a Group By only
+# where there are multiple values for the grouped tag).
+# It is also normally only useful to do a group by when other tags
+# are not specified to a fixed value (otherwise there is nothing 
+# to group!). So if you had a tagcardinality=5,2,10 and you wanted
+# to do queries that were grouped by the 2nd tag, collapsing all
+# values of the third tag together, while randomly selecting a value
+# for the first tag, you'd specify scantags as follows:
+#   scantags=0,-1,-1
+# (Optional, default behaviour is random selection of all tags
+#  that are not selected for GroupBy)
+#scantags=
+
+# Allows one to set the starting timestamp for the SCAN query
+# It could either be a fixed unix timestamp in the units specified
+# in the property 'timestampunits', or it is possible to set a 
+# negative offset from the latest timestamp that has been written
+# by providing a negative integer, repsenting the offest in the same
+# units specified in 'timestampunits'. So for example if one wanted
+# to have the starting timestamp to always be 24 hour behind the
+# highest written timestamp, and the unit was SECONDS, then one
+# could set this property to be -86400.
+# (Optional, default behaviour is to choose a random offset from
+#  the starting timestamp set by 'insertstart', or 'readstart')
+#scanstartts=
+
+# The fixed or maximum amount of time added to the start timestamp of a 
+# scan operation to generate a query over a range of time 
+# instead of a single timestamp. Units are shared with 'timestampunits'.
+# For example if the value is set to 3600 seconds (1 hour) then 
+# each scan would start at either a random or fixed timestamp (depending
+# on the value of the 'scanstartts' property), then add 3600 seconds
+# to create the end timestamp of the query. If this value is 0 then the query
+# will set the end timestamp to be the same at the start timestamp.
+# WARNING: Cannot be used with 'dataintegrity'.
+scanquerytimespan=0
+
+# Whether or not reads should choose a random time span (aligned to
+# the 'timestampinterval' value) for each scan request starting
+# at 0 and reaching 'scanquerytimespan' as the max.
+scanqueryrandomtimespan=false
 
 # A function name (e.g. 'SUM', 'MAX' or 'AVERAGE') passed during reads, 
 # scans and deletes to cause the database to perform a group-by 
 # operation on one or more tags. If this value is empty or null 
 # (default), group-by operations are not performed
-#groupbyfunction=
+#scangroupbyfunction=
 
 # A comma separated list of 0s or 1s to denote which of the tag keys
 # should be grouped during group-by operations. The number of values
 # must match the number of tags in 'tagcount'.
-#groupbykeys=0,0,1,1
+# Should be used together with scantags to specify which tags should
+# be given a fixed value or left unspecified. Any tags marked
+# for grouping here will be automatically left as unspecified, but
+# grouping also only makes sense when at least one other non-grouped
+# tags is also left unspecified (otherwise there's nothing to group!)
+#scangroupbytagkeys=0,0,1,1
 
-# A unique key given to read and scan operations when the operation
-# should downsample the results of a query into lower resolution
-# data. If 'downsamplingfunction' is set, this key will be given with
-# the configured function.
-downsamplingkey=YCSBDS
 
 # A function name (e.g. 'sum', 'max' or 'avg') passed during reads and
 # scans to cause the database to perform a downsampling operation
 # returning lower resolution data. If this value is empty or null 
 # (default), downsampling is not performed.
-#downsamplingfunction=
+#scandownsamplingfunction=
 
 # A time interval for which to downsample the raw data into. Shares
 # the same units as 'timestampinterval'. This value must be greater
 # than 'timestampinterval'. E.g. if the timestamp interval for raw
 # data is 60 seconds, the downsampling interval could be 3600 seconds
 # to roll up the data into 1 hour buckets.
-#downsamplinginterval=
+#scandownsamplinginterval=
+
+
+# **** STANDARD QUERY PROPORTIONS ****
+#
+# In TimeSeriesWorkload *no* default query proportions are defined!
+#  (this is different to the standard YCSB CoreWorkload)
+# This means that ONLY the query types that have a proportion defined
+# in the properties will form a part of the workload.
+#
+# Standard Queries that are supported: READ, UPDATE, INSERT, DELETE
+# (though you need to check support with the client you intend to test,
+#  as not all TSDBs support UPDATE/DELETE queries)
+#
+# IMPORTANT: SCAN queries are supported, but are given special treatment
+#            compared to all the other queries. See section before this
+#            one for how to define SCAN queries and their proportions.
+#
+# The sum of all proportion properties (including those for the SCAN
+# queries defined above) should equal 1.0
 
 # What proportion of operations are reads
-readproportion=0.10
+# readproportion=0.10
 
 # What proportion of operations are updates
-updateproportion=0.00
+# updateproportion=0.00
 
 # What proportion of operations are inserts
 insertproportion=0.90
