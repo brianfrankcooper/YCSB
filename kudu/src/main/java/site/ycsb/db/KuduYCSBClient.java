@@ -100,6 +100,7 @@ public class KuduYCSBClient extends site.ycsb.DB {
   private KuduTable kuduTable;
   private String partitionSchema;
   private int zeropadding;
+  private boolean orderedinserts;
 
   @Override
   public void init() throws DBException {
@@ -107,6 +108,11 @@ public class KuduYCSBClient extends site.ycsb.DB {
     this.tableName = prop.getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
     this.partitionSchema = prop.getProperty(PARTITION_SCHEMA_OPT, DEFAULT_PARTITION_SCHEMA);
     this.zeropadding = Integer.parseInt(prop.getProperty(ZERO_PADDING_PROPERTY, ZERO_PADDING_PROPERTY_DEFAULT));
+    if (prop.getProperty(INSERT_ORDER_PROPERTY, INSERT_ORDER_PROPERTY_DEFAULT).compareTo("hashed") == 0) {
+      this.orderedinserts = false;
+    } else {
+      this.orderedinserts = true;
+    }
     initClient();
     this.session = client.newSession();
     if (getProperties().getProperty(SYNC_OPS_OPT) != null
@@ -233,9 +239,9 @@ public class KuduYCSBClient extends site.ycsb.DB {
             ++upperNum;
           }
           PartialRow lower = schema.newPartialRow();
-          lower.addString(KEY, buildKeyName(lowerNum));
+          lower.addString(KEY, CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts));
           PartialRow upper = schema.newPartialRow();
-          upper.addString(KEY, buildKeyName(upperNum));
+          upper.addString(KEY, CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts));
           builder.addRangePartition(lower, upper);
         }
       } else {
@@ -268,17 +274,6 @@ public class KuduYCSBClient extends site.ycsb.DB {
         throw new DBException("Provided number for " + propName + " isn't a valid integer");
       }
     }
-  }
-
-  // Must be consistent with "buildKeyNum" function in CoreWorkload.java.
-  private String buildKeyName(long keynum) {
-    String value = Long.toString(keynum);
-    int fill = zeropadding - value.length();
-    String prekey = "user";
-    for (int i = 0; i < fill; i++) {
-      prekey += '0';
-    }
-    return prekey + value;
   }
 
   @Override
