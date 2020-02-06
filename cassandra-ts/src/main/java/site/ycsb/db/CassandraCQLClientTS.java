@@ -46,12 +46,15 @@ import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.AbstractMap.SimpleEntry;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.Vector;
@@ -60,8 +63,12 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.function.ToDoubleFunction;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -155,8 +162,12 @@ public class CassandraCQLClientTS extends TimeseriesDB {
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
   private static boolean debug = false;
+  private static boolean missingreadsdebug = false;
 
   private static boolean trace = false;
+
+  private Gson gson;
+  private Type jSonToMapType;
   
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
@@ -167,6 +178,12 @@ public class CassandraCQLClientTS extends TimeseriesDB {
     // Call init() from TimeseriesDB to ensure correct 
     // workload parsing
     super.init();
+    
+    // One Gson instance per-thread to avoid unnecessary instantiations
+    gson = new Gson();
+
+    // For use with Gson to convert JSON to a Map<String, String>
+    jSonToMapType = new TypeToken<Map<String, String>>(){}.getType();
 
     // Get table name from properties (if it exists, otherwise use default)
     table = getProperties().getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
@@ -187,6 +204,7 @@ public class CassandraCQLClientTS extends TimeseriesDB {
 
         debug =
             Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
+        missingreadsdebug = Boolean.parseBoolean(getProperties().getProperty("missingreadsdebug", "false"));
         if (debug) {
           logger.info("Workload Properties: \n" + getProperties());
         }
@@ -389,6 +407,31 @@ public class CassandraCQLClientTS extends TimeseriesDB {
         if (debug) {
           logger.info("[READ][NOT FOUND]\n\n");
         }
+        if (missingreadsdebug) {
+          logger.info("[READ]   metric: " + metric + ", tags: " + tagsQueryAsJson + ", timestamp: " + timestamp + "(" + new Date(timestamp * 1000) + ")");
+          logger.info("[READ][NOT FOUND]");
+          logger.info("[READ][Querying all records for the series with this Key/Tag combo)]");
+          Select.Builder allForSeriesSelectBuilder = QueryBuilder.select();
+          ((Select.Selection) allForSeriesSelectBuilder).column("metric");
+          ((Select.Selection) allForSeriesSelectBuilder).column("tags");
+          ((Select.Selection) allForSeriesSelectBuilder).column("valuetime");
+          ((Select.Selection) allForSeriesSelectBuilder).column("value");
+          PreparedStatement allForSeriesStmt = session.prepare(allForSeriesSelectBuilder.from(table)
+                                                      .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker()))
+                                                      .and(QueryBuilder.eq("tags", QueryBuilder.bindMarker())));
+          allForSeriesStmt.setConsistencyLevel(readConsistencyLevel);
+          BoundStatement allForSeriesBoundStmt = allForSeriesStmt.bind().setString(YCSB_KEY, metric);
+          allForSeriesBoundStmt.setString("tags", tagsQueryAsJson);
+          ResultSet allForSeriesRs = session.execute(allForSeriesBoundStmt);
+          if (rs.isExhausted()) {
+            logger.info("[READ]\t[No other records for this Key/Tag combo found!]\n\n");
+          } else {
+            for(Row row : allForSeriesRs) {
+              logger.info("[READ]\t[Row][metric: " + row.getString("metric") + ", tags: " + row.getString("tags") + ", timestamp: " + row.getTimestamp("valuetime").getTime() + "(" + row.getTimestamp("valuetime") + "), value: " + row.getDouble("value") + "]");
+            }
+            logger.info("[READ]\t[END of records for this Key/Tag combo]\n\n");
+          }
+        }
         return Status.NOT_FOUND;
       }
 
@@ -398,6 +441,10 @@ public class CassandraCQLClientTS extends TimeseriesDB {
       Double resultValue = row.getDouble("value");
       if (debug) {
         logger.info("[READ][result] value: " + resultValue);
+      }
+      if (missingreadsdebug) {
+        logger.info("[READ]   metric: " + metric + ", tags: " + tagsQueryAsJson + ", timestamp: " + timestamp + "(" + new Date(timestamp * 1000) + ")");
+        logger.info("[READ][result] value: " + resultValue + "\n");
       }
 
       //for (ColumnDefinitions.Definition def : cd) {
@@ -436,7 +483,7 @@ public class CassandraCQLClientTS extends TimeseriesDB {
    */
   @Override
   public Status scan(String metric, long startTs, long endTs, Map<String, List<String>> tags,
-                     AggregationOperation downsamplingFunction, int timeValue, TimeUnit timeUnit,
+                     AggregationOperation downsamplingFunction, int downsamplingWindowLength, TimeUnit downsamplingWindowUnit,
                      AggregationOperation groupByFunction, Set<String> groupByTags) {
     try {
       Map<String, String> tagsMap = new HashMap();
@@ -448,10 +495,9 @@ public class CassandraCQLClientTS extends TimeseriesDB {
       for(Map.Entry<String, List<String>> entry : tags.entrySet()) {
         tagsMap.put(entry.getKey(), ((List<String>)entry.getValue()).get(0));
       }
-      Gson gson = new Gson();
       String tagsQueryAsJson = gson.toJson(tagsMap);
       if (debug) {
-        logger.info("[SCAN] metric: " + metric + ", tags: " + tagsQueryAsJson + ", startTs: " + startTs + ", endTs: " + endTs + ", downsamplingFunction: " + downsamplingFunction + ", timeValue: " + timeValue + ", timeUnit: " + timeUnit + ", groupByFunction: " + groupByFunction + ", groupByTags: " + groupByTags);
+        logger.info("[SCAN] metric: " + metric + ", tags: " + tagsQueryAsJson + ", startTs: " + startTs + ", endTs: " + endTs + ", downsamplingFunction: " + downsamplingFunction + ", downsamplingWindowLength: " + downsamplingWindowLength + ", downsamplingWindowUnit: " + downsamplingWindowUnit + ", groupByFunction: " + groupByFunction + ", groupByTags: " + groupByTags);
       }
 
 
@@ -536,151 +582,355 @@ public class CassandraCQLClientTS extends TimeseriesDB {
         return Status.NOT_FOUND;
       }
 
-      if (groupByFunction.toString() == "NONE") { // no client-side GROUP BY aggregation
-        if (downsamplingFunction.toString() == "NONE") { // no client-side downsampling
-          // Output results
-          for (Row row : rs) {
-            Date resultTimestamp = row.getTimestamp("valuetime");
-            Double resultValue = row.getDouble("value");
-            if (debug) {
-              logger.info("[SCAN][result] timestamp: (date: " + resultTimestamp + ", unix: " + resultTimestamp.getTime() + "), value: " + resultValue);
-            }
-          }
-        } else { // client-side downsampling required
-          logger.info("[SCAN][client-side downsampling] downsamplingFunction: " + downsamplingFunction.toString() + ", timeValue: " + timeValue + ", timeUnit: " + timeUnit);
-          Stream<Row> resultSetStream = StreamSupport.stream(rs.spliterator(), false);
-          Map<String, List<Row>> rowsByTimeBucket = new LinkedHashMap();
-          rowsByTimeBucket = resultSetStream.collect(
-            Collectors.groupingBy(row -> {
-              long timestamp = row.getTimestamp("valuetime").getTime();
-              long groupingTimestamp = timestamp;
-              switch (timeUnit) {
-                case MILLISECONDS:
-                  groupingTimestamp = timestamp / timeValue;
-                  break;
-                case SECONDS:
-                  groupingTimestamp = timestamp / (1000 * timeValue) * (1000 * timeValue);
-                  break;
-                case MINUTES:
-                  groupingTimestamp = timestamp / (1000 * 60 * timeValue) * (1000 * 60 * timeValue);
-                  break;
-                case HOURS:
-                  groupingTimestamp = timestamp / (1000 * 60 * 60 * timeValue) * (1000 * 60 * 60 * timeValue);
-                  break;
-                case DAYS:
-                  groupingTimestamp = timestamp / (1000 * 60 * 60 * 24 * timeValue) * (1000 * 60 * 60 * 24 * timeValue);
-                  break;
-                default:
-                  throw new IllegalArgumentException("Unsupported downsampling timeUnit: " + timeUnit);
-              }
-              if (debug) { 
-                logger.info("\t[grouping row] timestamp: " + row.getTimestamp("valuetime").getTime() + ", value: " + row.getDouble("value") + " --> timeBucket = " + groupingTimestamp);
-              }
-              return new Long(groupingTimestamp).toString();
-            }, LinkedHashMap::new, Collectors.toList())
-          );
+      // no client-side GROUP BY aggregation OR client-side downsampling
+      if (groupByFunction.toString() == "NONE" && downsamplingFunction.toString() == "NONE") {
+        // Output results
+        for (Row row : rs) {
+          Date resultTimestamp = row.getTimestamp("valuetime");
+          Double resultValue = row.getDouble("value");
           if (debug) {
-            logger.info("[SCAN][Rows grouped by time bucket]");
-            rowsByTimeBucket.forEach((timeBucket, rows) -> {
-              logger.info(timeBucket + " -->");
-              rows.forEach(row -> logger.info("\t[row]: valuetime: " + row.getTimestamp("valuetime").getTime() + ", value: " + row.getDouble("value")));
-            });
-            logger.info("[SCAN][/Rows grouped by time bucket]");
+            logger.info("[SCAN][result] timestamp: (date: " + resultTimestamp + ", unix: " + resultTimestamp.getTime() + "), value: " + resultValue);
           }
-          Map<String, Number> downsamplingResults = rowsByTimeBucket.entrySet()
-            .stream().collect(Collectors.toMap(entry -> entry.getKey(), entry -> {
-              switch (downsamplingFunction.toString()) {
-                case "SUM":
-                  return entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).sum();
-                case "AVERAGE":
-                  return entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).average().orElse(0);
-                case "MAX":
-                  return entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).max().orElse(0);
-                case "MIN":
-                  return entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).min().orElse(0);
-                case "COUNT":
-                  return entry.getValue().stream().count();
-                default:
-                  throw new IllegalArgumentException("Unsupported downsamplingFunction: " + downsamplingFunction.toString());
-              }
-            },
-            (u, v) -> {
-              throw new IllegalStateException(String.format("Duplicate key %s", u));
-            },
-            LinkedHashMap::new));
-          if (debug) {
-            logger.info("[SCAN][Downsampling Results][downsamplingFunction = " + downsamplingFunction.toString() + "][timeValue = " + timeValue + "][timeUnit = " + timeUnit + "]");
-            downsamplingResults.forEach((timeBucket, value) -> {
-              logger.info(timeBucket + "(" + new Date(new Long(timeBucket)) + ") --> value = " + value);
-            });
-            logger.info("[SCAN][/Downsampling Result]");
-          }
-        } // END client-side downsampling
-      } else { // client-side GROUP BY aggregation required
+        }
+      } else if (downsamplingFunction.toString() != "NONE" && groupByFunction.toString() == "NONE") {
+        // client-side downsampling required, but no client-side GROUP BY
+        if (debug ) {
+          logger.info("[SCAN][client-side downsampling] downsamplingFunction: " + downsamplingFunction.toString() + ", downsamplingWindowLength: " + downsamplingWindowLength + ", downsamplingWindowUnit: " + downsamplingWindowUnit);
+        }
+        Stream<Row> resultSetStream = StreamSupport.stream(rs.spliterator(), false);
+        Map<String, ? extends Number> downsamplingResults = new LinkedHashMap();
+        switch (downsamplingFunction.toString()) {
+          case "SUM":
+            downsamplingResults = resultSetStream.collect(
+              Collectors.groupingBy(row -> groupRowsByDownsampledTimestamp(row, downsamplingWindowLength, downsamplingWindowUnit),
+                LinkedHashMap::new, Collectors.summingDouble(row -> row.getDouble("value")))
+            );
+            break;
+          case "AVERAGE":
+            downsamplingResults = resultSetStream.collect(
+              Collectors.groupingBy(row -> groupRowsByDownsampledTimestamp(row, downsamplingWindowLength, downsamplingWindowUnit),
+                LinkedHashMap::new, Collectors.averagingDouble(row -> row.getDouble("value")))
+            );
+            break;
+          case "MAX":
+            downsamplingResults = resultSetStream.collect(
+              Collectors.groupingBy(row -> groupRowsByDownsampledTimestamp(row, downsamplingWindowLength, downsamplingWindowUnit),
+                LinkedHashMap::new,
+                Collectors.collectingAndThen(Collectors.maxBy(Comparator.comparingDouble(row -> row.getDouble("value"))),
+                  maxRow -> maxRow.isPresent() ? maxRow.get().getDouble("value") : 0))
+            );
+            break;
+          case "MIN":
+            downsamplingResults = resultSetStream.collect(
+              Collectors.groupingBy(row -> groupRowsByDownsampledTimestamp(row, downsamplingWindowLength, downsamplingWindowUnit),
+                LinkedHashMap::new,
+                Collectors.collectingAndThen(Collectors.minBy(Comparator.comparingDouble(row -> row.getDouble("value"))),
+                  minRow -> minRow.isPresent() ? minRow.get().getDouble("value") : 0))
+            );
+            break;
+          case "COUNT":
+            downsamplingResults = resultSetStream.collect(
+              Collectors.groupingBy(row -> groupRowsByDownsampledTimestamp(row, downsamplingWindowLength, downsamplingWindowUnit),
+                LinkedHashMap::new, Collectors.counting())
+            );
+            break;
+          default:
+            throw new IllegalArgumentException("Unsupported downsamplingFunction: " + downsamplingFunction.toString());
+        }
+        if (debug) {
+          logger.info("[SCAN][Downsampling Results][downsamplingFunction = " + downsamplingFunction.toString() + "][downsamplingWindowLength = " + downsamplingWindowLength + "][downsamplingWindowUnit = " + downsamplingWindowUnit + "]");
+          downsamplingResults.forEach((timeBucket, value) -> {
+            logger.info(timeBucket + "(" + new Date(new Long(timeBucket)) + ") --> value = " + value);
+          });
+          logger.info("[SCAN][/Downsampling Result]");
+        }// END client-side downsampling
+      } else if (downsamplingFunction.toString() == "NONE" && groupByFunction.toString() != "NONE") {
+        // client-side GROUP BY aggregation required, but NO client-side downsampling
         Stream<Row> resultSetStream = StreamSupport.stream(rs.spliterator(), false);
         // First filter by tag query if there was any
         if (!tagsMap.isEmpty()) {
           if (debug) { logger.info("[SCAN][filtering by tags client-side] tags: " + tagsQueryAsJson); }
-          resultSetStream = resultSetStream.filter(row -> {
-            if (debug) { logger.info("\t[filter test] row tags: " + row.getString("tags")); }
-            Map<String, String> rowTags = gson.fromJson(row.getString("tags"), Map.class);
-            // Check if all the tags k/v pairs in the tags query
-            // match those of the current row
-            boolean rowMatch = tagsMap.entrySet().stream().allMatch(entry -> {
-              return rowTags.get(entry.getKey()).equals(entry.getValue());
-            });
-            if (debug) { logger.info("\t[filter test] match with (" + tagsMap + ")? -> " + rowMatch); }
-            return rowMatch;
-          });
+          resultSetStream = resultSetStream.filter(row -> filterRowsByTags(row, tagsMap));
         }
         // When group by is enabled we are given one or more tags to group by
         if (debug) { logger.info("[SCAN][grouping by tag(s)] tags: " + groupByTags); }
-        Map<String, List<Row>> rowsByTags = new HashMap();
-        Type jSonToMapType = new TypeToken<Map<String, String>>(){}.getType();
-        rowsByTags = resultSetStream.collect(
-          Collectors.groupingBy(row -> {
-            Map<String, String> rowTags = gson.fromJson(row.getString("tags"), jSonToMapType);
-            if (debug) { logger.info("\t[grouping] row tags: " + row.getString("tags")); }
-            String tagsToGroupByJson = gson.toJson(
-                rowTags.entrySet().stream()
-                .filter(entry -> groupByTags.contains(entry.getKey()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
-            if (debug) { logger.info("\t[grouping] tag(s) to group by: " + tagsToGroupByJson); }
-            return tagsToGroupByJson;
-          }, Collectors.mapping(row -> row,Collectors.toList()))
-        );
-        if (debug) {
-          logger.info("[SCAN][Rows grouped by tag][groupByTags = " + groupByTags + "]");
-          rowsByTags.forEach((tagsGroup, rows) -> {
-            logger.info(tagsGroup + " -->");
-            rows.forEach(row -> logger.info("\t[row]: tags: " + row.getString("tags") + ", valuetime: " + row.getTimestamp("valuetime").getTime() + ", value: " + row.getDouble("value")));
-          });
-          logger.info("[SCAN][/Rows grouped by tag]");
+        LinkedHashMap<String, LinkedHashMap<String, ResultContainer>> groupByResults = new LinkedHashMap();
+        switch (groupByFunction.toString()) {
+          case "SUM":
+            groupByResults = resultSetStream.collect(
+              Collectors.collectingAndThen(
+                Collectors.groupingBy(ungroupedRow -> groupRowsByTag(ungroupedRow, groupByTags),
+                  LinkedHashMap::new,
+                  Collectors.collectingAndThen(
+                    Collectors.groupingBy((Row rowGroupedByTag) -> groupRowsByTimestamp(rowGroupedByTag),
+                      LinkedHashMap::new,
+                      Collectors.<Row>toList()),
+                    (LinkedHashMap<String, List<Row>> mapGroupedByTagAndTimestamp) -> {
+                      //if (debug) {
+                        //logMap(mapGroupedByTagAndTimestamp);
+                      //}
+                      return mapGroupedByTagAndTimestamp.entrySet().stream().collect(
+                          Collectors.toMap((Map.Entry entry) -> (String)entry.getKey(),
+                            (Map.Entry entry) -> {
+                              Map<String, String> resultTags = groupedTagsForRow(((List<Row>)entry.getValue()).get(0), groupByTags);
+                              tagsMap.forEach((k,v) -> resultTags.merge(k,v,(v1,v2) -> v1));
+                              return new ResultContainer(metric,
+                                  gson.toJson(resultTags),
+                                  (String)entry.getKey(),
+                                  ((List<Row>)entry.getValue()).stream().mapToDouble(row -> row.getDouble("value")).sum());
+                            },
+                            (u, v) -> {
+                              throw new IllegalStateException(String.format("Duplicate key %s", u));
+                            },
+                            LinkedHashMap::new));
+                    })
+                  //Collectors.groupingBy(rowGroupedByTag -> groupRowsByTimestamp(rowGroupedByTag),
+                    //LinkedHashMap::new,
+                    //Collectors.reducing(new ResultContainer(metric, tagsQueryAsJson, 0, 0.0),
+                      //rowGroupedByTagAndTimestamp -> {
+                        //Map<String, String> resultTags = groupedTagsForRow(rowGroupedByTagAndTimestamp, groupByTags);
+                        //tagsMap.forEach((k,v) -> resultTags.merge(k,v,(v1,v2) -> v1));
+                        //ResultContainer res = new ResultContainer(metric,
+                          //gson.toJson(resultTags),
+                          //rowGroupedByTagAndTimestamp.getTimestamp("valuetime").getTime(),
+                          //rowGroupedByTagAndTimestamp.getDouble("value"));
+                        //if (debug) {
+                          //logger.info("\t[row by TS & Tag]: " + res);
+                        //}
+                        //return res;
+                      //}, (a,b) -> {
+                        //b.value = a.value + b.value;
+                        //return b;
+                      //}
+                    //)
+                  //)
+                ),
+                mapGroupedByTag -> {
+                  //if (debug) {
+                    //logGroupByResults(mapGroupedByTag, groupByTags, groupByFunction);
+                  //}
+                  return mapGroupedByTag;
+                }
+              )
+            );
+            break;
+          case "AVERAGE":
+            groupByResults = resultSetStream.collect(
+              Collectors.groupingBy(ungroupedRow -> groupRowsByTag(ungroupedRow, groupByTags),
+                LinkedHashMap::new,
+                Collectors.groupingBy(rowGroupedByTag -> groupRowsByTimestamp(rowGroupedByTag),
+                  LinkedHashMap::new,
+                  Collector.of(
+                    () -> new ArrayList<ResultContainer>(),
+                    (collector, rowGroupedByTagAndTimestamp) -> {
+                      Map<String, String> resultTags = groupedTagsForRow(rowGroupedByTagAndTimestamp, groupByTags);
+                      tagsMap.forEach((k,v) -> resultTags.merge(k,v,(v1,v2) -> v1));
+                      collector.add(new ResultContainer(metric, gson.toJson(resultTags), rowGroupedByTagAndTimestamp.getTimestamp("valuetime").getTime(), rowGroupedByTagAndTimestamp.getDouble("value")));
+                    },
+                    (collector1, collector2) -> {
+                      collector1.addAll(collector2);
+                      return collector1;
+                    },
+                    collector -> {
+                      if (collector.isEmpty()) {
+                        return new ResultContainer(metric, tagsQueryAsJson, "------", 0.0);
+                      } else {
+                        ResultContainer rc = collector.get(0);
+                        double avg = collector.stream().mapToDouble(resCont -> resCont.value).average().orElse(0);
+                        rc.value = avg;
+                        return rc;
+                      }
+                    }
+                  )))
+            );
+            break;
+          case "MAX":
+            groupByResults = resultSetStream.collect(
+              Collectors.groupingBy(ungroupedRow -> groupRowsByTag(ungroupedRow, groupByTags),
+                LinkedHashMap::new,
+                Collectors.groupingBy(rowGroupedByTag -> groupRowsByTimestamp(rowGroupedByTag),
+                  LinkedHashMap::new,
+                  Collectors.reducing(new ResultContainer(metric, tagsQueryAsJson, "------", 0.0),
+                    rowGroupedByTagAndTimestamp -> {
+                      Map<String, String> resultTags = groupedTagsForRow(rowGroupedByTagAndTimestamp, groupByTags);
+                      tagsMap.forEach((k,v) -> resultTags.merge(k,v,(v1,v2) -> v1));
+                      return new ResultContainer(metric, gson.toJson(resultTags), rowGroupedByTagAndTimestamp.getTimestamp("valuetime").getTime(), rowGroupedByTagAndTimestamp.getDouble("value"));
+                    }, (a,b) -> {
+                      return b.value > a.value ? b : a;
+                    })))
+            );
+            break;
+          case "MIN":
+            groupByResults = resultSetStream.collect(
+              Collectors.groupingBy(ungroupedRow -> groupRowsByTag(ungroupedRow, groupByTags),
+                LinkedHashMap::new,
+                Collectors.groupingBy(rowGroupedByTag -> groupRowsByTimestamp(rowGroupedByTag),
+                  LinkedHashMap::new,
+                  Collectors.reducing(new ResultContainer(metric, tagsQueryAsJson, "------", 0.0),
+                    rowGroupedByTagAndTimestamp -> {
+                      Map<String, String> resultTags = groupedTagsForRow(rowGroupedByTagAndTimestamp, groupByTags);
+                      tagsMap.forEach((k,v) -> resultTags.merge(k,v,(v1,v2) -> v1));
+                      return new ResultContainer(metric, gson.toJson(resultTags), rowGroupedByTagAndTimestamp.getTimestamp("valuetime").getTime(), rowGroupedByTagAndTimestamp.getDouble("value"));
+                    }, (a,b) -> {
+                      return b.value < a.value ? b : a;
+                    })))
+            );
+            break;
+          case "COUNT":
+            groupByResults = resultSetStream.collect(
+              Collectors.groupingBy(ungroupedRow -> groupRowsByTag(ungroupedRow, groupByTags),
+                LinkedHashMap::new,
+                Collectors.groupingBy(rowGroupedByTag -> groupRowsByTimestamp(rowGroupedByTag),
+                  LinkedHashMap::new,
+                  Collectors.reducing(new ResultContainer(metric, tagsQueryAsJson, "------", 0.0),
+                    rowGroupedByTagAndTimestamp -> {
+                      Map<String, String> resultTags = groupedTagsForRow(rowGroupedByTagAndTimestamp, groupByTags);
+                      tagsMap.forEach((k,v) -> resultTags.merge(k,v,(v1,v2) -> v1));
+                      // We just return a ResultContainer with the value set to 1.0, cos we will sum them later to get the count
+                      return new ResultContainer(metric, gson.toJson(resultTags), rowGroupedByTagAndTimestamp.getTimestamp("valuetime").getTime(), 1.0);
+                    }, (a,b) -> {
+                      b.value = a.value + b.value;
+                      return b;
+                    })))
+            );
+            break;
+          default:
+            throw new IllegalArgumentException("Unsupported groupByFunction: " + groupByFunction.toString());
         }
-        Map<String, Number> groupByResults = rowsByTags.entrySet()
-          .stream().collect(Collectors.toMap(entry -> entry.getKey(), entry -> {
-            switch (groupByFunction.toString()) {
-              case "SUM":
-                return entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).sum();
-              case "AVERAGE":
-                return entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).average().orElse(0);
-              case "MAX":
-                return entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).max().orElse(0);
-              case "MIN":
-                return entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).min().orElse(0);
-              case "COUNT":
-                return entry.getValue().stream().count();
-              default:
-                throw new IllegalArgumentException("Unsupported groupByFunction: " + groupByFunction.toString());
-            }
-          }));
+
         if (debug) {
           logger.info("[SCAN][GroupBy Results][groupByTags = " + groupByTags + "][groupByFunction = " + groupByFunction.toString() + "]");
-          groupByResults.forEach((tagsGroup, value) -> {
-            logger.info(tagsGroup + " --> value = " + value);
+          groupByResults.forEach((tagsGroup, resultByTimestamp) -> {
+            logger.info(tagsGroup + " -->");
+            resultByTimestamp.forEach((timestamp, result) -> {
+              logger.info("\t" + timestamp+ " --> result = " + result);
+            });
           });
           logger.info("[SCAN][/GroupBy Result]");
         }
+      } else {
+        // BOTH client-side downsampling and client-side GROUP BY are required!
+        Stream<Row> resultSetStream = StreamSupport.stream(rs.spliterator(), false);
+        // First filter by tag query if there was any
+        // This is uses a non-terminating stream filtering operation,
+        // so the stream is still open for the collection afterwards.
+        if (!tagsMap.isEmpty()) {
+          if (debug) { logger.info("[SCAN][filtering by tags client-side] tags: " + tagsQueryAsJson); }
+          resultSetStream = resultSetStream.filter(row -> filterRowsByTags(row, tagsMap));
+        }
+        // When group by is enabled we are given one or more tags to group by
+        if (debug) { logger.info("[SCAN][GROUP BY AND DOWNSAMPLE][groupByTags = " + groupByTags + "][groupByFunction = " + groupByFunction.toString() + "][downsamplingFunction = " + downsamplingFunction.toString() + "][downsamplingWindowLength = " + downsamplingWindowLength + "][downsamplingWindowUnit = " + downsamplingWindowUnit + "] "); }
+        Map<String, ? extends Map<String, ? extends Number>> groupByAndDownsamplingResults = new LinkedHashMap();
+        groupByAndDownsamplingResults = resultSetStream.collect(
+          Collectors.groupingBy(
+            row -> groupRowsByTag(row, groupByTags),
+            LinkedHashMap::new,
+            Collectors.groupingBy(
+              rowGroupedByTag -> groupRowsByDownsampledTimestamp(rowGroupedByTag,
+                                   downsamplingWindowLength,
+                                   downsamplingWindowUnit),
+              LinkedHashMap::new,
+              Collectors.collectingAndThen(
+                Collectors.groupingBy(
+                  rowGroupedByDownsampledTimestamp -> {
+                    return groupRowsByTimestamp(rowGroupedByDownsampledTimestamp);
+                  },
+                  LinkedHashMap::new,
+                  aggregateRows(groupByFunction, row -> row.getDouble("value"))),
+                mapRowsGroupedByTimestamp -> {
+                  return mapRowsGroupedByTimestamp.entrySet().stream().collect(
+                      aggregateRows(
+                          downsamplingFunction,
+                          (Map.Entry entry) -> ((Number) entry.getValue()).doubleValue()));
+                })))
+        );
+        if (debug) {
+          logger.info("[SCAN][GROUP BY AND DOWNSAMPLE **RESULTS**][groupByTags = " + groupByTags + "][groupByFunction = " + groupByFunction.toString() + "][downsamplingFunction = " + downsamplingFunction.toString() + "][downsamplingWindowLength = " + downsamplingWindowLength + "][downsamplingWindowUnit = " + downsamplingWindowUnit + "] ");
+          groupByAndDownsamplingResults.forEach((tagsGroup, resultsByDownsampledTimestamp) -> {
+            logger.info(tagsGroup + " -->");
+            resultsByDownsampledTimestamp.forEach((downsampledTimestamp, result) -> {
+              logger.info("\t\t" + downsampledTimestamp + " --> result = " + result);
+            });
+          });
+          logger.info("[SCAN][/GROUP BY AND DOWNSAMPLE **RESULTS**]");
+        }
+
+
+
+
+
+
+
+
+        
+        //Map<String, Map<String, List<Row>>> rowsByTagsandTimestamp = new LinkedHashMap();
+        //Type jSonToMapType = new TypeToken<Map<String, String>>(){}.getType();
+        //rowsByTagsandTimestamp = resultSetStream.collect(
+          //Collectors.groupingBy(row -> groupRowsByTag(row, groupByTags),
+            //LinkedHashMap::new,
+            //Collectors.groupingBy(row -> groupRowsByTimestamp(row),
+              //LinkedHashMap::new,
+              //Collectors.toList()))
+        //);
+        //if (debug) {
+          //logger.info("[SCAN][Rows grouped by tag AND timestamp][groupByTags = " + groupByTags + "]");
+          //rowsByTagsandTimestamp.forEach((tagsGroup, rowsByTimestamp) -> {
+            //logger.info(tagsGroup + " -->");
+            //rowsByTimestamp.forEach((timestamp, rows) -> {
+              //logger.info("\t" + timestamp + " -->");
+              //rows.forEach(row -> logger.info("\t\t[row]: tags: " + row.getString("tags") + ", valuetime: " + row.getTimestamp("valuetime").getTime() + ", value: " + row.getDouble("value")));
+            //});
+          //});
+          //logger.info("[SCAN][/Rows grouped by tag AND timestamp]");
+        //}
+        //Map<String, Map<String, ResultContainer>> groupByResults = rowsByTagsandTimestamp.entrySet()
+          //.stream().collect(Collectors.toMap(outerEntry -> outerEntry.getKey(), outerEntry -> {
+            //String groupByTagsKey = outerEntry.getKey();
+            //Map<String, String> resultTags = new HashMap<>(tagsMap);
+            //((Map<String, String>)gson.fromJson(groupByTagsKey, jSonToMapType)).forEach((k,v) -> resultTags.merge(k,v,(v1,v2) -> v1));
+            //String resultTagsJson = gson.toJson(resultTags);
+            //return outerEntry.getValue().entrySet()
+              //.stream().collect(Collectors.toMap(entry -> groupByTagsKey + ":" + entry.getKey(), entry -> {
+                //switch (groupByFunction.toString()) {
+                  //case "SUM":
+                    //return new ResultContainer(metric, resultTagsJson, entry.getKey(), entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).sum());
+                  //case "AVERAGE":
+                    //return new ResultContainer(metric, resultTagsJson, entry.getKey(), entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).average().orElse(0));
+                  //case "MAX":
+                    //return new ResultContainer(metric, resultTagsJson, entry.getKey(), entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).max().orElse(0));
+                  //case "MIN":
+                    //return new ResultContainer(metric, resultTagsJson, entry.getKey(), entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).min().orElse(0));
+                  //case "COUNT":
+                    //return new ResultContainer(metric, resultTagsJson, entry.getKey(), entry.getValue().stream().count());
+                  //default:
+                    //throw new IllegalArgumentException("Unsupported groupByFunction: " + groupByFunction.toString());
+                //}
+              //},
+              //(u, v) -> {
+                //throw new IllegalStateException(String.format("Duplicate key %s", u));
+              //},
+              //LinkedHashMap::new));
+          //},
+          //(u, v) -> {
+            //throw new IllegalStateException(String.format("Duplicate key %s", u));
+          //},
+          //LinkedHashMap::new));
+          //.stream().collect(Collectors.toMap(entry -> entry.getKey(), entry -> {
+            //switch (groupByFunction.toString()) {
+              //case "SUM":
+                //return entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).sum();
+              //case "AVERAGE":
+                //return entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).average().orElse(0);
+              //case "MAX":
+                //return entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).max().orElse(0);
+              //case "MIN":
+                //return entry.getValue().stream().mapToDouble(row -> row.getDouble("value")).min().orElse(0);
+              //case "COUNT":
+                //return entry.getValue().stream().count();
+              //default:
+                //throw new IllegalArgumentException("Unsupported groupByFunction: " + groupByFunction.toString());
+            //}
+          //}));
       }
       return Status.OK;
 
@@ -803,6 +1053,9 @@ public class CassandraCQLClientTS extends TimeseriesDB {
       if (debug) {
         logger.info("[INSERT] metric: " + metric + ", tags: " + new Gson().toJson(tagsAsStrings) + ", timestamp: " + timestamp + "(" + new Date(timestamp * 1000) + "), value: " + value);
       }
+      if (missingreadsdebug) {
+        logger.info("[INSERT] metric: " + metric + ", tags: " + new Gson().toJson(tagsAsStrings) + ", timestamp: " + timestamp + "(" + new Date(timestamp * 1000) + "), value: " + value);
+      }
 
       Set<String> queryFields = new HashSet();
       queryFields.add("metric");
@@ -905,4 +1158,221 @@ public class CassandraCQLClientTS extends TimeseriesDB {
     return Status.ERROR;
   }
 
+  protected void logMap(Map<String, ?> mapToLog) {
+    mapToLog.forEach((key, result) -> {
+      if (result instanceof List) {
+        logger.info("\t" + key + " -->");
+        ((List)result).forEach(item -> logger.info("\t\t" + item));
+      } else {
+        logger.info("\t" + key + " --> result = " + result);
+      }
+    });
+  }
+
+  protected void logTwoLevelMap(Map<String, ? extends Map<String, ?>> twoLevelMap) {
+    twoLevelMap.forEach((firstLevelKey, secondLevelMap) -> {
+      logger.info(firstLevelKey+ " -->");
+      logMap(secondLevelMap);
+      //secondLevelMap.forEach((secondLevelKey, result) -> {
+        //logger.info("\t" + secondLevelKey+ " --> result = " + result);
+      //});
+    });
+
+  }
+
+  protected void logGroupByResults(Map<String, ? extends Map<String, ?>> groupByResults, Set<String> groupByTags, AggregationOperation groupByFunction) {
+    logger.info("[SCAN][GroupBy Results][groupByTags = " + groupByTags + "][groupByFunction = " + groupByFunction.toString() + "]");
+    logTwoLevelMap(groupByResults);
+    //groupByResults.forEach((tagsGroup, resultByTimestamp) -> {
+      //logger.info(tagsGroup + " -->");
+      //resultByTimestamp.forEach((timestamp, result) -> {
+        //logger.info("\t" + timestamp+ " --> result = " + result);
+      //});
+    //});
+    logger.info("[SCAN][/GroupBy Result]");
+  }
+  
+  /**
+   * Aggregates Rows using the supplied aggregation function.
+   *
+   * "Rows" in this case can either mean actual Row class rows, or Map Entries,
+   * or actually anything else, cos the function is generic. You have to 
+   * pass in a function (usually in the form of a lamba) that takes as input
+   * the element you are aggregating, and returns a Double, representing the value
+   * for that "Row".
+   * This is intended to be used as part of a single or multi-level groupingBy
+   * operation (eg. to first group rows by timestamp, or tag, and then aggregate)
+   *
+   * @param aggregationFunction The aggregation function that should be used
+   * @param mapToDouble The function that maps the "Row" to it's Double value
+   * @return A Collector that will aggregate the rows and return a ? extends Number
+   */
+  protected <T> Collector<T, ?, ? extends Number> aggregateRows(AggregationOperation aggregationFunction, Function<T, Double> mapToDouble) {
+    switch (aggregationFunction.toString()) {
+      case "SUM":
+        return Collectors.summingDouble(
+            (T row) -> mapToDouble.apply(row));
+      case "AVERAGE":
+        return Collectors.averagingDouble(
+            (T row) -> mapToDouble.apply(row));
+      case "MAX":
+        return Collectors.reducing(
+            new Double(0),
+            mapToDouble,
+            Double::max);
+      case "MIN":
+        return Collectors.reducing(
+            Double.POSITIVE_INFINITY,
+            mapToDouble,
+            Double::min);
+      case "COUNT":
+        return Collectors.counting();
+      default:
+        throw new IllegalArgumentException("Unsupported aggregationFunction: " + aggregationFunction.toString());
+    }
+  }
+
+  /**
+   * Filters Rows returned by a query based on a map of tags (key/value pairs).
+   *
+   * Intended to be used as a the predicate in a filter() call on the ResultSet stream
+   * Note: Needs to be wrapped in a lambda to be able to pass the second parameter,
+   *       eg. filter(row -> filterRowsByTags(row, tagsMap))
+   *
+   * @param row     The row to be filtered 
+   * @param tagsMap The map of tags that a row should be matched against
+   * @return true if row matches all entries in tagsMap, otherwise false
+   */
+  protected boolean filterRowsByTags(Row row, Map<String, String> tagsMap) {
+    Map<String, String> rowTags = gson.fromJson(row.getString("tags"), Map.class);
+    // Check if all the tags k/v pairs in the tags query
+    // match those of the current row
+    boolean rowMatch = tagsMap.entrySet().stream().allMatch(entry -> {
+      return rowTags.get(entry.getKey()).equals(entry.getValue());
+    });
+    if (trace && rowMatch) { 
+      logger.info("\t[filtering][filter] " + tagsMap);
+      logger.info("\t[filtering][matching row] tags: " + row.getString("tags") + ", valuetime: " + row.getTimestamp("valuetime").getTime() + ", value: " + row.getDouble("value"));
+    }
+    return rowMatch;
+  }
+
+  /**
+   * Groups Rows returned by a query based on a tag keys.
+   *
+   * Intended to be used as a the classifier in a Collectors.groupingBy() call on the ResultSet stream
+   * Note: Needs to be wrapped in a lambda to be able to pass the second parameter,
+   *       eg. Collectors.groupingBy(row -> groupRowsByTag(row, groupByTags), ...)
+   *
+   * @param row         The row to be grouped
+   * @param groupByTags The set of tag keys that a row should be grouped by 
+   * @return The string with the tags (key+value) as JSON, that act as a token for grouping
+   */
+  protected String groupRowsByTag(Row row, Set<String> groupByTags) {
+    String tagsToGroupByJson = gson.toJson(groupedTagsForRow(row, groupByTags));
+    if (trace) { logger.info("\t[grouping] tag(s) to group by: " + tagsToGroupByJson); }
+    return tagsToGroupByJson;
+  }
+
+  protected Map<String, String> groupedTagsForRow(Row row, Set<String> groupByTags) {
+    Map<String, String> rowTags = gson.fromJson(row.getString("tags"), jSonToMapType);
+    return rowTags.entrySet().stream()
+      .filter(entry -> groupByTags.contains(entry.getKey()))
+      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+  }
+
+  /**
+   * Groups Rows returned by a query based on timestamp.
+   *
+   * Intended to be used as a the classifier in a Collectors.groupingBy() call on the ResultSet stream
+   *
+   * @param row                       The row to be grouped
+   * @return The string representation of the downsampled UNIX timestamp, that acts as a token for grouping
+   */
+  protected String groupRowsByTimestamp(Row row) {
+    return new Long(row.getTimestamp("valuetime").getTime()).toString();
+  }
+
+  /**
+   * Groups Rows returned by a query based on a downsampled time window.
+   *
+   * Intended to be used as a the classifier in a Collectors.groupingBy() call on the ResultSet stream
+   * Note: Needs to be wrapped in a lambda to be able to pass the second parameter,
+   *       eg. Collectors.groupingBy(row -> {
+   *                 groupRowsByDownsampledTimestamp(row, downsamplingWindowLength, downsamplingWindowUnit)
+   *               }, ...)
+   *
+   * @param row                       The row to be grouped
+   * @param downsamplingWindowLength  The length of the downsampling window in downsamplingWindowUnit  
+   * @param downsamplingWindowUnit    The TimeUnit of downsamplingWindowLength 
+   * @return The string representation of the downsampled UNIX timestamp, that acts as a token for grouping
+   */
+  protected String groupRowsByDownsampledTimestamp(Row row, int downsamplingWindowLength, TimeUnit downsamplingWindowUnit) {
+    long timestamp = row.getTimestamp("valuetime").getTime();
+    long groupingTimestamp = timestamp;
+    switch (downsamplingWindowUnit) {
+      case MILLISECONDS:
+        groupingTimestamp = timestamp / downsamplingWindowLength;
+        break;
+      case SECONDS:
+        groupingTimestamp = timestamp / (1000 * downsamplingWindowLength) * (1000 * downsamplingWindowLength);
+        break;
+      case MINUTES:
+        groupingTimestamp = timestamp / (1000 * 60 * downsamplingWindowLength) * (1000 * 60 * downsamplingWindowLength);
+        break;
+      case HOURS:
+        groupingTimestamp = timestamp / (1000 * 60 * 60 * downsamplingWindowLength) * (1000 * 60 * 60 * downsamplingWindowLength);
+        break;
+      case DAYS:
+        groupingTimestamp = timestamp / (1000 * 60 * 60 * 24 * downsamplingWindowLength) * (1000 * 60 * 60 * 24 * downsamplingWindowLength);
+        break;
+      default:
+        throw new IllegalArgumentException("Unsupported downsampling downsamplingWindowUnit: " + downsamplingWindowUnit);
+    }
+    if (trace) { 
+      logger.info("\t[grouping row] timestamp: " + row.getTimestamp("valuetime").getTime() + ", value: " + row.getDouble("value") + " --> timeBucket = " + groupingTimestamp);
+    }
+    return new Long(groupingTimestamp).toString();
+  }
+
+  protected class ResultContainer {
+    public String metric;
+    public String tags;
+    public long timestamp;
+    public double value;
+
+    //public static BinaryOperator<ResultContainer> sum = (a,b) -> {
+      //a.value = a.value + b.value;
+      //return a;
+    //};
+
+    protected ResultContainer(Row row) {
+      this.metric = row.getString("metric");
+      this.tags = row.getString("tags");
+      this.timestamp = row.getTimestamp("valuetime").getTime();
+      this.value = row.getDouble("value");
+    }
+
+    protected ResultContainer(String metric, String tags, String timestamp, double value) {
+      this.metric = metric;
+      this.tags = tags;
+      this.timestamp = Long.parseLong(timestamp);
+      this.value = value;
+    }
+
+    protected ResultContainer(String metric, String tags, long timestamp, double value) {
+      this.metric = metric;
+      this.tags = tags;
+      this.timestamp = timestamp;
+      this.value = value;
+    }
+
+    public String toString() {
+      return "metric: " + metric + ", tags: " + tags + ", timestamp: " + timestamp + ", value: " + value;
+    }
+
+    public String toStringWithoutValue() {
+      return "metric: " + metric + ", tags: " + tags + ", timestamp: " + timestamp;
+    }
+  }
 }
