@@ -609,7 +609,7 @@ public class CassandraCQLClientTS extends TimeseriesDB {
           Date resultTimestamp = row.getTimestamp("valuetime");
           Double resultValue = row.getDouble("value");
           if (debug) {
-            logger.info("[SCAN][result] timestamp: (date: " + resultTimestamp + ", unix: " + resultTimestamp.getTime() + "), value: " + resultValue);
+            logger.info("[SCAN][result]" + rowToString(row));
           }
         });
       } else if (downsamplingFunction.toString() != "NONE" && groupByFunction.toString() == "NONE") {
@@ -625,54 +625,62 @@ public class CassandraCQLClientTS extends TimeseriesDB {
         resultSetStream = filterResultSetStreamByTags(resultSetStream, tagsMap);
 
         Map<String, ? extends Map<String, ? extends Number>> downsamplingResults = new LinkedHashMap();
-        switch (downsamplingFunction.toString()) {
-          case "SUM":
-            downsamplingResults = resultSetStream.collect(
-              Collectors.groupingBy(row -> row.getString("tags"),
-                LinkedHashMap::new,
-                Collectors.groupingBy(row -> groupRowByDownsampledTimestamp(row, downsamplingWindowLength, downsamplingWindowUnit),
-                  LinkedHashMap::new, Collectors.summingDouble(row -> row.getDouble("value"))))
-            );
-            break;
-          case "AVERAGE":
-            downsamplingResults = resultSetStream.collect(
-              Collectors.groupingBy(row -> row.getString("tags"),
-                LinkedHashMap::new,
-                Collectors.groupingBy(row -> groupRowByDownsampledTimestamp(row, downsamplingWindowLength, downsamplingWindowUnit),
-                  LinkedHashMap::new, Collectors.averagingDouble(row -> row.getDouble("value"))))
-            );
-            break;
-          case "MAX":
-            downsamplingResults = resultSetStream.collect(
-              Collectors.groupingBy(row -> row.getString("tags"),
-                LinkedHashMap::new,
-                Collectors.groupingBy(row -> groupRowByDownsampledTimestamp(row, downsamplingWindowLength, downsamplingWindowUnit),
-                  LinkedHashMap::new,
-                  Collectors.collectingAndThen(Collectors.maxBy(Comparator.comparingDouble(row -> row.getDouble("value"))),
-                    maxRow -> maxRow.isPresent() ? maxRow.get().getDouble("value") : 0)))
-            );
-            break;
-          case "MIN":
-            downsamplingResults = resultSetStream.collect(
-              Collectors.groupingBy(row -> row.getString("tags"),
-                LinkedHashMap::new,
-                Collectors.groupingBy(row -> groupRowByDownsampledTimestamp(row, downsamplingWindowLength, downsamplingWindowUnit),
-                  LinkedHashMap::new,
-                  Collectors.collectingAndThen(Collectors.minBy(Comparator.comparingDouble(row -> row.getDouble("value"))),
-                    minRow -> minRow.isPresent() ? minRow.get().getDouble("value") : 0)))
-            );
-            break;
-          case "COUNT":
-            downsamplingResults = resultSetStream.collect(
-              Collectors.groupingBy(row -> row.getString("tags"),
-                LinkedHashMap::new,
-                Collectors.groupingBy(row -> groupRowByDownsampledTimestamp(row, downsamplingWindowLength, downsamplingWindowUnit),
-                  LinkedHashMap::new, Collectors.counting()))
-            );
-            break;
-          default:
-            throw new IllegalArgumentException("Unsupported downsamplingFunction: " + downsamplingFunction.toString());
-        }
+        downsamplingResults = resultSetStream.collect(
+          Collectors.groupingBy(
+            row -> row.getString("tags"),
+            LinkedHashMap::new,
+            Collectors.groupingBy(
+              row -> groupRowByDownsampledTimestamp(row, downsamplingWindowLength, downsamplingWindowUnit),
+              LinkedHashMap::new,
+              aggregateRows(downsamplingFunction, row -> row.getDouble("value")))));
+        //switch (downsamplingFunction.toString()) {
+          //case "SUM":
+            //downsamplingResults = resultSetStream.collect(
+              //Collectors.groupingBy(row -> row.getString("tags"),
+                //LinkedHashMap::new,
+                //Collectors.groupingBy(row -> groupRowByDownsampledTimestamp(row, downsamplingWindowLength, downsamplingWindowUnit),
+                  //LinkedHashMap::new, Collectors.summingDouble(row -> row.getDouble("value"))))
+            //);
+            //break;
+          //case "AVERAGE":
+            //downsamplingResults = resultSetStream.collect(
+              //Collectors.groupingBy(row -> row.getString("tags"),
+                //LinkedHashMap::new,
+                //Collectors.groupingBy(row -> groupRowByDownsampledTimestamp(row, downsamplingWindowLength, downsamplingWindowUnit),
+                  //LinkedHashMap::new, Collectors.averagingDouble(row -> row.getDouble("value"))))
+            //);
+            //break;
+          //case "MAX":
+            //downsamplingResults = resultSetStream.collect(
+              //Collectors.groupingBy(row -> row.getString("tags"),
+                //LinkedHashMap::new,
+                //Collectors.groupingBy(row -> groupRowByDownsampledTimestamp(row, downsamplingWindowLength, downsamplingWindowUnit),
+                  //LinkedHashMap::new,
+                  //Collectors.collectingAndThen(Collectors.maxBy(Comparator.comparingDouble(row -> row.getDouble("value"))),
+                    //maxRow -> maxRow.isPresent() ? maxRow.get().getDouble("value") : 0)))
+            //);
+            //break;
+          //case "MIN":
+            //downsamplingResults = resultSetStream.collect(
+              //Collectors.groupingBy(row -> row.getString("tags"),
+                //LinkedHashMap::new,
+                //Collectors.groupingBy(row -> groupRowByDownsampledTimestamp(row, downsamplingWindowLength, downsamplingWindowUnit),
+                  //LinkedHashMap::new,
+                  //Collectors.collectingAndThen(Collectors.minBy(Comparator.comparingDouble(row -> row.getDouble("value"))),
+                    //minRow -> minRow.isPresent() ? minRow.get().getDouble("value") : 0)))
+            //);
+            //break;
+          //case "COUNT":
+            //downsamplingResults = resultSetStream.collect(
+              //Collectors.groupingBy(row -> row.getString("tags"),
+                //LinkedHashMap::new,
+                //Collectors.groupingBy(row -> groupRowByDownsampledTimestamp(row, downsamplingWindowLength, downsamplingWindowUnit),
+                  //LinkedHashMap::new, Collectors.counting()))
+            //);
+            //break;
+          //default:
+            //throw new IllegalArgumentException("Unsupported downsamplingFunction: " + downsamplingFunction.toString());
+        //}
         if (debug) {
           logger.info("[SCAN][Downsampling Results][downsamplingFunction = " + downsamplingFunction.toString() + "][downsamplingWindowLength = " + downsamplingWindowLength + "][downsamplingWindowUnit = " + downsamplingWindowUnit + "]");
           logMap(downsamplingResults);
@@ -1202,6 +1210,10 @@ public class CassandraCQLClientTS extends TimeseriesDB {
     return Status.ERROR;
   }
 
+  protected String rowToString(Row row) {
+    return "[row] tags: " + row.getString("tags") + ", timestamp: " + row.getTimestamp("valuetime").getTime() + ", value: " + row.getDouble("value");
+  }
+
   protected void logMap(Map<String, ?> mapToLog) {
     logMap(mapToLog, 0);
   }
@@ -1270,6 +1282,7 @@ public class CassandraCQLClientTS extends TimeseriesDB {
    * @return A Collector that will aggregate the rows and return a ? extends Number
    */
   protected <T> Collector<T, ?, ? extends Number> aggregateRows(AggregationOperation aggregationFunction, Function<T, Double> mapToDouble) {
+    if (debug) { logger.info("[SCAN] Peforming Aggregation with " + aggregationFunction.toString() + " function"); }
     switch (aggregationFunction.toString()) {
       case "SUM":
         return Collectors.summingDouble(
