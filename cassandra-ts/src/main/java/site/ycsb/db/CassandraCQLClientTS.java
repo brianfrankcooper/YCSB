@@ -358,7 +358,8 @@ public class CassandraCQLClientTS extends TimeseriesDB {
    * @return Zero on success, a non-zero error code on error or "not found".
    */
   @Override
-  public Status read(String metric, long timestamp, Map<String, List<String>> tags) {
+  public Status read(String metric, long timestamp, Map<String,
+                     List<String>> tags, Map<String, ByteIterator> result) {
     try {
       Map<String, String> tagsMap = new HashMap();
       // Tags are passed as a Map with the values being a list
@@ -498,8 +499,9 @@ public class CassandraCQLClientTS extends TimeseriesDB {
    */
   @Override
   public Status scan(String metric, long startTs, long endTs, Map<String, List<String>> tags,
-                     AggregationOperation downsamplingFunction, int downsamplingWindowLength, TimeUnit downsamplingWindowUnit,
-                     AggregationOperation groupByFunction, Set<String> groupByTags) {
+                     AggregationOperation downsamplingFunction, int downsamplingWindowLength,
+                     TimeUnit downsamplingWindowUnit, AggregationOperation groupByFunction,
+                     Set<String> groupByTags, Vector<HashMap<String, ByteIterator>> result) {
     try {
       Map<String, String> tagsMap = new HashMap();
       // Tags are passed as a Map with the values being a list

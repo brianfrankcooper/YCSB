@@ -144,7 +144,7 @@ public abstract class TimeseriesDB extends DB {
       return Status.BAD_REQUEST;
     }
 
-    return read(key, timestamp, tagQueries);
+    return read(key, timestamp, tagQueries, result);
   }
 
   /**
@@ -153,9 +153,10 @@ public abstract class TimeseriesDB extends DB {
    * @param metric    The name of the metric
    * @param timestamp The timestamp of the record to read.
    * @param tags      actual tags that were want to receive (can be empty)
+   * @param result    The Map where the result should be stored by the DB Client.
    * @return Zero on success, a non-zero error code on error or "not found".
    */
-  protected abstract Status read(String metric, long timestamp, Map<String, List<String>> tags);
+  protected abstract Status read(String metric, long timestamp, Map<String, List<String>> tags, Map<String, ByteIterator> result);
 
   /**
    * @inheritDoc
@@ -216,7 +217,7 @@ public abstract class TimeseriesDB extends DB {
     if (!rangeSet) {
       return Status.BAD_REQUEST;
     }
-    return scan(startkey, start, end, tagQueries, downsamplingFunction, downsamplingWindowLength, timestampUnit, groupByFunction, groupByTags);
+    return scan(startkey, start, end, tagQueries, downsamplingFunction, downsamplingWindowLength, timestampUnit, groupByFunction, groupByTags, result);
   }
 
   /**
@@ -232,10 +233,13 @@ public abstract class TimeseriesDB extends DB {
    * @param downsamplingWindowUnit    The unit for the value of the downsamplingWindowLength.
    * @param groupByFunction           The aggregation function for group by.
    * @param groupByTags               The tag(s) that should be grouped by.
+   * @param result                    The Vector of Maps where the results should be stored by the DB Client.
    * @return A {@link Status} detailing the outcome of the scan operation.
    */
   protected abstract Status scan(String metric, long startTs, long endTs, Map<String, List<String>> tags,
-                                 AggregationOperation downsamplingFunction, int downsamplingWindowLength, TimeUnit downsamplingWindowUnit, AggregationOperation groupByFunction, Set<String> groupByTags);
+                                 AggregationOperation downsamplingFunction, int downsamplingWindowLength,
+                                 TimeUnit downsamplingWindowUnit, AggregationOperation groupByFunction,
+                                 Set<String> groupByTags, Vector<HashMap<String, ByteIterator>> result);
 
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
