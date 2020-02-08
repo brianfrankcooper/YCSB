@@ -27,17 +27,17 @@ This binding has been specifically developed for use with YCSB Time Series workl
 Assuming a keyspace of `ycsb`, and table `metrics`:
 
     cqlsh> create keyspace ycsb
-        WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 3 };
+        WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 2 };
     cqlsh> USE ycsb;
     cqlsh> create table metrics (
         metric text,
         tags text,
         valuetime timestamp,
         value double,
-        PRIMARY KEY (metric, tags, valuetime))
-        WITH CLUSTERING ORDER BY (tags ASC, valuetime ASC);
+        PRIMARY KEY ((metric, tags), valuetime))
+        WITH CLUSTERING ORDER BY (valuetime ASC);
 
-**Note that `replication_factor` and consistency levels (below) will affect performance.**
+**Note that `replication_factor` and consistency levels (below) will affect performance. Which replication factor you choose would be dependent on the size and makeup of your cluster and the desired fault tolerance.**
 
 ## Cassandra Configuration Parameters
 
