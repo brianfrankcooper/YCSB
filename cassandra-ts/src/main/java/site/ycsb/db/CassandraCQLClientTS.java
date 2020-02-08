@@ -154,6 +154,13 @@ public class CassandraCQLClientTS extends TimeseriesDB {
   public static final String TRACING_PROPERTY = "cassandra.tracing";
   public static final String TRACING_PROPERTY_DEFAULT = "false";
 
+  // global debug property loading
+  private static final String DEBUG_PROPERTY = "debug";
+  private static final String DEBUG_PROPERTY_DEFAULT = "false";
+
+  // class-specific debug property loading
+  private static final String CASSANDRA_DEBUG_PROPERTY = "cassandra.debug";
+
   public static final String USE_SSL_CONNECTION = "cassandra.useSSL";
   private static final String DEFAULT_USE_SSL_CONNECTION = "false";
 
@@ -207,7 +214,12 @@ public class CassandraCQLClientTS extends TimeseriesDB {
       try {
 
         debug =
-            Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
+            Boolean.parseBoolean(
+                getProperties()
+                  .getProperty(
+                    DEBUG_PROPERTY,
+                    getProperties()
+                      .getProperty(CASSANDRA_DEBUG_PROPERTY, DEBUG_PROPERTY_DEFAULT)));
         missingreadsdebug = Boolean.parseBoolean(getProperties().getProperty("missingreadsdebug", "false"));
         if (debug) {
           logger.info("Workload Properties: \n" + getProperties());

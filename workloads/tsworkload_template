@@ -130,6 +130,16 @@ tagcount=4
 #'tagcount' then either it is ignored or 1 is substituted respectively.
 tagcardinality=1,2,4,8
 
+# Writes will be distributed over the available threads
+# They can either be distributed by metric aka key aka field,
+# or they can be distributed by time series aka combination
+# of metric and tags. The latter can be useful if your workload
+# is based around a single metric and you still want good
+# write performance.
+# Possible values: key, timeseries
+# Default: key
+#threadedwritedistribution=timeseries
+
 # The length of each tag key in characters.
 tagkeylength=8
 

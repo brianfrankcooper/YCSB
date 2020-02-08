@@ -362,6 +362,10 @@ public class TimeSeriesWorkload extends Workload {
   /** Name and default value for the tag value cardinality map property. */
   public static final String TAG_CARDINALITY_PROPERTY = "tagcardinality";
   public static final String TAG_CARDINALITY_PROPERTY_DEFAULT = "1, 2, 4, 8";
+
+  /** Name and default value for the threaded write distribution property. */
+  public static final String THREADED_WRITE_DISTRIBUTION_PROPERTY = "threadedwritedistribution";
+  public static final String THREADED_WRITE_DISTRIBUTION_PROPERTY_DEFAULT = "key";
   
   /** Name and default value for the tag key length property. */
   public static final String TAG_KEY_LENGTH_PROPERTY = "tagkeylength";
@@ -477,9 +481,12 @@ public class TimeSeriesWorkload extends Workload {
   public static final String DELETE_QUERY_RANDOM_TIMESPAN_PROPERTY = "deletequeryrandomtimespan";
   public static final String DELETE_QUERY_RANDOM_TIMESPAN_PROPERTY_DEFAULT = "false";
 
-  /** debug property loading */
+  /** global debug property loading */
   private static final String DEBUG_PROPERTY = "debug";
   private static final String DEBUG_PROPERTY_DEFAULT = "false";
+
+  /** class-specific debug property loading */
+  private static final String TIMESERIESWORKLOAD_DEBUG_PROPERTY = "timeseriesworkload.debug";
   
   /** The properties to pull settings from. */
   protected Properties properties;
@@ -516,6 +523,12 @@ public class TimeSeriesWorkload extends Workload {
   
   /** Used to calculate an offset for each time series. */
   protected int[] cumulativeCardinality;
+  
+  /** Used to when generating the key and tag value indices
+   *  across the whole tree of values when splitting up
+   *  the generation and insertion of data points into
+   *  groups of time series per thread*/
+  protected int[] cumulativeTotalCardinality;
   
   /** The calculated total cardinality based on the config. */
   protected int totalCardinality;
@@ -560,6 +573,14 @@ public class TimeSeriesWorkload extends Workload {
   
   /** The cardinality for each tag key. */
   protected int[] tagCardinality;
+
+  /** The method by which to distribute writes over the available threads.
+   *  Valid values: "key", "timeseries"
+   * */
+  protected String threadedWriteDistribution;
+
+  /** The cardinality for each key and tag key combined. */
+  protected int[] keyAndTagCardinality;
   
   /** A helper to skip non-incrementing tag values. */
   protected int firstIncrementableCardinality;
@@ -665,7 +686,12 @@ public class TimeSeriesWorkload extends Workload {
   @Override
   public void init(final Properties p) throws WorkloadException {
     properties = p;
-    debug = Boolean.parseBoolean(p.getProperty(DEBUG_PROPERTY, DEBUG_PROPERTY_DEFAULT));
+    debug = Boolean.parseBoolean(
+      p.getProperty(
+        DEBUG_PROPERTY,
+        p.getProperty(
+          TIMESERIESWORKLOAD_DEBUG_PROPERTY,
+          DEBUG_PROPERTY_DEFAULT)));
     if (debug) {
       System.out.println("[TimeSeriesWorkload.java] Properties: " + p);
     }
@@ -693,6 +719,8 @@ public class TimeSeriesWorkload extends Workload {
         CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
     tagPairs = Integer.parseInt(p.getProperty(TAG_COUNT_PROPERTY, 
         TAG_COUNT_PROPERTY_DEFAULT));
+    threadedWriteDistribution = p.getProperty(THREADED_WRITE_DISTRIBUTION_PROPERTY, 
+        THREADED_WRITE_DISTRIBUTION_PROPERTY_DEFAULT);
     sparsity = Double.parseDouble(p.getProperty(SPARSITY_PROPERTY, SPARSITY_PROPERTY_DEFAULT));
     tagCardinality = new int[tagPairs];
     
@@ -1403,7 +1431,7 @@ public class TimeSeriesWorkload extends Workload {
     int idx = 0;
     totalCardinality = numKeys;
     perKeyCardinality = 1;
-    int maxCardinality = 0;
+    int maxCardinality = 0; // represents the highest individual tag cardinality
     for (final String card : tagCardinalityParts) {
       try {
         tagCardinality[idx] = Integer.parseInt(card.trim());
@@ -1426,9 +1454,13 @@ public class TimeSeriesWorkload extends Workload {
         break;
       }
     }
-    if (numKeys < threads) {
+    if (threadedWriteDistribution == "key" && numKeys < threads) {
       throw new WorkloadException("Field count " + numKeys + " (keys for time "
           + "series workloads) must be greater or equal to the number of "
+          + "threads " + threads);
+    } else if (totalCardinality < threads) {
+      throw new WorkloadException("total cardinality " + totalCardinality + " (combination "
+          + "of key & tag cardinality) must be greater or equal to the number of "
           + "threads " + threads);
     }
     
@@ -1464,7 +1496,7 @@ public class TimeSeriesWorkload extends Workload {
     }
     
     maxOffsets = (recordcount / totalCardinality) + 1;
-    final int[] keyAndTagCardinality = new int[tagPairs + 1];
+    keyAndTagCardinality = new int[tagPairs + 1];
     keyAndTagCardinality[0] = numKeys;
     for (int i = 0; i < tagPairs; i++) {
       keyAndTagCardinality[i + 1] = tagCardinality[i];
@@ -1481,6 +1513,25 @@ public class TimeSeriesWorkload extends Workload {
       }
     }
     cumulativeCardinality[cumulativeCardinality.length - 1] = 1;
+
+    // Is an array that hold the cumulative total cardinality
+    // including the key and all tags, for each step from key
+    // through to the last tag.
+    // Eg. if numKeys = 2, and tagCardinality = [2,3,2]
+    // Then cumulativeTotalCardinality = [2, 4, 12, 24]
+    cumulativeTotalCardinality = new int[keyAndTagCardinality.length];
+    for (int i = 0; i < keyAndTagCardinality.length; i++) {
+      int cumulation = 1;
+      for (int j = 0; j <= i; j++) {
+        cumulation *= keyAndTagCardinality[j];
+      }
+      cumulativeTotalCardinality[i] = cumulation;
+    }
+    if (debug) {
+      System.out.println("[TimeSeriesWorkload.java][initKeysAndTags] totalCardinality = " + totalCardinality);
+      System.out.println("[TimeSeriesWorkload.java][initKeysAndTags] keyAndTagCardinality = " + Arrays.toString(keyAndTagCardinality));
+      System.out.println("[TimeSeriesWorkload.java][initKeysAndTags] cumulativeTotalCardinality = " + Arrays.toString(cumulativeTotalCardinality));
+    }
   }
   
   /**
@@ -1541,6 +1592,40 @@ public class TimeSeriesWorkload extends Workload {
 
     /** An offset generator to select a random offset for queries. */
     protected final NumberGenerator queryOffsetGenerator;
+
+    /** The current write time series index
+     *  This is the index of the key + tag combination
+     */
+    protected int timeSeriesIndex;
+
+    /** The starting index for writing time series in a thread. */
+    protected int timeSeriesIndexStart;
+    
+    /** The upper times series index bound (exclusive) for
+     * writing time series in a thread. */
+    protected int timeSeriesIndexEnd;
+
+    /**
+     * The current key and tag indexes that represent
+     * which time series is currently being written to
+     * are stored in these arrays.
+     *
+     * If you take the cumulativeTotalCardinality and make a 
+     * tree diagram out of it then the timeSeriesIndex is the
+     * same as the index of the leaf at the edge of the tree, with
+     * a range from 0 up to cumulativeCardinality[last].
+     * This is stored in the last element of the keyAndTagTreeIndexes
+     * array. Then the index at each level up is stored in the
+     * earlier elements of the array.
+     *
+     * From these "full" tree indexes, we can generate the key
+     * and tag value indexes by taking the modulo of the full
+     * index with the cardinality for each key or tag. The
+     * current value for these is stored in the keyAndTagIndexes array.
+     *
+     * */
+    protected int[] keyAndTagTreeIndexes;
+    protected int[] keyAndTagIndexes;
     
     /** The current write key index. */
     protected int keyIdx;
@@ -1564,6 +1649,8 @@ public class TimeSeriesWorkload extends Workload {
 
     /** The starting timestamp for Read / Scan Queries. */
     protected long startTimestampRead;
+
+    protected int threadIdentifier;
     
     /**
      * Default ctor.
@@ -1573,14 +1660,51 @@ public class TimeSeriesWorkload extends Workload {
      */
     protected ThreadState(final int threadID, final int threadCount) throws WorkloadException {
       int totalThreads = threadCount > 0 ? threadCount : 1;
+      threadIdentifier = threadID;
       
       if (threadID >= totalThreads) {
         throw new IllegalStateException("Thread ID " + threadID + " cannot be greater "
             + "than or equal than the thread count " + totalThreads);
       }
-      if (keys.length < threadCount) {
+
+      if (threadedWriteDistribution == "key" && keys.length < threadCount) {
         throw new WorkloadException("Thread count " + totalThreads + " must be greater "
             + "than or equal to key count " + keys.length);
+      } else if (totalCardinality < threadCount) {
+        throw new WorkloadException("Thread count " + totalThreads + " must be greater "
+            + "than or equal to totalCardinality" + totalCardinality);
+      }
+
+      // An individual time series is represented by the
+      // combination of the key + tags
+      // We will split up the insert workload into groups
+      // of time series and spread them across the threads
+      // to parallelise.
+      int timeSeriesPerThread = totalCardinality / totalThreads;
+      timeSeriesIndex = timeSeriesPerThread * threadID;
+      timeSeriesIndexStart = timeSeriesIndex;
+      if (totalThreads - 1 == threadID) {
+        timeSeriesIndexEnd = totalCardinality;
+      } else {
+        timeSeriesIndexEnd = timeSeriesIndexStart + timeSeriesPerThread;
+      }
+
+      keyAndTagTreeIndexes = new int[cumulativeTotalCardinality.length];
+      keyAndTagIndexes = new int[cumulativeTotalCardinality.length];
+      // Set initial values for the key and tag indexes
+      for (int i = 0; i < keyAndTagCardinality.length; i++) {
+        keyAndTagTreeIndexes[i] = timeSeriesIndex / (totalCardinality/ cumulativeTotalCardinality[i]);
+        keyAndTagIndexes[i] = keyAndTagTreeIndexes[i] % keyAndTagCardinality[i];
+      }
+      if (debug) {
+        System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][ThreadState()] Initialising Thread, setting initial values for indexes...");
+        System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][ThreadState()] totalThreads = " + totalThreads);
+        System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][ThreadState()] timeSeriesPerThread = " + timeSeriesPerThread);
+        System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][ThreadState()] timeSeriesIndexStart = " + timeSeriesIndexStart);
+        System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][ThreadState()] timeSeriesIndexEnd = " + timeSeriesIndexEnd);
+        System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][ThreadState()] timeSeriesIndex = " + timeSeriesIndex);
+        System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][ThreadState()] keyAndTagTreeIndexes = " + Arrays.toString(keyAndTagTreeIndexes));
+        System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][ThreadState()] keyAndTagIndexes = " + Arrays.toString(keyAndTagIndexes));
       }
       
       int keysPerThread = keys.length / totalThreads;
@@ -1589,7 +1713,9 @@ public class TimeSeriesWorkload extends Workload {
       if (totalThreads - 1 == threadID) {
         keyIdxEnd = keys.length;
       } else {
-        keyIdxEnd = keyIdxStart + keysPerThread;
+        // keyIdxEnd is an exclusive end
+        // keyIdx is iterated from keyIdxStart..(keyIdxEnd-1)
+        keyIdxEnd = keyIdxStart + keysPerThread; 
       }
       
       tagValueIdxs = new int[tagPairs]; // all zeros
@@ -1655,6 +1781,13 @@ public class TimeSeriesWorkload extends Workload {
      */
     protected String nextDataPoint(final Map<String, ByteIterator> map, final boolean isInsert) {
       final Random random = ThreadLocalRandom.current();
+      // Interations are basically to achieve sparsity if configured
+      // Each iteration of the while(true) loop below cycles through
+      // a key+tags combo (ie. a time series), but a data point is
+      // only generated and returned, if iterations <=0
+      // This means for each iteration done while iterations > 0
+      // it skips over a time series without generating and returning
+      // a data point.
       int iterations = sparsity <= 0 ? 1 : random.nextInt((int) ((double) perKeyCardinality * sparsity));
       if (iterations < 1) {
         iterations = 1;
@@ -1662,10 +1795,15 @@ public class TimeSeriesWorkload extends Workload {
       while (true) {
         iterations--;
         if (timestampRollover) {
+          if (debug) {
+            System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][nextDataPoint] timestamp is being incremented!!");
+          }
           timestampGenerator.nextValue();
           timestampRollover = false;
         }
         String key = null;
+        // Only generate key values
+        // and data if we are not doing a 'skip' iteration
         if (iterations <= 0) {
           final TreeMap<String, String> validationTags;
           if (dataintegrity) {
@@ -1673,19 +1811,38 @@ public class TimeSeriesWorkload extends Workload {
           } else {
             validationTags = null;
           }
-          key = keys[keyIdx];
-          int overallIdx = keyIdx * cumulativeCardinality[0];
+          int overallIdx;
+          if (threadedWriteDistribution == "key") {
+            key = keys[keyIdx];
+            // cumulativeCardinality[0] holds the perKeyCardinality
+            overallIdx = keyIdx * cumulativeCardinality[0];
+          } else {
+            key = keys[keyAndTagIndexes[0]];
+            overallIdx = timeSeriesIndex; // they are the same;
+          }
+
           for (int i = 0; i < tagPairs; ++i) {
             // tagValueIdxs holds a current index for each tagPair that determines
             // which tag value should be picked. 
             // eg. if the 2nd tagPair has a cardinality of 3,
             // then the value at tagValueIdxs[1] should cycle through 0 -> 1 -> 2 -> 0 (and so on...)
-            int tvidx = tagValueIdxs[i];
+            int tvidx;
+            if (threadedWriteDistribution == "key") {
+              tvidx = tagValueIdxs[i];
+            } else {
+              // the first element in keyAndTagIndexes is
+              // the index for the key, the tag indexes start
+              // from the second element
+              tvidx = keyAndTagIndexes[i + 1];
+            }
+            if (debug) {
+              System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][nextDataPoint] tag " + tagKeys[i] + " = " + tagValues[tvidx]);
+            }
             map.put(tagKeys[i], new StringByteIterator(tagValues[tvidx]));
             if (dataintegrity) {
               validationTags.put(tagKeys[i], tagValues[tvidx]);
             }
-            if (delayedSeries > 0) {
+            if (delayedSeries > 0 && threadedWriteDistribution == "key") {
               overallIdx += (tvidx * cumulativeCardinality[i + 1]);
             }
           }
@@ -1709,6 +1866,9 @@ public class TimeSeriesWorkload extends Workload {
               map.put(timestampKey, new NumericByteIterator(timestampGenerator.currentValue()));
             }
           } else {
+            if (debug) {
+              System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][nextDataPoint] timestamp = " + timestampGenerator.currentValue());
+            }
             map.put(timestampKey, new NumericByteIterator(timestampGenerator.currentValue()));
           }
           
@@ -1737,38 +1897,65 @@ public class TimeSeriesWorkload extends Workload {
           }
         }
         
-        boolean tagRollover = false;
-        for (int i = tagCardinality.length - 1; i >= 0; --i) {
-          if (tagCardinality[i] <= 1) {
-            tagRollover = true; // Only one tag so needs roll over.
-            continue;
-          }
-          
-          if (tagValueIdxs[i] + 1 >= tagCardinality[i]) {
-            tagValueIdxs[i] = 0;
-            if (i == firstIncrementableCardinality) {
-              tagRollover = true;
+        if (threadedWriteDistribution == "key") {
+          boolean tagRollover = false;
+          for (int i = tagCardinality.length - 1; i >= 0; --i) {
+            if (tagCardinality[i] <= 1) {
+              tagRollover = true; // Only one tag so needs roll over.
+              continue;
             }
-          } else {
-            // reset tagRollover to false (it may have been set to true earlier in the loop
-            // because a tag has reached it last value or only has one value),
-            // but this tag is still incrementing through values, so we are not done yet...
-            tagRollover = false;
-            ++tagValueIdxs[i];
-            break;
+            
+            if (tagValueIdxs[i] + 1 >= tagCardinality[i]) {
+              tagValueIdxs[i] = 0;
+              if (i == firstIncrementableCardinality) {
+                tagRollover = true;
+              }
+            } else {
+              // reset tagRollover to false (it may have been set to true earlier in the loop
+              // because a tag has reached it last value or only has one value),
+              // but this tag is still incrementing through values, so we are not done yet...
+              tagRollover = false;
+              ++tagValueIdxs[i];
+              break;
+            }
           }
-        }
-
-        if (tagRollover) { // we are done iterating all the tag values
-          if (keyIdx + 1 >= keyIdxEnd) { // we are done iterating all the key values, go to next timestamp
-            keyIdx = keyIdxStart;
+          if (tagRollover) { // we are done iterating all the tag values
+            if (keyIdx + 1 >= keyIdxEnd) { // we are done iterating all the key values, go to next timestamp
+              keyIdx = keyIdxStart;
+              timestampRollover = true;
+            } else { // we are not done iterating key values, go to next key
+              ++keyIdx;
+            }
+          }
+        } else { // we are distributing by time series instead of by key
+          ++timeSeriesIndex; // move onto the next time series
+          if (timeSeriesIndex >= timeSeriesIndexEnd) {
+            // we've reached the end of the index block for this thread,
+            // time to return to the start and goto the next timestamp
+            timeSeriesIndex = timeSeriesIndexStart;
             timestampRollover = true;
-          } else { // we are not done iterating key values, go to next key
-            ++keyIdx;
           }
-        }
+          // Update the key and tag indexes
+          for (int i = 0; i < keyAndTagCardinality.length; i++) {
+            keyAndTagTreeIndexes[i] = timeSeriesIndex / (totalCardinality/ cumulativeTotalCardinality[i]);
+            keyAndTagIndexes[i] = keyAndTagTreeIndexes[i] % keyAndTagCardinality[i];
+          }
+          if (debug) {
+            System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][nextDataPoint] Updating Indexes for next data point (after this one)");
+            System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][nextDataPoint] timeSeriesIndex = " + timeSeriesIndex);
+            System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][nextDataPoint] keyAndTagTreeIndexes = " + Arrays.toString(keyAndTagTreeIndexes));
+            System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][nextDataPoint] keyAndTagIndexes = " + Arrays.toString(keyAndTagIndexes));
+
+          }
+
+       }
+
         
         if (iterations <= 0) {
+          if (debug) {
+            System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][nextDataPoint] returning Data Point");
+            System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][nextDataPoint] ---------------");
+          }
           return key;
         }
       }

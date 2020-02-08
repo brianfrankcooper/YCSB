@@ -42,9 +42,12 @@ public abstract class TimeseriesDB extends DB {
   private static final String SCAN_DOWNSAMPLING_FUNCTION_PROPERTY_DEFAULT = "NONE";
   private static final String SCAN_DOWNSAMPLING_INTERVAL_PROPERTY_DEFAULT = "0";
 
-  // debug property loading
+  // global debug property loading
   private static final String DEBUG_PROPERTY = "debug";
   private static final String DEBUG_PROPERTY_DEFAULT = "false";
+
+  // class-specific debug property loading
+  private static final String TIMESERIESDB_DEBUG_PROPERTY = "timeseriesdb.debug";
 
   // test property loading
   private static final String TEST_PROPERTY = "test";
@@ -105,7 +108,12 @@ public abstract class TimeseriesDB extends DB {
         TimeSeriesWorkload.SCAN_DOWNSAMPLING_KEY_PROPERTY_DEFAULT);
 
     test = Boolean.parseBoolean(getProperties().getProperty(TEST_PROPERTY, TEST_PROPERTY_DEFAULT));
-    debug = Boolean.parseBoolean(getProperties().getProperty(DEBUG_PROPERTY, DEBUG_PROPERTY_DEFAULT));
+    debug = Boolean.parseBoolean(
+      getProperties()
+        .getProperty(
+          DEBUG_PROPERTY,
+          getProperties()
+            .getProperty(TIMESERIESDB_DEBUG_PROPERTY, DEBUG_PROPERTY_DEFAULT)));
   }
 
   @Override
