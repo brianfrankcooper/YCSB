@@ -1,0 +1,102 @@
+# Copyright (c) 2020 YCSB contributors. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you
+# may not use this file except in compliance with the License. You
+# may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing
+# permissions and limitations under the License. See accompanying
+# LICENSE file.
+
+# Yahoo! Cloud System Benchmark
+#
+# Workload Defintion: Smart Metering Workload 2 (SMW2LT)
+#
+# This workload was created as part of a bachelor thesis
+# at the Technical University of Berlin, by Michael Smart
+# https://github.com/smartygus
+#
+# Data to load as basis:
+#
+# There are 50000 time series, each with one year of
+# data at half-hourly (1800 seconds) interval.
+# We are using a fixed starting time stamp representing
+# 1/1/2019 at midnight.
+# This amounts to a total of:
+# 50000 (time series) * 2 (point per hour) * 24 (hours in a day) * 365 (days in 2019) = 876 Million records
+#
+# Each time series has three tags:
+#
+# - se_segment: representing some socio-economic category defined by the provider
+#   - cardinality = 5 (ie. there are 5 different categories)
+# - pricing_strategy: some customers have different pricing strategies
+#   - cardinality = 2 (ie. there are 2 different strategies, eg. fixed, and dynamic)
+# - household_id = an id representing the household. The ID is unique within the context of the other two tags
+#   - cardinality = 5000
+#
+# Run phase of the workload:
+#
+# There is just a single SCAN query that makes up the run
+# phase of this workload.
+# The idea behind this workload is from the perspective of
+# an energy provider that would like to know what the average
+# hourly usage across its whole customer base is for a given
+# day, grouped by pricing strategy. This might for example
+# lead to some insights about how a time-of-day-based
+# dynamic pricing strategy might influnce energy consumption.
+workload=site.ycsb.workloads.TimeSeriesWorkload
+
+recordcount=876000000
+operationcount=1000
+insertcount=876000000
+insertstart=1546300800
+# This workload is "offline", so during the run phase
+# there are no INSERTs, just SCANs.
+# Therefore we do not need to specify
+# an inserttransactionstart timestamp
+
+# We only have a single metric, so we are
+# dividing up the write load into groups of
+# individual time series instead of groups
+# of metrics
+threadedwritedistribution=timeseries
+
+fieldlength=3
+# single metric: 'kwh'
+fieldcount=1
+# three tags, "real world" names: se_segment, pricing_strategy, household_id
+tagcount=3 
+tagcardinality=5,2,5000
+
+sparsity=0.0
+delayedseries=0.0
+delayedintervals=0
+
+timestampunits=SECONDS
+# one measurement every half hour
+timestampinterval=1800
+randomtimeseriesorder=false
+
+# Average Hourly Consumption across
+# customer base for a given day,
+# grouped by pricing_strategy
+# No specified start timestamp, a random
+# start time will be chosen.
+# Query timespan is 24 hours
+scanproportion=1.0
+scantags=-1,-1,-1
+scanquerytimespan=86400
+scanqueryrandomtimespan=false
+scangroupbyfunction=AVERAGE
+scangroupbytagkeys=0,1,0
+scandownsamplingfunction=SUM
+scandownsamplinginterval=3600
+
+readproportion=0.00
+insertproportion=0.00
+updateproportion=0.00
