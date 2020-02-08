@@ -70,7 +70,7 @@ fieldlength=3
 # single metric: 'kwh'
 fieldcount=1
 # three tags, "real world" names: se_segment, pricing_strategy, household_id
-tagcount=3 
+tagcount=3
 tagcardinality=5,2,5000
 
 sparsity=0.0
