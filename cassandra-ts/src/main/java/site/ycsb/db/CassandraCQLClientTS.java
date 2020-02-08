@@ -200,6 +200,28 @@ public class CassandraCQLClientTS extends TimeseriesDB {
     // Get table name from properties (if it exists, otherwise use default)
     table = getProperties().getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
 
+    tagCount = Integer.parseInt(getProperties().getProperty(
+          TimeSeriesWorkload.TAG_COUNT_PROPERTY,
+          TimeSeriesWorkload.TAG_COUNT_PROPERTY_DEFAULT));
+
+    timestampUnit = TimeUnit.valueOf(getProperties().getProperty(
+        TimeSeriesWorkload.TIMESTAMP_UNITS_PROPERTY,
+        TimeSeriesWorkload.TIMESTAMP_UNITS_PROPERTY_DEFAULT));
+
+    // Throw exception if nanos is the configured timestamp
+    // as Cassandra doesn't support this
+    if (timestampUnit == TimeUnit.NANOSECONDS) {
+      throw new DBException(String.format(
+          "Unsupported value (NANOSECONDS) for property \"%s\". Supported are: SECONDS, MILLISECONDS",
+          TimeSeriesWorkload.TIMESTAMP_UNITS_PROPERTY));
+    } 
+
+    if (tagCount == null) {
+      throw new DBException(String.format(
+          "Required property \"%s\" missing for CassandraCQLClientTS",
+          TimeSeriesWorkload.TAG_COUNT_PROPERTY));
+    }
+
     // Keep track of number of calls to init (for later cleanup)
     INIT_COUNT.incrementAndGet();
 
@@ -227,27 +249,6 @@ public class CassandraCQLClientTS extends TimeseriesDB {
         }
         trace = Boolean.valueOf(getProperties().getProperty(TRACING_PROPERTY, TRACING_PROPERTY_DEFAULT));
 
-        tagCount = Integer.parseInt(getProperties().getProperty(
-              TimeSeriesWorkload.TAG_COUNT_PROPERTY,
-              TimeSeriesWorkload.TAG_COUNT_PROPERTY_DEFAULT));
-
-        timestampUnit = TimeUnit.valueOf(getProperties().getProperty(
-            TimeSeriesWorkload.TIMESTAMP_UNITS_PROPERTY,
-            TimeSeriesWorkload.TIMESTAMP_UNITS_PROPERTY_DEFAULT));
-
-        // Throw exception if nanos is the configured timestamp
-        // as Cassandra doesn't support this
-        if (timestampUnit == TimeUnit.NANOSECONDS) {
-          throw new DBException(String.format(
-              "Unsupported value (NANOSECONDS) for property \"%s\". Supported are: SECONDS, MILLISECONDS",
-              TimeSeriesWorkload.TIMESTAMP_UNITS_PROPERTY));
-        } 
-
-        if (tagCount == null) {
-          throw new DBException(String.format(
-              "Required property \"%s\" missing for CassandraCQLClientTS",
-              TimeSeriesWorkload.TAG_COUNT_PROPERTY));
-        }
 
         String host = getProperties().getProperty(HOSTS_PROPERTY);
         if (host == null) {
