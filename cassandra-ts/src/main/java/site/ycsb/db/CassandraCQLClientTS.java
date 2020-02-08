@@ -176,6 +176,7 @@ public class CassandraCQLClientTS extends TimeseriesDB {
   private static boolean trace = false;
 
   private Integer tagCount;
+  private TimeUnit timestampUnit;
 
   private Gson gson;
   private Type jSonToMapType;
@@ -230,11 +231,22 @@ public class CassandraCQLClientTS extends TimeseriesDB {
               TimeSeriesWorkload.TAG_COUNT_PROPERTY,
               TimeSeriesWorkload.TAG_COUNT_PROPERTY_DEFAULT));
 
+        timestampUnit = TimeUnit.valueOf(getProperties().getProperty(
+            TimeSeriesWorkload.TIMESTAMP_UNITS_PROPERTY,
+            TimeSeriesWorkload.TIMESTAMP_UNITS_PROPERTY_DEFAULT));
+
+        // Throw exception if nanos is the configured timestamp
+        // as Cassandra doesn't support this
+        if (timestampUnit == TimeUnit.NANOSECONDS) {
+          throw new DBException(String.format(
+              "Unsupported value (NANOSECONDS) for property \"%s\". Supported are: SECONDS, MILLISECONDS",
+              TimeSeriesWorkload.TIMESTAMP_UNITS_PROPERTY));
+        } 
+
         if (tagCount == null) {
           throw new DBException(String.format(
               "Required property \"%s\" missing for CassandraCQLClientTS",
               TimeSeriesWorkload.TAG_COUNT_PROPERTY));
-
         }
 
         String host = getProperties().getProperty(HOSTS_PROPERTY);
@@ -382,9 +394,15 @@ public class CassandraCQLClientTS extends TimeseriesDB {
       for(Map.Entry<String, List<String>> entry : tags.entrySet()) {
         tagsMap.put(entry.getKey(), ((List<String>)entry.getValue()).get(0));
       }
+
+      // Convert timestamps to milliseconds if needed
+      if (timestampUnit == TimeUnit.SECONDS) {
+        timestamp = timestamp * 1000;
+      }
+
       String tagsQueryAsJson = new Gson().toJson(tagsMap);
       if (debug) {
-        logger.info("[READ]   metric: " + metric + ", tags: " + tagsQueryAsJson + ", timestamp: " + timestamp + "(" + new Date(timestamp * 1000) + ")");
+        logger.info("[READ]   metric: " + metric + ", tags: " + tagsQueryAsJson + ", timestamp: " + timestamp + "(" + new Date(timestamp) + ")");
       }
       Set<String> queryFields = new HashSet();
       queryFields.add("value");
@@ -423,7 +441,7 @@ public class CassandraCQLClientTS extends TimeseriesDB {
       BoundStatement boundStmt = stmt.bind().setString(YCSB_KEY, metric);
 
       // Add timestamp
-      Date timestampDate = new Date(timestamp * 1000);
+      Date timestampDate = new Date(timestamp);
       boundStmt.setTimestamp("valuetime", timestampDate);
 
       // Add tags
@@ -436,7 +454,7 @@ public class CassandraCQLClientTS extends TimeseriesDB {
           logger.info("[READ][NOT FOUND]\n\n");
         }
         if (missingreadsdebug) {
-          logger.info("[READ]   metric: " + metric + ", tags: " + tagsQueryAsJson + ", timestamp: " + timestamp + "(" + new Date(timestamp * 1000) + ")");
+          logger.info("[READ]   metric: " + metric + ", tags: " + tagsQueryAsJson + ", timestamp: " + timestamp + "(" + new Date(timestamp) + ")");
           logger.info("[READ][NOT FOUND]");
           logger.info("[READ][Querying all records for the series with this Key/Tag combo)]");
           Select.Builder allForSeriesSelectBuilder = QueryBuilder.select();
@@ -471,7 +489,7 @@ public class CassandraCQLClientTS extends TimeseriesDB {
         logger.info("[READ][result] value: " + resultValue);
       }
       if (missingreadsdebug) {
-        logger.info("[READ]   metric: " + metric + ", tags: " + tagsQueryAsJson + ", timestamp: " + timestamp + "(" + new Date(timestamp * 1000) + ")");
+        logger.info("[READ]   metric: " + metric + ", tags: " + tagsQueryAsJson + ", timestamp: " + timestamp + "(" + new Date(timestamp) + ")");
         logger.info("[READ][result] value: " + resultValue + "\n");
       }
 
@@ -529,9 +547,23 @@ public class CassandraCQLClientTS extends TimeseriesDB {
         logger.info("[SCAN] metric: " + metric + ", tags: " + tagsQueryAsJson + ", startTs: " + startTs + ", endTs: " + endTs + ", downsamplingFunction: " + downsamplingFunction + ", downsamplingWindowLength: " + downsamplingWindowLength + ", downsamplingWindowUnit: " + downsamplingWindowUnit + ", groupByFunction: " + groupByFunction + ", groupByTags: " + groupByTags);
       }
 
+      
+      final long convertedStartTs;
+      final long convertedEndTs;
+
+      // Convert timestamps to milliseconds if needed
+      if (timestampUnit == TimeUnit.SECONDS) {
+        convertedStartTs = startTs * 1000;
+        convertedEndTs = endTs * 1000;
+      } else {
+        convertedStartTs = startTs;
+        convertedEndTs = endTs;
+      }
+
 
       Set<String> queryFields = new HashSet();
       queryFields.add("valuetime");
+      queryFields.add("tags");
       if (groupByFunction.toString() != "NONE") {
         queryFields.add("value-groupby");
       } else {
@@ -591,8 +623,8 @@ public class CassandraCQLClientTS extends TimeseriesDB {
       BoundStatement boundStmt = stmt.bind().setString(YCSB_KEY, metric);
 
       // Add timestamps
-      Date startTimestampDate = new Date(startTs* 1000);
-      Date endTimestampDate = new Date(endTs* 1000);
+      Date startTimestampDate = new Date(convertedStartTs);
+      Date endTimestampDate = new Date(convertedEndTs);
       boundStmt.setTimestamp("startTs", startTimestampDate);
       boundStmt.setTimestamp("endTs", endTimestampDate);
 
@@ -644,7 +676,7 @@ public class CassandraCQLClientTS extends TimeseriesDB {
             row -> row.getString("tags"),
             LinkedHashMap::new,
             Collectors.groupingBy(
-              row -> groupRowByDownsampledTimestamp(row, downsamplingWindowLength, downsamplingWindowUnit),
+              row -> groupRowByDownsampledTimestamp(row, downsamplingWindowLength, downsamplingWindowUnit, convertedStartTs),
               LinkedHashMap::new,
               aggregateRows(downsamplingFunction, row -> row.getDouble("value")))));
         //switch (downsamplingFunction.toString()) {
@@ -901,7 +933,8 @@ public class CassandraCQLClientTS extends TimeseriesDB {
             Collectors.groupingBy(
               rowGroupedByTag -> groupRowByDownsampledTimestamp(rowGroupedByTag,
                                    downsamplingWindowLength,
-                                   downsamplingWindowUnit),
+                                   downsamplingWindowUnit,
+                                   convertedStartTs),
               LinkedHashMap::new,
               Collectors.collectingAndThen(
                 Collectors.groupingBy(
@@ -1116,11 +1149,17 @@ public class CassandraCQLClientTS extends TimeseriesDB {
       for (Map.Entry entry : tags.entrySet()) {
         tagsAsStrings.put(entry.getKey().toString(), entry.getValue().toString());
       }
+
+      // Convert timestamps to milliseconds if needed
+      if (timestampUnit == TimeUnit.SECONDS) {
+        timestamp = timestamp * 1000;
+      }
+
       if (debug) {
-        logger.info("[INSERT] metric: " + metric + ", tags: " + new Gson().toJson(tagsAsStrings) + ", timestamp: " + timestamp + "(" + new Date(timestamp * 1000) + "), value: " + value);
+        logger.info("[INSERT] metric: " + metric + ", tags: " + new Gson().toJson(tagsAsStrings) + ", timestamp: " + timestamp + "(" + new Date(timestamp) + "), value: " + value);
       }
       if (missingreadsdebug) {
-        logger.info("[INSERT] metric: " + metric + ", tags: " + new Gson().toJson(tagsAsStrings) + ", timestamp: " + timestamp + "(" + new Date(timestamp * 1000) + "), value: " + value);
+        logger.info("[INSERT] metric: " + metric + ", tags: " + new Gson().toJson(tagsAsStrings) + ", timestamp: " + timestamp + "(" + new Date(timestamp) + "), value: " + value);
       }
 
       Set<String> queryFields = new HashSet();
@@ -1163,7 +1202,7 @@ public class CassandraCQLClientTS extends TimeseriesDB {
       BoundStatement boundStmt = stmt.bind().setString(YCSB_KEY, metric);
 
       // Add timestamp
-      Date timestampDate = new Date(timestamp * 1000);
+      Date timestampDate = new Date(timestamp);
       boundStmt.setTimestamp("valuetime", timestampDate);
 
       // Add tags
@@ -1410,27 +1449,36 @@ public class CassandraCQLClientTS extends TimeseriesDB {
    * @param downsamplingWindowUnit    The TimeUnit of downsamplingWindowLength 
    * @return The string representation of the downsampled UNIX timestamp, that acts as a token for grouping
    */
-  protected String groupRowByDownsampledTimestamp(Row row, int downsamplingWindowLength, TimeUnit downsamplingWindowUnit) {
+  protected String groupRowByDownsampledTimestamp(Row row, int downsamplingWindowLength, TimeUnit downsamplingWindowUnit, long queryStartTimestamp) {
     long timestamp = row.getTimestamp("valuetime").getTime();
     long groupingTimestamp = timestamp;
-    switch (downsamplingWindowUnit) {
-      case MILLISECONDS:
-        groupingTimestamp = timestamp / downsamplingWindowLength;
-        break;
-      case SECONDS:
-        groupingTimestamp = timestamp / (1000 * downsamplingWindowLength) * (1000 * downsamplingWindowLength);
-        break;
-      case MINUTES:
-        groupingTimestamp = timestamp / (1000 * 60 * downsamplingWindowLength) * (1000 * 60 * downsamplingWindowLength);
-        break;
-      case HOURS:
-        groupingTimestamp = timestamp / (1000 * 60 * 60 * downsamplingWindowLength) * (1000 * 60 * 60 * downsamplingWindowLength);
-        break;
-      case DAYS:
-        groupingTimestamp = timestamp / (1000 * 60 * 60 * 24 * downsamplingWindowLength) * (1000 * 60 * 60 * 24 * downsamplingWindowLength);
-        break;
-      default:
-        throw new IllegalArgumentException("Unsupported downsampling downsamplingWindowUnit: " + downsamplingWindowUnit);
+    // First handle special window of zero - this is a signal just to downsample
+    // *all* data points for a given time series that were returned by the SCAN
+    // query. So we just need only one group, but ideally this group should still
+    // have a timestamp that has some reference to the underlying data, therefore
+    // we give it the starting timestamp of the SCAN query.
+    if (downsamplingWindowLength == 0) {
+      groupingTimestamp = queryStartTimestamp;
+    } else {
+      switch (downsamplingWindowUnit) {
+        case MILLISECONDS:
+          groupingTimestamp = timestamp / downsamplingWindowLength;
+          break;
+        case SECONDS:
+          groupingTimestamp = timestamp / (1000 * downsamplingWindowLength) * (1000 * downsamplingWindowLength);
+          break;
+        case MINUTES:
+          groupingTimestamp = timestamp / (1000 * 60 * downsamplingWindowLength) * (1000 * 60 * downsamplingWindowLength);
+          break;
+        case HOURS:
+          groupingTimestamp = timestamp / (1000 * 60 * 60 * downsamplingWindowLength) * (1000 * 60 * 60 * downsamplingWindowLength);
+          break;
+        case DAYS:
+          groupingTimestamp = timestamp / (1000 * 60 * 60 * 24 * downsamplingWindowLength) * (1000 * 60 * 60 * 24 * downsamplingWindowLength);
+          break;
+        default:
+          throw new IllegalArgumentException("Unsupported downsampling downsamplingWindowUnit: " + downsamplingWindowUnit);
+      }
     }
     if (trace) { 
       logger.info("\t[grouping row] timestamp: " + row.getTimestamp("valuetime").getTime() + ", value: " + row.getDouble("value") + " --> timeBucket = " + groupingTimestamp);
