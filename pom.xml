@@ -128,18 +128,14 @@ LICENSE file.
     <googlebigtable.version>1.4.0</googlebigtable.version>
     <googlefirestore.version>1.29.0</googlefirestore.version>
     <griddb.version>4.0.0</griddb.version>
-    <hbase098.version>0.98.14-hadoop2</hbase098.version>
-    <hbase10.version>1.0.2</hbase10.version>
-    <hbase12.version>1.2.5</hbase12.version>
-    <hbase14.version>1.4.2</hbase14.version>
-    <hbase20.version>2.0.0</hbase20.version>
+    <hbase1.version>1.4.12</hbase1.version>
+    <hbase2.version>2.2.3</hbase2.version>
     <hypertable.version>0.9.5.6</hypertable.version>
-    <ignite.version>2.7.0</ignite.version>
+    <ignite.version>2.7.6</ignite.version>
     <infinispan.version>7.2.2.Final</infinispan.version>
-    <kudu.version>1.6.0</kudu.version>
+    <kudu.version>1.11.1</kudu.version>
     <maprhbase.version>1.1.8-mapr-1710</maprhbase.version>
-    <!--<mapkeeper.version>1.0</mapkeeper.version>-->
-    <mongodb.version>3.8.0</mongodb.version>
+    <mongodb.version>3.11.0</mongodb.version>
     <mongodb.async.version>2.0.1</mongodb.async.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
     <orientdb.version>2.2.37</orientdb.version>
@@ -183,17 +179,13 @@ LICENSE file.
     <module>googledatastore</module>
     <module>googlefirestore</module>
     <module>griddb</module>
-    <module>hbase098</module>
-    <module>hbase10</module>
-    <module>hbase12</module>
-    <module>hbase14</module>
-    <module>hbase20</module>
+    <module>hbase1</module>
+    <module>hbase2</module>
     <module>hypertable</module>
     <module>ignite</module>
     <module>infinispan</module>
     <module>jdbc</module>
     <module>kudu</module>
-    <!--<module>mapkeeper</module>-->
     <module>maprdb</module>
     <module>maprjsondb</module>
     <module>memcached</module>
@@ -239,7 +231,11 @@ LICENSE file.
             <configuration>
               <rules>
                 <requireMavenVersion>
-                  <version>3.1.0</version>
+                  <!--
+                  Maven 3.6.2 has issues
+                  https://github.com/brianfrankcooper/YCSB/issues/1390
+                  -->
+                  <version>[3.1.0,3.6.2),(3.6.2,)</version>
                 </requireMavenVersion>
               </rules>
             </configuration>
