@@ -74,6 +74,7 @@ DATABASES = {
     "geode"        : "site.ycsb.db.GeodeClient",
     "googlebigtable"  : "site.ycsb.db.GoogleBigtableClient",
     "googledatastore" : "site.ycsb.db.GoogleDatastoreClient",
+    "googlefirestore" : "site.ycsb.db.firestore.GoogleFirestoreClient",
     "griddb"       : "site.ycsb.db.griddb.GridDBClient",
     "hbase1"      : "site.ycsb.db.hbase1.HBaseClient1",
     "hbase2"      : "site.ycsb.db.hbase2.HBaseClient2",
