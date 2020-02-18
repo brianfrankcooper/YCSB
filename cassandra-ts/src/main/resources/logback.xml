@@ -22,29 +22,29 @@
 
   <!-- QUERYLOG rolling file appender to querylog.log (all levels) -->
 
-  <appender name="QUERYLOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>/usr/ycsb/cassandra-ts/log/querylog.log</file>
-    <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-      <fileNamePattern>/usr/ycsb/cassandra-ts/log/query.log.%i.zip</fileNamePattern>
-      <minIndex>1</minIndex>
-      <maxIndex>20</maxIndex>
-    </rollingPolicy>
-    <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
-      <maxFileSize>20MB</maxFileSize>
-    </triggeringPolicy>
-    <encoder>
-      <pattern>%-5level [%thread] %date{ISO8601} %F:%L - %msg%n</pattern>
-    </encoder>
-  </appender>
+  <!--<appender name="QUERYLOG" class="ch.qos.logback.core.rolling.RollingFileAppender">-->
+    <!--<file>/usr/ycsb/cassandra-ts/log/querylog.log</file>-->
+    <!--<rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">-->
+      <!--<fileNamePattern>/usr/ycsb/cassandra-ts/log/query.log.%i.zip</fileNamePattern>-->
+      <!--<minIndex>1</minIndex>-->
+      <!--<maxIndex>20</maxIndex>-->
+    <!--</rollingPolicy>-->
+    <!--<triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">-->
+      <!--<maxFileSize>20MB</maxFileSize>-->
+    <!--</triggeringPolicy>-->
+    <!--<encoder>-->
+      <!--<pattern>%-5level [%thread] %date{ISO8601} %F:%L - %msg%n</pattern>-->
+    <!--</encoder>-->
+  <!--</appender>-->
 
   <!-- ASYNCLOG assynchronous appender to querylog.log (all levels) -->
 
-  <appender name="ASYNCQUERYLOG" class="ch.qos.logback.classic.AsyncAppender">
-    <queueSize>1024</queueSize>
-    <discardingThreshold>0</discardingThreshold>
-    <includeCallerData>true</includeCallerData>
-    <appender-ref ref="QUERYLOG" />
-  </appender>
+  <!--<appender name="ASYNCQUERYLOG" class="ch.qos.logback.classic.AsyncAppender">-->
+    <!--<queueSize>1024</queueSize>-->
+    <!--<discardingThreshold>0</discardingThreshold>-->
+    <!--<includeCallerData>true</includeCallerData>-->
+    <!--<appender-ref ref="QUERYLOG" />-->
+  <!--</appender>-->
 
   <!-- STDOUT console appender to stdout (INFO level) -->
 
@@ -61,7 +61,7 @@
     <appender-ref ref="STDOUT" />
   </root>
 
-  <logger name="com.datastax.driver.core.QueryLogger.NORMAL" level="TRACE" additivity="false">
-    <appender-ref ref="ASYNCQUERYLOG" />
-  </logger>
+  <!--<logger name="com.datastax.driver.core.QueryLogger.NORMAL" level="TRACE" additivity="false">-->
+    <!--<appender-ref ref="ASYNCQUERYLOG" />-->
+  <!--</logger>-->
 </configuration>

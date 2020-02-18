@@ -258,7 +258,6 @@ public abstract class TimeseriesDB extends DB {
 
   @Override
   public final Status insert(String table, String key, Map<String, ByteIterator> values) {
-    //System.out.println("[TimeseriesDB.java] insert() -> table: " + table + ", key: " + key + ", values: " + values);
     NumericByteIterator tsContainer = (NumericByteIterator) values.remove(timestampKey);
     NumericByteIterator valueContainer = (NumericByteIterator) values.remove(valueKey);
     if (valueContainer.isFloatingPoint()) {
