@@ -16,11 +16,8 @@
  */
 package site.ycsb.workloads;
 
-import java.lang.Math;
-
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.function.Function;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -481,17 +478,17 @@ public class TimeSeriesWorkload extends Workload {
   public static final String DELETE_QUERY_RANDOM_TIMESPAN_PROPERTY = "deletequeryrandomtimespan";
   public static final String DELETE_QUERY_RANDOM_TIMESPAN_PROPERTY_DEFAULT = "false";
 
-  /** global debug property loading */
+  /** global debug property loading. */
   private static final String DEBUG_PROPERTY = "debug";
   private static final String DEBUG_PROPERTY_DEFAULT = "false";
 
-  /** class-specific debug property loading */
+  /** class-specific debug property loading. */
   private static final String TIMESERIESWORKLOAD_DEBUG_PROPERTY = "timeseriesworkload.debug";
   
   /** The properties to pull settings from. */
   protected Properties properties;
 
-  /** A boolean representing whether or not we are doing a transaction run or not */
+  /** A boolean representing whether or not we are doing a transaction run or not. */
   protected boolean doTransactions;
   
   /** Generators for keys, tag keys and tag values. */
@@ -527,14 +524,17 @@ public class TimeSeriesWorkload extends Workload {
   /** Used to when generating the key and tag value indices
    *  across the whole tree of values when splitting up
    *  the generation and insertion of data points into
-   *  groups of time series per thread*/
+   *  groups of time series per thread.
+   */
   protected int[] cumulativeTotalCardinality;
   
   /** The calculated total cardinality based on the config. */
   protected int totalCardinality;
   
-  /** The calculated per-time-series-key cardinality. I.e. the number of unique
-   * tag key and value combinations. */
+  /** The calculated per-time-series-key cardinality.
+   * I.e. the number of unique
+   * tag key and value combinations.
+   */
   protected int perKeyCardinality;
   
   /** How much data to scan for in each call. */
@@ -625,7 +625,7 @@ public class TimeSeriesWorkload extends Workload {
   /** The key used to store the group-by tag keys for READ/SCAN queries in the standard YCSB data structure. */
   protected String groupByTagsKey;
 
-  /** The (optional) specification for which tags should have which values in READ queries */
+  /** The (optional) specification for which tags should have which values in READ queries. */
   protected int[] readTags;
 
   /** Whether or not to issue group-by with READ queries. */
@@ -637,10 +637,10 @@ public class TimeSeriesWorkload extends Workload {
   /** The tag keys to group on in a READ query. */
   protected boolean[] readGroupBys;
 
-  /** The (optional) specification for which tags should have which values in SCAN queries */
+  /** The (optional) specification for which tags should have which values in SCAN queries. */
   protected int[][] scanTags;
 
-  /** The (optional) starting timestamp for SCAN queries */
+  /** The (optional) starting timestamp for SCAN queries. */
   protected int[] scanStartTs;
 
   /** Optional query time interval during scans. */
@@ -680,7 +680,7 @@ public class TimeSeriesWorkload extends Workload {
   /** Measurements to write data integrity results to. */
   protected Measurements measurements = Measurements.getMeasurements();
 
-  /** YCSB-parameters */
+  /** YCSB-parameters. */
   protected boolean debug;
   
   @Override
@@ -805,207 +805,15 @@ public class TimeSeriesWorkload extends Workload {
           "Distribution \"" + scanlengthdistrib + "\" not allowed for scan length");
     }
 
-    // Parse all the properties for the SCAN query/queries (if there's more than one)
-    // Each variable for the SCAN query properties is an array, to allow for
-    // the possiblity to have multiple SCAN queries in one workload.
-    // If scan properties were entered for just one scan query, then all the 
-    // relevant properties just begin with the prefix 'scan'. These properties
-    // will be stores at the 0 index of the arrays that store all the SCAN query
-    // properties.
-    // For multiple SCAN queries in one workload, it is expected that the prefix
-    // includes and index, eg. scan1, scan2, etc.
-    // This index will also be the array index used. This means it's possible that
-    // someone only uses scan properties with indexes, but this is also okay, because
-    // the operationChooser also has one operation for each query, with the index,
-    // and this index will be passed to the method that performs the query, which
-    // will in turn pull the values out of the arrays based on the given index. So
-    // if there's no properties stored at the zero index, this is okay.
-    // Some SCAN properties are required and/or have default values, and we will
-    // pull them from the relevant default defined towards the tops of this file.
-
-    // We retrieve the "list" of SCAN queries defined in the properties by looking
-    // for all the scan[n]proportion properties defined, because the query cannot
-    // exist without a proportion. We then transform these into indexes by either
-    // pulling the index directly out of the property name or setting it to zero if
-    // no index number was present.
-    Set<Integer> scanQueryIndexes = p.stringPropertyNames().stream()
-                                        .filter(prop -> prop.matches("scan[0-9]{0,3}proportion"))
-                                        .map(scanProp -> {
-                                          if (scanProp.matches(".*\\d.*")) {
-                                            return new Integer(scanProp.replaceAll("[^0-9]", ""));
-                                          } else {
-                                            return new Integer(0);
-                                          }
-                                        }).collect(Collectors.toSet());
-
-    int scanQueryMaxIndex = Collections.max(scanQueryIndexes);
-    if (debug) {
-      System.out.println("[TimeSeriesWorkload.java] scanQueryIndexes found: " + scanQueryIndexes);
-      System.out.println("[TimeSeriesWorkload.java] scanQueryMaxIndex: " + scanQueryMaxIndex);
-    }
-
-    // Initialize all SCAN property arrays based on highest index found
-    // Note: this might mean that the array is larger than the number of indexes, but then
-    // we ensure that the scan query index should always match the array index.
-    scanTags = new int[scanQueryMaxIndex + 1][];
-    scanStartTs = new int[scanQueryMaxIndex + 1];
-    scanQueryTimeSpan = new int[scanQueryMaxIndex + 1];
-    scanQueryRandomTimeSpan = new boolean[scanQueryMaxIndex + 1];
-    scanGroupByFunction = new String[scanQueryMaxIndex + 1];
-    scanGroupBys = new boolean[scanQueryMaxIndex + 1][];
-    scanGroupBy = new boolean[scanQueryMaxIndex + 1];
-    scanDownsampleFunction = new String[scanQueryMaxIndex + 1];
-    scanDownsampleInterval = new int[scanQueryMaxIndex + 1];
-    scanDownsample = new boolean[scanQueryMaxIndex + 1];
-
-    // Now loop through each index, retrieve the properties and assign to the arrays
-    for (Integer scanQueryIndex: scanQueryIndexes) {
-      if (debug) {
-        System.out.println("[TimeSeriesWorkload.java] Parsing SCAN Query Properties, for Index: " + scanQueryIndex);
-      }
-
-      // See SCAN_TAGS_PROPERTY in tsworkload_template for explanation
-      final String scanTagsPropertyValue = p.getProperty(indexedScanProperty(scanQueryIndex, SCAN_TAGS_PROPERTY));
-      if (scanTagsPropertyValue != null && !scanTagsPropertyValue.isEmpty()) {
-        final String[] scanTagsValues = scanTagsPropertyValue.split(",");
-        if (scanTagsValues.length != tagKeys.length) {
-          throw new WorkloadException("SCAN" + scanQueryIndex + ": Only " + scanTagsValues.length + " scantags values"
-              + "were specified but there were " + tagKeys.length + " tag keys given.");
-        }
-        scanTags[scanQueryIndex] = new int[scanTagsValues.length];
-        for (int i = 0; i < scanTagsValues.length; i++) {
-          final int tagKeyValueIndex = Integer.parseInt(scanTagsValues[i].trim());
-          if (tagKeyValueIndex > tagCardinality[i]) {
-            throw new WorkloadException("scan" + scanQueryIndex + "tags: value given for tag at index " + i + " ("
-                + tagKeyValueIndex + ") is larger than the tag cardinality for that tag (" + tagCardinality[i] + ")");
-          }
-          scanTags[scanQueryIndex][i] = Integer.parseInt(scanTagsValues[i].trim());
-        }
-      }
-
-      // See SCAN_START_TS_PROPERTY property in tsworkload_template for full explanation.
-      // Can either be a positive integer representing a specific timestamp, or a negative integer,
-      // which represents a negative offset from the most recently-written timestamp. But here
-      // we just store the raw int, the actual behaviour will be handled in the doTransactionScan method
-      String scanStartTsPropertyValue = p.getProperty(indexedScanProperty(scanQueryIndex, SCAN_START_TS_PROPERTY));
-      if (scanStartTsPropertyValue != null) {
-        scanStartTs[scanQueryIndex] = Integer.parseInt(scanStartTsPropertyValue);
-      }
-    
-      if (debug) {
-        System.out.println("[TimeSeriesWorkload.java] scanQueryTimeSpan[] (before assignment) -> " + Arrays.toString(scanQueryTimeSpan));
-      }
-      // See SCAN_QUERY_TIMESPAN_PROPERTY property in tsworkload_template for full explanation.
-      scanQueryTimeSpan[scanQueryIndex] = Integer.parseInt(p.getProperty(
-          indexedScanProperty(scanQueryIndex, SCAN_QUERY_TIMESPAN_PROPERTY), 
-          SCAN_QUERY_TIMESPAN_PROPERTY_DEFAULT));
-      if (debug) {
-        System.out.println("[TimeSeriesWorkload.java] scanQueryTimeSpan[] (after assignment) -> " + Arrays.toString(scanQueryTimeSpan));
-      }
-
-      // See SCAN_QUERY_RANDOM_TIMESPAN_PROPERTY property in tsworkload_template for full explanation.
-      scanQueryRandomTimeSpan[scanQueryIndex] = Boolean.parseBoolean(p.getProperty(
-          indexedScanProperty(scanQueryIndex, SCAN_QUERY_RANDOM_TIMESPAN_PROPERTY), 
-          SCAN_QUERY_RANDOM_TIMESPAN_PROPERTY_DEFAULT));
-
-      // See SCAN_GROUPBY_PROPERTY property in tsworkload_template for full explanation.
-      scanGroupByFunction[scanQueryIndex] = p.getProperty(indexedScanProperty(scanQueryIndex, SCAN_GROUPBY_PROPERTY));
-      if (scanGroupByFunction[scanQueryIndex] != null && !scanGroupByFunction[scanQueryIndex].isEmpty()) {
-        final String scanGroupByTagKeys = p.getProperty(indexedScanProperty(scanQueryIndex, SCAN_GROUPBY_TAG_KEYS_PROPERTY));
-        if (scanGroupByTagKeys == null || scanGroupByTagKeys.isEmpty()) {
-          throw new WorkloadException("SCAN" + scanQueryIndex + ": Group by was enabled but no keys were specified.");
-        }
-        final String[] scanGbKeys = scanGroupByTagKeys.split(",");
-        if (scanGbKeys.length != tagKeys.length) {
-          throw new WorkloadException("Only " + scanGbKeys.length + " SCAN" + scanQueryIndex + " group by keys "
-              + "were specified but there were " + tagKeys.length + " tag keys given.");
-        }
-        scanGroupBys[scanQueryIndex] = new boolean[scanGbKeys.length];
-        for (int i = 0; i < scanGbKeys.length; i++) {
-          scanGroupBys[scanQueryIndex][i] = Integer.parseInt(scanGbKeys[i].trim()) == 0 ? false : true;
-        }
-        scanGroupBy[scanQueryIndex] = true;
-      }
-     
-      // See SCAN_DOWNSAMPLING_FUNCTION_PROPERTY property in tsworkload_template for full explanation.
-      scanDownsampleFunction[scanQueryIndex] = p.getProperty(indexedScanProperty(scanQueryIndex,
-            SCAN_DOWNSAMPLING_FUNCTION_PROPERTY));
-      if (scanDownsampleFunction[scanQueryIndex] != null && !scanDownsampleFunction[scanQueryIndex].isEmpty()) {
-        // See SCAN_DOWNSAMPLING_INTERVAL_PROPERTY property in tsworkload_template for full explanation.
-        final String interval = p.getProperty(indexedScanProperty(scanQueryIndex, SCAN_DOWNSAMPLING_INTERVAL_PROPERTY));
-        if (interval == null || interval.isEmpty()) {
-          throw new WorkloadException("SCAN" + scanQueryIndex
-              + "'" + indexedScanProperty(scanQueryIndex, SCAN_DOWNSAMPLING_INTERVAL_PROPERTY) + "' was missing despite '" 
-              + indexedScanProperty(scanQueryIndex, SCAN_DOWNSAMPLING_FUNCTION_PROPERTY) + "' being set.");
-        }
-        scanDownsampleInterval[scanQueryIndex] = Integer.parseInt(interval);
-        scanDownsample[scanQueryIndex] = true;
-      }
-    }
+    initScanQueryProperties();
+    initReadQueryProperties();
+    initDeleteQueryProperties();
    
     // These two properties are not individual-SCAN-query-specific, but rather apply for the whole
     // workload, therefore they are just pulled and stored once.
     groupByFunctionKey = p.getProperty(GROUPBY_FUNCTION_KEY_PROPERTY, GROUPBY_FUNCTION_KEY_PROPERTY_DEFAULT);
     groupByTagsKey = p.getProperty(GROUPBY_TAGS_KEY_PROPERTY, GROUPBY_TAGS_KEY_PROPERTY_DEFAULT);
     scanDownsampleKey = p.getProperty(SCAN_DOWNSAMPLING_KEY_PROPERTY, SCAN_DOWNSAMPLING_KEY_PROPERTY_DEFAULT);
-    
-    // See READ_TAGS_PROPERTY in tsworkload_template for explanation
-    final String readTagsPropertyValue = p.getProperty(READ_TAGS_PROPERTY);
-    if (readTagsPropertyValue != null && !readTagsPropertyValue.isEmpty()) {
-      final String[] readTagsValues = readTagsPropertyValue.split(",");
-      if (readTagsValues.length != tagKeys.length) {
-        throw new WorkloadException("READ: Only " + readTagsValues.length + " readtags values"
-            + "were specified but there were " + tagKeys.length + " tag keys given.");
-      }
-      readTags = new int[readTagsValues.length];
-      for (int i = 0; i < readTagsValues.length; i++) {
-        final int tagKeyValueIndex = Integer.parseInt(readTagsValues[i].trim());
-        if (tagKeyValueIndex > tagCardinality[i]) {
-          throw new WorkloadException("readtags: value given for tag at index " + i + " ("
-              + tagKeyValueIndex + ") is larger than the tag cardinality for that tag (" + tagCardinality[i] + ")");
-        }
-        readTags[i] = Integer.parseInt(readTagsValues[i].trim());
-      }
-    }
-
-    readGroupByFunction = p.getProperty(READ_GROUPBY_PROPERTY);
-    if (readGroupByFunction != null && !readGroupByFunction.isEmpty()) {
-      final String readGroupByTagKeys = p.getProperty(READ_GROUPBY_TAG_KEYS_PROPERTY);
-      if (readGroupByTagKeys == null || readGroupByTagKeys.isEmpty()) {
-        throw new WorkloadException("READ Group by was enabled but no keys were specified.");
-      }
-      final String[] readGbKeys = readGroupByTagKeys.split(",");
-      if (readGbKeys.length != tagKeys.length) {
-        throw new WorkloadException("Only " + readGbKeys.length + " READ group by keys "
-            + "were specified but there were " + tagKeys.length + " tag keys given.");
-      }
-      readGroupBys = new boolean[readGbKeys.length];
-      for (int i = 0; i < readGbKeys.length; i++) {
-        readGroupBys[i] = Integer.parseInt(readGbKeys[i].trim()) == 0 ? false : true;
-      }
-      readGroupBy = true;
-    }
-
-
-    deleteQueryTimeSpan = Integer.parseInt(p.getProperty(DELETE_QUERY_TIMESPAN_PROPERTY, 
-        DELETE_QUERY_TIMESPAN_PROPERTY_DEFAULT));
-    deleteQueryRandomTimeSpan = Boolean.parseBoolean(p.getProperty(DELETE_QUERY_RANDOM_TIMESPAN_PROPERTY, 
-        DELETE_QUERY_RANDOM_TIMESPAN_PROPERTY_DEFAULT));
-
-    // Delete by Tag Keys only (instead of fully-defined tag key-value pairs)
-    final String deleteTagKeys = p.getProperty(DELETE_TAG_KEYS_PROPERTY);
-    if (deleteTagKeys != null && !deleteTagKeys.isEmpty()) {
-      final String[] delTagKeys = deleteTagKeys.split(",");
-      if (delTagKeys.length != tagKeys.length) {
-        throw new WorkloadException("Only " + delTagKeys.length + " delete tag keys "
-            + "were specified but there were " + tagKeys.length + " tag keys given.");
-      }
-      deleteTags = new boolean[delTagKeys.length];
-      for (int i = 0; i < delTagKeys.length; i++) {
-        deleteTags[i] = Integer.parseInt(delTagKeys[i].trim()) == 0 ? false : true;
-      }
-      deleteByTag = true;
-    }
     
     delayedSeries = Double.parseDouble(p.getProperty(DELAYED_SERIES_PROPERTY, DELAYED_SERIES_PROPERTY_DEFAULT));
     delayedIntervals = Integer.parseInt(p.getProperty(DELAYED_INTERVALS_PROPERTY, DELAYED_INTERVALS_PROPERTY_DEFAULT));
@@ -1180,8 +988,14 @@ public class TimeSeriesWorkload extends Workload {
     if (readGroupBy) {
       // First add the function to the fields with the special key for the group by function
       fields.add(groupByFunctionKey + tagPairDelimiter + readGroupByFunction);
-      // Then add the list of tags, separated by the delimiter defined in the config, with the special key for group by tags
-      fields.add(groupByTagsKey + tagPairDelimiter + IntStream.range(0, readGroupBys.length).filter(i -> readGroupBys[i]).mapToObj(i -> tagKeys[i]).collect(Collectors.joining(groupByTagsListDelimiter)));
+      // Then add the list of tags, separated by the delimiter defined in the config,
+      // with the special key for group by tags
+      fields.add(groupByTagsKey +
+          tagPairDelimiter +
+          IntStream.range(0, readGroupBys.length)
+          .filter(i -> readGroupBys[i])
+          .mapToObj(i -> tagKeys[i])
+          .collect(Collectors.joining(groupByTagsListDelimiter)));
     }
     
     final Map<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
@@ -1222,14 +1036,16 @@ public class TimeSeriesWorkload extends Workload {
     final long startTimestamp;
     if (scanStartTs[scanQueryIndex] != 0) { // a specifically-configured start timestamp is present
       if (scanStartTs[scanQueryIndex] < 0) { // we have a negative offset from latest-written timestamp
-        startTimestamp = state.timestampGenerator.currentValue() + scanStartTs[scanQueryIndex]; // plus cos it's a negative value
+        // plus cos it's a negative value
+        startTimestamp = state.timestampGenerator.currentValue() + scanStartTs[scanQueryIndex];
       } else { // we have a specific, fixed start timestamp
         startTimestamp = scanStartTs[scanQueryIndex];
       }
     } else { // no configured timestamp, choose randomly between startTimestamp and current max timestamp
       int offsets;
       // Check and see how far we are with writing (assuming writing is happening during run phase)
-      final long currentWriteDeltaInOffsets = (state.timestampGenerator.currentValue() - state.startTimestamp) / timestampInterval;
+      final long currentWriteDeltaInOffsets = (state.timestampGenerator.currentValue() -
+          state.startTimestamp) / timestampInterval;
       if (currentWriteDeltaInOffsets > maxOffsets - 1) { // We are writing during run phase
         offsets = random.nextInt((int) currentWriteDeltaInOffsets);
       } else { // We are not writing, so max timestamp is based on original maxOffsets
@@ -1276,7 +1092,8 @@ public class TimeSeriesWorkload extends Workload {
     if (scanQueryTimeSpan[scanQueryIndex] > 0) { // endTimestamp is different to startTimestamp
       final long endTimestamp;
       if (scanQueryRandomTimeSpan[scanQueryIndex]) {
-        endTimestamp = startTimestamp + (timestampInterval * random.nextInt(scanQueryTimeSpan[scanQueryIndex] / timestampInterval));
+        endTimestamp = startTimestamp +
+          (timestampInterval * random.nextInt(scanQueryTimeSpan[scanQueryIndex] / timestampInterval));
       } else {
         endTimestamp = startTimestamp + scanQueryTimeSpan[scanQueryIndex];
       }
@@ -1287,11 +1104,20 @@ public class TimeSeriesWorkload extends Workload {
     if (scanGroupBy[scanQueryIndex]) {
       // First add the function to the fields with the special key for the group by function
       fields.add(groupByFunctionKey + tagPairDelimiter + scanGroupByFunction[scanQueryIndex]);
-      // Then add the list of tags, separated by the delimiter defined in the config, with the special key for group by tags
-      fields.add(groupByTagsKey + tagPairDelimiter + IntStream.range(0, scanGroupBys[scanQueryIndex].length).filter(i -> scanGroupBys[scanQueryIndex][i]).mapToObj(i -> tagKeys[i]).collect(Collectors.joining(groupByTagsListDelimiter)));
+      // Then add the list of tags, separated by the delimiter defined in the config,
+      // with the special key for group by tags
+      fields.add(groupByTagsKey +
+          tagPairDelimiter +
+          IntStream.range(0, scanGroupBys[scanQueryIndex].length)
+          .filter(i -> scanGroupBys[scanQueryIndex][i])
+          .mapToObj(i -> tagKeys[i])
+          .collect(Collectors.joining(groupByTagsListDelimiter)));
     }
     if (scanDownsample[scanQueryIndex]) {
-      fields.add(scanDownsampleKey + tagPairDelimiter + scanDownsampleFunction[scanQueryIndex] + scanDownsampleInterval[scanQueryIndex]);
+      fields.add(scanDownsampleKey +
+          tagPairDelimiter +
+          scanDownsampleFunction[scanQueryIndex] +
+          scanDownsampleInterval[scanQueryIndex]);
     }
     
     final Vector<HashMap<String, ByteIterator>> results = new Vector<HashMap<String, ByteIterator>>();
@@ -1300,7 +1126,8 @@ public class TimeSeriesWorkload extends Workload {
     long endTime = System.nanoTime();
     if (scanQueryIndex != 0) {
       // Note: YCSB expect latency measurements in microseconds it seems
-      // See: https://github.com/brianfrankcooper/YCSB/blob/cd1589ce6f5abf96e17aa8ab80c78a4348fdf29a/core/src/main/java/site/ycsb/DBWrapper.java#L179
+      // See: https://github.com/brianfrankcooper/YCSB/blob
+      // /cd1589ce6f5abf96e17aa8ab80c78a4348fdf29a/core/src/main/java/site/ycsb/DBWrapper.java#L179
       Measurements.getMeasurements().measure("SCAN" + scanQueryIndex,  (int)((endTime - startTime)/1000));
       // Report status for each individual SCAN query so that's also reported in the results
       Measurements.getMeasurements().reportStatus("SCAN" + scanQueryIndex, returnStatus);
@@ -1529,8 +1356,235 @@ public class TimeSeriesWorkload extends Workload {
     }
     if (debug) {
       System.out.println("[TimeSeriesWorkload.java][initKeysAndTags] totalCardinality = " + totalCardinality);
-      System.out.println("[TimeSeriesWorkload.java][initKeysAndTags] keyAndTagCardinality = " + Arrays.toString(keyAndTagCardinality));
-      System.out.println("[TimeSeriesWorkload.java][initKeysAndTags] cumulativeTotalCardinality = " + Arrays.toString(cumulativeTotalCardinality));
+      System.out.println("[TimeSeriesWorkload.java][initKeysAndTags] keyAndTagCardinality = " +
+          Arrays.toString(keyAndTagCardinality));
+      System.out.println("[TimeSeriesWorkload.java][initKeysAndTags] cumulativeTotalCardinality = " +
+          Arrays.toString(cumulativeTotalCardinality));
+    }
+  }
+
+  /**
+   * Breaks out the delete query property initialization in another method
+   * to keep CheckStyle happy.
+   * @throws WorkloadException If something goes pear shaped.
+   */
+  protected void initDeleteQueryProperties() throws WorkloadException {
+    deleteQueryTimeSpan = Integer.parseInt(properties.getProperty(DELETE_QUERY_TIMESPAN_PROPERTY, 
+        DELETE_QUERY_TIMESPAN_PROPERTY_DEFAULT));
+    deleteQueryRandomTimeSpan = Boolean.parseBoolean(properties.getProperty(DELETE_QUERY_RANDOM_TIMESPAN_PROPERTY, 
+        DELETE_QUERY_RANDOM_TIMESPAN_PROPERTY_DEFAULT));
+
+    // Delete by Tag Keys only (instead of fully-defined tag key-value pairs)
+    final String deleteTagKeys = properties.getProperty(DELETE_TAG_KEYS_PROPERTY);
+    if (deleteTagKeys != null && !deleteTagKeys.isEmpty()) {
+      final String[] delTagKeys = deleteTagKeys.split(",");
+      if (delTagKeys.length != tagKeys.length) {
+        throw new WorkloadException("Only " + delTagKeys.length + " delete tag keys "
+            + "were specified but there were " + tagKeys.length + " tag keys given.");
+      }
+      deleteTags = new boolean[delTagKeys.length];
+      for (int i = 0; i < delTagKeys.length; i++) {
+        deleteTags[i] = Integer.parseInt(delTagKeys[i].trim()) == 0 ? false : true;
+      }
+      deleteByTag = true;
+    }
+  }
+
+  /**
+   * Breaks out the read query property initialization in another method
+   * to keep CheckStyle happy.
+   * @throws WorkloadException If something goes pear shaped.
+   */
+  protected void initReadQueryProperties() throws WorkloadException {
+    // See READ_TAGS_PROPERTY in tsworkload_template for explanation
+    final String readTagsPropertyValue = properties.getProperty(READ_TAGS_PROPERTY);
+    if (readTagsPropertyValue != null && !readTagsPropertyValue.isEmpty()) {
+      final String[] readTagsValues = readTagsPropertyValue.split(",");
+      if (readTagsValues.length != tagKeys.length) {
+        throw new WorkloadException("READ: Only " + readTagsValues.length + " readtags values"
+            + "were specified but there were " + tagKeys.length + " tag keys given.");
+      }
+      readTags = new int[readTagsValues.length];
+      for (int i = 0; i < readTagsValues.length; i++) {
+        final int tagKeyValueIndex = Integer.parseInt(readTagsValues[i].trim());
+        if (tagKeyValueIndex > tagCardinality[i]) {
+          throw new WorkloadException("readtags: value given for tag at index " + i + " ("
+              + tagKeyValueIndex + ") is larger than the tag cardinality for that tag (" + tagCardinality[i] + ")");
+        }
+        readTags[i] = Integer.parseInt(readTagsValues[i].trim());
+      }
+    }
+
+    readGroupByFunction = properties.getProperty(READ_GROUPBY_PROPERTY);
+    if (readGroupByFunction != null && !readGroupByFunction.isEmpty()) {
+      final String readGroupByTagKeys = properties.getProperty(READ_GROUPBY_TAG_KEYS_PROPERTY);
+      if (readGroupByTagKeys == null || readGroupByTagKeys.isEmpty()) {
+        throw new WorkloadException("READ Group by was enabled but no keys were specified.");
+      }
+      final String[] readGbKeys = readGroupByTagKeys.split(",");
+      if (readGbKeys.length != tagKeys.length) {
+        throw new WorkloadException("Only " + readGbKeys.length + " READ group by keys "
+            + "were specified but there were " + tagKeys.length + " tag keys given.");
+      }
+      readGroupBys = new boolean[readGbKeys.length];
+      for (int i = 0; i < readGbKeys.length; i++) {
+        readGroupBys[i] = Integer.parseInt(readGbKeys[i].trim()) == 0 ? false : true;
+      }
+      readGroupBy = true;
+    }
+  }
+
+  /**
+   * Breaks out the scan query/queries property initialization in another method
+   * to keep CheckStyle happy.
+   * @throws WorkloadException If something goes pear shaped.
+   */
+  protected void initScanQueryProperties() throws WorkloadException {
+    // Parse all the properties for the SCAN query/queries (if there's more than one)
+    // Each variable for the SCAN query properties is an array, to allow for
+    // the possiblity to have multiple SCAN queries in one workload.
+    // If scan properties were entered for just one scan query, then all the 
+    // relevant properties just begin with the prefix 'scan'. These properties
+    // will be stores at the 0 index of the arrays that store all the SCAN query
+    // properties.
+    // For multiple SCAN queries in one workload, it is expected that the prefix
+    // includes and index, eg. scan1, scan2, etc.
+    // This index will also be the array index used. This means it's possible that
+    // someone only uses scan properties with indexes, but this is also okay, because
+    // the operationChooser also has one operation for each query, with the index,
+    // and this index will be passed to the method that performs the query, which
+    // will in turn pull the values out of the arrays based on the given index. So
+    // if there's no properties stored at the zero index, this is okay.
+    // Some SCAN properties are required and/or have default values, and we will
+    // pull them from the relevant default defined towards the tops of this file.
+
+    // We retrieve the "list" of SCAN queries defined in the properties by looking
+    // for all the scan[n]proportion properties defined, because the query cannot
+    // exist without a proportion. We then transform these into indexes by either
+    // pulling the index directly out of the property name or setting it to zero if
+    // no index number was present.
+    Set<Integer> scanQueryIndexes = properties.stringPropertyNames().stream()
+                                        .filter(prop -> prop.matches("scan[0-9]{0,3}proportion"))
+                                        .map(scanProp -> {
+                                            if (scanProp.matches(".*\\d.*")) {
+                                              return new Integer(scanProp.replaceAll("[^0-9]", ""));
+                                            } else {
+                                              return new Integer(0);
+                                            }
+                                          }).collect(Collectors.toSet());
+
+    int scanQueryMaxIndex = Collections.max(scanQueryIndexes);
+    if (debug) {
+      System.out.println("[TimeSeriesWorkload.java] scanQueryIndexes found: " + scanQueryIndexes);
+      System.out.println("[TimeSeriesWorkload.java] scanQueryMaxIndex: " + scanQueryMaxIndex);
+    }
+
+    // Initialize all SCAN property arrays based on highest index found
+    // Note: this might mean that the array is larger than the number of indexes, but then
+    // we ensure that the scan query index should always match the array index.
+    scanTags = new int[scanQueryMaxIndex + 1][];
+    scanStartTs = new int[scanQueryMaxIndex + 1];
+    scanQueryTimeSpan = new int[scanQueryMaxIndex + 1];
+    scanQueryRandomTimeSpan = new boolean[scanQueryMaxIndex + 1];
+    scanGroupByFunction = new String[scanQueryMaxIndex + 1];
+    scanGroupBys = new boolean[scanQueryMaxIndex + 1][];
+    scanGroupBy = new boolean[scanQueryMaxIndex + 1];
+    scanDownsampleFunction = new String[scanQueryMaxIndex + 1];
+    scanDownsampleInterval = new int[scanQueryMaxIndex + 1];
+    scanDownsample = new boolean[scanQueryMaxIndex + 1];
+
+    // Now loop through each index, retrieve the properties and assign to the arrays
+    for (Integer scanQueryIndex: scanQueryIndexes) {
+      if (debug) {
+        System.out.println("[TimeSeriesWorkload.java] Parsing SCAN Query Properties, for Index: " + scanQueryIndex);
+      }
+
+      // See SCAN_TAGS_PROPERTY in tsworkload_template for explanation
+      final String scanTagsPropertyValue = properties.getProperty(
+          indexedScanProperty(scanQueryIndex, SCAN_TAGS_PROPERTY));
+      if (scanTagsPropertyValue != null && !scanTagsPropertyValue.isEmpty()) {
+        final String[] scanTagsValues = scanTagsPropertyValue.split(",");
+        if (scanTagsValues.length != tagKeys.length) {
+          throw new WorkloadException("SCAN" + scanQueryIndex + ": Only " + scanTagsValues.length + " scantags values"
+              + "were specified but there were " + tagKeys.length + " tag keys given.");
+        }
+        scanTags[scanQueryIndex] = new int[scanTagsValues.length];
+        for (int i = 0; i < scanTagsValues.length; i++) {
+          final int tagKeyValueIndex = Integer.parseInt(scanTagsValues[i].trim());
+          if (tagKeyValueIndex > tagCardinality[i]) {
+            throw new WorkloadException("scan" + scanQueryIndex + "tags: value given for tag at index " + i + " ("
+                + tagKeyValueIndex + ") is larger than the tag cardinality for that tag (" + tagCardinality[i] + ")");
+          }
+          scanTags[scanQueryIndex][i] = Integer.parseInt(scanTagsValues[i].trim());
+        }
+      }
+
+      // See SCAN_START_TS_PROPERTY property in tsworkload_template for full explanation.
+      // Can either be a positive integer representing a specific timestamp, or a negative integer,
+      // which represents a negative offset from the most recently-written timestamproperties. But here
+      // we just store the raw int, the actual behaviour will be handled in the doTransactionScan method
+      String scanStartTsPropertyValue = properties.getProperty(
+          indexedScanProperty(scanQueryIndex, SCAN_START_TS_PROPERTY));
+      if (scanStartTsPropertyValue != null) {
+        scanStartTs[scanQueryIndex] = Integer.parseInt(scanStartTsPropertyValue);
+      }
+    
+      if (debug) {
+        System.out.println("[TimeSeriesWorkload.java] scanQueryTimeSpan[] " +
+            "(before assignment) -> " + Arrays.toString(scanQueryTimeSpan));
+      }
+      // See SCAN_QUERY_TIMESPAN_PROPERTY property in tsworkload_template for full explanation.
+      scanQueryTimeSpan[scanQueryIndex] = Integer.parseInt(properties.getProperty(
+          indexedScanProperty(scanQueryIndex, SCAN_QUERY_TIMESPAN_PROPERTY), 
+          SCAN_QUERY_TIMESPAN_PROPERTY_DEFAULT));
+      if (debug) {
+        System.out.println("[TimeSeriesWorkload.java] scanQueryTimeSpan[] " +
+            "(after assignment) -> " + Arrays.toString(scanQueryTimeSpan));
+      }
+
+      // See SCAN_QUERY_RANDOM_TIMESPAN_PROPERTY property in tsworkload_template for full explanation.
+      scanQueryRandomTimeSpan[scanQueryIndex] = Boolean.parseBoolean(properties.getProperty(
+          indexedScanProperty(scanQueryIndex, SCAN_QUERY_RANDOM_TIMESPAN_PROPERTY), 
+          SCAN_QUERY_RANDOM_TIMESPAN_PROPERTY_DEFAULT));
+
+      // See SCAN_GROUPBY_PROPERTY property in tsworkload_template for full explanation.
+      scanGroupByFunction[scanQueryIndex] = properties.getProperty(indexedScanProperty(scanQueryIndex,
+            SCAN_GROUPBY_PROPERTY));
+      if (scanGroupByFunction[scanQueryIndex] != null && !scanGroupByFunction[scanQueryIndex].isEmpty()) {
+        final String scanGroupByTagKeys = properties.getProperty(indexedScanProperty(scanQueryIndex,
+              SCAN_GROUPBY_TAG_KEYS_PROPERTY));
+        if (scanGroupByTagKeys == null || scanGroupByTagKeys.isEmpty()) {
+          throw new WorkloadException("SCAN" + scanQueryIndex + ": Group by was enabled but no keys were specified.");
+        }
+        final String[] scanGbKeys = scanGroupByTagKeys.split(",");
+        if (scanGbKeys.length != tagKeys.length) {
+          throw new WorkloadException("Only " + scanGbKeys.length + " SCAN" + scanQueryIndex + " group by keys "
+              + "were specified but there were " + tagKeys.length + " tag keys given.");
+        }
+        scanGroupBys[scanQueryIndex] = new boolean[scanGbKeys.length];
+        for (int i = 0; i < scanGbKeys.length; i++) {
+          scanGroupBys[scanQueryIndex][i] = Integer.parseInt(scanGbKeys[i].trim()) == 0 ? false : true;
+        }
+        scanGroupBy[scanQueryIndex] = true;
+      }
+     
+      // See SCAN_DOWNSAMPLING_FUNCTION_PROPERTY property in tsworkload_template for full explanation.
+      scanDownsampleFunction[scanQueryIndex] = properties.getProperty(indexedScanProperty(scanQueryIndex,
+            SCAN_DOWNSAMPLING_FUNCTION_PROPERTY));
+      if (scanDownsampleFunction[scanQueryIndex] != null && !scanDownsampleFunction[scanQueryIndex].isEmpty()) {
+        // See SCAN_DOWNSAMPLING_INTERVAL_PROPERTY property in tsworkload_template for full explanation.
+        final String interval = properties.getProperty(
+            indexedScanProperty(scanQueryIndex, SCAN_DOWNSAMPLING_INTERVAL_PROPERTY));
+        if (interval == null || interval.isEmpty()) {
+          throw new WorkloadException("SCAN" + scanQueryIndex
+              + "'" + indexedScanProperty(scanQueryIndex, SCAN_DOWNSAMPLING_INTERVAL_PROPERTY)
+              + "' was missing despite '" 
+              + indexedScanProperty(scanQueryIndex, SCAN_DOWNSAMPLING_FUNCTION_PROPERTY)
+              + "' being set.");
+        }
+        scanDownsampleInterval[scanQueryIndex] = Integer.parseInt(interval);
+        scanDownsample[scanQueryIndex] = true;
+      }
     }
   }
   
@@ -1578,7 +1632,9 @@ public class TimeSeriesWorkload extends Workload {
 
   protected boolean containsTrue(boolean[] booleanArray) {
     for(boolean element: booleanArray) {
-      if (element) { return true; }
+      if (element) {
+        return true;
+      }
     }
     return false;
   }
@@ -1593,8 +1649,8 @@ public class TimeSeriesWorkload extends Workload {
     /** An offset generator to select a random offset for queries. */
     protected final NumberGenerator queryOffsetGenerator;
 
-    /** The current write time series index
-     *  This is the index of the key + tag combination
+    /** The current write time series index.
+     *  This is the index of the key + tag combination.
      */
     protected int timeSeriesIndex;
 
@@ -1696,16 +1752,6 @@ public class TimeSeriesWorkload extends Workload {
         keyAndTagTreeIndexes[i] = timeSeriesIndex / (totalCardinality/ cumulativeTotalCardinality[i]);
         keyAndTagIndexes[i] = keyAndTagTreeIndexes[i] % keyAndTagCardinality[i];
       }
-      if (debug) {
-        System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][ThreadState()] Initialising Thread, setting initial values for indexes...");
-        System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][ThreadState()] totalThreads = " + totalThreads);
-        System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][ThreadState()] timeSeriesPerThread = " + timeSeriesPerThread);
-        System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][ThreadState()] timeSeriesIndexStart = " + timeSeriesIndexStart);
-        System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][ThreadState()] timeSeriesIndexEnd = " + timeSeriesIndexEnd);
-        System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][ThreadState()] timeSeriesIndex = " + timeSeriesIndex);
-        System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][ThreadState()] keyAndTagTreeIndexes = " + Arrays.toString(keyAndTagTreeIndexes));
-        System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][ThreadState()] keyAndTagIndexes = " + Arrays.toString(keyAndTagIndexes));
-      }
       
       int keysPerThread = keys.length / totalThreads;
       keyIdx = keysPerThread * threadID;
@@ -1781,13 +1827,6 @@ public class TimeSeriesWorkload extends Workload {
      */
     protected String nextDataPoint(final Map<String, ByteIterator> map, final boolean isInsert) {
       final Random random = ThreadLocalRandom.current();
-      // Interations are basically to achieve sparsity if configured
-      // Each iteration of the while(true) loop below cycles through
-      // a key+tags combo (ie. a time series), but a data point is
-      // only generated and returned, if iterations <=0
-      // This means for each iteration done while iterations > 0
-      // it skips over a time series without generating and returning
-      // a data point.
       int iterations = sparsity <= 0 ? 1 : random.nextInt((int) ((double) perKeyCardinality * sparsity));
       if (iterations < 1) {
         iterations = 1;
@@ -1795,9 +1834,6 @@ public class TimeSeriesWorkload extends Workload {
       while (true) {
         iterations--;
         if (timestampRollover) {
-          if (debug) {
-            System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][nextDataPoint] timestamp is being incremented!!");
-          }
           timestampGenerator.nextValue();
           timestampRollover = false;
         }
@@ -1822,10 +1858,6 @@ public class TimeSeriesWorkload extends Workload {
           }
 
           for (int i = 0; i < tagPairs; ++i) {
-            // tagValueIdxs holds a current index for each tagPair that determines
-            // which tag value should be picked. 
-            // eg. if the 2nd tagPair has a cardinality of 3,
-            // then the value at tagValueIdxs[1] should cycle through 0 -> 1 -> 2 -> 0 (and so on...)
             int tvidx;
             if (threadedWriteDistribution == "key") {
               tvidx = tagValueIdxs[i];
@@ -1834,9 +1866,6 @@ public class TimeSeriesWorkload extends Workload {
               // the index for the key, the tag indexes start
               // from the second element
               tvidx = keyAndTagIndexes[i + 1];
-            }
-            if (debug) {
-              System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][nextDataPoint] tag " + tagKeys[i] + " = " + tagValues[tvidx]);
             }
             map.put(tagKeys[i], new StringByteIterator(tagValues[tvidx]));
             if (dataintegrity) {
@@ -1866,9 +1895,6 @@ public class TimeSeriesWorkload extends Workload {
               map.put(timestampKey, new NumericByteIterator(timestampGenerator.currentValue()));
             }
           } else {
-            if (debug) {
-              System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][nextDataPoint] timestamp = " + timestampGenerator.currentValue());
-            }
             map.put(timestampKey, new NumericByteIterator(timestampGenerator.currentValue()));
           }
           
@@ -1940,22 +1966,10 @@ public class TimeSeriesWorkload extends Workload {
             keyAndTagTreeIndexes[i] = timeSeriesIndex / (totalCardinality/ cumulativeTotalCardinality[i]);
             keyAndTagIndexes[i] = keyAndTagTreeIndexes[i] % keyAndTagCardinality[i];
           }
-          if (debug) {
-            System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][nextDataPoint] Updating Indexes for next data point (after this one)");
-            System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][nextDataPoint] timeSeriesIndex = " + timeSeriesIndex);
-            System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][nextDataPoint] keyAndTagTreeIndexes = " + Arrays.toString(keyAndTagTreeIndexes));
-            System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][nextDataPoint] keyAndTagIndexes = " + Arrays.toString(keyAndTagIndexes));
-
-          }
-
-       }
+        }
 
         
         if (iterations <= 0) {
-          if (debug) {
-            System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][nextDataPoint] returning Data Point");
-            System.out.println("[ThreadID = " + threadIdentifier + "][TimeSeriesWorkload.java][nextDataPoint] ---------------");
-          }
           return key;
         }
       }

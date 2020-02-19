@@ -137,7 +137,8 @@ public abstract class TimeseriesDB extends DB {
             // Since we're looking for a single datapoint, a range of timestamps makes no sense.
             // As we cannot throw an exception to bail out here, we return `BAD_REQUEST` instead.
             if (debug) {
-              System.out.println("[TimeseriesDB.java][read] read query with timestamp range received, returning BAD_REQUEST");
+              System.out.println("[TimeseriesDB.java][read] read query with timestamp range " +
+                  "received, returning BAD_REQUEST");
             }
             return Status.BAD_REQUEST;
           }
@@ -164,7 +165,8 @@ public abstract class TimeseriesDB extends DB {
    * @param result    The Map where the result should be stored by the DB Client.
    * @return Zero on success, a non-zero error code on error or "not found".
    */
-  protected abstract Status read(String metric, long timestamp, Map<String, List<String>> tags, Map<String, ByteIterator> result);
+  protected abstract Status read(String metric, long timestamp, Map<String, List<String>> tags,
+      Map<String, ByteIterator> result);
 
   /**
    * @inheritDoc
@@ -180,7 +182,8 @@ public abstract class TimeseriesDB extends DB {
     Integer downsamplingWindowLength = 0;
     Set<String> groupByTags = new LinkedHashSet<>(); // LinkedHashSet to retain order
     if (debug) {
-      System.out.println("[TimeseriesDB.java][scan] table: " + table + ", startkey: " + startkey + ", recordcount: " + recordcount + ", fields: " + fields);
+      System.out.println("[TimeseriesDB.java][scan] table: " + table + ", startkey: " + startkey +
+          ", recordcount: " + recordcount + ", fields: " + fields);
     }
     boolean rangeSet = false;
     long start = 0;
@@ -207,11 +210,14 @@ public abstract class TimeseriesDB extends DB {
           .forEach(tagKey -> groupByTags.add(tagKey));
       } else if (field.startsWith(scanDownsamplingKey)) {
         String downsamplingSpec = field.split(tagPairDelimiter)[1];
-        String dsFunction = downsamplingSpec.replaceAll("\\d.*", ""); // drop everything from the first digit onwards
-        String dsInterval = downsamplingSpec.replaceAll(dsFunction, ""); // remove the downsampling function and keep the rest
+        // drop everything from the first digit onwards
+        String dsFunction = downsamplingSpec.replaceAll("\\d.*", "");
+        // remove the downsampling function and keep the rest
+        String dsInterval = downsamplingSpec.replaceAll(dsFunction, "");
         downsamplingFunction = TimeseriesDB.AggregationOperation.valueOf(dsFunction);
         // TODO: Add support for intervals that include a unit eg. 1d, 24h, 15m and so on...
-        // (Right now it just assumes that the interval is an Integer and that the unit are the same units as the timestamps)
+        // (Right now it just assumes that the interval is an Integer and
+        // that the unit are the same units as the timestamps)
         downsamplingWindowLength = new Integer(dsInterval); 
       } else {
         String[] queryParts = field.split(tagPairDelimiter);
@@ -225,7 +231,10 @@ public abstract class TimeseriesDB extends DB {
     if (!rangeSet) {
       return Status.BAD_REQUEST;
     }
-    return scan(startkey, start, end, tagQueries, downsamplingFunction, downsamplingWindowLength, timestampUnit, groupByFunction, groupByTags, result);
+    GroupByOperation groupByOperation = new GroupByOperation(groupByFunction, groupByTags);
+    DownsamplingOperation downsamplingOperation = new DownsamplingOperation(downsamplingFunction,
+        downsamplingWindowLength, timestampUnit);
+    return scan(startkey, start, end, tagQueries, downsamplingOperation, groupByOperation, result);
   }
 
   /**
@@ -236,18 +245,15 @@ public abstract class TimeseriesDB extends DB {
    * @param startTs                   The timestamp of the first record to read.
    * @param endTs                     The timestamp of the last record to read.
    * @param tags                      The actual tags that were want to receive (can be empty).
-   * @param downsamplingFunction      The aggregation operation for downsampling.
-   * @param downsamplingWindowLength  The length of the downsampling window in the unit given by downsamplingWindowUnit.
-   * @param downsamplingWindowUnit    The unit for the value of the downsamplingWindowLength.
-   * @param groupByFunction           The aggregation function for group by.
-   * @param groupByTags               The tag(s) that should be grouped by.
+   * @param downsamplingOperation     The object containing the parameters for the downsampling operation
+   * @param groupByOperation          The object containing the groupByFunction and groupByTags
    * @param result                    The Vector of Maps where the results should be stored by the DB Client.
    * @return A {@link Status} detailing the outcome of the scan operation.
    */
   protected abstract Status scan(String metric, long startTs, long endTs, Map<String, List<String>> tags,
-                                 AggregationOperation downsamplingFunction, int downsamplingWindowLength,
-                                 TimeUnit downsamplingWindowUnit, AggregationOperation groupByFunction,
-                                 Set<String> groupByTags, Vector<HashMap<String, ByteIterator>> result);
+                                 DownsamplingOperation downsamplingOperation,
+                                 GroupByOperation groupByOperation,
+                                 Vector<HashMap<String, ByteIterator>> result);
 
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
@@ -369,5 +375,63 @@ public abstract class TimeseriesDB extends DB {
      * GroupBy criteria apply and result in group-based minima.
      */
     MIN;
+  }
+
+  /**
+   * A simple class to encapsulate the fields necessary for a Group By Operation.
+   *
+   * @param groupByFunction The AggregationOperation to peform while grouping
+   * @param groupByTags     The tags to group by
+   * @return A GroupByOperation object
+   */
+  public class GroupByOperation {
+    private AggregationOperation groupByFunction;
+    private Set<String> groupByTags;
+
+    public GroupByOperation(AggregationOperation groupByFunction, Set<String> groupByTags) {
+      this.groupByFunction = groupByFunction;
+      this.groupByTags = groupByTags;
+    }
+
+    public AggregationOperation groupByFunction() {
+      return this.groupByFunction;
+    }
+
+    public Set<String> groupByTags() {
+      return this.groupByTags;
+    }
+  }
+
+  /**
+   * A simple class to encapsulate the fields necessary for a  Operation.
+   *
+   * @param downsamplingFunction The AggregationOperation to peform while downsampling
+   * @param downsamplingWindowLength The length of the downsampling window
+   * @param downsamplingWindowUnit The unit which downsamplingWindowLength is given in
+   * @return A DownsamplingOperation object
+   */
+  public class DownsamplingOperation {
+    private AggregationOperation downsamplingFunction;
+    private int downsamplingWindowLength;
+    private TimeUnit downsamplingWindowUnit;
+
+    public DownsamplingOperation(AggregationOperation downsamplingFunction, int downsamplingWindowLength,
+        TimeUnit downsamplingWindowUnit) {
+      this.downsamplingFunction = downsamplingFunction;
+      this.downsamplingWindowLength = downsamplingWindowLength;
+      this.downsamplingWindowUnit = downsamplingWindowUnit;
+    }
+
+    public AggregationOperation downsamplingFunction() {
+      return this.downsamplingFunction;
+    }
+
+    public int downsamplingWindowLength() {
+      return this.downsamplingWindowLength;
+    }
+
+    public TimeUnit downsamplingWindowUnit() {
+      return this.downsamplingWindowUnit;
+    }
   }
 }
