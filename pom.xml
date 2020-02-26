@@ -123,6 +123,7 @@ LICENSE file.
 		<couchbase2.version>2.3.1</couchbase2.version>
 		<crail.version>1.1-incubating</crail.version>
     <elasticsearch5-version>5.5.1</elasticsearch5-version>
+    <elasticsearch7-version>7.2.0</elasticsearch7-version>
     <foundationdb.version>5.2.5</foundationdb.version>
     <geode.version>1.2.0</geode.version>
     <googlebigtable.version>1.4.0</googlebigtable.version>
@@ -172,6 +173,7 @@ LICENSE file.
     <module>dynamodb</module>
     <module>elasticsearch</module>
     <module>elasticsearch5</module>
+    <module>elasticsearch7</module>
     <module>foundationdb</module>
     <module>geode</module>
     <module>googlebigtable</module>
@@ -220,25 +222,7 @@ LICENSE file.
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
         <version>3.0.0-M1</version>
-        <executions>
-          <execution>
-            <id>enforce-maven</id>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-            <configuration>
-              <rules>
-                <requireMavenVersion>
-                  <!--
-                  Maven 3.6.2 has issues
-                  https://github.com/brianfrankcooper/YCSB/issues/1390
-                  -->
-                  <version>[3.1.0,3.6.2),(3.6.2,)</version>
-                </requireMavenVersion>
-              </rules>
-            </configuration>
-          </execution>
-        </executions>
+        
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
