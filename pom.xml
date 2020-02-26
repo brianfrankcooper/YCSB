@@ -231,7 +231,11 @@ LICENSE file.
             <configuration>
               <rules>
                 <requireMavenVersion>
-                  <version>3.1.0</version>
+                  <!--
+                  Maven 3.6.2 has issues
+                  https://github.com/brianfrankcooper/YCSB/issues/1390
+                  -->
+                  <version>[3.1.0,3.6.2),(3.6.2,)</version>
                 </requireMavenVersion>
               </rules>
             </configuration>
