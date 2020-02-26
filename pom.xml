@@ -222,7 +222,21 @@ LICENSE file.
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
         <version>3.0.0-M1</version>
-        
+        <executions>
+          <execution>
+            <id>enforce-maven</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireMavenVersion>
+                  <version>3.1.0</version>
+                </requireMavenVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -265,25 +279,6 @@ LICENSE file.
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-deploy-plugin</artifactId>
               <version>3.0.0-M1</version>
-              <executions>
-                <execution>
-                  <id>enforce-maven</id>
-                  <goals>
-                    <goal>enforce</goal>
-                  </goals>
-                  <configuration>
-                    <rules>
-                      <requireMavenVersion>
-                        <!--
-                        Maven 3.6.2 has issues
-                        https://github.com/brianfrankcooper/YCSB/issues/1390
-                        -->
-                        <version>[3.1.0,3.6.2),(3.6.2,)</version>
-                      </requireMavenVersion>
-                    </rules>
-                  </configuration>
-                </execution>
-              </executions>
             </plugin>
           </plugins>
         </pluginManagement>
