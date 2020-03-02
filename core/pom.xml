@@ -29,7 +29,7 @@ LICENSE file.
   <packaging>jar</packaging>
 
   <properties>
-     <jackson.api.version>1.9.4</jackson.api.version>
+     <jackson.api.version>1.9.13</jackson.api.version>
   </properties>
 
   <dependencies>	
