@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2016 YCSB contributors. All rights reserved.
+ * Copyright (c) 2020 YCSB contributors. All rights reserved.
  * Copyright (c) 2020 Cloudera, Inc. or its affiliates. All Rights Reserved.
  * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
