@@ -145,6 +145,7 @@ LICENSE file.
     <s3.version>1.10.20</s3.version>
     <solr.version>5.5.3</solr.version>
     <solr6.version>6.4.1</solr6.version>
+    <solr7.version>7.7.2</solr7.version>
     <tarantool.version>1.6.5</tarantool.version>
     <thrift.version>0.8.0</thrift.version>
     <voldemort.version>0.81</voldemort.version>
@@ -199,6 +200,7 @@ LICENSE file.
     <module>s3</module>
     <module>solr</module>
     <module>solr6</module>
+    <module>solr7</module>
     <module>tarantool</module>
     <module>tablestore</module>
     <!--<module>voldemort</module>-->
