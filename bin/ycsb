@@ -106,7 +106,8 @@ DATABASES = {
     "tarantool"    : "site.ycsb.db.TarantoolClient",
     "tablestore"   : "site.ycsb.db.tablestore.TableStoreClient",
     "yugabyteCQL"  : "site.ycsb.db.CassandraCQLClient",
-    "yugabyteSQL"  : "site.ycsb.db.JdbcDBClient"
+    "yugabyteSQL"  : "site.ycsb.db.JdbcDBClient",
+    "yugabyteSQL2Keys"  : "site.ycsb.db.JdbcDBClient"
 }
 
 OPTIONS = {

@@ -213,6 +213,7 @@ LICENSE file.
     <module>voltdb</module>
     <module>yugabyteCQL</module>
     <module>yugabyteSQL</module>
+    <module>yugabyteSQL2Keys</module>
   </modules>
 
   <build>
