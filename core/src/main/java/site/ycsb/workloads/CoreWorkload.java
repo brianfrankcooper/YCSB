@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010 Yahoo! Inc., Copyright (c) 2016-2017 YCSB contributors. All rights reserved.
+ * Copyright (c) 2010 Yahoo! Inc., Copyright (c) 2016-2020 YCSB contributors. All rights reserved.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -757,7 +757,7 @@ public class CoreWorkload extends Workload {
     HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
 
 
-    long ist = measurements.getIntendedtartTimeNs();
+    long ist = measurements.getIntendedStartTimeNs();
     long st = System.nanoTime();
     db.read(table, keyname, fields, cells);
 
