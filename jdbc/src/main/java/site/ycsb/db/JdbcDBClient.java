@@ -129,7 +129,7 @@ public class JdbcDBClient extends DB {
    * @return Shard index
    */
   private int getShardIndexByKey(String key) {
-    int ret = Math.abs(key.hashCode()) % conns.size();
+    int ret = (key.hashCode() & 0x7fffffff) % conns.size();
     return ret;
   }
 
@@ -454,7 +454,7 @@ public class JdbcDBClient extends DB {
             int[] results = insertStatement.executeBatch();
             for (int r : results) {
               // Acceptable values are 1 and SUCCESS_NO_INFO (-2) from reWriteBatchedInserts=true
-              if (r != 1 && r != -2) { 
+              if (r != 1 && r != -2) {
                 return Status.ERROR;
               }
             }

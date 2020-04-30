@@ -134,7 +134,7 @@ public class JdbcDBClient extends DB {
    * @return Shard index
    */
   private int getShardIndexByKey(String key) {
-    int ret = Math.abs(key.hashCode()) % conns.size();
+    int ret = (key.hashCode() & 0x7fffffff) % conns.size();
     return ret;
   }
 
