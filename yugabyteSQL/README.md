@@ -20,7 +20,7 @@ This driver enables YCSB to work with Yugabyte DB using SQL.
 
 ## Getting Started
 ### 1. Start your database
-Start the database using steps mentioned here: https://docs.yugabyte.com/latest/quick-start/explore-ysql/.
+Start the database using steps mentioned here: https://docs.yugabyte.com/latest/deploy/manual-deployment/
 
 ### 2. Set up YCSB
 Clone the YCSB project:
