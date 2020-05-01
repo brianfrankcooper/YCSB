@@ -15,12 +15,12 @@ permissions and limitations under the License. See accompanying
 LICENSE file.
 -->
 
-# YugabyteSQL binding
-This driver enables YCSB to work with Yugabyte DB using SQL.
+# YugabyteSQL2Keys binding
+This driver enables YCSB to work with Yugabyte DB using SQL. This binding which uses 2 column keys better models the workloadE with the first column identifying the thread and the second column identifying the post within the thread.
 
 ## Getting Started
 ### 1. Start your database
-Start the database using steps mentioned here: https://docs.yugabyte.com/latest/quick-start/explore-ysql/.
+Start the database using steps mentioned here: https://docs.yugabyte.com/latest/deploy/manual-deployment/
 
 ### 2. Set up YCSB
 Clone the YCSB project:
@@ -36,7 +36,7 @@ mvn clean package
 
 We can also just compile the yugabyteSQL binding using:
 ```
-mvn -pl yugabyteSQL -am clean package
+mvn -pl yugabyteSQL2Keys -am clean package
 ```
 
 ### 3. Configure your database and table.
@@ -44,7 +44,7 @@ Create the Database and table using the ysqlsh tool.
 
 ```
 bin/ysqlsh -h <ip> -c 'create database ycsb;'
-bin/ysqlsh -h <ip> -d ycsb -c 'CREATE TABLE usertable (YCSB_KEY VARCHAR(255) PRIMARY KEY, FIELD0 TEXT, FIELD1 TEXT, FIELD2 TEXT, FIELD3 TEXT, FIELD4 TEXT, FIELD5 TEXT, FIELD6 TEXT, FIELD7 TEXT, FIELD8 TEXT, FIELD9 TEXT);'
+bin/ysqlsh -h <ip> -d ycsb -c 'CREATE TABLE usertable (YCSB_KEY1 VARCHAR(255), YCSB_KEY2 VARCHAR(255), FIELD0 TEXT, FIELD1 TEXT, FIELD2 TEXT, FIELD3 TEXT, FIELD4 TEXT, FIELD5 TEXT, FIELD6 TEXT, FIELD7 TEXT, FIELD8 TEXT, FIELD9 TEXT, PRIMARY KEY (YCSB_KEY1, YCSB_KEY2));'
 ```
 
 ### 4. Configure YCSB connection properties
@@ -61,13 +61,13 @@ db.passwd=
 Before you can actually run the workload, you need to "load" the data first.
 
 ```sh
-bin/ycsb load yugabyteSQL -P yugabyteSQL/db.properties -P workloads/workloada
+bin/ycsb load yugabyteSQL2Keys -P yugabyteSQL/db.properties -P workloads/workloada
 ```
 
 Then, you can run the workload:
 
 ```sh
-bin/ycsb run yugabyteSQL -P yugabyteSQL/db.properties -P workloads/workloada
+bin/ycsb run yugabyteSQL2Keys -P yugabyteSQL/db.properties -P workloads/workloada
 ```
 
 ## Other Configuration Properties
