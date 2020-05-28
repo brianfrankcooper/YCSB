@@ -156,6 +156,21 @@ public class CoreWorkload extends Workload {
   protected boolean readallfields;
 
   /**
+   * The name of the property for determining how to read all the fields when readallfields is true.
+   * If set to true, all the field names will be passed into the underlying client. If set to false,
+   * null will be passed into the underlying client. When passed a null, some clients may retrieve
+   * the entire row with a wildcard, which may be slower than naming all the fields.
+   */
+  public static final String READ_ALL_FIELDS_BY_NAME_PROPERTY = "readallfieldsbyname";
+
+  /**
+   * The default value for the readallfieldsbyname property.
+   */
+  public static final String READ_ALL_FIELDS_BY_NAME_PROPERTY_DEFAULT = "false";
+
+  protected boolean readallfieldsbyname;
+
+  /**
    * The name of the property for deciding whether to write one field (false) or all fields (true)
    * of a record.
    */
@@ -432,6 +447,8 @@ public class CoreWorkload extends Workload {
 
     readallfields = Boolean.parseBoolean(
         p.getProperty(READ_ALL_FIELDS_PROPERTY, READ_ALL_FIELDS_PROPERTY_DEFAULT));
+    readallfieldsbyname = Boolean.parseBoolean(
+        p.getProperty(READ_ALL_FIELDS_BY_NAME_PROPERTY, READ_ALL_FIELDS_BY_NAME_PROPERTY_DEFAULT));
     writeallfields = Boolean.parseBoolean(
         p.getProperty(WRITE_ALL_FIELDS_PROPERTY, WRITE_ALL_FIELDS_PROPERTY_DEFAULT));
 
@@ -713,7 +730,7 @@ public class CoreWorkload extends Workload {
 
       fields = new HashSet<String>();
       fields.add(fieldname);
-    } else if (dataintegrity) {
+    } else if (dataintegrity || readallfieldsbyname) {
       // pass the full field list if dataintegrity is on for verification
       fields = new HashSet<String>(fieldnames);
     }
