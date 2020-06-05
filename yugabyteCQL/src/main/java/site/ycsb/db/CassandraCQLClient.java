@@ -126,7 +126,7 @@ public class CassandraCQLClient extends DB {
   private static boolean debug = false;
 
   private static boolean trace = false;
-  
+
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
    * DB instance per client thread.
@@ -182,7 +182,7 @@ public class CassandraCQLClient extends DB {
               .withPort(Integer.valueOf(port)).addContactPoints(hosts);
           if (useSSL) {
             clusterBuilder = clusterBuilder.withSSL();
-          } 
+          }
           cluster = clusterBuilder.build();
         } else {
           cluster = Cluster.builder().withPort(Integer.valueOf(port))
@@ -195,6 +195,9 @@ public class CassandraCQLClient extends DB {
           cluster.getConfiguration().getPoolingOptions()
               .setMaxConnectionsPerHost(HostDistance.LOCAL,
               Integer.valueOf(maxConnections));
+        } else {
+          cluster.getConfiguration().getPoolingOptions()
+              .setMaxConnectionsPerHost(HostDistance.LOCAL, 2);
         }
 
         String coreConnections = getProperties().getProperty(
@@ -203,6 +206,9 @@ public class CassandraCQLClient extends DB {
           cluster.getConfiguration().getPoolingOptions()
               .setCoreConnectionsPerHost(HostDistance.LOCAL,
               Integer.valueOf(coreConnections));
+        } else {
+          cluster.getConfiguration().getPoolingOptions()
+              .setCoreConnectionsPerHost(HostDistance.LOCAL, 2);
         }
 
         String connectTimoutMillis = getProperties().getProperty(
