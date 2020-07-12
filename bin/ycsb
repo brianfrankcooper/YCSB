@@ -98,6 +98,7 @@ DATABASES = {
     "riak"         : "site.ycsb.db.riak.RiakKVClient",
     "rocksdb"      : "site.ycsb.db.rocksdb.RocksDBClient",
     "s3"           : "site.ycsb.db.S3Client",
+    "seaweedfs"    : "site.ycsb.db.SeaweedClient",
     "solr"         : "site.ycsb.db.solr.SolrClient",
     "solr6"        : "site.ycsb.db.solr6.SolrClient",
     "solr7"        : "site.ycsb.db.solr7.SolrClient",
