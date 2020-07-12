@@ -207,7 +207,12 @@ public class SeaweedClient extends DB {
   protected Status readFromStorage(String tableName, String key, Map<String, ByteIterator> result) {
     try {
       FilerProto.Entry entry = this.filerClient.lookupEntry(this.folder + "/" + tableName, key);
-      readOneEntry(entry, key, result);
+      if (entry!=null) {
+        readOneEntry(entry, key, result);
+      }else{
+        System.err.println("Fail to read the object " + key);
+        return Status.NOT_FOUND;
+      }
     } catch (Exception e) {
       System.err.println("Not possible to get the object " + key);
       e.printStackTrace();
