@@ -182,6 +182,7 @@ public class SeaweedClient extends DB {
               .setAttributes(
                       FilerProto.FuseAttributes.newBuilder()
                               .setCrtime(now)
+                              .setFileMode(0755)
               );
 
       SeaweedWrite.writeData(entry, "000", this.filerGrpcClient, 0, jsonData, 0, jsonData.length);
