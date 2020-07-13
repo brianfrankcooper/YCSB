@@ -182,6 +182,7 @@ public class SeaweedClient extends DB {
               .setAttributes(
                       FilerProto.FuseAttributes.newBuilder()
                               .setCrtime(now)
+                              .setMtime(now)
                               .setFileMode(0755)
               );
 
