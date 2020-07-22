@@ -17,6 +17,7 @@ LICENSE file.
 Quick Start
 ===============
 [SeaweedFS](https://github.com/chrislusf/seaweedfs) is a distributed file system with optimization for small files.
+It can also be used as a key-value store for large values.
 
 ### 1. Set Up YCSB
 
