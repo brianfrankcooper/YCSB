@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2015 YCSB contributors. All rights reserved.
+Copyright (c) 2020 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -16,6 +16,8 @@ LICENSE file.
 -->
 Quick Start
 ===============
+[SeaweedFS](https://github.com/chrislusf/seaweedfs) is a distributed file system with optimization for small files.
+
 ### 1. Set Up YCSB
 
 Download the YCSB from this website:
@@ -26,11 +28,14 @@ You can choose to download either the full stable version or just one of the ava
 
 ### 2. Run YCSB
 
-To execute the benchmark using the SeaweedFS storage binding, first files must be uploaded using the "load" option with this command:
+To execute the benchmark using the SeaweedFS storage binding, first files must be uploaded using the "load" option with 
+this command:
 
        ./bin/ycsb load seaweedfs -p seaweed.filerHost=localhost -p seaweed.filerPort=8888 -p seaweed.folder=/ycsb -p fieldlength=10 -p fieldcount=20 -p recordcount=10000 -P workloads/workloada
 
-With this command, the workload A will be executing with the loading phase. The file size is determined by the number of fields (fieldcount) and by the field size (fieldlength). In this case each file is 200 bytes (10 bytes for each field multiplied by 20 fields).
+With this command, the workload A will be executing with the loading phase. The file size is determined by the number 
+of fields (fieldcount) and by the field size (fieldlength). In this case each file is 200 bytes (10 bytes for each 
+field multiplied by 20 fields).
 
 Running the command:
 

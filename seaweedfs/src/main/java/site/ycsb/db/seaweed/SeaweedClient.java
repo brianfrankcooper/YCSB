@@ -16,17 +16,31 @@
  * <p>
  * SeaweedFS storage client binding for YCSB.
  */
-package site.ycsb.db;
+package site.ycsb.db.seaweed;
 
-import seaweedfs.client.*;
-import site.ycsb.*;
+import seaweedfs.client.FilerProto;
+import seaweedfs.client.FilerClient;
+import seaweedfs.client.FilerGrpcClient;
+import seaweedfs.client.SeaweedRead;
+import seaweedfs.client.SeaweedWrite;
+import site.ycsb.ByteIterator;
+import site.ycsb.DB;
+import site.ycsb.DBException;
+import site.ycsb.Status;
+import site.ycsb.StringByteIterator;
 
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.List;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.Vector;
 
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonNode;
@@ -46,6 +60,7 @@ import org.codehaus.jackson.node.ObjectNode;
  */
 public class SeaweedClient extends DB {
 
+  private static final Logger LOGGER = Logger.getLogger(SeaweedClient.class);
   protected static final ObjectMapper MAPPER = new ObjectMapper();
 
   private FilerClient filerClient;
@@ -143,7 +158,13 @@ public class SeaweedClient extends DB {
   @Override
   public Status update(String tableName, String key,
              Map<String, ByteIterator> values) {
-    return writeToStorage(tableName, key, values);
+    Map<String, ByteIterator> existingValues = new HashMap<>();
+    Status readStatus = readFromStorage(tableName, key, null, existingValues);
+    if (readStatus != Status.OK) {
+      return readStatus;
+    }
+    existingValues.putAll(values);
+    return writeToStorage(tableName, key, existingValues);
   }
 
   /**
@@ -191,8 +212,7 @@ public class SeaweedClient extends DB {
       SeaweedWrite.writeMeta(this.filerGrpcClient, this.folder + "/" + tableName, entry);
 
     } catch (Exception e) {
-      System.err.println("Not possible to write the object " + key);
-      e.printStackTrace();
+      LOGGER.error("Not possible to write the object " + key, e);
       return Status.ERROR;
     }
 
@@ -212,12 +232,11 @@ public class SeaweedClient extends DB {
       if (entry!=null) {
         readOneEntry(entry, key, fields, result);
       }else{
-        System.err.println("Fail to read the object " + key);
+        LOGGER.error("Fail to read the object " + key);
         return Status.NOT_FOUND;
       }
     } catch (Exception e) {
-      System.err.println("Not possible to get the object " + key);
-      e.printStackTrace();
+      LOGGER.error("Not possible to get the object " + key, e);
       return Status.ERROR;
     }
 
@@ -227,7 +246,7 @@ public class SeaweedClient extends DB {
   protected void readOneEntry(
           FilerProto.Entry entry, String key, Set<String> fields, Map<String, ByteIterator> result) throws IOException {
     List<SeaweedRead.VisibleInterval> visibleIntervalList =
-        SeaweedRead.nonOverlappingVisibleIntervals(entry.getChunksList());
+        SeaweedRead.nonOverlappingVisibleIntervals(filerGrpcClient, entry.getChunksList());
     int length = (int) SeaweedRead.totalSize(entry.getChunksList());
     byte[] buffer = new byte[length];
     SeaweedRead.read(this.filerGrpcClient, visibleIntervalList, 0, buffer, 0, buffer.length);
@@ -256,8 +275,7 @@ public class SeaweedClient extends DB {
         result.add(ret);
       }
     } catch (Exception e) {
-      System.err.println("Not possible to list the object " + startkey + " limit " + recordcount);
-      e.printStackTrace();
+      LOGGER.error("Not possible to list the object " + startkey + " limit " + recordcount, e);
       return Status.ERROR;
     }
 

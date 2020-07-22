@@ -17,5 +17,5 @@
  * SeaweedFS storage client binding for YCSB.
  */
 
-package site.ycsb.db;
+package site.ycsb.db.seaweed;
 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 
-Copyright (c) 2015-2016 YCSB contributors. All rights reserved.
+Copyright (c) 2020 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -31,7 +31,7 @@ LICENSE file.
     <dependency>
 	<groupId>com.github.chrislusf</groupId>
 	<artifactId>seaweedfs-client</artifactId>
-	<version>${seaweed.version}</version>
+	<version>${seaweed.client.version}</version>
     </dependency>
 
     <dependency>
@@ -39,6 +39,11 @@ LICENSE file.
             <artifactId>core</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
-    </dependency>
+      </dependency>
+      <dependency>
+          <groupId>log4j</groupId>
+          <artifactId>log4j</artifactId>
+          <version>1.2.17</version>
+      </dependency>
    </dependencies>
 </project>
