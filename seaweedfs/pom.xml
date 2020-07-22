@@ -29,21 +29,27 @@ LICENSE file.
 
   <dependencies>
     <dependency>
-	<groupId>com.github.chrislusf</groupId>
-	<artifactId>seaweedfs-client</artifactId>
-	<version>${seaweed.client.version}</version>
+      <groupId>com.github.chrislusf</groupId>
+      <artifactId>seaweedfs-client</artifactId>
+      <version>${seaweed.client.version}</version>
     </dependency>
 
     <dependency>
       <groupId>site.ycsb</groupId>
-            <artifactId>core</artifactId>
-            <version>${project.version}</version>
-            <scope>provided</scope>
+        <artifactId>core</artifactId>
+        <version>${project.version}</version>
+        <scope>provided</scope>
       </dependency>
       <dependency>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-api</artifactId>
-          <version>1.7.13</version>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>1.7.25</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-simple</artifactId>
+        <version>1.7.25</version>
+        <scope>runtime</scope>
       </dependency>
    </dependencies>
 </project>
