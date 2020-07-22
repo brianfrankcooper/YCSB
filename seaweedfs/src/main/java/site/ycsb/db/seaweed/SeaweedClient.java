@@ -40,12 +40,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.ObjectNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * SeaweedFS Storage client for YCSB framework.
@@ -60,7 +61,7 @@ import org.codehaus.jackson.node.ObjectNode;
  */
 public class SeaweedClient extends DB {
 
-  private static final Logger LOGGER = Logger.getLogger(SeaweedClient.class);
+  private static final Logger LOG = LoggerFactory.getLogger(SeaweedClient.class);
   protected static final ObjectMapper MAPPER = new ObjectMapper();
 
   private FilerClient filerClient;
@@ -212,7 +213,7 @@ public class SeaweedClient extends DB {
       SeaweedWrite.writeMeta(this.filerGrpcClient, this.folder + "/" + tableName, entry);
 
     } catch (Exception e) {
-      LOGGER.error("Not possible to write the object " + key, e);
+      LOG.error("Not possible to write the object {}", key, e);
       return Status.ERROR;
     }
 
@@ -232,11 +233,11 @@ public class SeaweedClient extends DB {
       if (entry!=null) {
         readOneEntry(entry, key, fields, result);
       }else{
-        LOGGER.error("Fail to read the object " + key);
+        LOG.error("Fail to read the object {}", key);
         return Status.NOT_FOUND;
       }
     } catch (Exception e) {
-      LOGGER.error("Not possible to get the object " + key, e);
+      LOG.error("Not possible to get the object {}", key, e);
       return Status.ERROR;
     }
 
@@ -275,7 +276,7 @@ public class SeaweedClient extends DB {
         result.add(ret);
       }
     } catch (Exception e) {
-      LOGGER.error("Not possible to list the object " + startkey + " limit " + recordcount, e);
+      LOG.error("Not possible to list the object {} limit {}", startkey, recordcount, e);
       return Status.ERROR;
     }
 
