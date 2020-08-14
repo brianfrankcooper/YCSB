@@ -12,9 +12,11 @@
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
  * License for the specific language governing permissions and limitations under
  * the License. See accompanying LICENSE file.
+ * 
+ * Authors: Anthony F. Voellm and Khoa Dang (2.2.3)
+ *          Armaan Sood (4.3.0)
  */
 
-// Authors: Anthony F. Voellm and Khoa Dang
 
 package site.ycsb.db;
 
