@@ -108,7 +108,7 @@ Optionally you can set the uri and primaryKey as follows:
     - Default: 0
 	
 - azurecosmos.preferredPageSize < integer >
-    - Sets the maximum number of items that can be buffered client side during parallel query execution.
+    - Sets the preferred page size when scanning.
     - Default: -1
 
 

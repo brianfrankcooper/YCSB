@@ -17,7 +17,6 @@
  *          Armaan Sood (4.3.0)
  */
 
-
 package site.ycsb.db;
 
 import java.time.Duration;
@@ -32,7 +31,6 @@ import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.azure.cosmos.models.FeedResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +46,7 @@ import com.azure.cosmos.ThrottlingRetryOptions;
 import com.azure.cosmos.models.CosmosItemRequestOptions;
 import com.azure.cosmos.models.CosmosItemResponse;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
+import com.azure.cosmos.models.FeedResponse;
 import com.azure.cosmos.models.PartitionKey;
 import com.azure.cosmos.models.SqlParameter;
 import com.azure.cosmos.models.SqlQuerySpec;
@@ -63,7 +62,7 @@ import site.ycsb.Status;
 import site.ycsb.StringByteIterator;
 
 /**
- * Azure Cosmos DB Java SDK V4.0.1 client for YCSB.
+ * Azure Cosmos DB Java SDK 4.3.0 client for YCSB.
  */
 
 public class AzureCosmosClient extends DB {
