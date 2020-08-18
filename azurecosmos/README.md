@@ -71,8 +71,8 @@ Optionally you can set the uri and primaryKey as follows:
 
 - azurecosmos.userAgent < agent string >:
 	- The value to be appended to the user-agent header.
-	- In most cases, you should leave this as "ycsb-4.3.0".
-    - Default: "ycsb-4.3.0"
+	- In most cases, you should leave this as "ycsb-4.3.1".
+    - Default: "ycsb-4.3.1"
 
 - azurecosmos.useGateway (true | false):
 	- Specify if connection mode should use gateway as opposed to direct. By default, direct mode will be used, as the performance is generally better.
@@ -90,14 +90,20 @@ Optionally you can set the uri and primaryKey as follows:
     - Sets the maximum timeout to for retry in seconds.
     - Default: uses default value of azurecosmos Java SDK
 	
-- azurecosmos.maxConnectionPoolSize < integer >
-   - Set the value of the connection pool size, the default is 1000 for gateway and 30 for direct. 
-   - See the Java SDK documentation for more details.
+- azurecosmos.gatewayMaxConnectionPoolSize < integer >
+   - Set the value of the connection pool size in gateway mode.
+   
+- azurecosmos.directMaxConnectionsPerEndpoint < integer >
+   - Set the value of the max connections per endpoint in direct mode.
 
-- azurecosmos.idleConnectionTimeout < integer >
-   - Sets the value of the timeout in seconds for an idle connection. After that time, the connection will be automatically closed.
-   - See the Java SDK documentation for more details.
+- azurecosmos.gatewayIdleConnectionTimeoutInSeconds < integer >
+   - Sets the value of the timeout in seconds for an idle connection in gateway mode. After that time, the connection will be automatically closed.
    - Default: uses default value of azurecosmos Java SDK
+
+- azurecosmos.directIdleConnectionTimeoutInSeconds < integer >
+   - Sets the value of the timeout in seconds for an idle connection in direct mode. After that time, the connection will be automatically closed.
+   - Default: uses default value of azurecosmos Java SDK
+
 
 - azurecosmos.maxDegreeOfParallelism < integer >
     - Sets the number of concurrent operations run client side during parallel query execution.

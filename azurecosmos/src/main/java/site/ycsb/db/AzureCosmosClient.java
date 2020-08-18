@@ -77,8 +77,9 @@ public class AzureCosmosClient extends DB {
   private static final int DEFAULT_MAX_DEGREE_OF_PARALLELISM = -1;
   private static final int DEFAULT_MAX_BUFFERED_ITEM_COUNT = 0;
   private static final int DEFAULT_PREFERRED_PAGE_SIZE = -1;
+  public static final int NUM_UPDATE_ATTEMPTS = 4;
   private static final boolean DEFAULT_INCLUDE_EXCEPTION_STACK_IN_LOG = false;
-  private static final String DEFAULT_USER_AGENT = "ycsb-4.3.0";
+  private static final String DEFAULT_USER_AGENT = "ycsb-4.3.1";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AzureCosmosClient.class);
 
@@ -151,25 +152,38 @@ public class AzureCosmosClient extends DB {
     boolean useGateway = this.getBooleanProperty("azurecosmos.useGateway", DEFAULT_USE_GATEWAY);
 
     ThrottlingRetryOptions retryOptions = new ThrottlingRetryOptions();
-    retryOptions.setMaxRetryAttemptsOnThrottledRequests(this.getIntProperty(
-        "azurecosmos.maxRetryAttemptsOnThrottledRequests", retryOptions.getMaxRetryAttemptsOnThrottledRequests()));
-    retryOptions.setMaxRetryWaitTime(Duration.ofSeconds(this.getIntProperty("azurecosmos.maxRetryWaitTimeInSeconds",
-        Math.toIntExact(retryOptions.getMaxRetryWaitTime().toMillis() / 1000))));
+    int maxRetryAttemptsOnThrottledRequests = this.getIntProperty("azurecosmos.maxRetryAttemptsOnThrottledRequests",
+        -1);
+    if (maxRetryAttemptsOnThrottledRequests != -1) {
+      retryOptions.setMaxRetryAttemptsOnThrottledRequests(maxRetryAttemptsOnThrottledRequests);
+    }
 
+    // Direct connection config options.
     DirectConnectionConfig directConnectionConfig = new DirectConnectionConfig();
-    directConnectionConfig.setMaxConnectionsPerEndpoint(this.getIntProperty("azurecosmos.maxConnectionPoolSize",
-        directConnectionConfig.getMaxConnectionsPerEndpoint()));
-    directConnectionConfig
-        .setIdleConnectionTimeout(Duration.ofSeconds(this.getIntProperty("azurecosmos.idleConnectionTimeout",
-            Math.toIntExact(directConnectionConfig.getIdleConnectionTimeout().toMillis() / 1000))));
-    directConnectionConfig.setMaxRequestsPerConnection(10000);
+    int directMaxConnectionsPerEndpoint = this.getIntProperty("azurecosmos.directMaxConnectionsPerEndpoint", -1);
+    if (directMaxConnectionsPerEndpoint != -1) {
+      directConnectionConfig.setMaxConnectionsPerEndpoint(directMaxConnectionsPerEndpoint);
+    }
 
+    int directIdleConnectionTimeoutInSeconds = this.getIntProperty("azurecosmos.directIdleConnectionTimeoutInSeconds",
+        -1);
+    if (directIdleConnectionTimeoutInSeconds != -1) {
+      directConnectionConfig.setIdleConnectionTimeout(Duration.ofSeconds(directIdleConnectionTimeoutInSeconds));
+    }
+
+    // Gateway connection config options.
     GatewayConnectionConfig gatewayConnectionConfig = new GatewayConnectionConfig();
-    gatewayConnectionConfig.setMaxConnectionPoolSize(
-        this.getIntProperty("azurecosmos.maxConnectionPoolSize", gatewayConnectionConfig.getMaxConnectionPoolSize()));
-    gatewayConnectionConfig
-        .setIdleConnectionTimeout(Duration.ofSeconds(this.getIntProperty("azurecosmos.idleConnectionTimeout",
-            Math.toIntExact(gatewayConnectionConfig.getIdleConnectionTimeout().toMillis() / 1000))));
+
+    int gatewayMaxConnectionPoolSize = this.getIntProperty("azurecosmos.gatewayMaxConnectionPoolSize", -1);
+    if (gatewayMaxConnectionPoolSize != -1) {
+      gatewayConnectionConfig.setMaxConnectionPoolSize(gatewayMaxConnectionPoolSize);
+    }
+
+    int gatewayIdleConnectionTimeoutInSeconds = this.getIntProperty("azurecosmos.gatewayIdleConnectionTimeoutInSeconds",
+        -1);
+    if (gatewayIdleConnectionTimeoutInSeconds != -1) {
+      gatewayConnectionConfig.setIdleConnectionTimeout(Duration.ofSeconds(gatewayIdleConnectionTimeoutInSeconds));
+    }
 
     try {
       LOGGER.info(
@@ -182,8 +196,7 @@ public class AzureCosmosClient extends DB {
           AzureCosmosClient.preferredPageSize);
 
       CosmosClientBuilder builder = new CosmosClientBuilder().endpoint(uri).key(primaryKey)
-          .throttlingRetryOptions(retryOptions).endpointDiscoveryEnabled(false).consistencyLevel(consistencyLevel)
-          .userAgentSuffix(userAgent);
+          .throttlingRetryOptions(retryOptions).consistencyLevel(consistencyLevel).userAgentSuffix(userAgent);
 
       if (useGateway) {
         builder = builder.gatewayMode(gatewayConnectionConfig);
@@ -274,7 +287,7 @@ public class AzureCosmosClient extends DB {
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try {
-      CosmosContainer container = AzureCosmosClient.containerCache.get(key);
+      CosmosContainer container = AzureCosmosClient.containerCache.get(table);
       if (container == null) {
         container = AzureCosmosClient.database.getContainer(table);
         AzureCosmosClient.containerCache.put(table, container);
@@ -282,7 +295,7 @@ public class AzureCosmosClient extends DB {
 
       CosmosItemResponse<ObjectNode> response = container.readItem(key, new PartitionKey(key), ObjectNode.class);
       ObjectNode node = response.getItem();
-      Map<String, String> stringResults = new HashMap<>();
+      Map<String, String> stringResults = new HashMap<>(node.size());
       if (fields == null) {
         Iterator<Map.Entry<String, JsonNode>> iter = node.fields();
         while (iter.hasNext()) {
@@ -330,7 +343,11 @@ public class AzureCosmosClient extends DB {
       queryOptions.setMaxDegreeOfParallelism(AzureCosmosClient.maxDegreeOfParallelism);
       queryOptions.setMaxBufferedItemCount(AzureCosmosClient.maxBufferedItemCount);
 
-      CosmosContainer container = database.getContainer(table);
+      CosmosContainer container = AzureCosmosClient.containerCache.get(table);
+      if (container == null) {
+        container = AzureCosmosClient.database.getContainer(table);
+        AzureCosmosClient.containerCache.put(table, container);
+      }
 
       List<SqlParameter> paramList = new ArrayList<>();
       paramList.add(new SqlParameter("@startkey", startkey));
@@ -343,13 +360,13 @@ public class AzureCosmosClient extends DB {
       while (pageIterator.hasNext()) {
         List<ObjectNode> pageDocs = pageIterator.next().getResults();
         for (ObjectNode doc : pageDocs) {
-          Map<String, String> stringResults = new HashMap<>();
+          Map<String, String> stringResults = new HashMap<>(doc.size());
           Iterator<Map.Entry<String, JsonNode>> nodeIterator = doc.fields();
           while (nodeIterator.hasNext()) {
             Entry<String, JsonNode> pair = nodeIterator.next();
             stringResults.put(pair.getKey().toString(), pair.getValue().toString());
           }
-          HashMap<String, ByteIterator> byteResults = new HashMap<>();
+          HashMap<String, ByteIterator> byteResults = new HashMap<>(doc.size());
           StringByteIterator.putAllAsByteIterators(byteResults, stringResults);
           result.add(byteResults);
         }
@@ -378,13 +395,16 @@ public class AzureCosmosClient extends DB {
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
 
-    int numAttempts = 4;
     String readEtag = "";
 
-    for (int attempt = 0; attempt < numAttempts; attempt++) {
+    for (int attempt = 0; attempt < NUM_UPDATE_ATTEMPTS; attempt++) {
 
       try {
-        CosmosContainer container = database.getContainer(table);
+        CosmosContainer container = AzureCosmosClient.containerCache.get(table);
+        if (container == null) {
+          container = AzureCosmosClient.database.getContainer(table);
+          AzureCosmosClient.containerCache.put(table, container);
+        }
 
         CosmosItemResponse<ObjectNode> response = container.readItem(key, new PartitionKey(key), ObjectNode.class);
         readEtag = response.getETag();
@@ -430,11 +450,15 @@ public class AzureCosmosClient extends DB {
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Insert key: " + key + " into table: " + table);
+      LOGGER.debug("Insert key: {} into table: {}", key, table);
     }
 
     try {
-      CosmosContainer container = AzureCosmosClient.database.getContainer(table);
+      CosmosContainer container = AzureCosmosClient.containerCache.get(table);
+      if (container == null) {
+        container = AzureCosmosClient.database.getContainer(table);
+        AzureCosmosClient.containerCache.put(table, container);
+      }
       PartitionKey pk = new PartitionKey(key);
       ObjectNode node = OBJECT_MAPPER.createObjectNode();
 
@@ -443,7 +467,7 @@ public class AzureCosmosClient extends DB {
         node.put(pair.getKey(), pair.getValue().toString());
       }
       if (AzureCosmosClient.useUpsert) {
-        container.upsertItem(node);
+        container.upsertItem(node, pk, new CosmosItemRequestOptions());
       } else {
         container.createItem(node, pk, new CosmosItemRequestOptions());
       }
@@ -461,10 +485,14 @@ public class AzureCosmosClient extends DB {
   @Override
   public Status delete(String table, String key) {
     if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Delete key: " + key + " from table: " + table);
+      LOGGER.debug("Delete key {} from table {}", key, table);
     }
     try {
-      CosmosContainer container = AzureCosmosClient.database.getContainer(table);
+      CosmosContainer container = AzureCosmosClient.containerCache.get(table);
+      if (container == null) {
+        container = AzureCosmosClient.database.getContainer(table);
+        AzureCosmosClient.containerCache.put(table, container);
+      }
       container.deleteItem(key, new PartitionKey(key), new CosmosItemRequestOptions());
 
       return Status.OK;
@@ -472,7 +500,7 @@ public class AzureCosmosClient extends DB {
       if (!AzureCosmosClient.includeExceptionStackInLog) {
         e = null;
       }
-      LOGGER.error("Failed to delete key: {} in collection: {}", key, table, e);
+      LOGGER.error("Failed to delete key {} in collection {}", key, table, e);
     }
     return Status.ERROR;
   }
