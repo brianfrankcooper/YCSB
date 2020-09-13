@@ -1,0 +1,5 @@
+#!/bin/bash
+  
+rm -rf target
+mvn -e clean package -DskipTests
+rm -rf files

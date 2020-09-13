@@ -70,6 +70,7 @@ LICENSE file.
     <maven.dependency.version>2.10</maven.dependency.version>
 
     <!-- datastore binding versions, lex sorted -->
+<!--
     <accumulo.1.6.version>1.6.6</accumulo.1.6.version>
     <accumulo.1.7.version>1.7.3</accumulo.1.7.version>
     <accumulo.1.8.version>1.8.1</accumulo.1.8.version>
@@ -94,7 +95,9 @@ LICENSE file.
     <hypertable.version>0.9.5.6</hypertable.version>
     <infinispan.version>7.2.2.Final</infinispan.version>
     <kudu.version>1.1.0</kudu.version>
+-->
     <!--<mapkeeper.version>1.0</mapkeeper.version>-->
+<!--
     <mongodb.version>3.6.3</mongodb.version>
     <mongodb.async.version>2.0.1</mongodb.async.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
@@ -108,6 +111,8 @@ LICENSE file.
     <tarantool.version>1.6.5</tarantool.version>
     <thrift.version>0.8.0</thrift.version>
     <voldemort.version>0.81</voldemort.version>
+  -->
+    <smurf.version>0.0.0</smurf.version>
   </properties>
 
   <modules>
@@ -116,6 +121,7 @@ LICENSE file.
     <module>binding-parent</module>
     <module>distribution</module>
     <!-- all the datastore bindings, lex sorted please -->
+    <!--
     <module>accumulo1.6</module>
     <module>accumulo1.7</module>
     <module>accumulo1.8</module>
@@ -144,7 +150,9 @@ LICENSE file.
     <module>infinispan</module>
     <module>jdbc</module>
     <module>kudu</module>
+-->
     <!--<module>mapkeeper</module>-->
+<!--
     <module>memcached</module>
     <module>mongodb</module>
     <module>nosqldb</module>
@@ -157,6 +165,8 @@ LICENSE file.
     <module>solr</module>
     <module>solr6</module>
     <module>tarantool</module>
+  -->
+    <module>smurf</module>
     <!--<module>voldemort</module>-->
   </modules>
 

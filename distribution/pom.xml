@@ -39,6 +39,8 @@ LICENSE file.
       <artifactId>core</artifactId>
       <version>${project.version}</version>
     </dependency>
+
+<!--
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>accumulo1.6-binding</artifactId>
@@ -239,6 +241,7 @@ LICENSE file.
       <artifactId>tarantool-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
+-->
 <!--
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
@@ -246,6 +249,12 @@ LICENSE file.
       <version>${project.version}</version>
     </dependency>
 -->
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>smurf-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
   </dependencies>
   <build>
     <plugins>
