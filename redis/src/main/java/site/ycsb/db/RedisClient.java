@@ -60,6 +60,7 @@ public class RedisClient extends DB {
   public static final String PORT_PROPERTY = "redis.port";
   public static final String PASSWORD_PROPERTY = "redis.password";
   public static final String CLUSTER_PROPERTY = "redis.cluster";
+  public static final String TIMEOUT_PROPERTY = "redis.timeout";
 
   public static final String INDEX_KEY = "_indices";
 
@@ -81,7 +82,12 @@ public class RedisClient extends DB {
       jedisClusterNodes.add(new HostAndPort(host, port));
       jedis = new JedisCluster(jedisClusterNodes);
     } else {
-      jedis = new Jedis(host, port);
+      String redisTimeout = props.getProperty(TIMEOUT_PROPERTY);
+      if (redisTimeout != null){
+        jedis = new Jedis(host, port, Integer.parseInt(redisTimeout));
+      } else {
+        jedis = new Jedis(host, port);
+      }
       ((Jedis) jedis).connect();
     }
 
