@@ -47,8 +47,10 @@ public abstract class DBFlavor {
       } else {
         return new CockroachDBFlavor(urlArr[2]);
       }
+    } else {
+      System.out.println("Unsupported DBFlavor: " + url + ". Using default");      
+      return new DefaultDBFlavor();
     }
-    return new DefaultDBFlavor();
   }
 
   /**

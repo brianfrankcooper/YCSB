@@ -114,6 +114,7 @@ bin/ycsb run jdbc -P workloads/workloada -P db.properties -cp mysql-connector-ja
 ```sh
 db.driver=com.mysql.jdbc.Driver				# The JDBC driver class to use.
 db.url=jdbc:mysql://127.0.0.1:3306/ycsb		# The Database connection URL.
+db.dialect=									# Optional database dialect
 db.user=admin								# User name for the connection.
 db.passwd=admin								# Password for the connection.
 db.batchsize=1000             # The batch size for doing batched inserts. Defaults to 0. Set to >0 to use batching.
@@ -134,11 +135,11 @@ Some JDBC drivers support re-writing batched insert statements into multi-row in
   * MySQL [rewriteBatchedStatements=true](https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html) with `db.url=jdbc:mysql://127.0.0.1:3306/ycsb?rewriteBatchedStatements=true`
   * Postgres [reWriteBatchedInserts=true](https://jdbc.postgresql.org/documentation/head/connect.html#connection-parameters) with `db.url=jdbc:postgresql://127.0.0.1:5432/ycsb?reWriteBatchedInserts=true`
 
-## JDBC Parameter to use database specific syntax
+## configuration properties use database specific syntax
 
 Each SQL statement may require database specific variation.  The variation is auto detected by examining `db.url`.  Optionally, `db.dialect` `configuration properties` can be used for supported databases.
 
-`db.url` auto detects the following variations:
+`db.url` is examined for presence of the following keywords: `oracle`, `phoenix`, `postgres`, `sqlserver`.
 
 | Database 		| insert 	| select 	| delete 	| update 	| select ... limit 			|
 | --            | --      	| --		| --		| --		| --						|
@@ -148,7 +149,7 @@ Each SQL statement may require database specific variation.  The variation is au
 | SQL Server    |       	|			|			|			| SELECT TOP (?)			|
 
 
-`db.dialect` is supported for the following databases:
+`db.dialect` is supported for the following databases where auto detection is not sufficient and/or additional control is warranted:
 
 | Database 			| insert 	| select 						| delete 	| update 	| select ... limit 					|
 | --            	| --      	| --							| --		| --		| --								|
