@@ -26,6 +26,7 @@ public abstract class DBFlavor {
 
   enum DBName {
     DEFAULT,
+    COCKROACH,
     PHOENIX
   }
 
@@ -38,6 +39,14 @@ public abstract class DBFlavor {
   public static DBFlavor fromJdbcUrl(String url) {
     if (url.startsWith("jdbc:phoenix")) {
       return new PhoenixDBFlavor();
+    } else if (url.startsWith("jdbc:cockroach")) {
+      final String[] urlArr = url.split(":");
+      System.err.println("CockroachDB: Using AOST");
+      if (urlArr.length <=2) {
+        return new CockroachDBFlavor();
+      } else {
+        return new CockroachDBFlavor(urlArr[2]);
+      }
     }
     return new DefaultDBFlavor();
   }

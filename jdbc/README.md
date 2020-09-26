@@ -128,8 +128,42 @@ Please refer to https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties fo
 ## JDBC Parameter to Improve Insert Performance
 
 Some JDBC drivers support re-writing batched insert statements into multi-row insert statements. This technique can yield order of magnitude improvement in insert statement performance. To enable this feature:
-- **db.batchsize** must be greater than 0.  The magniute of the improvement can be adjusted by varying **batchsize**. Start with a small number and increase at small increments until diminishing return in the improvement is observed. 
+- **db.batchsize** must be greater than 0.  The magnitude of the improvement can be adjusted by varying **batchsize**. Start with a small number and increase at small increments until diminishing return in the improvement is observed. 
 - set **jdbc.batchupdateapi=true** to enable batching.
 - set JDBC driver specific connection parameter in **db.url** to enable the rewrite as shown in the examples below:
   * MySQL [rewriteBatchedStatements=true](https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html) with `db.url=jdbc:mysql://127.0.0.1:3306/ycsb?rewriteBatchedStatements=true`
   * Postgres [reWriteBatchedInserts=true](https://jdbc.postgresql.org/documentation/head/connect.html#connection-parameters) with `db.url=jdbc:postgresql://127.0.0.1:5432/ycsb?reWriteBatchedInserts=true`
+
+## JDBC Parameter to use database specific syntax
+
+Each SQL statement may require variation for specific databases.  The variation is autodected by examining `db.url` and `db.dialect` from `Configuration Properties`
+
+`db.url` is used to select the folloing non default setup:
+
+| SQL Statement | Oracle | Postgres | Phoenix | SQL Server |
+| ------------- | -------| ---------| ------- | ---------- |
+| insert        |        |          | upsert  |            |
+| read     	 	|        |          |         |            |
+| delete		|        |          |         |            |
+| update        |        |          |         |            |
+| scan          |        |          |         |            |
+
+`db.dialect` is used to select the folloing non default setup:
+
+| SQL Statement | CockroachDB 						| 
+| ------------- | ----------------------------------| 
+| insert        |             						|
+| read     	 	| select .. as of system time .. 	| 
+| delete		|          						   	| 
+| update        |             						| 
+| scan          | select .. as of system time ..   	|
+
+Examples of `db.dialect`:
+
+```sh
+db.dialect="jdbc:cockroach"											# use as of system time '-5s'
+db.dialect="jdbc:cockroach:-1s"										# use as of system time '-1s'
+db.dialect="jdbc:cockroach:experimental_follower_read_timestamp()"	# use as of system time experimental_follower_read_timestamp() requiring a license key
+```
+
+
