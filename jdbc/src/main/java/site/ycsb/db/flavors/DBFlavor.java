@@ -41,7 +41,7 @@ public abstract class DBFlavor {
       return new PhoenixDBFlavor();
     } else if (url.startsWith("jdbc:cockroach")) {
       final String[] urlArr = url.split(":");
-      System.err.println("CockroachDB: Using AOST");
+      System.out.println("CockroachDB: Using AOST");
       if (urlArr.length <=2) {
         return new CockroachDBFlavor();
       } else {

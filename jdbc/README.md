@@ -136,34 +136,40 @@ Some JDBC drivers support re-writing batched insert statements into multi-row in
 
 ## JDBC Parameter to use database specific syntax
 
-Each SQL statement may require variation for specific databases.  The variation is autodected by examining `db.url` and `db.dialect` from `Configuration Properties`
+Each SQL statement may require database specific variation.  The variation is auto detected by examining `db.url`.  Optionally, `db.dialect` `configuration properties` can be used for supported databases.
 
-`db.url` is used to select the folloing non default setup:
+`db.url` auto detects the following variations:
 
-| SQL Statement | Oracle | Postgres | Phoenix | SQL Server |
-| ------------- | -------| ---------| ------- | ---------- |
-| insert        |        |          | upsert  |            |
-| read     	 	|        |          |         |            |
-| delete		|        |          |         |            |
-| update        |        |          |         |            |
-| scan          |        |          |         |            |
+| Database 		| insert 	| select 	| delete 	| update 	| select ... limit 			|
+| --            | --      	| --		| --		| --		| --						|
+| Oracle        |       	|			|			|			| FETCH FIRST ? ROWS ONLY	|
+| Postgres      |       	|			|			|			| FETCH FIRST ? ROWS ONLY	|
+| Phoenix       | upsert    |			|			| upsert	|							|
+| SQL Server    |       	|			|			|			| SELECT TOP (?)			|
 
-`db.dialect` is used to select the folloing non default setup:
 
-| SQL Statement | CockroachDB 						| 
-| ------------- | ----------------------------------| 
-| insert        |             						|
-| read     	 	| select .. as of system time .. 	| 
-| delete		|          						   	| 
-| update        |             						| 
-| scan          | select .. as of system time ..   	|
+`db.dialect` is supported for the following databases:
 
-Examples of `db.dialect`:
+| Database 			| insert 	| select 						| delete 	| update 	| select ... limit 					|
+| --            	| --      	| --							| --		| --		| --								|
+| CockroachDB AOST  |       	| select .. as of system time ..|			|			| select .. as of system time ..	|
 
-```sh
-db.dialect="jdbc:cockroach"											# use as of system time '-5s'
-db.dialect="jdbc:cockroach:-1s"										# use as of system time '-1s'
-db.dialect="jdbc:cockroach:experimental_follower_read_timestamp()"	# use as of system time experimental_follower_read_timestamp() requiring a license key
+
+### db.dialect=jdbc:cockroach[:{time_interval}]
+
+The default `{time_interval}` is `'-5s'`
+
+- use as of system time '-5s'
+```bash
+db.dialect="jdbc:cockroach"											
 ```
 
+- use as of system time '-1s'
+```bash
+db.dialect="jdbc:cockroach:-1s"										
+```
 
+- use as of system time experimental_follower_read_timestamp() requiring a license key
+```bash
+db.dialect="jdbc:cockroach:experimental_follower_read_timestamp()"	
+```
