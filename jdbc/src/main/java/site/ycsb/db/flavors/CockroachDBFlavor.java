@@ -43,7 +43,7 @@ public class CockroachDBFlavor extends DefaultDBFlavor {
     read.append(JdbcDBClient.PRIMARY_KEY);
     read.append(" = ");
     read.append("?");
-    System.err.println("CockroachDB: " + read.toString());
+    System.out.println("CockroachDB: " + read.toString());
     return read.toString();
   }
 
@@ -59,7 +59,7 @@ public class CockroachDBFlavor extends DefaultDBFlavor {
     select.append(" ORDER BY ");
     select.append(JdbcDBClient.PRIMARY_KEY);
     select.append(" LIMIT ?");
-    System.err.println("CockroachDB: " + select.toString());
+    System.out.println("CockroachDB: " + select.toString());
     return select.toString();
   }
 }
