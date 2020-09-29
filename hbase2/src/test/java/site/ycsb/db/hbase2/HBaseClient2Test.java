@@ -39,17 +39,12 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Properties;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * Integration tests for the YCSB HBase 2 client using an HBase minicluster.
@@ -62,6 +57,23 @@ public class HBaseClient2Test {
   private HBaseClient2 client;
   private Table table = null;
   private String tableName;
+
+  /**
+   *  We are extending the regular HBase2Client, to control the "random" scan filter value for the tests.
+   */
+  static final class HBase2ClientWithConstantValueFilter extends HBaseClient2{
+    private final byte[] valueFilter;
+
+    HBase2ClientWithConstantValueFilter(byte[] valueFilter) {
+      this.valueFilter = valueFilter;
+    }
+
+    @Override
+    protected byte[] getRandomFilterValue(){
+      return valueFilter;
+    }
+
+  }
 
   private static boolean isWindows() {
     final String os = System.getProperty("os.name");
@@ -97,13 +109,29 @@ public class HBaseClient2Test {
    *
    * We re-create the table for each test.
    */
-  @Before
+
   public void setUp() throws Exception {
     client = new HBaseClient2();
     client.setConfiguration(new Configuration(testingUtil.getConfiguration()));
 
     Properties p = new Properties();
     p.setProperty("columnfamily", COLUMN_FAMILY);
+
+    Measurements.setProperties(p);
+    final CoreWorkload workload = new CoreWorkload();
+    workload.init(p);
+
+    tableName = p.getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
+    table = testingUtil.createTable(TableName.valueOf(tableName), Bytes.toBytes(COLUMN_FAMILY));
+
+    client.setProperties(p);
+    client.init();
+  }
+
+  public void setUp(Properties p, byte[] randomFilteringValue) throws Exception {
+    p.setProperty("columnfamily", COLUMN_FAMILY);
+    client = new HBase2ClientWithConstantValueFilter(randomFilteringValue);
+    client.setConfiguration(new Configuration(testingUtil.getConfiguration()));
 
     Measurements.setProperties(p);
     final CoreWorkload workload = new CoreWorkload();
@@ -124,6 +152,7 @@ public class HBaseClient2Test {
 
   @Test
   public void testRead() throws Exception {
+    setUp();
     final String rowKey = "row1";
     final Put p = new Put(Bytes.toBytes(rowKey));
     p.addColumn(Bytes.toBytes(COLUMN_FAMILY),
@@ -142,6 +171,7 @@ public class HBaseClient2Test {
 
   @Test
   public void testReadMissingRow() throws Exception {
+    setUp();
     final HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
     final Status status = client.read(tableName, "Missing row", null, result);
     assertEquals(Status.NOT_FOUND, status);
@@ -150,6 +180,7 @@ public class HBaseClient2Test {
 
   @Test
   public void testScan() throws Exception {
+    setUp();
     // Fill with data
     final String colStr = "row_number";
     final byte[] col = Bytes.toBytes(colStr);
@@ -184,7 +215,74 @@ public class HBaseClient2Test {
   }
 
   @Test
+  public void testScanWithFiltering() throws Exception {
+    Properties properties = setPropertiesForFiltering("");
+    setUp(properties, Bytes.toBytes(5));
+    // Fill with data
+    final String colStr = "row_number";
+    setupTable(colStr);
+
+    // Test
+    final Vector<HashMap<String, ByteIterator>> result =
+        new Vector<HashMap<String, ByteIterator>>();
+
+
+    client.scan(tableName, "00001", 10, new HashSet<>(Collections.singletonList(colStr)), result);
+
+    assertEquals(5, result.size());
+    for(int i = 0; i < 5; i++) {
+      final HashMap<String, ByteIterator> row = result.get(i);
+      assertEquals(1, row.size());
+      assertTrue(row.containsKey(colStr));
+      final byte[] bytes = row.get(colStr).toArray();
+      final ByteBuffer buf = ByteBuffer.wrap(bytes);
+      final int rowNum = buf.getInt();
+      assertEquals(i + 1, rowNum);
+    }
+  }
+
+  public void testScanWithFilteringPropertyBase(String operation, int number, int expected) throws Exception {
+    Properties properties = setPropertiesForFiltering(operation);
+    setUp(properties, Bytes.toBytes(number));
+    final String colStr = "row_number";
+    // Fill with data
+    setupTable(colStr);
+    // Test
+    final Vector<HashMap<String, ByteIterator>> result =
+        new Vector<HashMap<String, ByteIterator>>();
+
+    client.scan(tableName, "00000", 15,
+        new HashSet<>(Collections.singletonList(colStr)), result);
+
+
+    assertEquals(expected, result.size());
+    for(int i = 0; i < expected; i++) {
+      final HashMap<String, ByteIterator> row = result.get(i);
+      assertEquals(1, row.size());
+      assertTrue(row.containsKey(colStr));
+    }
+  }
+
+  @Test
+  public void testScanWithFilteringPropertyLessOrEqual() throws Exception {
+    testScanWithFilteringPropertyBase("lessOrEqual", 10, 11);
+  }
+
+  @Test
+  public void testScanWithFilteringPropertyEqual() throws Exception {
+    testScanWithFilteringPropertyBase("equal",10,1);
+  }
+
+  @Test
+  public void testScanWithFilteringPropertyNotEqual() throws Exception {
+    testScanWithFilteringPropertyBase("notEqual",10,14);
+  }
+
+
+
+  @Test
   public void testUpdate() throws Exception{
+    setUp();
     final String key = "key";
     final HashMap<String, String> input = new HashMap<String, String>();
     input.put("column1", "value1");
@@ -209,5 +307,30 @@ public class HBaseClient2Test {
   public void testDelete() {
     fail("Not yet implemented");
   }
+
+  private void setupTable(String colStr) throws Exception {
+    final byte[] col = Bytes.toBytes(colStr);
+    final int n = 15;
+    final List<Put> puts = new ArrayList<Put>(n);
+    for(int i = 0; i < n; i++) {
+      final byte[] key = Bytes.toBytes(String.format("%05d", i));
+      final byte[] value = java.nio.ByteBuffer.allocate(4).putInt(i).array();
+      final Put p = new Put(key);
+      p.addColumn(Bytes.toBytes(COLUMN_FAMILY), col, value);
+      puts.add(p);
+    }
+    table.put(puts);
+  }
+
+  private Properties setPropertiesForFiltering(String operation){
+    Properties p = new Properties();
+    p.setProperty("hbase.usescanvaluefiltering", String.valueOf(true));
+    p.setProperty("hbase.scanfilteroperator",operation);
+    return p;
+  }
+
+
 }
+
+
 
