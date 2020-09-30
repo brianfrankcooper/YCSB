@@ -143,17 +143,17 @@ Each SQL statement may require database specific variation.  The variation is au
 
 | Database 		| insert 	| select 	| delete 	| update 	| select ... limit 			|
 | --            | --      	| --		| --		| --		| --						|
-| Oracle        |       	|			|			|			| FETCH FIRST ? ROWS ONLY	|
-| Postgres      |       	|			|			|			| FETCH FIRST ? ROWS ONLY	|
-| Phoenix       | upsert    |			|			| upsert	|							|
-| SQL Server    |       	|			|			|			| SELECT TOP (?)			|
+| Oracle        |       	|			|			|			| `FETCH FIRST ? ROWS ONLY`	|
+| Postgres      |       	|			|			|			| `FETCH FIRST ? ROWS ONLY`	|
+| Phoenix       | `upsert`  |			|			| `upsert`	|							|
+| SQL Server    |       	|			|			|			| `SELECT TOP (?)`			|
 
 
 `db.dialect` is supported for the following databases where auto detection is not sufficient and/or additional control is warranted:
 
 | Option | Database 			| insert 	| select 						| delete 	| update 	| select ... limit 					|
 | --            	| --       | --      	| --							| --		| --		| --								|
-| db.dialect=jdbc:cockroach[:{time_interval}] | CockroachDB AOST  |       	| select .. as of system time ..|			|			| select .. as of system time ..	|
+| `db.dialect=jdbc:cockroach[:{time_interval}]` | CockroachDB AOST  |       	| `select .. as of system time ..`|			|			| `select .. as of system time ..`	|
 
 
 ### db.dialect=jdbc:cockroach[:{time_interval}]
