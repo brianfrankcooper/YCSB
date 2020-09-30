@@ -117,11 +117,11 @@ db.url=jdbc:mysql://127.0.0.1:3306/ycsb		# The Database connection URL.
 db.dialect=									# Optional database dialect
 db.user=admin								# User name for the connection.
 db.passwd=admin								# Password for the connection.
-db.batchsize=1000             # The batch size for doing batched inserts. Defaults to 0. Set to >0 to use batching.
+db.batchsize=1000                           # The batch size for doing batched inserts. Defaults to 0. Set to >0 to use batching.
 jdbc.fetchsize=10							# The JDBC fetch size hinted to the driver.
 jdbc.autocommit=true						# The JDBC connection auto-commit property for the driver.
-jdbc.batchupdateapi=false     # Use addBatch()/executeBatch() JDBC methods instead of executeUpdate() for writes (default: false)
-db.batchsize=1000             # The number of rows to be batched before commit (or executeBatch() when jdbc.batchupdateapi=true)
+jdbc.batchupdateapi=false                   # Use addBatch()/executeBatch() JDBC methods instead of executeUpdate() for writes (default: false)
+db.batchsize=1000                           # The number of rows to be batched before commit (or executeBatch() when jdbc.batchupdateapi=true)
 ```
 
 Please refer to https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties for all other YCSB core properties.
@@ -135,11 +135,11 @@ Some JDBC drivers support re-writing batched insert statements into multi-row in
   * MySQL [rewriteBatchedStatements=true](https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html) with `db.url=jdbc:mysql://127.0.0.1:3306/ycsb?rewriteBatchedStatements=true`
   * Postgres [reWriteBatchedInserts=true](https://jdbc.postgresql.org/documentation/head/connect.html#connection-parameters) with `db.url=jdbc:postgresql://127.0.0.1:5432/ycsb?reWriteBatchedInserts=true`
 
-## configuration properties use database specific syntax
+## Configuration Properties control for database specific SQL syntax
 
 Each SQL statement may require database specific variation.  The variation is auto detected by examining `db.url`.  Optionally, `db.dialect` `configuration properties` can be used for supported databases.
 
-`db.url` is examined for presence of the following keywords: `oracle`, `phoenix`, `postgres`, `sqlserver`.
+`db.url` is examined for presence of the following keywords: `oracle`, `phoenix`, `postgres`, `sqlserver`.  Blank means the default SQL is used.
 
 | Database 		| insert 	| select 	| delete 	| update 	| select ... limit 			|
 | --            | --      	| --		| --		| --		| --						|
@@ -151,9 +151,9 @@ Each SQL statement may require database specific variation.  The variation is au
 
 `db.dialect` is supported for the following databases where auto detection is not sufficient and/or additional control is warranted:
 
-| Database 			| insert 	| select 						| delete 	| update 	| select ... limit 					|
-| --            	| --      	| --							| --		| --		| --								|
-| CockroachDB AOST  |       	| select .. as of system time ..|			|			| select .. as of system time ..	|
+| Option | Database 			| insert 	| select 						| delete 	| update 	| select ... limit 					|
+| --            	| --       | --      	| --							| --		| --		| --								|
+| db.dialect=jdbc:cockroach[:{time_interval}] | CockroachDB AOST  |       	| select .. as of system time ..|			|			| select .. as of system time ..	|
 
 
 ### db.dialect=jdbc:cockroach[:{time_interval}]
