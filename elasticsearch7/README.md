@@ -27,11 +27,12 @@ Follow the instructions you can find [here][2] to install and start Elasticsearc
 
 Download the [latest release of YCSB][3] and follow the instructions:
 
-    ```
-    curl -O --location https://github.com/brianfrankcooper/YCSB/releases/download/0.17.0/ycsb-0.17.0.tar.gz
-    tar xfvz ycsb-0.17.0.tar.gz
-    cd ycsb-0.17.0
-    ```
+```sh
+curl -O --location https://github.com/brianfrankcooper/YCSB/releases/download/0.17.0/ycsb-0.17.0.tar.gz
+tar xfvz ycsb-0.17.0.tar.gz
+cd ycsb-0.17.0
+```
+
 ## 3. Run YCSB
 
 To know how to run YCSB follow the instructions that you can find [here][4].
@@ -116,7 +117,7 @@ es.credentials.password=changeme
 
 If you want a custom configuration for running YCSB in Elasticsearch 7.x, you can create a configuration file. This file should have the extension `.data` and is passed to YCSB as follows:
 
-```
+```sh
 ./bin/ycsb run elasticsearch7 -P workloads/workloada -P myproperties.data -s
 ```
 
