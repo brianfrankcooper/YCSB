@@ -116,7 +116,7 @@ es.credentials.password=changeme
 
 If you want a custom configuration for running YCSB in Elasticsearch 7.x, you can create a configuration file. This file should have the extension `.data` and is passed to YCSB as follows:
 
-```sh
+```
 ./bin/ycsb run elasticsearch7 -P workloads/workloada -P myproperties.data -s
 ```
 
