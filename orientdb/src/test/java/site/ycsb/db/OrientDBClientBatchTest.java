@@ -15,13 +15,9 @@ import java.util.Properties;
 
 /** OrientDB client for YCSB framework. */
 public class OrientDBClientBatchTest {
-  // TODO: This must be copied because it is private in OrientDBClient, but this should defer to
-  // table property.
   private static final String CLASS = "usertable";
   private static final int FIELD_LENGTH = 32;
   private static final String FIELD_PREFIX = "FIELD";
-  private static final String KEY_PREFIX = "user";
-  private static final int NUM_FIELDS = 3;
   private static final String TEST_DB_URL = "memory:test";
   private static final int batchSize = 10;
 

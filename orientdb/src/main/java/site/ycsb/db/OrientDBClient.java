@@ -28,7 +28,6 @@ import site.ycsb.*;
 
 import java.io.File;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -54,19 +53,16 @@ public class OrientDBClient extends DB {
   private static final String CLASS = "usertable";
 
   private static final Lock REENTRANT_INIT_LOCK = new ReentrantLock();
-  private static boolean dbChecked = false;
   private static volatile ODatabasePool pool;
   private static volatile OrientDB orient;
 
   private static boolean initialized = false;
   private static int clientCounter = 0;
 
-  private boolean isRemote = false;
-
   /** The batch size to use for inserts. */
   private static int batchSize = 1;
 
-  private final List<OElement> elementsBatch = new ArrayList<OElement>();
+  private final List<OElement> elementsBatch = new ArrayList<>();
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one DB instance per
@@ -82,19 +78,17 @@ public class OrientDBClient extends DB {
 
       clientCounter++;
       if (!initialized) {
-        // Too verbose: OGlobalConfiguration.dumpConfiguration(System.out);
         LOG.info("OrientDB loading database url = " + url);
 
         final OURLConnection urlHelper = OURLHelper.parseNew(url);
         ODatabaseType dbType = urlHelper.getDbType().orElse(ODatabaseType.PLOCAL);
-        initAndGetDatabaseUrlAndDbType(url, dbType);
+        initAndGetDatabaseUrlAndDbType(url);
 
         final String dbName = urlHelper.getDbName();
         if (cp.newDb && orient.exists(dbName)) {
           orient.drop(dbName);
         }
         orient.createIfNotExists(dbName, dbType);
-        dbChecked = true;
         if (!orient.isOpen()) {
           orient.open(dbName, cp.getUser(), cp.getPassword());
         }
@@ -119,7 +113,7 @@ public class OrientDBClient extends DB {
     }
   }
 
-  private void initAndGetDatabaseUrlAndDbType(String url, ODatabaseType dbType) {
+  private void initAndGetDatabaseUrlAndDbType(String url) {
     if (url.startsWith("remote:")) {
       final OrientDBConfigBuilder poolCfg = OrientDBConfig.builder();
       poolCfg.addConfig(OGlobalConfiguration.DB_POOL_MIN, 5);
@@ -128,15 +122,11 @@ public class OrientDBClient extends DB {
       if (orient == null) {
         orient = new OrientDB(url, "root", "admin", oriendDBconfig);
       }
-      isRemote = true;
-      LOG.info("OrientDB changed isRemote = " + isRemote);
     } else if (url.startsWith("memory:")) {
       url = "embedded:";
       if (orient == null) {
         orient = new OrientDB(url, OrientDBConfig.defaultConfig());
       }
-      dbType = ODatabaseType.MEMORY;
-      LOG.info("OrientDB new url = " + url + " and type " + dbType);
     } else {
       if (orient == null) {
         orient = new OrientDB(url, OrientDBConfig.defaultConfig());
@@ -177,15 +167,15 @@ public class OrientDBClient extends DB {
     }
   }
 
-  @Override
   public Status flush(final String table) throws DBException {
     try (final ODatabaseSession session = pool.acquire()) {
       session.begin();
-      return (elementsBatch.size() == 0) ? Status.NOTHING_TO_DO : commitBatch(session);
+      // actually Status.NOTHING_TO_DO
+      return (elementsBatch.size() == 0) ? Status.OK : commitBatch(session);
     }
   }
 
-  public void dropTable(final String dbName) {
+  void dropTable(final String dbName) {
     if (orient != null) {
       orient.drop(dbName);
     }
@@ -241,7 +231,7 @@ public class OrientDBClient extends DB {
         session.commit();
         return Status.OK;
       } catch (OConcurrentModificationException cme) {
-        continue;
+        // just continue
       } catch (final Exception e) {
         e.printStackTrace();
         return Status.ERROR;
@@ -278,12 +268,10 @@ public class OrientDBClient extends DB {
         final OResultSet rs = session.query(querySelected, params)) {
       rs.stream()
           .forEach(
-              e -> {
-                e.getPropertyNames().stream()
-                    .forEach(
-                        property ->
-                            result.put(property, new StringByteIterator(e.getProperty(property))));
-              });
+              e -> e.getPropertyNames().stream()
+                  .forEach(
+                      property ->
+                          result.put(property, new StringByteIterator(e.getProperty(property)))));
     } catch (final Exception e) {
       System.err.println("Unable to read data for key " + key);
       return Status.ERROR;
@@ -300,12 +288,10 @@ public class OrientDBClient extends DB {
         final OResultSet rs = session.query(queryAll, params)) {
       rs.stream()
           .forEach(
-              e -> {
-                e.getPropertyNames().stream()
-                    .forEach(
-                        property ->
-                            result.put(property, new StringByteIterator(e.getProperty(property))));
-              });
+              e -> e.getPropertyNames().stream()
+                  .forEach(
+                      property ->
+                          result.put(property, new StringByteIterator(e.getProperty(property)))));
     } catch (final Exception e) {
       System.err.println("Unable to read data for key " + key);
       return Status.ERROR;
@@ -320,8 +306,6 @@ public class OrientDBClient extends DB {
       final int recordcount,
       final Set<String> fields,
       final Vector<HashMap<String, ByteIterator>> result) {
-    // TODO: requires ODB 3.1.2 or 3.2.0
-    // return Status.NOT_IMPLEMENTED;
 
     final Map<String, Object> params = new HashMap<>();
     params.put("key", startkey);
@@ -341,14 +325,12 @@ public class OrientDBClient extends DB {
       rs.stream()
           .forEach(
               e -> {
-                final HashMap<String, ByteIterator> entry = new HashMap<>();
-                e.getPropertyNames().stream()
-                    .forEach(
-                        property -> {
-                          entry.put(property, new StringByteIterator(e.getProperty(property)));
-                        });
-                result.addElement(entry);
-              });
+              final HashMap<String, ByteIterator> entry = new HashMap<>();
+              e.getPropertyNames().stream()
+                  .forEach(
+                      property -> entry.put(property, new StringByteIterator(e.getProperty(property))));
+              result.addElement(entry);
+            });
     } catch (final Exception e) {
       System.err.println("Unable to read data for key " + startkey);
       return Status.ERROR;
@@ -364,14 +346,6 @@ public class OrientDBClient extends DB {
         session.begin();
         final Map<String, Object> params = new HashMap<>();
         params.put("key", key);
-        // final AtomicInteger counter = new AtomicInteger(0);
-        // values.entrySet().stream()
-        //    .forEach(
-        //        e ->
-        //            params.put(
-        //                "val" + counter.getAndIncrement(),
-        //                e.getKey() + "= '" + e.getValue().toString() + "'"));
-
         final String update = preparedUpdateSql(table, values);
         session.command(update, params);
         session.commit();
@@ -386,14 +360,9 @@ public class OrientDBClient extends DB {
   }
 
   private String preparedUpdateSql(final String table, final Map<String, ByteIterator> values) {
-    final AtomicInteger counter = new AtomicInteger(0);
     return "UPDATE "
         + table
         + " SET "
-        // TODO: is prepared 'update' supported?
-        // + values.entrySet().stream()
-        //    .map(e -> ":val" + counter.getAndIncrement())
-        //    .collect(Collectors.joining(", "))
         + values.entrySet().stream()
             .map(e -> " " + e.getKey() + "= '" + e.getValue().toString() + "'")
             .collect(Collectors.joining(", "))
@@ -428,20 +397,16 @@ public class OrientDBClient extends DB {
               + remoteStorageType);
     }
 
-    public String getUrl() {
+    String getUrl() {
       return url;
     }
 
-    public String getUser() {
+    String getUser() {
       return user;
     }
 
-    public String getPassword() {
+    String getPassword() {
       return password;
-    }
-
-    public boolean isNewDb() {
-      return newDb;
     }
   }
 }

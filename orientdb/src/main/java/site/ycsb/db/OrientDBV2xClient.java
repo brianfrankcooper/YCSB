@@ -42,6 +42,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * OrientDB client for YCSB framework.
  */
+@Deprecated
 public class OrientDBV2xClient extends DB {
   private static final String URL_PROPERTY         = "orientdb.url";
   private static final String URL_PROPERTY_DEFAULT =
@@ -194,7 +195,6 @@ public class OrientDBV2xClient extends DB {
 
   }
 
-  @Override
   public Status flush(String s) throws DBException {
     // TODO: implementation missing
     return Status.OK;

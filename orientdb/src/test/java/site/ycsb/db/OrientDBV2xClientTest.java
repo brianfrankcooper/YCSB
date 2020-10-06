@@ -31,10 +31,13 @@ import org.junit.*;
 import java.util.*;
 
 import static org.junit.Assert.*;
+import static org.junit.Assume.assumeNoException;
 
-/** OrientDB client for YCSB framework. */
+/**
+ * Created by kruthar on 12/29/15.
+ */
+@Ignore
 public class OrientDBV2xClientTest {
-  // TODO: This must be copied because it is private in OrientDBV2xClient, but this should defer to table property.
   private static final String CLASS        = "usertable";
   private static final int    FIELD_LENGTH = 32;
   private static final String FIELD_PREFIX = "FIELD";
@@ -45,15 +48,23 @@ public class OrientDBV2xClientTest {
   private static OrientDBV2xClient orientDBClient = null;
 
   @Before
-  public void setup() throws DBException {
+  public void setup() {
     orientDBClient = new OrientDBV2xClient();
 
     Properties p = new Properties();
-    // TODO: Extract the property names into final variables in OrientDBV2xClient
+    // TODO: Extract the property names into final variables in OrientDBClient
     p.setProperty("orientdb.url", TEST_DB_URL);
 
     orientDBClient.setProperties(p);
-    orientDBClient.init();
+    try {
+      orientDBClient.init();
+    } catch (DBException e) {
+      try {
+        orientDBClient.cleanup();
+        assumeNoException("PostgreSQL is not running. Skipping tests.", e);
+      } catch (DBException ignored) {
+      }
+    }
   }
 
   @After
@@ -91,7 +102,6 @@ public class OrientDBV2xClientTest {
       insertMap.put(FIELD_PREFIX + i, new StringByteIterator(buildDeterministicValue(insertKey, FIELD_PREFIX + i)));
     }
     orientDBClient.insert(CLASS, insertKey, insertMap);
-
     return insertMap;
   }
 
@@ -100,11 +110,10 @@ public class OrientDBV2xClientTest {
     String insertKey = "user0";
     Map<String, ByteIterator> insertMap = insertRow(insertKey);
 
-    OPartitionedDatabasePool pool = orientDBClient.getDatabasePool();
-    try(ODatabaseDocumentTx db = pool.acquire()) {
-      ODictionary<ORecord> dictionary = db.getDictionary();
+    final OPartitionedDatabasePool pool = orientDBClient.getDatabasePool();
+    try (final ODatabaseDocumentTx session = pool.acquire()) {
+      ODictionary<ORecord> dictionary = session.getDictionary();
       ODocument result = dictionary.get(insertKey);
-
       assertTrue("Assert a row was inserted.", result != null);
 
       for (int i = 0; i < NUM_FIELDS; i++) {
@@ -122,7 +131,7 @@ public class OrientDBV2xClientTest {
     String user2 = "user2";
 
     OPartitionedDatabasePool pool = orientDBClient.getDatabasePool();
-    try(ODatabaseDocumentTx db = pool.acquire()) {
+    try (final ODatabaseDocumentTx session = pool.acquire()) {
       // Manually insert three documents
       for (String key : Arrays.asList(user0, user1, user2)) {
         ODocument doc = new ODocument(CLASS);
@@ -131,7 +140,7 @@ public class OrientDBV2xClientTest {
         }
         doc.save();
 
-        ODictionary<ORecord> dictionary = db.getDictionary();
+        ODictionary<ORecord> dictionary = session.getDictionary();
         dictionary.put(key, doc);
       }
     }
@@ -143,8 +152,8 @@ public class OrientDBV2xClientTest {
 
     orientDBClient.update(CLASS, user1, updateMap);
 
-    try(ODatabaseDocumentTx db = pool.acquire()) {
-      ODictionary<ORecord> dictionary = db.getDictionary();
+    try (final ODatabaseDocumentTx session = pool.acquire()) {
+      ODictionary<ORecord> dictionary = session.getDictionary();
       // Ensure that user0 record was not changed
       ODocument result = dictionary.get(user0);
       for (int i = 0; i < NUM_FIELDS; i++) {
@@ -180,7 +189,6 @@ public class OrientDBV2xClientTest {
     for (String field : readFields) {
       assertEquals("Assert " + field + " was read correctly", insertMap.get(field).toString(), readResultMap.get(field).toString());
     }
-
     readResultMap = new HashMap<>();
 
     // Test reading all fields
@@ -202,12 +210,11 @@ public class OrientDBV2xClientTest {
     insertRow(user0);
     insertRow(user1);
     insertRow(user2);
-
     orientDBClient.delete(CLASS, user1);
 
     OPartitionedDatabasePool pool = orientDBClient.getDatabasePool();
-    try(ODatabaseDocumentTx db = pool.acquire()) {
-      ODictionary<ORecord> dictionary = db.getDictionary();
+    try (final ODatabaseDocumentTx session = pool.acquire()) {
+      ODictionary<ORecord> dictionary = session.getDictionary();
 
       assertNotNull("Assert user0 still exists", dictionary.get(user0));
       assertNull("Assert user1 does not exist", dictionary.get(user1));
@@ -217,19 +224,19 @@ public class OrientDBV2xClientTest {
 
   @Test
   public void scanTest() {
-    Map<String, Map<String, ByteIterator>> keyMap = new HashMap<>();
+    final Map<String, Map<String, ByteIterator>> keyMap = new HashMap<>();
     for (int i = 0; i < 5; i++) {
       String insertKey = KEY_PREFIX + i;
       keyMap.put(insertKey, insertRow(insertKey));
     }
 
-    Set<String> fieldSet = new HashSet<>();
+    final Set<String> fieldSet = new HashSet<>();
     fieldSet.add("FIELD0");
     fieldSet.add("FIELD1");
     int startIndex = 0;
     int resultRows = 3;
 
-    Vector<HashMap<String, ByteIterator>> resultVector = new Vector<>();
+    final Vector<HashMap<String, ByteIterator>> resultVector = new Vector<>();
     orientDBClient.scan(CLASS, KEY_PREFIX + startIndex, resultRows, fieldSet, resultVector);
 
     // Check the resultVector is the correct size
