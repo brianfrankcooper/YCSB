@@ -97,7 +97,7 @@ To know how to run YCSB follow the instructions that you can find [here][4].
 
 ### Default settings
 
-If you do not set custom settings to run YCSB on Elasticsearch 7.x the configuration is:
+If you do not set custom settings to run YCSB on Elasticsearch 7.x, the configuration is:
 
 ```sh
 es.cluster.name=elasticsearch
@@ -125,7 +125,7 @@ For parameters not customized by the user, the default values will be used.
 
 **CONFIGURING SECURITY PARAMETERS**
 
-Elasticsearch 7.x Java High Level REST Client for YCSB framework enables the user to connect to clusters that have different levels of security provided by [Elasticsearch security features][10]. 
+Elasticsearch 7.x Java High Level REST Client for YCSB framework enables the user to connect to clusters that have different levels of security provided by [Elasticsearch security features][10]. Different configuration levels are detailed in this table:
 
 | Security Level | `es.security.ssl` | `es.authentication` |
 | ------ | ------ | ------ |
