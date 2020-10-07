@@ -14,7 +14,7 @@
  * the License. See accompanying LICENSE file.
  * 
  * Authors: Anthony F. Voellm and Khoa Dang (2.2.3)
- *          Armaan Sood (4.3.0)
+ *          Armaan Sood (4.6.0)
  */
 
 package site.ycsb.db;
@@ -62,7 +62,7 @@ import site.ycsb.Status;
 import site.ycsb.StringByteIterator;
 
 /**
- * Azure Cosmos DB Java SDK 4.3.0 client for YCSB.
+ * Azure Cosmos DB Java SDK 4.6.0 client for YCSB.
  */
 
 public class AzureCosmosClient extends DB {
@@ -79,7 +79,7 @@ public class AzureCosmosClient extends DB {
   private static final int DEFAULT_PREFERRED_PAGE_SIZE = -1;
   public static final int NUM_UPDATE_ATTEMPTS = 4;
   private static final boolean DEFAULT_INCLUDE_EXCEPTION_STACK_IN_LOG = false;
-  private static final String DEFAULT_USER_AGENT = "ycsb-4.3.1";
+  private static final String DEFAULT_USER_AGENT = "ycsb-4.6.0";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AzureCosmosClient.class);
 
