@@ -115,7 +115,7 @@ LICENSE file.
     <aerospike.version>3.1.2</aerospike.version>
     <arangodb.version>4.4.1</arangodb.version>
     <asynchbase.version>1.8.2</asynchbase.version>
-    <azurecosmos.version>4.3.1</azurecosmos.version>
+    <azurecosmos.version>4.6.0</azurecosmos.version>
     <azurestorage.version>4.0.0</azurestorage.version>
     <cassandra.cql.version>3.0.0</cassandra.cql.version>
     <cloudspanner.version>0.36.0-beta</cloudspanner.version>
