@@ -25,10 +25,13 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 import com.datastax.driver.core.querybuilder.Update;
+import com.datastax.driver.core.policies.TokenAwarePolicy;
+import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 import site.ycsb.ByteArrayByteIterator;
 import site.ycsb.ByteIterator;
 import site.ycsb.DB;
@@ -90,6 +93,10 @@ public class ScyllaCQLClient extends DB {
   public static final String CORE_CONNECTIONS_PROPERTY = "scylla.coreconnections";
   public static final String CONNECT_TIMEOUT_MILLIS_PROPERTY = "scylla.connecttimeoutmillis";
   public static final String READ_TIMEOUT_MILLIS_PROPERTY = "scylla.readtimeoutmillis";
+
+  public static final String TOKEN_AWARE = "scylla.tokenaware";
+  public static final String TOKEN_AWARE_DEFAULT = "false";
+  public static final String TOKEN_AWARE_LOCAL_DC = "scylla.tokenaware_local_dc";
 
   public static final String TRACING_PROPERTY = "scylla.tracing";
   public static final String TRACING_PROPERTY_DEFAULT = "false";
@@ -162,6 +169,20 @@ public class ScyllaCQLClient extends DB {
           builder = Cluster.builder().withPort(Integer.parseInt(port))
               .addContactPoints(hosts);
         }
+
+        if (Boolean.parseBoolean(getProperties().getProperty(TOKEN_AWARE, TOKEN_AWARE_DEFAULT))) {
+          LoadBalancingPolicy child;
+          String localDc = getProperties().getProperty(TOKEN_AWARE_LOCAL_DC);
+          if (localDc != null && !localDc.isEmpty()) {
+            child = DCAwareRoundRobinPolicy.builder().withLocalDc(localDc).build();
+            LOGGER.info("Using shard awareness with local DC: {}\n", localDc);
+          } else {
+            child = DCAwareRoundRobinPolicy.builder().build();
+            LOGGER.info("Using shard awareness\n");
+          }
+          builder = builder.withLoadBalancingPolicy(new TokenAwarePolicy(child));
+        }
+
         cluster = builder.build();
 
         String maxConnections = getProperties().getProperty(
