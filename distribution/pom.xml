@@ -71,14 +71,9 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>site.ycsb</groupId>
-      <artifactId>couchbase-binding</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>site.ycsb</groupId>
       <artifactId>couchbase2-binding</artifactId>
       <version>${project.version}</version>
-		</dependency>
+    </dependency>
     <dependency>
       <groupId>site.ycsb</groupId>
       <artifactId>crail-binding</artifactId>

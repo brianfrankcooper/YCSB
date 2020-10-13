@@ -233,12 +233,6 @@ else
   done
 fi
 
-# Couchbase deprecation message
-if [ "${BINDING_DIR}" = "couchbase" ] ; then
-  echo "[WARN] The 'couchbase' client is deprecated. If you are using \
-Couchbase 4.0+ try using the 'couchbase2' client instead."
-fi
-
 # For Cygwin, switch paths to Windows format before running java
 if $CYGWIN; then
   [ -n "$JAVA_HOME" ] && JAVA_HOME=$(cygpath --unix "$JAVA_HOME")

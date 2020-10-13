@@ -207,11 +207,6 @@ FOR %%F IN (%YCSB_HOME%\%BINDING_DIR%\target\dependency\*.jar) DO (
 
 :classpathComplete
 
-@REM Couchbase deprecation message
-IF NOT "%BINDING_DIR%" == "couchbase" GOTO notOldCouchbase
-echo [WARN] The 'couchbase' client is deprecated. If you are using Couchbase 4.0+ try using the 'couchbase2' client instead.
-:notOldCouchbase
-
 @REM Get the rest of the arguments, skipping the first 2
 FOR /F "tokens=2*" %%G IN ("%*") DO (
   SET YCSB_ARGS=%%H
