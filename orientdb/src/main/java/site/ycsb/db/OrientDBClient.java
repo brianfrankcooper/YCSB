@@ -185,9 +185,11 @@ public class OrientDBClient extends DB {
   public Status insert(
       final String table, final String key, final Map<String, ByteIterator> values) {
     try (final ODatabaseSession session = pool.acquire()) {
-      session.begin();
+      // create outside of tx
       final OElement element = session.newInstance(table);
       element.setProperty("key", key);
+
+      session.begin();
       StringByteIterator.getStringMap(values).entrySet().stream()
           .forEach(e -> element.setProperty(e.getKey(), e.getValue()));
       if (batchSize == 1) {
