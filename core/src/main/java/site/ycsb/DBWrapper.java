@@ -48,6 +48,8 @@ public class DBWrapper extends DB {
   private final String scopeStringRead;
   private final String scopeStringScan;
   private final String scopeStringUpdate;
+  private final String scopeStringTransfer;
+  private final String scopeStringDeleteAndTransfer;
 
   public DBWrapper(final DB db, final Tracer tracer) {
     this.db = db;
@@ -61,6 +63,8 @@ public class DBWrapper extends DB {
     scopeStringRead = simple + "#read";
     scopeStringScan = simple + "#scan";
     scopeStringUpdate = simple + "#update";
+    scopeStringTransfer = simple + "#transfer";
+    scopeStringDeleteAndTransfer = simple + "#deleteandtransfer";
   }
 
   /**
@@ -241,6 +245,45 @@ public class DBWrapper extends DB {
       long en = System.nanoTime();
       measure("DELETE", res, ist, st, en);
       measurements.reportStatus("DELETE", res);
+      return res;
+    }
+  }
+
+  @Override
+  public Status insert(String table, String key, Map<String, ByteIterator> values, int balance) {
+    try (final TraceScope span = tracer.newScope(scopeStringInsert)) {
+      long ist = measurements.getIntendedtartTimeNs();
+      long st = System.nanoTime();
+      Status res = db.insert(table, key, values, balance);
+      long en = System.nanoTime();
+      measure("INSERT", res, ist, st, en);
+      measurements.reportStatus("INSERT", res);
+      return res;
+    }
+  }
+
+  @Override
+  public Status transfer(String table, String outgoingKey, String incomingKey, int amount) {
+    try (final TraceScope span = tracer.newScope(scopeStringTransfer)) {
+      long ist = measurements.getIntendedtartTimeNs();
+      long st = System.nanoTime();
+      Status res = db.transfer(table, outgoingKey, incomingKey, amount);
+      long en = System.nanoTime();
+      measure("TRANSFER", res, ist, st, en);
+      measurements.reportStatus("TRANSFER", res);
+      return res;
+    }
+  }
+
+  @Override
+  public Status deleteAndTransfer(String table, String key, String incomingKey) {
+    try (final TraceScope span = tracer.newScope(scopeStringDeleteAndTransfer)) {
+      long ist = measurements.getIntendedtartTimeNs();
+      long st = System.nanoTime();
+      Status res = db.deleteAndTransfer(table, key, incomingKey);
+      long en = System.nanoTime();
+      measure("DELETEANDTRANSFER", res, ist, st, en);
+      measurements.reportStatus("DELETEANDTRANSFER", res);
       return res;
     }
   }
