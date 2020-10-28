@@ -105,8 +105,6 @@ function plot_v2() {
 
 # ====================================== #
 # include <...>
-[ -e "${DO_SET_DATA_DIR}/../my_setenv.sh" ] && echo "[INFO] Found my_setenv.sh in ${DO_SET_DATA_DIR}" && source "${DO_SET_DATA_DIR}/../my_setenv.sh"
-[ -e "${__DIR}/../configs/my_setenv.sh" ] && source ${__DIR}/../configs/my_setenv.sh
 source ${__DIR}/../configs/config.sh
 # ====================================== #
 

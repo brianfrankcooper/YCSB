@@ -4,9 +4,7 @@ __ORIGINAL_PLOT_DIR=${__PLOT_DIR}
 
 
 [ ! -z "${DO_SET_DATA_DIR}" ] && __PLOT_DIR=${DO_SET_DATA_DIR}
-[ -e "${DO_SET_DATA_DIR}/../my_setenv.sh" ] && echo "[INFO] Found my_setenv.sh in ${DO_SET_DATA_DIR}" && source "${DO_SET_DATA_DIR}/../my_setenv.sh"
 
-source ${__ORIGINAL_PLOT_DIR}/../configs/my_setenv.sh
 source ${__ORIGINAL_PLOT_DIR}/../configs/config.sh
 cd ${__PLOT_DIR}
 echo "[INFO] Now in directory ${PWD}"
