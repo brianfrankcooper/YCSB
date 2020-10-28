@@ -12,7 +12,6 @@ function usage() {
    exit 1
 }
 
-# TODO: improve this getargs ...
 if [ "${run_command}" == "collect" ]; then
    if [ "${2}" = "-d" ]; then 
       [ -z "${3}" ] && usage && exit 1

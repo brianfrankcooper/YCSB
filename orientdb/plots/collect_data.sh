@@ -35,7 +35,7 @@ else
 fi
 
 # echo "DATA_DIR: $DATA_DIR"
-# echo "PLOT_DATA: $PLOT_DATA" 
+# echo "PLOT_DATA: $PLOT_DATA"
 
 # $1 operation
 # $2 workload type
@@ -57,20 +57,20 @@ function extract_data_from_file() {
    done
    [ "${write_row}" = "False" ] && return
    # ===================================================================
-   # Write 
+   # Write
    # ===================================================================
    echo "$op    " | tr '\n' ' ' >> ${plot_file}
    for f in ${FILES_LIST[@]}; do
       for d in ${drivers_test[@]}; do
           local out_data="${DATA_DIR}/${d}"
           # echo "out_data $out_data/$d/$f_$2"
-          
+
           [ ! -e "${out_data}/${f}_${2}.txt" ] && for h in ${HEADERS[@]}; do echo -ne "0.0     " >> ${plot_file}; done && continue
- 
+
           # [ -z "$(cat ${out_data}/${f}_${2}.txt | grep ${op})" ] && echo -ne "0.0   0.0" >> ${plot_file} && continue
           for h in ${HEADERS[@]}; do
               # echo "   * Extracing data for $d -> $h"
-              # cat ${out_data}/$f.txt | grep "\[${op}\]" | grep "$h" | cut -d',' -f3 
+              # cat ${out_data}/$f.txt | grep "\[${op}\]" | grep "$h" | cut -d',' -f3
               [ -z "$(cat ${out_data}/${f}_${2}.txt | grep "\[${op}\]" | grep "$h" | cut -d',' -f3)" ] &&  echo -ne "0.0     " >> ${plot_file}
               cat ${out_data}/${f}_${2}.txt | grep "\[${op}\]" | grep "$h" | cut -d',' -f3 | tr '\n' ' ' >> ${plot_file}
           done
