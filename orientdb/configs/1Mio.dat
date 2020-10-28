@@ -1,0 +1,9 @@
+# recordcount=1000000
+# operationcount=500000
+# batchsize=10000
+# threads=10
+
+recordcount=10000
+operationcount=5000
+batchsize=1000
+threads=10
