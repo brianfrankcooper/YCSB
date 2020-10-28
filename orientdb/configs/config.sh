@@ -22,12 +22,6 @@ if [ -z "${drivers_test}" ]; then
    )
 fi
 
-if [ -z "${drivers_test}" ]; then
-   declare -a drivers_test=(
-      "orientdb"
-   )
-fi
-
 if [[ -z ${THREADS_YCSB} ]]; then
     export THREADS_YCSB=1
 fi
