@@ -26,6 +26,11 @@ Clone the YCSB git repository and compile:
     git clone https://github.com/brianfrankcooper/YCSB.git
     cd YCSB
     mvn clean package
+    
+> Note: alternatively the latest docker image could be used
+```
+docker run -d --name orientdb -p 2424:2424 -p 2480:2480 -e ORIENTDB_ROOT_PASSWORD=admin orientdb:latest
+```
 
 ### 2. Run YCSB
     
@@ -64,7 +69,6 @@ WARNING: Creating a new database will be done safely with multiple threads on a 
 * ```orientdb.remote.storagetype``` - Storage type of the database on remote server
     * This is only required if using a ```remote:``` connection url
 
-## Known Issues
-
+## Known Issues (with ODB v2.2.x)
 * There is a performance issue around the scan operation. This binding uses OIndex.iterateEntriesMajor() which will return unnecessarily large iterators. This has a performance impact as the recordcount goes up. There are ideas in the works to fix it, track it here: [#568](https://github.com/brianfrankcooper/YCSB/issues/568).
 * Iterator methods needed to perform scans are Unsupported in the OrientDB API for remote database connections and so will return NOT_IMPLEMENTED status if attempted.
