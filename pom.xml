@@ -203,6 +203,7 @@ LICENSE file.
     <module>solr7</module>
     <module>tarantool</module>
     <module>tablestore</module>
+    <module>transactionrest</module>
     <!--<module>voldemort</module>-->
     <module>voltdb</module>
   </modules>
