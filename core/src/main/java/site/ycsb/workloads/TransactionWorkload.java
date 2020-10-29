@@ -78,6 +78,8 @@ public class TransactionWorkload extends CoreWorkload {
       throw new WorkloadException("Unknown request distribution \"" + transferAmountDistribution + "\"");
     }
     startbalance = Integer.parseInt(p.getProperty(STARTBALANCE_PROPERTY, STARTBALANCE_PROPERTY_DEFAULT));
+
+    operationchooser = createOperationGenerator(p);
   }
 
   /**
@@ -171,33 +173,6 @@ public class TransactionWorkload extends CoreWorkload {
     db.transfer(table, buildKeyName(keynum),
         buildKeyName(keynumTwo), transferamount.nextValue().intValue());
   };
-
-  public void doTransactionRead(DB db) {
-    // choose a random key
-    long keynum = nextKeynum();
-
-    String keyname = buildKeyName(keynum);
-
-    HashSet<String> fields = null;
-
-    if (!readallfields) {
-      // read a random field
-      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
-
-      fields = new HashSet<String>();
-      fields.add(fieldname);
-    } else if (dataintegrity) {
-      // pass the full field list if dataintegrity is on for verification
-      fields = new HashSet<String>(fieldnames);
-    }
-
-    HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
-    db.read(table, keyname, fields, cells);
-
-    if (dataintegrity) {
-      verifyRow(keyname, cells);
-    }
-  }
 
   public void doTransactionDeleteAndTransfer(DB db) {
     long keynum = nextKeynum();
