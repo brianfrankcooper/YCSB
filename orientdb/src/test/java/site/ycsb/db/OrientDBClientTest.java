@@ -221,6 +221,29 @@ public class OrientDBClientTest {
     }
   }
 
+  @Test
+  public void scanTestFieldsNull() {
+    final Map<String, Map<String, ByteIterator>> keyMap = new HashMap<>();
+    for (int i = 0; i < 5; i++) {
+      final String insertKey = KEY_PREFIX + i;
+      keyMap.put(insertKey, insertRow(insertKey));
+    }
+    Set<String> fieldSet = null;
+    int startIndex = 0;
+    int resultRows = 3;
+
+    final Vector<HashMap<String, ByteIterator>> resultVector = new Vector<>();
+    OrientDBClient.scan(CLASS, KEY_PREFIX + startIndex, resultRows, fieldSet, resultVector);
+
+    // Check the resultVector is the correct size
+    assertEquals(
+        "Assert the correct number of results rows were returned", resultRows, resultVector.size());
+
+    for (final Map<String, ByteIterator> result : resultVector) {
+      Assert.assertNotNull("Assert that each result has a key", result.get("key"));
+    }
+  }
+
   /*
      This is a copy of buildDeterministicValue() from core:site.ycsb.workloads.CoreWorkload.java.
      That method is neither public nor static so we need a copy.

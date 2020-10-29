@@ -313,7 +313,14 @@ public class OrientDBClient extends DB {
     params.put("key", startkey);
     params.put("limit", recordcount);
     // TODO: map to parameters OR iterate in the try block and select *
-    final String scan =
+    final String scan = fields == null || fields.isEmpty() ?
+        "SELECT *"
+            + " FROM `"
+            + table
+            + "` "
+            + "WHERE key >= ':key'"
+            + " ORDER BY key ASC"
+            + " LIMIT :limit" :
         "SELECT "
             + fields.stream().collect(Collectors.joining(", "))
             + " FROM `"
