@@ -354,7 +354,7 @@ public class OrientDBClient extends DB {
       try (final ODatabaseSession session = pool.acquire()) {
         session.begin();
         final Map<String, Object> params = new HashMap<>();
-        params.put("key", key);
+        params.put("key", escapeQuotes(key));
         final String update = preparedUpdateSql(table, values);
         session.command(update, params);
         session.commit();
@@ -373,9 +373,14 @@ public class OrientDBClient extends DB {
         + table
         + " SET "
         + values.entrySet().stream()
-            .map(e -> " " + e.getKey() + "= '" + e.getValue().toString() + "'")
+            .map(e -> " " + escapeQuotes(e.getKey()) + "= '" + escapeQuotes(e.getValue().toString()) + "'")
             .collect(Collectors.joining(", "))
         + " WHERE key = :key";
+  }
+
+  private String escapeQuotes(final String key) {
+    // Brutal
+    return key.replace("\"", "").replace("'", "").replace("\\", "");
   }
 
   protected class ConnectionProperties {
