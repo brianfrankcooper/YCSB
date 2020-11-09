@@ -1,0 +1,164 @@
+# Copyright (c) 2020 YCSB contributors. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you
+# may not use this file except in compliance with the License. You
+# may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing
+# permissions and limitations under the License. See accompanying
+# LICENSE file.
+
+# Yahoo! Cloud System Benchmark
+#
+# Workload Defintion: Smart Metering Workload 4 (SMW4)
+#
+# This workload was created as part of a bachelor thesis
+# at the Technical University of Berlin, by Michael Smart
+# https://github.com/smartygus
+#
+# There are 50000 time series, each with one year of
+# data at half-hourly (1800 seconds) interval.
+# We are using a fixed starting time stamp representing
+# 1/1/2019 at midnight.
+# This amounts to a total of:
+# 50000 (time series) * 2 (point per hour) * 24 (hours in a day) * 365 (days in 2019) = 876 Million records
+#
+# Each time series has three tags:
+#
+# - se_segment: representing some socio-economic category defined by the provider
+#   - cardinality = 5 (ie. there are 5 different categories)
+# - pricing_strategy: some customers have different pricing strategies
+#   - cardinality = 2 (ie. there are 2 different strategies, eg. fixed, and dynamic)
+# - household_id = an id representing the household. The ID is unique within the context of the other two tags
+#   - cardinality = 5000
+#
+# Run phase of the workload:
+#
+# This is an "online" workload, in that it assumes that 
+# new measurements are incoming at the same time as the
+# existing data is being queried. Therefore this workload
+# includes an INSERT query in the run phase, as well as
+# one other SCAN query.
+# The idea behind this workload is from the perspective of
+# an energy consumer. 
+# We assume that an energy consumer that has a smart meter
+# installed has also been given access to a dashboard
+# from the energy provider where they can view their energy
+# consumption.
+# The SCAN query in this workload is basically designed
+# to answer the question: "How much energy have I consumed
+# so far this month?"
+# It's a query that starts from the start of the "current"
+# month (we consider the "current" month to be January 2020
+# because that's the month that comes immediately after
+# the end of the load data.
+# Because the query is justu about getting a consumption
+# total, it includes an aggregation to SUM all the data
+# points returned.
+# The INSERT query that's part of the run phase also starts
+# writing new measurements from the beginning of Jan 2020,
+# so the SCAN queries would be covering larger and larger
+# amounts of data as the workload run progresses.
+# In order to see an observable increase in the amount of
+# data pulled in by each SCAN query, it it probably a good
+# idea to set a target rate for this workload to be
+# faster than real time. When measuring latency however
+# it's recommended to keep the load of the system under
+# test at around 50% or below, to ensure that the latencies
+# being measure are not under stress conditions.
+#
+workload=site.ycsb.workloads.TimeSeriesWorkload
+
+recordcount=876000000
+# If setting a pseudo-real-world target rate of ~34req/sec,
+# then a 20 minute benchmark run would be 40278 operations
+# total. 
+# For this workload however, it is recommended to set a
+# faster-than-real-time target rate for measuring latency,
+# because the amount of data being retireved by SCAN
+# queries increases as the most-recently-written timestamp
+# of the INSERT queries moves forward in time.
+# To run do a benchmark run that covers the entirety of
+# the "current" month, there would need to be
+# 89900000 operations in total.
+# Depending on how high the target rate is, this would
+# influence how long the benchmark run would be.
+# For example at 100000 ops/second the run would only
+# take around 15 minutes. But one should be careful
+# not to stress the SUT when measuring latency.
+# What target rate to choose would depend on the size and
+# capabilities of the SUT, but we would recommend going
+# as fast as you can while keeping the SUT at or under
+# around 50% load.
+# For throughput testing it could run without a target
+# rate limit, but be aware, that once the most-recently-
+# written timestamp from the INSERT queries has passed
+# the end of the "current" month, the amount of data
+# being retrieved by each SCAN query will then become
+# constant, because it is set with the end of the
+# "current" month as the upper bound for the timestamp.
+operationcount=89900000
+insertcount=876000000
+insertstart=1546300800
+
+# This workload is "online", so during the run phase
+# there INSERTs as well as SCANs.
+# Therefore we need to specify
+# an inserttransactionstart timestamp
+# Here we choose 1/1/2020 @ midnight, because this
+# is the end of the data loaded in the load phase
+# and would therefore represent a continuation of
+# the measurements from that point.
+inserttransactionstart=1577836800
+
+# We only have a single metric, so we are
+# dividing up the write load into groups of
+# individual time series instead of groups
+# of metrics
+threadedwritedistribution=timeseries
+
+fieldlength=3
+# single metric: 'kwh'
+fieldcount=1
+# three tags, "real world" names: se_segment, pricing_strategy, household_id
+tagcount=3
+tagcardinality=5,2,5000
+
+sparsity=0.0
+delayedseries=0.0
+delayedintervals=0
+
+timestampunits=SECONDS
+# one measurement every half hour
+timestampinterval=1800
+randomtimeseriesorder=false
+
+scanproportion=0.13
+# Each query should have a random selection of each tag,
+# selecting one individual time series per query.
+scantags=0,0,0
+# Start timestamp is 1/1/2020 @ midnight
+# as the "current" month
+scan1startts=1577836800
+# Timespan is fixed, but because data in this
+# month only starts being written during the
+# run phase, the amount of data returned 
+# increases over the course of the benchmark run
+# (up until new measurements have been written for
+# the whole of January, then it becomes constant)
+scanquerytimespan=2678400
+scanqueryrandomtimespan=false
+scandownsamplingfunction=SUM
+# Just sum all returned points for the time series
+scandownsamplinginterval=0
+
+# INSERTs to represent new measurments incoming
+insertproportion=0.83
+
+readproportion=0.00
+updateproportion=0.00

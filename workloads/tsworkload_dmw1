@@ -1,0 +1,201 @@
+# Copyright (c) 2020 YCSB contributors. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you
+# may not use this file except in compliance with the License. You
+# may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing
+# permissions and limitations under the License. See accompanying
+# LICENSE file.
+
+# Yahoo! Cloud System Benchmark
+#
+# Workload Defintion: DevOps Monitoring Workload 1 (DMW1)
+#
+# This workload was created as part of a bachelor thesis
+# at the Technical University of Berlin, by Michael Smart
+# https://github.com/smartygus
+#
+# Data to load as basis:
+#
+# This workload uses a server monitoring scenario, and
+# in particular this scenario is based around CPU utilisation
+# metrics.
+# There are 20000 time series, each with one week of
+# data at 15 second intervals.
+# We are using a fixed starting time stamp representing
+# 1/2/2020 at midnight.
+# This amounts to a total of:
+# 20000 (time series) * 4 (points per minute) * 60 (minutes in an hours) *
+#       24 (hours in a day) * 7 days = 806400000 records
+#
+# Each time series has four tags:
+#
+# - app: the application that the particular host is performing a role for
+# - cmp: what component of the app the host is (ie. what role), eg. web server,
+#        appliation server, database server, etc.
+# - host: the name or ID of the host, unique only within the context of the first
+#         two tags
+# - mode: which mode the CPU utilisation metric refers to, eg. user, system, idle
+#         and so-on.
+#
+# Run phase of the workload:
+#
+# There are 10 SCAN queries and 1 INSERT query that make up the
+# run phase of the workload. There is one SCAN query for each of the 
+# 10 CPU utilisation mode metrics, and the INSERT query models
+# the ongoing stream of incoming metrics.
+#
+# The idea behind this workload is that of a monitoring
+# dashboard that displays a graphical representation of the
+# CPU utilisation for all modes over the past 24 hours.
+# The data retrieved as part of each SCAN query is downsampled
+# to a 4 minute resolution to ensure that the visual
+# representation is not to cluttered.
+#
+# The approximate "real-world" request rate for this
+# workload is 1667/requests per second. One could
+# set this as the target rate for a workload 
+# measuring latency for example.
+# For a 20-minute benchmark run that would give
+# and operation count of around 2 million for example.
+# To measure throughput just experiment with
+# higher and higher target throughputs until
+# the throughput achieved by the system under test
+# does not increase anymore, then do a full
+# benchmark run at a target rate slightly higher
+# than the maximum throughput.
+workload=site.ycsb.workloads.TimeSeriesWorkload
+
+recordcount=806400000
+operationcount=2000000
+insertcount=806400000
+# Load phase inserts start from 1/2/2020 @ 00:00:00
+insertstart=1580511600
+# Run phase inserts start from 8/2/2020 @ 00:00:00
+inserttransactionstart=1581116400
+
+# We only have a single metric, so we are
+# dividing up the write load into groups of
+# individual time series instead of groups
+# of metrics
+threadedwritedistribution=timeseries
+
+fieldlength=3
+# single metric: 'cpu'
+fieldcount=1
+# four tags, "real world" names: app, cmp, host, mode
+tagcount=4
+tagcardinality=2,2,500,10
+
+sparsity=0.0
+delayedseries=0.0
+delayedintervals=0
+
+timestampunits=SECONDS
+# one measurement every 15 seconds
+timestampinterval=15
+randomtimeseriesorder=false
+
+# Query 1: CPU metric mode: system
+scan1proportion=0.02
+scan1tags=0,0,0,1
+scan1startts=-86400
+scan1querytimespan=86400
+scan1queryrandomtimespan=false
+scan1downsamplingfunction=AVERAGE
+scan1downsamplinginterval=240
+
+# Query 2: CPU metric mode: user
+scan2proportion=0.02
+scan2tags=0,0,0,2
+scan2startts=-86400
+scan2querytimespan=86400
+scan2queryrandomtimespan=false
+scan2downsamplingfunction=AVERAGE
+scan2downsamplinginterval=240
+
+# Query 3: CPU metric mode: iowait
+scan3proportion=0.02
+scan3tags=0,0,0,3
+scan3startts=-86400
+scan3querytimespan=86400
+scan3queryrandomtimespan=false
+scan3downsamplingfunction=AVERAGE
+scan3downsamplinginterval=240
+
+# Query 4: CPU metric mode: irq
+scan4proportion=0.02
+scan4tags=0,0,0,4
+scan4startts=-86400
+scan4querytimespan=86400
+scan4queryrandomtimespan=false
+scan4downsamplingfunction=AVERAGE
+scan4downsamplinginterval=240
+
+# Query 5: CPU metric mode: softirq
+scan5proportion=0.02
+scan5tags=0,0,0,5
+scan5startts=-86400
+scan5querytimespan=86400
+scan5queryrandomtimespan=false
+scan5downsamplingfunction=AVERAGE
+scan5downsamplinginterval=240
+
+# Query 6: CPU metric mode: nice
+scan6proportion=0.02
+scan6tags=0,0,0,6
+scan6startts=-86400
+scan6querytimespan=86400
+scan6queryrandomtimespan=false
+scan6downsamplingfunction=AVERAGE
+scan6downsamplinginterval=240
+
+# Query 7: CPU metric mode: steal
+scan7proportion=0.02
+scan7tags=0,0,0,7
+scan7startts=-86400
+scan7querytimespan=86400
+scan7queryrandomtimespan=false
+scan7downsamplingfunction=AVERAGE
+scan7downsamplinginterval=240
+
+# Query 8: CPU metric mode: guest
+scan8proportion=0.02
+scan8tags=0,0,0,8
+scan8startts=-86400
+scan8querytimespan=86400
+scan8queryrandomtimespan=false
+scan8downsamplingfunction=AVERAGE
+scan8downsamplinginterval=240
+
+# Query 9: CPU metric mode: guest_nice
+scan9proportion=0.02
+scan9tags=0,0,0,9
+scan9startts=-86400
+scan9querytimespan=86400
+scan9queryrandomtimespan=false
+scan9downsamplingfunction=AVERAGE
+scan9downsamplinginterval=240
+
+# Query 10: CPU metric mode: idle
+scan10proportion=0.02
+scan10tags=0,0,0,10
+scan10startts=-86400
+scan10querytimespan=86400
+scan10queryrandomtimespan=false
+scan10downsamplingfunction=AVERAGE
+scan10downsamplinginterval=240
+
+
+# INSERTs to represent ongoing stream
+# of incoming measurements
+insertproportion=0.80
+
+readproportion=0.00
+updateproportion=0.00

@@ -1,0 +1,234 @@
+# Copyright (c) 2020 YCSB contributors. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you
+# may not use this file except in compliance with the License. You
+# may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing
+# permissions and limitations under the License. See accompanying
+# LICENSE file.
+
+# Yahoo! Cloud System Benchmark
+#
+# Workload Defintion: Smart Metering Workload 1 (SMW1)
+#
+# This workload was created as part of a bachelor thesis
+# at the Technical University of Berlin, by Michael Smart
+# https://github.com/smartygus
+#
+# Data to load as basis:
+#
+# There are 50000 time series, each with one year of
+# data at half-hourly (1800 seconds) interval.
+# We are using a fixed starting time stamp representing
+# 1/1/2019 at midnight.
+# This amounts to a total of:
+# 50000 (time series) * 2 (point per hour) * 24 (hours in a day) * 365 (days in 2019) = 876 Million records
+#
+# Each time series has three tags:
+#
+# - se_segment: representing some socio-economic category defined by the provider
+#   - cardinality = 5 (ie. there are 5 different categories)
+# - pricing_strategy: some customers have different pricing strategies
+#   - cardinality = 2 (ie. there are 2 different strategies, eg. fixed, and dynamic)
+# - household_id = an id representing the household. The ID is unique within the context of the other two tags
+#   - cardinality = 5000
+#
+# Run phase of the workload:
+#
+# There are 12 SCAN queries that make up the run phase of 
+# the workload, one for each month of the year.
+# The idea behind this workload is from the perspective of
+# an energy provider that wants to know what the average
+# monthly usage is grouped by socio-ecomonic segment.
+#
+# The SCAN queries in this workload pull *a lot* of
+# data from the database at once (eg. ~74.5 Million
+# points for the Jan 2019 query), but that's the
+# point of this workload, to test how the database
+# handles pulling large ranges of data out of the
+# database.
+#
+# The suggested way to run this workload is with
+# just one thread, so each of the SCAN queries
+# are just carried out one behind the other.
+# Being an "offline" style workload where data
+# is just pre-loaded for the purposes of analysis,
+# it's unlikely that queries such as those in this
+# workload would be run more than once, so just
+# running them all once in a row is a reasonable
+# representation of such an analysis workflow.
+workload=site.ycsb.workloads.TimeSeriesWorkload
+
+recordcount=876000000
+operationcount=24
+insertcount=876000000
+insertstart=1546300800
+# This workload is "offline", so during the run phase
+# there are no INSERTs, just SCANs.
+# Therefore we do not need to specify
+# an inserttransactionstart timestamp
+#
+# We only have a single metric, so we are
+# dividing up the write load into groups of
+# individual time series instead of groups
+# of metrics
+threadedwritedistribution=timeseries
+
+fieldlength=3
+# single metric: 'kwh'
+fieldcount=1
+# three tags, "real world" names: se_segment, pricing_strategy, household_id
+tagcount=3
+tagcardinality=5,2,5000
+
+sparsity=0.0
+delayedseries=0.0
+delayedintervals=0
+
+timestampunits=SECONDS
+# one measurement every half hour
+timestampinterval=1800
+randomtimeseriesorder=false
+
+# Query 1: January 2019
+scan1proportion=0.08333
+scan1tags=-1,-1,-1
+scan1startts=1546300800
+scan1querytimespan=2678400
+scan1queryrandomtimespan=false
+scan1groupbyfunction=AVERAGE
+scan1groupbytagkeys=1,0,0
+scan1downsamplingfunction=SUM
+scan1downsamplinginterval=0
+
+# Query 2: February 2019
+scan2proportion=0.08333
+scan2tags=-1,-1,-1
+scan2startts=1548979200
+scan2querytimespan=2419200
+scan2queryrandomtimespan=false
+scan2groupbyfunction=AVERAGE
+scan2groupbytagkeys=1,0,0
+scan2downsamplingfunction=SUM
+scan2downsamplinginterval=0
+
+# Query 3: March 2019
+scan3proportion=0.08333
+scan3tags=-1,-1,-1
+scan3startts=1551398400
+scan3querytimespan=2678400
+scan3queryrandomtimespan=false
+scan3groupbyfunction=AVERAGE
+scan3groupbytagkeys=1,0,0
+scan3downsamplingfunction=SUM
+scan3downsamplinginterval=0
+
+# Query 4: April 2019
+scan4proportion=0.08333
+scan4tags=-1,-1,-1
+scan4startts=1554076800
+scan4querytimespan=2592000
+scan4queryrandomtimespan=false
+scan4groupbyfunction=AVERAGE
+scan4groupbytagkeys=1,0,0
+scan4downsamplingfunction=SUM
+scan4downsamplinginterval=0
+
+# Query 5: May 2019
+scan5proportion=0.08333
+scan5tags=-1,-1,-1
+scan5startts=1556668800
+scan5querytimespan=2678400
+scan5queryrandomtimespan=false
+scan5groupbyfunction=AVERAGE
+scan5groupbytagkeys=1,0,0
+scan5downsamplingfunction=SUM
+scan5downsamplinginterval=0
+
+# Query 6: June 2019
+scan6proportion=0.08333
+scan6tags=-1,-1,-1
+scan6startts=1559347200
+scan6querytimespan=2592000
+scan6queryrandomtimespan=false
+scan6groupbyfunction=AVERAGE
+scan6groupbytagkeys=1,0,0
+scan6downsamplingfunction=SUM
+scan6downsamplinginterval=0
+
+# Query 7: July 2019
+scan7proportion=0.08333
+scan7tags=-1,-1,-1
+scan7startts=1561939200
+scan7querytimespan=2678400
+scan7queryrandomtimespan=false
+scan7groupbyfunction=AVERAGE
+scan7groupbytagkeys=1,0,0
+scan7downsamplingfunction=SUM
+scan7downsamplinginterval=0
+
+# Query 8: August 2019
+scan8proportion=0.08333
+scan8tags=-1,-1,-1
+scan8startts=1564617600
+scan8querytimespan=2678400
+scan8queryrandomtimespan=false
+scan8groupbyfunction=AVERAGE
+scan8groupbytagkeys=1,0,0
+scan8downsamplingfunction=SUM
+scan8downsamplinginterval=0
+
+# Query 9: September 2019
+scan9proportion=0.08333
+scan9tags=-1,-1,-1
+scan9startts=1567296000
+scan9querytimespan=2592000
+scan9queryrandomtimespan=false
+scan9groupbyfunction=AVERAGE
+scan9groupbytagkeys=1,0,0
+scan9downsamplingfunction=SUM
+scan9downsamplinginterval=0
+
+# Query 10: October 2019
+scan10proportion=0.08333
+scan10tags=-1,-1,-1
+scan10startts=1569888000
+scan10querytimespan=2678400
+scan10queryrandomtimespan=false
+scan10groupbyfunction=AVERAGE
+scan10groupbytagkeys=1,0,0
+scan10downsamplingfunction=SUM
+scan10downsamplinginterval=0
+
+# Query 11: November 2019
+scan11proportion=0.08333
+scan11tags=-1,-1,-1
+scan11startts=1572566400
+scan11querytimespan=2592000
+scan11queryrandomtimespan=false
+scan11groupbyfunction=AVERAGE
+scan11groupbytagkeys=1,0,0
+scan11downsamplingfunction=SUM
+scan11downsamplinginterval=0
+
+# Query 12: December 2019
+scan12proportion=0.08333
+scan12tags=-1,-1,-1
+scan12startts=1575158400
+scan12querytimespan=2678400
+scan12queryrandomtimespan=false
+scan12groupbyfunction=AVERAGE
+scan12groupbytagkeys=1,0,0
+scan12downsamplingfunction=SUM
+scan12downsamplinginterval=0
+
+
+readproportion=0.00
+insertproportion=0.00
+updateproportion=0.00
