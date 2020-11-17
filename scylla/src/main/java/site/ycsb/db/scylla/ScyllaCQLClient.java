@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2020 YCSB contributors. All rights reserved.
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
  * the License at
@@ -14,22 +15,9 @@
  */
 package site.ycsb.db.scylla;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ColumnDefinitions;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.Host;
-import com.datastax.driver.core.HostDistance;
-import com.datastax.driver.core.Metadata;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.*;
 import com.datastax.driver.core.policies.LoadBalancingPolicy;
-import com.datastax.driver.core.querybuilder.Insert;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.datastax.driver.core.querybuilder.Select;
-import com.datastax.driver.core.querybuilder.Update;
+import com.datastax.driver.core.querybuilder.*;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 import site.ycsb.ByteArrayByteIterator;
@@ -74,6 +62,8 @@ public class ScyllaCQLClient extends DB {
   private static ConsistencyLevel readConsistencyLevel = ConsistencyLevel.QUORUM;
   private static ConsistencyLevel writeConsistencyLevel = ConsistencyLevel.QUORUM;
 
+  private static boolean lwt = false;
+
   public static final String YCSB_KEY = "y_id";
   public static final String KEYSPACE_PROPERTY = "scylla.keyspace";
   public static final String KEYSPACE_PROPERTY_DEFAULT = "ycsb";
@@ -94,6 +84,8 @@ public class ScyllaCQLClient extends DB {
   public static final String CONNECT_TIMEOUT_MILLIS_PROPERTY = "scylla.connecttimeoutmillis";
   public static final String READ_TIMEOUT_MILLIS_PROPERTY = "scylla.readtimeoutmillis";
 
+  public static final String SCYLLA_LWT = "scylla.lwt";
+
   public static final String TOKEN_AWARE = "scylla.tokenaware";
   public static final String TOKEN_AWARE_DEFAULT = "false";
   public static final String TOKEN_AWARE_LOCAL_DC = "scylla.tokenaware_local_dc";
@@ -113,7 +105,7 @@ public class ScyllaCQLClient extends DB {
   private static boolean debug = false;
 
   private static boolean trace = false;
-  
+
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
    * DB instance per client thread.
@@ -164,7 +156,7 @@ public class ScyllaCQLClient extends DB {
               .addContactPoints(hosts).withPort(Integer.parseInt(port));
           if (useSSL) {
             builder = builder.withSSL();
-          } 
+          }
         } else {
           builder = Cluster.builder().withPort(Integer.parseInt(port))
               .addContactPoints(hosts);
@@ -224,6 +216,14 @@ public class ScyllaCQLClient extends DB {
 
         session = cluster.connect(keyspace);
 
+        if (Boolean.parseBoolean(getProperties().getProperty(SCYLLA_LWT, Boolean.toString(lwt)))) {
+          LOGGER.info("Using LWT\n");
+          lwt = true;
+          readConsistencyLevel = ConsistencyLevel.SERIAL;
+          writeConsistencyLevel = ConsistencyLevel.ANY;
+        } else {
+          LOGGER.info("Not using LWT\n");
+        }
       } catch (Exception e) {
         throw new DBException(e);
       }
@@ -278,7 +278,7 @@ public class ScyllaCQLClient extends DB {
    */
   @Override
   public Status read(String table, String key, Set<String> fields,
-      Map<String, ByteIterator> result) {
+                     Map<String, ByteIterator> result) {
     try {
       PreparedStatement stmt = (fields == null) ? READ_ALL_STMT.get() : READ_STMTS.get(fields);
 
@@ -296,8 +296,8 @@ public class ScyllaCQLClient extends DB {
         }
 
         stmt = session.prepare(selectBuilder.from(table)
-                               .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker()))
-                               .limit(1));
+            .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker()))
+            .limit(1));
         stmt.setConsistencyLevel(readConsistencyLevel);
         if (trace) {
           stmt.enableTracing();
@@ -364,7 +364,7 @@ public class ScyllaCQLClient extends DB {
    */
   @Override
   public Status scan(String table, String startkey, int recordcount,
-      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+                     Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
 
     try {
       PreparedStatement stmt = (fields == null) ? SCAN_ALL_STMT.get() : SCAN_STMTS.get(fields);
@@ -471,6 +471,10 @@ public class ScyllaCQLClient extends DB {
         // Add key
         updateStmt.where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker()));
 
+        if (lwt) {
+          updateStmt.where().ifExists();
+        }
+
         stmt = session.prepare(updateStmt);
         stmt.setConsistencyLevel(writeConsistencyLevel);
         if (trace) {
@@ -543,6 +547,10 @@ public class ScyllaCQLClient extends DB {
           insertStmt.value(field, QueryBuilder.bindMarker());
         }
 
+        if (lwt) {
+          insertStmt.ifNotExists();
+        }
+
         stmt = session.prepare(insertStmt);
         stmt.setConsistencyLevel(writeConsistencyLevel);
         if (trace) {
@@ -599,8 +607,14 @@ public class ScyllaCQLClient extends DB {
 
       // Prepare statement on demand
       if (stmt == null) {
-        stmt = session.prepare(QueryBuilder.delete().from(table)
-                               .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())));
+        Delete s = QueryBuilder.delete().from(table);
+        s.where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker()));
+
+        if (lwt) {
+          s.ifExists();
+        }
+
+        stmt = session.prepare(s);
         stmt.setConsistencyLevel(writeConsistencyLevel);
         if (trace) {
           stmt.enableTracing();
