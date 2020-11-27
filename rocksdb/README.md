@@ -26,7 +26,7 @@ Clone the YCSB git repository and compile:
 
     git clone https://github.com/brianfrankcooper/YCSB.git
     cd YCSB
-    mvn clean package
+    mvn -pl site.ycsb:rocksdb-binding -am clean package
 
 ### 2. Run YCSB
 
