@@ -106,5 +106,7 @@ public class Status {
       "service for the current binding is not available.");
   public static final Status BATCHED_OK = new Status("BATCHED_OK", "The operation has been batched by " +
       "the binding to be executed later.");
+  public static final Status TRANSACTION_FAILED = new Status("TRANSACTION_FAILED", "The transaction " +
+      "was not successful due to integrity constraints, no error occured.");
 }
 

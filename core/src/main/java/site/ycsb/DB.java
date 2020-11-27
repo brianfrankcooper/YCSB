@@ -132,4 +132,18 @@ public abstract class DB {
    * @return The result of the operation.
    */
   public abstract Status delete(String table, String key);
+
+  // Newly introduced:
+  public Status insert(String table, String key, Map<String, ByteIterator> values, int balance) {
+    return Status.NOT_IMPLEMENTED;
+  }
+
+  public Status transfer(
+      String table, String outgoingKey, String incomingKey, int amount) {
+    return Status.NOT_IMPLEMENTED;
+  }
+
+  public Status deleteAndTransfer(String table, String key, String incomingKey) {
+    return Status.NOT_IMPLEMENTED;
+  }
 }
