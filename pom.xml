@@ -118,7 +118,7 @@ LICENSE file.
     <azurecosmos.version>2.2.3</azurecosmos.version>
     <azurestorage.version>4.0.0</azurestorage.version>
     <cassandra.cql.version>3.0.0</cassandra.cql.version>
-    <cloudspanner.version>0.36.0-beta</cloudspanner.version>
+    <cloudspanner.version>2.0.1</cloudspanner.version>
     <couchbase.version>1.4.10</couchbase.version>
 		<couchbase2.version>2.3.1</couchbase2.version>
 		<crail.version>1.1-incubating</crail.version>
