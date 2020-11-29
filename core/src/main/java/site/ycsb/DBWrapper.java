@@ -18,11 +18,13 @@
 package site.ycsb;
 
 import java.util.Map;
+
 import site.ycsb.measurements.Measurements;
 import org.apache.htrace.core.TraceScope;
 import org.apache.htrace.core.Tracer;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Wrapper around a "real" DB that measures latencies and counts return codes.
@@ -40,6 +42,8 @@ public class DBWrapper extends DB {
   private static final String REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY_DEFAULT = "false";
 
   private static final String LATENCY_TRACKED_ERRORS_PROPERTY = "latencytrackederrors";
+
+  private static final AtomicBoolean LOG_REPORT_CONFIG = new AtomicBoolean(false);
 
   private final String scopeStringCleanup;
   private final String scopeStringDelete;
@@ -97,9 +101,11 @@ public class DBWrapper extends DB {
         }
       }
 
-      System.err.println("DBWrapper: report latency for each error is " +
-          this.reportLatencyForEachError + " and specific error codes to track" +
-          " for latency are: " + this.latencyTrackedErrors.toString());
+      if (LOG_REPORT_CONFIG.compareAndSet(false, true)) {
+        System.err.println("DBWrapper: report latency for each error is " +
+            this.reportLatencyForEachError + " and specific error codes to track" +
+            " for latency are: " + this.latencyTrackedErrors.toString());
+      }
     }
   }
 
