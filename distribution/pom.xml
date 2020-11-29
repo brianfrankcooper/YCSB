@@ -254,6 +254,11 @@ LICENSE file.
        <artifactId>voltdb-binding</artifactId>
        <version>${project.version}</version>
      </dependency>
+    <dependency>
+      <groupId>site.ycsb</groupId>
+      <artifactId>zookeeper-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
   </dependencies>
   <build>
