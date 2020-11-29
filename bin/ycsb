@@ -77,7 +77,6 @@ DATABASES = {
     "griddb"       : "site.ycsb.db.griddb.GridDBClient",
     "hbase1"      : "site.ycsb.db.hbase1.HBaseClient1",
     "hbase2"      : "site.ycsb.db.hbase2.HBaseClient2",
-    "hypertable"   : "site.ycsb.db.HypertableClient",
     "ignite"       : "site.ycsb.db.ignite.IgniteClient",
     "ignite-sql"   : "site.ycsb.db.ignite.IgniteSqlClient",
     "infinispan-cs": "site.ycsb.db.InfinispanRemoteClient",
