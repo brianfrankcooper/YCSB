@@ -151,11 +151,11 @@ public class PostgreNoSQLDBClient extends DB {
 
       if (result != null) {
         if (fields == null){
-          while (resultSet.next()){
+          do{
             String field = resultSet.getString(2);
             String value = resultSet.getString(3);
             result.put(field, new StringByteIterator(value));
-          }
+          }while (resultSet.next());
         } else {
           for (String field : fields) {
             String value = resultSet.getString(field);
