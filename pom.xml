@@ -129,7 +129,6 @@ LICENSE file.
     <griddb.version>4.0.0</griddb.version>
     <hbase1.version>1.4.12</hbase1.version>
     <hbase2.version>2.2.3</hbase2.version>
-    <hypertable.version>0.9.5.6</hypertable.version>
     <ignite.version>2.7.6</ignite.version>
     <infinispan.version>7.2.2.Final</infinispan.version>
     <kudu.version>1.11.1</kudu.version>
@@ -179,7 +178,6 @@ LICENSE file.
     <module>griddb</module>
     <module>hbase1</module>
     <module>hbase2</module>
-    <module>hypertable</module>
     <module>ignite</module>
     <module>infinispan</module>
     <module>jdbc</module>
