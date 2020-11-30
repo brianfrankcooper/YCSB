@@ -146,7 +146,6 @@ LICENSE file.
     <solr7.version>7.7.2</solr7.version>
     <tarantool.version>1.6.5</tarantool.version>
     <thrift.version>0.8.0</thrift.version>
-    <voldemort.version>0.81</voldemort.version>
     <tablestore.version>4.8.0</tablestore.version>
     <voltdb.version>10.1.1</voltdb.version>
   </properties>
@@ -199,7 +198,6 @@ LICENSE file.
     <module>solr7</module>
     <module>tarantool</module>
     <module>tablestore</module>
-    <!--<module>voldemort</module>-->
     <module>voltdb</module>
   </modules>
 
