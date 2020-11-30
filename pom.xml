@@ -149,7 +149,7 @@ LICENSE file.
     <thrift.version>0.8.0</thrift.version>
     <voldemort.version>0.81</voldemort.version>
     <tablestore.version>4.8.0</tablestore.version>
-    <voltdb.version>9.1.1</voltdb.version>
+    <voltdb.version>10.1.1</voltdb.version>
   </properties>
 
   <modules>
