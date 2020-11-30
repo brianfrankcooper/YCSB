@@ -99,8 +99,6 @@ DATABASES = {
     "rocksdb"      : "site.ycsb.db.rocksdb.RocksDBClient",
     "s3"           : "site.ycsb.db.S3Client",
     "seaweedfs"    : "site.ycsb.db.seaweed.SeaweedClient",
-    "solr"         : "site.ycsb.db.solr.SolrClient",
-    "solr6"        : "site.ycsb.db.solr6.SolrClient",
     "solr7"        : "site.ycsb.db.solr7.SolrClient",
     "tarantool"    : "site.ycsb.db.TarantoolClient",
     "tablestore"   : "site.ycsb.db.tablestore.TableStoreClient"
