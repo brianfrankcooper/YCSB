@@ -371,6 +371,19 @@ public class CoreWorkload extends Workload {
 
   private Measurements measurements = Measurements.getMeasurements();
 
+  public static String buildKeyName(long keynum, int zeropadding, boolean orderedinserts) {
+    if (!orderedinserts) {
+      keynum = Utils.hash(keynum);
+    }
+    String value = Long.toString(keynum);
+    int fill = zeropadding - value.length();
+    String prekey = "user";
+    for (int i = 0; i < fill; i++) {
+      prekey += '0';
+    }
+    return prekey + value;
+  }
+
   protected static NumberGenerator getFieldLengthGenerator(Properties p) throws WorkloadException {
     NumberGenerator fieldlengthgenerator;
     String fieldlengthdistribution = p.getProperty(
@@ -531,19 +544,6 @@ public class CoreWorkload extends Workload {
         INSERTION_RETRY_INTERVAL, INSERTION_RETRY_INTERVAL_DEFAULT));
   }
 
-  protected String buildKeyName(long keynum) {
-    if (!orderedinserts) {
-      keynum = Utils.hash(keynum);
-    }
-    String value = Long.toString(keynum);
-    int fill = zeropadding - value.length();
-    String prekey = "user";
-    for (int i = 0; i < fill; i++) {
-      prekey += '0';
-    }
-    return prekey + value;
-  }
-
   /**
    * Builds a value for a randomly chosen field.
    */
@@ -609,7 +609,7 @@ public class CoreWorkload extends Workload {
   @Override
   public boolean doInsert(DB db, Object threadstate) {
     int keynum = keysequence.nextValue().intValue();
-    String dbkey = buildKeyName(keynum);
+    String dbkey = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
     HashMap<String, ByteIterator> values = buildValues(dbkey);
 
     Status status;
@@ -720,7 +720,7 @@ public class CoreWorkload extends Workload {
     // choose a random key
     long keynum = nextKeynum();
 
-    String keyname = buildKeyName(keynum);
+    String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
 
     HashSet<String> fields = null;
 
@@ -747,7 +747,7 @@ public class CoreWorkload extends Workload {
     // choose a random key
     long keynum = nextKeynum();
 
-    String keyname = buildKeyName(keynum);
+    String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
 
     HashSet<String> fields = null;
 
@@ -794,7 +794,7 @@ public class CoreWorkload extends Workload {
     // choose a random key
     long keynum = nextKeynum();
 
-    String startkeyname = buildKeyName(keynum);
+    String startkeyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
 
     // choose a random scan length
     int len = scanlength.nextValue().intValue();
@@ -816,7 +816,7 @@ public class CoreWorkload extends Workload {
     // choose a random key
     long keynum = nextKeynum();
 
-    String keyname = buildKeyName(keynum);
+    String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
 
     HashMap<String, ByteIterator> values;
 
@@ -836,7 +836,7 @@ public class CoreWorkload extends Workload {
     long keynum = transactioninsertkeysequence.nextValue();
 
     try {
-      String dbkey = buildKeyName(keynum);
+      String dbkey = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
 
       HashMap<String, ByteIterator> values = buildValues(dbkey);
       db.insert(table, dbkey, values);
