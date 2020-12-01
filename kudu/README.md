@@ -41,6 +41,8 @@ Additional configurations:
   default is true.
 * `kudu_block_size`: The data block size used to configure columns. The default
   is 4096 bytes.
+* `kudu_partition_schema`: The partition schema used to create table. It could be
+  'hashPartition' or 'rangePartition', the default is 'hashPartition'.
 
 Then, you can run the workload:
 

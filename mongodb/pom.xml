@@ -82,6 +82,7 @@ LICENSE file.
       </snapshots>
       <id>allanbank</id>
       <name>Allanbank Releases</name>
+      <!-- Does not support HTTPS -->
       <url>http://www.allanbank.com/repo/</url>
       <layout>default</layout>
     </repository>
