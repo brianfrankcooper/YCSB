@@ -18,6 +18,10 @@ package site.ycsb.db.flavors;
 
 import site.ycsb.db.StatementType;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.helpers.MessageFormatter;
+
 /**
  * DBFlavor captures minor differences in syntax and behavior among JDBC implementations and SQL
  * dialects. This class also acts as a factory to instantiate concrete flavors based on the JDBC URL.
@@ -41,14 +45,14 @@ public abstract class DBFlavor {
       return new PhoenixDBFlavor();
     } else if (url.startsWith("jdbc:cockroach")) {
       final String[] urlArr = url.split(":");
-      System.out.println("CockroachDB: Using AOST");
+      logger.info("CockroachDB: Using AOST");
       if (urlArr.length <=2) {
         return new CockroachDBFlavor();
       } else {
         return new CockroachDBFlavor(urlArr[2]);
       }
     } else {
-      System.out.println("Unsupported DBFlavor: " + url + ". Using default");      
+      logger.info("Unsupported DBFlavor: " + url + ". Using default");      
       return new DefaultDBFlavor();
     }
   }
