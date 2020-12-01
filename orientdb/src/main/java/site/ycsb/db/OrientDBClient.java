@@ -45,6 +45,12 @@ public class OrientDBClient extends DB {
   private static final String PASSWORD_PROPERTY = "orientdb.password";
   private static final String PASSWORD_PROPERTY_DEFAULT = "admin";
 
+  private static final String SERVER_USER_PROPERTY = "orientdb.server.user";
+  private static final String SERVER_USER_PROPERTY_DEFAULT = "root";
+
+  private static final String SERVER_PASSWORD_PROPERTY = "orientdb.server.password";
+  private static final String SERVER_PASSWORD_PROPERTY_DEFAULT = "admin";
+
   private static final String NEWDB_PROPERTY = "orientdb.newdb";
   private static final String NEWDB_PROPERTY_DEFAULT = "false";
 
@@ -73,21 +79,20 @@ public class OrientDBClient extends DB {
 
     REENTRANT_INIT_LOCK.lock();
     try {
-      final ConnectionProperties cp = new ConnectionProperties();
-      String url = cp.getUrl();
-
       clientCounter++;
       if (!initialized) {
-        LOG.info("OrientDB loading database url = " + url);
+        final ConnectionProperties cp = new ConnectionProperties();
 
+        String url = cp.getUrl();
+        LOG.info("OrientDB loading database url = " + url);
         final OURLConnection urlHelper = OURLHelper.parseNew(url);
-        ODatabaseType dbType = urlHelper.getDbType().orElse(ODatabaseType.PLOCAL);
-        initAndGetDatabaseUrlAndDbType(url);
+        initAndGetDatabaseUrlAndDbType(url, cp.getServerUser(), cp.getServerUserPassword());
 
         final String dbName = urlHelper.getDbName();
         if (cp.newDb && orient.exists(dbName)) {
           orient.drop(dbName);
         }
+        ODatabaseType dbType = urlHelper.getDbType().orElse(ODatabaseType.PLOCAL);
         orient.createIfNotExists(dbName, dbType);
         if (!orient.isOpen()) {
           orient.open(dbName, cp.getUser(), cp.getPassword());
@@ -113,14 +118,14 @@ public class OrientDBClient extends DB {
     }
   }
 
-  private void initAndGetDatabaseUrlAndDbType(String url) {
+  private void initAndGetDatabaseUrlAndDbType(String url, final String serverUser, final String serverPassword) {
     if (url.startsWith("remote:")) {
       final OrientDBConfigBuilder poolCfg = OrientDBConfig.builder();
       poolCfg.addConfig(OGlobalConfiguration.DB_POOL_MIN, 5);
       poolCfg.addConfig(OGlobalConfiguration.DB_POOL_MAX, 10);
       final OrientDBConfig oriendDBconfig = poolCfg.build();
       if (orient == null) {
-        orient = new OrientDB(url, "root", "admin", oriendDBconfig);
+        orient = new OrientDB(url, serverUser, serverPassword, oriendDBconfig);
       }
     } else if (url.startsWith("memory:")) {
       url = "embedded:";
@@ -354,7 +359,7 @@ public class OrientDBClient extends DB {
       try (final ODatabaseSession session = pool.acquire()) {
         session.begin();
         final Map<String, Object> params = new HashMap<>();
-        params.put("key", escapeQuotes(key));
+        params.put("key", escapeUnsupportedChars(key));
         final String update = preparedUpdateSql(table, values);
         session.command(update, params);
         session.commit();
@@ -373,12 +378,17 @@ public class OrientDBClient extends DB {
         + table
         + " SET "
         + values.entrySet().stream()
-            .map(e -> " " + escapeQuotes(e.getKey()) + "= '" + escapeQuotes(e.getValue().toString()) + "'")
-            .collect(Collectors.joining(", "))
+            .map(e -> " " + escapeUnsupportedChars(e.getKey()) + "= '" + escapeUnsupportedChars(e.getValue().toString())
+                + "'").collect(Collectors.joining(", "))
         + " WHERE key = :key";
   }
 
-  private String escapeQuotes(final String key) {
+  /**
+   * OrientDB does not allow certain characters in keys like quotes etc.
+   * @param key
+   * @return
+   */
+  private String escapeUnsupportedChars(final String key) {
     // Brutal
     return key.replace("\"", "").replace("'", "").replace("\\", "");
   }
@@ -387,6 +397,9 @@ public class OrientDBClient extends DB {
     private final String url;
     private final String user;
     private final String password;
+
+    private final String serverUser;
+    private final String serverUserPassword;
     private final boolean newDb;
 
     public ConnectionProperties() {
@@ -394,6 +407,8 @@ public class OrientDBClient extends DB {
       url = props.getProperty(URL_PROPERTY, URL_PROPERTY_DEFAULT);
       user = props.getProperty(USER_PROPERTY, USER_PROPERTY_DEFAULT);
       password = props.getProperty(PASSWORD_PROPERTY, PASSWORD_PROPERTY_DEFAULT);
+      serverUser = props.getProperty(SERVER_USER_PROPERTY, SERVER_PASSWORD_PROPERTY_DEFAULT);
+      serverUserPassword = props.getProperty(SERVER_PASSWORD_PROPERTY, SERVER_PASSWORD_PROPERTY_DEFAULT);
       newDb = Boolean.parseBoolean(props.getProperty(NEWDB_PROPERTY, NEWDB_PROPERTY_DEFAULT));
       final String remoteStorageType = props.getProperty(STORAGE_TYPE_PROPERTY);
 
@@ -403,6 +418,9 @@ public class OrientDBClient extends DB {
               + "\n\t"
               + "user="
               + user
+              + "\n\t"
+              + "user(server)="
+              + serverUser
               + "\n\t"
               + "isNewDb="
               + newDb
@@ -421,6 +439,14 @@ public class OrientDBClient extends DB {
 
     String getPassword() {
       return password;
+    }
+
+    public String getServerUser() {
+      return serverUser;
+    }
+
+    public String getServerUserPassword() {
+      return serverUserPassword;
     }
   }
 }

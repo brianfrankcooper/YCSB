@@ -63,6 +63,10 @@ WARNING: Creating a new database will be done safely with multiple threads on a 
     * Default: ```admin```
 * ```orientdb.password``` - The password to connect to the database with.
     * Default: ```admin```
+* ```orientdb.server.user``` - The server user to connect to the database with.
+    * Default: ```root```
+* ```orientdb.server.password``` - The server password to connect to the database with.
+    * Default: ```admin```
 * ```orientdb.newdb``` - Overwrite the database if it already exists.
     * Only effects the ```load``` phase.
     * Default: ```false```
