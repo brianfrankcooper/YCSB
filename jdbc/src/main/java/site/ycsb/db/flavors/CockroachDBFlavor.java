@@ -21,13 +21,14 @@ import site.ycsb.db.StatementType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.helpers.MessageFormatter;
 
 /**
  * Database flavor for CockroachDB. Captures syntax differences used by CockroachDB as of system time.
  */
 public class CockroachDBFlavor extends DefaultDBFlavor {
   private String aost;
+
+  private static Logger logger = LoggerFactory.getLogger(CockroachDBFlavor.class);
 
   public CockroachDBFlavor() {
     super(DBName.COCKROACH);

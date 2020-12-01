@@ -20,7 +20,6 @@ import site.ycsb.db.StatementType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.helpers.MessageFormatter;
 
 /**
  * DBFlavor captures minor differences in syntax and behavior among JDBC implementations and SQL
@@ -35,6 +34,8 @@ public abstract class DBFlavor {
   }
 
   private final DBName dbName;
+
+  private static Logger logger = LoggerFactory.getLogger(DBFlavor.class);
 
   public DBFlavor(DBName dbName) {
     this.dbName = dbName;
