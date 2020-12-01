@@ -16,14 +16,16 @@
 package site.ycsb.db.hbase2;
 
 import org.apache.hadoop.hbase.CompareOperator;
+import org.apache.hadoop.hbase.filter.BinaryComparator;
+import org.apache.hadoop.hbase.filter.ByteArrayComparable;
 import org.apache.hadoop.hbase.filter.FilterList;
-import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
+import org.apache.hadoop.hbase.filter.ValueFilter;
+import org.apache.hadoop.util.StringUtils;
 import site.ycsb.ByteArrayByteIterator;
 import site.ycsb.ByteIterator;
 import site.ycsb.DBException;
 import site.ycsb.Status;
 import site.ycsb.measurements.Measurements;
-import site.ycsb.RandomByteIterator;
 
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.conf.Configuration;
@@ -110,7 +112,12 @@ public class HBaseClient2 extends site.ycsb.DB {
    * If true, we will configure server-side value filtering during scans.
    */
   private boolean useScanValueFiltering = false;
-  private String scanFilterOperator = "";
+  private CompareOperator scanFilterOperator;
+  private static final String DEFAULT_SCAN_FILTER_OPERATOR = "lessOrEqual";
+  private ByteArrayComparable scanFilterValue;
+  private static final String DEFAULT_SCAN_FILTER_VALUE = // 200 hexadecimal chars translated into 100 bytes
+      "7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF" +
+      "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
@@ -183,7 +190,11 @@ public class HBaseClient2 extends site.ycsb.DB {
     if (isBooleanParamSet("hbase.usescanvaluefiltering", false)) {
       useScanValueFiltering=true;
       String operator = getProperties().getProperty("hbase.scanfilteroperator");
-      scanFilterOperator = operator == null || operator.trim().isEmpty() ? "lessOrEqual" : operator;
+      operator = operator == null || operator.trim().isEmpty() ? DEFAULT_SCAN_FILTER_OPERATOR : operator;
+      scanFilterOperator = getCompareOperator(operator);
+      String filterValue = getProperties().getProperty("hbase.scanfiltervalue");
+      filterValue = filterValue == null || filterValue.trim().isEmpty() ? DEFAULT_SCAN_FILTER_VALUE : filterValue;
+      scanFilterValue = new BinaryComparator(StringUtils.hexStringToByte(filterValue));
     }
 
     columnFamily = getProperties().getProperty("columnfamily");
@@ -361,16 +372,15 @@ public class HBaseClient2 extends site.ycsb.DB {
       s.addFamily(columnFamilyBytes);
     } else {
       for (String field : fields) {
-        if (useScanValueFiltering){
-          CompareOperator compareOperator = getCompareOperator(scanFilterOperator);
-          byte[] column = Bytes.toBytes(field);
-          byte[] value = getRandomFilterValue();
-          filterList.addFilter(
-              new SingleColumnValueFilter(columnFamilyBytes, column, compareOperator, value));
-        }
         s.addColumn(columnFamilyBytes, Bytes.toBytes(field));
       }
     }
+
+    // define value filter if needed
+    if (useScanValueFiltering){
+      filterList.addFilter(new ValueFilter(scanFilterOperator, scanFilterValue));
+    }
+
     s.setFilter(filterList);
 
     // get results
@@ -576,12 +586,7 @@ public class HBaseClient2 extends site.ycsb.DB {
     }
   }
 
-  //for testing
-  protected byte[] getRandomFilterValue() {
-    return new RandomByteIterator(100).toArray();
-  }
 }
-
 
 /*
  * For customized vim control set autoindent set si set shiftwidth=4
