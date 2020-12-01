@@ -1,23 +1,27 @@
 /**
- * Copyright (c) 2016 YCSB contributors. All rights reserved.
- *
+ * Copyright (c) 2015-2017 YCSB contributors. All rights reserved.
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
  * may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
  * implied. See the License for the specific language governing
  * permissions and limitations under the License. See accompanying
  * LICENSE file.
- */
+ */ 
 package site.ycsb.db.flavors;
 
 import site.ycsb.db.JdbcDBClient;
 import site.ycsb.db.StatementType;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.helpers.MessageFormatter;
 
 /**
  * Database flavor for CockroachDB. Captures syntax differences used by CockroachDB as of system time.
@@ -43,7 +47,7 @@ public class CockroachDBFlavor extends DefaultDBFlavor {
     read.append(JdbcDBClient.PRIMARY_KEY);
     read.append(" = ");
     read.append("?");
-    System.out.println("CockroachDB: " + read.toString());
+    logger.info("CockroachDB: " + read.toString());
     return read.toString();
   }
 
@@ -59,7 +63,7 @@ public class CockroachDBFlavor extends DefaultDBFlavor {
     select.append(" ORDER BY ");
     select.append(JdbcDBClient.PRIMARY_KEY);
     select.append(" LIMIT ?");
-    System.out.println("CockroachDB: " + select.toString());
+    logger.info("CockroachDB: " + select.toString());
     return select.toString();
   }
 }
