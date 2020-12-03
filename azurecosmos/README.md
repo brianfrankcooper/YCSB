@@ -71,16 +71,16 @@ Optionally you can set the uri and primaryKey as follows:
 
 - azurecosmos.userAgent < agent string >:
 	- The value to be appended to the user-agent header.
-	- In most cases, you should leave this as "ycsb-4.6.0".
-    - Default: "ycsb-4.6.0"
+	- In most cases, you should leave this as "azurecosmos-ycsb".
+    - Default: "azurecosmos-ycsb"
 
 - azurecosmos.useGateway (true | false):
 	- Specify if connection mode should use gateway as opposed to direct. By default, direct mode will be used, as the performance is generally better.
     - Default: false
 
 - azurecosmos.consistencyLevel (STRONG | BOUNDED_STALENESS | SESSION | CONSISTENT_PREFIX | EVENTUAL):
-	- If not specified, eventual level will be used by default. 
-	- Default: EVENTUAL
+	- If not specified, session level will be used by default. 
+	- Default: SESSION
 
 - azurecosmos.maxRetryAttemptsOnThrottledRequests < integer >
     - Set the maximum number of retries in the case where the request fails due to rate limiting.

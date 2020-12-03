@@ -70,7 +70,7 @@ public class AzureCosmosClient extends DB {
   protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   // Default configuration values
-  private static final ConsistencyLevel DEFAULT_CONSISTENCY_LEVEL = ConsistencyLevel.EVENTUAL;
+  private static final ConsistencyLevel DEFAULT_CONSISTENCY_LEVEL = ConsistencyLevel.SESSION;
   private static final String DEFAULT_DATABASE_NAME = "ycsb";
   private static final boolean DEFAULT_USE_GATEWAY = false;
   private static final boolean DEFAULT_USE_UPSERT = false;
@@ -79,12 +79,12 @@ public class AzureCosmosClient extends DB {
   private static final int DEFAULT_PREFERRED_PAGE_SIZE = -1;
   public static final int NUM_UPDATE_ATTEMPTS = 4;
   private static final boolean DEFAULT_INCLUDE_EXCEPTION_STACK_IN_LOG = false;
-  private static final String DEFAULT_USER_AGENT = "ycsb-4.6.0";
+  private static final String DEFAULT_USER_AGENT = "azurecosmos-ycsb";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AzureCosmosClient.class);
 
   /**
-   * Count the number of times initialized toT teardown on the last
+   * Count the number of times initialized to teardown on the last
    * {@link #cleanup()}.
    */
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
@@ -259,7 +259,7 @@ public class AzureCosmosClient extends DB {
   @Override
   public void cleanup() throws DBException {
     synchronized (INIT_COUNT) {
-      if (INIT_COUNT.decrementAndGet() <= 0) {
+      if (INIT_COUNT.decrementAndGet() <= 0 && AzureCosmosClient.client != null) {
         try {
           AzureCosmosClient.client.close();
         } catch (Exception e) {
@@ -268,7 +268,7 @@ public class AzureCosmosClient extends DB {
           }
           LOGGER.error("Could not close DocumentClient", e);
         } finally {
-          client = null;
+          AzureCosmosClient.client = null;
         }
       }
     }
