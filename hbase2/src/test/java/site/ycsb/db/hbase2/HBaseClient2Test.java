@@ -200,7 +200,7 @@ public class HBaseClient2Test {
 
   @Test
   public void testScanWithValueFilteringOperationLessOrEqual() throws Exception {
-    testScanWithValueFiltering("lessOrEqual", "3333", 100, new byte[][] {
+    testScanWithValueFiltering("less_or_equal", "3333", 100, new byte[][] {
         hexStringToByte("0000"), hexStringToByte("1111"), hexStringToByte("2222"), hexStringToByte("3333"),
     });
   }
@@ -214,7 +214,7 @@ public class HBaseClient2Test {
 
   @Test
   public void testScanWithValueFilteringOperationNotEqual() throws Exception {
-    testScanWithValueFiltering("notEqual", "AAAA", 100 , new byte[][]{
+    testScanWithValueFiltering("not_equal", "AAAA", 100 , new byte[][]{
         hexStringToByte("0000"), hexStringToByte("1111"), hexStringToByte("2222"), hexStringToByte("3333"),
         hexStringToByte("4444"), hexStringToByte("5555"), hexStringToByte("6666"), hexStringToByte("7777"),
         hexStringToByte("8888"), hexStringToByte("9999"), hexStringToByte("BBBB"),

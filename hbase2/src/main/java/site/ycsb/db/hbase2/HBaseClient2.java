@@ -20,7 +20,6 @@ import org.apache.hadoop.hbase.filter.BinaryComparator;
 import org.apache.hadoop.hbase.filter.ByteArrayComparable;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.ValueFilter;
-import org.apache.hadoop.util.StringUtils;
 import site.ycsb.ByteArrayByteIterator;
 import site.ycsb.ByteIterator;
 import site.ycsb.DBException;
@@ -53,7 +52,6 @@ import java.io.IOException;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -113,7 +111,7 @@ public class HBaseClient2 extends site.ycsb.DB {
    */
   private boolean useScanValueFiltering = false;
   private CompareOperator scanFilterOperator;
-  private static final String DEFAULT_SCAN_FILTER_OPERATOR = "lessOrEqual";
+  private static final String DEFAULT_SCAN_FILTER_OPERATOR = "less_or_equal";
   private ByteArrayComparable scanFilterValue;
   private static final String DEFAULT_SCAN_FILTER_VALUE = // 200 hexadecimal chars translated into 100 bytes
       "7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF" +
@@ -184,7 +182,7 @@ public class HBaseClient2 extends site.ycsb.DB {
     }
 
     if (isBooleanParamSet("hbase.usepagefilter", true)) {
-      usePageFilter = false;
+      usePageFilter = true;
     }
 
     if (isBooleanParamSet("hbase.usescanvaluefiltering", false)) {
@@ -194,7 +192,7 @@ public class HBaseClient2 extends site.ycsb.DB {
       scanFilterOperator = getCompareOperator(operator);
       String filterValue = getProperties().getProperty("hbase.scanfiltervalue");
       filterValue = filterValue == null || filterValue.trim().isEmpty() ? DEFAULT_SCAN_FILTER_VALUE : filterValue;
-      scanFilterValue = new BinaryComparator(StringUtils.hexStringToByte(filterValue));
+      scanFilterValue = new BinaryComparator(Bytes.fromHex(filterValue));
     }
 
     columnFamily = getProperties().getProperty("columnfamily");
@@ -204,8 +202,6 @@ public class HBaseClient2 extends site.ycsb.DB {
     }
     columnFamilyBytes = Bytes.toBytes(columnFamily);
   }
-
-
 
   /**
    * Cleanup any state for this DB. Called once per DB instance; there is one DB
@@ -563,27 +559,11 @@ public class HBaseClient2 extends site.ycsb.DB {
   }
 
   private boolean isBooleanParamSet(String param, boolean defaultValue){
-    String value = getProperties().getProperty(param, Boolean.toString(defaultValue));
-    return "true".equalsIgnoreCase(value);
+    return Boolean.parseBoolean(getProperties().getProperty(param, Boolean.toString(defaultValue)));
   }
 
   private CompareOperator getCompareOperator(String operator) {
-    switch (operator) {
-    case "lessOrEqual":
-      return CompareOperator.LESS_OR_EQUAL;
-    case "greaterOrEqual":
-      return CompareOperator.GREATER_OR_EQUAL;
-    case "greater":
-      return CompareOperator.GREATER;
-    case "less":
-      return CompareOperator.LESS;
-    case "notEqual":
-      return CompareOperator.NOT_EQUAL;
-    case "equal":
-      return CompareOperator.EQUAL;
-    default:
-      throw new NoSuchElementException("");
-    }
+    return CompareOperator.valueOf(operator.toUpperCase());
   }
 
 }
