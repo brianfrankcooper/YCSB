@@ -634,6 +634,9 @@ public class TimeSeriesWorkload extends Workload {
     dataintegrity = Boolean.parseBoolean(
         p.getProperty(CoreWorkload.DATA_INTEGRITY_PROPERTY, 
             CoreWorkload.DATA_INTEGRITY_PROPERTY_DEFAULT));
+    if (dataintegrity) {
+      System.out.println("Data integrity is enabled.");
+    }
     
     queryTimeSpan = Integer.parseInt(p.getProperty(QUERY_TIMESPAN_PROPERTY, 
         QUERY_TIMESPAN_PROPERTY_DEFAULT));
