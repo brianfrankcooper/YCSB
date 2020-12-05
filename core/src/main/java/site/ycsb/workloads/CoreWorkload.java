@@ -475,6 +475,9 @@ public class CoreWorkload extends Workload {
       System.err.println("Must have constant field size to check data integrity.");
       System.exit(-1);
     }
+    if (dataintegrity) {
+      System.out.println("Data integrity is enabled.");
+    }
 
     if (p.getProperty(INSERT_ORDER_PROPERTY, INSERT_ORDER_PROPERTY_DEFAULT).compareTo("hashed") == 0) {
       orderedinserts = false;
