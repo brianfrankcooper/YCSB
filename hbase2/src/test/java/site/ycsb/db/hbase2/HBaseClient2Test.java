@@ -15,7 +15,6 @@
 
 package site.ycsb.db.hbase2;
 
-import static org.apache.hadoop.util.StringUtils.hexStringToByte;
 import static org.junit.Assert.assertArrayEquals;
 import static site.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY;
 import static site.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY_DEFAULT;
@@ -25,7 +24,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
-import jersey.repackaged.com.google.common.collect.ImmutableSet;
 import site.ycsb.ByteIterator;
 import site.ycsb.Status;
 import site.ycsb.StringByteIterator;
@@ -48,6 +46,7 @@ import org.junit.Test;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
@@ -193,39 +192,39 @@ public class HBaseClient2Test {
   @Test
   public void testScanWithValueFilteringUsingDefaultProperties() throws Exception {
     testScanWithValueFiltering(null, null, 100, new byte[][] {
-        hexStringToByte("0000"), hexStringToByte("1111"), hexStringToByte("2222"), hexStringToByte("3333"),
-        hexStringToByte("4444"), hexStringToByte("5555"), hexStringToByte("6666"), hexStringToByte("7777"),
+        Bytes.fromHex("0000"), Bytes.fromHex("1111"), Bytes.fromHex("2222"), Bytes.fromHex("3333"),
+        Bytes.fromHex("4444"), Bytes.fromHex("5555"), Bytes.fromHex("6666"), Bytes.fromHex("7777"),
     });
   }
 
   @Test
   public void testScanWithValueFilteringOperationLessOrEqual() throws Exception {
     testScanWithValueFiltering("less_or_equal", "3333", 100, new byte[][] {
-        hexStringToByte("0000"), hexStringToByte("1111"), hexStringToByte("2222"), hexStringToByte("3333"),
+        Bytes.fromHex("0000"), Bytes.fromHex("1111"), Bytes.fromHex("2222"), Bytes.fromHex("3333"),
     });
   }
 
   @Test
   public void testScanWithValueFilteringOperationEqual() throws Exception {
     testScanWithValueFiltering("equal", "AAAA", 100, new byte[][]{
-        hexStringToByte("AAAA")
+        Bytes.fromHex("AAAA")
     });
   }
 
   @Test
   public void testScanWithValueFilteringOperationNotEqual() throws Exception {
     testScanWithValueFiltering("not_equal", "AAAA", 100 , new byte[][]{
-        hexStringToByte("0000"), hexStringToByte("1111"), hexStringToByte("2222"), hexStringToByte("3333"),
-        hexStringToByte("4444"), hexStringToByte("5555"), hexStringToByte("6666"), hexStringToByte("7777"),
-        hexStringToByte("8888"), hexStringToByte("9999"), hexStringToByte("BBBB"),
-        hexStringToByte("CCCC"), hexStringToByte("DDDD"), hexStringToByte("EEEE"), hexStringToByte("FFFF")
+        Bytes.fromHex("0000"), Bytes.fromHex("1111"), Bytes.fromHex("2222"), Bytes.fromHex("3333"),
+        Bytes.fromHex("4444"), Bytes.fromHex("5555"), Bytes.fromHex("6666"), Bytes.fromHex("7777"),
+        Bytes.fromHex("8888"), Bytes.fromHex("9999"), Bytes.fromHex("BBBB"),
+        Bytes.fromHex("CCCC"), Bytes.fromHex("DDDD"), Bytes.fromHex("EEEE"), Bytes.fromHex("FFFF")
     });
   }
 
   @Test
   public void testScanWithValueFilteringAndRowLimit() throws Exception {
     testScanWithValueFiltering("greater", "8887", 3, new byte[][] {
-        hexStringToByte("8888"), hexStringToByte("9999"), hexStringToByte("AAAA")
+        Bytes.fromHex("8888"), Bytes.fromHex("9999"), Bytes.fromHex("AAAA")
     });
   }
 
@@ -289,7 +288,7 @@ public class HBaseClient2Test {
 
     // now scan only a single column (the filter should work here too)
     result = new Vector<>();
-    client.scan(tableName, "00000", scanRowLimit, ImmutableSet.of("col_1"), result);
+    client.scan(tableName, "00000", scanRowLimit, Collections.singleton("col_1"), result);
 
     assertEquals(expectedValuesReturned.length, result.size());
     for(int i = 0; i < expectedValuesReturned.length; i++) {
@@ -303,10 +302,10 @@ public class HBaseClient2Test {
   private void setupTableColumnWithHexValues(String colStr) throws Exception {
     final byte[] col = Bytes.toBytes(colStr);
     final byte[][] values = {
-        hexStringToByte("0000"), hexStringToByte("1111"), hexStringToByte("2222"), hexStringToByte("3333"),
-        hexStringToByte("4444"), hexStringToByte("5555"), hexStringToByte("6666"), hexStringToByte("7777"),
-        hexStringToByte("8888"), hexStringToByte("9999"), hexStringToByte("AAAA"), hexStringToByte("BBBB"),
-        hexStringToByte("CCCC"), hexStringToByte("DDDD"), hexStringToByte("EEEE"), hexStringToByte("FFFF")
+        Bytes.fromHex("0000"), Bytes.fromHex("1111"), Bytes.fromHex("2222"), Bytes.fromHex("3333"),
+        Bytes.fromHex("4444"), Bytes.fromHex("5555"), Bytes.fromHex("6666"), Bytes.fromHex("7777"),
+        Bytes.fromHex("8888"), Bytes.fromHex("9999"), Bytes.fromHex("AAAA"), Bytes.fromHex("BBBB"),
+        Bytes.fromHex("CCCC"), Bytes.fromHex("DDDD"), Bytes.fromHex("EEEE"), Bytes.fromHex("FFFF")
     };
     final List<Put> puts = new ArrayList<>(16);
     for(int i = 0; i < 16; i++) {
