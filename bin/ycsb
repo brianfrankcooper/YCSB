@@ -100,7 +100,8 @@ DATABASES = {
     "seaweedfs"    : "site.ycsb.db.seaweed.SeaweedClient",
     "solr7"        : "site.ycsb.db.solr7.SolrClient",
     "tarantool"    : "site.ycsb.db.TarantoolClient",
-    "tablestore"   : "site.ycsb.db.tablestore.TableStoreClient"
+    "tablestore"   : "site.ycsb.db.tablestore.TableStoreClient",
+    "zookeeper"    : "site.ycsb.db.zookeeper.ZKClient"
 }
 
 OPTIONS = {
