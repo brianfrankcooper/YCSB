@@ -71,18 +71,22 @@ Use as following:
 
 ### 1. Load target
 
-You want to test how a database handles load. To get the performance picture
-you would want to look at the latency distribution and utilization under the
-constant load. To select load use `-target` to state desired throughput level.
+Suppose, you want to test how a database handles an open-class system load.
+
+In this case, to get the performance picture you want to look at the latency
+distribution and utilization under the constant throughput. Use the `-target` flag
+to state desired throughput level.
 
 For example `-target 120000` means that we expect YCSB workers to generate
 120,000 requests per second (RPS, QPS or TPS) to the database.
 
 Why is this important? Because without setting target throughput you will be
-looking only on the system equilibrium point that in the face of constantly
-varying latency will not allow you to see either throughput, nor latency.
+looking at the system equilibrium point which in the face of constantly
+varying latency would show you neither throughput, nor latency. Your system
+in that case will converge to the closed-class queuing system and that is something
+not what you wanted.
 
-For more information check out these resources on the coordinated omission problem:
+For more information check out these resources on the coordinated omission problem.
 
 See
 [[1]](http://highscalability.com/blog/2015/10/5/your-load-generator-is-probably-lying-to-you-take-the-red-pi.html)
@@ -91,7 +95,25 @@ See
 and [[this]](https://www.youtube.com/watch?v=lJ8ydIuPFeU)
 great talk by Gil Tene.
 
-### 2. Parallelism factor and threads
+### 2. Latency correction
+
+To measure latency correctly, it is not enough to just set a target.
+The latencies must be measured according to the running schedule.
+This is what YCSB calls an Intended operation.
+
+This fair measurement consists of the operation latency and its correction
+to the point of its intended execution. Even if you don’t want to have
+a completely fair measurement, use “both”:
+
+   --measurement.interval=both
+
+Other options are “op” and “intended”. “op” is the default.
+
+Another flag that affects measurement quality is the type of histogram
+“--measurementtype” but for a long time, it uses “hdrhistogram” that 
+must be fine for most use cases.
+
+### 3. Parallelism factor and threads
 
 Scylla utilizes [thread-per-core](https://www.scylladb.com/product/technology/) architecture design.
 That means that a Node consists of shards that are mapped to the CPU cores 1-per-core.
@@ -132,7 +154,7 @@ Another concern is that for high throughput scenarios you would probably
 want to keep shards incoming queues non-empty. For that your parallelism factor
 must be at least 2.
 
-### 3. Number of connections
+### 4. Number of connections
 
 Both `scylla.coreconnections` and `scylla.maxconnections` define limits
 per node. When you see `-p scylla.coreconnections=280 -p scylla.maxconnections=280`
@@ -146,7 +168,7 @@ Number of connections must be a multiple of:
 For example, for `i3.4xlarge` that has 14 shards per node and `K = 20`
 it makes sense to pick `connections = shards * K = 14 * 20 = 280`.
 
-### 4. Other considerations
+### 5. Other considerations
 
 Consistency levels do not change consistency model or its strongness.
 Even with `-p scylla.writeconsistencylevel=ONE` the data will be written
@@ -160,7 +182,7 @@ Unix tools. Check out Scylla own metrics to see real reactors utilization.
 
 For best performance it is crucial to evenly load all available shards.
 
-### 5. Expected performance target
+### 6. Expected performance target
 
 You can expect about 12500 uOPS / core (shard), where uOPS are basic
 reads and writes operations post replication. Don't forget that usually
