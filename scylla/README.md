@@ -53,7 +53,6 @@ Create a keyspace, and a table as mentioned above. Load data with:
         -p readproportion=0 -p updateproportion=0 \
         -p fieldcount=10 -p fieldlength=128 \
         -p insertstart=0 -p insertcount=1000000000 \
-        -p cassandra.coreconnections=14 -p cassandra.maxconnections=14 \
         -p cassandra.username=cassandra -p cassandra.password=cassandra \
         -p scylla.hosts=ip1,ip2,ip3,...
 
@@ -63,7 +62,6 @@ Use as following:
         -target 120000 -threads 840 -p recordcount=1000000000 \
         -p fieldcount=10 -p fieldlength=128 \
         -p operationcount=50000000 \
-        -p scylla.coreconnections=280 -p scylla.maxconnections=280 \
         -p scylla.username=cassandra -p scylla.password=cassandra \
         -p scylla.hosts=ip1,ip2,ip3,...
 
@@ -171,6 +169,16 @@ want to keep shards incoming queues non-empty. For that your parallelism factor
 must be at least 2.
 
 ### 5. Number of connections
+
+If you use original Cassandra drivers you need to pick the proper number
+of connections per host. Scylla drivers do not require this to be configured
+and by default create a connection per shard. For example if your node has
+16 vCPU and thus 14 shards Scylla drivers will pick to create 14 connections
+per host. An excess of connections may result in degraded latency.
+
+Database client protocol is asynchronous and allows queueing requests in
+a single connection. The default queue limit for local keys is 1024 and 256
+for remote ones. Current binding implementation do not require this.
 
 Both `scylla.coreconnections` and `scylla.maxconnections` define limits
 per node. When you see `-p scylla.coreconnections=280 -p scylla.maxconnections=280`
