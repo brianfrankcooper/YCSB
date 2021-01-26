@@ -65,8 +65,7 @@ Use as following:
         -p operationcount=50000000 \
         -p scylla.coreconnections=280 -p scylla.maxconnections=280 \
         -p scylla.username=cassandra -p scylla.password=cassandra \
-        -p scylla.hosts=ip1,ip2,ip3,... \
-        -p scylla.tokenaware=true
+        -p scylla.hosts=ip1,ip2,ip3,...
 
 ## On choosing meaningful configuration
 
@@ -159,9 +158,6 @@ latency picture a bit but would not affect utilization.
 Remember that you can't measure CPU utilization with Scylla by normal
 Unix tools. Check out Scylla own metrics to see real reactors utilization.
 
-Always use [token aware](https://www.scylladb.com/2019/03/27/best-practices-for-scylla-applications/)
-load balancing `-p scylla.tokenaware=true`.
-
 For best performance it is crucial to evenly load all available shards.
 
 ### 5. Expected performance target
@@ -235,12 +231,9 @@ of 3 nodes of i3.4xlarge (16 vCPU per node) and target of 120000 is:
   * Default is false
   * https://docs.scylladb.com/using-scylla/tracing/
 
-- `scylla.tokenaware`
-  - Enable token awareness
-  - Default value is false.
-
-- `scylla.tokenaware_local_dc`
-  - Restrict Round Robin child policy with the local dc nodes
+* `scylla.local_dc`
+  - Specify local datacenter for multi-dc setup.
+  - By default uses LOCAL_QUORUM consistency level.  
   - Default value is empty.
 
 - `scylla.lwt`
