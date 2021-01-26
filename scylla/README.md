@@ -105,7 +105,7 @@ This fair measurement consists of the operation latency and its correction
 to the point of its intended execution. Even if you don’t want to have
 a completely fair measurement, use “both”:
 
-   --measurement.interval=both
+    --measurement.interval=both
 
 Other options are “op” and “intended”. “op” is the default.
 
@@ -113,7 +113,23 @@ Another flag that affects measurement quality is the type of histogram
 “--measurementtype” but for a long time, it uses “hdrhistogram” that 
 must be fine for most use cases.
 
-### 3. Parallelism factor and threads
+### 3. Latency percentiles and multiple loaders
+
+Latencies percentiles can't be averaged. Don't fall into this trap.
+Neither averages nor p99 averages do not make any sense.
+
+If you run a single loader (ycsb) instance look for P99 - 99
+percentile. If you run multiple loaders dump result histograms with:
+
+    --measurement.histogram.verbose=true
+
+merge them manually and extract required percentiles out of the
+joined result.
+
+Remember that running multiple workloads may distort original
+workloads distributions they were intended to produce.
+
+### 4. Parallelism factor and threads
 
 Scylla utilizes [thread-per-core](https://www.scylladb.com/product/technology/) architecture design.
 That means that a Node consists of shards that are mapped to the CPU cores 1-per-core.
@@ -154,7 +170,7 @@ Another concern is that for high throughput scenarios you would probably
 want to keep shards incoming queues non-empty. For that your parallelism factor
 must be at least 2.
 
-### 4. Number of connections
+### 5. Number of connections
 
 Both `scylla.coreconnections` and `scylla.maxconnections` define limits
 per node. When you see `-p scylla.coreconnections=280 -p scylla.maxconnections=280`
@@ -168,7 +184,7 @@ Number of connections must be a multiple of:
 For example, for `i3.4xlarge` that has 14 shards per node and `K = 20`
 it makes sense to pick `connections = shards * K = 14 * 20 = 280`.
 
-### 5. Other considerations
+### 6. Other considerations
 
 Consistency levels do not change consistency model or its strongness.
 Even with `-p scylla.writeconsistencylevel=ONE` the data will be written
@@ -182,7 +198,7 @@ Unix tools. Check out Scylla own metrics to see real reactors utilization.
 
 For best performance it is crucial to evenly load all available shards.
 
-### 6. Expected performance target
+### 7. Expected performance target
 
 You can expect about 12500 uOPS / core (shard), where uOPS are basic
 reads and writes operations post replication. Don't forget that usually
