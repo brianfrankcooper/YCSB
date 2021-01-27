@@ -143,7 +143,7 @@ LICENSE file.
     <rocksdb.version>6.2.2</rocksdb.version>
     <s3.version>1.10.20</s3.version>
     <seaweed.client.version>1.4.1</seaweed.client.version>
-    <scylla.cql.version>3.10.1-scylla-0</scylla.cql.version>
+    <scylla.cql.version>3.10.2-scylla-1</scylla.cql.version>
     <solr7.version>7.7.2</solr7.version>
     <tarantool.version>1.6.5</tarantool.version>
     <thrift.version>0.8.0</thrift.version>
