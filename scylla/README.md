@@ -69,20 +69,23 @@ Use as following:
 
 ### 1. Load target
 
-Suppose, you want to test how a database handles an open-class system load.
+Suppose, you want to test how a database handles an OLTP load.
 
 In this case, to get the performance picture you want to look at the latency
-distribution and utilization under the constant throughput. Use the `-target` flag
-to state desired throughput level.
+distribution and utilization at the sustained throughput that is independent
+of the processing speed. This kind of system called an open-loop system.
+Use the `-target` flag to state desired requests arrival rate.
 
 For example `-target 120000` means that we expect YCSB workers to generate
-120,000 requests per second (RPS, QPS or TPS) to the database.
+120,000 requests per second (RPS, QPS or TPS) overall to the database.
 
-Why is this important? Because without setting target throughput you will be
-looking at the system equilibrium point which in the face of constantly
-varying latency would show you neither throughput, nor latency. Your system
-in that case will converge to the closed-class queuing system and that is something
-not what you wanted.
+Why is this important? First, we want to look at the latency at some sustained
+throughput target, not visa versa. Second, without a throughput target,
+the system+loader pair will converge to the closed-loop system that has completely
+different characteristics than what we wanted to measure. The load will settle
+at the system equilibrium point. You will be able to find the throughput that will depend
+on the number of loader threads (workers) but not the latency - only service time.
+This is not something we expected.
 
 For more information check out these resources on the coordinated omission problem.
 
@@ -95,20 +98,25 @@ great talk by Gil Tene.
 
 ### 2. Latency correction
 
-To measure latency correctly, it is not enough to just set a target.
-The latencies must be measured according to the running schedule.
-This is what YCSB calls an Intended operation.
+To measure latency, it is not enough to just set a target. 
+The latencies must be measured with the correction as we apply
+a closed-class loader to the open-class problem. This is what YCSB
+calls an Intended operation.
 
-This fair measurement consists of the operation latency and its correction
+Intended operations have points in time when they were intended to be executed
+according to the scheduler defined by the load target (--target). We must correct
+measurement if we did not manage to execute an operation in time.
+
+The fair measurement consists of the operation latency and its correction
 to the point of its intended execution. Even if you don’t want to have
 a completely fair measurement, use “both”:
 
-    --measurement.interval=both
+    -p measurement.interval=both
 
 Other options are “op” and “intended”. “op” is the default.
 
 Another flag that affects measurement quality is the type of histogram
-“--measurementtype” but for a long time, it uses “hdrhistogram” that 
+“-p measurementtype” but for a long time, it uses “hdrhistogram” that 
 must be fine for most use cases.
 
 ### 3. Latency percentiles and multiple loaders
@@ -116,10 +124,15 @@ must be fine for most use cases.
 Latencies percentiles can't be averaged. Don't fall into this trap.
 Neither averages nor p99 averages do not make any sense.
 
-If you run a single loader (ycsb) instance look for P99 - 99
-percentile. If you run multiple loaders dump result histograms with:
+If you run a single loader instance look for P99 - 99 percentile.
+If you run multiple loaders dump result histograms with:
 
-    --measurement.histogram.verbose=true
+    -p measurement.histogram.verbose=true
+
+or 
+
+    -p hdrhistogram.fileoutput=true
+    -p hdrhistogram.output.path=file.hdr
 
 merge them manually and extract required percentiles out of the
 joined result.
@@ -148,21 +161,21 @@ of shards, and the number of nodes in the cluster. For example:
 
     =>
 
-    threads = K * shards * nodes = K * 14 * nodes
+    threads = K * shards per node * nodes
 
     for i3.4xlarge where
 
-        - K is parallelism factor >= 1,
+        - K is parallelism factor:
+
+          K >= Target Throughput / QPS per Worker / Shards per node / Nodes / Workers per shard >= 1
+          where
+          Target Throughput = --target
+          QPS per Worker = 1000 [ms/second] / Latency in ms expected at target Percentile
+          Shards per node = vCPU per cluster node - 2
+          Nodes = a number of nodes in the cluster.
+          Workers per shard = Target Throughput / Shards per node / Nodes / QPS per Worker
+
         - Nodes is number of nodes in the cluster.
-
-For example for 3 nodes `i3.4xlarge` and `-threads 840` means
-`K = 20`, `shards = 14`, and `threads = 14 * 20 * 3`.
-
-Thus, the `K` - the parallelism factor must be selected in the first order. If you
-don't know what you want out of it start with 1.
-
-For picking desired parallelism factor it is useful to come from desired `target`
-parameter. It is better if the `target` is a multiple of `threads`.
 
 Another concern is that for high throughput scenarios you would probably
 want to keep shards incoming queues non-empty. For that your parallelism factor
@@ -180,17 +193,11 @@ Database client protocol is asynchronous and allows queueing requests in
 a single connection. The default queue limit for local keys is 1024 and 256
 for remote ones. Current binding implementation do not require this.
 
-Both `scylla.coreconnections` and `scylla.maxconnections` define limits
-per node. When you see `-p scylla.coreconnections=280 -p scylla.maxconnections=280`
-that means 280 connections per node.
+Both `scylla.coreconnections` and `scylla.maxconnections` define limits per node.
+When you see `-p scylla.coreconnections=14 -p scylla.maxconnections=14` that means
+14 connections per node.
 
-Number of connections must be a multiple of:
-
-- number of _shards_
-- parallelism factor `K`
-
-For example, for `i3.4xlarge` that has 14 shards per node and `K = 20`
-it makes sense to pick `connections = shards * K = 14 * 20 = 280`.
+Pick the number of connections per host to be divisible by the number of _shards_.
 
 ### 6. Other considerations
 
@@ -210,7 +217,7 @@ For best performance it is crucial to evenly load all available shards.
 
 You can expect about 12500 uOPS / core (shard), where uOPS are basic
 reads and writes operations post replication. Don't forget that usually
-`Core = 2 * vCPU` for HT systems.
+`Core = 2 vCPU` for HT systems.
 
 For example if we insert a row with RF = 3 we can count at least 3 writes -
 1 write per each replica. That is 1 Transaction = 3 u operations.
