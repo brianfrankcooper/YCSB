@@ -71,7 +71,7 @@ public class ElasticsearchRestHighLevelClientTest {
       e.printStackTrace();
     }
     // Insert 15 documents before doing the test
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < 15; i++) {
       client.insert(MOCK_TABLE, Integer.toString(i), MOCK_DATA);
     }
   }
