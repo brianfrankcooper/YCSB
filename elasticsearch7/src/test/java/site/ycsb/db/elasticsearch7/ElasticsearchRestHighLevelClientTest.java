@@ -70,8 +70,8 @@ public class ElasticsearchRestHighLevelClientTest {
       logger.info("ERROR " + e);
       e.printStackTrace();
     }
-    // Insert 15 documents before doing the test
-    for (int i = 0; i < 15; i++) {
+    // Insert 25 documents before doing the test
+    for (int i = 0; i < 25; i++) {
       client.insert(MOCK_TABLE, Integer.toString(i), MOCK_DATA);
     }
   }
