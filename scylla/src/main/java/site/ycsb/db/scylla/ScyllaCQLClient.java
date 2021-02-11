@@ -227,6 +227,10 @@ public class ScyllaCQLClient extends DB {
         } else {
           LOGGER.info("Not using LWT\n");
         }
+
+        LOGGER.info("Read consistency: {}, Write consistency: {}\n",
+            readConsistencyLevel.name(),
+            writeConsistencyLevel.name());
       } catch (Exception e) {
         throw new DBException(e);
       }
