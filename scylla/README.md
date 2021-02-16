@@ -53,7 +53,6 @@ Create a keyspace, and a table as mentioned above. Load data with:
         -p readproportion=0 -p updateproportion=0 \
         -p fieldcount=10 -p fieldlength=128 \
         -p insertstart=0 -p insertcount=1000000000 \
-        -p cassandra.coreconnections=14 -p cassandra.maxconnections=14 \
         -p cassandra.username=cassandra -p cassandra.password=cassandra \
         -p scylla.hosts=ip1,ip2,ip3,...
 
@@ -63,27 +62,32 @@ Use as following:
         -target 120000 -threads 840 -p recordcount=1000000000 \
         -p fieldcount=10 -p fieldlength=128 \
         -p operationcount=50000000 \
-        -p scylla.coreconnections=280 -p scylla.maxconnections=280 \
         -p scylla.username=cassandra -p scylla.password=cassandra \
-        -p scylla.hosts=ip1,ip2,ip3,... \
-        -p scylla.tokenaware=true
+        -p scylla.hosts=ip1,ip2,ip3,...
 
 ## On choosing meaningful configuration
 
 ### 1. Load target
 
-You want to test how a database handles load. To get the performance picture
-you would want to look at the latency distribution and utilization under the
-constant load. To select load use `-target` to state desired throughput level.
+Suppose, you want to test how a database handles an OLTP load.
+
+In this case, to get the performance picture you want to look at the latency
+distribution and utilization at the sustained throughput that is independent
+of the processing speed. This kind of system called an open-loop system.
+Use the `-target` flag to state desired requests arrival rate.
 
 For example `-target 120000` means that we expect YCSB workers to generate
-120,000 requests per second (RPS, QPS or TPS) to the database.
+120,000 requests per second (RPS, QPS or TPS) overall to the database.
 
-Why is this important? Because without setting target throughput you will be
-looking only on the system equilibrium point that in the face of constantly
-varying latency will not allow you to see either throughput, nor latency.
+Why is this important? First, we want to look at the latency at some sustained
+throughput target, not visa versa. Second, without a throughput target,
+the system+loader pair will converge to the closed-loop system that has completely
+different characteristics than what we wanted to measure. The load will settle
+at the system equilibrium point. You will be able to find the throughput that will depend
+on the number of loader threads (workers) but not the latency - only service time.
+This is not something we expected.
 
-For more information check out these resources on the coordinated omission problem:
+For more information check out these resources on the coordinated omission problem.
 
 See
 [[1]](http://highscalability.com/blog/2015/10/5/your-load-generator-is-probably-lying-to-you-take-the-red-pi.html)
@@ -92,7 +96,51 @@ See
 and [[this]](https://www.youtube.com/watch?v=lJ8ydIuPFeU)
 great talk by Gil Tene.
 
-### 2. Parallelism factor and threads
+### 2. Latency correction
+
+To measure latency, it is not enough to just set a target. 
+The latencies must be measured with the correction as we apply
+a closed-class loader to the open-class problem. This is what YCSB
+calls an Intended operation.
+
+Intended operations have points in time when they were intended to be executed
+according to the scheduler defined by the load target (--target). We must correct
+measurement if we did not manage to execute an operation in time.
+
+The fair measurement consists of the operation latency and its correction
+to the point of its intended execution. Even if you don’t want to have
+a completely fair measurement, use “both”:
+
+    -p measurement.interval=both
+
+Other options are “op” and “intended”. “op” is the default.
+
+Another flag that affects measurement quality is the type of histogram
+“-p measurementtype” but for a long time, it uses “hdrhistogram” that 
+must be fine for most use cases.
+
+### 3. Latency percentiles and multiple loaders
+
+Latencies percentiles can't be averaged. Don't fall into this trap.
+Neither averages nor p99 averages do not make any sense.
+
+If you run a single loader instance look for P99 - 99 percentile.
+If you run multiple loaders dump result histograms with:
+
+    -p measurement.histogram.verbose=true
+
+or 
+
+    -p hdrhistogram.fileoutput=true
+    -p hdrhistogram.output.path=file.hdr
+
+merge them manually and extract required percentiles out of the
+joined result.
+
+Remember that running multiple workloads may distort original
+workloads distributions they were intended to produce.
+
+### 4. Parallelism factor and threads
 
 Scylla utilizes [thread-per-core](https://www.scylladb.com/product/technology/) architecture design.
 That means that a Node consists of shards that are mapped to the CPU cores 1-per-core.
@@ -113,41 +161,45 @@ of shards, and the number of nodes in the cluster. For example:
 
     =>
 
-    threads = K * shards * nodes = K * 14 * nodes
+    threads = K * shards per node * nodes
 
     for i3.4xlarge where
 
-        - K is parallelism factor >= 1,
+        - K is parallelism factor:
+
+          K >= Target Throughput / QPS per Worker / Shards per node / Nodes / Workers per shard >= 1
+          where
+          Target Throughput = --target
+          QPS per Worker = 1000 [ms/second] / Latency in ms expected at target Percentile
+          Shards per node = vCPU per cluster node - 2
+          Nodes = a number of nodes in the cluster.
+          Workers per shard = Target Throughput / Shards per node / Nodes / QPS per Worker
+
         - Nodes is number of nodes in the cluster.
-
-For example for 3 nodes `i3.4xlarge` and `-threads 840` means
-`K = 20`, `shards = 14`, and `threads = 14 * 20 * 3`.
-
-Thus, the `K` - the parallelism factor must be selected in the first order. If you
-don't know what you want out of it start with 1.
-
-For picking desired parallelism factor it is useful to come from desired `target`
-parameter. It is better if the `target` is a multiple of `threads`.
 
 Another concern is that for high throughput scenarios you would probably
 want to keep shards incoming queues non-empty. For that your parallelism factor
 must be at least 2.
 
-### 3. Number of connections
+### 5. Number of connections
 
-Both `scylla.coreconnections` and `scylla.maxconnections` define limits
-per node. When you see `-p scylla.coreconnections=280 -p scylla.maxconnections=280`
-that means 280 connections per node.
+If you use original Cassandra drivers you need to pick the proper number
+of connections per host. Scylla drivers do not require this to be configured
+and by default create a connection per shard. For example if your node has
+16 vCPU and thus 14 shards Scylla drivers will pick to create 14 connections
+per host. An excess of connections may result in degraded latency.
 
-Number of connections must be a multiple of:
+Database client protocol is asynchronous and allows queueing requests in
+a single connection. The default queue limit for local keys is 1024 and 256
+for remote ones. Current binding implementation do not require this.
 
-- number of _shards_
-- parallelism factor `K`
+Both `scylla.coreconnections` and `scylla.maxconnections` define limits per node.
+When you see `-p scylla.coreconnections=14 -p scylla.maxconnections=14` that means
+14 connections per node.
 
-For example, for `i3.4xlarge` that has 14 shards per node and `K = 20`
-it makes sense to pick `connections = shards * K = 14 * 20 = 280`.
+Pick the number of connections per host to be divisible by the number of _shards_.
 
-### 4. Other considerations
+### 6. Other considerations
 
 Consistency levels do not change consistency model or its strongness.
 Even with `-p scylla.writeconsistencylevel=ONE` the data will be written
@@ -159,16 +211,13 @@ latency picture a bit but would not affect utilization.
 Remember that you can't measure CPU utilization with Scylla by normal
 Unix tools. Check out Scylla own metrics to see real reactors utilization.
 
-Always use [token aware](https://www.scylladb.com/2019/03/27/best-practices-for-scylla-applications/)
-load balancing `-p scylla.tokenaware=true`.
-
 For best performance it is crucial to evenly load all available shards.
 
-### 5. Expected performance target
+### 7. Expected performance target
 
 You can expect about 12500 uOPS / core (shard), where uOPS are basic
 reads and writes operations post replication. Don't forget that usually
-`Core = 2 * vCPU` for HT systems.
+`Core = 2 vCPU` for HT systems.
 
 For example if we insert a row with RF = 3 we can count at least 3 writes -
 1 write per each replica. That is 1 Transaction = 3 u operations.
@@ -235,12 +284,9 @@ of 3 nodes of i3.4xlarge (16 vCPU per node) and target of 120000 is:
   * Default is false
   * https://docs.scylladb.com/using-scylla/tracing/
 
-- `scylla.tokenaware`
-  - Enable token awareness
-  - Default value is false.
-
-- `scylla.tokenaware_local_dc`
-  - Restrict Round Robin child policy with the local dc nodes
+* `scylla.local_dc`
+  - Specify local datacenter for multi-dc setup.
+  - By default uses LOCAL_QUORUM consistency level.  
   - Default value is empty.
 
 - `scylla.lwt`

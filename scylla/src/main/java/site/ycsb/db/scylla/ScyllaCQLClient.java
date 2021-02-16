@@ -16,10 +16,10 @@
 package site.ycsb.db.scylla;
 
 import com.datastax.driver.core.*;
-import com.datastax.driver.core.policies.LoadBalancingPolicy;
-import com.datastax.driver.core.querybuilder.*;
-import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
+import com.datastax.driver.core.policies.LoadBalancingPolicy;
+import com.datastax.driver.core.policies.TokenAwarePolicy;
+import com.datastax.driver.core.querybuilder.*;
 import site.ycsb.ByteArrayByteIterator;
 import site.ycsb.ByteIterator;
 import site.ycsb.DB;
@@ -86,9 +86,7 @@ public class ScyllaCQLClient extends DB {
 
   public static final String SCYLLA_LWT = "scylla.lwt";
 
-  public static final String TOKEN_AWARE = "scylla.tokenaware";
-  public static final String TOKEN_AWARE_DEFAULT = "false";
-  public static final String TOKEN_AWARE_LOCAL_DC = "scylla.tokenaware_local_dc";
+  public static final String TOKEN_AWARE_LOCAL_DC = "scylla.local_dc";
 
   public static final String TRACING_PROPERTY = "scylla.tracing";
   public static final String TRACING_PROPERTY_DEFAULT = "false";
@@ -162,17 +160,22 @@ public class ScyllaCQLClient extends DB {
               .addContactPoints(hosts);
         }
 
-        if (Boolean.parseBoolean(getProperties().getProperty(TOKEN_AWARE, TOKEN_AWARE_DEFAULT))) {
-          LoadBalancingPolicy child;
-          String localDc = getProperties().getProperty(TOKEN_AWARE_LOCAL_DC);
-          if (localDc != null && !localDc.isEmpty()) {
-            child = DCAwareRoundRobinPolicy.builder().withLocalDc(localDc).build();
-            LOGGER.info("Using shard awareness with local DC: {}\n", localDc);
-          } else {
-            child = DCAwareRoundRobinPolicy.builder().build();
-            LOGGER.info("Using shard awareness\n");
+        final String localDC = getProperties().getProperty(TOKEN_AWARE_LOCAL_DC);
+        if (localDC != null && !localDC.isEmpty()) {
+          final LoadBalancingPolicy local = DCAwareRoundRobinPolicy.builder().withLocalDc(localDC).build();
+          final TokenAwarePolicy tokenAware = new TokenAwarePolicy(local);
+          builder = builder.withLoadBalancingPolicy(tokenAware);
+
+          LOGGER.info("Using local datacenter with token awareness: {}\n", localDC);
+
+          // If was not overridden explicitly, set LOCAL_QUORUM
+          if (getProperties().getProperty(READ_CONSISTENCY_LEVEL_PROPERTY) == null) {
+            readConsistencyLevel = ConsistencyLevel.LOCAL_QUORUM;
           }
-          builder = builder.withLoadBalancingPolicy(new TokenAwarePolicy(child));
+
+          if (getProperties().getProperty(WRITE_CONSISTENCY_LEVEL_PROPERTY) == null) {
+            writeConsistencyLevel = ConsistencyLevel.LOCAL_QUORUM;
+          }
         }
 
         cluster = builder.build();
@@ -224,6 +227,10 @@ public class ScyllaCQLClient extends DB {
         } else {
           LOGGER.info("Not using LWT\n");
         }
+
+        LOGGER.info("Read consistency: {}, Write consistency: {}\n",
+            readConsistencyLevel.name(),
+            writeConsistencyLevel.name());
       } catch (Exception e) {
         throw new DBException(e);
       }
