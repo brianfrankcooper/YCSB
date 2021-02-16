@@ -112,15 +112,16 @@ bin/ycsb run jdbc -P workloads/workloada -P db.properties -cp mysql-connector-ja
 ## Configuration Properties
 
 ```sh
-db.driver=com.mysql.jdbc.Driver				# The JDBC driver class to use.
-db.url=jdbc:mysql://127.0.0.1:3306/ycsb		# The Database connection URL.
-db.user=admin								# User name for the connection.
-db.passwd=admin								# Password for the connection.
-db.batchsize=1000             # The batch size for doing batched inserts. Defaults to 0. Set to >0 to use batching.
-jdbc.fetchsize=10							# The JDBC fetch size hinted to the driver.
-jdbc.autocommit=true						# The JDBC connection auto-commit property for the driver.
-jdbc.batchupdateapi=false     # Use addBatch()/executeBatch() JDBC methods instead of executeUpdate() for writes (default: false)
-db.batchsize=1000             # The number of rows to be batched before commit (or executeBatch() when jdbc.batchupdateapi=true)
+db.driver=com.mysql.jdbc.Driver             # The JDBC driver class to use.
+db.url=jdbc:mysql://127.0.0.1:3306/ycsb     # The Database connection URL.
+db.dialect=                                 # Optional database dialect
+db.user=admin                               # User name for the connection.
+db.passwd=admin                             # Password for the connection.
+db.batchsize=1000                           # The batch size for doing batched inserts. Defaults to 0. Set to >0 to use batching.
+jdbc.fetchsize=10                           # The JDBC fetch size hinted to the driver.
+jdbc.autocommit=true                        # The JDBC connection auto-commit property for the driver.
+jdbc.batchupdateapi=false                   # Use addBatch()/executeBatch() JDBC methods instead of executeUpdate() for writes (default: false)
+db.batchsize=1000                           # The number of rows to be batched before commit (or executeBatch() when jdbc.batchupdateapi=true)
 ```
 
 Please refer to https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties for all other YCSB core properties.
@@ -128,8 +129,48 @@ Please refer to https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties fo
 ## JDBC Parameter to Improve Insert Performance
 
 Some JDBC drivers support re-writing batched insert statements into multi-row insert statements. This technique can yield order of magnitude improvement in insert statement performance. To enable this feature:
-- **db.batchsize** must be greater than 0.  The magniute of the improvement can be adjusted by varying **batchsize**. Start with a small number and increase at small increments until diminishing return in the improvement is observed. 
+- **db.batchsize** must be greater than 0.  The magnitude of the improvement can be adjusted by varying **batchsize**. Start with a small number and increase at small increments until diminishing return in the improvement is observed. 
 - set **jdbc.batchupdateapi=true** to enable batching.
 - set JDBC driver specific connection parameter in **db.url** to enable the rewrite as shown in the examples below:
   * MySQL [rewriteBatchedStatements=true](https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html) with `db.url=jdbc:mysql://127.0.0.1:3306/ycsb?rewriteBatchedStatements=true`
   * Postgres [reWriteBatchedInserts=true](https://jdbc.postgresql.org/documentation/head/connect.html#connection-parameters) with `db.url=jdbc:postgresql://127.0.0.1:5432/ycsb?reWriteBatchedInserts=true`
+
+## Configuration Properties control for database specific SQL syntax
+
+Each SQL statement may require database specific variation.  The variation is auto detected by examining `db.url`.  Optionally, `db.dialect` `configuration properties` can be used for supported databases.
+
+`db.url` is examined for presence of the following keywords: `oracle`, `phoenix`, `postgres`, `sqlserver`.  Blank means the default SQL is used.
+
+| Database 		| insert 	| select 	| delete 	| update 	| select ... limit 			|
+| --            | --      	| --		| --		| --		| --						|
+| Oracle        |       	|			|			|			| `FETCH FIRST ? ROWS ONLY`	|
+| Postgres      |       	|			|			|			| `FETCH FIRST ? ROWS ONLY`	|
+| Phoenix       | `upsert`  |			|			| `upsert`	|							|
+| SQL Server    |       	|			|			|			| `SELECT TOP (?)`			|
+
+
+`db.dialect` is supported for the following databases where auto detection is not sufficient and/or additional control is warranted:
+
+| Option | Database 			| insert 	| select 						| delete 	| update 	| select ... limit 					|
+| --            	| --       | --      	| --							| --		| --		| --								|
+| `db.dialect=jdbc:cockroach[:{time_interval}]` | CockroachDB AOST  |       	| `select .. as of system time ..`|			|			| `select .. as of system time ..`	|
+
+
+### db.dialect=jdbc:cockroach[:{time_interval}]
+
+The default `{time_interval}` is `'-5s'`
+
+- use as of system time '-5s'
+```bash
+db.dialect="jdbc:cockroach"											
+```
+
+- use as of system time '-1s'
+```bash
+db.dialect="jdbc:cockroach:-1s"										
+```
+
+- use as of system time experimental_follower_read_timestamp() requiring a license key
+```bash
+db.dialect="jdbc:cockroach:experimental_follower_read_timestamp()"	
+```
