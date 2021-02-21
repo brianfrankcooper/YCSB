@@ -111,46 +111,11 @@ LICENSE file.
     <maven.dependency.version>2.10</maven.dependency.version>
 
     <!-- datastore binding versions, lex sorted -->
-    <accumulo.1.9.version>1.9.3</accumulo.1.9.version>
     <aerospike.version>3.1.2</aerospike.version>
-    <arangodb.version>4.4.1</arangodb.version>
-    <asynchbase.version>1.8.2</asynchbase.version>
-    <azurecosmos.version>2.2.3</azurecosmos.version>
-    <azurestorage.version>4.0.0</azurestorage.version>
     <cassandra.cql.version>3.0.0</cassandra.cql.version>
-    <cloudspanner.version>0.36.0-beta</cloudspanner.version>
-    <couchbase.version>1.4.10</couchbase.version>
-		<couchbase2.version>2.3.1</couchbase2.version>
-		<crail.version>1.1-incubating</crail.version>
-    <elasticsearch5-version>5.5.1</elasticsearch5-version>
-    <foundationdb.version>5.2.5</foundationdb.version>
-    <geode.version>1.2.0</geode.version>
-    <googlebigtable.version>1.4.0</googlebigtable.version>
-    <griddb.version>4.0.0</griddb.version>
     <hbase1.version>1.4.12</hbase1.version>
     <hbase2.version>2.2.3</hbase2.version>
-    <hypertable.version>0.9.5.6</hypertable.version>
-    <ignite.version>2.7.6</ignite.version>
-    <infinispan.version>7.2.2.Final</infinispan.version>
-    <kudu.version>1.11.1</kudu.version>
-    <maprhbase.version>1.1.8-mapr-1710</maprhbase.version>
-    <mongodb.version>3.11.0</mongodb.version>
-    <mongodb.async.version>2.0.1</mongodb.async.version>
-    <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
-    <orientdb.version>2.2.37</orientdb.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <redis.version>2.9.0</redis.version>
-    <riak.version>2.0.5</riak.version>
-    <rocksdb.version>6.2.2</rocksdb.version>
-    <s3.version>1.10.20</s3.version>
-    <solr.version>5.5.3</solr.version>
-    <solr6.version>6.4.1</solr6.version>
-    <solr7.version>7.7.2</solr7.version>
-    <tarantool.version>1.6.5</tarantool.version>
-    <thrift.version>0.8.0</thrift.version>
-    <voldemort.version>0.81</voldemort.version>
-    <tablestore.version>4.8.0</tablestore.version>
-    <voltdb.version>9.1.1</voltdb.version>
   </properties>
 
   <modules>
@@ -159,52 +124,10 @@ LICENSE file.
     <module>binding-parent</module>
     <module>distribution</module>
     <!-- all the datastore bindings, lex sorted please -->
-    <module>accumulo1.9</module>
     <module>aerospike</module>
-    <module>arangodb</module>
-    <module>asynchbase</module>
-    <module>azurecosmos</module>
-    <module>azuretablestorage</module>
     <module>cassandra</module>
-    <module>cloudspanner</module>
-    <module>couchbase</module>
-		<module>couchbase2</module>
-		<module>crail</module>
-    <module>dynamodb</module>
-    <module>elasticsearch</module>
-    <module>elasticsearch5</module>
-    <module>foundationdb</module>
-    <module>geode</module>
-    <module>googlebigtable</module>
-    <module>googledatastore</module>
-    <module>griddb</module>
     <module>hbase1</module>
     <module>hbase2</module>
-    <module>hypertable</module>
-    <module>ignite</module>
-    <module>infinispan</module>
-    <module>jdbc</module>
-    <module>kudu</module>
-    <module>maprdb</module>
-    <module>maprjsondb</module>
-    <module>memcached</module>
-    <module>mongodb</module>
-    <module>nosqldb</module>
-    <module>orientdb</module>
-    <module>postgrenosql</module>
-    <module>rados</module>
-    <module>redis</module>
-    <module>rest</module>
-    <module>riak</module>
-    <module>rocksdb</module>
-    <module>s3</module>
-    <module>solr</module>
-    <module>solr6</module>
-    <module>solr7</module>
-    <module>tarantool</module>
-    <module>tablestore</module>
-    <!--<module>voldemort</module>-->
-    <module>voltdb</module>
   </modules>
 
   <build>

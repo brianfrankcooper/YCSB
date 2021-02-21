@@ -25,7 +25,6 @@ import com.aerospike.client.policy.ClientPolicy;
 import com.aerospike.client.policy.Policy;
 import com.aerospike.client.policy.RecordExistsAction;
 import com.aerospike.client.policy.WritePolicy;
-import site.ycsb.ByteArrayByteIterator;
 import site.ycsb.ByteIterator;
 import site.ycsb.DBException;
 import site.ycsb.Status;
@@ -114,11 +113,6 @@ public class AerospikeClient extends site.ycsb.DB {
         return Status.ERROR;
       }
 
-      for (Map.Entry<String, Object> entry: record.bins.entrySet()) {
-        result.put(entry.getKey(),
-            new ByteArrayByteIterator((byte[])entry.getValue()));
-      }
-
       return Status.OK;
     } catch (AerospikeException e) {
       System.err.println("Error while reading key " + key + ": " + e);
@@ -157,6 +151,7 @@ public class AerospikeClient extends site.ycsb.DB {
   @Override
   public Status update(String table, String key,
                        Map<String, ByteIterator> values) {
+    read(table, key, null, null);
     return write(table, key, updatePolicy, values);
   }
 

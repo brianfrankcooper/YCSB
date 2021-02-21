@@ -281,17 +281,6 @@ public class HBaseClient2 extends site.ycsb.DB {
     if (r.isEmpty()) {
       return Status.NOT_FOUND;
     }
-
-    while (r.advance()) {
-      final Cell c = r.current();
-      result.put(Bytes.toString(CellUtil.cloneQualifier(c)),
-          new ByteArrayByteIterator(CellUtil.cloneValue(c)));
-      if (debug) {
-        System.out.println(
-            "Result for field: " + Bytes.toString(CellUtil.cloneQualifier(c))
-                + " is: " + Bytes.toString(CellUtil.cloneValue(c)));
-      }
-    }
     return Status.OK;
   }
 
@@ -406,7 +395,7 @@ public class HBaseClient2 extends site.ycsb.DB {
    * @return Zero on success, a non-zero error code on error
    */
   @Override
-  public Status update(String table, String key,
+  public Status insert(String table, String key,
       Map<String, ByteIterator> values) {
     // if this is a "new" table, init HTable object. Else, use existing one
     if (!tableName.equals(table)) {
@@ -468,9 +457,13 @@ public class HBaseClient2 extends site.ycsb.DB {
    * @return Zero on success, a non-zero error code on error
    */
   @Override
-  public Status insert(String table, String key,
+  public Status update(String table, String key,
                        Map<String, ByteIterator> values) {
-    return update(table, key, values);
+    Status s = read(table, key, null, null);
+    if (!s.equals(Status.OK)) {
+      return s;
+    }
+    return insert(table, key, values);
   }
 
   /**
