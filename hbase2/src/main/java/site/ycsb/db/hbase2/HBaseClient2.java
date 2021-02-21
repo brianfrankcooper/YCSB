@@ -15,6 +15,7 @@
 
 package site.ycsb.db.hbase2;
 
+import org.apache.commons.lang3.ArrayUtils;
 import site.ycsb.ByteArrayByteIterator;
 import site.ycsb.ByteIterator;
 import site.ycsb.DBException;
@@ -27,7 +28,6 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.BufferedMutator;
 import org.apache.hadoop.hbase.client.BufferedMutatorParams;
 import org.apache.hadoop.hbase.client.Connection;
@@ -44,12 +44,9 @@ import org.apache.hadoop.hbase.filter.PageFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
-import java.util.ConcurrentModificationException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.zip.CRC32;
 
 import static site.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY;
 import static site.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY_DEFAULT;
@@ -101,6 +98,8 @@ public class HBaseClient2 extends site.ycsb.DB {
   private boolean clientSideBuffering = false;
   private long writeBufferSize = 1024 * 1024 * 12;
 
+  private int batchSize = 1;
+
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
    * DB instance per client thread.
@@ -144,16 +143,6 @@ public class HBaseClient2 extends site.ycsb.DB {
         if (connection == null) {
           // Initialize if not set up already.
           connection = ConnectionFactory.createConnection(config);
-          
-          // Terminate right now if table does not exist, since the client
-          // will not propagate this error upstream once the workload
-          // starts.
-          final TableName tName = TableName.valueOf(table);
-          try (Admin admin = connection.getAdmin()) {
-            if (!admin.tableExists(tName)) {
-              throw new DBException("Table " + tName + " does not exists");
-            }
-          }
         }
       }
     } catch (java.io.IOException e) {
@@ -176,6 +165,13 @@ public class HBaseClient2 extends site.ycsb.DB {
       throw new DBException("No columnfamily specified");
     }
     columnFamilyBytes = Bytes.toBytes(columnFamily);
+
+    if (getProperties().containsKey("batchsize")) {
+      batchSize =
+          Integer.parseInt(getProperties().getProperty("batchsize"));
+    }
+    System.out.println("batchSize=" + batchSize);
+
   }
 
   /**
@@ -252,22 +248,27 @@ public class HBaseClient2 extends site.ycsb.DB {
       }
     }
 
-    Result r = null;
+    Result[] results = null;
     try {
       if (debug) {
         System.out
             .println("Doing read from HBase columnfamily " + columnFamily);
         System.out.println("Doing read for key: " + key);
       }
-      Get g = new Get(Bytes.toBytes(key));
-      if (fields == null) {
-        g.addFamily(columnFamilyBytes);
-      } else {
-        for (String field : fields) {
-          g.addColumn(columnFamilyBytes, Bytes.toBytes(field));
+
+      List<Get> lstGets = new ArrayList<>();
+      for (int i = 0; i < batchSize; i++) {
+        Get g = new Get(makeHbaseRowKey(key + "_" + i));
+        if (fields == null) {
+          g.addFamily(columnFamilyBytes);
+        } else {
+          for (String field : fields) {
+            g.addColumn(columnFamilyBytes, Bytes.toBytes(field));
+          }
         }
+        lstGets.add(g);
       }
-      r = currentTable.get(g);
+      results = currentTable.get(lstGets);
     } catch (IOException e) {
       if (debug) {
         System.err.println("Error doing get: " + e);
@@ -278,8 +279,10 @@ public class HBaseClient2 extends site.ycsb.DB {
       return Status.ERROR;
     }
 
-    if (r.isEmpty()) {
-      return Status.NOT_FOUND;
+    for (Result r : results) {
+      if (r.isEmpty()) {
+        return Status.NOT_FOUND;
+      }
     }
     return Status.OK;
   }
@@ -412,23 +415,28 @@ public class HBaseClient2 extends site.ycsb.DB {
     if (debug) {
       System.out.println("Setting up put for key: " + key);
     }
-    Put p = new Put(Bytes.toBytes(key));
-    p.setDurability(durability);
-    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-      byte[] value = entry.getValue().toArray();
-      if (debug) {
-        System.out.println("Adding field/value " + entry.getKey() + "/"
-            + Bytes.toStringBinary(value) + " to put request");
+
+    List<Put> lstPuts = new ArrayList<>();
+    for (int i = 0; i < batchSize; i++) {
+      Put p = new Put(makeHbaseRowKey(key + "_" + i));
+      p.setDurability(durability);
+      for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+        byte[] value = entry.getValue().toArray();
+        if (debug) {
+          System.out.println("Adding field/value " + entry.getKey() + "/"
+              + Bytes.toStringBinary(value) + " to put request");
+        }
+        p.addColumn(columnFamilyBytes, Bytes.toBytes(entry.getKey()), value);
       }
-      p.addColumn(columnFamilyBytes, Bytes.toBytes(entry.getKey()), value);
+      lstPuts.add(p);
     }
 
     try {
       if (clientSideBuffering) {
         // removed Preconditions.checkNotNull, which throws NPE, in favor of NPE on next line
-        bufferedMutator.mutate(p);
+        bufferedMutator.mutate(lstPuts);
       } else {
-        currentTable.put(p);
+        currentTable.put(lstPuts);
       }
     } catch (IOException e) {
       if (debug) {
@@ -493,14 +501,18 @@ public class HBaseClient2 extends site.ycsb.DB {
       System.out.println("Doing delete for key: " + key);
     }
 
-    final Delete d = new Delete(Bytes.toBytes(key));
-    d.setDurability(durability);
+    List<Delete> lstDels = new ArrayList<>();
+    for (int i = 0; i < batchSize; i++) {
+      final Delete d = new Delete(Bytes.toBytes(key));
+      d.setDurability(durability);
+      lstDels.add(d);
+    }
     try {
       if (clientSideBuffering) {
         // removed Preconditions.checkNotNull, which throws NPE, in favor of NPE on next line
-        bufferedMutator.mutate(d);
+        bufferedMutator.mutate(lstDels);
       } else {
-        currentTable.delete(d);
+        currentTable.delete(lstDels);
       }
     } catch (IOException e) {
       if (debug) {
@@ -515,6 +527,15 @@ public class HBaseClient2 extends site.ycsb.DB {
   // Only non-private for testing.
   void setConfiguration(final Configuration newConfig) {
     this.config = newConfig;
+  }
+
+  public static byte[] makeHbaseRowKey(String key) {
+    byte[] nonSaltedRowKey = Bytes.toBytes(key);
+    CRC32 crc32 = new CRC32();
+    crc32.update(nonSaltedRowKey);
+    long crc32Value = crc32.getValue();
+    byte[] salt = Arrays.copyOfRange(Bytes.toBytes(crc32Value), 5, 7);
+    return ArrayUtils.addAll(salt, nonSaltedRowKey);
   }
 }
 

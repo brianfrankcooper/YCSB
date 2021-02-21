@@ -341,6 +341,12 @@ public class CoreWorkload extends Workload {
    */
   public static final String FIELD_NAME_PREFIX_DEFAULT = "field";
 
+  /**
+   * The name of the property for the batch size.
+   */
+  public static final String BATCH_SIZE_PROPERTY = "batchsize";
+  public static final String BATCH_SIZE_PROPERTY_DEFAULT = "1";
+
   protected NumberGenerator keysequence;
   protected DiscreteGenerator operationchooser;
   protected NumberGenerator keychooser;

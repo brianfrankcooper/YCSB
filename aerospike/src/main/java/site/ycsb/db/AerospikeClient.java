@@ -53,6 +53,8 @@ public class AerospikeClient extends site.ycsb.DB {
   private WritePolicy updatePolicy = new WritePolicy();
   private WritePolicy deletePolicy = new WritePolicy();
 
+  private int batchSize= 1;
+
   @Override
   public void init() throws DBException {
     insertPolicy.recordExistsAction = RecordExistsAction.CREATE_ONLY;
@@ -88,6 +90,13 @@ public class AerospikeClient extends site.ycsb.DB {
       throw new DBException(String.format("Error while creating Aerospike " +
           "client for %s:%d.", host, port), e);
     }
+
+    if (getProperties().containsKey("batchsize")) {
+      batchSize =
+          Integer.parseInt(getProperties().getProperty("batchsize"));
+    }
+    System.out.println("batchSize=" + batchSize);
+
   }
 
   @Override
@@ -99,13 +108,19 @@ public class AerospikeClient extends site.ycsb.DB {
   public Status read(String table, String key, Set<String> fields,
       Map<String, ByteIterator> result) {
     try {
-      Record record;
+      Record record = null;
 
       if (fields != null) {
-        record = client.get(readPolicy, new Key(namespace, table, key),
-            fields.toArray(new String[fields.size()]));
+        for (int i = 0; i < batchSize; i++) {
+          Key k = new Key(namespace, table, key + "_" + i);
+          record = client.get(readPolicy, k,
+              fields.toArray(new String[fields.size()]));
+        }
       } else {
-        record = client.get(readPolicy, new Key(namespace, table, key));
+        for (int i = 0; i < batchSize; i++) {
+          Key k = new Key(namespace, table, key + "_" + i);
+          record = client.get(readPolicy, k);
+        }
       }
 
       if (record == null) {
@@ -137,15 +152,17 @@ public class AerospikeClient extends site.ycsb.DB {
       ++index;
     }
 
-    Key keyObj = new Key(namespace, table, key);
-
-    try {
-      client.put(writePolicy, keyObj, bins);
-      return Status.OK;
-    } catch (AerospikeException e) {
-      System.err.println("Error while writing key " + key + ": " + e);
-      return Status.ERROR;
+    Key keyObj;
+    for (int i = 0; i < batchSize; i++) {
+      keyObj = new Key(namespace, table, key + "_" + i);
+      try {
+        client.put(writePolicy, keyObj, bins);
+      } catch (AerospikeException e) {
+        System.err.println("Error while writing key " + key + ": " + e);
+        return Status.ERROR;
+      }
     }
+    return Status.OK;
   }
 
   @Override
