@@ -78,3 +78,57 @@ To build the full distribution, with all database bindings:
 To build a single database binding:
 
     mvn -pl site.ycsb:mongodb-binding -am clean package
+
+Running multiple instances and latency percentiles
+--------------------------------------------------
+
+In general, you shall be interested in 99% percentile (P99) of the latency
+distribution, and the rest of the tail - 99.9%, 99.99%, 99.999%. The difference
+between the amount of requests that will be observed by a user that fall
+into 95% (P95) percentile and 99% percentile may be sufficiently large.
+
+For example, see "How Many Nines?" at https://bravenewgeek.com/everything-you-know-about-latency-is-wrong/.
+The formula to calculate probability of how many clients will observe
+a specific percentile is: 
+
+    Probability_to_observe = 1 - Percentile ^ Requests
+
+That is why almost 30% of the users will observe latency worse than P99
+just by loading the default _google.com_ web page:
+
+    1 - 0.99 ^ 30 = 0.27
+
+Remember, that
+
+- _latencies_ percentiles can't be averaged. Don't fall into this
+  [trap](http://latencytipoftheday.blogspot.com/2014/06/latencytipoftheday-you-cant-average.html).
+  Neither latency averages, nor P99 averages do not make any sense.
+
+If you run multiple loaders dump result histograms with:
+
+    -p hdrhistogram.fileoutput=true
+    -p hdrhistogram.output.path=file.hdr
+
+merge them manually and extract required percentiles out of the
+joined result.
+
+Remember that running multiple workloads may distort original
+workloads distributions they were intended to produce.
+
+Merging HDR histogram percentiles
+---------------------------------
+
+HdrHistogram can serialize its data to HDR files. Use CLI tool
+to do different operations with your saved histograms
+https://github.com/nitsanw/HdrLogProcessing.
+
+You shall be interested in 3 functions:
+
+- Union - to combine result histograms
+- Summarize - to extract latency percentiles
+- An ability to print the result into the CSV file and extract tags
+
+To extract HDR content into CSV file format use from
+https://github.com/HdrHistogram/HdrHistogram/:
+
+    java -cp HdrHistogram-2.1.9.jar org.HdrHistogram.HistogramLogProcessor -i file.hdr -o output_${tag}.csv -csv -tag ${tag}
