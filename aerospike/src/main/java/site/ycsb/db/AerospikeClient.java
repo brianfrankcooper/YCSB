@@ -95,7 +95,6 @@ public class AerospikeClient extends site.ycsb.DB {
       batchSize =
           Integer.parseInt(getProperties().getProperty("batchsize"));
     }
-    System.out.println("batchSize=" + batchSize);
 
   }
 

@@ -170,7 +170,6 @@ public class HBaseClient2 extends site.ycsb.DB {
       batchSize =
           Integer.parseInt(getProperties().getProperty("batchsize"));
     }
-    System.out.println("batchSize=" + batchSize);
 
   }
 
@@ -416,17 +415,23 @@ public class HBaseClient2 extends site.ycsb.DB {
       System.out.println("Setting up put for key: " + key);
     }
 
+    List<byte[]> vals = new ArrayList<>();
+    int fcount = 0;
+    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+      vals.add(entry.getValue().toArray());
+      if (debug) {
+        System.out.println("Adding field/value " + entry.getKey() + "/"
+            + Bytes.toStringBinary(vals.get(fcount)) + " to put request");
+      }
+      fcount++;
+    }
+
     List<Put> lstPuts = new ArrayList<>();
     for (int i = 0; i < batchSize; i++) {
       Put p = new Put(makeHbaseRowKey(key + "_" + i));
       p.setDurability(durability);
-      for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-        byte[] value = entry.getValue().toArray();
-        if (debug) {
-          System.out.println("Adding field/value " + entry.getKey() + "/"
-              + Bytes.toStringBinary(value) + " to put request");
-        }
-        p.addColumn(columnFamilyBytes, Bytes.toBytes(entry.getKey()), value);
+      for (Integer j = 0; j < fcount; j++) {
+        p.addColumn(columnFamilyBytes, ("field" + j.toString()).getBytes(), vals.get(j));
       }
       lstPuts.add(p);
     }
