@@ -36,6 +36,10 @@ install:
 
 script: ./mvnw test -q
 
+cache:
+  directories:
+  - $HOME/.m2
+
 before_script:
   - psql -c 'CREATE database test;' -U postgres
   - psql -c 'CREATE TABLE usertable (YCSB_KEY VARCHAR(255) PRIMARY KEY not NULL, YCSB_VALUE JSONB not NULL);' -U postgres -d test
