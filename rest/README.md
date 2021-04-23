@@ -117,16 +117,16 @@ The default settings for the rest binding are as follows:
   - Default value is `http://127.0.0.1:8080/`.
   
 - `url.trace.read` 
-  - The path to a trace file that holds the URLs to be invoked for HTTP GET method. URLs must be seperated by a newline.
+  - The path to a trace file that holds the URLs to be invoked for HTTP GET method. URLs must be separated by a newline.
   
 - `url.trace.insert` 
-  - The path to a trace file that holds the URLs to be invoked for HTTP POST method. URLs must be seperated by a newline. 
+  - The path to a trace file that holds the URLs to be invoked for HTTP POST method. URLs must be separated by a newline. 
 
 - `url.trace.update` 
-  - The path to a trace file that holds the URLs to be invoked for HTTP PUT method. URLs must be seperated by a newline.
+  - The path to a trace file that holds the URLs to be invoked for HTTP PUT method. URLs must be separated by a newline.
 
 - `url.trace.delete` 
-  - The path to a trace file that holds the URLs to be invoked for HTTP DELETE method. URLs must be seperated by a newline.
+  - The path to a trace file that holds the URLs to be invoked for HTTP DELETE method. URLs must be separated by a newline.
 
 - `headers` 
   - The HTTP request headers used for all requests. Headers must be separated by space as a delimiter.
@@ -145,7 +145,7 @@ The default settings for the rest binding are as follows:
   - Default value is `10` seconds.
 
 - `log.enable` 
-  - A Boolean value to enable console status logs. When true, it will print all the HTTP requests being made and thier response status on the YCSB console window.
+  - A Boolean value to enable console status logs. When true, it will print all the HTTP requests being made and their response status on the YCSB console window.
   - Default value is `false`.
 
 - `readrecordcount` 
