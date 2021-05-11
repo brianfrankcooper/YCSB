@@ -89,13 +89,6 @@ public class ElasticsearchClient extends DB {
     // elasticsearch nodes)
     remoteMode = Boolean.parseBoolean(props.getProperty("es.remote", "false"));
 
-    final String pathHome = props.getProperty("path.home");
-
-    // when running in embedded mode, require path.home
-    if (!remoteMode && (pathHome == null || pathHome.isEmpty())) {
-      throw new IllegalArgumentException("path.home must be specified when running in embedded mode");
-    }
-
     this.indexKey = props.getProperty("es.index.key", DEFAULT_INDEX_KEY);
 
     int numberOfShards = parseIntegerProperty(props, "es.number_of_shards", NUMBER_OF_SHARDS);
@@ -104,15 +97,25 @@ public class ElasticsearchClient extends DB {
     Boolean newdb = Boolean.parseBoolean(props.getProperty("es.newdb", "false"));
     Builder settings = Settings.settingsBuilder()
         .put("cluster.name", DEFAULT_CLUSTER_NAME)
-        .put("node.local", Boolean.toString(!remoteMode))
-        .put("path.home", pathHome);
+        .put("node.local", Boolean.toString(!remoteMode));
+
+    if (!remoteMode) {
+      final String pathHome = props.getProperty("path.home");
+      // when running in embedded mode, require path.home
+      if (pathHome == null || pathHome.isEmpty()) {
+        throw new IllegalArgumentException("path.home must be specified when running in embedded mode");
+      }
+      settings.put("path.home", pathHome);
+    }
 
     // if properties file contains elasticsearch user defined properties
     // add it to the settings file (will overwrite the defaults).
     settings.put(props);
     final String clusterName = settings.get("cluster.name");
     System.err.println("Elasticsearch starting node = " + clusterName);
-    System.err.println("Elasticsearch node path.home = " + settings.get("path.home"));
+    if (!remoteMode) {
+      System.err.println("Elasticsearch node path.home = " + settings.get("path.home"));
+    }
     System.err.println("Elasticsearch Remote Mode = " + remoteMode);
     // Remote mode support for connecting to remote elasticsearch cluster
     if (remoteMode) {
