@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
+ * Copyright (c) 2012 - 2021 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -46,6 +46,8 @@ public class FoundationDBClient extends DB {
   private static final String DB_NAME_DEFAULT      = "DB";
   private static final String DB_BATCH_SIZE_DEFAULT = "0";
   private static final String DB_BATCH_SIZE         = "foundationdb.batchsize";
+  private static final String DATACENTER_ID_DEFAULT = "";
+  private static final String DATACENTER_ID         = "foundationdb.datacenterid";
 
   private Vector<String> batchKeys;
   private Vector<Map<String, ByteIterator>> batchValues;
@@ -63,6 +65,7 @@ public class FoundationDBClient extends DB {
     String clusterFile = props.getProperty(CLUSTER_FILE, CLUSTER_FILE_DEFAULT);
     String dbBatchSize = props.getProperty(DB_BATCH_SIZE, DB_BATCH_SIZE_DEFAULT);
     dbName = props.getProperty(DB_NAME, DB_NAME_DEFAULT);
+    String datacenterId = props.getProperty(DATACENTER_ID, DATACENTER_ID_DEFAULT);
 
     logger.info("API Version: {}", apiVersion);
     logger.info("Cluster File: {}\n", clusterFile);
@@ -70,6 +73,9 @@ public class FoundationDBClient extends DB {
     try {
       fdb = FDB.selectAPIVersion(Integer.parseInt(apiVersion.trim()));
       db = fdb.open(clusterFile);
+      if (datacenterId != "") {
+        db.options().setDatacenterId(datacenterId);
+      }
       batchSize = Integer.parseInt(dbBatchSize);
       batchCount = 0;
       batchKeys = new Vector<String>(batchSize+1);
