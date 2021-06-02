@@ -38,16 +38,19 @@ public class FoundationDBClient extends DB {
   private String dbName;
   private int batchSize;
   private int batchCount;
-  private static final String API_VERSION          = "foundationdb.apiversion";
-  private static final String API_VERSION_DEFAULT  = "520";
-  private static final String CLUSTER_FILE         = "foundationdb.clusterfile";
-  private static final String CLUSTER_FILE_DEFAULT = "./fdb.cluster";
-  private static final String DB_NAME              = "foundationdb.dbname";
-  private static final String DB_NAME_DEFAULT      = "DB";
-  private static final String DB_BATCH_SIZE_DEFAULT = "0";
-  private static final String DB_BATCH_SIZE         = "foundationdb.batchsize";
-  private static final String DATACENTER_ID_DEFAULT = "";
-  private static final String DATACENTER_ID         = "foundationdb.datacenterid";
+  private boolean setPriorityBatch;
+  private static final String API_VERSION                = "foundationdb.apiversion";
+  private static final String API_VERSION_DEFAULT        = "520";
+  private static final String CLUSTER_FILE               = "foundationdb.clusterfile";
+  private static final String CLUSTER_FILE_DEFAULT       = "./fdb.cluster";
+  private static final String DB_NAME                    = "foundationdb.dbname";
+  private static final String DB_NAME_DEFAULT            = "DB";
+  private static final String DB_BATCH_SIZE_DEFAULT      = "0";
+  private static final String DB_BATCH_SIZE              = "foundationdb.batchsize";
+  private static final String DATACENTER_ID_DEFAULT      = "";
+  private static final String DATACENTER_ID              = "foundationdb.datacenterid";
+  private static final String SET_PRIORITY_BATCH         = "foundationdb.setprioritybatch";
+  private static final String SET_PRIORITY_BATCH_DEFAULT = "";
 
   private Vector<String> batchKeys;
   private Vector<Map<String, ByteIterator>> batchValues;
@@ -66,6 +69,7 @@ public class FoundationDBClient extends DB {
     String dbBatchSize = props.getProperty(DB_BATCH_SIZE, DB_BATCH_SIZE_DEFAULT);
     dbName = props.getProperty(DB_NAME, DB_NAME_DEFAULT);
     String datacenterId = props.getProperty(DATACENTER_ID, DATACENTER_ID_DEFAULT);
+    setPriorityBatch = props.getProperty(SET_PRIORITY_BATCH, SET_PRIORITY_BATCH_DEFAULT).equals("true");
 
     logger.info("API Version: {}", apiVersion);
     logger.info("Cluster File: {}\n", clusterFile);
@@ -188,6 +192,9 @@ public class FoundationDBClient extends DB {
     logger.debug("delete key = {}", rowKey);
     try {
       db.run(tr -> {
+          if (setPriorityBatch) {
+            tr.options().setPriorityBatch();
+          }
           tr.clear(Tuple.from(rowKey).pack());
           return null;
         });
@@ -208,6 +215,9 @@ public class FoundationDBClient extends DB {
     logger.debug("read key = {}", rowKey);
     try {
       byte[] row = db.run(tr -> {
+          if (setPriorityBatch) {
+            tr.options().setPriorityBatch();
+          }
           byte[] r = tr.get(Tuple.from(rowKey).pack()).join();
           return r;
         });
@@ -233,6 +243,9 @@ public class FoundationDBClient extends DB {
     logger.debug("update key = {}", rowKey);
     try {
       Status s = db.run(tr -> {
+          if (setPriorityBatch) {
+            tr.options().setPriorityBatch();
+          }
           byte[] row = tr.get(Tuple.from(rowKey).pack()).join();
           Tuple o = Tuple.fromBytes(row);
           if (o.size() == 0) {
@@ -280,6 +293,9 @@ public class FoundationDBClient extends DB {
     logger.debug("scan key from {} to {} limit {} ", startkey, endRowKey, recordcount);
     try (Transaction tr = db.createTransaction()) {
       tr.options().setReadYourWritesDisable();
+      if (setPriorityBatch) {
+        tr.options().setPriorityBatch();
+      }
       AsyncIterable<KeyValue> entryList = tr.getRange(Tuple.from(startRowKey).pack(), Tuple.from(endRowKey).pack(),
           recordcount > 0 ? recordcount : 0);
       List<KeyValue> entries = entryList.asList().join();
