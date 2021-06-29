@@ -148,9 +148,9 @@ LICENSE file.
     <tarantool.version>1.6.5</tarantool.version>
     <thrift.version>0.8.0</thrift.version>
     <tablestore.version>4.8.0</tablestore.version>
+    <tikv.version>3.1.0</tikv.version>
     <voltdb.version>10.1.1</voltdb.version>
     <zookeeper.version>3.5.8</zookeeper.version>
-    <tikv.version>3.1.0</tikv.version>
   </properties>
 
   <modules>
@@ -202,9 +202,9 @@ LICENSE file.
     <module>solr7</module>
     <module>tarantool</module>
     <module>tablestore</module>
+    <module>tikv</module>
     <module>voltdb</module>
     <module>zookeeper</module>
-    <module>tikv</module>
   </modules>
 
   <build>
