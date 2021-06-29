@@ -16,7 +16,7 @@
  */
 
 /**
- * The TiKV Java binding for <a href="http://pingcap.com/">TiKV</a>.
+ * TiKV binding for <a href="http://tikv.org/">TiKV</a>.
  */
 package site.ycsb.db;
 
