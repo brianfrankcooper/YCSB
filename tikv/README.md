@@ -35,10 +35,16 @@ The following command starts a ycsb workload.
 ```commandline
 tar -xvf /path-to-tar/ycsb-tikv-binding-0.18.0-SNAPSHOT.tar.gz
 cd ./ycsb-tikv-binding-0.18.0-SNAPSHOT
-./bin/ycsb.sh run tikv -s [-threads <thread-num>] [-P <tikv.properties>] [-P <path-to-workload>]
+./bin/ycsb.sh [run/load] tikv -s [-threads <thread-num>] [-P <tikv-properties-file>] [-P <path-to-workload>]
 ```
 
-## tikv.properties
+e.g.,
+
+```
+./bin/ycsb.sh run tikv -s 20 -P ./tikv.properties -P ./workload/workloada
+```
+
+## tikv properties file
 
 |property name|description|default value|
 |---|---|---|
