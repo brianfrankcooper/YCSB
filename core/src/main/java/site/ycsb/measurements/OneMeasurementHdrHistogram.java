@@ -158,7 +158,8 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
     DecimalFormat d = new DecimalFormat("#.##");
     return "[" + getName() + ": Count=" + intervalHistogram.getTotalCount() + ", Max="
         + intervalHistogram.getMaxValue() + ", Min=" + intervalHistogram.getMinValue() + ", Avg="
-        + d.format(intervalHistogram.getMean()) + ", 90=" + d.format(intervalHistogram.getValueAtPercentile(90))
+        + d.format(intervalHistogram.getMean()) + ", 50=" + d.format(intervalHistogram.getValueAtPercentile(50))
+        + ", 90=" + d.format(intervalHistogram.getValueAtPercentile(90))
         + ", 99=" + d.format(intervalHistogram.getValueAtPercentile(99)) + ", 99.9="
         + d.format(intervalHistogram.getValueAtPercentile(99.9)) + ", 99.99="
         + d.format(intervalHistogram.getValueAtPercentile(99.99)) + "]";

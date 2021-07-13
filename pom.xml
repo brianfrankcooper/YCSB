@@ -203,6 +203,7 @@ LICENSE file.
     <module>tablestore</module>
     <module>voltdb</module>
     <module>zookeeper</module>
+      <module>corfudb</module>
   </modules>
 
   <build>

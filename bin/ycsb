@@ -65,6 +65,7 @@ DATABASES = {
     "cloudspanner" : "site.ycsb.db.cloudspanner.CloudSpannerClient",
     "couchbase"    : "site.ycsb.db.CouchbaseClient",
     "couchbase2"   : "site.ycsb.db.couchbase2.Couchbase2Client",
+    "corfudb"      : "site.ycsb.db.CorfuDBClient",
     "crail"        : "site.ycsb.db.crail.CrailClient",
     "dynamodb"     : "site.ycsb.db.DynamoDBClient",
     "elasticsearch": "site.ycsb.db.ElasticsearchClient",
