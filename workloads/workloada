@@ -25,8 +25,9 @@
 recordcount=1000
 operationcount=1000
 workload=site.ycsb.workloads.CoreWorkload
-
+exporter=site.ycsb.measurements.exporter.JSONMeasurementsExporter
 readallfields=true
+hdrhistogram.percentiles=50,90,95,99
 
 readproportion=0.5
 updateproportion=0.5
