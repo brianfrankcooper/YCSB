@@ -51,3 +51,7 @@ services:
 
 # Can't use container based infra because of hosts/hostname
 sudo: true
+
+cache:
+  directories:
+  - $HOME/.m2
