@@ -31,18 +31,7 @@ import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -63,8 +52,7 @@ import site.ycsb.Status;
  */
 public class AccumuloClient2 extends DB {
 
-  private ZooKeeperInstance inst;
-  private Connector connector;
+  private AccumuloClient accumuloClient;
   private Text colFam = new Text("");
   private byte[] colFamBytes = new byte[0];
   private final ConcurrentHashMap<String, BatchWriter> writers = new ConcurrentHashMap<>();
@@ -79,20 +67,13 @@ public class AccumuloClient2 extends DB {
   }
 
   @Override
-  public void init() throws DBException {
+  public void init()  {
     colFam = new Text(getProperties().getProperty("accumulo.columnFamily"));
     colFamBytes = colFam.toString().getBytes(UTF_8);
 
-    inst = new ZooKeeperInstance(getProperties().getProperty("accumulo.instanceName"),
-        getProperties().getProperty("accumulo.zooKeepers"));
-    try {
-      String principal = getProperties().getProperty("accumulo.username");
-      AuthenticationToken token =
-          new PasswordToken(getProperties().getProperty("accumulo.password"));
-      connector = inst.getConnector(principal, token);
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      throw new DBException(e);
-    }
+    accumuloClient = Accumulo.newClient().to(getProperties().getProperty("accumulo.instanceName"),
+            getProperties().getProperty("accumulo.zooKeepers")).as(getProperties().getProperty("accumulo.username"),
+            getProperties().getProperty("accumulo.password")).build();
 
     if (!(getProperties().getProperty("accumulo.pcFlag", "none").equals("none"))) {
       System.err.println("Sorry, the ZK based producer/consumer implementation has been removed. " +
@@ -168,7 +149,7 @@ public class AccumuloClient2 extends DB {
     }
     System.err.println("Using " + numThreads + " threads to write data");
     bwc.setMaxWriteThreads(numThreads);
-    return connector.createBatchWriter(table, bwc);
+    return accumuloClient.createBatchWriter(table, bwc);
   }
 
   /**
@@ -179,7 +160,7 @@ public class AccumuloClient2 extends DB {
    * @return an Accumulo {@link Scanner} bound to the given row and columns
    */
   private Scanner getRow(String table, Text row, Set<String> fields) throws TableNotFoundException {
-    Scanner scanner = connector.createScanner(table, Authorizations.EMPTY);
+    Scanner scanner = accumuloClient.createScanner(table, Authorizations.EMPTY);
     scanner.setRange(new Range(row));
     if (fields != null) {
       for (String field : fields) {
@@ -224,7 +205,7 @@ public class AccumuloClient2 extends DB {
     // Just make the end 'infinity' and only read as much as we need.
     Scanner scanner = null;
     try {
-      scanner = connector.createScanner(table, Authorizations.EMPTY);
+      scanner = accumuloClient.createScanner(table, Authorizations.EMPTY);
       scanner.setRange(new Range(new Text(startkey), null));
 
       // Have Accumulo send us complete rows, serialized in a single Key-Value pair
