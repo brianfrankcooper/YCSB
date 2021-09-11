@@ -16,7 +16,7 @@
  */
 
 /**
- * The YCSB binding for <a href="http://redis.io/">Redis</a>.
+ * The YCSB binding for <a href="https://bangdb.com/">BangDB</a>.
  */
 package site.ycsb.db;
 
