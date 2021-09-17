@@ -16,19 +16,19 @@ permissions and limitations under the License. See accompanying
 LICENSE file.
 -->
 
-## Azure Cosmos Quick Start
+## Azure Cosmos DB Quick Start
 
-This section describes how to run YCSB on Azure Cosmos. 
+This section describes how to run YCSB on Azure Cosmos DB. 
 
-For more information on Azure Cosmos see 
-https://azure.microsoft.com/services/cosmos-db/
+For more information on Azure Cosmos DB see 
+https://azure.microsoft.com/services/cosmos-db/.
 
 ### 1. Setup
 This benchmark expects you to have pre-created the database "ycsb" and
-collection "usertable" before running the benchmark commands.  When
-prompted for a Partition Key use id and for RUs select a value you
+collection "usertable" before running the commands. When
+prompted for a Partition Key, use "id". For RUs, select a value you
 want to benchmark.  [RUs are the measure of provisioned thoughput](https://docs.microsoft.com/azure/cosmos-db/request-units)
-that Azure Cosmos defines. The higher the RUs the more throughput you will
+that Azure Cosmos DB defines. The higher the RUs, the more throughput you will
 get. You can override the default database name with the 
 azurecosmos.databaseName configuration value for side-by-side
 benchmarking.
@@ -40,17 +40,15 @@ You must set the uri and the primaryKey in the azurecosmos.properties file in th
 Optionally you can set the uri and primaryKey as follows:
     $YCSB_HOME/bin/ycsb load azurecosmos -P workloads/workloada -p azurecosmos.primaryKey=<key from the portal> -p azurecosmos.uri=<uri from the portal>
 
-### 2. DocumenDB Configuration Parameters
+### 2. Cosmos DB Configuration Parameters
 
 #### Required parameters
 
 - azurecosmos.uri < uri string > :
-    - Obtained from the portal and gives a path to your azurecosmos database
-	  account.  It will look like the following:  
-	  https://<your account name>.documents.azure.com:443/
+    - Path to your Azure Cosmos DB account and can be obtained from the portal. It will look like the following:  https://<your account name>.documents.azure.com:443/
 
 - azurecosmos.primaryKey < key string > :
-    - Obtained from the portal and is the key to use for benchmarking.  The
+    - Obtained from the portal.  The
 	  primary key is used to allow both read & write operations.  If you are
 	  doing read only workloads you can substitute the readonly key from the
 	  portal.
@@ -66,41 +64,59 @@ Optionally you can set the uri and primaryKey as follows:
 	  false and a document already exists the insert will fail.
     - Default: false
 
-- azurecosmos.connectionMode (DirectHttps | Gateway):
-	- Some java operations only work when connecting via the gateway.  However
-	  the best performance for basic operations like those used by YCSB are
-	  obtained by using direct more where the client will connect directly to the
-	  master server thats is managing the database and collection.
-    - Default: DirectHttps
+- azurecosmos.includeExceptionStackInLog (true | false):
+	- Determines if the full stack should be included in the log when an error happens.
+	- The default is false to reduce output size.
+    - Default: false
 
-- azurecosmos.consistencyLevel (Strong | BoundedStaleness | Session | Eventual):
-	- This setting defined the level on consistency you want for reads/scans
-	  following inserts/updates. 
-	- Default: Session
+- azurecosmos.userAgent < agent string >:
+	- The value to be appended to the user-agent header.
+	- In most cases, you should leave this as "azurecosmos-ycsb".
+    - Default: "azurecosmos-ycsb"
+
+- azurecosmos.useGateway (true | false):
+	- Specify if connection mode should use gateway as opposed to direct. By default, direct mode will be used, as the performance is generally better.
+    - Default: false
+
+- azurecosmos.consistencyLevel (STRONG | BOUNDED_STALENESS | SESSION | CONSISTENT_PREFIX | EVENTUAL):
+	- If not specified, session level will be used by default. 
+	- Default: SESSION
 
 - azurecosmos.maxRetryAttemptsOnThrottledRequests < integer >
-    - Sets the maximum number of retry attempts for throttled requests
+    - Set the maximum number of retries in the case where the request fails due to rate limiting.
     - Default: uses default value of azurecosmos Java SDK
 
 - azurecosmos.maxRetryWaitTimeInSeconds < integer >
-    - Sets the maximum timeout to for retry in seconds
+    - Sets the maximum timeout to for retry in seconds.
     - Default: uses default value of azurecosmos Java SDK
+	
+- azurecosmos.gatewayMaxConnectionPoolSize < integer >
+   - Set the value of the connection pool size in gateway mode.
+   
+- azurecosmos.directMaxConnectionsPerEndpoint < integer >
+   - Set the value of the max connections per endpoint in direct mode.
 
-- azurecosmos.maxDegreeOfParallelismForQuery < integer >
-    - Sets the maximum degree of parallelism for the FeedOptions used in Query operation
+- azurecosmos.gatewayIdleConnectionTimeoutInSeconds < integer >
+   - Sets the value of the timeout in seconds for an idle connection in gateway mode. After that time, the connection will be automatically closed.
+   - Default: uses default value of azurecosmos Java SDK
+
+- azurecosmos.directIdleConnectionTimeoutInSeconds < integer >
+   - Sets the value of the timeout in seconds for an idle connection in direct mode. After that time, the connection will be automatically closed.
+   - Default: uses default value of azurecosmos Java SDK
+
+
+- azurecosmos.maxDegreeOfParallelism < integer >
+    - Sets the number of concurrent operations run client side during parallel query execution.
+    - Default: -1
+	
+- azurecosmos.maxBufferedItemCount < integer >
+    - Sets the maximum number of items that can be buffered client side during parallel query execution.
     - Default: 0
+	
+- azurecosmos.preferredPageSize < integer >
+    - Sets the preferred page size when scanning.
+    - Default: -1
 
-- azurecosmos.includeExceptionStackInLog (true | false):
-    - Determines if the full stack when and error happens should be included in the log.
-	  The default is false to reduce a lot of log spew.
-
-- azurecosmos.maxConnectionPoolSize < integer >
-   - This is the number of connections maintained for operations.
-   - See the JAVA SDK documentation for ConnectionPolicy.getMaxPoolSize
-
-- azurecosmos.idleConnectionTimeout < integer >
-   - This value is in seconds and determines how quickly a connection is recycled.
-   - See the JAVA SDK documentation for ConnectionPolicy.setIdleConnectionTimeout.
 
 These parameters are also defined in a template configuration file in the
 following location:
@@ -109,4 +125,4 @@ following location:
 ### 3. FAQs
 
 ### 4. Example command
-./bin/ycsb run azurecosmos -s -P workloads/workloadb -p azurecosmos.primaryKey=<your key eg:45fgt...==> -p azurecosmos.uri=https://<your account>.documents.azure.com:443/ -p recordcount=100 -p operationcount=100
+./bin/ycsb run azurecosmos -P workloads/workloadc -p azurecosmos.primaryKey=<your key eg:45fgt...==> -p azurecosmos.uri=https://<your account>.documents.azure.com:443/ -p recordcount=100 -p operationcount=100

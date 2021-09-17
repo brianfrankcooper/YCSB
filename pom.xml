@@ -115,10 +115,10 @@ LICENSE file.
     <aerospike.version>3.1.2</aerospike.version>
     <arangodb.version>4.4.1</arangodb.version>
     <asynchbase.version>1.8.2</asynchbase.version>
-    <azurecosmos.version>2.2.3</azurecosmos.version>
+    <azurecosmos.version>4.8.0</azurecosmos.version>
     <azurestorage.version>4.0.0</azurestorage.version>
     <cassandra.cql.version>3.0.0</cassandra.cql.version>
-    <cloudspanner.version>0.36.0-beta</cloudspanner.version>
+    <cloudspanner.version>2.0.1</cloudspanner.version>
     <couchbase.version>1.4.10</couchbase.version>
 		<couchbase2.version>2.3.1</couchbase2.version>
 		<crail.version>1.1-incubating</crail.version>
@@ -129,7 +129,6 @@ LICENSE file.
     <griddb.version>4.0.0</griddb.version>
     <hbase1.version>1.4.12</hbase1.version>
     <hbase2.version>2.2.3</hbase2.version>
-    <hypertable.version>0.9.5.6</hypertable.version>
     <ignite.version>2.7.6</ignite.version>
     <infinispan.version>7.2.2.Final</infinispan.version>
     <kudu.version>1.11.1</kudu.version>
@@ -143,14 +142,14 @@ LICENSE file.
     <riak.version>2.0.5</riak.version>
     <rocksdb.version>6.2.2</rocksdb.version>
     <s3.version>1.10.20</s3.version>
-    <solr.version>5.5.3</solr.version>
-    <solr6.version>6.4.1</solr6.version>
+    <seaweed.client.version>1.4.1</seaweed.client.version>
+    <scylla.cql.version>3.10.2-scylla-1</scylla.cql.version>
     <solr7.version>7.7.2</solr7.version>
     <tarantool.version>1.6.5</tarantool.version>
     <thrift.version>0.8.0</thrift.version>
-    <voldemort.version>0.81</voldemort.version>
     <tablestore.version>4.8.0</tablestore.version>
-    <voltdb.version>9.1.1</voltdb.version>
+    <voltdb.version>10.1.1</voltdb.version>
+    <zookeeper.version>3.5.8</zookeeper.version>
   </properties>
 
   <modules>
@@ -180,7 +179,6 @@ LICENSE file.
     <module>griddb</module>
     <module>hbase1</module>
     <module>hbase2</module>
-    <module>hypertable</module>
     <module>ignite</module>
     <module>infinispan</module>
     <module>jdbc</module>
@@ -198,13 +196,13 @@ LICENSE file.
     <module>riak</module>
     <module>rocksdb</module>
     <module>s3</module>
-    <module>solr</module>
-    <module>solr6</module>
+    <module>seaweedfs</module>
+    <module>scylla</module>
     <module>solr7</module>
     <module>tarantool</module>
     <module>tablestore</module>
-    <!--<module>voldemort</module>-->
     <module>voltdb</module>
+    <module>zookeeper</module>
   </modules>
 
   <build>

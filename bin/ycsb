@@ -77,7 +77,6 @@ DATABASES = {
     "griddb"       : "site.ycsb.db.griddb.GridDBClient",
     "hbase1"      : "site.ycsb.db.hbase1.HBaseClient1",
     "hbase2"      : "site.ycsb.db.hbase2.HBaseClient2",
-    "hypertable"   : "site.ycsb.db.HypertableClient",
     "ignite"       : "site.ycsb.db.ignite.IgniteClient",
     "ignite-sql"   : "site.ycsb.db.ignite.IgniteSqlClient",
     "infinispan-cs": "site.ycsb.db.InfinispanRemoteClient",
@@ -98,11 +97,12 @@ DATABASES = {
     "riak"         : "site.ycsb.db.riak.RiakKVClient",
     "rocksdb"      : "site.ycsb.db.rocksdb.RocksDBClient",
     "s3"           : "site.ycsb.db.S3Client",
-    "solr"         : "site.ycsb.db.solr.SolrClient",
-    "solr6"        : "site.ycsb.db.solr6.SolrClient",
+    "seaweedfs"    : "site.ycsb.db.seaweed.SeaweedClient",
+    "scylla"       : "site.ycsb.db.scylla.ScyllaCQLClient",
     "solr7"        : "site.ycsb.db.solr7.SolrClient",
     "tarantool"    : "site.ycsb.db.TarantoolClient",
-    "tablestore"   : "site.ycsb.db.tablestore.TableStoreClient"
+    "tablestore"   : "site.ycsb.db.tablestore.TableStoreClient",
+    "zookeeper"    : "site.ycsb.db.zookeeper.ZKClient"
 }
 
 OPTIONS = {

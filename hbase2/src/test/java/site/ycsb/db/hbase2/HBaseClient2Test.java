@@ -15,6 +15,7 @@
 
 package site.ycsb.db.hbase2;
 
+import static org.junit.Assert.assertArrayEquals;
 import static site.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY;
 import static site.ycsb.workloads.CoreWorkload.TABLENAME_PROPERTY_DEFAULT;
 import static org.junit.Assert.assertEquals;
@@ -39,13 +40,13 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
@@ -70,7 +71,6 @@ public class HBaseClient2Test {
 
   /**
    * Creates a mini-cluster for use in these tests.
-   *
    * This is a heavy-weight operation, so invoked only once for the test class.
    */
   @BeforeClass
@@ -93,16 +93,19 @@ public class HBaseClient2Test {
   }
 
   /**
-   * Sets up the mini-cluster for testing.
-   *
-   * We re-create the table for each test.
+   * Re-create the table for each test. Using default properties.
    */
-  @Before
   public void setUp() throws Exception {
+    setUp(new Properties());
+  }
+
+  /**
+   * Re-create the table for each test. Using custom properties.
+   */
+  public void setUp(Properties p) throws Exception {
     client = new HBaseClient2();
     client.setConfiguration(new Configuration(testingUtil.getConfiguration()));
 
-    Properties p = new Properties();
     p.setProperty("columnfamily", COLUMN_FAMILY);
 
     Measurements.setProperties(p);
@@ -124,6 +127,7 @@ public class HBaseClient2Test {
 
   @Test
   public void testRead() throws Exception {
+    setUp();
     final String rowKey = "row1";
     final Put p = new Put(Bytes.toBytes(rowKey));
     p.addColumn(Bytes.toBytes(COLUMN_FAMILY),
@@ -142,6 +146,7 @@ public class HBaseClient2Test {
 
   @Test
   public void testReadMissingRow() throws Exception {
+    setUp();
     final HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
     final Status status = client.read(tableName, "Missing row", null, result);
     assertEquals(Status.NOT_FOUND, status);
@@ -150,6 +155,7 @@ public class HBaseClient2Test {
 
   @Test
   public void testScan() throws Exception {
+    setUp();
     // Fill with data
     final String colStr = "row_number";
     final byte[] col = Bytes.toBytes(colStr);
@@ -184,7 +190,47 @@ public class HBaseClient2Test {
   }
 
   @Test
+  public void testScanWithValueFilteringUsingDefaultProperties() throws Exception {
+    testScanWithValueFiltering(null, null, 100, new byte[][] {
+        Bytes.fromHex("0000"), Bytes.fromHex("1111"), Bytes.fromHex("2222"), Bytes.fromHex("3333"),
+        Bytes.fromHex("4444"), Bytes.fromHex("5555"), Bytes.fromHex("6666"), Bytes.fromHex("7777"),
+    });
+  }
+
+  @Test
+  public void testScanWithValueFilteringOperationLessOrEqual() throws Exception {
+    testScanWithValueFiltering("less_or_equal", "3333", 100, new byte[][] {
+        Bytes.fromHex("0000"), Bytes.fromHex("1111"), Bytes.fromHex("2222"), Bytes.fromHex("3333"),
+    });
+  }
+
+  @Test
+  public void testScanWithValueFilteringOperationEqual() throws Exception {
+    testScanWithValueFiltering("equal", "AAAA", 100, new byte[][]{
+        Bytes.fromHex("AAAA")
+    });
+  }
+
+  @Test
+  public void testScanWithValueFilteringOperationNotEqual() throws Exception {
+    testScanWithValueFiltering("not_equal", "AAAA", 100 , new byte[][]{
+        Bytes.fromHex("0000"), Bytes.fromHex("1111"), Bytes.fromHex("2222"), Bytes.fromHex("3333"),
+        Bytes.fromHex("4444"), Bytes.fromHex("5555"), Bytes.fromHex("6666"), Bytes.fromHex("7777"),
+        Bytes.fromHex("8888"), Bytes.fromHex("9999"), Bytes.fromHex("BBBB"),
+        Bytes.fromHex("CCCC"), Bytes.fromHex("DDDD"), Bytes.fromHex("EEEE"), Bytes.fromHex("FFFF")
+    });
+  }
+
+  @Test
+  public void testScanWithValueFilteringAndRowLimit() throws Exception {
+    testScanWithValueFiltering("greater", "8887", 3, new byte[][] {
+        Bytes.fromHex("8888"), Bytes.fromHex("9999"), Bytes.fromHex("AAAA")
+    });
+  }
+
+  @Test
   public void testUpdate() throws Exception{
+    setUp();
     final String key = "key";
     final HashMap<String, String> input = new HashMap<String, String>();
     input.put("column1", "value1");
@@ -209,5 +255,68 @@ public class HBaseClient2Test {
   public void testDelete() {
     fail("Not yet implemented");
   }
+
+  private void testScanWithValueFiltering(String operation, String filterValue, int scanRowLimit,
+                                          byte[][] expectedValuesReturned) throws Exception {
+    Properties properties = new Properties();
+    properties.setProperty("hbase.usescanvaluefiltering", String.valueOf(true));
+    if(operation != null) {
+      properties.setProperty("hbase.scanfilteroperator", operation);
+    }
+    if(filterValue != null) {
+      properties.setProperty("hbase.scanfiltervalue", filterValue);
+    }
+
+    // setup the client and fill two columns with data
+    setUp(properties);
+    setupTableColumnWithHexValues("col_1");
+    setupTableColumnWithHexValues("col_2");
+
+    Vector<HashMap<String, ByteIterator>> result = new Vector<>();
+
+    // first scan the whole table (both columns)
+    client.scan(tableName, "00000", scanRowLimit, null, result);
+
+    assertEquals(expectedValuesReturned.length, result.size());
+    for(int i = 0; i < expectedValuesReturned.length; i++) {
+      final HashMap<String, ByteIterator> row = result.get(i);
+      assertEquals(2, row.size());
+      assertTrue(row.containsKey("col_1") && row.containsKey("col_2"));
+      assertArrayEquals(expectedValuesReturned[i], row.get("col_1").toArray());
+      assertArrayEquals(expectedValuesReturned[i], row.get("col_2").toArray());
+    }
+
+    // now scan only a single column (the filter should work here too)
+    result = new Vector<>();
+    client.scan(tableName, "00000", scanRowLimit, Collections.singleton("col_1"), result);
+
+    assertEquals(expectedValuesReturned.length, result.size());
+    for(int i = 0; i < expectedValuesReturned.length; i++) {
+      final HashMap<String, ByteIterator> row = result.get(i);
+      assertEquals(1, row.size());
+      assertTrue(row.containsKey("col_1"));
+      assertArrayEquals(expectedValuesReturned[i], row.get("col_1").toArray());
+    }
+  }
+
+  private void setupTableColumnWithHexValues(String colStr) throws Exception {
+    final byte[] col = Bytes.toBytes(colStr);
+    final byte[][] values = {
+        Bytes.fromHex("0000"), Bytes.fromHex("1111"), Bytes.fromHex("2222"), Bytes.fromHex("3333"),
+        Bytes.fromHex("4444"), Bytes.fromHex("5555"), Bytes.fromHex("6666"), Bytes.fromHex("7777"),
+        Bytes.fromHex("8888"), Bytes.fromHex("9999"), Bytes.fromHex("AAAA"), Bytes.fromHex("BBBB"),
+        Bytes.fromHex("CCCC"), Bytes.fromHex("DDDD"), Bytes.fromHex("EEEE"), Bytes.fromHex("FFFF")
+    };
+    final List<Put> puts = new ArrayList<>(16);
+    for(int i = 0; i < 16; i++) {
+      final byte[] key = Bytes.toBytes(String.format("%05d", i));
+      final byte[] value = values[i];
+      final Put p = new Put(key);
+      p.addColumn(Bytes.toBytes(COLUMN_FAMILY), col, value);
+      puts.add(p);
+    }
+    table.put(puts);
+  }
+
 }
 
