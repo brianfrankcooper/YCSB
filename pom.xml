@@ -138,7 +138,7 @@ LICENSE file.
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
     <orientdb.version>2.2.37</orientdb.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <redis.version>2.9.0</redis.version>
+    <redis.version>3.6.0</redis.version>
     <riak.version>2.0.5</riak.version>
     <rocksdb.version>6.2.2</rocksdb.version>
     <s3.version>1.10.20</s3.version>
