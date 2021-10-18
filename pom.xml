@@ -160,6 +160,7 @@ LICENSE file.
     <!-- all the datastore bindings, lex sorted please -->
     <module>accumulo1.9</module>
     <module>aerospike</module>
+    <module>aerospike-batch</module>
     <module>arangodb</module>
     <module>asynchbase</module>
     <module>azurecosmos</module>

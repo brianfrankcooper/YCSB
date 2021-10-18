@@ -53,6 +53,7 @@ COMMANDS = {
 DATABASES = {
     "accumulo1.9"     : "site.ycsb.db.accumulo.AccumuloClient",
     "aerospike"    : "site.ycsb.db.AerospikeClient",
+    "aerospike-batch"    : "site.ycsb.db.AerospikeBatchClient",
     "arangodb"     : "site.ycsb.db.arangodb.ArangoDBClient",
     "arangodb3"     : "site.ycsb.db.arangodb.ArangoDBClient",
     "asynchbase"   : "site.ycsb.db.AsyncHBaseClient",
