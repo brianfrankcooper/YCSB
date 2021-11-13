@@ -55,7 +55,6 @@ import site.ycsb.DBException;
 import site.ycsb.Status;
 import org.javatuples.Pair;
 
-import org.javatuples.Pair;
 
 /**
  * <a href="https://accumulo.apache.org/">Accumulo</a> binding for YCSB.

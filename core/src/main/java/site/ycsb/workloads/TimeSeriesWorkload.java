@@ -33,7 +33,6 @@ import site.ycsb.Client;
 import site.ycsb.DB;
 import site.ycsb.NumericByteIterator;
 import site.ycsb.Status;
-import org.javatuples.Pair;
 
 import site.ycsb.StringByteIterator;
 import site.ycsb.Utils;
