@@ -22,11 +22,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 import java.util.zip.GZIPInputStream;
 
 import javax.ws.rs.HttpMethod;
@@ -50,6 +46,8 @@ import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
+import org.javatuples.Pair;
+
 import site.ycsb.StringByteIterator;
 
 /**
@@ -164,6 +162,22 @@ public class RestClient extends DB {
   @Override
   public Status scan(String table, String startkey, int recordcount, Set<String> fields,
       Vector<HashMap<String, ByteIterator>> result) {
+    return Status.NOT_IMPLEMENTED;
+  }
+
+  @Override
+  /**
+   * Full text search a record from the database.
+   *
+   * @param table The name of the table
+   * @param queryPair   The search query pair of words.
+   * @param pagePair   The paginated pair info.
+   * @param pagePair   The return fields for the search query.
+   * @hashMaps values A HashMap of field/value pairs of the search result
+   * @return Status.NOT_IMPLEMENTED or the search results
+   * in case the operation is supported.
+   */
+  public Status search(String table, Pair<String, String> queryPair, boolean onlyinsale, Pair<Integer, Integer> pagePair, HashSet<String> fields, Vector<HashMap<String, ByteIterator>> hashMaps) {
     return Status.NOT_IMPLEMENTED;
   }
 

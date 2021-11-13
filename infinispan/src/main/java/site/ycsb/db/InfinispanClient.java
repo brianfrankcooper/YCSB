@@ -21,6 +21,8 @@ import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
+import org.javatuples.Pair;
+
 import site.ycsb.StringByteIterator;
 
 import org.infinispan.Cache;
@@ -32,10 +34,7 @@ import org.infinispan.util.logging.Log;
 import org.infinispan.util.logging.LogFactory;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * This is a client implementation for Infinispan 5.x.
@@ -149,5 +148,21 @@ public class InfinispanClient extends DB {
       LOGGER.error(e);
       return Status.ERROR;
     }
+  }
+
+  @Override
+  /**
+   * Full text search a record from the database.
+   *
+   * @param table The name of the table
+   * @param queryPair   The search query pair of words.
+   * @param pagePair   The paginated pair info.
+   * @param pagePair   The return fields for the search query.
+   * @hashMaps values A HashMap of field/value pairs of the search result
+   * @return Status.NOT_IMPLEMENTED or the search results
+   * in case the operation is supported.
+   */
+  public Status search(String table, Pair<String, String> queryPair, boolean onlyinsale, Pair<Integer, Integer> pagePair, HashSet<String> fields, Vector<HashMap<String, ByteIterator>> hashMaps) {
+    return Status.NOT_IMPLEMENTED;
   }
 }

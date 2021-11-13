@@ -17,14 +17,8 @@
 package site.ycsb.db;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -56,6 +50,8 @@ import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
+import org.javatuples.Pair;
+
 import site.ycsb.StringByteIterator;
 
 /**
@@ -497,6 +493,22 @@ public class AzureCosmosClient extends DB {
       LOGGER.error("Failed to delete key {} in collection {}", key, table, e);
     }
     return Status.ERROR;
+  }
+
+  @Override
+  /**
+   * Full text search a record from the database.
+   *
+   * @param table The name of the table
+   * @param queryPair   The search query pair of words.
+   * @param pagePair   The paginated pair info.
+   * @param pagePair   The return fields for the search query.
+   * @hashMaps values A HashMap of field/value pairs of the search result
+   * @return Status.NOT_IMPLEMENTED or the search results
+   * in case the operation is supported.
+   */
+  public Status search(String table, Pair<String, String> queryPair, boolean onlyinsale, Pair<Integer, Integer> pagePair, HashSet<String> fields, Vector<HashMap<String, ByteIterator>> hashMaps) {
+    return Status.NOT_IMPLEMENTED;
   }
 
   private String createSelectTop(Set<String> fields, int top) {

@@ -131,6 +131,17 @@ public abstract class DB {
    */
   public abstract Status delete(String table, String key);
 
+  /**
+   * Full text search a record from the database.
+   *
+   * @param table The name of the table
+   * @param queryPair   The search query pair of words.
+   * @param pagePair   The paginated pair info.
+   * @param pagePair   The return fields for the search query.
+   * @hashMaps values A HashMap of field/value pairs of the search result
+   * @return Status.NOT_IMPLEMENTED or the search results
+   * in case the operation is supported.
+   */
   public abstract Status search(String table,
                                 Pair<String, String> queryPair, boolean onlyinsale,
                                 Pair<Integer, Integer> pagePair,

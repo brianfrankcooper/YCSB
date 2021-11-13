@@ -18,20 +18,13 @@ package site.ycsb.db;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import java.util.Set;
-import java.util.Vector;
 import java.util.concurrent.ExecutionException;
 
 import com.google.bigtable.v2.Column;
@@ -58,6 +51,8 @@ import site.ycsb.ByteArrayByteIterator;
 import site.ycsb.ByteIterator;
 import site.ycsb.DBException;
 import site.ycsb.Status;
+import org.javatuples.Pair;
+
 
 /**
  * Google Bigtable Proto client for YCSB framework.
@@ -447,6 +442,22 @@ public class GoogleBigtableClient extends site.ycsb.DB {
         bulkMutation = session.createBulkMutation(tableName);
       }
     }
+  }
+
+  @Override
+  /**
+   * Full text search a record from the database.
+   *
+   * @param table The name of the table
+   * @param queryPair   The search query pair of words.
+   * @param pagePair   The paginated pair info.
+   * @param pagePair   The return fields for the search query.
+   * @hashMaps values A HashMap of field/value pairs of the search result
+   * @return Status.NOT_IMPLEMENTED or the search results
+   * in case the operation is supported.
+   */
+  public Status search(String table, Pair<String, String> queryPair, boolean onlyinsale, Pair<Integer, Integer> pagePair, HashSet<String> fields, Vector<HashMap<String, ByteIterator>> hashMaps) {
+    return Status.NOT_IMPLEMENTED;
   }
   
 }

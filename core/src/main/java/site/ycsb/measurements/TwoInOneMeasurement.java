@@ -18,6 +18,8 @@
 package site.ycsb.measurements;
 
 import site.ycsb.Status;
+import org.javatuples.Pair;
+
 import site.ycsb.measurements.exporter.MeasurementsExporter;
 
 import java.io.IOException;

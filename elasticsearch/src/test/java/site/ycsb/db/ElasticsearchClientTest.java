@@ -24,6 +24,8 @@ package site.ycsb.db;
 import site.ycsb.ByteIterator;
 import site.ycsb.DBException;
 import site.ycsb.Status;
+import org.javatuples.Pair;
+
 import site.ycsb.StringByteIterator;
 import site.ycsb.workloads.CoreWorkload;
 import org.junit.After;

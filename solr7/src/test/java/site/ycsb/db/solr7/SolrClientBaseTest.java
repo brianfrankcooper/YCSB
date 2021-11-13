@@ -20,6 +20,8 @@ package site.ycsb.db.solr7;
 import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.Status;
+import org.javatuples.Pair;
+
 import site.ycsb.StringByteIterator;
 import site.ycsb.workloads.CoreWorkload;
 import org.apache.solr.client.solrj.embedded.JettyConfig;
