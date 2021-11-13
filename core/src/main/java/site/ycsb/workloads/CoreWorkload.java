@@ -369,7 +369,7 @@ public class CoreWorkload extends Workload {
   protected int insertionRetryLimit;
   protected int insertionRetryInterval;
 
-  private Measurements measurements = Measurements.getMeasurements();
+  protected Measurements measurements = Measurements.getMeasurements();
 
   public static String buildKeyName(long keynum, int zeropadding, boolean orderedinserts) {
     if (!orderedinserts) {

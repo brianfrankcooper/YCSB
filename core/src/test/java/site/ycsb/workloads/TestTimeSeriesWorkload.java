@@ -22,17 +22,10 @@ import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
-import java.util.Properties;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.Vector;
-
+import org.javatuples.Pair;
 import site.ycsb.ByteIterator;
 import site.ycsb.Client;
 import site.ycsb.DB;
@@ -46,7 +39,6 @@ import site.ycsb.measurements.Measurements;
 import org.testng.annotations.Test;
 
 public class TestTimeSeriesWorkload {
-  
   @Test
   public void twoThreads() throws Exception {
     final Properties p = getUTProperties();
@@ -518,7 +510,16 @@ public class TestTimeSeriesWorkload {
     final List<String> keys = new ArrayList<String>();
     final List<Map<String, ByteIterator>> values = 
         new ArrayList<Map<String, ByteIterator>>();
-    
+
+    @Override
+    public Status search(String table,
+                         Pair<String, String> queryPair, boolean onlyinsale,
+                         Pair<Integer, Integer> pagePair,
+                         HashSet<String> fields,
+                         Vector<HashMap<String, ByteIterator>> hashMaps) {
+      return Status.OK;
+    }
+
     @Override
     public Status read(String table, String key, Set<String> fields,
                        Map<String, ByteIterator> result) {

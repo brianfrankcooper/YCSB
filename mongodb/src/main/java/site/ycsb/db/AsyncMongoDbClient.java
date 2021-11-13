@@ -38,17 +38,14 @@ import com.allanbank.mongodb.builder.BatchedWrite;
 import com.allanbank.mongodb.builder.BatchedWriteMode;
 import com.allanbank.mongodb.builder.Find;
 import com.allanbank.mongodb.builder.Sort;
+import com.mongodb.client.MongoCursor;
+import org.javatuples.Pair;
 import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -546,5 +543,16 @@ public class AsyncMongoDbClient extends DB {
 
       return value;
     }
+  }
+
+  @Override
+  public Status search(String table,
+                       Pair<String, String> queryPair, boolean onlyinsale,
+                       Pair<Integer, Integer> pagePair,
+                       HashSet<String> fields,
+                       Vector<HashMap<String, ByteIterator>> result) {
+
+    MongoCursor<org.bson.Document> cursor = null;
+    return Status.ERROR;
   }
 }

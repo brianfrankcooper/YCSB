@@ -1,6 +1,9 @@
 # ignore compiled byte code
 target
 
+# percentile output format
+*.txt
+
 # ignore output files from testing
 output*
 

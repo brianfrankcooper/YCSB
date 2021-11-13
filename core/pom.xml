@@ -59,6 +59,16 @@ LICENSE file.
       <artifactId>HdrHistogram</artifactId>
       <version>2.1.4</version>
     </dependency>
+    <dependency>
+        <groupId>com.github.javafaker</groupId>
+        <artifactId>javafaker</artifactId>
+        <version>1.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.javatuples</groupId>
+      <artifactId>javatuples</artifactId>
+      <version>1.2</version>
+    </dependency>
   </dependencies>
 
   <build>

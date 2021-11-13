@@ -1,12 +1,12 @@
 /**
  * Copyright (c) 2012 - 2015 YCSB contributors. All rights reserved.
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
  * may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
@@ -32,27 +32,17 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.InsertManyOptions;
-import com.mongodb.client.model.UpdateOneModel;
-import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.model.*;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
-import site.ycsb.ByteArrayByteIterator;
-import site.ycsb.ByteIterator;
-import site.ycsb.DB;
-import site.ycsb.DBException;
-import site.ycsb.Status;
-
 import org.bson.Document;
 import org.bson.types.Binary;
+import org.javatuples.Pair;
+import site.ycsb.*;
+import site.ycsb.workloads.CommerceWorkload;
+import site.ycsb.workloads.CoreWorkload;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -61,55 +51,77 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>
  * See the <code>README.md</code> for configuration information.
  * </p>
- * 
+ *
  * @author ypai
  * @see <a href="http://docs.mongodb.org/ecosystem/drivers/java/">MongoDB Inc.
- *      driver</a>
+ * driver</a>
  */
 public class MongoDbClient extends DB {
 
-  /** Used to include a field in a response. */
+  /**
+   * Used to include a field in a response.
+   */
   private static final Integer INCLUDE = Integer.valueOf(1);
 
-  /** The options to use for inserting many documents. */
+  /**
+   * The options to use for inserting many documents.
+   */
   private static final InsertManyOptions INSERT_UNORDERED =
       new InsertManyOptions().ordered(false);
 
-  /** The options to use for inserting a single document. */
+  /**
+   * The options to use for inserting a single document.
+   */
   private static final UpdateOptions UPDATE_WITH_UPSERT = new UpdateOptions()
       .upsert(true);
-
-  /**
-   * The database name to access.
-   */
-  private static String databaseName;
-
-  /** The database name to access. */
-  private static MongoDatabase database;
-
   /**
    * Count the number of times initialized to teardown on the last
    * {@link #cleanup()}.
    */
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
-
-  /** A singleton Mongo instance. */
+  /**
+   * The database name to access.
+   */
+  private static String databaseName;
+  /**
+   * The database name to access.
+   */
+  private static MongoDatabase database;
+  /**
+   * The database name to access.
+   */
+  private static String benchmarkTable;
+  /**
+   * A singleton Mongo instance.
+   */
   private static MongoClient mongoClient;
 
-  /** The default read preference for the test. */
+  /**
+   * The default read preference for the test.
+   */
   private static ReadPreference readPreference;
 
-  /** The default write concern for the test. */
+  /**
+   * The default write concern for the test.
+   */
   private static WriteConcern writeConcern;
 
-  /** The batch size to use for inserts. */
+  /**
+   * The batch size to use for inserts.
+   */
   private static int batchSize;
 
-  /** If true then use updates with the upsert option for inserts. */
+  /**
+   * If true then use updates with the upsert option for inserts.
+   */
   private static boolean useUpsert;
 
-  /** The bulk inserts pending for the thread. */
+  /**
+   * The bulk inserts pending for the thread.
+   */
   private final List<Document> bulkInserts = new ArrayList<Document>();
+
+  private boolean coreWorkload;
 
   /**
    * Cleanup any state for this DB. Called once per DB instance; there is one DB
@@ -134,13 +146,11 @@ public class MongoDbClient extends DB {
 
   /**
    * Delete a record from the database.
-   * 
-   * @param table
-   *          The name of the table
-   * @param key
-   *          The record key of the record to delete.
+   *
+   * @param table The name of the table
+   * @param key   The record key of the record to delete.
    * @return Zero on success, a non-zero error code on error. See the {@link DB}
-   *         class's description for a discussion of error codes.
+   * class's description for a discussion of error codes.
    */
   @Override
   public Status delete(String table, String key) {
@@ -168,15 +178,24 @@ public class MongoDbClient extends DB {
   @Override
   public void init() throws DBException {
     INIT_COUNT.incrementAndGet();
+    Properties props = getProperties();
+    coreWorkload = props.getProperty("workload").compareTo("site.ycsb.workloads.CoreWorkload") == 0;
+    if (!coreWorkload) {
+      // Retrieve the table name
+      benchmarkTable = props.getProperty(CommerceWorkload.TABLENAME_PROPERTY,
+          CommerceWorkload.TABLENAME_PROPERTY_DEFAULT);
+    }
     synchronized (INCLUDE) {
       if (mongoClient != null) {
         return;
       }
 
-      Properties props = getProperties();
 
       // Set insert batchsize, default 1 - to be YCSB-original equivalent
       batchSize = Integer.parseInt(props.getProperty("batchsize", "1"));
+
+      // Retrieve the table name
+      benchmarkTable = props.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
 
       // Set is inserts are done as upserts. Defaults to false.
       useUpsert = Boolean.parseBoolean(
@@ -217,7 +236,9 @@ public class MongoDbClient extends DB {
         }
 
         readPreference = uri.getOptions().getReadPreference();
+        System.err.println("Mongo using readPreference " + readPreference);
         writeConcern = uri.getOptions().getWriteConcern();
+        System.err.println("Mongo using writeConcern " + writeConcern);
 
         mongoClient = new MongoClient(uri);
         database =
@@ -225,13 +246,29 @@ public class MongoDbClient extends DB {
                 .withReadPreference(readPreference)
                 .withWriteConcern(writeConcern);
 
+        if (!coreWorkload) {
+          MongoCollection<Document> collection = database.getCollection(benchmarkTable);
+          String[] indexedFields = props.getProperty(CommerceWorkload.INDEXED_FIELDS_SEARCH_PROPERTY,
+              CommerceWorkload.INDEXED_FIELDS_SEARCH_PROPERTY_DEFAULT).split(",");
+          if (indexedFields.length > 1) {
+            System.err.println("Mongo index text field length should be 1" + url);
+            return;
+          }
+          collection.createIndex(Indexes.text(indexedFields[0]));
+          collection.createIndex(Indexes.descending("productScore"));
+          System.out.println("Created text fields for Commerce workload");
+
+        }
+
         System.out.println("mongo client connection created with " + url);
+
+
       } catch (Exception e1) {
         System.err
             .println("Could not initialize MongoDB connection pool for Loader: "
                 + e1.toString());
         e1.printStackTrace();
-        return;
+//        return;
       }
     }
   }
@@ -240,24 +277,21 @@ public class MongoDbClient extends DB {
    * Insert a record in the database. Any field/value pairs in the specified
    * values HashMap will be written into the record with the specified record
    * key.
-   * 
-   * @param table
-   *          The name of the table
-   * @param key
-   *          The record key of the record to insert.
-   * @param values
-   *          A HashMap of field/value pairs to insert in the record
+   *
+   * @param table  The name of the table
+   * @param key    The record key of the record to insert.
+   * @param values A HashMap of field/value pairs to insert in the record
    * @return Zero on success, a non-zero error code on error. See the {@link DB}
-   *         class's description for a discussion of error codes.
+   * class's description for a discussion of error codes.
    */
   @Override
   public Status insert(String table, String key,
-      Map<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
       Document toInsert = new Document("_id", key);
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-        toInsert.put(entry.getKey(), entry.getValue().toArray());
+        toInsert.put(entry.getKey(), entry.getValue().toString());
       }
 
       if (batchSize == 1) {
@@ -274,7 +308,7 @@ public class MongoDbClient extends DB {
         bulkInserts.add(toInsert);
         if (bulkInserts.size() == batchSize) {
           if (useUpsert) {
-            List<UpdateOneModel<Document>> updates = 
+            List<UpdateOneModel<Document>> updates =
                 new ArrayList<UpdateOneModel<Document>>(bulkInserts.size());
             for (Document doc : bulkInserts) {
               updates.add(new UpdateOneModel<Document>(
@@ -303,20 +337,16 @@ public class MongoDbClient extends DB {
   /**
    * Read a record from the database. Each field/value pair from the result will
    * be stored in a HashMap.
-   * 
-   * @param table
-   *          The name of the table
-   * @param key
-   *          The record key of the record to read.
-   * @param fields
-   *          The list of fields to read, or null for all of them
-   * @param result
-   *          A HashMap of field/value pairs for the result
+   *
+   * @param table  The name of the table
+   * @param key    The record key of the record to read.
+   * @param fields The list of fields to read, or null for all of them
+   * @param result A HashMap of field/value pairs for the result
    * @return Zero on success, a non-zero error code on error or "not found".
    */
   @Override
   public Status read(String table, String key, Set<String> fields,
-      Map<String, ByteIterator> result) {
+                     Map<String, ByteIterator> result) {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
       Document query = new Document("_id", key);
@@ -346,24 +376,19 @@ public class MongoDbClient extends DB {
   /**
    * Perform a range scan for a set of records in the database. Each field/value
    * pair from the result will be stored in a HashMap.
-   * 
-   * @param table
-   *          The name of the table
-   * @param startkey
-   *          The record key of the first record to read.
-   * @param recordcount
-   *          The number of records to read
-   * @param fields
-   *          The list of fields to read, or null for all of them
-   * @param result
-   *          A Vector of HashMaps, where each HashMap is a set field/value
-   *          pairs for one record
+   *
+   * @param table       The name of the table
+   * @param startkey    The record key of the first record to read.
+   * @param recordcount The number of records to read
+   * @param fields      The list of fields to read, or null for all of them
+   * @param result      A Vector of HashMaps, where each HashMap is a set field/value
+   *                    pairs for one record
    * @return Zero on success, a non-zero error code on error. See the {@link DB}
-   *         class's description for a discussion of error codes.
+   * class's description for a discussion of error codes.
    */
   @Override
   public Status scan(String table, String startkey, int recordcount,
-      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+                     Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     MongoCursor<Document> cursor = null;
     try {
       MongoCollection<Document> collection = database.getCollection(table);
@@ -417,19 +442,16 @@ public class MongoDbClient extends DB {
    * Update a record in the database. Any field/value pairs in the specified
    * values HashMap will be written into the record with the specified record
    * key, overwriting any existing values with the same field name.
-   * 
-   * @param table
-   *          The name of the table
-   * @param key
-   *          The record key of the record to write.
-   * @param values
-   *          A HashMap of field/value pairs to update in the record
+   *
+   * @param table  The name of the table
+   * @param key    The record key of the record to write.
+   * @param values A HashMap of field/value pairs to update in the record
    * @return Zero on success, a non-zero error code on error. See this class's
-   *         description for a discussion of error codes.
+   * description for a discussion of error codes.
    */
   @Override
   public Status update(String table, String key,
-      Map<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
 
@@ -454,17 +476,69 @@ public class MongoDbClient extends DB {
 
   /**
    * Fills the map with the values from the DBObject.
-   * 
-   * @param resultMap
-   *          The map to fill/
-   * @param obj
-   *          The object to copy values from.
+   *
+   * @param resultMap The map to fill/
+   * @param obj       The object to copy values from.
    */
   protected void fillMap(Map<String, ByteIterator> resultMap, Document obj) {
     for (Map.Entry<String, Object> entry : obj.entrySet()) {
       if (entry.getValue() instanceof Binary) {
         resultMap.put(entry.getKey(),
             new ByteArrayByteIterator(((Binary) entry.getValue()).getData()));
+      }
+    }
+  }
+
+  @Override
+  public Status search(String table,
+                       Pair<String, String> queryPair, boolean onlyinsale,
+                       Pair<Integer, Integer> pagePair,
+                       HashSet<String> fields,
+                       Vector<HashMap<String, ByteIterator>> result) {
+
+    MongoCursor<Document> cursor = null;
+    try {
+      int recordcount = pagePair.getValue1();
+      String searchTerm = queryPair.getValue1();
+      MongoCollection<Document> collection = database.getCollection(table);
+      FindIterable<Document> findIterable =
+          collection.find(Filters.text(searchTerm))
+              .sort(new Document("productScore", INCLUDE))
+              .limit(recordcount);
+
+      if (fields != null) {
+        Document projection = new Document();
+        for (String fieldName : fields) {
+          projection.put(fieldName, INCLUDE);
+        }
+        findIterable.projection(projection);
+      }
+
+      cursor = findIterable.iterator();
+
+      if (!cursor.hasNext()) {
+        return Status.NOT_FOUND;
+      }
+
+      result.ensureCapacity(recordcount);
+
+      while (cursor.hasNext()) {
+        HashMap<String, ByteIterator> resultMap =
+            new HashMap<String, ByteIterator>();
+
+        Document obj = cursor.next();
+        fillMap(resultMap, obj);
+
+        result.add(resultMap);
+      }
+
+      return Status.OK;
+    } catch (Exception e) {
+      System.err.println(e.toString());
+      return Status.ERROR;
+    } finally {
+      if (cursor != null) {
+        cursor.close();
       }
     }
   }
