@@ -45,6 +45,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
+import java.util.*;
+import java.util.Map.Entry;
+import org.javatuples.Pair;
 
 import static site.ycsb.db.elasticsearch5.Elasticsearch5.KEY;
 import static site.ycsb.db.elasticsearch5.Elasticsearch5.parseIntegerProperty;
@@ -439,6 +442,24 @@ public class ElasticsearchRestClient extends DB {
       @SuppressWarnings("unchecked") final Map<String, Object> map = mapper.readValue(is, Map.class);
       return map;
     }
+  }
+
+  @Override
+  /**
+   * Full text search a record from the database.
+   *
+   * @param table The name of the table
+   * @param queryPair   The search query pair of words.
+   * @param pagePair   The paginated pair info.
+   * @param pagePair   The return fields for the search query.
+   * @hashMaps values A HashMap of field/value pairs of the search result
+   * @return Status.NOT_IMPLEMENTED or the search results
+   * in case the operation is supported.
+   */
+  public Status search(String table, Pair<String, String> queryPair, boolean onlyinsale,
+                       Pair<Integer, Integer> pagePair,
+                       HashSet<String> fields, Vector<HashMap<String, ByteIterator>> hashMaps) {
+    return Status.NOT_IMPLEMENTED;
   }
 
 }
