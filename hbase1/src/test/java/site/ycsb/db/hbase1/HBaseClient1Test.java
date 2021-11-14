@@ -25,6 +25,8 @@ import static org.junit.Assume.assumeTrue;
 
 import site.ycsb.ByteIterator;
 import site.ycsb.Status;
+import org.javatuples.Pair;
+
 import site.ycsb.StringByteIterator;
 import site.ycsb.measurements.Measurements;
 import site.ycsb.workloads.CoreWorkload;

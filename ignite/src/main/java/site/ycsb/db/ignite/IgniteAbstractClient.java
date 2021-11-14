@@ -21,11 +21,9 @@ import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.Set;
-import java.util.Vector;
+import org.javatuples.Pair;
+
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.logger.log4j2.Log4J2Logger;
@@ -170,6 +168,24 @@ public abstract class IgniteAbstractClient extends DB {
   @Override
   public Status scan(String table, String startkey, int recordcount,
                      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    return Status.NOT_IMPLEMENTED;
+  }
+
+  @Override
+  /**
+   * Full text search a record from the database.
+   *
+   * @param table The name of the table
+   * @param queryPair   The search query pair of words.
+   * @param pagePair   The paginated pair info.
+   * @param pagePair   The return fields for the search query.
+   * @hashMaps values A HashMap of field/value pairs of the search result
+   * @return Status.NOT_IMPLEMENTED or the search results
+   * in case the operation is supported.
+   */
+  public Status search(String table, Pair<String, String> queryPair, boolean onlyinsale,
+       Pair<Integer, Integer> pagePair,
+       HashSet<String> fields, Vector<HashMap<String, ByteIterator>> hashMaps) {
     return Status.NOT_IMPLEMENTED;
   }
 }

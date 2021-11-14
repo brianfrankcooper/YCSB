@@ -70,6 +70,8 @@ DATABASES = {
     "elasticsearch": "site.ycsb.db.ElasticsearchClient",
     "elasticsearch5": "site.ycsb.db.elasticsearch5.ElasticsearchClient",
     "elasticsearch5-rest": "site.ycsb.db.elasticsearch5.ElasticsearchRestClient",
+    "elasticsearch7": "site.ycsb.db.elasticsearch7.ElasticsearchClient",
+    "elasticsearch7-rest": "site.ycsb.db.elasticsearch7.ElasticsearchRestClient",
     "foundationdb" : "site.ycsb.db.foundationdb.FoundationDBClient",
     "geode"        : "site.ycsb.db.GeodeClient",
     "googlebigtable"  : "site.ycsb.db.GoogleBigtableClient",
@@ -93,6 +95,8 @@ DATABASES = {
     "postgrenosql" : "site.ycsb.postgrenosql.PostgreNoSQLDBClient",
     "rados"        : "site.ycsb.db.RadosClient",
     "redis"        : "site.ycsb.db.RedisClient",
+    "redisearch"   : "site.ycsb.db.RediSearchClient",
+    "redisjson2"   : "site.ycsb.db.RedisJSONClient",
     "rest"         : "site.ycsb.webservice.rest.RestClient",
     "riak"         : "site.ycsb.db.riak.RiakKVClient",
     "rocksdb"      : "site.ycsb.db.rocksdb.RocksDBClient",
@@ -196,6 +200,7 @@ def get_ycsb_home():
     dir = os.path.abspath(os.path.dirname(sys.argv[0]))
     while "LICENSE.txt" not in os.listdir(dir):
         dir = os.path.join(dir, os.path.pardir)
+    debug("YCSB home: " + os.path.abspath(dir))
     return os.path.abspath(dir)
 
 def is_distribution():
@@ -220,7 +225,7 @@ def get_classpath_from_maven(module):
         # the last module will be the datastore binding
         line = [x for x in mvn_output.splitlines() if x.startswith("classpath=")][-1:]
         return line[0][len("classpath="):]
-    except subprocess.CalledProcessError, err:
+    except subprocess.CalledProcessError as err:
         error("Attempting to generate a classpath from Maven failed "
               "with return code '" + str(err.returncode) + "'. The output from "
               "Maven follows, try running "
