@@ -286,7 +286,9 @@ public class TableStoreClient extends DB {
    * @return Status.NOT_IMPLEMENTED or the search results
    * in case the operation is supported.
    */
-  public Status search(String table, Pair<String, String> queryPair, boolean onlyinsale, Pair<Integer, Integer> pagePair, HashSet<String> fields, Vector<HashMap<String, ByteIterator>> hashMaps) {
+  public Status search(String table, Pair<String, String> queryPair, boolean onlyinsale,
+       Pair<Integer, Integer> pagePair,
+       HashSet<String> fields, Vector<HashMap<String, ByteIterator>> hashMaps) {
     return Status.NOT_IMPLEMENTED;
   }
 
