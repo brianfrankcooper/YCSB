@@ -44,7 +44,6 @@ import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
-import org.javatuples.Pair;
 
 
 import java.util.*;
