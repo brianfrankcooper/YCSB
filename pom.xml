@@ -150,6 +150,7 @@ LICENSE file.
     <tablestore.version>4.8.0</tablestore.version>
     <voltdb.version>10.1.1</voltdb.version>
     <zookeeper.version>3.5.8</zookeeper.version>
+    <rondb.clusterj.version>21.04.0</rondb.clusterj.version>
   </properties>
 
   <modules>
@@ -203,6 +204,7 @@ LICENSE file.
     <module>tablestore</module>
     <module>voltdb</module>
     <module>zookeeper</module>
+    <module>rondb</module>
   </modules>
 
   <build>
@@ -328,4 +330,5 @@ LICENSE file.
       </build>
     </profile>
   </profiles>
+
 </project>
