@@ -17,6 +17,8 @@
 
 /**
  * YCSB binding for <a href="https://rondb.com/">RonDB</a>.
+ * <p>
+ * RonDB client binding for YCSB.
  */
 
 /**
@@ -40,6 +42,7 @@ import site.ycsb.DBException;
 import site.ycsb.Status;
 import site.ycsb.db.table.ClassGenerator;
 import site.ycsb.db.table.UserTableHelper;
+import site.ycsb.db.tx.TransactionReqHandler;
 import site.ycsb.workloads.CoreWorkload;
 
 import java.util.HashMap;
@@ -88,9 +91,19 @@ public class RonDBClient extends DB {
         connection = RonDBConnection.connect(getProperties());
       }
       Session session = connection.getSession(); //initialize session for this thread
+
+      for (int i = 0; i < 1024; i++) {
+        try {
+          DynamicObject persistable = UserTableHelper.getTableObject(classGenerator,
+              session, tableName);
+          releaseDTO(session, persistable);
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
       connection.returnSession(session);
-      System.out.println("Created a session for the thread");
     }
+
   }
 
   /**
@@ -118,31 +131,30 @@ public class RonDBClient extends DB {
   @Override
   public Status read(String table, String key, Set<String> fields,
                      Map<String, ByteIterator> result) {
-    Session session = connection.getSession();
-    try {
+    Class<DynamicObject> dbClass = getDTOClass();
+    final Session session = connection.getSession();
 
-      Class<DynamicObject> dbClass = (Class<DynamicObject>) UserTableHelper.getTableClass(
-          classGenerator, tableName);
-      DynamicObject row = session.find(dbClass, key);
-      if (row == null) {
-        logger.info("Read. Key: " + key + " Not Found.");
-        return Status.NOT_FOUND;
-      }
-      Set<String> toRead = fields != null ? fields : fieldNames;
-      for (String field : toRead) {
-        result.put(field, UserTableHelper.readFieldFromDTO(field, row));
-      }
-      releaseDTO(session, row);
-      if (logger.isDebugEnabled()) {
-        logger.debug("Read Key " + key);
-      }
-      return Status.OK;
-    } catch (Exception e) {
-      if (!isSessionClosing(e)) {
-        logger.warn("Read Error: " + e);
-        return Status.ERROR;
-      }
-      return Status.OK; // session is closing
+    try {
+      TransactionReqHandler handler = new TransactionReqHandler("Read") {
+        @Override
+        public Status action() throws Exception {
+          DynamicObject row = session.find(dbClass, key);
+          if (row == null) {
+            logger.info("Read. Key: " + key + " Not Found.");
+            return Status.NOT_FOUND;
+          }
+          Set<String> toRead = fields != null ? fields : fieldNames;
+          for (String field : toRead) {
+            result.put(field, UserTableHelper.readFieldFromDTO(field, row));
+          }
+          releaseDTO(session, row);
+          if (logger.isDebugEnabled()) {
+            logger.debug("Read Key " + key);
+          }
+          return Status.OK;
+        }
+      };
+      return handler.runTx(session, dbClass, key);
     } finally {
       connection.returnSession(session);
     }
@@ -163,35 +175,36 @@ public class RonDBClient extends DB {
   @Override
   public Status scan(String table, String startkey, int recordcount, Set<String> fields,
                      Vector<HashMap<String, ByteIterator>> result) {
-    Session session = connection.getSession();
-    try {
-      Class<DynamicObject> dbClass = (Class<DynamicObject>) UserTableHelper.getTableClass(
-          classGenerator, tableName);
-      QueryBuilder qb = session.getQueryBuilder();
-      QueryDomainType<DynamicObject> dobj =
-          qb.createQueryDefinition(dbClass);
-      Predicate pred1 = dobj.get(UserTableHelper.KEY).greaterEqual(dobj.param(UserTableHelper.KEY +
-          "Param"));
-      dobj.where(pred1);
-      Query<DynamicObject> query = session.createQuery(dobj);
-      query.setParameter(UserTableHelper.KEY + "Param", startkey);
-      query.setLimits(0, recordcount);
-      List<DynamicObject> scanResults = query.getResultList();
-      for (DynamicObject dto : scanResults) {
-        result.add(UserTableHelper.readFieldsFromDTO(dto, fields != null ? fields : fieldNames));
-        releaseDTO(session, dto);
-      }
 
-      if (logger.isDebugEnabled()) {
-        logger.debug("Scan. Rows returned: " + result.size());
-      }
-      return Status.OK;
-    } catch (Exception e) {
-      if (!isSessionClosing(e)) {
-        logger.warn("Scan Error: " + e);
-        return Status.ERROR;
-      }
-      return Status.OK;
+    Class<DynamicObject> dbClass = getDTOClass();
+    final Session session = connection.getSession();
+
+    try {
+      TransactionReqHandler handler = new TransactionReqHandler("Scan") {
+        @Override
+        public Status action() throws Exception {
+          QueryBuilder qb = session.getQueryBuilder();
+          QueryDomainType<DynamicObject> dobj =
+              qb.createQueryDefinition(dbClass);
+          Predicate pred1 = dobj.get(UserTableHelper.KEY).greaterEqual(dobj.param(UserTableHelper.KEY +
+              "Param"));
+          dobj.where(pred1);
+          Query<DynamicObject> query = session.createQuery(dobj);
+          query.setParameter(UserTableHelper.KEY + "Param", startkey);
+          query.setLimits(0, recordcount);
+          List<DynamicObject> scanResults = query.getResultList();
+          for (DynamicObject dto : scanResults) {
+            result.add(UserTableHelper.readFieldsFromDTO(dto, fields != null ? fields : fieldNames));
+            releaseDTO(session, dto);
+          }
+
+          if (logger.isDebugEnabled()) {
+            logger.debug("Scan. Rows returned: " + result.size());
+          }
+          return Status.OK;
+        }
+      };
+      return handler.runTx(session, dbClass, startkey);
     } finally {
       connection.returnSession(session);
     }
@@ -209,22 +222,25 @@ public class RonDBClient extends DB {
    */
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
-    Session session = connection.getSession();
+
+    Class<DynamicObject> dbClass = getDTOClass();
+    final Session session = connection.getSession();
+
     try {
-      DynamicObject row = UserTableHelper.createDTO(classGenerator, session, tableName,
-          key, values);
-      session.savePersistent(row);
-      releaseDTO(session, row);
-      if (logger.isDebugEnabled()) {
-        logger.debug("Updated Key " + key);
-      }
-      return Status.OK;
-    } catch (Exception e) {
-      if (!isSessionClosing(e)) {
-        logger.warn("Update Error: " + e);
-        return Status.ERROR;
-      }
-      return Status.OK;
+      TransactionReqHandler handler = new TransactionReqHandler("Update") {
+        @Override
+        public Status action() throws Exception {
+          DynamicObject row = UserTableHelper.createDTO(classGenerator, session, tableName,
+              key, values);
+          session.savePersistent(row);
+          releaseDTO(session, row);
+          if (logger.isDebugEnabled()) {
+            logger.debug("Updated Key " + key);
+          }
+          return Status.OK;
+        }
+      };
+      return handler.runTx(session, dbClass, key);
     } finally {
       connection.returnSession(session);
     }
@@ -241,23 +257,25 @@ public class RonDBClient extends DB {
    */
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
-    Session session = connection.getSession();
+    Class<DynamicObject> dbClass;
+    final Session session = connection.getSession();
+    dbClass = getDTOClass();
+
     try {
-      DynamicObject row = UserTableHelper.createDTO(classGenerator, session, tableName,
-          key, values);
-      session.savePersistent(row);
-      releaseDTO(session, row);
-      if (logger.isDebugEnabled()) {
-        logger.debug("Inserted Key " + key);
-      }
-      return Status.OK;
-    } catch (Exception e) {
-      if (!isSessionClosing(e)) {
-        logger.warn("Insert Error: " + e);
-        e.printStackTrace();
-        return Status.ERROR;
-      }
-      return Status.OK;
+      TransactionReqHandler handler = new TransactionReqHandler("Insert") {
+        @Override
+        public Status action() throws Exception {
+          DynamicObject row = UserTableHelper.createDTO(classGenerator, session, tableName,
+              key, values);
+          session.makePersistent(row);
+          releaseDTO(session, row);
+          if (logger.isDebugEnabled()) {
+            logger.debug("Inserted Key " + key);
+          }
+          return Status.OK;
+        }
+      };
+      return handler.runTx(session, dbClass, key);
     } finally {
       connection.returnSession(session);
     }
@@ -273,19 +291,23 @@ public class RonDBClient extends DB {
    */
   @Override
   public Status delete(String table, String key) {
-    Session session = connection.getSession();
+
+    Class<DynamicObject> dbClass;
+    final Session session = connection.getSession();
+    dbClass = getDTOClass();
+
     try {
-      DynamicObject row = UserTableHelper.createDTO(classGenerator, session, tableName,
-          key, null);
-      session.deletePersistent(row);
-      releaseDTO(session, row);
-      return Status.OK;
-    } catch (Exception e) {
-      if (!isSessionClosing(e)) {
-        logger.warn("Delete Error: " + e);
-        return Status.ERROR;
-      }
-      return Status.OK;
+      TransactionReqHandler handler = new TransactionReqHandler("Delete") {
+        @Override
+        public Status action() throws Exception {
+          DynamicObject row = UserTableHelper.createDTO(classGenerator, session, tableName,
+              key, null);
+          session.deletePersistent(row);
+          releaseDTO(session, row);
+          return Status.OK;
+        }
+      };
+      return handler.runTx(session, dbClass, key);
     } finally {
       connection.returnSession(session);
     }
@@ -302,4 +324,12 @@ public class RonDBClient extends DB {
     return false;
   }
 
+  public Class getDTOClass() {
+    try {
+      return (Class<DynamicObject>) UserTableHelper.getTableClass(classGenerator, tableName);
+    } catch (Exception e) {
+      e.printStackTrace();
+      return null;
+    }
+  }
 }

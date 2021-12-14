@@ -20,11 +20,13 @@
  */
 package site.ycsb.db.table;
 
+import com.mysql.clusterj.ColumnType;
 import com.mysql.clusterj.DynamicObject;
 import com.mysql.clusterj.Session;
 import site.ycsb.ByteArrayByteIterator;
 import site.ycsb.ByteIterator;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -34,7 +36,7 @@ import java.util.Set;
  */
 public final class UserTableHelper {
 
-  public static final String KEY = "key";
+  public static final String KEY = "YCSB_KEY";
 
   private UserTableHelper() {
 
@@ -45,7 +47,7 @@ public final class UserTableHelper {
                                         Map<String, ByteIterator> values) throws Exception {
 
     DynamicObject persistable = getTableObject(classGenerator, session, tableName);
-    setFieldValue(persistable, KEY, keyVal, keyVal.length());
+    setFieldValue(persistable, KEY, keyVal.getBytes(), keyVal.getBytes().length);
 
     if (values != null) {
       for (String colName : values.keySet()) {
@@ -57,7 +59,7 @@ public final class UserTableHelper {
     return persistable;
   }
 
-  private static void setFieldValue(DynamicObject persistable, String colName, Object value,
+  private static void setFieldValue(DynamicObject persistable, String colName, byte[] value,
                                     int lenght) {
     boolean found = false;
     for (int i = 0; i < persistable.columnMetadata().length; i++) {
@@ -68,7 +70,17 @@ public final class UserTableHelper {
           throw new IllegalArgumentException("Column \"" + colName + "\" can only store " +
               maxLength + ". Request length: " + lenght);
         }
-        persistable.set(i, value);
+
+        ColumnType cType = persistable.columnMetadata()[i].columnType();
+        if (cType == ColumnType.Varchar || cType == ColumnType.Longvarchar) {
+          persistable.set(i, new String(value, StandardCharsets.UTF_8));
+        } else if (cType == ColumnType.Varbinary || cType == ColumnType.Longvarbinary) {
+          persistable.set(i, value);
+        } else {
+          throw new UnsupportedOperationException(persistable.columnMetadata()[i].columnType() +
+              " is not supported in this benchmark");
+        }
+
         found = true;
       }
     }
@@ -78,7 +90,7 @@ public final class UserTableHelper {
   }
 
   public static HashMap<String, ByteIterator> readFieldsFromDTO(DynamicObject dto,
-                                                             Set<String> fields) {
+                                                                Set<String> fields) {
     HashMap<String, ByteIterator> values = new HashMap<>();
     for (String field : fields) {
       values.put(field, readFieldFromDTO(field, dto));
@@ -89,15 +101,25 @@ public final class UserTableHelper {
   public static ByteIterator readFieldFromDTO(String colName, DynamicObject row) {
     for (int i = 0; i < row.columnMetadata().length; i++) {
       String fieldName = row.columnMetadata()[i].name();
+      ColumnType cType = row.columnMetadata()[i].columnType();
       if (fieldName.equals(colName)) {
-        byte[] data = (byte[]) row.get(i);
-        return new ByteArrayByteIterator(data, 0, data.length);
+
+        if (cType == ColumnType.Varchar || cType == ColumnType.Longvarchar) {
+          String data = (String) row.get(i);
+          return new ByteArrayByteIterator(data.getBytes());
+        } else if (cType == ColumnType.Varbinary || cType == ColumnType.Longvarbinary) {
+          byte[] data = (byte[]) row.get(i);
+          return new ByteArrayByteIterator(data, 0, data.length);
+        } else {
+          throw new UnsupportedOperationException(cType +
+              " is not supported in this benchmark");
+        }
       }
     }
     throw new IllegalArgumentException("Column \"" + colName + "\" not found in the table");
   }
 
-  static DynamicObject getTableObject(ClassGenerator classGenerator, Session session,
+  public static DynamicObject getTableObject(ClassGenerator classGenerator, Session session,
                                       String tableName)
       throws Exception {
     Class<?> tableClass = getTableClass(classGenerator, tableName);

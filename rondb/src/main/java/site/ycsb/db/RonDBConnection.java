@@ -37,8 +37,7 @@ public final class RonDBConnection {
 
   private static Logger logger = LoggerFactory.getLogger(RonDBConnection.class);
 
-  private static final String HOST_PROPERTY = "rondb.host";
-  private static final String PORT_PROPERTY = "rondb.port";
+  private static final String CONNECT_STR_PROPERTY = "rondb.connection.string";
   private static final String SCHEMA = "rondb.schema";
   private static SessionFactory sessionFactory;
   private static ThreadLocal<Session> sessions = new ThreadLocal<>();
@@ -48,13 +47,9 @@ public final class RonDBConnection {
   }
 
   static synchronized RonDBConnection connect(Properties props) throws DBException {
-    String port = props.getProperty(PORT_PROPERTY);
-    if (port == null) {
-      port = "1186";
-    }
-    String host = props.getProperty(HOST_PROPERTY);
-    if (host == null) {
-      host = "127.0.0.1";
+    String connString = props.getProperty(CONNECT_STR_PROPERTY);
+    if (connString == null) {
+      connString = "127.0.0.1:1186";
     }
     String schema = props.getProperty(SCHEMA);
     if (schema == null) {
@@ -62,15 +57,15 @@ public final class RonDBConnection {
     }
 
     RonDBConnection connection = new RonDBConnection();
-    connection.setUpDBConnection(host, port, schema);
+    connection.setUpDBConnection(connString, schema);
     return connection;
   }
 
-  public void setUpDBConnection(String host, String port, String schema) throws DBException {
-    logger.info("Connecting to  schema: " + schema + " on " + host + ":" + port + ".");
+  public void setUpDBConnection(String connString, String schema) throws DBException {
+    logger.info("Connecting to  schema: " + schema + " on " + connString + ".");
 
     Properties props = new Properties();
-    props.setProperty("com.mysql.clusterj.connectstring", host + ":" + port);
+    props.setProperty("com.mysql.clusterj.connectstring", connString);
     props.setProperty("com.mysql.clusterj.database", schema);
     props.setProperty("com.mysql.clusterj.connect.retries", "4");
     props.setProperty("com.mysql.clusterj.connect.delay", "5");
@@ -78,8 +73,10 @@ public final class RonDBConnection {
     props.setProperty("com.mysql.clusterj.connect.timeout.before", "30");
     props.setProperty("com.mysql.clusterj.connect.timeout.after", "20");
     props.setProperty("com.mysql.clusterj.max.transactions", "1024");
-    props.setProperty("com.mysql.clusterj.connection.pool.size", "4");
+    props.setProperty("com.mysql.clusterj.connection.pool.size", "2");
     props.setProperty("com.mysql.clusterj.max.cached.instances", "256");
+    props.setProperty("com.mysql.clusterj.connection.pool.recv.thread.activation.threshold", "8");
+    props.setProperty("com.mysql.clusterj.max.cached.instances", "1024");
 
     try {
       sessionFactory = ClusterJHelper.getSessionFactory(props);

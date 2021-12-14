@@ -31,7 +31,7 @@ LICENSE file.
 
   <properties>
     <javaassist.version>3.27.0-GA</javaassist.version>
-    <rondb.clusterj.version>21.04.1</rondb.clusterj.version>
+    <rondb.clusterj.version>21.04.2</rondb.clusterj.version>
   </properties>
 
   <dependencies>
