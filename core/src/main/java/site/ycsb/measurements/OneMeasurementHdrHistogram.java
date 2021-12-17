@@ -45,6 +45,8 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
   private final Recorder histogram;
   private Histogram totalHistogram;
 
+  private int numSummaries=0;
+
   /**
    * The name of the property for deciding what percentile values to output.
    */
@@ -54,7 +56,7 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
    * The default value for the hdrhistogram.percentiles property.
    */
   public static final String PERCENTILES_PROPERTY_DEFAULT = "95,99";
-  
+
   /**
    * The name of the property for determining if we should print out the buckets.
    */
@@ -64,7 +66,7 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
    * Whether or not to emit the histogram buckets.
    */
   private final boolean verbose;
-  
+
   private final List<Double> percentiles;
 
   public OneMeasurementHdrHistogram(String name, Properties props) {
@@ -107,7 +109,7 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
   @Override
   public void exportMeasurements(MeasurementsExporter exporter) throws IOException {
     // accumulate the last interval which was not caught by status thread
-    Histogram intervalHistogram = getIntervalHistogramAndAccumulate();
+    Histogram intervalHistogram = getIntervalHistogramAndAccumulate(true);
     if (histogramLogWriter != null) {
       histogramLogWriter.outputIntervalHistogram(intervalHistogram);
       // we can close now
@@ -134,7 +136,7 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
         } else {
           value = (int)v.getValueIteratedTo();
         }
-  
+
         exporter.write(getName(), Integer.toString(value), (double)v.getCountAtValueIteratedTo());
       }
     }
@@ -149,7 +151,7 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
    */
   @Override
   public String getSummary() {
-    Histogram intervalHistogram = getIntervalHistogramAndAccumulate();
+    Histogram intervalHistogram = getIntervalHistogramAndAccumulate(false);
     // we use the summary interval as the histogram file interval.
     if (histogramLogWriter != null) {
       histogramLogWriter.outputIntervalHistogram(intervalHistogram);
@@ -164,13 +166,32 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
         + d.format(intervalHistogram.getValueAtPercentile(99.99)) + "]";
   }
 
-  private Histogram getIntervalHistogramAndAccumulate() {
+  private Histogram getIntervalHistogramAndAccumulate(boolean last) {
     Histogram intervalHistogram = histogram.getIntervalHistogram();
-    // add this to the total time histogram.
-    if (totalHistogram == null) {
-      totalHistogram = intervalHistogram;
+    numSummaries += 1;
+    if (last) {
+      if (totalHistogram == null) {
+        // Initializing total (short test)
+        totalHistogram = intervalHistogram;
+      } else {
+        // Updating total (last sample)
+        totalHistogram.add(intervalHistogram);
+      }
     } else {
-      totalHistogram.add(intervalHistogram);
+      if (numSummaries < 2) {
+        // We are in warmup
+      } else if (numSummaries == 2) {
+        // Warmup finished, reset
+        intervalHistogram.reset();
+      } else {
+        if (totalHistogram == null) {
+          // Initializing total
+          totalHistogram = intervalHistogram;
+        } else {
+          // Updating total
+          totalHistogram.add(intervalHistogram);
+        }
+      }
     }
     return intervalHistogram;
   }
