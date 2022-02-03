@@ -26,7 +26,7 @@ Clone the YCSB git repository and compile:
 
     git clone https://github.com/brianfrankcooper/YCSB.git
     cd YCSB
-    mvn clean package
+    mvn -pl site.ycsb:rocksdb-binding -am clean package
 
 ### 2. Run YCSB
 
@@ -42,4 +42,10 @@ Then, run the workload:
 
 * ```rocksdb.dir``` - (required) A path to a folder to hold the RocksDB data files.
     * EX. ```/tmp/ycsb-rocksdb-data```
+* ```rocksdb.optionsfile``` - A path to a [RocksDB options file](https://github.com/facebook/rocksdb/wiki/RocksDB-Options-File).
+    * EX. ```ycsb-rocksdb-options.ini```
 
+## Note on RocksDB Options
+
+If `rocksdb.optionsfile` is given, YCSB will apply all [RocksDB options](https://github.com/facebook/rocksdb/wiki/Setup-Options-and-Basic-Tuning) exactly as specified in the options file.
+Otherwise, YCSB will try to set reasonable defaults.

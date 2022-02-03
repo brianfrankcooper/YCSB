@@ -79,13 +79,13 @@ fi
 # Determine YCSB command argument
 if [ "load" = "$1" ] ; then
   YCSB_COMMAND=-load
-  YCSB_CLASS=com.yahoo.ycsb.Client
+  YCSB_CLASS=site.ycsb.Client
 elif [ "run" = "$1" ] ; then
   YCSB_COMMAND=-t
-  YCSB_CLASS=com.yahoo.ycsb.Client
+  YCSB_CLASS=site.ycsb.Client
 elif [ "shell" = "$1" ] ; then
   YCSB_COMMAND=
-  YCSB_CLASS=com.yahoo.ycsb.CommandLine
+  YCSB_CLASS=site.ycsb.CommandLine
 else
   echo "[ERROR] Found unknown command '$1'"
   echo "[ERROR] Expected one of 'load', 'run', or 'shell'. Exiting."
@@ -133,29 +133,19 @@ else
   CLASSPATH="$CLASSPATH:$YCSB_HOME/conf"
 fi
 
-# Accumulo deprecation message
-if [ "${BINDING_DIR}" = "accumulo" ] ; then
-  echo "[WARN] The 'accumulo' client has been deprecated in favor of version \
-specific bindings. This name still maps to the binding for \
-Accumulo 1.6, which is named 'accumulo-1.6'. This alias will \
-be removed in a future YCSB release."
-  BINDING_DIR="accumulo1.6"
-fi
-
-# Accumulo 1.6 deprecation message
-if [ "${BINDING_DIR}" = "accumulo1.6" ] ; then
-  echo "[WARN] The 'accumulo' client has been deprecated because Accumulo 1.6 \
-is EOM. If you are using Accumulo 1.7+ try using the 'accumulo1.7' client \
-instead."
-fi
-
-
 # Cassandra2 deprecation message
 if [ "${BINDING_DIR}" = "cassandra2" ] ; then
   echo "[WARN] The 'cassandra2-cql' client has been deprecated. It has been \
 renamed to simply 'cassandra-cql'. This alias will be removed  in the next \
 YCSB release."
   BINDING_DIR="cassandra"
+fi
+
+# hbase14 replaced by hbas1
+if [ "${BINDING_DIR}" = "hbase14" ] ; then
+  echo "[WARN] The 'hbase14' client has been deprecated. HBase 1.y users should \
+rely on the 'hbase1' client instead."
+  BINDING_DIR="hbase1"
 fi
 
 # arangodb3 deprecation message
@@ -202,7 +192,7 @@ else
     fi
 
     echo "[WARN] YCSB libraries not found.  Attempting to build..."
-    if mvn -Psource-run -pl com.yahoo.ycsb:"$MVN_PROJECT" -am package -DskipTests; then
+    if mvn -Psource-run -pl site.ycsb:"$MVN_PROJECT" -am package -DskipTests; then
       echo "[ERROR] Error trying to build project. Exiting."
       exit 1;
     fi
@@ -247,20 +237,6 @@ fi
 if [ "${BINDING_DIR}" = "couchbase" ] ; then
   echo "[WARN] The 'couchbase' client is deprecated. If you are using \
 Couchbase 4.0+ try using the 'couchbase2' client instead."
-fi
-
-# HBase 0.98 deprecation message
-if [ "${BINDING_DIR}" = "hbase098" ] ; then
-  echo "[WARN] The 'hbase098' client is deprecated because HBase 0.98 \
-is EOM. If you are using HBase 1.2+ try using the 'hbase12' client \
-instead."
-fi
-
-# HBase 1.0 deprecation message
-if [ "${BINDING_DIR}" = "hbase10" ] ; then
-  echo "[WARN] The 'hbase10' client is deprecated because HBase 1.0 \
-is EOM. If you are using HBase 1.2+ try using the 'hbase12' client \
-instead."
 fi
 
 # For Cygwin, switch paths to Windows format before running java

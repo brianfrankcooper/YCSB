@@ -41,6 +41,8 @@ Additional configurations:
   default is true.
 * `kudu_block_size`: The data block size used to configure columns. The default
   is 4096 bytes.
+* `kudu_partition_schema`: The partition schema used to create table. It could be
+  'hashPartition' or 'rangePartition', the default is 'hashPartition'.
 
 Then, you can run the workload:
 
@@ -54,7 +56,7 @@ If you wish to use a different Kudu client version than the one shipped with
 YCSB, you can specify on the command line with `-Dkudu.version=x`. For example:
 
 ```
-mvn -pl com.yahoo.ycsb:kudu-binding -am package -DskipTests -Dkudu.version=1.0.1
+mvn -pl site.ycsb:kudu-binding -am package -DskipTests -Dkudu.version=1.0.1
 ```
 
 Note that only versions since 1.0 are supported, since Kudu did not guarantee

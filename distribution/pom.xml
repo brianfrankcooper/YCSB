@@ -1,5 +1,5 @@
 <!-- 
-Copyright (c) 2012 - 2015 YCSB contributors. All rights reserved.
+Copyright (c) 2012 - 2020 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -19,9 +19,9 @@ LICENSE file.
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.yahoo.ycsb</groupId>
+    <groupId>site.ycsb</groupId>
     <artifactId>root</artifactId>
-    <version>0.16.0-SNAPSHOT</version>
+    <version>0.18.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>ycsb</artifactId>
@@ -35,237 +35,236 @@ LICENSE file.
   </description>
   <dependencies>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>accumulo1.6-binding</artifactId>
+      <groupId>site.ycsb</groupId>
+      <artifactId>accumulo1.9-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>accumulo1.7-binding</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>accumulo1.8-binding</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>aerospike-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>arangodb-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>asynchbase-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>cassandra-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>cloudspanner-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>couchbase-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>couchbase2-binding</artifactId>
       <version>${project.version}</version>
-    </dependency>
+		</dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>azuredocumentdb-binding</artifactId>
+      <groupId>site.ycsb</groupId>
+      <artifactId>crail-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
+      <artifactId>azurecosmos-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>site.ycsb</groupId>
       <artifactId>azuretablestorage-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>dynamodb-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>elasticsearch-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>elasticsearch5-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>foundationdb-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>geode-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>googledatastore-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>googlebigtable-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>hbase098-binding</artifactId>
+      <groupId>site.ycsb</groupId>
+      <artifactId>griddb-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>hbase10-binding</artifactId>
+      <groupId>site.ycsb</groupId>
+      <artifactId>hbase1-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>hbase12-binding</artifactId>
+      <groupId>site.ycsb</groupId>
+      <artifactId>hbase2-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>hbase14-binding</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>hbase20-binding</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>hypertable-binding</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>ignite-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>infinispan-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>jdbc-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>kudu-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>memcached-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>maprdb-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>maprjsondb-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>mongodb-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>nosqldb-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>orientdb-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
+      <artifactId>postgrenosql-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>site.ycsb</groupId>
       <artifactId>rados-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>redis-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>rest-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>riak-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>rocksdb-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>s3-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>solr-binding</artifactId>
+      <groupId>site.ycsb</groupId>
+      <artifactId>seaweedfs-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>solr6-binding</artifactId>
+      <groupId>site.ycsb</groupId>
+      <artifactId>scylla-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
+      <artifactId>solr7-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>site.ycsb</groupId>
       <artifactId>tarantool-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
-<!--
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
-      <artifactId>voldemort-binding</artifactId>
+        <groupId>site.ycsb</groupId>
+        <artifactId>tablestore-binding</artifactId>
+        <version>${project.version}</version>
+    </dependency>
+    <dependency>
+       <groupId>site.ycsb</groupId>
+       <artifactId>voltdb-binding</artifactId>
+       <version>${project.version}</version>
+     </dependency>
+    <dependency>
+      <groupId>site.ycsb</groupId>
+      <artifactId>zookeeper-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
--->
+
   </dependencies>
   <build>
     <plugins>
@@ -292,6 +291,14 @@ LICENSE file.
 
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>ycsb-release</id>
+      <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+      </properties>
+    </profile>
+  </profiles>
 
 </project>
 

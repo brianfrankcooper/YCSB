@@ -54,7 +54,7 @@ The core workloads included with YCSB are defined by a set of parameter files (w
 for the read/write mix, request distribution, etc. For example, the workloada file has the following contents:
 
 <pre>
-workload=com.yahoo.ycsb.workloads.CoreWorkload
+workload=site.ycsb.workloads.CoreWorkload
 
 readallfields=false
 
@@ -78,8 +78,8 @@ performance.
 <P>
 If the CoreWorkload (or some other existing package) does not have the ability to generate the workload you desire, you can create a new workload java class.
 This is done using the following steps:
-<H3>Step 1. Extend <a href="javadoc/com/yahoo/ycsb/Workload.html">com.yahoo.ycsb.Workload</A></H3>
-The base class of all workload classes is com.yahoo.ycsb.Workload. This is an abstract class, so you create a new workload that extends this base class. Your
+<H3>Step 1. Extend <a href="javadoc/site/ycsb/Workload.html">site.ycsb.Workload</A></H3>
+The base class of all workload classes is site.ycsb.Workload. This is an abstract class, so you create a new workload that extends this base class. Your
 class must have a public no-argument constructor, because the workload will be created in a factory using the no-argument constructor. The YCSB Client will
 create one Workload object for each worker thread, so if you run the Client with multiple threads, multiple workload objects will be created.
 <H3>Step 2. Write code to initialize your workload class</H3>

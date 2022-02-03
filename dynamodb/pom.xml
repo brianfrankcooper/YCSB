@@ -20,9 +20,9 @@ LICENSE file.
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>com.yahoo.ycsb</groupId>
+    <groupId>site.ycsb</groupId>
     <artifactId>binding-parent</artifactId>
-    <version>0.16.0-SNAPSHOT</version>
+    <version>0.18.0-SNAPSHOT</version>
     <relativePath>../binding-parent</relativePath>
   </parent>
 
@@ -33,7 +33,7 @@ LICENSE file.
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk</artifactId>
-      <version>1.10.48</version>
+      <version>1.11.812</version>
     </dependency>
     <dependency>
       <groupId>log4j</groupId>
@@ -41,7 +41,7 @@ LICENSE file.
       <version>1.2.17</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>

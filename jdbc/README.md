@@ -54,7 +54,7 @@ Key take aways:
 YCSB has a utility to help create your SQL table. NOTE: It does not support all databases flavors, if it does not work for you, you will have to create your table manually with the schema given above. An example usage of the utility:
 
 ```sh
-java -cp YCSB_HOME/jdbc-binding/lib/jdbc-binding-0.4.0.jar:mysql-connector-java-5.1.37-bin.jar com.yahoo.ycsb.db.JdbcDBCreateTable -P db.properties -n usertable
+java -cp YCSB_HOME/jdbc-binding/lib/jdbc-binding-0.4.0.jar:mysql-connector-java-5.1.37-bin.jar site.ycsb.db.JdbcDBCreateTable -P db.properties -n usertable
 ```
 
 Hint: you need to include your Driver jar in the classpath as well as specify JDBC connection information via a properties file, and a table name with ```-n```. 
@@ -72,6 +72,24 @@ db.passwd=admin
 ```
 
 Be sure to use your driver class, a valid JDBC connection string, and credentials to your database.
+
+For connection fail-over in a DBMS cluster specify the connection string as follows (example based on Postgres):
+
+```sh
+db.driver=org.postgresql.Driver
+db.url=jdbc:postgresql://IP1:PORT1,IP2:PORT2,IP3:PORT3/ycsb
+db.user=admin
+db.passwd=admin
+```
+
+For using multiple shards in a DBMS cluster specify the connection string as follows by using `;`as delimiter (example based on PostgreSQL):
+
+```sh
+db.driver=org.postgresql.Driver
+db.url=jdbc:postgresql://host1:port1/ycsb;jdbc:postgresql://host2:port2/ycsb
+db.user=admin
+db.passwd=admin
+```
 
 You can add these to your workload configuration or a separate properties file and specify it with ```-P``` or you can add the properties individually to your ycsb command with ```-p```.
 
@@ -106,3 +124,12 @@ db.batchsize=1000             # The number of rows to be batched before commit (
 ```
 
 Please refer to https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties for all other YCSB core properties.
+
+## JDBC Parameter to Improve Insert Performance
+
+Some JDBC drivers support re-writing batched insert statements into multi-row insert statements. This technique can yield order of magnitude improvement in insert statement performance. To enable this feature:
+- **db.batchsize** must be greater than 0.  The magniute of the improvement can be adjusted by varying **batchsize**. Start with a small number and increase at small increments until diminishing return in the improvement is observed. 
+- set **jdbc.batchupdateapi=true** to enable batching.
+- set JDBC driver specific connection parameter in **db.url** to enable the rewrite as shown in the examples below:
+  * MySQL [rewriteBatchedStatements=true](https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html) with `db.url=jdbc:mysql://127.0.0.1:3306/ycsb?rewriteBatchedStatements=true`
+  * Postgres [reWriteBatchedInserts=true](https://jdbc.postgresql.org/documentation/head/connect.html#connection-parameters) with `db.url=jdbc:postgresql://127.0.0.1:5432/ycsb?reWriteBatchedInserts=true`

@@ -29,7 +29,7 @@ Git clone YCSB and compile:
 
     git clone http://github.com/brianfrankcooper/YCSB.git
     cd YCSB
-    mvn -pl com.yahoo.ycsb:aerospike-binding -am clean package
+    mvn -pl site.ycsb:aerospike-binding -am clean package
 
 ### 4. Provide Aerospike Connection Parameters
 

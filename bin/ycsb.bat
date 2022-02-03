@@ -62,17 +62,17 @@ GOTO exit
 @REM Determine YCSB command argument
 IF NOT "load" == "%1" GOTO noload
 SET YCSB_COMMAND=-load
-SET YCSB_CLASS=com.yahoo.ycsb.Client
+SET YCSB_CLASS=site.ycsb.Client
 GOTO gotCommand
 :noload
 IF NOT "run" == "%1" GOTO noRun
 SET YCSB_COMMAND=-t
-SET YCSB_CLASS=com.yahoo.ycsb.Client
+SET YCSB_CLASS=site.ycsb.Client
 GOTO gotCommand
 :noRun
 IF NOT "shell" == "%1" GOTO noShell
 SET YCSB_COMMAND=
-SET YCSB_CLASS=com.yahoo.ycsb.CommandLine
+SET YCSB_CLASS=site.ycsb.CommandLine
 GOTO gotCommand
 :noShell
 ECHO [ERROR] Found unknown command '%1'
@@ -117,22 +117,17 @@ GOTO confAdded
 SET CLASSPATH=%YCSB_HOME%\conf
 :confAdded
 
-@REM Accumulo deprecation message
-IF NOT "%BINDING_DIR%" == "accumulo" GOTO notAliasAccumulo
-echo [WARN] The 'accumulo' client has been deprecated in favor of version specific bindings. This name still maps to the binding for Accumulo 1.6, which is named 'accumulo-1.6'. This alias will be removed in a future YCSB release.
-SET BINDING_DIR=accumulo1.6
-:notAliasAccumulo
-
-@REM Accumulo 1.6 deprecation message
-IF NOT "%BINDING_DIR%" == "accumulo1.6" GOTO notAccumulo16
-echo [WARN] The 'accumulo1.6' client has been deprecated because Accumulo 1.6 is EOM. If you are using Accumulo 1.7+ try using the 'accumulo1.7' client instead.
-:notAccumulo16
-
 @REM Cassandra2 deprecation message
 IF NOT "%BINDING_DIR%" == "cassandra2" GOTO notAliasCassandra
 echo [WARN] The 'cassandra2-cql' client has been deprecated. It has been renamed to simply 'cassandra-cql'. This alias will be removed in the next YCSB release.
 SET BINDING_DIR=cassandra
 :notAliasCassandra
+
+@REM hbase14 replaced with hbase1
+IF NOT "%BINDING_DIR%" == "hbase14" GOTO notAliasHBase14
+echo [WARN] The 'hbase14' client has been deprecated. HBase 1.y users should rely on the 'hbase1' client instead.
+SET BINDING_DIR=hbase1
+:notAliasHBase14
 
 @REM arangodb3 deprecation message
 IF NOT "%BINDING_DIR%" == "arangodb3" GOTO notAliasArangodb3
@@ -178,7 +173,7 @@ SET MVN_PROJECT=core
 :gotMvnProject
 
 ECHO [WARN] YCSB libraries not found.  Attempting to build...
-CALL mvn -Psource-run -pl com.yahoo.ycsb:%MVN_PROJECT% -am package -DskipTests
+CALL mvn -Psource-run -pl site.ycsb:%MVN_PROJECT% -am package -DskipTests
 IF %ERRORLEVEL% NEQ 0 (
   ECHO [ERROR] Error trying to build project. Exiting.
   GOTO exit
@@ -216,16 +211,6 @@ FOR %%F IN (%YCSB_HOME%\%BINDING_DIR%\target\dependency\*.jar) DO (
 IF NOT "%BINDING_DIR%" == "couchbase" GOTO notOldCouchbase
 echo [WARN] The 'couchbase' client is deprecated. If you are using Couchbase 4.0+ try using the 'couchbase2' client instead.
 :notOldCouchbase
-
-@REM HBase 0.98 deprecation message
-IF NOT "%BINDING_DIR%" == "hbase098" GOTO not098HBase
-echo [WARN] The 'hbase098' client is deprecated because HBase 0.98 is EOM. If you are using HBase 1.2+ try using the 'hbase12' client instead.
-:not098HBase
-
-@REM HBase 1.0 deprecation message
-IF NOT "%BINDING_DIR%" == "hbase10" GOTO not10HBase
-echo [WARN] The 'hbase10' client is deprecated because HBase 1.0 is EOM. If you are using HBase 1.2+ try using the 'hbase12' client instead.
-:not10HBase
 
 @REM Get the rest of the arguments, skipping the first 2
 FOR /F "tokens=2*" %%G IN ("%*") DO (

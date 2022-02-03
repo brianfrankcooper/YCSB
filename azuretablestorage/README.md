@@ -30,7 +30,7 @@ Git clone YCSB and compile:
 
     git clone http://github.com/brianfrankcooper/YCSB.git
     cd YCSB
-    mvn -pl com.yahoo.ycsb:azuretablestorage-binding -am clean package
+    mvn -pl site.ycsb:azuretablestorage-binding -am clean package
 
 ### 4. Provide Azure Storage parameters
     
