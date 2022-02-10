@@ -60,11 +60,10 @@ Set connection string, schema name, and fieldcount in the workload you plan to r
 - `rondb.schema`  Default : ycsb 
 
 #### Note
-Set the ycsb `fieldcount` according to `usertable` schema. For example, in the case of above table set `fieldcount=1`
+Set the ycsb `fieldcount`, `fieldlength` and `fieldnameprefix` according to `usertable` schema. For example
 
-You can also set configs with the shell command, e.g.:
+    ./bin/ycsb load rondb -s -P workloads/workloada -p "rondb.connection.string=127.0.0.1:1186" -p "rondb.schema=ycsb" -p "fieldcount=1"  -p "fieldlength=4096"  -p "fieldnameprefix=FIELD"
 
-    ./bin/ycsb load rondb -s -P workloads/workloada -p "rondb.connection.string=127.0.0.1:1186" -p "rondb.schema=ycsb" -p "fieldcount=1" > outputLoad.txt
 
 ### 6. Load data and run tests
 
