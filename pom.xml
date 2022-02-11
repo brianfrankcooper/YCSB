@@ -141,6 +141,7 @@ LICENSE file.
     <redis.version>2.9.0</redis.version>
     <riak.version>2.0.5</riak.version>
     <rocksdb.version>6.2.2</rocksdb.version>
+    <rondb.clusterj.version>21.04.2</rondb.clusterj.version>
     <s3.version>1.10.20</s3.version>
     <seaweed.client.version>1.4.1</seaweed.client.version>
     <scylla.cql.version>3.10.2-scylla-1</scylla.cql.version>
@@ -150,7 +151,6 @@ LICENSE file.
     <tablestore.version>4.8.0</tablestore.version>
     <voltdb.version>10.1.1</voltdb.version>
     <zookeeper.version>3.5.8</zookeeper.version>
-    <rondb.clusterj.version>21.04.0</rondb.clusterj.version>
   </properties>
 
   <modules>
