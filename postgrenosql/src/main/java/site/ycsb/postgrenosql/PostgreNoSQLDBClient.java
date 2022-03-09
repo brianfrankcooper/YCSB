@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 YCSB Contributors. All Rights Reserved.
+ * Copyright 2012-2022 YCSB Contributors. All Rights Reserved.
  *
  * CODE IS BASED ON the jdbc-binding JdbcDBClient class.
  *
@@ -18,23 +18,19 @@
  */
 package site.ycsb.postgrenosql;
 
-import site.ycsb.*;
 import org.json.simple.JSONObject;
 import org.postgresql.Driver;
 import org.postgresql.util.PGobject;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
+import site.ycsb.*;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * PostgreNoSQL client for YCSB framework.
@@ -45,17 +41,14 @@ public class PostgreNoSQLDBClient extends DB {
   /** Count the number of times initialized to teardown on the last. */
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
-  /** Cache for already prepared statements. */
-  private static ConcurrentMap<StatementType, PreparedStatement> cachedStatements;
-
   /** The driver to get the connection to postgresql. */
   private static Driver postgrenosqlDriver;
 
   /** The connection to the database. */
-  private static Connection connection;
+  private Connection connection;
 
-  /** The class to use as the jdbc driver. */
-  public static final String DRIVER_CLASS = "db.driver";
+  /** Cache for already prepared statements. */
+  private Map<StatementType, PreparedStatement> cachedStatements;
 
   /** The URL to connect to the database. */
   public static final String CONNECTION_URL = "postgrenosql.url";
@@ -89,47 +82,44 @@ public class PostgreNoSQLDBClient extends DB {
   @Override
   public void init() throws DBException {
     INIT_COUNT.incrementAndGet();
-    synchronized (PostgreNoSQLDBClient.class) {
-      if (postgrenosqlDriver != null) {
-        return;
-      }
 
-      Properties props = getProperties();
-      String urls = props.getProperty(CONNECTION_URL, DEFAULT_PROP);
-      String user = props.getProperty(CONNECTION_USER, DEFAULT_PROP);
-      String passwd = props.getProperty(CONNECTION_PASSWD, DEFAULT_PROP);
-      boolean autoCommit = getBoolProperty(props, JDBC_AUTO_COMMIT, true);
+    Properties props = getProperties();
+    String urls = props.getProperty(CONNECTION_URL, DEFAULT_PROP);
+    String user = props.getProperty(CONNECTION_USER, DEFAULT_PROP);
+    String passwd = props.getProperty(CONNECTION_PASSWD, DEFAULT_PROP);
+    boolean autoCommit = getBoolProperty(props, JDBC_AUTO_COMMIT, true);
 
-      try {
-        Properties tmpProps = new Properties();
-        tmpProps.setProperty("user", user);
-        tmpProps.setProperty("password", passwd);
+    try {
+      Properties tmpProps = new Properties();
+      tmpProps.setProperty("user", user);
+      tmpProps.setProperty("password", passwd);
 
-        cachedStatements = new ConcurrentHashMap<>();
+      cachedStatements = new HashMap<>();
 
+      if (postgrenosqlDriver == null) {
         postgrenosqlDriver = new Driver();
-        connection = postgrenosqlDriver.connect(urls, tmpProps);
-        connection.setAutoCommit(autoCommit);
-
-      } catch (Exception e) {
-        LOG.error("Error during initialization: " + e);
       }
+      connection = postgrenosqlDriver.connect(urls, tmpProps);
+      connection.setAutoCommit(autoCommit);
+
+    } catch (Exception e) {
+      LOG.error("Error during initialization: " + e);
     }
   }
 
   @Override
   public void cleanup() throws DBException {
-    if (INIT_COUNT.decrementAndGet() == 0) {
-      try {
-        cachedStatements.clear();
+    try {
+      cachedStatements.clear();
 
-        if (!connection.getAutoCommit()){
-          connection.commit();
-        }
-        connection.close();
-      } catch (SQLException e) {
-        System.err.println("Error in cleanup execution. " + e);
+      if (!connection.getAutoCommit()) {
+        connection.commit();
       }
+      connection.close();
+    } catch (SQLException e) {
+      System.err.println("Error in cleanup execution. " + e);
+    }
+    if (INIT_COUNT.decrementAndGet() == 0) {
       postgrenosqlDriver = null;
     }
   }
