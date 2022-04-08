@@ -28,6 +28,7 @@ import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.azure.cosmos.models.CosmosPatchOperations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +60,7 @@ import site.ycsb.Status;
 import site.ycsb.StringByteIterator;
 
 /**
- * Azure Cosmos DB Java SDK 4.6.0 client for YCSB.
+ * Azure Cosmos DB Java SDK 4.28.0 client for YCSB.
  */
 
 public class AzureCosmosClient extends DB {
@@ -390,14 +391,6 @@ public class AzureCosmosClient extends DB {
    */
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
-
-    String readEtag = "";
-
-    // Azure Cosmos DB does not have patch support. Until then, we need to read
-    // the document, update it, and then write it back.
-    // This could be made more efficient by using a stored procedure
-    // and doing the read/modify write on the server side. Perhaps
-    // that will be a future improvement.
     for (int attempt = 0; attempt < NUM_UPDATE_ATTEMPTS; attempt++) {
       try {
         CosmosContainer container = AzureCosmosClient.containerCache.get(table);
@@ -406,18 +399,13 @@ public class AzureCosmosClient extends DB {
           AzureCosmosClient.containerCache.put(table, container);
         }
 
-        CosmosItemResponse<ObjectNode> response = container.readItem(key, new PartitionKey(key), ObjectNode.class);
-        readEtag = response.getETag();
-        ObjectNode node = response.getItem();
-
+        CosmosPatchOperations cosmosPatchOperations = CosmosPatchOperations.create();
         for (Entry<String, ByteIterator> pair : values.entrySet()) {
-          node.put(pair.getKey(), pair.getValue().toString());
+          cosmosPatchOperations.replace("/"+pair.getKey(), pair.getValue().toString());
         }
 
-        CosmosItemRequestOptions requestOptions = new CosmosItemRequestOptions();
-        requestOptions.setIfMatchETag(readEtag);
         PartitionKey pk = new PartitionKey(key);
-        container.replaceItem(node, key, pk, requestOptions);
+        container.patchItem(key, pk, cosmosPatchOperations, ObjectNode.class);
 
         return Status.OK;
       } catch (CosmosException e) {
