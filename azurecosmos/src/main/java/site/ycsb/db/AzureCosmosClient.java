@@ -16,22 +16,6 @@
 
 package site.ycsb.db;
 
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.Vector;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import com.azure.cosmos.models.CosmosPatchOperations;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.azure.cosmos.ConsistencyLevel;
 import com.azure.cosmos.CosmosClient;
 import com.azure.cosmos.CosmosClientBuilder;
@@ -43,6 +27,7 @@ import com.azure.cosmos.GatewayConnectionConfig;
 import com.azure.cosmos.ThrottlingRetryOptions;
 import com.azure.cosmos.models.CosmosItemRequestOptions;
 import com.azure.cosmos.models.CosmosItemResponse;
+import com.azure.cosmos.models.CosmosPatchOperations;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.models.FeedResponse;
 import com.azure.cosmos.models.PartitionKey;
@@ -52,12 +37,25 @@ import com.azure.cosmos.util.CosmosPagedIterable;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
 import site.ycsb.StringByteIterator;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Azure Cosmos DB Java SDK 4.28.0 client for YCSB.
@@ -390,27 +388,27 @@ public class AzureCosmosClient extends DB {
    */
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
-      try {
-        CosmosContainer container = AzureCosmosClient.containerCache.get(table);
-        if (container == null) {
-          container = AzureCosmosClient.database.getContainer(table);
-          AzureCosmosClient.containerCache.put(table, container);
-        }
-
-        CosmosPatchOperations cosmosPatchOperations = CosmosPatchOperations.create();
-        for (Entry<String, ByteIterator> pair : values.entrySet()) {
-          cosmosPatchOperations.replace("/"+pair.getKey(), pair.getValue().toString());
-        }
-
-        PartitionKey pk = new PartitionKey(key);
-        container.patchItem(key, pk, cosmosPatchOperations, ObjectNode.class);
-
-        return Status.OK;
-      } catch (CosmosException e) {
-        if (!AzureCosmosClient.includeExceptionStackInLog) {
-          e = null;
-        }
+    try {
+      CosmosContainer container = AzureCosmosClient.containerCache.get(table);
+      if (container == null) {
+        container = AzureCosmosClient.database.getContainer(table);
+        AzureCosmosClient.containerCache.put(table, container);
       }
+
+      CosmosPatchOperations cosmosPatchOperations = CosmosPatchOperations.create();
+      for (Entry<String, ByteIterator> pair : values.entrySet()) {
+        cosmosPatchOperations.replace("/" + pair.getKey(), pair.getValue().toString());
+      }
+
+      PartitionKey pk = new PartitionKey(key);
+      container.patchItem(key, pk, cosmosPatchOperations, ObjectNode.class);
+
+      return Status.OK;
+    } catch (CosmosException e) {
+      if (!AzureCosmosClient.includeExceptionStackInLog) {
+        e = null;
+      }
+    }
 
     return Status.ERROR;
   }
