@@ -75,7 +75,6 @@ public class AzureCosmosClient extends DB {
   private static final int DEFAULT_MAX_DEGREE_OF_PARALLELISM = -1;
   private static final int DEFAULT_MAX_BUFFERED_ITEM_COUNT = 0;
   private static final int DEFAULT_PREFERRED_PAGE_SIZE = -1;
-  public static final int NUM_UPDATE_ATTEMPTS = 4;
   private static final boolean DEFAULT_INCLUDE_EXCEPTION_STACK_IN_LOG = false;
   private static final String DEFAULT_USER_AGENT = "azurecosmos-ycsb";
 
@@ -391,7 +390,6 @@ public class AzureCosmosClient extends DB {
    */
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
-    for (int attempt = 0; attempt < NUM_UPDATE_ATTEMPTS; attempt++) {
       try {
         CosmosContainer container = AzureCosmosClient.containerCache.get(table);
         if (container == null) {
@@ -412,10 +410,7 @@ public class AzureCosmosClient extends DB {
         if (!AzureCosmosClient.includeExceptionStackInLog) {
           e = null;
         }
-        LOGGER.error("Failed to update key {} to collection {} in database {} on attempt {}", key, table,
-            AzureCosmosClient.databaseName, attempt, e);
       }
-    }
 
     return Status.ERROR;
   }
