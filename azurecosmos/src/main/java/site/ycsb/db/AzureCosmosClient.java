@@ -310,6 +310,9 @@ public class AzureCosmosClient extends DB {
       }
       return Status.OK;
     } catch (CosmosException e) {
+      if (!AzureCosmosClient.includeExceptionStackInLog) {
+        e = null;
+      }
       LOGGER.error("Failed to read key {} in collection {} in database {}", key, table, AzureCosmosClient.databaseName,
           e);
       return Status.NOT_FOUND;
@@ -408,6 +411,8 @@ public class AzureCosmosClient extends DB {
       if (!AzureCosmosClient.includeExceptionStackInLog) {
         e = null;
       }
+      LOGGER.error("Failed to update key {} to collection {} in database {}", key, table,
+          AzureCosmosClient.databaseName, e);
     }
 
     return Status.ERROR;
