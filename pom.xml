@@ -192,6 +192,7 @@ LICENSE file.
     <module>postgrenosql</module>
     <module>rados</module>
     <module>redis</module>
+    <module>redis-batch</module>
     <module>rest</module>
     <module>riak</module>
     <module>rocksdb</module>
