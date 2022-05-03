@@ -20,8 +20,12 @@ import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.querybuilder.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 import site.ycsb.ByteArrayByteIterator;
 import site.ycsb.ByteIterator;
+import site.ycsb.Client;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
@@ -46,7 +50,7 @@ import org.slf4j.helpers.MessageFormatter;
  */
 public class ScyllaCQLBatchClient extends DB {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ScyllaCQLClient.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ScyllaCQLBatchClient.class);
 
   private static Cluster cluster = null;
   private static Session session = null;
@@ -103,6 +107,10 @@ public class ScyllaCQLBatchClient extends DB {
   private static boolean debug = false;
 
   private static boolean trace = false;
+
+  private static long recordcount = 0;
+
+  private static int batchsize = 1;
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
@@ -231,6 +239,13 @@ public class ScyllaCQLBatchClient extends DB {
         LOGGER.info("Read consistency: {}, Write consistency: {}\n",
             readConsistencyLevel.name(),
             writeConsistencyLevel.name());
+
+        recordcount = Long.parseLong(getProperties().getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
+        LOGGER.info("Record count: {}\n", recordcount);
+
+        batchsize = Integer.parseInt(getProperties().getProperty("batchsize", "1"));
+        LOGGER.info("Batch size: {}\n", batchsize);
+
       } catch (Exception e) {
         throw new DBException(e);
       }
@@ -303,8 +318,8 @@ public class ScyllaCQLBatchClient extends DB {
         }
 
         stmt = session.prepare(selectBuilder.from(table)
-            .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker()))
-            .limit(1));
+            .where(QueryBuilder.in(YCSB_KEY, QueryBuilder.bindMarker())));
+
         stmt.setConsistencyLevel(readConsistencyLevel);
         if (trace) {
           stmt.enableTracing();
@@ -321,7 +336,13 @@ public class ScyllaCQLBatchClient extends DB {
       LOGGER.debug(stmt.getQueryString());
       LOGGER.debug("key = {}", key);
 
-      ResultSet rs = session.execute(stmt.bind(key));
+      List<String> keys = new ArrayList<String>();
+      for (int i = 0; i < batchsize; i++) {
+        keys.add(String.valueOf(new Random().nextInt(0, (int)recordcount)));
+      }
+      LOGGER.debug("keys = {}", keys);
+
+      ResultSet rs = session.execute(stmt.bind(keys));
 
       if (rs.isExhausted()) {
         return Status.NOT_FOUND;

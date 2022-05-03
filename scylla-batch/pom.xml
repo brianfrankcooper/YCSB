@@ -27,7 +27,7 @@ LICENSE file.
     <relativePath>../binding-parent</relativePath>
   </parent>
 
-  <artifactId>scylla-binding</artifactId>
+  <artifactId>scylla-batch-binding</artifactId>
   <name>Scylla DB Binding</name>
   <packaging>jar</packaging>
 
