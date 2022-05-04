@@ -211,6 +211,11 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>site.ycsb</groupId>
+      <artifactId>redis-batch-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>site.ycsb</groupId>
       <artifactId>rest-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -237,6 +242,11 @@ LICENSE file.
     <dependency>
       <groupId>site.ycsb</groupId>
       <artifactId>scylla-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>site.ycsb</groupId>
+      <artifactId>scylla-batch-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
