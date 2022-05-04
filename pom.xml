@@ -192,14 +192,14 @@ LICENSE file.
     <module>postgrenosql</module>
     <module>rados</module>
     <module>redis</module>
-    <module>redis-batch</module>
+    <module>redisbatch</module>
     <module>rest</module>
     <module>riak</module>
     <module>rocksdb</module>
     <module>s3</module>
     <module>seaweedfs</module>
     <module>scylla</module>
-    <module>scylla-batch</module>
+    <module>scyllabatch</module>
     <module>solr7</module>
     <module>tarantool</module>
     <module>tablestore</module>

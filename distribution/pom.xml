@@ -211,7 +211,7 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>site.ycsb</groupId>
-      <artifactId>redis-batch-binding</artifactId>
+      <artifactId>redisbatch-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -246,7 +246,7 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>site.ycsb</groupId>
-      <artifactId>scylla-batch-binding</artifactId>
+      <artifactId>scyllabatch-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

@@ -25,7 +25,7 @@ LICENSE file.
     <relativePath>../binding-parent</relativePath>
   </parent>
   
-  <artifactId>redis-batch-binding</artifactId>
+  <artifactId>redisbatch-binding</artifactId>
   <name>Redis DB Binding</name>
   <packaging>jar</packaging>
 
