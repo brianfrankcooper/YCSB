@@ -338,7 +338,7 @@ public class ScyllaCQLBatchClient extends DB {
 
       List<String> keys = new ArrayList<String>();
       for (int i = 0; i < batchsize; i++) {
-        keys.add(String.valueOf(new Random().nextInt(0, (int)recordcount)));
+        keys.add("user" + String.valueOf(new Random().nextInt(0, (int)recordcount)));
       }
       LOGGER.debug("keys = {}", keys);
 
