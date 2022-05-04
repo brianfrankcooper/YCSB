@@ -37,8 +37,6 @@ import site.ycsb.StringByteIterator;
 import redis.clients.jedis.BasicCommands;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisCluster;
-import redis.clients.jedis.JedisCommands;
 import redis.clients.jedis.Protocol;
 
 import java.io.Closeable;
@@ -59,9 +57,11 @@ import java.util.Vector;
  */
 public class RedisBatchClient extends DB {
 
-  private Jedis jedis;
+  private Jedis primary;
+  private Jedis[] replicas;
 
-  public static final String HOST_PROPERTY = "redis.host";
+  public static final String PRIMARY_HOST_PROPERTY = "redis.primary-host";
+  public static final String REPLICA_HOST_PROPERTY = "redis.replica-host";
   public static final String PORT_PROPERTY = "redis.port";
   public static final String PASSWORD_PROPERTY = "redis.password";
   public static final String CLUSTER_PROPERTY = "redis.cluster";
@@ -83,26 +83,33 @@ public class RedisBatchClient extends DB {
     } else {
       port = Protocol.DEFAULT_PORT;
     }
-    String host = props.getProperty(HOST_PROPERTY);
+    String primaryHost = props.getProperty(PRIMARY_HOST_PROPERTY);
+    String[] replicaHosts = props.getProperty(REPLICA_HOST_PROPERTY).split(",");
 
-    boolean clusterEnabled = Boolean.parseBoolean(props.getProperty(CLUSTER_PROPERTY));
-    if (clusterEnabled) {
-      Set<HostAndPort> jedisClusterNodes = new HashSet<>();
-      jedisClusterNodes.add(new HostAndPort(host, port));
-//      jedis = new JedisCluster(jedisClusterNodes);
+    String redisTimeout = props.getProperty(TIMEOUT_PROPERTY);
+    if (redisTimeout != null){
+      primary = new Jedis(primaryHost, port, Integer.parseInt(redisTimeout));
     } else {
-      String redisTimeout = props.getProperty(TIMEOUT_PROPERTY);
+      primary = new Jedis(primaryHost, port);
+    }
+    primary.connect();
+
+    replicas = new Jedis[replicaHosts.length];
+    for (int index = 0; index < replicaHosts.length; index++) {
+      String host = replicaHosts[index];
+      Jedis replica;
       if (redisTimeout != null){
-        jedis = new Jedis(host, port, Integer.parseInt(redisTimeout));
+        replica = new Jedis(host, port, Integer.parseInt(redisTimeout));
       } else {
-        jedis = new Jedis(host, port);
+        replica = new Jedis(host, port);
       }
-      ((Jedis) jedis).connect();
+      replica.connect();
+      replicas[index] = replica;
     }
 
     String password = props.getProperty(PASSWORD_PROPERTY);
     if (password != null) {
-      ((BasicCommands) jedis).auth(password);
+      ((BasicCommands) primary).auth(password);
     }
 
     recordcount = Long.parseLong(getProperties().getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
@@ -112,7 +119,7 @@ public class RedisBatchClient extends DB {
 
   public void cleanup() throws DBException {
     try {
-      ((Closeable) jedis).close();
+      ((Closeable) primary).close();
     } catch (IOException e) {
       throw new DBException("Closing connection failed.");
     }
@@ -138,7 +145,9 @@ public class RedisBatchClient extends DB {
       keys.add(String.valueOf(new Random().nextInt((int)recordcount)));
     }
 
-    Pipeline p = jedis.pipelined();
+    // pick a random replica to send read request to
+    Jedis replica = replicas[new Random().nextInt(replicas.length)];
+    Pipeline p = replica.pipelined();
     Map<String, Response<Map<String, String>>> allFieldsRes = new HashMap<>();
     Map<String, Response<List<String>>> partialFieldsRes = new HashMap<>();
 
@@ -177,9 +186,9 @@ public class RedisBatchClient extends DB {
   @Override
   public Status insert(String table, String key,
       Map<String, ByteIterator> values) {
-    if (jedis.hmset(key, StringByteIterator.getStringMap(values))
+    if (primary.hmset(key, StringByteIterator.getStringMap(values))
         .equals("OK")) {
-      jedis.zadd(INDEX_KEY, hash(key), key);
+      primary.zadd(INDEX_KEY, hash(key), key);
       return Status.OK;
     }
     return Status.ERROR;
@@ -187,21 +196,21 @@ public class RedisBatchClient extends DB {
 
   @Override
   public Status delete(String table, String key) {
-    return jedis.del(key) == 0 && jedis.zrem(INDEX_KEY, key) == 0 ? Status.ERROR
+    return primary.del(key) == 0 && primary.zrem(INDEX_KEY, key) == 0 ? Status.ERROR
         : Status.OK;
   }
 
   @Override
   public Status update(String table, String key,
       Map<String, ByteIterator> values) {
-    return jedis.hmset(key, StringByteIterator.getStringMap(values))
+    return primary.hmset(key, StringByteIterator.getStringMap(values))
         .equals("OK") ? Status.OK : Status.ERROR;
   }
 
   @Override
   public Status scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-    Set<String> keys = jedis.zrangeByScore(INDEX_KEY, hash(startkey),
+    Set<String> keys = primary.zrangeByScore(INDEX_KEY, hash(startkey),
         Double.POSITIVE_INFINITY, 0, recordcount);
 
     HashMap<String, ByteIterator> values;
