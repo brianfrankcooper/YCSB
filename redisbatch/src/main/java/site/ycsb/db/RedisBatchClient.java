@@ -135,7 +135,7 @@ public class RedisBatchClient extends DB {
       Map<String, ByteIterator> result) {
     List<String> keys = new ArrayList<String>();
     for (int i = 0; i < batchsize; i++) {
-      keys.add(String.valueOf(new Random().nextInt(0, (int)recordcount)));
+      keys.add(String.valueOf(new Random().nextInt((int)recordcount)));
     }
 
     Pipeline p = jedis.pipelined();
