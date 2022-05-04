@@ -24,7 +24,12 @@
 
 package site.ycsb.db;
 
+import java.util.ArrayList;
+import java.util.Random;
+import redis.clients.jedis.Pipeline;
+import redis.clients.jedis.Response;
 import site.ycsb.ByteIterator;
+import site.ycsb.Client;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
@@ -54,7 +59,7 @@ import java.util.Vector;
  */
 public class RedisBatchClient extends DB {
 
-  private JedisCommands jedis;
+  private Jedis jedis;
 
   public static final String HOST_PROPERTY = "redis.host";
   public static final String PORT_PROPERTY = "redis.port";
@@ -63,6 +68,10 @@ public class RedisBatchClient extends DB {
   public static final String TIMEOUT_PROPERTY = "redis.timeout";
 
   public static final String INDEX_KEY = "_indices";
+
+  private static long recordcount = 0;
+
+  private static int batchsize = 1;
 
   public void init() throws DBException {
     Properties props = getProperties();
@@ -80,7 +89,7 @@ public class RedisBatchClient extends DB {
     if (clusterEnabled) {
       Set<HostAndPort> jedisClusterNodes = new HashSet<>();
       jedisClusterNodes.add(new HostAndPort(host, port));
-      jedis = new JedisCluster(jedisClusterNodes);
+//      jedis = new JedisCluster(jedisClusterNodes);
     } else {
       String redisTimeout = props.getProperty(TIMEOUT_PROPERTY);
       if (redisTimeout != null){
@@ -95,6 +104,10 @@ public class RedisBatchClient extends DB {
     if (password != null) {
       ((BasicCommands) jedis).auth(password);
     }
+
+    recordcount = Long.parseLong(getProperties().getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
+
+    batchsize = Integer.parseInt(getProperties().getProperty("batchsize", "1"));
   }
 
   public void cleanup() throws DBException {
@@ -120,22 +133,44 @@ public class RedisBatchClient extends DB {
   @Override
   public Status read(String table, String key, Set<String> fields,
       Map<String, ByteIterator> result) {
-    if (fields == null) {
-      StringByteIterator.putAllAsByteIterators(result, jedis.hgetAll(key));
-    } else {
-      String[] fieldArray =
-          (String[]) fields.toArray(new String[fields.size()]);
-      List<String> values = jedis.hmget(key, fieldArray);
-
-      Iterator<String> fieldIterator = fields.iterator();
-      Iterator<String> valueIterator = values.iterator();
-
-      while (fieldIterator.hasNext() && valueIterator.hasNext()) {
-        result.put(fieldIterator.next(),
-            new StringByteIterator(valueIterator.next()));
-      }
-      assert !fieldIterator.hasNext() && !valueIterator.hasNext();
+    List<String> keys = new ArrayList<String>();
+    for (int i = 0; i < batchsize; i++) {
+      keys.add(String.valueOf(new Random().nextInt(0, (int)recordcount)));
     }
+
+    Pipeline p = jedis.pipelined();
+    Map<String, Response<Map<String, String>>> allFieldsRes = new HashMap<>();
+    Map<String, Response<List<String>>> partialFieldsRes = new HashMap<>();
+
+    keys.forEach(k -> {
+      if (fields == null) {
+        allFieldsRes.put(k, p.hgetAll(k));
+      } else {
+        String[] fieldArray =
+            (String[]) fields.toArray(new String[fields.size()]);
+        partialFieldsRes.put(k, p.hmget(k, fieldArray));
+      }
+    });
+
+    p.sync();
+
+    keys.forEach(k -> {
+      if (fields == null) {
+        StringByteIterator.putAllAsByteIterators(result, allFieldsRes.get(k).get());
+      } else {
+        List<String> values = partialFieldsRes.get(k).get();
+
+        Iterator<String> fieldIterator = fields.iterator();
+        Iterator<String> valueIterator = values.iterator();
+
+        while (fieldIterator.hasNext() && valueIterator.hasNext()) {
+          result.put(fieldIterator.next(),
+              new StringByteIterator(valueIterator.next()));
+        }
+        assert !fieldIterator.hasNext() && !valueIterator.hasNext();
+      }
+    });
+
     return result.isEmpty() ? Status.ERROR : Status.OK;
   }
 

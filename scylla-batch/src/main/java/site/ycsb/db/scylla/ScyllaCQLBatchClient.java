@@ -348,18 +348,23 @@ public class ScyllaCQLBatchClient extends DB {
         return Status.NOT_FOUND;
       }
 
-      // Should be only 1 row
-      Row row = rs.one();
-      ColumnDefinitions cd = row.getColumnDefinitions();
-
-      for (ColumnDefinitions.Definition def : cd) {
-        ByteBuffer val = row.getBytesUnsafe(def.getName());
-        if (val != null) {
-          result.put(def.getName(), new ByteArrayByteIterator(val.array()));
-        } else {
-          result.put(def.getName(), null);
-        }
+      List<Row> rows = rs.all();
+      if (rows.size() != batchsize){
+        throw new IllegalStateException("records size " + rows.size() + " is not equal to batchsize " + batchsize);
       }
+
+      rows.forEach(row -> {
+        ColumnDefinitions cd = row.getColumnDefinitions();
+
+        for (ColumnDefinitions.Definition def : cd) {
+          ByteBuffer val = row.getBytesUnsafe(def.getName());
+          if (val != null) {
+            result.put(def.getName(), new ByteArrayByteIterator(val.array()));
+          } else {
+            result.put(def.getName(), null);
+          }
+        }
+      });
 
       return Status.OK;
 
