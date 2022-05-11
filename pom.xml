@@ -129,6 +129,7 @@ LICENSE file.
     <griddb.version>4.0.0</griddb.version>
     <hbase1.version>1.4.12</hbase1.version>
     <hbase2.version>2.2.3</hbase2.version>
+    <httpclient.version>4.5.10</httpclient.version>
     <ignite.version>2.7.6</ignite.version>
     <infinispan.version>7.2.2.Final</infinispan.version>
     <kudu.version>1.11.1</kudu.version>

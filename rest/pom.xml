@@ -29,7 +29,6 @@
 
     <tomcat.version>8.0.28</tomcat.version>
     <jersey.version>2.6</jersey.version>
-    <httpclient.version>4.5.1</httpclient.version>
     <httpcore.version>4.4.4</httpcore.version>
     <junit.version>4.12</junit.version>
     <system-rules.version>1.16.0</system-rules.version>
