@@ -38,7 +38,7 @@ public final class RonDBConnection {
   private static Logger logger = LoggerFactory.getLogger(RonDBConnection.class);
 
   private static final String CONNECT_STR_PROPERTY = "rondb.connection.string";
-  protected static final String SCHEMA = "rondb.schema";
+  public static final String SCHEMA = "rondb.schema";
   private static SessionFactory sessionFactory;
   private static ThreadLocal<Session> sessions = new ThreadLocal<>();
 

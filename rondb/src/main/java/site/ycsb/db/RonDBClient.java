@@ -17,16 +17,6 @@
 
 /**
  * YCSB binding for <a href="https://rondb.com/">RonDB</a>.
- * <p>
- * RonDB client binding for YCSB.
- * <p>
- * RonDB client binding for YCSB.
- * <p>
- * RonDB client binding for YCSB.
- * <p>
- * RonDB client binding for YCSB.
- * <p>
- * RonDB client binding for YCSB.
  */
 
 /**
@@ -48,6 +38,7 @@ import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
+import site.ycsb.db.rest.RonDBRestClient;
 import site.ycsb.db.table.ClassGenerator;
 import site.ycsb.db.table.UserTableHelper;
 import site.ycsb.db.tx.TransactionReqHandler;
@@ -124,8 +115,8 @@ public class RonDBClient extends DB {
    * Called once per DB instance; there is one DB instance per client thread.
    */
   public void cleanup() throws DBException {
-    System.out.println("----------------> cleanup");
-    RonDBRestClient.getClient().notifyAllBarriers();
+//    System.out.println("----------------> cleanup");
+//    RonDBRestClient.getClient().notifyAllBarriers();
     synchronized (lock) {
       if (connection != null) {
         RonDBConnection.closeSession(connection);
@@ -150,36 +141,37 @@ public class RonDBClient extends DB {
     Set<String> toRead = fields != null ? fields : fieldNames;
     if (RonDBRestClient.useRESTAPI()) {
       try {
-        RonDBRestClient.getClient().read(threadID, table, key, toRead, result);
+        return RonDBRestClient.getClient().read(threadID, table, key, toRead, result);
       } catch (Exception e) {
-        logger.error("Read Error: " + e);
+        logger.error("Error " + e);
+        return Status.ERROR;
       }
-    }
-
-    Class<DynamicObject> dbClass = getDTOClass();
-    final Session session = connection.getSession();
-    try {
-      TransactionReqHandler handler = new TransactionReqHandler("Read") {
-        @Override
-        public Status action() throws Exception {
-          DynamicObject row = session.find(dbClass, key);
-          if (row == null) {
-            logger.info("Read. Key: " + key + " Not Found.");
-            return Status.NOT_FOUND;
+    } else {
+      Class<DynamicObject> dbClass = getDTOClass();
+      final Session session = connection.getSession();
+      try {
+        TransactionReqHandler handler = new TransactionReqHandler("Read") {
+          @Override
+          public Status action() throws Exception {
+            DynamicObject row = session.find(dbClass, key);
+            if (row == null) {
+              logger.info("Read. Key: " + key + " Not Found.");
+              return Status.NOT_FOUND;
+            }
+            for (String field : toRead) {
+              result.put(field, UserTableHelper.readFieldFromDTO(field, row));
+            }
+            releaseDTO(session, row);
+            if (logger.isDebugEnabled()) {
+              logger.debug("Read Key " + key);
+            }
+            return Status.OK;
           }
-          for (String field : toRead) {
-            result.put(field, UserTableHelper.readFieldFromDTO(field, row));
-          }
-          releaseDTO(session, row);
-          if (logger.isDebugEnabled()) {
-            logger.debug("Read Key " + key);
-          }
-          return Status.OK;
-        }
-      };
-      return handler.runTx(session, dbClass, key);
-    } finally {
-      connection.returnSession(session);
+        };
+        return handler.runTx(session, dbClass, key);
+      } finally {
+        connection.returnSession(session);
+      }
     }
   }
 
@@ -354,5 +346,9 @@ public class RonDBClient extends DB {
       e.printStackTrace();
       return null;
     }
+  }
+
+  public static Logger getLogger() {
+    return logger;
   }
 }
