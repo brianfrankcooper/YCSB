@@ -123,7 +123,7 @@ LICENSE file.
 		<couchbase2.version>2.3.1</couchbase2.version>
 		<crail.version>1.1-incubating</crail.version>
     <elasticsearch5-version>5.5.1</elasticsearch5-version>
-    <foundationdb.version>6.2.22</foundationdb.version>
+    <foundationdb.version>7.1.2</foundationdb.version>
     <geode.version>1.2.0</geode.version>
     <googlebigtable.version>1.4.0</googlebigtable.version>
     <griddb.version>4.0.0</griddb.version>

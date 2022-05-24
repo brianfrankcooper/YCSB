@@ -37,7 +37,7 @@ import static java.util.stream.Collectors.toList;
 
 public class FoundationDBClient extends DB {
   private static final String API_VERSION = "foundationdb.apiversion";
-  private static final String API_VERSION_DEFAULT = "620";
+  private static final String API_VERSION_DEFAULT = "710";
   private static final String CLUSTER_FILE = "foundationdb.clusterfile";
   private static final String CLUSTER_FILE_DEFAULT = "./fdb.cluster";
   private static final String DB_NAME = "foundationdb.dbname";
@@ -45,12 +45,16 @@ public class FoundationDBClient extends DB {
   private static final String DB_BATCH_SIZE_DEFAULT = "0";
   private static final String DB_BATCH_SIZE = "foundationdb.batchsize";
   private static Logger logger = LoggerFactory.getLogger(FoundationDBClient.class);
-  private FDB fdb;
-  private Database db;
-  private String dbName;
-  private int batchSize;
+  private static FDB fdb;
+  private static Database db;
+  private static String dbName;
+  private static int batchSize;
+  private static volatile boolean isFDBInitialized = false;
+
   private List<Op> opList = new ArrayList<>();
-  enum OpName {READ, UPDATE, DELETE, INSERT}
+  private enum OpName {READ, UPDATE, DELETE, INSERT}
+
+  // initialize DB
 
   private static final class Op {
     private OpName opName;
@@ -245,8 +249,8 @@ public class FoundationDBClient extends DB {
 
 
   // ----------------------  Helper methods  --------------------
-  private static String getRowKey(String db, String table, String key) {
-    return db + ":" + table + ":" + key;
+  private static String getRowKey(String database, String table, String key) {
+    return database + ":" + table + ":" + key;
   }
 
   private static String getEndRowKey(String table) {
@@ -296,6 +300,20 @@ public class FoundationDBClient extends DB {
    */
   @Override
   public void init() throws DBException {
+    synchronized (DB.class) {
+      if (isFDBInitialized) {
+        logger.info("FDB has already been initialized.");
+        return;
+      }
+      initFDB();
+    }
+  }
+
+  private synchronized void initFDB() throws DBException {
+    if(isFDBInitialized){
+      logger.info("FDB has already been initialized.");
+      return;
+    }
     // initialize FoundationDB driver
     final Properties props = getProperties();
     String apiVersion = props.getProperty(API_VERSION, API_VERSION_DEFAULT);
@@ -311,12 +329,15 @@ public class FoundationDBClient extends DB {
       fdb = FDB.selectAPIVersion(Integer.parseInt(apiVersion.trim()));
       db = fdb.open(clusterFile);
       batchSize = Integer.parseInt(dbBatchSize);
-
+      isFDBInitialized = true;
     } catch (FDBException e) {
       logger.error(MessageFormatter.format("Error in database operation: {}", "init").getMessage(), e);
       throw new DBException(e);
     } catch (NumberFormatException e) {
       logger.error(MessageFormatter.format("Invalid value for apiversion property: {}", apiVersion).getMessage(), e);
+      throw new DBException(e);
+    } catch (Exception e) {
+      logger.error(MessageFormatter.format("Error in database operation: {}", "init").getMessage(), e);
       throw new DBException(e);
     }
   }
