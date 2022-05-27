@@ -260,12 +260,8 @@ public class YDBClient extends DB {
     int i = 0;
     int last = values.size() - 1;
     for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-      // as alternative we can use entry.getValue().toArray() to avoid
-      // escaping, though not sure that it's fair (and then we need to
-      // work with bytes when read to provide human readable string)
-      String value = entry.getValue().toString();
-      String valueEscaped = value.replace("'", "''");
-      sb.append("'" + valueEscaped + "'");
+      // note that using byte array we avoid escaping
+      sb.append("'" + entry.getValue().toArray() + "'");
       if (i != last) {
         sb.append(",");
       }
