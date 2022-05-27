@@ -51,3 +51,11 @@ Then the workload:
 - `database`
  - Full path to the database, e.g. `/home/mydb`.
  - No default value, parametr is mandatory.
+
+- `dropOnInit`
+ - During initialization table `usertable` will be dropped if parameter set to `true`
+ - Default is `false`
+
+- `dropOnClean`
+ - At the end table `usertable` will be dropped if parameter set to `true`
+ - Default is `false`

@@ -48,6 +48,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * YDB client implementation.
@@ -56,26 +57,42 @@ public class YDBClient extends DB {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(YDBClient.class);
 
+  /** Key column name is 'key' (and type String). */
   private static final String KEY_COLUMN_NAME = "key";
+
+  /**
+   * Count the number of times initialized to teardown on the last
+   * {@link #cleanup()}.
+   */
+  private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
   private static int fieldcount;
   private static String tablename;
 
+  // YDB connection staff
   private String database;
   private TableClient tableclient;
   private SessionRetryContext retryctx;
 
-  public void createTable() throws DBException {
+  private void dropTable() throws DBException {
     Status dropstatus =
-        this.retryctx.supplyStatus(session -> session.dropTable(this.database + "/" + tablename)).join();
+        this.retryctx.supplyStatus(session -> session.dropTable(this.database + "/" + this.tablename)).join();
     if (dropstatus.getCode() != StatusCode.SUCCESS
         && dropstatus.getCode() != StatusCode.NOT_FOUND
         && dropstatus.getCode() != StatusCode.SCHEME_ERROR) {
-      String msg = "Failed to drop '" + tablename + "': " + dropstatus.toString();
+      String msg = "Failed to drop '" + this.tablename + "': " + dropstatus.toString();
       throw new DBException(msg);
     }
+  }
 
+  public void createTable() throws DBException {
     Properties properties = getProperties();
+
+    final boolean doDrop = Boolean.parseBoolean(properties.getProperty("dropOnInit", "false"));
+    if (doDrop) {
+      dropTable();
+    }
+
     final String fieldprefix = properties.getProperty(CoreWorkload.FIELD_NAME_PREFIX,
                                                       CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
 
@@ -99,6 +116,8 @@ public class YDBClient extends DB {
 
   @Override
   public void init() throws DBException {
+    INIT_COUNT.incrementAndGet();
+
     Properties properties = getProperties();
 
     fieldcount = Integer.parseInt(properties.getProperty(
@@ -138,7 +157,17 @@ public class YDBClient extends DB {
 
   @Override
   public void cleanup() throws DBException {
-    // TODO: need any?
+    if (INIT_COUNT.decrementAndGet() != 0) {
+      return;
+    }
+
+    // last instance
+
+    Properties properties = getProperties();
+    final boolean doDrop = Boolean.parseBoolean(properties.getProperty("dropOnClean", "false"));
+    if (doDrop) {
+      dropTable();
+    }
   }
 
   @Override
