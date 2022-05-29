@@ -20,27 +20,40 @@ LICENSE file.
 Binding for [YDB](https://www.ydb.tech/), using SQL API
 via the [YDB Java SDK](https://github.com/yandex-cloud/ydb-java-sdk).
 
-This section describes how to run YCSB on YDB. YDB database mu
+You might also want to use [YCSB-helpers](https://github.com/eivanov89/YCSB-helpers).
+
+This section describes how to run YCSB on YDB.
 
 ### 1. Start YDB
 
-Install and start YDB. The database must be running, you don't need any preparation steps. By default YCSB will create table named `usertable` with all required fields. Note that if table already exists, it will be dropped.
+Install and start YDB. The database must be running, you don't need any preparation steps.
+By default YCSB will create table named `usertable` with all required fields.
 
 ### 2. Install Java and Maven
 
+
 ### 3. Set Up YCSB
 
-Follow original YCSB docs to build YCSB. No additional configuration required.
+Run the following command to build:
+
+  > mvn -pl site.ycsb:ydb-binding -am clean package
+
+Don't forget to unpack the built package somewhere. To avoid extra maven invocations run commands from this instruction inside unpacked package, not source tree.
 
 ### 4. Run YCSB
 
-Now you are ready to run! Load the data:
+Load the data:
 
-    ./bin/ycsb load ydb -s -P workloads/workloada > outputLoad.txt
+    $ ./bin/ycsb load ydb -s -P workloads/workloada \
+        -p database=/Root/db1 \
+        -p endpoint=grpc://SOME_YDB_HOST:2135 \
+        -p dropOnInit=true > outputLoad.txt
 
-Then the workload:
+Run the workload:
 
-    ./bin/ycsb run ydb -s -P workloads/workloada > outputLoad.txt
+    $ ./bin/ycsb run ydb -s -P workloads/workloada \
+        -p database=/Root/db1 \
+        -p endpoint=grpc://SOME_YDB_HOST:2135  > outputLoad.txt
 
 ## YDB Configuration Parameters
 
