@@ -32,8 +32,10 @@ import com.yandex.ydb.core.Status;
 import com.yandex.ydb.core.StatusCode;
 import com.yandex.ydb.core.UnexpectedResultException;
 import com.yandex.ydb.table.SessionRetryContext;
+import com.yandex.ydb.table.settings.PartitioningSettings;
 import com.yandex.ydb.table.TableClient;
 import com.yandex.ydb.table.description.TableDescription;
+import com.yandex.ydb.table.settings.CreateTableSettings;
 import com.yandex.ydb.table.query.DataQueryResult;
 import com.yandex.ydb.table.result.ResultSetReader;
 import com.yandex.ydb.table.rpc.grpc.GrpcTableRpc;
@@ -60,13 +62,15 @@ public class YDBClient extends DB {
   /** Key column name is 'key' (and type String). */
   private static final String KEY_COLUMN_NAME = "key";
 
+  private static final String MAX_PARTITION_SIZE = "2000000000"; // 2 GB
+  private static final String MAX_PARTITIONS_COUNT = "50";
+
   /**
    * Count the number of times initialized to teardown on the last
    * {@link #cleanup()}.
    */
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
-  private static int fieldcount;
   private static String tablename;
 
   // YDB connection staff
@@ -85,6 +89,42 @@ public class YDBClient extends DB {
     }
   }
 
+  private int calculateAvgRowSize() {
+    Properties properties = getProperties();
+
+    int fieldlength = Integer.parseInt(properties.getProperty(
+        CoreWorkload.FIELD_LENGTH_PROPERTY, CoreWorkload.FIELD_LENGTH_PROPERTY_DEFAULT));
+
+    int minfieldlength = Integer.parseInt(properties.getProperty(
+        CoreWorkload.MIN_FIELD_LENGTH_PROPERTY, CoreWorkload.MIN_FIELD_LENGTH_PROPERTY_DEFAULT));
+
+    String fieldlengthdistribution = properties.getProperty(
+        CoreWorkload.FIELD_LENGTH_DISTRIBUTION_PROPERTY, CoreWorkload.FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
+
+    int avgFieldLength = 0;
+    if (fieldlengthdistribution.compareTo("constant") == 0) {
+      avgFieldLength = fieldlength;
+    } else if (fieldlengthdistribution.compareTo("uniform") == 0) {
+      if (minfieldlength < fieldlength) {
+        avgFieldLength = (fieldlength - minfieldlength) / 2 + 1;
+      } else {
+        avgFieldLength = fieldlength / 2 + 1;
+      }
+    } else if (fieldlengthdistribution.compareTo("zipfian") == 0) {
+      avgFieldLength = fieldlength / 4 + 1;
+    } else if (fieldlengthdistribution.compareTo("histogram") == 0) {
+      // TODO: properly handle this case, for now just some value
+      avgFieldLength = fieldlength;
+    } else {
+      avgFieldLength = fieldlength;
+    }
+
+    int fieldcount = Integer.parseInt(properties.getProperty(
+        CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
+
+    return avgFieldLength * fieldcount;
+  }
+
   public void createTable() throws DBException {
     Properties properties = getProperties();
 
@@ -96,6 +136,9 @@ public class YDBClient extends DB {
     final String fieldprefix = properties.getProperty(CoreWorkload.FIELD_NAME_PREFIX,
                                                       CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
 
+    int fieldcount = Integer.parseInt(properties.getProperty(
+        CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
+
     TableDescription.Builder builder = TableDescription.newBuilder();
     builder.addNullableColumn(KEY_COLUMN_NAME, PrimitiveType.utf8());
     for (int i = 0; i < fieldcount; i++) {
@@ -103,9 +146,43 @@ public class YDBClient extends DB {
     }
     builder.setPrimaryKey(KEY_COLUMN_NAME);
 
+    final boolean autopartitioning = Boolean.parseBoolean(properties.getProperty("autopartitioning", "true"));
+    CreateTableSettings tableSettings = new CreateTableSettings();
+    if (autopartitioning) {
+      int avgRowSize = calculateAvgRowSize();
+      long recordcount = Long.parseLong(properties.getProperty(
+          Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
+
+      int maxPartSize = Integer.parseInt(properties.getProperty("maxpartsize", MAX_PARTITION_SIZE));
+      int maxParts = Integer.parseInt(properties.getProperty("maxparts", MAX_PARTITIONS_COUNT));
+
+      long approximateDataSize = avgRowSize * recordcount;
+      long avgPartSize = Math.min(approximateDataSize / maxParts, maxPartSize);
+      long minParts = Math.min(approximateDataSize / avgPartSize + 1, maxParts);
+
+      long partSize = Math.min(avgPartSize, maxPartSize);
+      long partSizeMB = partSize / 1000000;
+
+      LOGGER.info(String.format(
+          "After partitioning for %d records with avg row size %d: minParts=%d, maxParts=%d, partSize=%d MB",
+          recordcount, avgRowSize, minParts, maxParts, partSizeMB));
+
+      PartitioningSettings settings = new PartitioningSettings();
+      settings.setMinPartitionsCount(minParts);
+      settings.setMaxPartitionsCount(maxParts);
+      settings.setPartitionSize(partSizeMB);
+      settings.setPartitioningByLoad(true);
+      settings.setPartitioningBySize(true);
+
+      // set both until bug fixed
+      builder.setPartitioningSettings(settings);
+      tableSettings.setPartitioningSettings(settings);
+    }
+
     TableDescription tabledescription = builder.build();
     try {
-      this.retryctx.supplyStatus(session -> session.createTable(this.database + "/" + tablename, tabledescription))
+      String tablepath = this.database + "/" + tablename;
+      this.retryctx.supplyStatus(session -> session.createTable(tablepath, tabledescription, tableSettings))
         .join().expect("create table problem");
     } catch (UnexpectedResultException e) {
       throw new DBException(e);
@@ -119,9 +196,6 @@ public class YDBClient extends DB {
     INIT_COUNT.incrementAndGet();
 
     Properties properties = getProperties();
-
-    fieldcount = Integer.parseInt(properties.getProperty(
-      CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
 
     tablename = properties.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
 
