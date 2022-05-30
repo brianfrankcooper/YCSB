@@ -27,18 +27,20 @@ import site.ycsb.*;
 import site.ycsb.workloads.CoreWorkload;
 
 import com.yandex.ydb.auth.iam.CloudAuthHelper;
-import com.yandex.ydb.core.grpc.GrpcTransport;
 import com.yandex.ydb.core.Status;
 import com.yandex.ydb.core.StatusCode;
 import com.yandex.ydb.core.UnexpectedResultException;
+import com.yandex.ydb.core.grpc.GrpcTransport;
 import com.yandex.ydb.table.SessionRetryContext;
-import com.yandex.ydb.table.settings.PartitioningSettings;
 import com.yandex.ydb.table.TableClient;
 import com.yandex.ydb.table.description.TableDescription;
-import com.yandex.ydb.table.settings.CreateTableSettings;
 import com.yandex.ydb.table.query.DataQueryResult;
+import com.yandex.ydb.table.query.Params;
 import com.yandex.ydb.table.result.ResultSetReader;
 import com.yandex.ydb.table.rpc.grpc.GrpcTableRpc;
+import com.yandex.ydb.table.settings.CreateTableSettings;
+import com.yandex.ydb.table.settings.ExecuteDataQuerySettings;
+import com.yandex.ydb.table.settings.PartitioningSettings;
 import com.yandex.ydb.table.transaction.TxControl;
 import com.yandex.ydb.table.values.PrimitiveType;
 
@@ -260,8 +262,10 @@ public class YDBClient extends DB {
 
     try {
       // Executes data query with specified transaction control settings.
-      DataQueryResult queryResult = this.retryctx.supplyResult(session -> session.executeDataQuery(query, txControl))
-          .join().expect("execute read query");
+      ExecuteDataQuerySettings executeSettings = new ExecuteDataQuerySettings().keepInQueryCache();
+      DataQueryResult queryResult = this.retryctx.supplyResult(
+          session -> session.executeDataQuery(query, txControl, Params.empty(), executeSettings))
+            .join().expect("execute read query");
 
       if (queryResult.getResultSetCount() == 0) {
         return site.ycsb.Status.NOT_FOUND;
@@ -304,7 +308,9 @@ public class YDBClient extends DB {
 
     try {
       // Executes data query with specified transaction control settings.
-      DataQueryResult queryResult = this.retryctx.supplyResult(session -> session.executeDataQuery(query, txControl))
+      ExecuteDataQuerySettings executeSettings = new ExecuteDataQuerySettings().keepInQueryCache();
+      DataQueryResult queryResult = this.retryctx.supplyResult(
+          session -> session.executeDataQuery(query, txControl, Params.empty(), executeSettings))
           .join().expect("execute scan query");
 
       ResultSetReader rs = queryResult.getResultSet(0);
@@ -351,8 +357,10 @@ public class YDBClient extends DB {
 
     try {
       // Executes data query with specified transaction control settings.
-      this.retryctx.supplyResult(session -> session.executeDataQuery(query, txControl))
-        .join().expect("execute update query problem");
+      ExecuteDataQuerySettings executeSettings = new ExecuteDataQuerySettings().keepInQueryCache();
+      this.retryctx.supplyResult(
+          session -> session.executeDataQuery(query, txControl, Params.empty(), executeSettings))
+          .join().expect("execute update query problem");
     } catch (Exception e) {
       LOGGER.error(e.toString());
       return site.ycsb.Status.ERROR;
