@@ -164,6 +164,9 @@ public class YDBClient extends DB {
 
       long partSize = Math.min(avgPartSize, maxPartSize);
       long partSizeMB = partSize / 1000000;
+      if (partSizeMB == 0) {
+        partSizeMB = 1;
+      }
 
       LOGGER.info(String.format(
           "After partitioning for %d records with avg row size %d: minParts=%d, maxParts=%d, partSize=%d MB",
