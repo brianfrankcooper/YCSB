@@ -84,3 +84,7 @@ Run the workload:
 - `maxpartsize`
  - Maximum size of partition before split
  - Default is `2000000000` (2 GB)
+
+- `preparedInsertUpdateQueries`
+ - Use prepared queries to update/insert
+ - Default is `yes`

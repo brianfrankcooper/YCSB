@@ -43,6 +43,7 @@ import com.yandex.ydb.table.settings.ExecuteDataQuerySettings;
 import com.yandex.ydb.table.settings.PartitioningSettings;
 import com.yandex.ydb.table.transaction.TxControl;
 import com.yandex.ydb.table.values.PrimitiveType;
+import com.yandex.ydb.table.values.PrimitiveValue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,6 +75,7 @@ public class YDBClient extends DB {
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
   private static String tablename;
+  private static boolean usePreparedUpdateInsert = true;
 
   // YDB connection staff
   private String database;
@@ -82,11 +84,11 @@ public class YDBClient extends DB {
 
   private void dropTable() throws DBException {
     Status dropstatus =
-        this.retryctx.supplyStatus(session -> session.dropTable(this.database + "/" + this.tablename)).join();
+        this.retryctx.supplyStatus(session -> session.dropTable(this.database + "/" + tablename)).join();
     if (dropstatus.getCode() != StatusCode.SUCCESS
         && dropstatus.getCode() != StatusCode.NOT_FOUND
         && dropstatus.getCode() != StatusCode.SCHEME_ERROR) {
-      String msg = "Failed to drop '" + this.tablename + "': " + dropstatus.toString();
+      String msg = "Failed to drop '" + tablename + "': " + dropstatus.toString();
       throw new DBException(msg);
     }
   }
@@ -127,7 +129,7 @@ public class YDBClient extends DB {
     return avgFieldLength * fieldcount;
   }
 
-  public void createTable() throws DBException {
+  private void createTable() throws DBException {
     Properties properties = getProperties();
 
     final boolean doDrop = Boolean.parseBoolean(properties.getProperty("dropOnInit", "false"));
@@ -203,6 +205,7 @@ public class YDBClient extends DB {
     Properties properties = getProperties();
 
     tablename = properties.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
+    usePreparedUpdateInsert = Boolean.parseBoolean(properties.getProperty("preparedInsertUpdateQueries", "true"));
 
     String url = properties.getProperty("endpoint", null);
     if (url == null) {
@@ -255,19 +258,17 @@ public class YDBClient extends DB {
     if (fields != null && fields.size() > 0) {
       fieldsString = String.join(",", fields);
     }
-    String query = "SELECT " + fieldsString + " FROM " + tablename + " WHERE key = '" + key + "';";
+    String query = "DECLARE $key as Utf8; SELECT " + fieldsString + " FROM " + tablename + " WHERE key = $key;";
+    Params params = Params.of("$key", PrimitiveValue.utf8(key));
 
     LOGGER.debug(query);
 
-    // Begin new transaction with SerializableRW mode
-    // TODO: maybe use onlineRo()? Or at least as cmdline option?
     TxControl txControl = TxControl.serializableRw().setCommitTx(true);
 
     try {
-      // Executes data query with specified transaction control settings.
       ExecuteDataQuerySettings executeSettings = new ExecuteDataQuerySettings().keepInQueryCache();
       DataQueryResult queryResult = this.retryctx.supplyResult(
-          session -> session.executeDataQuery(query, txControl, Params.empty(), executeSettings))
+          session -> session.executeDataQuery(query, txControl, params, executeSettings))
             .join().expect("execute read query");
 
       if (queryResult.getResultSetCount() == 0) {
@@ -286,6 +287,7 @@ public class YDBClient extends DB {
         }
       }
     } catch (Exception e) {
+      LOGGER.error(String.format("Select failed: %s", e.toString()));
       return site.ycsb.Status.ERROR;
     }
 
@@ -299,21 +301,22 @@ public class YDBClient extends DB {
     if (fields != null && fields.size() > 0) {
       fieldsString = String.join(",", fields);
     }
-    String query = "SELECT " + fieldsString + " FROM " + tablename
-        + " WHERE key >= '" + startkey + "'"
-        + " LIMIT " + recordcount + ";";
+    String query = "DECLARE $startKey as Utf8; DECLARE $limit as Uint32; SELECT " + fieldsString + " FROM " + tablename
+        + " WHERE key >= $startKey"
+        + " LIMIT $limit;";
+
+    Params params = Params.of(
+        "$startKey", PrimitiveValue.utf8(startkey),
+        "$limit", PrimitiveValue.uint32(recordcount));
 
     LOGGER.debug(query);
 
-    // Begin new transaction with SerializableRW mode
-    // TODO: maybe use onlineRo()? Or at least as cmdline option?
     TxControl txControl = TxControl.serializableRw().setCommitTx(true);
 
     try {
-      // Executes data query with specified transaction control settings.
       ExecuteDataQuerySettings executeSettings = new ExecuteDataQuerySettings().keepInQueryCache();
       DataQueryResult queryResult = this.retryctx.supplyResult(
-          session -> session.executeDataQuery(query, txControl, Params.empty(), executeSettings))
+          session -> session.executeDataQuery(query, txControl, params, executeSettings))
           .join().expect("execute scan query");
 
       ResultSetReader rs = queryResult.getResultSet(0);
@@ -327,6 +330,69 @@ public class YDBClient extends DB {
         result.add(columns);
       }
     } catch (Exception e) {
+      LOGGER.error(String.format("Scan failed: %s", e.toString()));
+      return site.ycsb.Status.ERROR;
+    }
+
+    return site.ycsb.Status.OK;
+  }
+
+  private site.ycsb.Status insertOrUpdatePrepared(
+                      String table, String key, Map<String, ByteIterator> values, String op) {
+    // we assume that for the same map of the same fields the order will be the same
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("DECLARE $key AS Utf8;");
+    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+      sb.append("DECLARE $");
+      sb.append(entry.getKey());
+      sb.append(" AS Utf8;");
+    }
+
+    sb.append(op);
+    sb.append(" INTO ");
+    sb.append(tablename);
+
+    sb.append(" ( key, ");
+    int n = values.size();
+    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+      --n;
+      sb.append(entry.getKey());
+      if (n != 0) {
+        sb.append(", ");
+      }
+    }
+
+    sb.append(") VALUES ( $key, ");
+    n = values.size();
+    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+      --n;
+      sb.append("$");
+      sb.append(entry.getKey());
+      if (n != 0) {
+        sb.append(", ");
+      }
+    }
+    sb.append(");");
+
+    Params params = Params.create();
+    params.put("$" + KEY_COLUMN_NAME, PrimitiveValue.utf8(key));
+    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+      params.put("$" + entry.getKey(), PrimitiveValue.utf8(entry.getValue().toString()));
+    }
+
+    String query = sb.toString();
+    LOGGER.debug(query);
+
+    TxControl txControl = TxControl.serializableRw().setCommitTx(true);
+
+    try {
+      ExecuteDataQuerySettings executeSettings = new ExecuteDataQuerySettings().keepInQueryCache();
+      this.retryctx.supplyResult(
+          session -> session.executeDataQuery(query, txControl, params, executeSettings))
+          .join().expect(String.format("execute %s query problem", op));
+    } catch (Exception e) {
+      LOGGER.error(e.toString());
       return site.ycsb.Status.ERROR;
     }
 
@@ -355,7 +421,6 @@ public class YDBClient extends DB {
     String query = sb.toString();
     LOGGER.debug(query);
 
-    // Begin new transaction with SerializableRW mode
     TxControl txControl = TxControl.serializableRw().setCommitTx(true);
 
     try {
@@ -363,7 +428,7 @@ public class YDBClient extends DB {
       ExecuteDataQuerySettings executeSettings = new ExecuteDataQuerySettings().keepInQueryCache();
       this.retryctx.supplyResult(
           session -> session.executeDataQuery(query, txControl, Params.empty(), executeSettings))
-          .join().expect("execute update query problem");
+          .join().expect(String.format("execute %s query problem", op));
     } catch (Exception e) {
       LOGGER.error(e.toString());
       return site.ycsb.Status.ERROR;
@@ -375,27 +440,38 @@ public class YDBClient extends DB {
   @Override
   public site.ycsb.Status update(String table, String key, Map<String, ByteIterator> values) {
     // note that is is a blind update: i.e. we will never return NOT_FOUND
-    return insertOrUpdate(table, key, values, "UPSERT");
+    if (usePreparedUpdateInsert) {
+      return insertOrUpdatePrepared(table, key, values, "UPSERT");
+    } else {
+      return insertOrUpdate(table, key, values, "UPSERT");
+    }
   }
 
   @Override
   public site.ycsb.Status insert(String table, String key, Map<String, ByteIterator> values) {
     // note that inserting same key twice results into error
-    return insertOrUpdate(table, key, values, "INSERT");
+    if (usePreparedUpdateInsert) {
+      return insertOrUpdatePrepared(table, key, values, "INSERT");
+    } else {
+      return insertOrUpdate(table, key, values, "INSERT");
+    }
   }
 
   @Override
   public site.ycsb.Status delete(String table, String key) {
-    String query = "DELETE from " + table + " WHERE " + KEY_COLUMN_NAME + " = '" + key + "'";
+    String query = "DECLARE $key as Utf8; DELETE from " + table + " WHERE " + KEY_COLUMN_NAME + " = $key;";
     LOGGER.debug(query);
 
-    // Begin new transaction with SerializableRW mode
+    Params params = Params.of("$key", PrimitiveValue.utf8(key));
+
     TxControl txControl = TxControl.serializableRw().setCommitTx(true);
 
     try {
-      // Executes data query with specified transaction control settings.
+      ExecuteDataQuerySettings executeSettings = new ExecuteDataQuerySettings().keepInQueryCache();
       StatusCode code =
-          this.retryctx.supplyResult(session -> session.executeDataQuery(query, txControl)).join().getCode();
+          this.retryctx.supplyResult(
+              session -> session.executeDataQuery(query, txControl, params, executeSettings))
+              .join().getCode();
       switch (code) {
       case SUCCESS:
         return site.ycsb.Status.OK;
