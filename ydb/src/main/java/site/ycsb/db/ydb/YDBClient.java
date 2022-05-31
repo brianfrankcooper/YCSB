@@ -27,6 +27,7 @@ import site.ycsb.*;
 import site.ycsb.workloads.CoreWorkload;
 
 import com.yandex.ydb.auth.iam.CloudAuthHelper;
+import com.yandex.ydb.core.Result;
 import com.yandex.ydb.core.Status;
 import com.yandex.ydb.core.StatusCode;
 import com.yandex.ydb.core.UnexpectedResultException;
@@ -54,6 +55,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * YDB client implementation.
@@ -76,6 +78,9 @@ public class YDBClient extends DB {
 
   private static String tablename;
   private static boolean usePreparedUpdateInsert = true;
+  private static int insertInflight = 1;
+
+  private final AtomicInteger insertInflightLeft = new AtomicInteger(1);
 
   // YDB connection staff
   private String database;
@@ -207,6 +212,11 @@ public class YDBClient extends DB {
     tablename = properties.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
     usePreparedUpdateInsert = Boolean.parseBoolean(properties.getProperty("preparedInsertUpdateQueries", "true"));
 
+    insertInflight = Integer.parseInt(properties.getProperty("insertInflight", "1"));
+    if (insertInflight > 1) {
+      insertInflightLeft.set(insertInflight);
+    }
+
     String url = properties.getProperty("endpoint", null);
     if (url == null) {
       throw new DBException("ERROR: Missing endpoint");
@@ -239,6 +249,10 @@ public class YDBClient extends DB {
 
   @Override
   public void cleanup() throws DBException {
+    while (insertInflightLeft.get() != insertInflight) {
+      // wait
+    }
+
     if (INIT_COUNT.decrementAndGet() != 0) {
       return;
     }
@@ -388,15 +402,26 @@ public class YDBClient extends DB {
 
     try {
       ExecuteDataQuerySettings executeSettings = new ExecuteDataQuerySettings().keepInQueryCache();
-      this.retryctx.supplyResult(
-          session -> session.executeDataQuery(query, txControl, params, executeSettings))
-          .join().expect(String.format("execute %s query problem", op));
+
+      insertInflightLeft.decrementAndGet();
+      CompletableFuture<Result<DataQueryResult>> future = this.retryctx.supplyResult(
+          session -> session.executeDataQuery(query, txControl, params, executeSettings));
+
+      if (insertInflight <= 1) {
+        future.join().expect(String.format("execute %s query problem", op));
+        insertInflightLeft.incrementAndGet();
+      } else {
+        future.thenRun(() -> insertInflightLeft.incrementAndGet());
+        while (insertInflightLeft.get() == 0) {
+          Thread.sleep(5);
+        }
+      }
+
+      return site.ycsb.Status.OK;
     } catch (Exception e) {
       LOGGER.error(e.toString());
       return site.ycsb.Status.ERROR;
     }
-
-    return site.ycsb.Status.OK;
   }
 
   private site.ycsb.Status insertOrUpdate(String table, String key, Map<String, ByteIterator> values, String op) {

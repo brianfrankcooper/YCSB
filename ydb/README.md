@@ -88,3 +88,7 @@ Run the workload:
 - `preparedInsertUpdateQueries`
  - Use prepared queries to update/insert
  - Default is `yes`
+
+- `insertInflight`
+ - Allow insert() to return OK before completing to have inflight > 1
+ - default `1`
