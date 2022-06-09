@@ -78,6 +78,7 @@ public class YDBClient extends DB {
 
   private static String tablename;
   private static boolean usePreparedUpdateInsert = true;
+  private static boolean forceUpsert = false;
   private static int insertInflight = 1;
 
   private final AtomicInteger insertInflightLeft = new AtomicInteger(1);
@@ -211,6 +212,7 @@ public class YDBClient extends DB {
 
     tablename = properties.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
     usePreparedUpdateInsert = Boolean.parseBoolean(properties.getProperty("preparedInsertUpdateQueries", "true"));
+    forceUpsert = Boolean.parseBoolean(properties.getProperty("forceUpsert", "false"));
 
     insertInflight = Integer.parseInt(properties.getProperty("insertInflight", "1"));
     if (insertInflight > 1) {
@@ -475,6 +477,11 @@ public class YDBClient extends DB {
   @Override
   public site.ycsb.Status insert(String table, String key, Map<String, ByteIterator> values) {
     // note that inserting same key twice results into error
+
+    if (forceUpsert) {
+      return update(table, key, values);
+    }
+
     if (usePreparedUpdateInsert) {
       return insertOrUpdatePrepared(table, key, values, "INSERT");
     } else {

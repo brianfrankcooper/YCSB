@@ -92,3 +92,7 @@ Run the workload:
 - `insertInflight`
  - Allow insert() to return OK before completing to have inflight > 1
  - default `1`
+
+- `forceUpsert`
+ - Both insert() and update() use upsert, i.e. blind writes
+ - default `no`
