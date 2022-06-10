@@ -96,3 +96,7 @@ Run the workload:
 - `forceUpsert`
  - Both insert() and update() use upsert, i.e. blind writes
  - default `no`
+
+- `compression`
+ - Use compression for all columns
+ - default `false`

@@ -34,6 +34,8 @@ import com.yandex.ydb.core.UnexpectedResultException;
 import com.yandex.ydb.core.grpc.GrpcTransport;
 import com.yandex.ydb.table.SessionRetryContext;
 import com.yandex.ydb.table.TableClient;
+import com.yandex.ydb.table.description.ColumnFamily;
+import com.yandex.ydb.table.description.StoragePool;
 import com.yandex.ydb.table.description.TableDescription;
 import com.yandex.ydb.table.query.DataQueryResult;
 import com.yandex.ydb.table.query.Params;
@@ -143,6 +145,8 @@ public class YDBClient extends DB {
       dropTable();
     }
 
+    final boolean doCompression = Boolean.parseBoolean(properties.getProperty("compression", "false"));
+
     final String fieldprefix = properties.getProperty(CoreWorkload.FIELD_NAME_PREFIX,
                                                       CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
 
@@ -150,9 +154,25 @@ public class YDBClient extends DB {
         CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
 
     TableDescription.Builder builder = TableDescription.newBuilder();
-    builder.addNullableColumn(KEY_COLUMN_NAME, PrimitiveType.utf8());
+
+    if (doCompression) {
+      StoragePool pool = new StoragePool("ssd"); // TODO: must be from opts
+      ColumnFamily family = new ColumnFamily("default", pool, ColumnFamily.Compression.COMPRESSION_LZ4, false);
+      builder.addColumnFamily(family);
+    }
+
+    if (doCompression) {
+      builder.addNullableColumn(KEY_COLUMN_NAME, PrimitiveType.utf8(), "default");
+    } else {
+      builder.addNullableColumn(KEY_COLUMN_NAME, PrimitiveType.utf8());
+    }
+
     for (int i = 0; i < fieldcount; i++) {
-      builder.addNullableColumn(fieldprefix + i, PrimitiveType.utf8());
+      if (doCompression) {
+        builder.addNullableColumn(fieldprefix + i, PrimitiveType.utf8(), "default");
+      } else {
+        builder.addNullableColumn(fieldprefix + i, PrimitiveType.utf8());
+      }
     }
     builder.setPrimaryKey(KEY_COLUMN_NAME);
 
@@ -167,7 +187,7 @@ public class YDBClient extends DB {
       int maxParts = Integer.parseInt(properties.getProperty("maxparts", MAX_PARTITIONS_COUNT));
 
       long approximateDataSize = avgRowSize * recordcount;
-      long avgPartSize = Math.min(approximateDataSize / maxParts, maxPartSize);
+      long avgPartSize = Math.max(Math.min(approximateDataSize / maxParts, maxPartSize), 1);
       long minParts = Math.min(approximateDataSize / avgPartSize + 1, maxParts);
 
       long partSize = Math.min(avgPartSize, maxPartSize);
