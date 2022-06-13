@@ -261,7 +261,9 @@ public class YDBClient extends DB {
         .build();
 
     GrpcTableRpc rpc = GrpcTableRpc.ownTransport(transport);
-    this.tableclient = TableClient.newClient(rpc).build();
+    this.tableclient = TableClient.newClient(rpc)
+        .sessionPoolSize(insertInflight, insertInflight)
+        .build();
 
     this.database = transport.getDatabase();
     this.retryctx = SessionRetryContext.create(this.tableclient).build();
@@ -433,9 +435,13 @@ public class YDBClient extends DB {
         future.join().expect(String.format("execute %s query problem", op));
         insertInflightLeft.incrementAndGet();
       } else {
-        future.thenRun(() -> insertInflightLeft.incrementAndGet());
+        future.thenAccept(result -> {
+            if (result.getCode() != StatusCode.SUCCESS) {
+              LOGGER.error(String.format("Operation failed: %s", result.toString()));
+            }
+          }).thenRun(() -> insertInflightLeft.incrementAndGet());
         while (insertInflightLeft.get() == 0) {
-          Thread.sleep(5);
+          Thread.sleep(1);
         }
       }
 
