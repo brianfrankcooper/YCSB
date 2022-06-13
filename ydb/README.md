@@ -104,3 +104,7 @@ Run the workload:
 - `splitByLoad`
  - Split parts when they're overloaded, see [AUTO_PARTITIONING_BY_LOAD](https://ydb.tech/en/docs/concepts/datamodel#auto_partitioning_by_load)
  - default `yes`
+
+- `splitBySize`
+ - Split parts when they're overloaded, see [AUTO_PARTITIONING_BY_SIZE](https://ydb.tech/en/docs/concepts/datamodel#auto_partitioning_by_size)
+ - default `yes`
