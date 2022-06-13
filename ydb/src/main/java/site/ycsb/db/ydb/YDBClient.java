@@ -196,15 +196,19 @@ public class YDBClient extends DB {
         partSizeMB = 1;
       }
 
+      final boolean splitByLoad = Boolean.parseBoolean(properties.getProperty("splitByLoad", "true"));
+
       LOGGER.info(String.format(
-          "After partitioning for %d records with avg row size %d: minParts=%d, maxParts=%d, partSize=%d MB",
-          recordcount, avgRowSize, minParts, maxParts, partSizeMB));
+          "After partitioning for %d records with avg row size %d: " +
+          "minParts=%d, maxParts=%d, partSize=%d MB, " +
+          "splitByLoad=%b",
+          recordcount, avgRowSize, minParts, maxParts, partSizeMB, splitByLoad));
 
       PartitioningSettings settings = new PartitioningSettings();
       settings.setMinPartitionsCount(minParts);
       settings.setMaxPartitionsCount(maxParts);
       settings.setPartitionSize(partSizeMB);
-      settings.setPartitioningByLoad(true);
+      settings.setPartitioningByLoad(splitByLoad);
       settings.setPartitioningBySize(true);
 
       // set both until bug fixed

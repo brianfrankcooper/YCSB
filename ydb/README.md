@@ -100,3 +100,7 @@ Run the workload:
 - `compression`
  - Use compression for all columns
  - default `false`
+
+- `splitByLoad`
+ - Split parts when they're overloaded, see [AUTO_PARTITIONING_BY_LOAD](https://ydb.tech/en/docs/concepts/datamodel#auto_partitioning_by_load)
+ - default `yes`
