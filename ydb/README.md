@@ -81,9 +81,9 @@ Run the workload:
  - Maximum number of partitions, see [AUTO_PARTITIONING_MAX_PARTITIONS_COUNT](https://ydb.tech/en/docs/concepts/datamodel#auto_partitioning_max_partitions_count)
  - Default is `50`
 
-- `maxpartsize`
- - Maximum size of partition before split
- - Default is `2000000000` (2 GB)
+- `maxpartsizeMB`
+ - Maximum size of partition in MB before split
+ - Default is `2000` (2 GB)
 
 - `preparedInsertUpdateQueries`
  - Use prepared queries to update/insert

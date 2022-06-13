@@ -69,7 +69,7 @@ public class YDBClient extends DB {
   /** Key column name is 'key' (and type String). */
   private static final String KEY_COLUMN_NAME = "key";
 
-  private static final String MAX_PARTITION_SIZE = "2000000000"; // 2 GB
+  private static final String MAX_PARTITION_SIZE = "2000"; // 2 GB
   private static final String MAX_PARTITIONS_COUNT = "50";
 
   /**
@@ -183,18 +183,13 @@ public class YDBClient extends DB {
       long recordcount = Long.parseLong(properties.getProperty(
           Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
 
-      int maxPartSize = Integer.parseInt(properties.getProperty("maxpartsize", MAX_PARTITION_SIZE));
+      int maxPartSizeMB = Integer.parseInt(properties.getProperty("maxpartsizeMB", MAX_PARTITION_SIZE));
       int maxParts = Integer.parseInt(properties.getProperty("maxparts", MAX_PARTITIONS_COUNT));
+      long minParts = maxParts;
 
       long approximateDataSize = avgRowSize * recordcount;
-      long avgPartSize = Math.max(Math.min(approximateDataSize / maxParts, maxPartSize), 1);
-      long minParts = Math.min(approximateDataSize / avgPartSize + 1, maxParts);
-
-      long partSize = Math.min(avgPartSize, maxPartSize);
-      long partSizeMB = partSize / 1000000;
-      if (partSizeMB == 0) {
-        partSizeMB = 1;
-      }
+      long avgPartSizeMB = Math.max(approximateDataSize / maxParts / 1000000, 1);
+      long partSizeMB = Math.min(avgPartSizeMB, maxPartSizeMB);
 
       final boolean splitByLoad = Boolean.parseBoolean(properties.getProperty("splitByLoad", "true"));
       final boolean splitBySize = Boolean.parseBoolean(properties.getProperty("splitBySize", "true"));
