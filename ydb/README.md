@@ -97,6 +97,10 @@ Run the workload:
  - Both insert() and update() use upsert, i.e. blind writes
  - default `no`
 
+- `bulkUpsert`
+ - upsert uses bulk iterface, can be combined with `forceUpsert` to speedup load phase
+ - default `no`
+
 - `compression`
  - Use compression for all columns
  - default `false`

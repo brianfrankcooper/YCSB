@@ -41,12 +41,17 @@ import com.yandex.ydb.table.query.DataQueryResult;
 import com.yandex.ydb.table.query.Params;
 import com.yandex.ydb.table.result.ResultSetReader;
 import com.yandex.ydb.table.rpc.grpc.GrpcTableRpc;
+import com.yandex.ydb.table.settings.BulkUpsertSettings;
 import com.yandex.ydb.table.settings.CreateTableSettings;
 import com.yandex.ydb.table.settings.ExecuteDataQuerySettings;
 import com.yandex.ydb.table.settings.PartitioningSettings;
 import com.yandex.ydb.table.transaction.TxControl;
+import com.yandex.ydb.table.values.ListValue;
 import com.yandex.ydb.table.values.PrimitiveType;
 import com.yandex.ydb.table.values.PrimitiveValue;
+import com.yandex.ydb.table.values.StructType;
+import com.yandex.ydb.table.values.Type;
+import com.yandex.ydb.table.values.Value;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,6 +86,7 @@ public class YDBClient extends DB {
   private static String tablename;
   private static boolean usePreparedUpdateInsert = true;
   private static boolean forceUpsert = false;
+  private static boolean useBulkUpsert = false;
   private static int insertInflight = 1;
 
   private final AtomicInteger insertInflightLeft = new AtomicInteger(1);
@@ -238,6 +244,7 @@ public class YDBClient extends DB {
     tablename = properties.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
     usePreparedUpdateInsert = Boolean.parseBoolean(properties.getProperty("preparedInsertUpdateQueries", "true"));
     forceUpsert = Boolean.parseBoolean(properties.getProperty("forceUpsert", "false"));
+    useBulkUpsert = Boolean.parseBoolean(properties.getProperty("bulkUpsert", "false"));
 
     insertInflight = Integer.parseInt(properties.getProperty("insertInflight", "1"));
     if (insertInflight > 1) {
@@ -457,8 +464,10 @@ public class YDBClient extends DB {
     }
   }
 
-  private site.ycsb.Status insertOrUpdate(String table, String key, Map<String, ByteIterator> values, String op) {
-    // TODO: consider batching multiple updates like MongoDbClient does? At least control it by an cmdline option
+  private site.ycsb.Status insertOrUpdateNotPrepared(
+                      String table, String key, Map<String, ByteIterator> values, String op) {
+    // Note that it doesn't use prepared queries, which is bad practice. Implemented only to compare performance
+    // of prepared VS not prepared
     Set<String> fields = values.keySet();
     String fieldsString = KEY_COLUMN_NAME + "," + String.join(",", fields);
 
@@ -495,13 +504,59 @@ public class YDBClient extends DB {
     return site.ycsb.Status.OK;
   }
 
+  private site.ycsb.Status bulkUpsert(String table, String key, Map<String, ByteIterator> values) {
+    Map<String, Type> types = new HashMap<String, Type>();
+    types.put(KEY_COLUMN_NAME, PrimitiveType.utf8());
+
+    Map<String, Value> ydbValues = new HashMap<String, Value>();
+    ydbValues.put(KEY_COLUMN_NAME, PrimitiveValue.utf8(key));
+
+    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+      types.put(entry.getKey(), PrimitiveType.utf8());
+      ydbValues.put(entry.getKey(), PrimitiveValue.utf8(entry.getValue().toString()));
+    }
+
+    StructType struct = StructType.of(types);
+    ListValue data = ListValue.of(struct.newValue(ydbValues));
+
+    try {
+      insertInflightLeft.decrementAndGet();
+
+      String tablepath = this.database + "/" + tablename;
+      CompletableFuture<Status> future = this.retryctx.supplyStatus(
+          session -> session.executeBulkUpsert(tablepath, data, new BulkUpsertSettings()));
+
+      if (insertInflight <= 1) {
+        future.join().expect("bulk upsert problem for key");
+        insertInflightLeft.incrementAndGet();
+      } else {
+        future.thenAccept(status -> {
+            if (!status.isSuccess()) {
+              LOGGER.error(String.format("Bulk upsert failed: %s", status.toString()));
+            }
+          }).thenRun(() -> insertInflightLeft.incrementAndGet());
+        while (insertInflightLeft.get() == 0) {
+          Thread.sleep(1);
+        }
+      }
+      return site.ycsb.Status.OK;
+    } catch (Exception e) {
+      LOGGER.error(e.toString());
+      return site.ycsb.Status.ERROR;
+    }
+  }
+
   @Override
   public site.ycsb.Status update(String table, String key, Map<String, ByteIterator> values) {
     // note that is is a blind update: i.e. we will never return NOT_FOUND
     if (usePreparedUpdateInsert) {
-      return insertOrUpdatePrepared(table, key, values, "UPSERT");
+      if (useBulkUpsert) {
+        return bulkUpsert(table, key, values);
+      } else {
+        return insertOrUpdatePrepared(table, key, values, "UPSERT");
+      }
     } else {
-      return insertOrUpdate(table, key, values, "UPSERT");
+      return insertOrUpdateNotPrepared(table, key, values, "UPSERT");
     }
   }
 
@@ -516,7 +571,7 @@ public class YDBClient extends DB {
     if (usePreparedUpdateInsert) {
       return insertOrUpdatePrepared(table, key, values, "INSERT");
     } else {
-      return insertOrUpdate(table, key, values, "INSERT");
+      return insertOrUpdateNotPrepared(table, key, values, "INSERT");
     }
   }
 
