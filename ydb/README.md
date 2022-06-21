@@ -87,7 +87,7 @@ Run the workload:
 
 - `preparedInsertUpdateQueries`
  - Use prepared queries to update/insert
- - Default is `yes`
+ - Default is `true`
 
 - `insertInflight`
  - Allow insert() to return OK before completing to have inflight > 1
@@ -107,8 +107,12 @@ Run the workload:
 
 - `splitByLoad`
  - Split parts when they're overloaded, see [AUTO_PARTITIONING_BY_LOAD](https://ydb.tech/en/docs/concepts/datamodel#auto_partitioning_by_load)
- - default `yes`
+ - default `true`
 
 - `splitBySize`
  - Split parts when they're overloaded, see [AUTO_PARTITIONING_BY_SIZE](https://ydb.tech/en/docs/concepts/datamodel#auto_partitioning_by_size)
- - default `yes`
+ - default `true`
+
+- `singleColumn`
+ - All fields will be encoded into single column by this client. Not supported in scan()
+ - default `no`

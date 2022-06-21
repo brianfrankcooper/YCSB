@@ -56,6 +56,9 @@ import com.yandex.ydb.table.values.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.*;
+import java.nio.ByteBuffer;
+import java.util.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -63,6 +66,8 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.CompletableFuture;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * YDB client implementation.
@@ -73,6 +78,7 @@ public class YDBClient extends DB {
 
   /** Key column name is 'key' (and type String). */
   private static final String KEY_COLUMN_NAME = "key";
+  private static final String VALUE_COLUMN_NAME = "value";
 
   private static final String MAX_PARTITION_SIZE = "2000"; // 2 GB
   private static final String MAX_PARTITIONS_COUNT = "50";
@@ -87,6 +93,7 @@ public class YDBClient extends DB {
   private static boolean usePreparedUpdateInsert = true;
   private static boolean forceUpsert = false;
   private static boolean useBulkUpsert = false;
+  private static boolean useSingleColumn = false;
   private static int insertInflight = 1;
 
   private final AtomicInteger insertInflightLeft = new AtomicInteger(1);
@@ -95,6 +102,63 @@ public class YDBClient extends DB {
   private String database;
   private TableClient tableclient;
   private SessionRetryContext retryctx;
+
+  // from RocksDBClient.java
+  private Map<String, ByteIterator> deserializeValues(final byte[] values, final Set<String> fields,
+      final Map<String, ByteIterator> result) {
+    final ByteBuffer buf = ByteBuffer.allocate(4);
+
+    int offset = 0;
+    while(offset < values.length) {
+      buf.put(values, offset, 4);
+      buf.flip();
+      final int keyLen = buf.getInt();
+      buf.clear();
+      offset += 4;
+
+      final String key = new String(values, offset, keyLen);
+      offset += keyLen;
+
+      buf.put(values, offset, 4);
+      buf.flip();
+      final int valueLen = buf.getInt();
+      buf.clear();
+      offset += 4;
+
+      if(fields == null || fields.contains(key)) {
+        result.put(key, new ByteArrayByteIterator(values, offset, valueLen));
+      }
+
+      offset += valueLen;
+    }
+
+    return result;
+  }
+
+  // from RocksDBClient.java
+  private byte[] serializeValues(final Map<String, ByteIterator> values) throws IOException {
+    try(final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+      final ByteBuffer buf = ByteBuffer.allocate(4);
+
+      for(final Map.Entry<String, ByteIterator> value : values.entrySet()) {
+        final byte[] keyBytes = value.getKey().getBytes(UTF_8);
+        final byte[] valueBytes = value.getValue().toArray();
+
+        buf.putInt(keyBytes.length);
+        baos.write(buf.array());
+        baos.write(keyBytes);
+
+        buf.clear();
+
+        buf.putInt(valueBytes.length);
+        baos.write(buf.array());
+        baos.write(valueBytes);
+
+        buf.clear();
+      }
+      return baos.toByteArray();
+    }
+  }
 
   private void dropTable() throws DBException {
     Status dropstatus =
@@ -173,13 +237,22 @@ public class YDBClient extends DB {
       builder.addNullableColumn(KEY_COLUMN_NAME, PrimitiveType.utf8());
     }
 
-    for (int i = 0; i < fieldcount; i++) {
+    if (!useSingleColumn) {
+      for (int i = 0; i < fieldcount; i++) {
+        if (doCompression) {
+          builder.addNullableColumn(fieldprefix + i, PrimitiveType.utf8(), "default");
+        } else {
+          builder.addNullableColumn(fieldprefix + i, PrimitiveType.utf8());
+        }
+      }
+    } else {
       if (doCompression) {
-        builder.addNullableColumn(fieldprefix + i, PrimitiveType.utf8(), "default");
+        builder.addNullableColumn(VALUE_COLUMN_NAME, PrimitiveType.utf8(), "default");
       } else {
-        builder.addNullableColumn(fieldprefix + i, PrimitiveType.utf8());
+        builder.addNullableColumn(VALUE_COLUMN_NAME, PrimitiveType.utf8());
       }
     }
+
     builder.setPrimaryKey(KEY_COLUMN_NAME);
 
     final boolean autopartitioning = Boolean.parseBoolean(properties.getProperty("autopartitioning", "true"));
@@ -245,6 +318,7 @@ public class YDBClient extends DB {
     usePreparedUpdateInsert = Boolean.parseBoolean(properties.getProperty("preparedInsertUpdateQueries", "true"));
     forceUpsert = Boolean.parseBoolean(properties.getProperty("forceUpsert", "false"));
     useBulkUpsert = Boolean.parseBoolean(properties.getProperty("bulkUpsert", "false"));
+    useSingleColumn = Boolean.parseBoolean(properties.getProperty("singleColumn", "false"));
 
     insertInflight = Integer.parseInt(properties.getProperty("insertInflight", "1"));
     if (insertInflight > 1) {
@@ -304,11 +378,18 @@ public class YDBClient extends DB {
 
   @Override
   public site.ycsb.Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
-    String fieldsString = "*";
-    if (fields != null && fields.size() > 0) {
-      fieldsString = String.join(",", fields);
+    String query;
+
+    if (!useSingleColumn) {
+      String fieldsString = "*";
+      if (fields != null && fields.size() > 0) {
+        fieldsString = String.join(",", fields);
+      }
+      query = "DECLARE $key as Utf8; SELECT " + fieldsString + " FROM " + tablename + " WHERE key = $key;";
+    } else {
+      query = "DECLARE $key as Utf8; SELECT * FROM " + tablename + " WHERE key = $key;";
     }
-    String query = "DECLARE $key as Utf8; SELECT " + fieldsString + " FROM " + tablename + " WHERE key = $key;";
+
     Params params = Params.of("$key", PrimitiveValue.utf8(key));
 
     LOGGER.debug(query);
@@ -331,9 +412,18 @@ public class YDBClient extends DB {
       }
 
       while (rs.next()) {
-        for (int i = 0; i < rs.getColumnCount(); ++i) {
-          final byte[] val = rs.getColumn(i).getUtf8().getBytes();
-          result.put(rs.getColumnName(i), new ByteArrayByteIterator(val));
+        if (!useSingleColumn) {
+          for (int i = 0; i < rs.getColumnCount(); ++i) {
+            final byte[] val = rs.getColumn(i).getUtf8().getBytes();
+            result.put(rs.getColumnName(i), new ByteArrayByteIterator(val));
+          }
+        } else {
+          final byte[] readKey = rs.getColumn(0).getUtf8().getBytes();
+          result.put(rs.getColumnName(0), new ByteArrayByteIterator(readKey));
+
+          final byte[] readValue = rs.getColumn(1).getUtf8().getBytes();
+          byte[] decodedValue = Base64.getDecoder().decode(readValue);
+          deserializeValues(decodedValue, fields, result);
         }
       }
     } catch (Exception e) {
@@ -387,8 +477,74 @@ public class YDBClient extends DB {
     return site.ycsb.Status.OK;
   }
 
+  private site.ycsb.Status executePreparedQuery(String query, Params params, String op) {
+    LOGGER.debug(query);
+
+    TxControl txControl = TxControl.serializableRw().setCommitTx(true);
+
+    try {
+      ExecuteDataQuerySettings executeSettings = new ExecuteDataQuerySettings().keepInQueryCache();
+
+      insertInflightLeft.decrementAndGet();
+      CompletableFuture<Result<DataQueryResult>> future = this.retryctx.supplyResult(
+          session -> session.executeDataQuery(query, txControl, params, executeSettings));
+
+      if (insertInflight <= 1) {
+        future.join().expect(String.format("execute %s query problem", op));
+        insertInflightLeft.incrementAndGet();
+      } else {
+        future.thenAccept(result -> {
+            if (result.getCode() != StatusCode.SUCCESS) {
+              LOGGER.error(String.format("Operation failed: %s", result.toString()));
+            }
+          }).thenRun(() -> insertInflightLeft.incrementAndGet());
+        while (insertInflightLeft.get() == 0) {
+          Thread.sleep(1);
+        }
+      }
+
+      return site.ycsb.Status.OK;
+    } catch (Exception e) {
+      LOGGER.error(e.toString());
+      return site.ycsb.Status.ERROR;
+    }
+  }
+
+  private site.ycsb.Status insertOrUpdatePreparedSingleColumn(
+                      String table, String key, Map<String, ByteIterator> values, String op) {
+    // we assume that for the same map of the same fields the order will be the same
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("DECLARE $key AS Utf8;");
+    sb.append("DECLARE $value AS Utf8;");
+
+    sb.append(op);
+    sb.append(" INTO ");
+    sb.append(tablename);
+
+    sb.append(" ( key, value ) VALUES ( $key, $value );");
+
+    Params params = Params.create();
+    params.put("$" + KEY_COLUMN_NAME, PrimitiveValue.utf8(key));
+
+    try {
+      String encoded = Base64.getEncoder().encodeToString(serializeValues(values));
+      params.put("$" + VALUE_COLUMN_NAME, PrimitiveValue.utf8(encoded));
+    } catch (Exception e) {
+      LOGGER.error(e.toString());
+      return site.ycsb.Status.ERROR;
+    }
+
+    String query = sb.toString();
+    return executePreparedQuery(query, params, op);
+  }
+
   private site.ycsb.Status insertOrUpdatePrepared(
                       String table, String key, Map<String, ByteIterator> values, String op) {
+    if (useSingleColumn) {
+      return insertOrUpdatePreparedSingleColumn(table, key, values, op);
+    }
+
     // we assume that for the same map of the same fields the order will be the same
     StringBuilder sb = new StringBuilder();
 
@@ -432,36 +588,7 @@ public class YDBClient extends DB {
     }
 
     String query = sb.toString();
-    LOGGER.debug(query);
-
-    TxControl txControl = TxControl.serializableRw().setCommitTx(true);
-
-    try {
-      ExecuteDataQuerySettings executeSettings = new ExecuteDataQuerySettings().keepInQueryCache();
-
-      insertInflightLeft.decrementAndGet();
-      CompletableFuture<Result<DataQueryResult>> future = this.retryctx.supplyResult(
-          session -> session.executeDataQuery(query, txControl, params, executeSettings));
-
-      if (insertInflight <= 1) {
-        future.join().expect(String.format("execute %s query problem", op));
-        insertInflightLeft.incrementAndGet();
-      } else {
-        future.thenAccept(result -> {
-            if (result.getCode() != StatusCode.SUCCESS) {
-              LOGGER.error(String.format("Operation failed: %s", result.toString()));
-            }
-          }).thenRun(() -> insertInflightLeft.incrementAndGet());
-        while (insertInflightLeft.get() == 0) {
-          Thread.sleep(1);
-        }
-      }
-
-      return site.ycsb.Status.OK;
-    } catch (Exception e) {
-      LOGGER.error(e.toString());
-      return site.ycsb.Status.ERROR;
-    }
+    return executePreparedQuery(query, params, op);
   }
 
   private site.ycsb.Status insertOrUpdateNotPrepared(
@@ -511,9 +638,20 @@ public class YDBClient extends DB {
     Map<String, Value> ydbValues = new HashMap<String, Value>();
     ydbValues.put(KEY_COLUMN_NAME, PrimitiveValue.utf8(key));
 
-    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-      types.put(entry.getKey(), PrimitiveType.utf8());
-      ydbValues.put(entry.getKey(), PrimitiveValue.utf8(entry.getValue().toString()));
+    if (!useSingleColumn) {
+      for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+        types.put(entry.getKey(), PrimitiveType.utf8());
+        ydbValues.put(entry.getKey(), PrimitiveValue.utf8(entry.getValue().toString()));
+      }
+    } else {
+      types.put(VALUE_COLUMN_NAME, PrimitiveType.utf8());
+      try {
+        String encoded = Base64.getEncoder().encodeToString(serializeValues(values));
+        ydbValues.put(VALUE_COLUMN_NAME, PrimitiveValue.utf8(encoded));
+      } catch (Exception e) {
+        LOGGER.error(e.toString());
+        return site.ycsb.Status.ERROR;
+      }
     }
 
     StructType struct = StructType.of(types);
