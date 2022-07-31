@@ -477,7 +477,7 @@ public class AzureCosmosClient extends DB {
 
       if (diagnosticsLatencyThresholdInMS > 0 &&
           response.getDiagnostics().getDuration().compareTo(Duration.ofMillis(diagnosticsLatencyThresholdInMS)) > 0) {
-        LOGGER.warn(response.getDiagnostics().toString());
+        LOGGER.warn(DIAGNOSTIC, response.getDiagnostics().toString());
       }
 
       return Status.OK;
