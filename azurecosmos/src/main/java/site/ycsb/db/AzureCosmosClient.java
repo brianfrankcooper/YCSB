@@ -39,6 +39,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
@@ -78,6 +80,7 @@ public class AzureCosmosClient extends DB {
   private static final String DEFAULT_USER_AGENT = "azurecosmos-ycsb";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AzureCosmosClient.class);
+  private static final Marker DIAGNOSTIC = MarkerFactory.getMarker("DIAGNOSTIC");
 
   /**
    * Count the number of times initialized to teardown on the last
@@ -317,7 +320,7 @@ public class AzureCosmosClient extends DB {
 
       if (diagnosticsLatencyThresholdInMS > 0 &&
           response.getDiagnostics().getDuration().compareTo(Duration.ofMillis(diagnosticsLatencyThresholdInMS)) > 0) {
-        LOGGER.warn(response.getDiagnostics().toString());
+        LOGGER.warn(DIAGNOSTIC,response.getDiagnostics().toString());
       }
 
       return Status.OK;
@@ -421,7 +424,7 @@ public class AzureCosmosClient extends DB {
       CosmosItemResponse<ObjectNode> response = container.patchItem(key, pk, cosmosPatchOperations, ObjectNode.class);
       if (diagnosticsLatencyThresholdInMS > 0 &&
           response.getDiagnostics().getDuration().compareTo(Duration.ofMillis(diagnosticsLatencyThresholdInMS)) > 0) {
-        LOGGER.warn(response.getDiagnostics().toString());
+        LOGGER.warn(DIAGNOSTIC,response.getDiagnostics().toString());
       }
 
       return Status.OK;
@@ -474,7 +477,7 @@ public class AzureCosmosClient extends DB {
 
       if (diagnosticsLatencyThresholdInMS > 0 &&
           response.getDiagnostics().getDuration().compareTo(Duration.ofMillis(diagnosticsLatencyThresholdInMS)) > 0) {
-        LOGGER.warn(response.getDiagnostics().toString());
+        LOGGER.warn(DIAGNOSTIC,response.getDiagnostics().toString());
       }
 
       return Status.OK;
@@ -505,7 +508,7 @@ public class AzureCosmosClient extends DB {
           new CosmosItemRequestOptions());
       if (diagnosticsLatencyThresholdInMS > 0 &&
           response.getDiagnostics().getDuration().compareTo(Duration.ofMillis(diagnosticsLatencyThresholdInMS)) > 0) {
-        LOGGER.warn(response.getDiagnostics().toString());
+        LOGGER.warn(DIAGNOSTIC,response.getDiagnostics().toString());
       }
 
       return Status.OK;
