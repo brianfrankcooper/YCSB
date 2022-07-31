@@ -8,7 +8,7 @@
     <Console name="console" target="SYSTEM_OUT" follow="true">
       <PatternLayout pattern="${LOG_PATTERN}"/>
     </Console>
-    <File name="MyFile" fileName="/tmp/requestDiagnostics.log">
+    <File name="requestDiagnostics" fileName="/tmp/requestDiagnostics.log">
       <PatternLayout pattern="${LOG_PATTERN}"/>
        </File>
   </Appenders>
@@ -24,6 +24,7 @@
     </Logger>
     <Root level="info">
       <AppenderRef ref="console"/>
+      <AppenderRef ref="requestDiagnostics"/>
     </Root>
   </Loggers>
 </Configuration>
