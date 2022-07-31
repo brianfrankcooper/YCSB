@@ -7,7 +7,7 @@
   <Appenders>
     <Console name="console" target="SYSTEM_OUT" follow="true">
       <PatternLayout pattern="${LOG_PATTERN}"/>
-      <MarkerFilter marker="DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
+      <MarkerFilter marker="DIAGNOSTIC" onMatch="ACCEPT" onMismatch="ACCEPT" />
     </Console>
     <File name="MyFile" fileName="/tmp/requestDiagnostics.log">
       <PatternLayout pattern="${LOG_PATTERN}"/>
