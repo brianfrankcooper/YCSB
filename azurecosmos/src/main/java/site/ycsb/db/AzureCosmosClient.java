@@ -320,7 +320,7 @@ public class AzureCosmosClient extends DB {
 
       if (diagnosticsLatencyThresholdInMS > 0 &&
           response.getDiagnostics().getDuration().compareTo(Duration.ofMillis(diagnosticsLatencyThresholdInMS)) > 0) {
-        LOGGER.warn(DIAGNOSTIC,response.getDiagnostics().toString());
+        LOGGER.warn(DIAGNOSTIC, response.getDiagnostics().toString());
       }
 
       return Status.OK;
@@ -424,7 +424,7 @@ public class AzureCosmosClient extends DB {
       CosmosItemResponse<ObjectNode> response = container.patchItem(key, pk, cosmosPatchOperations, ObjectNode.class);
       if (diagnosticsLatencyThresholdInMS > 0 &&
           response.getDiagnostics().getDuration().compareTo(Duration.ofMillis(diagnosticsLatencyThresholdInMS)) > 0) {
-        LOGGER.warn(DIAGNOSTIC,response.getDiagnostics().toString());
+        LOGGER.warn(DIAGNOSTIC, response.getDiagnostics().toString());
       }
 
       return Status.OK;
@@ -477,7 +477,7 @@ public class AzureCosmosClient extends DB {
 
       if (diagnosticsLatencyThresholdInMS > 0 &&
           response.getDiagnostics().getDuration().compareTo(Duration.ofMillis(diagnosticsLatencyThresholdInMS)) > 0) {
-        LOGGER.warn(DIAGNOSTIC,response.getDiagnostics().toString());
+        LOGGER.warn(DIAGNOSTIC, response.getDiagnostics().toString());
       }
 
       return Status.OK;
@@ -508,7 +508,7 @@ public class AzureCosmosClient extends DB {
           new CosmosItemRequestOptions());
       if (diagnosticsLatencyThresholdInMS > 0 &&
           response.getDiagnostics().getDuration().compareTo(Duration.ofMillis(diagnosticsLatencyThresholdInMS)) > 0) {
-        LOGGER.warn(DIAGNOSTIC,response.getDiagnostics().toString());
+        LOGGER.warn(DIAGNOSTIC, response.getDiagnostics().toString());
       }
 
       return Status.OK;
