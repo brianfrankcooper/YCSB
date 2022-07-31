@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="30">
+  <Properties>
+    <Property name="LOG_PATTERN">%-4r [%t] %-5p %c %x -%m%n</Property>
+  </Properties>
+
+  <Appenders>
+    <Console name="console" target="SYSTEM_OUT" follow="true">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+    </Console>
+  </Appenders>
+
+  <Loggers>
+    <Logger name="log4j.category.org.apache.http" level="INFO">
+      <AppenderRef ref="Console"/>
+    </Logger>
+    <Logger name="log4j.category.org.apache.http.wire" level="INFO">
+      <AppenderRef ref="Console"/>
+    </Logger>
+    <Logger name="log4j.category.org.apache.http.header" level="INFO">
+      <AppenderRef ref="Console"/>
+    </Logger>
+    <Root level="info">
+      <AppenderRef ref="console"/>
+    </Root>
+  </Loggers>
+</Configuration>
