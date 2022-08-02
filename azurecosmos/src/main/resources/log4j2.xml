@@ -18,7 +18,7 @@
       <MarkerFilter marker="DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
       <Policies>
         <OnStartupTriggeringPolicy />
-        <SizeBasedTriggeringPolicy size="10 KB" />
+        <SizeBasedTriggeringPolicy size="4 KB" />
       </Policies>
     </RollingFile>
   </Appenders>
