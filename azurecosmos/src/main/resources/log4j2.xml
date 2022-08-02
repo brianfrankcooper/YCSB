@@ -11,14 +11,14 @@
     </Console>
     <RollingFile
         name="requestDiagnosticsRollingFileAppender"
-        fileName="/tmp/diagnostics/requestDiagnostics.log"
-        filePattern="/tmp/diagnostics/requestDiagnostics.%i.log.gz"
+        fileName="/tmp/diagnosticLogs/requestDiagnostics.log"
+        filePattern="/tmp/diagnosticLogs/requestDiagnostics.%i.log.gz"
         ignoreExceptions="false">
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <MarkerFilter marker="DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
       <Policies>
         <OnStartupTriggeringPolicy />
-        <SizeBasedTriggeringPolicy size="4 KB" />
+        <SizeBasedTriggeringPolicy size="250MB" />
       </Policies>
     </RollingFile>
   </Appenders>
