@@ -13,6 +13,20 @@
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <MarkerFilter marker="DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
        </File>
+
+    <RollingFile
+        name="requestDiagnosticsRollingFileAppender"
+        fileName="/tmp/requestDiagnostics.log"
+        filePattern="target/log4j2/request-diagnostics/app.%i.log.gz"
+        ignoreExceptions="false">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <MarkerFilter marker="DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="10 KB" />
+      </Policies>
+    </RollingFile>
+
   </Appenders>
   <Loggers>
     <Logger name="log4j.category.org.apache.http" level="INFO"/>
@@ -20,7 +34,7 @@
     <Logger name="log4j.category.org.apache.http.header" level="INFO"/>
     <Root level="info">
       <AppenderRef ref="console"/>
-      <AppenderRef ref="requestDiagnostics"/>
+      <AppenderRef ref="requestDiagnosticsRollingFileAppender"/>
     </Root>
   </Loggers>
 </Configuration>
