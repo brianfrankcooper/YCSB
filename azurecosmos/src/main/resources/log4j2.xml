@@ -11,8 +11,8 @@
     </Console>
     <RollingFile
         name="requestDiagnosticsRollingFileAppender"
-        fileName="/tmp/requestDiagnostics.log"
-        filePattern="target/log4j2/request-diagnostics/app.%i.log.gz"
+        fileName="/tmp/diagnostics/requestDiagnostics.log"
+        filePattern="/tmp/diagnostics/requestDiagnostics.%i.log.gz"
         ignoreExceptions="false">
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <MarkerFilter marker="DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
