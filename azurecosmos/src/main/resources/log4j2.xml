@@ -9,11 +9,6 @@
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <MarkerFilter marker="DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
     </Console>
-    <File name="requestDiagnostics" fileName="/tmp/requestDiagnostics.log">
-      <PatternLayout pattern="${LOG_PATTERN}"/>
-      <MarkerFilter marker="DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
-       </File>
-
     <RollingFile
         name="requestDiagnosticsRollingFileAppender"
         fileName="/tmp/requestDiagnostics.log"
@@ -26,7 +21,6 @@
         <SizeBasedTriggeringPolicy size="10 KB" />
       </Policies>
     </RollingFile>
-
   </Appenders>
   <Loggers>
     <Logger name="log4j.category.org.apache.http" level="INFO"/>
