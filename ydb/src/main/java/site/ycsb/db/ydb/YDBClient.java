@@ -477,7 +477,7 @@ public class YDBClient extends DB {
     return site.ycsb.Status.OK;
   }
 
-  private site.ycsb.Status executePreparedQuery(String query, Params params, String op) {
+  private site.ycsb.Status executeQuery(String query, Params params, String op) {
     LOGGER.debug(query);
 
     TxControl txControl = TxControl.serializableRw().setCommitTx(true);
@@ -536,7 +536,7 @@ public class YDBClient extends DB {
     }
 
     String query = sb.toString();
-    return executePreparedQuery(query, params, op);
+    return executeQuery(query, params, op);
   }
 
   private site.ycsb.Status insertOrUpdatePrepared(
@@ -588,7 +588,7 @@ public class YDBClient extends DB {
     }
 
     String query = sb.toString();
-    return executePreparedQuery(query, params, op);
+    return executeQuery(query, params, op);
   }
 
   private site.ycsb.Status insertOrUpdateNotPrepared(
@@ -615,20 +615,7 @@ public class YDBClient extends DB {
     String query = sb.toString();
     LOGGER.debug(query);
 
-    TxControl txControl = TxControl.serializableRw().setCommitTx(true);
-
-    try {
-      // Executes data query with specified transaction control settings.
-      ExecuteDataQuerySettings executeSettings = new ExecuteDataQuerySettings().keepInQueryCache();
-      this.retryctx.supplyResult(
-          session -> session.executeDataQuery(query, txControl, Params.empty(), executeSettings))
-          .join().expect(String.format("execute %s query problem", op));
-    } catch (Exception e) {
-      LOGGER.error(e.toString());
-      return site.ycsb.Status.ERROR;
-    }
-
-    return site.ycsb.Status.OK;
+    return executeQuery(query, Params.empty(), op);
   }
 
   private site.ycsb.Status bulkUpsert(String table, String key, Map<String, ByteIterator> values) {
