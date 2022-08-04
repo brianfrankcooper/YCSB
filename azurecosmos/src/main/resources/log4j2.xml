@@ -10,15 +10,28 @@
       <MarkerFilter marker="DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
     </Console>
     <RollingFile
-        name="requestDiagnosticsRollingFileAppender"
-        fileName="/tmp/diagnosticLogs/requestDiagnostics.log"
-        filePattern="/tmp/diagnosticLogs/requestDiagnostics.%i.log.gz"
+        name="writeRequestDiagnosticsRollingFileAppender"
+        fileName="/tmp/diagnosticLogs/write/write_request_diagnostics.log"
+        filePattern="/tmp/diagnosticLogs/write/write_request_diagnostics.%d{yyyy-MM-dd-hh-mm}.log.gz"
         ignoreExceptions="false">
       <PatternLayout pattern="${LOG_PATTERN}"/>
-      <MarkerFilter marker="DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
+      <MarkerFilter marker="WRITE_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
       <Policies>
         <OnStartupTriggeringPolicy />
-        <SizeBasedTriggeringPolicy size="250MB" />
+        <SizeBasedTriggeringPolicy size="2KB" />
+      </Policies>
+    </RollingFile>
+
+    <RollingFile
+        name="readRequestDiagnosticsRollingFileAppender"
+        fileName="/tmp/diagnosticLogs/read/read_request_diagnostics.log"
+        filePattern="/tmp/diagnostic_logs/read/read_request_diagnostics.%d{yyyy-MM-dd-hh-mm}.log.gz"
+        ignoreExceptions="false">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="2KB" />
       </Policies>
     </RollingFile>
   </Appenders>
@@ -28,7 +41,7 @@
     <Logger name="log4j.category.org.apache.http.header" level="INFO"/>
     <Root level="info">
       <AppenderRef ref="console"/>
-      <AppenderRef ref="requestDiagnosticsRollingFileAppender"/>
+      <AppenderRef ref="writeRequestDiagnosticsRollingFileAppender"/>
     </Root>
   </Loggers>
 </Configuration>
