@@ -7,12 +7,13 @@
   <Appenders>
     <Console name="console" target="SYSTEM_OUT" follow="true">
       <PatternLayout pattern="${LOG_PATTERN}"/>
-      <MarkerFilter marker="DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
+      <MarkerFilter marker="WRITE_DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
+      <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />      
     </Console>
     <RollingFile
         name="writeRequestDiagnosticsRollingFileAppender"
-        fileName="/tmp/diagnosticLogs/write/write_request_diagnostics.log"
-        filePattern="/tmp/diagnosticLogs/write/write_request_diagnostics.%d{yyyy-MM-dd-hh-mm}.log.gz"
+        fileName="/tmp/diagnosticLogs/write/request_diagnostics.log"
+        filePattern="/tmp/diagnosticLogs/write/request_diagnostics.%d{yyyy-MM-dd-hh-mm}.log.gz"
         ignoreExceptions="false">
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <MarkerFilter marker="WRITE_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
@@ -24,8 +25,8 @@
 
     <RollingFile
         name="readRequestDiagnosticsRollingFileAppender"
-        fileName="/tmp/diagnosticLogs/read/read_request_diagnostics.log"
-        filePattern="/tmp/diagnostic_logs/read/read_request_diagnostics.%d{yyyy-MM-dd-hh-mm}.log.gz"
+        fileName="/tmp/diagnosticLogs/read/request_diagnostics.log"
+        filePattern="/tmp/diagnostic_logs/read/request_diagnostics.%d{yyyy-MM-dd-hh-mm}.log.gz"
         ignoreExceptions="false">
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
