@@ -7,8 +7,10 @@
   <Appenders>
     <Console name="console" target="SYSTEM_OUT" follow="true">
       <PatternLayout pattern="${LOG_PATTERN}"/>
-      <MarkerFilter marker="WRITE_DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
+      <Filters>
+       <MarkerFilter marker="WRITE_DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
       <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
+      </Filters>
     </Console>
     <RollingFile
         name="writeRequestDiagnosticsRollingFileAppender"
