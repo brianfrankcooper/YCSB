@@ -12,8 +12,8 @@
     </Console>
     <RollingFile
         name="writeRequestDiagnosticsRollingFileAppender"
-        fileName="/tmp/diagnosticLogs/write/request_diagnostics.log"
-        filePattern="/tmp/diagnosticLogs/write/request_diagnostics.%d{yyyy-MM-dd-hh-mm}.log.gz"
+        fileName="/tmp/client_diagnostic_logs/write/request_diagnostics.log"
+        filePattern="/tmp/client_diagnostic_logs/write/request_diagnostics.%d{yyyy-MM-dd-hh-mm}.log.gz"
         ignoreExceptions="false">
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <MarkerFilter marker="WRITE_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
@@ -25,8 +25,8 @@
 
     <RollingFile
         name="readRequestDiagnosticsRollingFileAppender"
-        fileName="/tmp/diagnosticLogs/read/request_diagnostics.log"
-        filePattern="/tmp/diagnostic_logs/read/request_diagnostics.%d{yyyy-MM-dd-hh-mm}.log.gz"
+        fileName="/tmp/client_diagnostic_logs/read/request_diagnostics.log"
+        filePattern="/tmp/client_diagnostic_logs/read/request_diagnostics.%d{yyyy-MM-dd-hh-mm}.log.gz"
         ignoreExceptions="false">
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
