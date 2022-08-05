@@ -8,7 +8,7 @@
     <Console name="console" target="SYSTEM_OUT" follow="true">
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <MarkerFilter marker="WRITE_DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
-      <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />      
+      <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
     </Console>
     <RollingFile
         name="writeRequestDiagnosticsRollingFileAppender"
@@ -43,6 +43,7 @@
     <Root level="info">
       <AppenderRef ref="console"/>
       <AppenderRef ref="writeRequestDiagnosticsRollingFileAppender"/>
+      <AppenderRef ref="readRequestDiagnosticsRollingFileAppender"/>
     </Root>
   </Loggers>
 </Configuration>
