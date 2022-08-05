@@ -9,7 +9,7 @@
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <Filters>
         <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="DENY" onMismatch="NEUTRAL" />
-       <MarkerFilter marker="WRITE_DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
+        <MarkerFilter marker="WRITE_DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
       </Filters>
     </Console>
     <RollingFile
@@ -21,7 +21,7 @@
       <MarkerFilter marker="WRITE_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
       <Policies>
         <OnStartupTriggeringPolicy />
-        <SizeBasedTriggeringPolicy size="2KB" />
+        <SizeBasedTriggeringPolicy size="100KB" />
       </Policies>
     </RollingFile>
 
@@ -34,7 +34,7 @@
       <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
       <Policies>
         <OnStartupTriggeringPolicy />
-        <SizeBasedTriggeringPolicy size="2KB" />
+        <SizeBasedTriggeringPolicy size="100KB" />
       </Policies>
     </RollingFile>
   </Appenders>
