@@ -21,7 +21,7 @@
       <MarkerFilter marker="CREATE_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
       <Policies>
         <OnStartupTriggeringPolicy />
-        <SizeBasedTriggeringPolicy size="4KB" />
+        <SizeBasedTriggeringPolicy size="8KB" />
       </Policies>
     </RollingFile>
 
@@ -34,7 +34,7 @@
       <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
       <Policies>
         <OnStartupTriggeringPolicy />
-        <SizeBasedTriggeringPolicy size="4KB" />
+        <SizeBasedTriggeringPolicy size="8KB" />
       </Policies>
     </RollingFile>
   </Appenders>
