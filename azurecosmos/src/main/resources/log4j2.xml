@@ -9,6 +9,8 @@
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <Filters>
         <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="DENY" onMismatch="NEUTRAL" />
+        <MarkerFilter marker="QUERY_DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
+        <MarkerFilter marker="PATCH_DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
         <MarkerFilter marker="CREATE_DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
       </Filters>
     </Console>
@@ -37,6 +39,32 @@
         <SizeBasedTriggeringPolicy size="8KB" />
       </Policies>
     </RollingFile>
+
+    <RollingFile
+        name="patchRequestDiagnosticsRollingFileAppender"
+        fileName="/tmp/cosmos_client_diagnostic_logs/patch/diagnostics.log"
+        filePattern="/tmp/cosmos_client_diagnostic_logs/patch/diagnostics.%d{yyyy-MM-dd-hh-mm-ss}.log.gz"
+        ignoreExceptions="false">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <MarkerFilter marker="PATCH_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="8KB" />
+      </Policies>
+    </RollingFile>
+
+    <RollingFile
+        name="queryRequestDiagnosticsRollingFileAppender"
+        fileName="/tmp/cosmos_client_diagnostic_logs/query/diagnostics.log"
+        filePattern="/tmp/cosmos_client_diagnostic_logs/query/diagnostics.%d{yyyy-MM-dd-hh-mm-ss}.log.gz"
+        ignoreExceptions="false">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <MarkerFilter marker="QUERY_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="8KB" />
+      </Policies>
+    </RollingFile>
   </Appenders>
   <Loggers>
     <Logger name="log4j.category.org.apache.http" level="INFO"/>
@@ -46,6 +74,8 @@
       <AppenderRef ref="console"/>
       <AppenderRef ref="writeRequestDiagnosticsRollingFileAppender"/>
       <AppenderRef ref="readRequestDiagnosticsRollingFileAppender"/>
+      <AppenderRef ref="queryRequestDiagnosticsRollingFileAppender"/>
+      <AppenderRef ref="patchRequestDiagnosticsRollingFileAppender"/>
     </Root>
   </Loggers>
 </Configuration>
