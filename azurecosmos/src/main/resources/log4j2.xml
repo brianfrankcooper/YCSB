@@ -14,8 +14,8 @@
     </Console>
     <RollingFile
         name="writeRequestDiagnosticsRollingFileAppender"
-        fileName="/tmp/client_diagnostic_logs/create/diagnostics.log"
-        filePattern="/tmp/client_diagnostic_logs/create/request_diagnostics.%d{yyyy-MM-dd-hh-mm}.log.gz"
+        fileName="/tmp/cosmos_client_diagnostic_logs/create/diagnostics.log"
+        filePattern="/tmp/cosmos_client_diagnostic_logs/create/diagnostics.%d{yyyy-MM-dd-hh-mm}.log.gz"
         ignoreExceptions="false">
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <MarkerFilter marker="CREATE_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
@@ -27,8 +27,8 @@
 
     <RollingFile
         name="readRequestDiagnosticsRollingFileAppender"
-        fileName="/tmp/client_diagnostic_logs/read/diagnostics.log"
-        filePattern="/tmp/client_diagnostic_logs/read/request_diagnostics.%d{yyyy-MM-dd-hh-mm}.log.gz"
+        fileName="/tmp/cosmos_client_diagnostic_logs/read/diagnostics.log"
+        filePattern="/tmp/cosmos_client_diagnostic_logs/read/diagnostics.%d{yyyy-MM-dd-hh-mm}.log.gz"
         ignoreExceptions="false">
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
