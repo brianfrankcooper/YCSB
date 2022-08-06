@@ -343,7 +343,6 @@ public class AzureCosmosClient extends DB {
    * Perform a range scan for a set of records in the database. Each field/value
    * pair from the result will be stored in a HashMap.
    *
-   *
    * @param table       The name of the table
    * @param startkey    The record key of the first record to read.
    * @param recordcount The number of records to read
@@ -374,14 +373,15 @@ public class AzureCosmosClient extends DB {
       CosmosPagedIterable<ObjectNode> pagedIterable = container.queryItems(querySpec, queryOptions, ObjectNode.class);
       Iterator<FeedResponse<ObjectNode>> pageIterator = pagedIterable
           .iterableByPage(AzureCosmosClient.preferredPageSize).iterator();
-            while (pageIterator.hasNext()) {
-              FeedResponse<ObjectNode> feedResponse = pageIterator.next();
-              feedResponse.getCosmosDiagnostics().getDuration();
-              if (diagnosticsLatencyThresholdInMS > 0 &&
-                  feedResponse.getCosmosDiagnostics().getDuration().compareTo(Duration.ofMillis(diagnosticsLatencyThresholdInMS)) > 0) {
-                LOGGER.warn(QUERY_DIAGNOSTIC, feedResponse.getCosmosDiagnostics().getDuration().toString());
-              }
-              List<ObjectNode> pageDocs = feedResponse.getResults();
+      while (pageIterator.hasNext()) {
+        FeedResponse<ObjectNode> feedResponse = pageIterator.next();
+        feedResponse.getCosmosDiagnostics().getDuration();
+        if (diagnosticsLatencyThresholdInMS > 0 &&
+            feedResponse.getCosmosDiagnostics().getDuration()
+                .compareTo(Duration.ofMillis(diagnosticsLatencyThresholdInMS)) > 0) {
+          LOGGER.warn(QUERY_DIAGNOSTIC, feedResponse.getCosmosDiagnostics().getDuration().toString());
+        }
+        List<ObjectNode> pageDocs = feedResponse.getResults();
         for (ObjectNode doc : pageDocs) {
           Map<String, String> stringResults = new HashMap<>(doc.size());
           Iterator<Map.Entry<String, JsonNode>> nodeIterator = doc.fields();
