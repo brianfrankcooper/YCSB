@@ -471,10 +471,12 @@ public class AzureCosmosClient extends DB {
         container = AzureCosmosClient.database.getContainer(table);
         AzureCosmosClient.containerCache.put(table, container);
       }
+      key = String.valueOf(java.util.UUID.randomUUID());
       PartitionKey pk = new PartitionKey(key);
       ObjectNode node = OBJECT_MAPPER.createObjectNode();
 
       node.put("id", key);
+
       for (Map.Entry<String, ByteIterator> pair : values.entrySet()) {
         node.put(pair.getKey(), pair.getValue().toString());
       }
