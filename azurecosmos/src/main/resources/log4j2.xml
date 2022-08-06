@@ -9,32 +9,32 @@
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <Filters>
         <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="DENY" onMismatch="NEUTRAL" />
-        <MarkerFilter marker="WRITE_DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
+        <MarkerFilter marker="CREATE_DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
       </Filters>
     </Console>
     <RollingFile
         name="writeRequestDiagnosticsRollingFileAppender"
-        fileName="/tmp/client_diagnostic_logs/write/request_diagnostics.log"
-        filePattern="/tmp/client_diagnostic_logs/write/request_diagnostics.%d{yyyy-MM-dd-hh-mm}.log.gz"
+        fileName="/tmp/client_diagnostic_logs/create/diagnostics.log"
+        filePattern="/tmp/client_diagnostic_logs/create/request_diagnostics.%d{yyyy-MM-dd-hh-mm}.log.gz"
         ignoreExceptions="false">
       <PatternLayout pattern="${LOG_PATTERN}"/>
-      <MarkerFilter marker="WRITE_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
+      <MarkerFilter marker="CREATE_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
       <Policies>
         <OnStartupTriggeringPolicy />
-        <SizeBasedTriggeringPolicy size="100KB" />
+        <SizeBasedTriggeringPolicy size="2KB" />
       </Policies>
     </RollingFile>
 
     <RollingFile
         name="readRequestDiagnosticsRollingFileAppender"
-        fileName="/tmp/client_diagnostic_logs/read/request_diagnostics.log"
+        fileName="/tmp/client_diagnostic_logs/read/diagnostics.log"
         filePattern="/tmp/client_diagnostic_logs/read/request_diagnostics.%d{yyyy-MM-dd-hh-mm}.log.gz"
         ignoreExceptions="false">
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
       <Policies>
         <OnStartupTriggeringPolicy />
-        <SizeBasedTriggeringPolicy size="100KB" />
+        <SizeBasedTriggeringPolicy size="2KB" />
       </Policies>
     </RollingFile>
   </Appenders>
