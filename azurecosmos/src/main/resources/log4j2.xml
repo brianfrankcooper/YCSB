@@ -21,20 +21,20 @@
       <MarkerFilter marker="CREATE_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
       <Policies>
         <OnStartupTriggeringPolicy />
-        <SizeBasedTriggeringPolicy size="2KB" />
+        <SizeBasedTriggeringPolicy size="4KB" />
       </Policies>
     </RollingFile>
 
     <RollingFile
         name="readRequestDiagnosticsRollingFileAppender"
         fileName="/tmp/cosmos_client_diagnostic_logs/read/diagnostics.log"
-        filePattern="/tmp/cosmos_client_diagnostic_logs/read/diagnostics.%d{yyyy-MM-dd-hh-mm}.log.gz"
+        filePattern="/tmp/cosmos_client_diagnostic_logs/read/diagnostics.%d{yyyy-MM-dd-hh-mm-ss}.log.gz"
         ignoreExceptions="false">
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
       <Policies>
         <OnStartupTriggeringPolicy />
-        <SizeBasedTriggeringPolicy size="2KB" />
+        <SizeBasedTriggeringPolicy size="4KB" />
       </Policies>
     </RollingFile>
   </Appenders>
