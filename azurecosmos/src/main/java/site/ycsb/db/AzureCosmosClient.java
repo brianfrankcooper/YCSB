@@ -471,7 +471,7 @@ public class AzureCosmosClient extends DB {
         container = AzureCosmosClient.database.getContainer(table);
         AzureCosmosClient.containerCache.put(table, container);
       }
-    //  key = String.valueOf(java.util.UUID.randomUUID());
+      key = String.valueOf(java.util.UUID.randomUUID());
       PartitionKey pk = new PartitionKey(key);
       ObjectNode node = OBJECT_MAPPER.createObjectNode();
 
