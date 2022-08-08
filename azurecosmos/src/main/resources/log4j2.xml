@@ -8,22 +8,22 @@
     <Console name="console" target="SYSTEM_OUT" follow="true">
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <Filters>
-        <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="DENY" onMismatch="NEUTRAL" />
-        <MarkerFilter marker="QUERY_DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
-        <MarkerFilter marker="PATCH_DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
-        <MarkerFilter marker="CREATE_DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
+        <MarkerFilter marker="QUERY_DIAGNOSTIC" onMatch="DENY" onMismatch="NEUTRAL" />
+        <MarkerFilter marker="PATCH_DIAGNOSTIC" onMatch="DENY" onMismatch="NEUTRAL" />
+        <MarkerFilter marker="CREATE_DIAGNOSTIC" onMatch="DENY" onMismatch="NEUTRAL" />
+        <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
       </Filters>
     </Console>
     <RollingFile
         name="writeRequestDiagnosticsRollingFileAppender"
         fileName="/tmp/cosmos_client_diagnostic_logs/create/diagnostics.log"
-        filePattern="/tmp/cosmos_client_diagnostic_logs/create/diagnostics.%d{yyyy-MM-dd-hh-mm}.log.gz"
+        filePattern="/tmp/cosmos_client_diagnostic_logs/create/diagnostics.%d{yyyy-MM-dd-hh-mm-ss}.log.gz"
         ignoreExceptions="false">
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <MarkerFilter marker="CREATE_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
       <Policies>
         <OnStartupTriggeringPolicy />
-        <SizeBasedTriggeringPolicy size="8KB" />
+        <SizeBasedTriggeringPolicy size="500MB" />
       </Policies>
     </RollingFile>
 
@@ -36,7 +36,7 @@
       <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
       <Policies>
         <OnStartupTriggeringPolicy />
-        <SizeBasedTriggeringPolicy size="8KB" />
+        <SizeBasedTriggeringPolicy size="500MB" />
       </Policies>
     </RollingFile>
 
@@ -49,7 +49,7 @@
       <MarkerFilter marker="PATCH_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
       <Policies>
         <OnStartupTriggeringPolicy />
-        <SizeBasedTriggeringPolicy size="8KB" />
+        <SizeBasedTriggeringPolicy size="500MB" />
       </Policies>
     </RollingFile>
 
@@ -62,7 +62,7 @@
       <MarkerFilter marker="QUERY_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
       <Policies>
         <OnStartupTriggeringPolicy />
-        <SizeBasedTriggeringPolicy size="8KB" />
+        <SizeBasedTriggeringPolicy size="500MB" />
       </Policies>
     </RollingFile>
   </Appenders>

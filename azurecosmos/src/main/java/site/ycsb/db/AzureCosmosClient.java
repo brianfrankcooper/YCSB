@@ -84,7 +84,7 @@ public class AzureCosmosClient extends DB {
   private static final Marker READ_DIAGNOSTIC = MarkerFactory.getMarker("READ_DIAGNOSTIC");
   private static final Marker PATCH_DIAGNOSTIC = MarkerFactory.getMarker("PATCH_DIAGNOSTIC");
   private static final Marker DELETE_DIAGNOSTIC = MarkerFactory.getMarker("DELETE_DIAGNOSTIC");
-  private static final Marker QUERY_DIAGNOSTIC = MarkerFactory.getMarker("DELETE_DIAGNOSTIC");
+  private static final Marker QUERY_DIAGNOSTIC = MarkerFactory.getMarker("QUERY_DIAGNOSTIC");
 
   /**
    * Count the number of times initialized to teardown on the last
@@ -375,12 +375,6 @@ public class AzureCosmosClient extends DB {
           .iterableByPage(AzureCosmosClient.preferredPageSize).iterator();
       while (pageIterator.hasNext()) {
         FeedResponse<ObjectNode> feedResponse = pageIterator.next();
-        feedResponse.getCosmosDiagnostics().getDuration();
-        if (diagnosticsLatencyThresholdInMS > 0 &&
-            feedResponse.getCosmosDiagnostics().getDuration()
-                .compareTo(Duration.ofMillis(diagnosticsLatencyThresholdInMS)) > 0) {
-          LOGGER.warn(QUERY_DIAGNOSTIC, feedResponse.getCosmosDiagnostics().getDuration().toString());
-        }
         List<ObjectNode> pageDocs = feedResponse.getResults();
         for (ObjectNode doc : pageDocs) {
           Map<String, String> stringResults = new HashMap<>(doc.size());
@@ -471,7 +465,6 @@ public class AzureCosmosClient extends DB {
         container = AzureCosmosClient.database.getContainer(table);
         AzureCosmosClient.containerCache.put(table, container);
       }
-      key = String.valueOf(java.util.UUID.randomUUID());
       PartitionKey pk = new PartitionKey(key);
       ObjectNode node = OBJECT_MAPPER.createObjectNode();
 
