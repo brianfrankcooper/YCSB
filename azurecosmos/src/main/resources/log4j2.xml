@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="30">
+  <Properties>
+    <Property name="LOG_PATTERN">%-4r [%t] %-5p %c %x -%m%n</Property>
+  </Properties>
+
+  <Appenders>
+    <Console name="console" target="SYSTEM_OUT" follow="true">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <Filters>
+        <MarkerFilter marker="QUERY_DIAGNOSTIC" onMatch="DENY" onMismatch="NEUTRAL" />
+        <MarkerFilter marker="PATCH_DIAGNOSTIC" onMatch="DENY" onMismatch="NEUTRAL" />
+        <MarkerFilter marker="CREATE_DIAGNOSTIC" onMatch="DENY" onMismatch="NEUTRAL" />
+        <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="DENY" onMismatch="ACCEPT" />
+      </Filters>
+    </Console>
+    <RollingFile
+        name="writeRequestDiagnosticsRollingFileAppender"
+        fileName="/tmp/cosmos_client_diagnostic_logs/create/diagnostics.log"
+        filePattern="/tmp/cosmos_client_diagnostic_logs/create/diagnostics.%d{yyyy-MM-dd-hh-mm-ss}.log.gz"
+        ignoreExceptions="false">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <MarkerFilter marker="CREATE_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="500MB" />
+      </Policies>
+    </RollingFile>
+
+    <RollingFile
+        name="readRequestDiagnosticsRollingFileAppender"
+        fileName="/tmp/cosmos_client_diagnostic_logs/read/diagnostics.log"
+        filePattern="/tmp/cosmos_client_diagnostic_logs/read/diagnostics.%d{yyyy-MM-dd-hh-mm-ss}.log.gz"
+        ignoreExceptions="false">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="500MB" />
+      </Policies>
+    </RollingFile>
+
+    <RollingFile
+        name="patchRequestDiagnosticsRollingFileAppender"
+        fileName="/tmp/cosmos_client_diagnostic_logs/patch/diagnostics.log"
+        filePattern="/tmp/cosmos_client_diagnostic_logs/patch/diagnostics.%d{yyyy-MM-dd-hh-mm-ss}.log.gz"
+        ignoreExceptions="false">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <MarkerFilter marker="PATCH_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="500MB" />
+      </Policies>
+    </RollingFile>
+
+    <RollingFile
+        name="queryRequestDiagnosticsRollingFileAppender"
+        fileName="/tmp/cosmos_client_diagnostic_logs/query/diagnostics.log"
+        filePattern="/tmp/cosmos_client_diagnostic_logs/query/diagnostics.%d{yyyy-MM-dd-hh-mm-ss}.log.gz"
+        ignoreExceptions="false">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <MarkerFilter marker="QUERY_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="500MB" />
+      </Policies>
+    </RollingFile>
+  </Appenders>
+  <Loggers>
+    <Logger name="log4j.category.org.apache.http" level="INFO"/>
+    <Logger name="log4j.category.org.apache.http.wire" level="INFO"/>
+    <Logger name="log4j.category.org.apache.http.header" level="INFO"/>
+    <Root level="info">
+      <AppenderRef ref="console"/>
+      <AppenderRef ref="writeRequestDiagnosticsRollingFileAppender"/>
+      <AppenderRef ref="readRequestDiagnosticsRollingFileAppender"/>
+      <AppenderRef ref="queryRequestDiagnosticsRollingFileAppender"/>
+      <AppenderRef ref="patchRequestDiagnosticsRollingFileAppender"/>
+    </Root>
+  </Loggers>
+</Configuration>
