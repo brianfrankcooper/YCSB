@@ -34,7 +34,7 @@ public class ClientThread implements Runnable {
   private DB db;
   private boolean dotransactions;
   private Workload workload;
-  private int opcount;
+  private long opcount;
   private double targetOpsPerMs;
 
   private int opsdone;
@@ -56,7 +56,7 @@ public class ClientThread implements Runnable {
    * @param targetperthreadperms target number of operations per thread per ms
    * @param completeLatch        The latch tracking the completion of all clients.
    */
-  public ClientThread(DB db, boolean dotransactions, Workload workload, Properties props, int opcount,
+  public ClientThread(DB db, boolean dotransactions, Workload workload, Properties props, long opcount,
                       double targetperthreadperms, CountDownLatch completeLatch) {
     this.db = db;
     this.dotransactions = dotransactions;
@@ -81,7 +81,7 @@ public class ClientThread implements Runnable {
     threadcount = threadCount;
   }
 
-  public int getOpsDone() {
+  public long getOpsDone() {
     return opsdone;
   }
 
@@ -179,8 +179,8 @@ public class ClientThread implements Runnable {
   /**
    * The total amount of work this thread is still expected to do.
    */
-  int getOpsTodo() {
-    int todo = opcount - opsdone;
+  long getOpsTodo() {
+    long todo = opcount - opsdone;
     return todo < 0 ? 0 : todo;
   }
 }
