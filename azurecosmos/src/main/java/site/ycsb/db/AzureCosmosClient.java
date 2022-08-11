@@ -39,6 +39,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
@@ -78,6 +80,11 @@ public class AzureCosmosClient extends DB {
   private static final String DEFAULT_USER_AGENT = "azurecosmos-ycsb";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AzureCosmosClient.class);
+  private static final Marker CREATE_DIAGNOSTIC = MarkerFactory.getMarker("CREATE_DIAGNOSTIC");
+  private static final Marker READ_DIAGNOSTIC = MarkerFactory.getMarker("READ_DIAGNOSTIC");
+  private static final Marker PATCH_DIAGNOSTIC = MarkerFactory.getMarker("PATCH_DIAGNOSTIC");
+  private static final Marker DELETE_DIAGNOSTIC = MarkerFactory.getMarker("DELETE_DIAGNOSTIC");
+  private static final Marker QUERY_DIAGNOSTIC = MarkerFactory.getMarker("QUERY_DIAGNOSTIC");
 
   /**
    * Count the number of times initialized to teardown on the last
@@ -317,7 +324,7 @@ public class AzureCosmosClient extends DB {
 
       if (diagnosticsLatencyThresholdInMS > 0 &&
           response.getDiagnostics().getDuration().compareTo(Duration.ofMillis(diagnosticsLatencyThresholdInMS)) > 0) {
-        LOGGER.warn(response.getDiagnostics().toString());
+        LOGGER.warn(READ_DIAGNOSTIC, response.getDiagnostics().toString());
       }
 
       return Status.OK;
@@ -335,7 +342,6 @@ public class AzureCosmosClient extends DB {
   /**
    * Perform a range scan for a set of records in the database. Each field/value
    * pair from the result will be stored in a HashMap.
-   *
    *
    * @param table       The name of the table
    * @param startkey    The record key of the first record to read.
@@ -368,7 +374,8 @@ public class AzureCosmosClient extends DB {
       Iterator<FeedResponse<ObjectNode>> pageIterator = pagedIterable
           .iterableByPage(AzureCosmosClient.preferredPageSize).iterator();
       while (pageIterator.hasNext()) {
-        List<ObjectNode> pageDocs = pageIterator.next().getResults();
+        FeedResponse<ObjectNode> feedResponse = pageIterator.next();
+        List<ObjectNode> pageDocs = feedResponse.getResults();
         for (ObjectNode doc : pageDocs) {
           Map<String, String> stringResults = new HashMap<>(doc.size());
           Iterator<Map.Entry<String, JsonNode>> nodeIterator = doc.fields();
@@ -421,7 +428,7 @@ public class AzureCosmosClient extends DB {
       CosmosItemResponse<ObjectNode> response = container.patchItem(key, pk, cosmosPatchOperations, ObjectNode.class);
       if (diagnosticsLatencyThresholdInMS > 0 &&
           response.getDiagnostics().getDuration().compareTo(Duration.ofMillis(diagnosticsLatencyThresholdInMS)) > 0) {
-        LOGGER.warn(response.getDiagnostics().toString());
+        LOGGER.warn(PATCH_DIAGNOSTIC, response.getDiagnostics().toString());
       }
 
       return Status.OK;
@@ -462,6 +469,7 @@ public class AzureCosmosClient extends DB {
       ObjectNode node = OBJECT_MAPPER.createObjectNode();
 
       node.put("id", key);
+
       for (Map.Entry<String, ByteIterator> pair : values.entrySet()) {
         node.put(pair.getKey(), pair.getValue().toString());
       }
@@ -474,7 +482,7 @@ public class AzureCosmosClient extends DB {
 
       if (diagnosticsLatencyThresholdInMS > 0 &&
           response.getDiagnostics().getDuration().compareTo(Duration.ofMillis(diagnosticsLatencyThresholdInMS)) > 0) {
-        LOGGER.warn(response.getDiagnostics().toString());
+        LOGGER.warn(CREATE_DIAGNOSTIC, response.getDiagnostics().toString());
       }
 
       return Status.OK;
@@ -505,7 +513,7 @@ public class AzureCosmosClient extends DB {
           new CosmosItemRequestOptions());
       if (diagnosticsLatencyThresholdInMS > 0 &&
           response.getDiagnostics().getDuration().compareTo(Duration.ofMillis(diagnosticsLatencyThresholdInMS)) > 0) {
-        LOGGER.warn(response.getDiagnostics().toString());
+        LOGGER.warn(DELETE_DIAGNOSTIC, response.getDiagnostics().toString());
       }
 
       return Status.OK;
