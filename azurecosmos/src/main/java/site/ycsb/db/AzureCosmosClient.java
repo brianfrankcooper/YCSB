@@ -58,7 +58,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Azure Cosmos DB Java SDK 4.28.0 client for YCSB.
+ * Azure Cosmos DB Java SDK 4.34.0 client for YCSB.
  */
 
 public class AzureCosmosClient extends DB {
