@@ -37,6 +37,12 @@ import com.azure.cosmos.util.CosmosPagedIterable;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.microsoft.applicationinsights.TelemetryConfiguration;
+import io.micrometer.azuremonitor.AzureMonitorConfig;
+import io.micrometer.azuremonitor.AzureMonitorMeterRegistry;
+import io.micrometer.core.instrument.Clock;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
@@ -57,6 +63,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -103,6 +110,24 @@ public class AzureCosmosClient extends DB {
   private static boolean includeExceptionStackInLog;
   private static Map<String, CosmosContainer> containerCache;
   private static String userAgent;
+  
+  private AzureMonitorMeterRegistry azureMonitorMeterRegistry;
+
+  private volatile Counter readSuccessCounter;
+  private volatile Counter readFailureCounter;
+  private volatile Timer readSuccessLatencyTimer;
+
+  private volatile Counter scanSuccessCounter;
+  private volatile Counter scanFailureCounter;
+  private volatile Timer scanSuccessLatencyTimer;
+
+  private volatile Counter writeSuccessCounter;
+  private volatile Counter writeFailureCounter;
+  private volatile Timer writeSuccessLatencyTimer;
+
+  private volatile Counter updateSuccessCounter;
+  private volatile Counter updateFailureCounter;
+  private volatile Timer updateSuccessLatencyTimer;
 
   @Override
   public void init() throws DBException {
@@ -234,6 +259,12 @@ public class AzureCosmosClient extends DB {
       throw new DBException(
           "Invalid database name (" + AzureCosmosClient.databaseName + ") or failed to read database.", e);
     }
+
+    String appInsightConnectionString = this.getStringProperty("azurecosmos.appInsightConnectionString", null);
+    if (appInsightConnectionString != null) {
+      this.azureMonitorMeterRegistry = this.azureMonitorMeterRegistry(appInsightConnectionString);
+      registerMeter();
+    }
   }
 
   private String getStringProperty(String propertyName, String defaultValue) {
@@ -255,6 +286,18 @@ public class AzureCosmosClient extends DB {
     }
     try {
       return Integer.parseInt(stringVal);
+    } catch (NumberFormatException e) {
+      return defaultValue;
+    }
+  }
+
+  private double getDoubleProperty(String propertyName, double defaultValue) {
+    String stringVal = getProperties().getProperty(propertyName, null);
+    if (stringVal == null) {
+      return defaultValue;
+    }
+    try {
+      return Double.parseDouble(stringVal);
     } catch (NumberFormatException e) {
       return defaultValue;
     }
@@ -295,6 +338,7 @@ public class AzureCosmosClient extends DB {
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try {
+      long st = System.nanoTime();
       CosmosContainer container = AzureCosmosClient.containerCache.get(table);
       if (container == null) {
         container = AzureCosmosClient.database.getContainer(table);
@@ -327,6 +371,12 @@ public class AzureCosmosClient extends DB {
         LOGGER.warn(READ_DIAGNOSTIC, response.getDiagnostics().toString());
       }
 
+      if (readSuccessLatencyTimer != null) {
+        long en = System.nanoTime();
+        long latency = (en - st) / 1000;
+        readSuccessLatencyTimer.record(latency, TimeUnit.MICROSECONDS);
+        readSuccessCounter.increment();
+      }
       return Status.OK;
     } catch (CosmosException e) {
       int statusCode = e.getStatusCode();
@@ -335,6 +385,9 @@ public class AzureCosmosClient extends DB {
       }
       LOGGER.error("Failed to read key {} in collection {} in database {} statusCode {}", key, table,
           AzureCosmosClient.databaseName, statusCode, e);
+      if (readFailureCounter != null) {
+        readFailureCounter.increment();
+      }
       return Status.NOT_FOUND;
     }
   }
@@ -355,6 +408,7 @@ public class AzureCosmosClient extends DB {
   public Status scan(String table, String startkey, int recordcount, Set<String> fields,
                      Vector<HashMap<String, ByteIterator>> result) {
     try {
+      long st = System.nanoTime();
       CosmosQueryRequestOptions queryOptions = new CosmosQueryRequestOptions();
       queryOptions.setMaxDegreeOfParallelism(AzureCosmosClient.maxDegreeOfParallelism);
       queryOptions.setMaxBufferedItemCount(AzureCosmosClient.maxBufferedItemCount);
@@ -388,6 +442,13 @@ public class AzureCosmosClient extends DB {
           result.add(byteResults);
         }
       }
+
+      if (scanSuccessLatencyTimer != null) {
+        long en = System.nanoTime();
+        long latency = (en - st) / 1000;
+        scanSuccessLatencyTimer.record(latency, TimeUnit.MICROSECONDS);
+        scanSuccessCounter.increment();
+      }
       return Status.OK;
     } catch (CosmosException e) {
       int statusCode = e.getStatusCode();
@@ -396,6 +457,9 @@ public class AzureCosmosClient extends DB {
       }
       LOGGER.error("Failed to query key {} from collection {} in database {} statusCode {}", startkey, table,
           AzureCosmosClient.databaseName, statusCode, e);
+    }
+    if (scanFailureCounter != null) {
+      scanFailureCounter.increment();
     }
     return Status.ERROR;
   }
@@ -413,6 +477,7 @@ public class AzureCosmosClient extends DB {
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
     try {
+      long st = System.nanoTime();
       CosmosContainer container = AzureCosmosClient.containerCache.get(table);
       if (container == null) {
         container = AzureCosmosClient.database.getContainer(table);
@@ -431,6 +496,12 @@ public class AzureCosmosClient extends DB {
         LOGGER.warn(PATCH_DIAGNOSTIC, response.getDiagnostics().toString());
       }
 
+      if (updateSuccessLatencyTimer != null) {
+        long en = System.nanoTime();
+        long latency = (en - st) / 1000;
+        updateSuccessLatencyTimer.record(latency, TimeUnit.MICROSECONDS);
+        updateSuccessCounter.increment();
+      }
       return Status.OK;
     } catch (CosmosException e) {
       int statusCode = e.getStatusCode();
@@ -441,6 +512,9 @@ public class AzureCosmosClient extends DB {
           AzureCosmosClient.databaseName, statusCode, e);
     }
 
+    if (updateFailureCounter != null) {
+      updateFailureCounter.increment();
+    }
     return Status.ERROR;
   }
 
@@ -458,7 +532,7 @@ public class AzureCosmosClient extends DB {
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Insert key: {} into table: {}", key, table);
     }
-
+    long st = System.nanoTime();
     try {
       CosmosContainer container = AzureCosmosClient.containerCache.get(table);
       if (container == null) {
@@ -485,6 +559,12 @@ public class AzureCosmosClient extends DB {
         LOGGER.warn(CREATE_DIAGNOSTIC, response.getDiagnostics().toString());
       }
 
+      if (writeSuccessLatencyTimer != null) {
+        long en = System.nanoTime();
+        long latency = (en - st) / 1000;
+        writeSuccessLatencyTimer.record(latency, TimeUnit.MICROSECONDS);
+        writeSuccessCounter.increment();
+      }
       return Status.OK;
     } catch (CosmosException e) {
       int statusCode = e.getStatusCode();
@@ -493,6 +573,9 @@ public class AzureCosmosClient extends DB {
       }
       LOGGER.error("Failed to insert key {} to collection {} in database {} statusCode {}", key, table,
           AzureCosmosClient.databaseName, statusCode, e);
+    }
+    if (writeFailureCounter != null) {
+      writeFailureCounter.increment();
     }
     return Status.ERROR;
   }
@@ -541,6 +624,75 @@ public class AzureCosmosClient extends DB {
         result.append("r['").append(field).append("'] ");
       }
       return result.toString();
+    }
+  }
+
+  private synchronized AzureMonitorMeterRegistry azureMonitorMeterRegistry(String appInsightConnectionString) {
+    if (this.azureMonitorMeterRegistry == null) {
+      Duration step = Duration.ofSeconds(Integer.getInteger("azure.cosmos.monitoring.azureMonitor.step", 10));
+      boolean enabled = !Boolean.getBoolean("azure.cosmos.monitoring.azureMonitor.disabled");
+      final AzureMonitorConfig config = new AzureMonitorConfig() {
+        @Override
+        public String get(String key) {
+          return null;
+        }
+
+        @Override
+        public Duration step() {
+          return step;
+        }
+
+        @Override
+        public boolean enabled() {
+          return enabled;
+        }
+      };
+      TelemetryConfiguration telemetryConfiguration = TelemetryConfiguration.createDefault();
+      telemetryConfiguration.setConnectionString(appInsightConnectionString);
+      azureMonitorMeterRegistry = AzureMonitorMeterRegistry
+          .builder(config)
+          .clock(Clock.SYSTEM)
+          .telemetryConfiguration(telemetryConfiguration)
+          .build();
+    }
+    return this.azureMonitorMeterRegistry;
+  }
+
+  private void registerMeter() {
+    if (this.getDoubleProperty("readproportion", 0) > 0) {
+      readSuccessCounter = this.azureMonitorMeterRegistry.counter("Read Successful Operations");
+      readFailureCounter = this.azureMonitorMeterRegistry.counter("Read Unsuccessful Operations");
+      readSuccessLatencyTimer = Timer.builder("Read Successful Latency")
+          .publishPercentiles(0.5, 0.95, 0.99, 0.999, 0.9999)
+          .publishPercentileHistogram()
+          .register(this.azureMonitorMeterRegistry);
+    }
+
+    if (this.getDoubleProperty("insertproportion", 0) > 0) {
+      writeSuccessCounter = this.azureMonitorMeterRegistry.counter("Write Successful Operations");
+      writeFailureCounter = this.azureMonitorMeterRegistry.counter("Write Unsuccessful Operations");
+      writeSuccessLatencyTimer = Timer.builder("Write Successful Latency")
+          .publishPercentiles(0.5, 0.95, 0.99, 0.999, 0.9999)
+          .publishPercentileHistogram()
+          .register(this.azureMonitorMeterRegistry);
+    }
+
+    if (this.getDoubleProperty("scanproportion", 0) > 0) {
+      scanSuccessCounter = this.azureMonitorMeterRegistry.counter("Scan Successful Operations");
+      scanFailureCounter = this.azureMonitorMeterRegistry.counter("Scan Unsuccessful Operations");
+      scanSuccessLatencyTimer = Timer.builder("Scan Successful Latency")
+          .publishPercentiles(0.5, 0.95, 0.99, 0.999, 0.9999)
+          .publishPercentileHistogram()
+          .register(this.azureMonitorMeterRegistry);
+    }
+
+    if (this.getDoubleProperty("updateproportion", 0) > 0) {
+      updateSuccessCounter = this.azureMonitorMeterRegistry.counter("Update Successful Operations");
+      updateFailureCounter = this.azureMonitorMeterRegistry.counter("Update Unsuccessful Operations");
+      updateSuccessLatencyTimer = Timer.builder("Update Successful Latency")
+          .publishPercentiles(0.5, 0.95, 0.99, 0.999, 0.9999)
+          .publishPercentileHistogram()
+          .register(this.azureMonitorMeterRegistry);
     }
   }
 }
