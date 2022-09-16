@@ -461,8 +461,8 @@ public class AzureCosmosClient extends DB {
       if (!AzureCosmosClient.includeExceptionStackInLog) {
         e = null;
       }
-      LOGGER.error(QUERY_EXCEPTION, "Failed to query key {} from collection {} in database {} statusCode {}", startkey, table,
-          AzureCosmosClient.databaseName, statusCode, e);
+      LOGGER.error(QUERY_EXCEPTION, "Failed to query key {} from collection {} in database {} statusCode {}",
+          startkey, table, AzureCosmosClient.databaseName, statusCode, e);
     }
     if (scanFailureCounter != null) {
       scanFailureCounter.increment();
