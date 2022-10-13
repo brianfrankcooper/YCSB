@@ -23,7 +23,7 @@ This section describes how to run YCSB on RonDB.
 
 1. Create Table
 
-    Create the following table in a database. Default DB name is "ycsb" which you can override with `rondb.schema` property. For the fields this benchmark only supports varbinary and varchar data types. Note that using varchar each character takes 4 bytes using the default Utf8_unicode_ci encoding.
+    Create the following table in a database. YCSB will assume the database name is "ycsb" by default. This can be changed in the workload configuration file, as described below. For the fields this benchmark only supports varbinary and varchar data types. Note that using varchar each character takes 4 bytes using the default Utf8_unicode_ci encoding.
 
     ```sql
     -- one 4KB data column
@@ -50,29 +50,24 @@ This section describes how to run YCSB on RonDB.
     mvn -pl site.ycsb:rondb-binding -am clean package
     ```
 
-1. Provide RonDB Connection Parameters
+1. Customise workload configuration
 
-    Set connection string, schema name, and fieldcount in the workload you plan to run:
-    - `rondb.connection.string`  Default : 127.0.0.1:1186
-    - `rondb.schema`  Default : ycsb 
+    Specify the desired benchmark configurations using a custom or pre-defined [workload file](../workloads/).
 
-    Note:
-    Set the ycsb `fieldcount`, `fieldlength` and `fieldnameprefix` according to `usertable` schema. For example
+    Inside the workload file, define RonDB-specific parameters:
+    - `rondb.connection.string`  Default: 127.0.0.1:1186
+    - `rondb.schema`  I.e. database name; Default: ycsb 
 
-    ```bash
-    ./bin/ycsb load rondb -s -P workloads/workloada \
-        -p "rondb.connection.string=127.0.0.1:1186" \
-        -p "rondb.schema=ycsb" \
-        -p "fieldcount=1"  \
-        -p "fieldlength=4096"  \
-        -p "fieldnameprefix=FIELD"
-    ```
+    Also, set the `fieldcount`, `fieldlength` and `fieldnameprefix` according to `usertable` schema. From the SQL examples above, this would be one of the two:
+    - "fieldcount=1", "fieldlength=4096", "fieldnameprefix=FIELD"
+    - "fieldcount=10", "fieldlength=400", "fieldnameprefix=FIELD" (4 bytes per varchar character using Utf8_unicode_ci encoding)
 
 1. Load the data
 
     Make sure that the RonDB native client library `libndbclient.so` is included in the `LD_LIBRARY_PATH`
 
     ```bash
+    # Use -p flag to overwrite any parameters in the specified workload file
     ./bin/ycsb load rondb -s -P workloads/workloada \
         -p "rondb.connection.string=127.0.0.1:1186" \
         -p "rondb.schema=ycsb" \
@@ -84,5 +79,11 @@ This section describes how to run YCSB on RonDB.
 1. Run the workload test
 
     ```bash
-    ./bin/ycsb run rondb -s -P workloads/workloada -p "rondb.connection.string=127.0.0.1:1186" -p "rondb.schema=ycsb" -p "fieldcount=1"  -p "fieldlength=4096" -p "fieldnameprefix=FIELD" 
+    # Use -p flag to overwrite any parameters in the specified workload file
+    ./bin/ycsb run rondb -s -P workloads/workloada \
+        -p "rondb.connection.string=127.0.0.1:1186" \
+        -p "rondb.schema=ycsb" \
+        -p "fieldcount=1"  \
+        -p "fieldlength=4096" \
+        -p "fieldnameprefix=FIELD" 
     ```
