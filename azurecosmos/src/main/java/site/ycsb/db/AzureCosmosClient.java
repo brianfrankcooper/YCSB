@@ -117,23 +117,23 @@ public class AzureCosmosClient extends DB {
   private static Map<String, CosmosContainer> containerCache;
   private static String userAgent;
   
-  private AzureMonitorMeterRegistry azureMonitorMeterRegistry;
+  private static AzureMonitorMeterRegistry azureMonitorMeterRegistry;
 
-  private volatile Counter readSuccessCounter;
-  private volatile Counter readFailureCounter;
-  private volatile Timer readSuccessLatencyTimer;
+  private static Counter readSuccessCounter;
+  private static Counter readFailureCounter;
+  private static Timer readSuccessLatencyTimer;
 
-  private volatile Counter scanSuccessCounter;
-  private volatile Counter scanFailureCounter;
-  private volatile Timer scanSuccessLatencyTimer;
+  private static Counter scanSuccessCounter;
+  private static Counter scanFailureCounter;
+  private static Timer scanSuccessLatencyTimer;
 
-  private volatile Counter writeSuccessCounter;
-  private volatile Counter writeFailureCounter;
-  private volatile Timer writeSuccessLatencyTimer;
+  private static Counter writeSuccessCounter;
+  private static Counter writeFailureCounter;
+  private static Timer writeSuccessLatencyTimer;
 
-  private volatile Counter updateSuccessCounter;
-  private volatile Counter updateFailureCounter;
-  private volatile Timer updateSuccessLatencyTimer;
+  private static Counter updateSuccessCounter;
+  private static Counter updateFailureCounter;
+  private static Timer updateSuccessLatencyTimer;
 
   @Override
   public void init() throws DBException {
