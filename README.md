@@ -10,7 +10,7 @@ This fork contains the following updates to Cosmos DB binding:
 
 Additionally, the “operationcount” type in YCSB core, has been changed to long from int to allow for large “operationcount” value.
 
-We will keep this fork up to date with the upstream YCSB repository and push changes from here, back to the upstream YCSB repository.
+We will keep this fork up to date with the upstream YCSB repository and push changes from here, back to the upstream YCSB repository if it becomes active again.
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
