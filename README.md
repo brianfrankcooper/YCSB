@@ -1,15 +1,16 @@
 # Project
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
+This repository is a fork of the original YCSB repository. We had to create this fork as there was no response to our pull requests from the YCSB maintainers.
 
-As the maintainer of this project, please make a few updates:
+This fork contains the following updates to Cosmos DB binding:
+- Cosmos DB Java SDK 4.28.0
+- Upgrade to Log4J 2
+- Client diagnostic and exception logging to separate files
+- Micrometer integration
 
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+Additionally, the “operationcount” type in YCSB core, has been changed to long from int to allow for large “operationcount” value.
 
+We will keep this fork up to date with the upstream YCSB repository and push changes from here, back to the upstream YCSB repository.
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
