@@ -31,6 +31,8 @@ import com.yandex.ydb.core.Result;
 import com.yandex.ydb.core.Status;
 import com.yandex.ydb.core.StatusCode;
 import com.yandex.ydb.core.UnexpectedResultException;
+import com.yandex.ydb.core.auth.AuthProvider;
+import com.yandex.ydb.core.auth.TokenAuthProvider;
 import com.yandex.ydb.core.grpc.GrpcTransport;
 import com.yandex.ydb.table.SessionRetryContext;
 import com.yandex.ydb.table.TableClient;
@@ -342,8 +344,17 @@ public class YDBClient extends DB {
     String connectionString = url + "?database=" + databasepath;
     LOGGER.info("YDB connection string: " + connectionString);
 
+    String token = properties.getProperty("token", "");
+
+    AuthProvider authProvider;
+    if (token.isEmpty()) {
+      authProvider = CloudAuthHelper.getAuthProviderFromEnviron();
+    } else {
+      authProvider = new TokenAuthProvider(token);
+    }
+
     GrpcTransport transport = GrpcTransport.forConnectionString(connectionString)
-        .withAuthProvider(CloudAuthHelper.getAuthProviderFromEnviron())
+        .withAuthProvider(authProvider)
         .build();
 
     GrpcTableRpc rpc = GrpcTableRpc.ownTransport(transport);

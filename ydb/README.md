@@ -65,6 +65,9 @@ Run the workload:
  - Full path to the database, e.g. `/home/mydb`.
  - No default value, parametr is mandatory.
 
+- `token`
+ - token used for auth, otherwise environment auth will be used
+
 - `dropOnInit`
  - During initialization table `usertable` will be dropped if parameter set to `true`
  - Default is `false`
