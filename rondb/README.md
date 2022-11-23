@@ -31,17 +31,17 @@ This section describes how to run YCSB on RonDB.
 
     -- OR
 
-    -- ten data columns
+    -- ten 400B data columns
     CREATE TABLE usertable (YCSB_KEY VARCHAR(255) PRIMARY KEY, FIELD0 varchar(100), FIELD1 varchar(100), FIELD2 varchar(100), FIELD3 varchar(100), FIELD4 varchar(100), FIELD5 varchar(100), FIELD6 varchar(100), FIELD7 varchar(100), FIELD8 varchar(100), FIELD9 varchar(100));
     ```
 
     *Note:* The number of columns must be equal to `fieldcount`, and the columns' length must not be less than `fieldlength`
 
-1. Install Java and Maven
+2. Install Java and Maven
 
     Install Java and Maven on your platform to build the benchmark
 
-1. Set Up YCSB
+3. Set Up YCSB
 
     Git clone YCSB and compile:
     ```bash
@@ -50,7 +50,7 @@ This section describes how to run YCSB on RonDB.
     mvn -pl site.ycsb:rondb-binding -am clean package
     ```
 
-1. Customise workload configuration
+4. Customise workload configuration
 
     Specify the desired benchmark configurations using a custom or pre-defined [workload file](../workloads/).
 
@@ -62,9 +62,9 @@ This section describes how to run YCSB on RonDB.
     - "fieldcount=1", "fieldlength=4096", "fieldnameprefix=FIELD"
     - "fieldcount=10", "fieldlength=400", "fieldnameprefix=FIELD" (4 bytes per varchar character using Utf8_unicode_ci encoding)
 
-1. Load the data
+5. Load the data
 
-    Make sure that the RonDB native client library `libndbclient.so` is included in the `LD_LIBRARY_PATH`
+    Make sure that the RonDB native client library `libndbclient.so` is included in the `LD_LIBRARY_PATH` for this.
 
     ```bash
     # Use -p flag to overwrite any parameters in the specified workload file
@@ -76,7 +76,7 @@ This section describes how to run YCSB on RonDB.
         -p "fieldnameprefix=FIELD"
     ```
 
-1. Run the workload test
+6. Run the workload test
 
     ```bash
     # Use -p flag to overwrite any parameters in the specified workload file
