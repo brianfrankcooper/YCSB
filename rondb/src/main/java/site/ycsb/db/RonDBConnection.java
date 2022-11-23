@@ -62,7 +62,7 @@ public final class RonDBConnection {
   }
 
   public void setUpDBConnection(String connString, String schema) throws DBException {
-    logger.info("Connecting to  schema: " + schema + " on " + connString + ".");
+    logger.info("Connecting to schema: " + schema + " on " + connString + ".");
 
     Properties props = new Properties();
     props.setProperty("com.mysql.clusterj.connectstring", connString);
