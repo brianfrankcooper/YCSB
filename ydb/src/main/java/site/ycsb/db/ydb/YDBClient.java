@@ -34,6 +34,7 @@ import com.yandex.ydb.core.UnexpectedResultException;
 import com.yandex.ydb.core.auth.AuthProvider;
 import com.yandex.ydb.core.auth.TokenAuthProvider;
 import com.yandex.ydb.core.grpc.GrpcTransport;
+import com.yandex.ydb.core.grpc.TransportImplType;
 import com.yandex.ydb.table.SessionRetryContext;
 import com.yandex.ydb.table.TableClient;
 import com.yandex.ydb.table.description.ColumnFamily;
@@ -355,6 +356,7 @@ public class YDBClient extends DB {
 
     GrpcTransport transport = GrpcTransport.forConnectionString(connectionString)
         .withAuthProvider(authProvider)
+        .withTransportImplType(TransportImplType.YDB_TRANSPORT_IMPL)
         .build();
 
     GrpcTableRpc rpc = GrpcTableRpc.ownTransport(transport);
