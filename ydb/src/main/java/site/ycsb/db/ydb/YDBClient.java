@@ -49,6 +49,7 @@ import com.yandex.ydb.table.settings.CreateTableSettings;
 import com.yandex.ydb.table.settings.ExecuteDataQuerySettings;
 import com.yandex.ydb.table.settings.PartitioningSettings;
 import com.yandex.ydb.table.transaction.TxControl;
+import com.yandex.ydb.table.values.ListType;
 import com.yandex.ydb.table.values.ListValue;
 import com.yandex.ydb.table.values.PrimitiveType;
 import com.yandex.ydb.table.values.PrimitiveValue;
@@ -62,6 +63,7 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -98,8 +100,14 @@ public class YDBClient extends DB {
   private static boolean useBulkUpsert = false;
   private static boolean useSingleColumn = false;
   private static int insertInflight = 1;
+  private static int bulkUpsertBatchSize = 1;
+
+  private static StructType columnsStruct;
+  private static ListType columnTypes;
 
   private final AtomicInteger insertInflightLeft = new AtomicInteger(1);
+
+  private final List<Map<String, Value>> bulkBatch = new ArrayList<Map<String, Value>>();
 
   // YDB connection staff
   private String database;
@@ -240,12 +248,18 @@ public class YDBClient extends DB {
       builder.addNullableColumn(KEY_COLUMN_NAME, PrimitiveType.utf8());
     }
 
+    Map<String, Type> types = new HashMap<String, Type>();
+    types.put(KEY_COLUMN_NAME, PrimitiveType.utf8());
+
     if (!useSingleColumn) {
       for (int i = 0; i < fieldcount; i++) {
+        String columnName = fieldprefix + i;
+        types.put(columnName, PrimitiveType.utf8());
+
         if (doCompression) {
-          builder.addNullableColumn(fieldprefix + i, PrimitiveType.utf8(), "default");
+          builder.addNullableColumn(columnName, PrimitiveType.utf8(), "default");
         } else {
-          builder.addNullableColumn(fieldprefix + i, PrimitiveType.utf8());
+          builder.addNullableColumn(columnName, PrimitiveType.utf8());
         }
       }
     } else {
@@ -255,6 +269,9 @@ public class YDBClient extends DB {
         builder.addNullableColumn(VALUE_COLUMN_NAME, PrimitiveType.utf8());
       }
     }
+
+    columnsStruct = StructType.of(types);
+    columnTypes = ListType.of(columnsStruct);
 
     builder.setPrimaryKey(KEY_COLUMN_NAME);
 
@@ -321,6 +338,7 @@ public class YDBClient extends DB {
     usePreparedUpdateInsert = Boolean.parseBoolean(properties.getProperty("preparedInsertUpdateQueries", "true"));
     forceUpsert = Boolean.parseBoolean(properties.getProperty("forceUpsert", "false"));
     useBulkUpsert = Boolean.parseBoolean(properties.getProperty("bulkUpsert", "false"));
+    bulkUpsertBatchSize = Integer.parseInt(properties.getProperty("bulkUpsertBatchSize", "1"));
     useSingleColumn = Boolean.parseBoolean(properties.getProperty("singleColumn", "false"));
 
     insertInflight = Integer.parseInt(properties.getProperty("insertInflight", "1"));
@@ -372,6 +390,10 @@ public class YDBClient extends DB {
 
   @Override
   public void cleanup() throws DBException {
+    if (bulkBatch.size() > 0) {
+      sendBulkBatch();
+    }
+
     while (insertInflightLeft.get() != insertInflight) {
       // wait
     }
@@ -379,6 +401,7 @@ public class YDBClient extends DB {
     if (INIT_COUNT.decrementAndGet() != 0) {
       return;
     }
+
 
     // last instance
 
@@ -631,7 +654,66 @@ public class YDBClient extends DB {
     return executeQuery(query, Params.empty(), op);
   }
 
+  private site.ycsb.Status sendBulkBatch() {
+    ListValue data = columnTypes.newValue(bulkBatch.stream()
+        .map(e -> columnsStruct.newValue(e))
+        .collect(Collectors.toList()));
+
+    bulkBatch.clear();
+
+    try {
+      insertInflightLeft.decrementAndGet();
+
+      String tablepath = this.database + "/" + tablename;
+      CompletableFuture<Status> future = this.retryctx.supplyStatus(
+          session -> session.executeBulkUpsert(tablepath, data, new BulkUpsertSettings()));
+
+      if (insertInflight <= 1) {
+        future.join().expect("bulk upsert problem for key");
+        insertInflightLeft.incrementAndGet();
+      } else {
+        future.thenAccept(status -> {
+            if (!status.isSuccess()) {
+              LOGGER.error(String.format("Bulk upsert failed: %s", status.toString()));
+            }
+          }).thenRun(() -> insertInflightLeft.incrementAndGet());
+        while (insertInflightLeft.get() == 0) {
+          Thread.sleep(1);
+        }
+      }
+      return site.ycsb.Status.OK;
+    } catch (Exception e) {
+      LOGGER.error(e.toString());
+      return site.ycsb.Status.ERROR;
+    }
+  }
+
+  private site.ycsb.Status bulkUpsertBatched(String table, String key, Map<String, ByteIterator> values) {
+    Map<String, Type> types = new HashMap<String, Type>();
+    types.put(KEY_COLUMN_NAME, PrimitiveType.utf8());
+
+    Map<String, Value> ydbValues = new HashMap<String, Value>();
+    ydbValues.put(KEY_COLUMN_NAME, PrimitiveValue.utf8(key));
+
+    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+      types.put(entry.getKey(), PrimitiveType.utf8());
+      ydbValues.put(entry.getKey(), PrimitiveValue.utf8(entry.getValue().toString()));
+    }
+
+    bulkBatch.add(ydbValues);
+    if (bulkBatch.size() < bulkUpsertBatchSize) {
+      return site.ycsb.Status.BATCHED_OK;
+    }
+
+    sendBulkBatch();
+    return site.ycsb.Status.OK;
+  }
+
   private site.ycsb.Status bulkUpsert(String table, String key, Map<String, ByteIterator> values) {
+    if (bulkUpsertBatchSize > 1) {
+      return bulkUpsertBatched(table, key, values);
+    }
+
     Map<String, Type> types = new HashMap<String, Type>();
     types.put(KEY_COLUMN_NAME, PrimitiveType.utf8());
 

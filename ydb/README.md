@@ -104,6 +104,10 @@ Run the workload:
  - upsert uses bulk iterface, can be combined with `forceUpsert` to speedup load phase
  - default `no`
 
+- `bulkUpsertBatchSize`
+ - size of bulk upsert batch, must be used with `bulkUpsert`
+ - default 100
+
 - `compression`
  - Use compression for all columns
  - default `false`
