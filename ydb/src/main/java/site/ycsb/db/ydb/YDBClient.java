@@ -94,7 +94,6 @@ public class YDBClient extends DB {
   private static boolean usePreparedUpdateInsert = true;
   private static boolean forceUpsert = false;
   private static boolean useBulkUpsert = false;
-  private static boolean useSingleColumn = false;
   private static int insertInflight = 1;
   private static int bulkUpsertBatchSize = 1;
 
@@ -247,22 +246,14 @@ public class YDBClient extends DB {
     Map<String, Type> types = new HashMap<String, Type>();
     types.put(KEY_COLUMN_NAME, PrimitiveType.Text);
 
-    if (!useSingleColumn) {
-      for (int i = 0; i < fieldcount; i++) {
-        String columnName = fieldprefix + i;
-        types.put(columnName, PrimitiveType.Text);
+    for (int i = 0; i < fieldcount; i++) {
+      String columnName = fieldprefix + i;
+      types.put(columnName, PrimitiveType.Text);
 
-        if (doCompression) {
-          builder.addNullableColumn(columnName, PrimitiveType.Text, "default");
-        } else {
-          builder.addNullableColumn(columnName, PrimitiveType.Text);
-        }
-      }
-    } else {
       if (doCompression) {
-        builder.addNullableColumn(VALUE_COLUMN_NAME, PrimitiveType.Text, "default");
+        builder.addNullableColumn(columnName, PrimitiveType.Text, "default");
       } else {
-        builder.addNullableColumn(VALUE_COLUMN_NAME, PrimitiveType.Text);
+        builder.addNullableColumn(columnName, PrimitiveType.Text);
       }
     }
 
@@ -335,7 +326,6 @@ public class YDBClient extends DB {
     forceUpsert = Boolean.parseBoolean(properties.getProperty("forceUpsert", "false"));
     useBulkUpsert = Boolean.parseBoolean(properties.getProperty("bulkUpsert", "false"));
     bulkUpsertBatchSize = Integer.parseInt(properties.getProperty("bulkUpsertBatchSize", "1"));
-    useSingleColumn = Boolean.parseBoolean(properties.getProperty("singleColumn", "false"));
 
     insertInflight = Integer.parseInt(properties.getProperty("insertInflight", "1"));
     if (insertInflight > 1) {
@@ -402,15 +392,11 @@ public class YDBClient extends DB {
   public site.ycsb.Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     String query;
 
-    if (!useSingleColumn) {
-      String fieldsString = "*";
-      if (fields != null && fields.size() > 0) {
-        fieldsString = String.join(",", fields);
-      }
-      query = "DECLARE $key as Utf8; SELECT " + fieldsString + " FROM " + tablename + " WHERE key = $key;";
-    } else {
-      query = "DECLARE $key as Utf8; SELECT * FROM " + tablename + " WHERE key = $key;";
+    String fieldsString = "*";
+    if (fields != null && fields.size() > 0) {
+      fieldsString = String.join(",", fields);
     }
+    query = "DECLARE $key as Utf8; SELECT " + fieldsString + " FROM " + tablename + " WHERE key = $key;";
 
     Params params = Params.of("$key", PrimitiveValue.newText(key));
 
@@ -435,18 +421,9 @@ public class YDBClient extends DB {
       }
 
       while (rs.next()) {
-        if (!useSingleColumn) {
-          for (int i = 0; i < rs.getColumnCount(); ++i) {
-            final byte[] val = rs.getColumn(i).getText().getBytes();
-            result.put(rs.getColumnName(i), new ByteArrayByteIterator(val));
-          }
-        } else {
-          final byte[] readKey = rs.getColumn(0).getText().getBytes();
-          result.put(rs.getColumnName(0), new ByteArrayByteIterator(readKey));
-
-          final byte[] readValue = rs.getColumn(1).getText().getBytes();
-          byte[] decodedValue = Base64.getDecoder().decode(readValue);
-          deserializeValues(decodedValue, fields, result);
+        for (int i = 0; i < rs.getColumnCount(); ++i) {
+          final byte[] val = rs.getColumn(i).getText().getBytes();
+          result.put(rs.getColumnName(i), new ByteArrayByteIterator(val));
         }
       }
     } catch (Exception e) {
@@ -532,41 +509,8 @@ public class YDBClient extends DB {
     }
   }
 
-  private site.ycsb.Status insertOrUpdatePreparedSingleColumn(
-                      String table, String key, Map<String, ByteIterator> values, String op) {
-    // we assume that for the same map of the same fields the order will be the same
-    StringBuilder sb = new StringBuilder();
-
-    sb.append("DECLARE $key AS Utf8;");
-    sb.append("DECLARE $value AS Utf8;");
-
-    sb.append(op);
-    sb.append(" INTO ");
-    sb.append(tablename);
-
-    sb.append(" ( key, value ) VALUES ( $key, $value );");
-
-    Params params = Params.create();
-    params.put("$" + KEY_COLUMN_NAME, PrimitiveValue.newText(key));
-
-    try {
-      String encoded = Base64.getEncoder().encodeToString(serializeValues(values));
-      params.put("$" + VALUE_COLUMN_NAME, PrimitiveValue.newText(encoded));
-    } catch (Exception e) {
-      LOGGER.error(e.toString());
-      return site.ycsb.Status.ERROR;
-    }
-
-    String query = sb.toString();
-    return executeQuery(query, params, op);
-  }
-
   private site.ycsb.Status insertOrUpdatePrepared(
                       String table, String key, Map<String, ByteIterator> values, String op) {
-    if (useSingleColumn) {
-      return insertOrUpdatePreparedSingleColumn(table, key, values, op);
-    }
-
     // we assume that for the same map of the same fields the order will be the same
     StringBuilder sb = new StringBuilder();
 
@@ -706,20 +650,9 @@ public class YDBClient extends DB {
     Map<String, Value> ydbValues = new HashMap<String, Value>();
     ydbValues.put(KEY_COLUMN_NAME, PrimitiveValue.newText(key));
 
-    if (!useSingleColumn) {
-      for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-        types.put(entry.getKey(), PrimitiveType.Text);
-        ydbValues.put(entry.getKey(), PrimitiveValue.newText(entry.getValue().toString()));
-      }
-    } else {
-      types.put(VALUE_COLUMN_NAME, PrimitiveType.Text);
-      try {
-        String encoded = Base64.getEncoder().encodeToString(serializeValues(values));
-        ydbValues.put(VALUE_COLUMN_NAME, PrimitiveValue.newText(encoded));
-      } catch (Exception e) {
-        LOGGER.error(e.toString());
-        return site.ycsb.Status.ERROR;
-      }
+    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+      types.put(entry.getKey(), PrimitiveType.Text);
+      ydbValues.put(entry.getKey(), PrimitiveValue.newText(entry.getValue().toString()));
     }
 
     StructType struct = StructType.of(types);
