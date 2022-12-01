@@ -26,36 +26,32 @@ package site.ycsb.db.ydb;
 import site.ycsb.*;
 import site.ycsb.workloads.CoreWorkload;
 
-import com.yandex.ydb.auth.iam.CloudAuthHelper;
-import com.yandex.ydb.core.Result;
-import com.yandex.ydb.core.Status;
-import com.yandex.ydb.core.StatusCode;
-import com.yandex.ydb.core.UnexpectedResultException;
-import com.yandex.ydb.core.auth.AuthProvider;
-import com.yandex.ydb.core.auth.TokenAuthProvider;
-import com.yandex.ydb.core.grpc.GrpcTransport;
-import com.yandex.ydb.core.grpc.TransportImplType;
-import com.yandex.ydb.table.SessionRetryContext;
-import com.yandex.ydb.table.TableClient;
-import com.yandex.ydb.table.description.ColumnFamily;
-import com.yandex.ydb.table.description.StoragePool;
-import com.yandex.ydb.table.description.TableDescription;
-import com.yandex.ydb.table.query.DataQueryResult;
-import com.yandex.ydb.table.query.Params;
-import com.yandex.ydb.table.result.ResultSetReader;
-import com.yandex.ydb.table.rpc.grpc.GrpcTableRpc;
-import com.yandex.ydb.table.settings.BulkUpsertSettings;
-import com.yandex.ydb.table.settings.CreateTableSettings;
-import com.yandex.ydb.table.settings.ExecuteDataQuerySettings;
-import com.yandex.ydb.table.settings.PartitioningSettings;
-import com.yandex.ydb.table.transaction.TxControl;
-import com.yandex.ydb.table.values.ListType;
-import com.yandex.ydb.table.values.ListValue;
-import com.yandex.ydb.table.values.PrimitiveType;
-import com.yandex.ydb.table.values.PrimitiveValue;
-import com.yandex.ydb.table.values.StructType;
-import com.yandex.ydb.table.values.Type;
-import com.yandex.ydb.table.values.Value;
+import tech.ydb.auth.iam.CloudAuthHelper;
+import tech.ydb.core.Result;
+import tech.ydb.core.Status;
+import tech.ydb.core.StatusCode;
+import tech.ydb.core.UnexpectedResultException;
+import tech.ydb.core.auth.AuthProvider;
+import tech.ydb.core.auth.TokenAuthProvider;
+import tech.ydb.core.grpc.GrpcTransport;
+import tech.ydb.table.SessionRetryContext;
+import tech.ydb.table.TableClient;
+import tech.ydb.table.description.ColumnFamily;
+import tech.ydb.table.description.StoragePool;
+import tech.ydb.table.description.TableDescription;
+import tech.ydb.table.query.DataQueryResult;
+import tech.ydb.table.query.Params;
+import tech.ydb.table.result.ResultSetReader;
+import tech.ydb.table.settings.BulkUpsertSettings;
+import tech.ydb.table.settings.PartitioningSettings;
+import tech.ydb.table.transaction.TxControl;
+import tech.ydb.table.values.ListType;
+import tech.ydb.table.values.ListValue;
+import tech.ydb.table.values.PrimitiveType;
+import tech.ydb.table.values.PrimitiveValue;
+import tech.ydb.table.values.StructType;
+import tech.ydb.table.values.Type;
+import tech.ydb.table.values.Value;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -243,30 +239,30 @@ public class YDBClient extends DB {
     }
 
     if (doCompression) {
-      builder.addNullableColumn(KEY_COLUMN_NAME, PrimitiveType.utf8(), "default");
+      builder.addNullableColumn(KEY_COLUMN_NAME, PrimitiveType.Text, "default");
     } else {
-      builder.addNullableColumn(KEY_COLUMN_NAME, PrimitiveType.utf8());
+      builder.addNullableColumn(KEY_COLUMN_NAME, PrimitiveType.Text);
     }
 
     Map<String, Type> types = new HashMap<String, Type>();
-    types.put(KEY_COLUMN_NAME, PrimitiveType.utf8());
+    types.put(KEY_COLUMN_NAME, PrimitiveType.Text);
 
     if (!useSingleColumn) {
       for (int i = 0; i < fieldcount; i++) {
         String columnName = fieldprefix + i;
-        types.put(columnName, PrimitiveType.utf8());
+        types.put(columnName, PrimitiveType.Text);
 
         if (doCompression) {
-          builder.addNullableColumn(columnName, PrimitiveType.utf8(), "default");
+          builder.addNullableColumn(columnName, PrimitiveType.Text, "default");
         } else {
-          builder.addNullableColumn(columnName, PrimitiveType.utf8());
+          builder.addNullableColumn(columnName, PrimitiveType.Text);
         }
       }
     } else {
       if (doCompression) {
-        builder.addNullableColumn(VALUE_COLUMN_NAME, PrimitiveType.utf8(), "default");
+        builder.addNullableColumn(VALUE_COLUMN_NAME, PrimitiveType.Text, "default");
       } else {
-        builder.addNullableColumn(VALUE_COLUMN_NAME, PrimitiveType.utf8());
+        builder.addNullableColumn(VALUE_COLUMN_NAME, PrimitiveType.Text);
       }
     }
 
@@ -276,7 +272,6 @@ public class YDBClient extends DB {
     builder.setPrimaryKey(KEY_COLUMN_NAME);
 
     final boolean autopartitioning = Boolean.parseBoolean(properties.getProperty("autopartitioning", "true"));
-    CreateTableSettings tableSettings = new CreateTableSettings();
     if (autopartitioning) {
       int avgRowSize = calculateAvgRowSize();
       long recordcount = Long.parseLong(properties.getProperty(
@@ -300,6 +295,7 @@ public class YDBClient extends DB {
           recordcount, avgRowSize, minParts, maxParts, partSizeMB, splitByLoad, splitBySize));
 
       PartitioningSettings settings = new PartitioningSettings();
+
       settings.setMinPartitionsCount(minParts);
       settings.setMaxPartitionsCount(maxParts);
       settings.setPartitioningByLoad(splitByLoad);
@@ -313,14 +309,14 @@ public class YDBClient extends DB {
 
       // set both until bug fixed
       builder.setPartitioningSettings(settings);
-      tableSettings.setPartitioningSettings(settings);
     }
 
-    TableDescription tabledescription = builder.build();
+    TableDescription tableDescription = builder.build();
+
     try {
       String tablepath = this.database + "/" + tablename;
-      this.retryctx.supplyStatus(session -> session.createTable(tablepath, tabledescription, tableSettings))
-        .join().expect("create table problem");
+      this.retryctx.supplyStatus(session -> session.createTable(tablepath, tableDescription))
+        .join().expectSuccess("create table problem");
     } catch (UnexpectedResultException e) {
       throw new DBException(e);
     } finally {
@@ -355,14 +351,6 @@ public class YDBClient extends DB {
       throw new DBException("Invalid endpoint: '" + url + ";. Must be of the form 'grpc[s]://url:port'");
     }
 
-    String databasepath = properties.getProperty("database", null);
-    if (databasepath == null) {
-      throw new DBException("ERROR: Missing database");
-    }
-
-    String connectionString = url + "?database=" + databasepath;
-    LOGGER.info("YDB connection string: " + connectionString);
-
     String token = properties.getProperty("token", "");
 
     AuthProvider authProvider;
@@ -372,13 +360,11 @@ public class YDBClient extends DB {
       authProvider = new TokenAuthProvider(token);
     }
 
-    GrpcTransport transport = GrpcTransport.forConnectionString(connectionString)
+    GrpcTransport transport = GrpcTransport.forConnectionString(url)
         .withAuthProvider(authProvider)
-        .withTransportImplType(TransportImplType.YDB_TRANSPORT_IMPL)
         .build();
 
-    GrpcTableRpc rpc = GrpcTableRpc.ownTransport(transport);
-    this.tableclient = TableClient.newClient(rpc)
+    this.tableclient = TableClient.newClient(transport)
         .sessionPoolSize(insertInflight, insertInflight)
         .build();
 
@@ -426,17 +412,18 @@ public class YDBClient extends DB {
       query = "DECLARE $key as Utf8; SELECT * FROM " + tablename + " WHERE key = $key;";
     }
 
-    Params params = Params.of("$key", PrimitiveValue.utf8(key));
+    Params params = Params.of("$key", PrimitiveValue.newText(key));
 
     LOGGER.debug(query);
 
     TxControl txControl = TxControl.serializableRw().setCommitTx(true);
 
     try {
-      ExecuteDataQuerySettings executeSettings = new ExecuteDataQuerySettings().keepInQueryCache();
-      DataQueryResult queryResult = this.retryctx.supplyResult(
-          session -> session.executeDataQuery(query, txControl, params, executeSettings))
-            .join().expect("execute read query");
+      Result<DataQueryResult> resultWrapped = this.retryctx.supplyResult(
+          session -> session.executeDataQuery(query, txControl, params))
+            .join();
+      resultWrapped.getStatus().expectSuccess("execute read query");
+      DataQueryResult queryResult = resultWrapped.getValue();
 
       if (queryResult.getResultSetCount() == 0) {
         return site.ycsb.Status.NOT_FOUND;
@@ -450,14 +437,14 @@ public class YDBClient extends DB {
       while (rs.next()) {
         if (!useSingleColumn) {
           for (int i = 0; i < rs.getColumnCount(); ++i) {
-            final byte[] val = rs.getColumn(i).getUtf8().getBytes();
+            final byte[] val = rs.getColumn(i).getText().getBytes();
             result.put(rs.getColumnName(i), new ByteArrayByteIterator(val));
           }
         } else {
-          final byte[] readKey = rs.getColumn(0).getUtf8().getBytes();
+          final byte[] readKey = rs.getColumn(0).getText().getBytes();
           result.put(rs.getColumnName(0), new ByteArrayByteIterator(readKey));
 
-          final byte[] readValue = rs.getColumn(1).getUtf8().getBytes();
+          final byte[] readValue = rs.getColumn(1).getText().getBytes();
           byte[] decodedValue = Base64.getDecoder().decode(readValue);
           deserializeValues(decodedValue, fields, result);
         }
@@ -482,25 +469,26 @@ public class YDBClient extends DB {
         + " LIMIT $limit;";
 
     Params params = Params.of(
-        "$startKey", PrimitiveValue.utf8(startkey),
-        "$limit", PrimitiveValue.uint32(recordcount));
+        "$startKey", PrimitiveValue.newText(startkey),
+        "$limit", PrimitiveValue.newUint32(recordcount));
 
     LOGGER.debug(query);
 
     TxControl txControl = TxControl.serializableRw().setCommitTx(true);
 
     try {
-      ExecuteDataQuerySettings executeSettings = new ExecuteDataQuerySettings().keepInQueryCache();
-      DataQueryResult queryResult = this.retryctx.supplyResult(
-          session -> session.executeDataQuery(query, txControl, params, executeSettings))
-          .join().expect("execute scan query");
+      Result<DataQueryResult> resultWrapped = this.retryctx.supplyResult(
+          session -> session.executeDataQuery(query, txControl, params))
+          .join();
+      resultWrapped.getStatus().expectSuccess("execute scan query");
+      DataQueryResult queryResult = resultWrapped.getValue();
 
       ResultSetReader rs = queryResult.getResultSet(0);
       result.ensureCapacity(rs.getRowCount());
       while (rs.next()) {
         HashMap<String, ByteIterator> columns = new HashMap<String, ByteIterator>();
         for (int i = 0; i < rs.getColumnCount(); ++i) {
-          final byte[] val = rs.getColumn(i).getUtf8().getBytes();
+          final byte[] val = rs.getColumn(i).getText().getBytes();
           columns.put(rs.getColumnName(i), new ByteArrayByteIterator(val));
         }
         result.add(columns);
@@ -519,18 +507,16 @@ public class YDBClient extends DB {
     TxControl txControl = TxControl.serializableRw().setCommitTx(true);
 
     try {
-      ExecuteDataQuerySettings executeSettings = new ExecuteDataQuerySettings().keepInQueryCache();
-
       insertInflightLeft.decrementAndGet();
       CompletableFuture<Result<DataQueryResult>> future = this.retryctx.supplyResult(
-          session -> session.executeDataQuery(query, txControl, params, executeSettings));
+          session -> session.executeDataQuery(query, txControl, params));
 
       if (insertInflight <= 1) {
-        future.join().expect(String.format("execute %s query problem", op));
+        future.join().getStatus().expectSuccess(String.format("execute %s query problem", op));
         insertInflightLeft.incrementAndGet();
       } else {
         future.thenAccept(result -> {
-            if (result.getCode() != StatusCode.SUCCESS) {
+            if (result.getStatus().getCode() != StatusCode.SUCCESS) {
               LOGGER.error(String.format("Operation failed: %s", result.toString()));
             }
           }).thenRun(() -> insertInflightLeft.incrementAndGet());
@@ -561,11 +547,11 @@ public class YDBClient extends DB {
     sb.append(" ( key, value ) VALUES ( $key, $value );");
 
     Params params = Params.create();
-    params.put("$" + KEY_COLUMN_NAME, PrimitiveValue.utf8(key));
+    params.put("$" + KEY_COLUMN_NAME, PrimitiveValue.newText(key));
 
     try {
       String encoded = Base64.getEncoder().encodeToString(serializeValues(values));
-      params.put("$" + VALUE_COLUMN_NAME, PrimitiveValue.utf8(encoded));
+      params.put("$" + VALUE_COLUMN_NAME, PrimitiveValue.newText(encoded));
     } catch (Exception e) {
       LOGGER.error(e.toString());
       return site.ycsb.Status.ERROR;
@@ -618,9 +604,9 @@ public class YDBClient extends DB {
     sb.append(");");
 
     Params params = Params.create();
-    params.put("$" + KEY_COLUMN_NAME, PrimitiveValue.utf8(key));
+    params.put("$" + KEY_COLUMN_NAME, PrimitiveValue.newText(key));
     for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-      params.put("$" + entry.getKey(), PrimitiveValue.utf8(entry.getValue().toString()));
+      params.put("$" + entry.getKey(), PrimitiveValue.newText(entry.getValue().toString()));
     }
 
     String query = sb.toString();
@@ -669,7 +655,7 @@ public class YDBClient extends DB {
           session -> session.executeBulkUpsert(tablepath, data, new BulkUpsertSettings()));
 
       if (insertInflight <= 1) {
-        future.join().expect("bulk upsert problem for key");
+        future.join().expectSuccess("bulk upsert problem for key");
         insertInflightLeft.incrementAndGet();
       } else {
         future.thenAccept(status -> {
@@ -690,14 +676,14 @@ public class YDBClient extends DB {
 
   private site.ycsb.Status bulkUpsertBatched(String table, String key, Map<String, ByteIterator> values) {
     Map<String, Type> types = new HashMap<String, Type>();
-    types.put(KEY_COLUMN_NAME, PrimitiveType.utf8());
+    types.put(KEY_COLUMN_NAME, PrimitiveType.Text);
 
     Map<String, Value> ydbValues = new HashMap<String, Value>();
-    ydbValues.put(KEY_COLUMN_NAME, PrimitiveValue.utf8(key));
+    ydbValues.put(KEY_COLUMN_NAME, PrimitiveValue.newText(key));
 
     for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-      types.put(entry.getKey(), PrimitiveType.utf8());
-      ydbValues.put(entry.getKey(), PrimitiveValue.utf8(entry.getValue().toString()));
+      types.put(entry.getKey(), PrimitiveType.Text);
+      ydbValues.put(entry.getKey(), PrimitiveValue.newText(entry.getValue().toString()));
     }
 
     bulkBatch.add(ydbValues);
@@ -715,21 +701,21 @@ public class YDBClient extends DB {
     }
 
     Map<String, Type> types = new HashMap<String, Type>();
-    types.put(KEY_COLUMN_NAME, PrimitiveType.utf8());
+    types.put(KEY_COLUMN_NAME, PrimitiveType.Text);
 
     Map<String, Value> ydbValues = new HashMap<String, Value>();
-    ydbValues.put(KEY_COLUMN_NAME, PrimitiveValue.utf8(key));
+    ydbValues.put(KEY_COLUMN_NAME, PrimitiveValue.newText(key));
 
     if (!useSingleColumn) {
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-        types.put(entry.getKey(), PrimitiveType.utf8());
-        ydbValues.put(entry.getKey(), PrimitiveValue.utf8(entry.getValue().toString()));
+        types.put(entry.getKey(), PrimitiveType.Text);
+        ydbValues.put(entry.getKey(), PrimitiveValue.newText(entry.getValue().toString()));
       }
     } else {
-      types.put(VALUE_COLUMN_NAME, PrimitiveType.utf8());
+      types.put(VALUE_COLUMN_NAME, PrimitiveType.Text);
       try {
         String encoded = Base64.getEncoder().encodeToString(serializeValues(values));
-        ydbValues.put(VALUE_COLUMN_NAME, PrimitiveValue.utf8(encoded));
+        ydbValues.put(VALUE_COLUMN_NAME, PrimitiveValue.newText(encoded));
       } catch (Exception e) {
         LOGGER.error(e.toString());
         return site.ycsb.Status.ERROR;
@@ -747,7 +733,7 @@ public class YDBClient extends DB {
           session -> session.executeBulkUpsert(tablepath, data, new BulkUpsertSettings()));
 
       if (insertInflight <= 1) {
-        future.join().expect("bulk upsert problem for key");
+        future.join().expectSuccess("bulk upsert problem for key");
         insertInflightLeft.incrementAndGet();
       } else {
         future.thenAccept(status -> {
@@ -800,16 +786,15 @@ public class YDBClient extends DB {
     String query = "DECLARE $key as Utf8; DELETE from " + table + " WHERE " + KEY_COLUMN_NAME + " = $key;";
     LOGGER.debug(query);
 
-    Params params = Params.of("$key", PrimitiveValue.utf8(key));
+    Params params = Params.of("$key", PrimitiveValue.newText(key));
 
     TxControl txControl = TxControl.serializableRw().setCommitTx(true);
 
     try {
-      ExecuteDataQuerySettings executeSettings = new ExecuteDataQuerySettings().keepInQueryCache();
       StatusCode code =
           this.retryctx.supplyResult(
-              session -> session.executeDataQuery(query, txControl, params, executeSettings))
-              .join().getCode();
+              session -> session.executeDataQuery(query, txControl, params))
+              .join().getStatus().getCode();
       switch (code) {
       case SUCCESS:
         return site.ycsb.Status.OK;

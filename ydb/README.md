@@ -58,11 +58,7 @@ Run the workload:
 ## YDB Configuration Parameters
 
 - `endpoint`
- - This should be an endpoint for YDB database, e.g. `grpc://some.host.net:2135`.
- - No default value, parametr is mandatory.
-
-- `database`
- - Full path to the database, e.g. `/home/mydb`.
+ - This should be an endpoint for YDB database, e.g. `grpc://some.host.net:2135/home/mydb`.
  - No default value, parametr is mandatory.
 
 - `token`
