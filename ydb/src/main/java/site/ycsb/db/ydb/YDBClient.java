@@ -335,13 +335,13 @@ public class YDBClient extends DB {
       insertInflightLeft.set(insertInflight);
     }
 
-    String url = properties.getProperty("endpoint", null);
+    String url = properties.getProperty("dsn", null);
     if (url == null) {
-      throw new DBException("ERROR: Missing endpoint");
+      throw new DBException("ERROR: Missing data source name");
     }
 
     if (!url.startsWith("grpc")) {
-      throw new DBException("Invalid endpoint: '" + url + ";. Must be of the form 'grpc[s]://url:port'");
+      throw new DBException("Invalid data source name: '" + url + ";. Must be of the form 'grpc[s]://url:port'");
     }
 
     String token = properties.getProperty("token", "");

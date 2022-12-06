@@ -45,20 +45,18 @@ Don't forget to unpack the built package somewhere. To avoid extra maven invocat
 Load the data:
 
     $ ./bin/ycsb load ydb -s -P workloads/workloada \
-        -p database=/Root/db1 \
-        -p endpoint=grpc://SOME_YDB_HOST:2135 \
+        -p dsn=grpc://SOME_YDB_HOST:2135/Root/db1 \
         -p dropOnInit=true > outputLoad.txt
 
 Run the workload:
 
     $ ./bin/ycsb run ydb -s -P workloads/workloada \
-        -p database=/Root/db1 \
-        -p endpoint=grpc://SOME_YDB_HOST:2135  > outputLoad.txt
+        -p dsn=grpc://SOME_YDB_HOST:2135/Root/db1  > outputLoad.txt
 
 ## YDB Configuration Parameters
 
-- `endpoint`
- - This should be an endpoint for YDB database, e.g. `grpc://some.host.net:2135/home/mydb`.
+- `dsn`
+ - This should be a data source name (dsn) for YDB database, e.g. `grpc://some.host.net:2135/home/mydb`.
  - No default value, parametr is mandatory.
 
 - `keyColumnName`
