@@ -79,7 +79,6 @@ public class YDBClient extends DB {
 
   /** Key column name is 'key' (and type String). */
   private static final String KEY_COLUMN_NAME = "key";
-  private static final String VALUE_COLUMN_NAME = "value";
 
   private static final String MAX_PARTITION_SIZE = "2000"; // 2 GB
   private static final String MAX_PARTITIONS_COUNT = "50";

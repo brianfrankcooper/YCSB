@@ -115,7 +115,3 @@ Run the workload:
 - `splitBySize`
  - Split parts when they're overloaded, see [AUTO_PARTITIONING_BY_SIZE](https://ydb.tech/en/docs/concepts/datamodel#auto_partitioning_by_size)
  - default `true`
-
-- `singleColumn`
- - All fields will be encoded into single column by this client. Not supported in scan()
- - default `no`
