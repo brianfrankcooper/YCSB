@@ -78,7 +78,7 @@ public class YDBClient extends DB {
   private static final Logger LOGGER = LoggerFactory.getLogger(YDBClient.class);
 
   /** Key column name is 'key' (and type String). */
-  private static final String KEY_COLUMN_NAME = "key";
+  private static final String DEFAULT_KEY_COLUMN_NAME = "id";
 
   private static final String MAX_PARTITION_SIZE = "2000"; // 2 GB
   private static final String MAX_PARTITIONS_COUNT = "50";
@@ -90,6 +90,7 @@ public class YDBClient extends DB {
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
   private static String tablename;
+  private static String keyColumnName;
   private static boolean usePreparedUpdateInsert = true;
   private static boolean forceUpsert = false;
   private static boolean useBulkUpsert = false;
@@ -225,6 +226,7 @@ public class YDBClient extends DB {
     final String fieldprefix = properties.getProperty(CoreWorkload.FIELD_NAME_PREFIX,
                                                       CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
 
+
     int fieldcount = Integer.parseInt(properties.getProperty(
         CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
 
@@ -237,29 +239,29 @@ public class YDBClient extends DB {
     }
 
     if (doCompression) {
-      builder.addNullableColumn(KEY_COLUMN_NAME, PrimitiveType.Text, "default");
+      builder.addNonnullColumn(keyColumnName, PrimitiveType.Text, "default");
     } else {
-      builder.addNullableColumn(KEY_COLUMN_NAME, PrimitiveType.Text);
+      builder.addNonnullColumn(keyColumnName, PrimitiveType.Text);
     }
 
     Map<String, Type> types = new HashMap<String, Type>();
-    types.put(KEY_COLUMN_NAME, PrimitiveType.Text);
+    types.put(keyColumnName, PrimitiveType.Text);
 
     for (int i = 0; i < fieldcount; i++) {
       String columnName = fieldprefix + i;
-      types.put(columnName, PrimitiveType.Text);
+      types.put(columnName, PrimitiveType.Bytes);
 
       if (doCompression) {
-        builder.addNullableColumn(columnName, PrimitiveType.Text, "default");
+        builder.addNullableColumn(columnName, PrimitiveType.Bytes, "default");
       } else {
-        builder.addNullableColumn(columnName, PrimitiveType.Text);
+        builder.addNullableColumn(columnName, PrimitiveType.Bytes);
       }
     }
 
     columnsStruct = StructType.of(types);
     columnTypes = ListType.of(columnsStruct);
 
-    builder.setPrimaryKey(KEY_COLUMN_NAME);
+    builder.setPrimaryKey(keyColumnName);
 
     final boolean autopartitioning = Boolean.parseBoolean(properties.getProperty("autopartitioning", "true"));
     if (autopartitioning) {
@@ -321,6 +323,8 @@ public class YDBClient extends DB {
     Properties properties = getProperties();
 
     tablename = properties.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
+    keyColumnName = properties.getProperty("keyColumnName", DEFAULT_KEY_COLUMN_NAME);
+
     usePreparedUpdateInsert = Boolean.parseBoolean(properties.getProperty("preparedInsertUpdateQueries", "true"));
     forceUpsert = Boolean.parseBoolean(properties.getProperty("forceUpsert", "false"));
     useBulkUpsert = Boolean.parseBoolean(properties.getProperty("bulkUpsert", "false"));
@@ -395,7 +399,8 @@ public class YDBClient extends DB {
     if (fields != null && fields.size() > 0) {
       fieldsString = String.join(",", fields);
     }
-    query = "DECLARE $key as Utf8; SELECT " + fieldsString + " FROM " + tablename + " WHERE key = $key;";
+    query = "DECLARE $key as Text; SELECT " + fieldsString + " FROM " + tablename
+      + " WHERE " + keyColumnName + " = $key;";
 
     Params params = Params.of("$key", PrimitiveValue.newText(key));
 
@@ -419,10 +424,16 @@ public class YDBClient extends DB {
         return site.ycsb.Status.NOT_FOUND;
       }
 
+      final int keyColumnIndex = rs.getColumnIndex(keyColumnName);
       while (rs.next()) {
         for (int i = 0; i < rs.getColumnCount(); ++i) {
-          final byte[] val = rs.getColumn(i).getText().getBytes();
-          result.put(rs.getColumnName(i), new ByteArrayByteIterator(val));
+          if (i == keyColumnIndex) {
+            final byte[] val = rs.getColumn(i).getText().getBytes();
+            result.put(rs.getColumnName(i), new ByteArrayByteIterator(val));
+          } else {
+            final byte[] val = rs.getColumn(i).getBytes();
+            result.put(rs.getColumnName(i), new ByteArrayByteIterator(val));
+          }
         }
       }
     } catch (Exception e) {
@@ -440,8 +451,8 @@ public class YDBClient extends DB {
     if (fields != null && fields.size() > 0) {
       fieldsString = String.join(",", fields);
     }
-    String query = "DECLARE $startKey as Utf8; DECLARE $limit as Uint32; SELECT " + fieldsString + " FROM " + tablename
-        + " WHERE key >= $startKey"
+    String query = "DECLARE $startKey as Text; DECLARE $limit as Uint32; SELECT " + fieldsString + " FROM " + tablename
+        + " WHERE " + keyColumnName + " >= $startKey"
         + " LIMIT $limit;";
 
     Params params = Params.of(
@@ -460,12 +471,18 @@ public class YDBClient extends DB {
       DataQueryResult queryResult = resultWrapped.getValue();
 
       ResultSetReader rs = queryResult.getResultSet(0);
+      final int keyColumnIndex = rs.getColumnIndex(keyColumnName);
       result.ensureCapacity(rs.getRowCount());
       while (rs.next()) {
         HashMap<String, ByteIterator> columns = new HashMap<String, ByteIterator>();
         for (int i = 0; i < rs.getColumnCount(); ++i) {
-          final byte[] val = rs.getColumn(i).getText().getBytes();
-          columns.put(rs.getColumnName(i), new ByteArrayByteIterator(val));
+          if (i == keyColumnIndex) {
+            final byte[] val = rs.getColumn(i).getText().getBytes();
+            columns.put(rs.getColumnName(i), new ByteArrayByteIterator(val));
+          } else {
+            final byte[] val = rs.getColumn(i).getBytes();
+            columns.put(rs.getColumnName(i), new ByteArrayByteIterator(val));
+          }
         }
         result.add(columns);
       }
@@ -513,18 +530,18 @@ public class YDBClient extends DB {
     // we assume that for the same map of the same fields the order will be the same
     StringBuilder sb = new StringBuilder();
 
-    sb.append("DECLARE $key AS Utf8;");
+    sb.append("DECLARE $key AS Text;");
     for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
       sb.append("DECLARE $");
       sb.append(entry.getKey());
-      sb.append(" AS Utf8;");
+      sb.append(" AS Bytes;");
     }
 
     sb.append(op);
     sb.append(" INTO ");
     sb.append(tablename);
 
-    sb.append(" ( key, ");
+    sb.append(" ( "); sb.append(keyColumnName); sb.append(", ");
     int n = values.size();
     for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
       --n;
@@ -547,9 +564,9 @@ public class YDBClient extends DB {
     sb.append(");");
 
     Params params = Params.create();
-    params.put("$" + KEY_COLUMN_NAME, PrimitiveValue.newText(key));
+    params.put("$key", PrimitiveValue.newText(key));
     for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-      params.put("$" + entry.getKey(), PrimitiveValue.newText(entry.getValue().toString()));
+      params.put("$" + entry.getKey(), PrimitiveValue.newBytes(entry.getValue().toArray()));
     }
 
     String query = sb.toString();
@@ -561,7 +578,7 @@ public class YDBClient extends DB {
     // Note that it doesn't use prepared queries, which is bad practice. Implemented only to compare performance
     // of prepared VS not prepared
     Set<String> fields = values.keySet();
-    String fieldsString = KEY_COLUMN_NAME + "," + String.join(",", fields);
+    String fieldsString = keyColumnName + "," + String.join(",", fields);
 
     StringBuilder sb = new StringBuilder(op + " INTO " + tablename
         + " (" + fieldsString + ") VALUES ('" + key + "',");
@@ -619,14 +636,14 @@ public class YDBClient extends DB {
 
   private site.ycsb.Status bulkUpsertBatched(String table, String key, Map<String, ByteIterator> values) {
     Map<String, Type> types = new HashMap<String, Type>();
-    types.put(KEY_COLUMN_NAME, PrimitiveType.Text);
+    types.put(keyColumnName, PrimitiveType.Text);
 
     Map<String, Value> ydbValues = new HashMap<String, Value>();
-    ydbValues.put(KEY_COLUMN_NAME, PrimitiveValue.newText(key));
+    ydbValues.put(keyColumnName, PrimitiveValue.newText(key));
 
     for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-      types.put(entry.getKey(), PrimitiveType.Text);
-      ydbValues.put(entry.getKey(), PrimitiveValue.newText(entry.getValue().toString()));
+      types.put(entry.getKey(), PrimitiveType.Bytes);
+      ydbValues.put(entry.getKey(), PrimitiveValue.newBytes(entry.getValue().toArray()));
     }
 
     bulkBatch.add(ydbValues);
@@ -644,14 +661,14 @@ public class YDBClient extends DB {
     }
 
     Map<String, Type> types = new HashMap<String, Type>();
-    types.put(KEY_COLUMN_NAME, PrimitiveType.Text);
+    types.put(keyColumnName, PrimitiveType.Text);
 
     Map<String, Value> ydbValues = new HashMap<String, Value>();
-    ydbValues.put(KEY_COLUMN_NAME, PrimitiveValue.newText(key));
+    ydbValues.put(keyColumnName, PrimitiveValue.newText(key));
 
     for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-      types.put(entry.getKey(), PrimitiveType.Text);
-      ydbValues.put(entry.getKey(), PrimitiveValue.newText(entry.getValue().toString()));
+      types.put(entry.getKey(), PrimitiveType.Bytes);
+      ydbValues.put(entry.getKey(), PrimitiveValue.newBytes(entry.getValue().toArray()));
     }
 
     StructType struct = StructType.of(types);
@@ -715,7 +732,7 @@ public class YDBClient extends DB {
 
   @Override
   public site.ycsb.Status delete(String table, String key) {
-    String query = "DECLARE $key as Utf8; DELETE from " + table + " WHERE " + KEY_COLUMN_NAME + " = $key;";
+    String query = "DECLARE $key as Text; DELETE from " + table + " WHERE " + keyColumnName + " = $key;";
     LOGGER.debug(query);
 
     Params params = Params.of("$key", PrimitiveValue.newText(key));

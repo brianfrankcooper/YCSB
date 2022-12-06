@@ -61,6 +61,10 @@ Run the workload:
  - This should be an endpoint for YDB database, e.g. `grpc://some.host.net:2135/home/mydb`.
  - No default value, parametr is mandatory.
 
+- `keyColumnName`
+ - Key column name
+ - Default is `id`
+
 - `token`
  - token used for auth, otherwise environment auth will be used
 
