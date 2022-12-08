@@ -67,7 +67,7 @@ Run the workload:
  - token used for auth, otherwise environment auth will be used
 
 - `dropOnInit`
- - During initialization table `usertable` will be dropped if parameter set to `true`
+ - During initialization table `usertable` will be dropped (might not exists) if parameter set to `true` and new one will be created.
  - Default is `false`
 
 - `dropOnClean`

@@ -217,9 +217,11 @@ public class YDBClient extends DB {
     Properties properties = getProperties();
 
     final boolean doDrop = Boolean.parseBoolean(properties.getProperty("dropOnInit", "false"));
-    if (doDrop) {
-      dropTable();
+    if (!doDrop) {
+      return;
     }
+
+    dropTable();
 
     final boolean doCompression = Boolean.parseBoolean(properties.getProperty("compression", "false"));
 
