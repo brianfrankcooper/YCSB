@@ -507,8 +507,8 @@ public class YDBClient extends DB {
           session -> session.executeDataQuery(query, txControl, params));
 
       if (insertInflight <= 1) {
-        future.join().getStatus().expectSuccess(String.format("execute %s query problem", op));
         insertInflightLeft.incrementAndGet();
+        future.join().getStatus().expectSuccess(String.format("execute %s query problem", op));
       } else {
         future.thenAccept(result -> {
             if (result.getStatus().getCode() != StatusCode.SUCCESS) {
@@ -617,8 +617,8 @@ public class YDBClient extends DB {
           session -> session.executeBulkUpsert(tablepath, data, new BulkUpsertSettings()));
 
       if (insertInflight <= 1) {
-        future.join().expectSuccess("bulk upsert problem for key");
         insertInflightLeft.incrementAndGet();
+        future.join().expectSuccess("bulk upsert problem for key");
       } else {
         future.thenAccept(status -> {
             if (!status.isSuccess()) {
@@ -684,8 +684,8 @@ public class YDBClient extends DB {
           session -> session.executeBulkUpsert(tablepath, data, new BulkUpsertSettings()));
 
       if (insertInflight <= 1) {
-        future.join().expectSuccess("bulk upsert problem for key");
         insertInflightLeft.incrementAndGet();
+        future.join().expectSuccess("bulk upsert problem for key");
       } else {
         future.thenAccept(status -> {
             if (!status.isSuccess()) {
