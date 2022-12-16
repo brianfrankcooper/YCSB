@@ -60,68 +60,68 @@ Please note that you might want to use `-threads` option as well as run many ins
 ## YDB Configuration Parameters
 
 - `dsn`
- - This should be a data source name (dsn) for YDB database, e.g. `grpc://some.host.net:2135/home/mydb`.
- - No default value, parametr is mandatory.
+  - This should be a data source name (dsn) for YDB database, e.g. `grpc://some.host.net:2135/home/mydb`.
+  - No default value, parametr is mandatory.
 
 - `keyColumnName`
- - Key column name
- - Default is `id`
+  - Key column name
+  - Default is `id`
 
 - `token`
- - token used for auth, otherwise environment auth will be used
+  - token used for auth, otherwise environment auth will be used
 
 - `dropOnInit`
- - During initialization table `usertable` will be dropped (might not exists) if parameter set to `true` and new one will be created.
- - Default is `false`
+  - During initialization table `usertable` will be dropped (might not exists) if parameter set to `true` and new one will be created.
+  - Default is `false`
 
 - `dropOnClean`
- - At the end table `usertable` will be dropped if parameter set to `true`
- - Default is `false`
+  - At the end table `usertable` will be dropped if parameter set to `true`
+  - Default is `false`
 
 - `autopartitioning`
- - Automatically calculates min number of partitions and split options
- - Default is `true`
+  - Automatically calculates min number of partitions and split options
+  - Default is `true`
 
 - `maxparts`
- - Maximum number of partitions, see [AUTO_PARTITIONING_MAX_PARTITIONS_COUNT](https://ydb.tech/en/docs/concepts/datamodel#auto_partitioning_max_partitions_count)
- - Default is `50`
+  - Maximum number of partitions, see [AUTO_PARTITIONING_MAX_PARTITIONS_COUNT](https://ydb.tech/en/docs/concepts/datamodel#auto_partitioning_max_partitions_count)
+  - Default is `50`
 
 - `maxpartsizeMB`
- - Maximum size of partition in MB before split
- - Default is `2000` (2 GB)
+  - Maximum size of partition in MB before split
+  - Default is `2000` (2 GB)
 
 - `preparedInsertUpdateQueries`
- - Use prepared queries to update/insert
- - Default is `true`
+  - Use prepared queries to update/insert
+  - Default is `true`
 
 - `insertInflight`
- - Allow insert() to return OK before completing to have inflight > 1
- - default `1`
+  - Allow insert() to return OK before completing to have inflight > 1
+  - default `1`
 
 - `import`
- - Shortcut for "forceUpsert=true, bulkUpsert=true, insertInflight=1000, bulkUpsertBatchSize=500
- - default `false`
+  - Shortcut for "forceUpsert=true, bulkUpsert=true, insertInflight=1000, bulkUpsertBatchSize=500
+  - default `false`
 
 - `forceUpsert`
- - Both insert() and update() use upsert, i.e. blind writes
- - default `no`
+  - Both insert() and update() use upsert, i.e. blind writes
+  - default `no`
 
 - `bulkUpsert`
- - upsert uses bulk iterface, can be combined with `forceUpsert` to speedup load phase
- - default `no`
+  - upsert uses bulk iterface, can be combined with `forceUpsert` to speedup load phase
+  - default `no`
 
 - `bulkUpsertBatchSize`
- - size of bulk upsert batch, must be used with `bulkUpsert`
- - default 100
+  - size of bulk upsert batch, must be used with `bulkUpsert`
+  - default 100
 
 - `compression`
- - Use compression for all columns
- - default `false`
+  - Use compression for all columns
+  - default `false`
 
 - `splitByLoad`
- - Split parts when they're overloaded, see [AUTO_PARTITIONING_BY_LOAD](https://ydb.tech/en/docs/concepts/datamodel#auto_partitioning_by_load)
- - default `true`
+  - Split parts when they're overloaded, see [AUTO_PARTITIONING_BY_LOAD](https://ydb.tech/en/docs/concepts/datamodel#auto_partitioning_by_load)
+  - default `true`
 
 - `splitBySize`
- - Split parts when they're overloaded, see [AUTO_PARTITIONING_BY_SIZE](https://ydb.tech/en/docs/concepts/datamodel#auto_partitioning_by_size)
- - default `true`
+  - Split parts when they're overloaded, see [AUTO_PARTITIONING_BY_SIZE](https://ydb.tech/en/docs/concepts/datamodel#auto_partitioning_by_size)
+  - default `true`
