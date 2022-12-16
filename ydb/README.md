@@ -46,12 +46,16 @@ Load the data:
 
     $ ./bin/ycsb load ydb -s -P workloads/workloada \
         -p dsn=grpc://SOME_YDB_HOST:2135/Root/db1 \
-        -p dropOnInit=true > outputLoad.txt
+        -p dropOnInit=true \
+        -p insertorder=ordered \
+        -p import=true
 
 Run the workload:
 
     $ ./bin/ycsb run ydb -s -P workloads/workloada \
-        -p dsn=grpc://SOME_YDB_HOST:2135/Root/db1  > outputLoad.txt
+        -p dsn=grpc://SOME_YDB_HOST:2135/Root/db1
+
+Please note that you might want to use `-threads` option as well as run many instances of YCSB on multiple servers, when you have a big YDB cluster.
 
 ## YDB Configuration Parameters
 
@@ -93,6 +97,10 @@ Run the workload:
 - `insertInflight`
  - Allow insert() to return OK before completing to have inflight > 1
  - default `1`
+
+- `import`
+ - Shortcut for "forceUpsert=true, bulkUpsert=true, insertInflight=1000, bulkUpsertBatchSize=500
+ - default `false`
 
 - `forceUpsert`
  - Both insert() and update() use upsert, i.e. blind writes

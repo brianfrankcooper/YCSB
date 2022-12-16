@@ -337,6 +337,14 @@ public class YDBClient extends DB {
       insertInflightLeft.set(insertInflight);
     }
 
+    boolean isImport = Boolean.parseBoolean(properties.getProperty("import", "false"));
+    if (isImport) {
+      forceUpsert = true;
+      useBulkUpsert = true;
+      bulkUpsertBatchSize = 500;
+      insertInflight = 1000;
+    }
+
     String url = properties.getProperty("dsn", null);
     if (url == null) {
       throw new DBException("ERROR: Missing data source name");
