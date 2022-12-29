@@ -51,39 +51,46 @@ This section describes how to run YCSB on RonDB.
     mvn -pl site.ycsb:rondb-binding -am clean package
     ```
 
-5. Customise workload configuration
+5. Make sure that the RonDB native client library `libndbclient.so` is included in the `LD_LIBRARY_PATH` for this.
+
+6. Customise workload configuration
 
     Specify the desired benchmark configurations using a custom or pre-defined [workload file](../workloads/).
 
     Inside the workload file, define RonDB-specific parameters:
     - `rondb.connection.string`  Default: 127.0.0.1:1186
-    - `rondb.schema`  I.e. database name; Default: ycsb 
+    - `rondb.schema`  I.e. database name; Default: ycsb
+    - `rondb.use.rest.api` Default: false; this means it will use ClusterJ; Rest API specific:
+        - `rondb.rest.api.batch.size` Default: 1
+        - `rondb.rest.server.ip` Default: localhost
+        - `rondb.rest.server.port` Default: 5000
+        - `rondb.rest.api.version` Default: 0.1.0
 
     Also, set the `fieldcount`, `fieldlength` and `fieldnameprefix` according to `usertable` schema. From the SQL examples above, this would be one of the two:
     - "fieldcount=1", "fieldlength=4096", "fieldnameprefix=FIELD"
     - "fieldcount=10", "fieldlength=400", "fieldnameprefix=FIELD" (4 bytes per varchar character using Utf8_unicode_ci encoding)
 
-6. Load the data
-
-    Make sure that the RonDB native client library `libndbclient.so` is included in the `LD_LIBRARY_PATH` for this.
+7. Load the data
 
     ```bash
     # Use -p flag to overwrite any parameters in the specified workload file
     ./bin/ycsb load rondb -s -P workloads/workloada \
         -p "rondb.connection.string=127.0.0.1:1186" \
         -p "rondb.schema=ycsb" \
+        -p "rondb.use.rest.api=true" \
         -p "fieldcount=1"  \
         -p "fieldlength=4096"  \
         -p "fieldnameprefix=FIELD"
     ```
 
-7. Run the workload test
+8. Run the workload test
 
     ```bash
     # Use -p flag to overwrite any parameters in the specified workload file
     ./bin/ycsb run rondb -s -P workloads/workloada \
         -p "rondb.connection.string=127.0.0.1:1186" \
         -p "rondb.schema=ycsb" \
+        -p "rondb.use.rest.api=true" \
         -p "fieldcount=1"  \
         -p "fieldlength=4096" \
         -p "fieldnameprefix=FIELD" 

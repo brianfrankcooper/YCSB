@@ -18,15 +18,4 @@
 /**
  * YCSB binding for <a href="https://rondb.com/">RonDB</a>.
  */
-package site.ycsb.db.rest.ds;
-
-import org.apache.http.client.methods.HttpRequestBase;
-import site.ycsb.db.rest.MyHttpException;
-
-/**
- * MyHttpClinet.
- */
-
-public abstract class MyHttpClinet {
-  public abstract String execute(HttpRequestBase req) throws MyHttpException;
-}
+package site.ycsb.db.clusterj;

@@ -1,0 +1,98 @@
+/*
+ * This file is part of the RonDB REST API Server
+ * Copyright (c) 2022 Hopsworks AB
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+syntax = "proto2";
+
+package grpcserver;
+
+option java_multiple_files = true;
+option java_package = "com.rondb.grpcserver";
+option java_outer_classname = "RonDBGrpcProto";
+
+//__________________  PK Read Operation __________________
+message FilterProto {
+  required string Column = 1;
+  required string Value = 2;
+}
+
+message ReadColumnProto {
+  required string Column = 1;
+  optional string DataReturnType = 2;
+}
+
+// TODO: Can place ApiKey into metadata
+message PKReadRequestProto {
+  optional string APIKey = 1;
+  required string DB = 2;
+  required string Table = 3;
+  repeated FilterProto Filters = 4;
+  repeated ReadColumnProto ReadColumns = 5;
+  optional string OperationID = 6;
+}
+
+// TODO: Could use bytes as type here
+// TODO: Why not place all of map<string, ColumnValueProto> Data here?
+message ColumnValueProto {
+  optional string Name = 1;
+}
+
+// TODO: Could use enum for code (or simply grpc code)
+message PKReadResponseProto {
+  optional string OperationID = 1;
+  optional int32 code = 2;
+  map<string, ColumnValueProto> Data = 3;
+}
+
+//__________________  Batch Operation ________________________
+message BatchRequestProto {
+  optional string APIKey = 1;
+  repeated PKReadRequestProto operations = 2;
+}
+
+message BatchResponseProto {
+  repeated PKReadResponseProto responses = 1;
+}
+
+//__________________  Stat Operation _________________________
+
+message MemoryStatsProto {
+  required int64 AllocationsCount = 1;
+  required int64 DeallocationsCount = 2;
+  required int64 BuffersCount = 3;
+  required int64 FreeBuffers = 4;
+}
+
+message RonDBStatsProto {
+  required int64 NdbObjectsCreationCount = 1;
+  required int64 NdbObjectsDeletionCount = 2;
+  required int64 NdbObjectsTotalCount = 3;
+  required int64 NdbObjectsFreeCount = 4;
+}
+
+message StatRequestProto {}
+
+message StatResponseProto {
+  required MemoryStatsProto MemoryStats = 1;
+  required RonDBStatsProto RonDBStats = 2;
+}
+
+//__________________  Service ______________________________
+service RonDBREST {
+  rpc PKRead(PKReadRequestProto) returns (PKReadResponseProto);
+  rpc Batch(BatchRequestProto) returns (BatchResponseProto);
+  rpc Stat(StatRequestProto) returns (StatResponseProto);
+}

@@ -18,7 +18,7 @@
 /**
  * YCSB binding for <a href="https://rondb.com/">RonDB</a>.
  */
-package site.ycsb.db.rest.ds;
+package site.ycsb.db.http.ds;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -43,8 +43,7 @@ public class BatchResponse {
   }
 
   public void parse() {
-    JsonParser parser = new JsonParser();
-    JsonArray jsonArray = parser.parse(bodyStr).getAsJsonArray();
+    JsonArray jsonArray = JsonParser.parseString(bodyStr).getAsJsonArray();
     Iterator<JsonElement> itr = jsonArray.iterator();
 
     while (itr.hasNext()) {

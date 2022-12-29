@@ -17,35 +17,30 @@
 
 /**
  * YCSB binding for <a href="https://rondb.com/">RonDB</a>.
+ * RonDB client binding for YCSB.
  */
-package site.ycsb.db.rest.ds;
+package site.ycsb.db.http;
+
+import java.io.IOException;
 
 /**
- * Filter.
+ * data not found.
  */
-public class Filter {
-  private String colName;
-  private String value;
+public class MyHttpException extends IOException {
 
-  public Filter(String colName, String value) {
-    this.colName = colName;
-    this.value = value;
+  public MyHttpException() {
+    super();
   }
 
-  @Override
-  public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("{");
-    sb.append("\"column\":");
-    sb.append("\"");
-    sb.append(colName);
-    sb.append("\"");
-    sb.append(",");
-    sb.append("\"value\":");
-    sb.append("\"");
-    sb.append(value);
-    sb.append("\"");
-    sb.append("}");
-    return  sb.toString();
+  public MyHttpException(String s) {
+    super(s);
+  }
+
+  public MyHttpException(Exception e) {
+    super(e);
+  }
+
+  public MyHttpException(String s, Exception e) {
+    super(s, e);
   }
 }

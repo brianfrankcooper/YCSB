@@ -18,49 +18,37 @@
 /**
  * YCSB binding for <a href="https://rondb.com/">RonDB</a>.
  */
-package site.ycsb.db.rest.ds;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+package site.ycsb.db.http.ds;
 
 /**
- * PK Request.
+ * Batch sub op.
  */
-public class PKRequest {
-
-  private String opID;
-  private List<Filter> filters = new ArrayList<>();
-  private List<ReadColumn> readColumns = new ArrayList<>();
-
-  public PKRequest(String opID) {
-    this.opID = opID;
-  }
-
-  public void addFilter(String colName, String value) {
-    filters.add(new Filter(colName, value));
-  }
-
-  public void addReadColumn(String colName) {
-    readColumns.add(new ReadColumn(colName));
+public class BatchSubOperation {
+  private String method = "POST";
+  private String relativeURL;
+  private PKRequest pkRequest;
+  public BatchSubOperation(String relativeURL, PKRequest pkReq){
+    this.relativeURL = relativeURL;
+    this.pkRequest = pkReq;
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("{");
-    sb.append("\"operationId\":");
+    sb.append("\"method\":");
     sb.append("\"");
-    sb.append(opID);
+    sb.append(method);
     sb.append("\"");
     sb.append(",");
-    sb.append("\"filters\":");
-    sb.append(Arrays.toString(filters.toArray()));
+    sb.append("\"relative-url\":");
+    sb.append("\"");
+    sb.append(relativeURL);
+    sb.append("\"");
     sb.append(",");
-    sb.append("\"readColumns\":");
-    sb.append(Arrays.toString(readColumns.toArray()));
+    sb.append("\"body\":");
+    sb.append(pkRequest.toString());
     sb.append("}");
     return sb.toString();
   }
-
 }

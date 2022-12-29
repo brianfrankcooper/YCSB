@@ -25,89 +25,94 @@
 
 package site.ycsb.db;
 
-import com.mysql.clusterj.ClusterJException;
-import com.mysql.clusterj.DynamicObject;
-import com.mysql.clusterj.Query;
-import com.mysql.clusterj.Session;
-import com.mysql.clusterj.query.Predicate;
-import com.mysql.clusterj.query.QueryBuilder;
-import com.mysql.clusterj.query.QueryDomainType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
-import site.ycsb.db.rest.RonDBRestClient;
-import site.ycsb.db.table.ClassGenerator;
-import site.ycsb.db.table.UserTableHelper;
-import site.ycsb.db.tx.TransactionReqHandler;
+import site.ycsb.db.clusterj.ClusterJClient;
+import site.ycsb.db.http.RestApiClient;
+import site.ycsb.db.http.GrpcClient;
 import site.ycsb.workloads.CoreWorkload;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.Properties;
 
 /**
- * YCSB binding for <a href="https://rondb.com/">RonDB</a>.
+ * This is the REST API client for RonDB.
  */
 public class RonDBClient extends DB {
   protected static Logger logger = LoggerFactory.getLogger(RonDBClient.class);
-  private static RonDBConnection connection;
+  private ClusterJClient clusterJClient;
+  private RestApiClient restApiClient;
+  private GrpcClient grpcClient;
+
   private static Object lock = new Object();
-  private static ClassGenerator classGenerator = new ClassGenerator();
-  private String tableName = "usertable";
-  private long fieldCount = 1;
+
+  private static final String RONDB_USE_GRPC = "rondb.use.grpc";
+  private static final String RONDB_USE_REST_API = "rondb.use.rest.api";
+  private static boolean useRESTAPI;
+  private static boolean useGRPC;
+  private long fieldCount;
   private Set<String> fieldNames;
   private static int maxThreadID = 0;
   private int threadID = 0;
 
+  public RonDBClient() {
+  }
 
   /**
    * Initialize any state for this DB.
    * Called once per DB instance; there is one DB instance per client thread.
    */
   public void init() throws DBException {
+    Properties properties = getProperties();
     synchronized (lock) {
       threadID = maxThreadID++;
-      fieldCount =
-          Long.parseLong(getProperties().getProperty(CoreWorkload.FIELD_COUNT_PROPERTY,
-              CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
-      final String fieldnameprefix = getProperties().getProperty(CoreWorkload.FIELD_NAME_PREFIX,
+
+      useRESTAPI = Boolean.parseBoolean(properties.getProperty(RONDB_USE_REST_API, "false"));
+      useGRPC = Boolean.parseBoolean(properties.getProperty(RONDB_USE_GRPC, "false"));
+      if (useRESTAPI && useGRPC) {
+        logger.error("cannot use both REST API and GRPC");
+        System.exit(1);
+      }
+
+      // It can apparently happen that the methods omit the parameter "fields", so
+      // we're just saving it here
+      fieldCount = Long.parseLong(
+          properties.getProperty(CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
+      final String fieldnameprefix = properties.getProperty(CoreWorkload.FIELD_NAME_PREFIX,
           CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
       fieldNames = new HashSet<>();
       for (int i = 0; i < fieldCount; i++) {
         fieldNames.add(fieldnameprefix + i);
       }
-      tableName = getProperties().getProperty(CoreWorkload.TABLENAME_PROPERTY);
-      if (tableName == null) {
-        tableName = CoreWorkload.TABLENAME_PROPERTY_DEFAULT;
-      }
-      //logger.info("Settings: Table: " + tableName + " Field Count: " + fieldCount +
-      //    " Fields: " + Arrays.toString(fieldNames.toArray()));
-
-      if (connection == null) {
-        connection = RonDBConnection.connect(getProperties());
-      }
-      Session session = connection.getSession(); //initialize session for this thread
-
-      for (int i = 0; i < 1024; i++) {
-        try {
-          DynamicObject persistable = UserTableHelper.getTableObject(classGenerator,
-              session, tableName);
-          releaseDTO(session, persistable);
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
-      }
-      connection.returnSession(session);
     }
 
-    // REST API  for read operation
-    RonDBRestClient.initialize(getProperties());
+    clusterJClient = new ClusterJClient(properties);
+    if (useRESTAPI) {
+      try {
+        restApiClient = new RestApiClient(properties);
+      } catch (IOException e) {
+        logger.error("error creating RonDB REST API client " + e);
+        e.printStackTrace();
+        System.exit(1);
+      }
+    } else if (useGRPC) {
+      try {
+        grpcClient = new GrpcClient(properties);
+      } catch (IOException e) {
+        logger.error("error creating RonDB gRPC client " + e);
+        e.printStackTrace();
+        System.exit(1);
+      }
+    }
   }
 
   /**
@@ -115,13 +120,7 @@ public class RonDBClient extends DB {
    * Called once per DB instance; there is one DB instance per client thread.
    */
   public void cleanup() throws DBException {
-//    System.out.println("----------------> cleanup");
-//    RonDBRestClient.getClient().notifyAllBarriers();
-    synchronized (lock) {
-      if (connection != null) {
-        RonDBConnection.closeSession(connection);
-      }
-    }
+    ClusterJClient.cleanup();
   }
 
   /**
@@ -135,43 +134,19 @@ public class RonDBClient extends DB {
    * @return The result of the operation.
    */
   @Override
-  public Status read(String table, String key, Set<String> fields,
-                     Map<String, ByteIterator> result) {
-
-    Set<String> toRead = fields != null ? fields : fieldNames;
-    if (RonDBRestClient.useRESTAPI()) {
-      try {
-        return RonDBRestClient.getClient().read(threadID, table, key, toRead, result);
-      } catch (Exception e) {
-        logger.error("Error " + e);
-        return Status.ERROR;
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
+    Set<String> fieldsToRead = fields != null ? fields : fieldNames;
+    try {
+      if (useRESTAPI) {
+        return restApiClient.read(threadID, table, key, fieldsToRead, result);
+      } else if (useGRPC) {
+        return grpcClient.read(threadID, table, key, fieldsToRead, result);
+      } else {
+        return clusterJClient.read(table, key, fieldsToRead, result);
       }
-    } else {
-      Class<DynamicObject> dbClass = getDTOClass();
-      final Session session = connection.getSession();
-      try {
-        TransactionReqHandler handler = new TransactionReqHandler("Read") {
-          @Override
-          public Status action() throws Exception {
-            DynamicObject row = session.find(dbClass, key);
-            if (row == null) {
-              logger.info("Read. Key: " + key + " Not Found.");
-              return Status.NOT_FOUND;
-            }
-            for (String field : toRead) {
-              result.put(field, UserTableHelper.readFieldFromDTO(field, row));
-            }
-            releaseDTO(session, row);
-            if (logger.isDebugEnabled()) {
-              logger.debug("Read Key " + key);
-            }
-            return Status.OK;
-          }
-        };
-        return handler.runTx(session, dbClass, key);
-      } finally {
-        connection.returnSession(session);
-      }
+    } catch (Exception e) {
+      logger.error("Error " + e);
+      return Status.ERROR;
     }
   }
 
@@ -189,44 +164,14 @@ public class RonDBClient extends DB {
    */
   @Override
   public Status scan(String table, String startkey, int recordcount, Set<String> fields,
-                     Vector<HashMap<String, ByteIterator>> result) {
-
-    Class<DynamicObject> dbClass = getDTOClass();
-    final Session session = connection.getSession();
-
-    try {
-      TransactionReqHandler handler = new TransactionReqHandler("Scan") {
-        @Override
-        public Status action() throws Exception {
-          QueryBuilder qb = session.getQueryBuilder();
-          QueryDomainType<DynamicObject> dobj =
-              qb.createQueryDefinition(dbClass);
-          Predicate pred1 = dobj.get(UserTableHelper.KEY).greaterEqual(dobj.param(UserTableHelper.KEY +
-              "Param"));
-          dobj.where(pred1);
-          Query<DynamicObject> query = session.createQuery(dobj);
-          query.setParameter(UserTableHelper.KEY + "Param", startkey);
-          query.setLimits(0, recordcount);
-          List<DynamicObject> scanResults = query.getResultList();
-          for (DynamicObject dto : scanResults) {
-            result.add(UserTableHelper.readFieldsFromDTO(dto, fields != null ? fields : fieldNames));
-            releaseDTO(session, dto);
-          }
-
-          if (logger.isDebugEnabled()) {
-            logger.debug("Scan. Rows returned: " + result.size());
-          }
-          return Status.OK;
-        }
-      };
-      return handler.runTx(session, dbClass, startkey);
-    } finally {
-      connection.returnSession(session);
-    }
+      Vector<HashMap<String, ByteIterator>> result) {
+    Set<String> fieldsToRead = fields != null ? fields : fieldNames;
+    return clusterJClient.scan(table, startkey, recordcount, fieldsToRead, result);
   }
 
   /**
-   * Update a record in the database. Any field/value pairs in the specified values
+   * Update a record in the database. Any field/value pairs in the specified
+   * values
    * HashMap will be written into the record with the specified record key,
    * overwriting any existing values with the same field name.
    *
@@ -237,32 +182,12 @@ public class RonDBClient extends DB {
    */
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
-
-    Class<DynamicObject> dbClass = getDTOClass();
-    final Session session = connection.getSession();
-
-    try {
-      TransactionReqHandler handler = new TransactionReqHandler("Update") {
-        @Override
-        public Status action() throws Exception {
-          DynamicObject row = UserTableHelper.createDTO(classGenerator, session, tableName,
-              key, values);
-          session.savePersistent(row);
-          releaseDTO(session, row);
-          if (logger.isDebugEnabled()) {
-            logger.debug("Updated Key " + key);
-          }
-          return Status.OK;
-        }
-      };
-      return handler.runTx(session, dbClass, key);
-    } finally {
-      connection.returnSession(session);
-    }
+    return clusterJClient.update(table, key, values);
   }
 
   /**
-   * Insert a record in the database. Any field/value pairs in the specified values
+   * Insert a record in the database. Any field/value pairs in the specified
+   * values
    * HashMap will be written into the record with the specified record key.
    *
    * @param table  The name of the table
@@ -272,30 +197,8 @@ public class RonDBClient extends DB {
    */
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
-    Class<DynamicObject> dbClass;
-    final Session session = connection.getSession();
-    dbClass = getDTOClass();
-
-    try {
-      TransactionReqHandler handler = new TransactionReqHandler("Insert") {
-        @Override
-        public Status action() throws Exception {
-          DynamicObject row = UserTableHelper.createDTO(classGenerator, session, tableName,
-              key, values);
-          session.makePersistent(row);
-          releaseDTO(session, row);
-          if (logger.isDebugEnabled()) {
-            logger.debug("Inserted Key " + key);
-          }
-          return Status.OK;
-        }
-      };
-      return handler.runTx(session, dbClass, key);
-    } finally {
-      connection.returnSession(session);
-    }
+    return clusterJClient.insert(table, key, values);
   }
-
 
   /**
    * Delete a record from the database.
@@ -306,46 +209,7 @@ public class RonDBClient extends DB {
    */
   @Override
   public Status delete(String table, String key) {
-
-    Class<DynamicObject> dbClass;
-    final Session session = connection.getSession();
-    dbClass = getDTOClass();
-
-    try {
-      TransactionReqHandler handler = new TransactionReqHandler("Delete") {
-        @Override
-        public Status action() throws Exception {
-          DynamicObject row = UserTableHelper.createDTO(classGenerator, session, tableName,
-              key, null);
-          session.deletePersistent(row);
-          releaseDTO(session, row);
-          return Status.OK;
-        }
-      };
-      return handler.runTx(session, dbClass, key);
-    } finally {
-      connection.returnSession(session);
-    }
-  }
-
-  private void releaseDTO(Session session, DynamicObject dto) {
-    session.releaseCache(dto, dto.getClass());
-  }
-
-  private boolean isSessionClosing(Exception e) {
-    if (e instanceof ClusterJException && e.getMessage().contains("Db is closing")) {
-      return true;
-    }
-    return false;
-  }
-
-  public Class getDTOClass() {
-    try {
-      return (Class<DynamicObject>) UserTableHelper.getTableClass(classGenerator, tableName);
-    } catch (Exception e) {
-      e.printStackTrace();
-      return null;
-    }
+    return clusterJClient.delete(table, key);
   }
 
   public static Logger getLogger() {

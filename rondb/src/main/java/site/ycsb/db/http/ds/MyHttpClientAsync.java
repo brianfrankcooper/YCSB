@@ -18,7 +18,7 @@
 /**
  * YCSB binding for <a href="https://rondb.com/">RonDB</a>.
  */
-package site.ycsb.db.rest.ds;
+package site.ycsb.db.http.ds;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpRequestBase;
@@ -30,26 +30,25 @@ import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOReactorException;
 import org.apache.http.util.EntityUtils;
-import site.ycsb.db.rest.MyHttpException;
+
+import site.ycsb.db.http.MyHttpException;
 
 import java.util.concurrent.Future;
 
 /**
  * MyHttpClientAsync.
  */
-public class MyHttpClientAsync extends MyHttpClinet {
+public class MyHttpClientAsync extends MyHttpClient {
   private CloseableHttpAsyncClient client;
 
   public MyHttpClientAsync(int numThreads) throws IOReactorException {
     ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor();
-    PoolingNHttpClientConnectionManager cm =
-        new PoolingNHttpClientConnectionManager(ioReactor);
+    PoolingNHttpClientConnectionManager cm = new PoolingNHttpClientConnectionManager(ioReactor);
     cm.setMaxTotal(numThreads);
     cm.setDefaultMaxPerRoute(numThreads);
     client = HttpAsyncClients.custom().setConnectionManager(cm).build();
     client.start();
   }
-
 
   @Override
   public String execute(HttpRequestBase req) throws MyHttpException {

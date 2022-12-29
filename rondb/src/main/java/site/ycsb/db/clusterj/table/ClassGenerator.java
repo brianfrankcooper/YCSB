@@ -18,8 +18,10 @@
 /**
  * YCSB binding for <a href="https://rondb.com/">RonDB</a>.
  */
-package site.ycsb.db.table;
+package site.ycsb.db.clusterj.table;
 
+import javassist.CannotCompileException;
+import javassist.NotFoundException;
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtMethod;
@@ -38,14 +40,14 @@ public class ClassGenerator implements Serializable {
     pool = ClassPool.getDefault();
   }
 
-  public Class<?> generateClass(String tableName) throws Exception {
+  public Class<?> generateClass(String tableName) throws NotFoundException, CannotCompileException {
     if (tableObj != null) {
       return tableObj;
     }
 
     synchronized (this) {
       if (tableObj == null) {
-        CtClass originalClass = pool.get("site.ycsb.db.table.DBTable");
+        CtClass originalClass = pool.get("site.ycsb.db.clusterj.table.DBTable");
         originalClass.defrost();
 
         String methodCode = "public String table() { return \"" + tableName + "\"; }";

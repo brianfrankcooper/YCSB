@@ -19,7 +19,7 @@
  * YCSB binding for <a href="https://rondb.com/">RonDB</a>.
  * RonDB client binding for YCSB.
  */
-package site.ycsb.db.rest;
+package site.ycsb.db.http;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -30,17 +30,19 @@ import site.ycsb.ByteIterator;
 import site.ycsb.Client;
 import site.ycsb.Status;
 import site.ycsb.db.RonDBClient;
-import site.ycsb.db.RonDBConnection;
-import site.ycsb.db.rest.ds.BatchRequest;
-import site.ycsb.db.rest.ds.BatchResponse;
-import site.ycsb.db.rest.ds.BatchSubOperation;
-import site.ycsb.db.rest.ds.MyHttpClientAsync;
-import site.ycsb.db.rest.ds.MyHttpClientSync;
-import site.ycsb.db.rest.ds.MyHttpClinet;
-import site.ycsb.db.rest.ds.PKRequest;
-import site.ycsb.db.rest.ds.PKResponse;
-import site.ycsb.db.table.UserTableHelper;
+import site.ycsb.db.clusterj.RonDBConnection;
+import site.ycsb.db.clusterj.table.UserTableHelper;
+import site.ycsb.db.http.ds.BatchRequest;
+import site.ycsb.db.http.ds.BatchResponse;
+import site.ycsb.db.http.ds.BatchSubOperation;
+import site.ycsb.db.http.ds.MyHttpClient;
+import site.ycsb.db.http.ds.MyHttpClientAsync;
+import site.ycsb.db.http.ds.MyHttpClientSync;
+import site.ycsb.db.http.ds.PKRequest;
+import site.ycsb.db.http.ds.PKResponse;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,26 +58,29 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * RonDB res client wrapper.
  */
-public final class RonDBRestClient {
+public final class RestApiClient {
 
-  private static final String RONDB_USE_REST_API = "rondb.use.rest.api";
+  // TODO: Add API key; Place into HTTP header under "X-API-KEY"
+
+  protected static Logger logger = LoggerFactory.getLogger(RestApiClient.class);
+
   private static final String RONDB_REST_API_BATCH_SIZE = "rondb.rest.api.batch.size";
   private static final String RONDB_REST_SERVER_IP = "rondb.rest.server.ip";
   private static final String RONDB_REST_SERVER_PORT = "rondb.rest.server.port";
-  private static final String RONDB_REST_API_VERSION = "rondb.rest.api.version";
+  private static final String RONDB_REST_API_VERSION = "rondb.rest.api.version";  // TODO: Hard-code this
+
+  // TODO: Add documentation on this; this should only make a difference if MyHttpClient is static?
   private static final String RONDB_REST_API_USE_ASYNC_REQUESTS = "rondb.rest.api.use.async.requests";
 
-  private boolean useRESTAPI = false;
-  private int readBatchSize = 1;
-  private String restServerIP = "localhost";
-  private int restServerPort = 5000;
-  private String restAPIVersion = "0.1.0";
-  private String restServerURI;
-  private int numThreads = 1;
+  private int readBatchSize; // Number of operations per batch
+  private int numThreads;
   private String db;
-  private MyHttpClinet myHttpClient;
+  private String restServerIP;
+  private int restServerPort;
+  private String restAPIVersion;
+  private String restServerURI;
+  private MyHttpClient myHttpClient;
 
-  private static RonDBRestClient restClient;
   private static AtomicInteger maxID = new AtomicInteger(0);
 
   private static class Operation {
@@ -85,120 +90,67 @@ public final class RonDBRestClient {
     private Set<String> fields;
   }
 
-  private Map<Integer /*batch id*/, List<Operation>> operations = null;
+  private Map<Integer/* batch id */, List<Operation>> operations = null;
   private Map<Integer, PKResponse> responses = null;
 
   private List<CyclicBarrier> barriers;
 
+  public RestApiClient(Properties props) throws IOException {
 
-  private RonDBRestClient() {
-  }
-
-  /**
-   * Initialize the client.
-   */
-  public static synchronized void initialize(Properties properties) {
-
-    if (restClient == null) {
-      restClient = new RonDBRestClient();
-      restClient.setupRestAPIParams(properties);
-
+    readBatchSize = Integer.parseInt(props.getProperty(RONDB_REST_API_BATCH_SIZE, "1"));
+    numThreads = Integer.parseInt(props.getProperty(Client.THREAD_COUNT_PROPERTY, "1"));
+    db = props.getProperty(RonDBConnection.SCHEMA, "ycsb");
+    restServerIP = props.getProperty(RONDB_REST_SERVER_IP, "localhost");
+    restServerPort = Integer.parseInt(props.getProperty(RONDB_REST_SERVER_PORT, "5000"));
+    restAPIVersion = props.getProperty(RONDB_REST_API_VERSION, "0.1.0");
+    restServerURI = "http://" + restServerIP + ":" + restServerPort + "/" + restAPIVersion;
+    boolean async = Boolean.parseBoolean(props.getProperty(RONDB_REST_API_USE_ASYNC_REQUESTS, "false"));
+    if (async) {
+      myHttpClient = new MyHttpClientAsync(numThreads);
+    } else {
+      myHttpClient = new MyHttpClientSync();
     }
-  }
 
-  /**
-   * Get the client.
-   */
-  public static RonDBRestClient getClient() {
-    if (restClient == null) {
-      throw new IllegalStateException("Rest client not initialized");
-    }
-    return restClient;
-  }
-
-  /**
-   * Set up parameters.
-   */
-  private void setupRestAPIParams(Properties props) {
-    try {
-
-      String pstr = props.getProperty(RONDB_USE_REST_API, "false");
-      useRESTAPI = Boolean.parseBoolean(pstr);
-
-      if (useRESTAPI) {
-        pstr = props.getProperty(RONDB_REST_API_BATCH_SIZE, "1");
-        readBatchSize = Integer.parseInt(pstr);
-
-        pstr = props.getProperty(Client.THREAD_COUNT_PROPERTY, "1");
-        numThreads = Integer.parseInt(pstr);
-
-        db = props.getProperty(RonDBConnection.SCHEMA, "ycsb");
-
-        pstr = props.getProperty(RONDB_REST_API_BATCH_SIZE, "1");
-        readBatchSize = Integer.parseInt(pstr);
-
-        restServerIP = props.getProperty(RONDB_REST_SERVER_IP, "localhost");
-
-        pstr = props.getProperty(RONDB_REST_SERVER_PORT, "5000");
-        restServerPort = Integer.parseInt(pstr);
-
-        restAPIVersion = props.getProperty(RONDB_REST_API_VERSION, "0.1.0");
-
-        restServerURI = "http://" + restServerIP + ":" + restServerPort + "/" + restAPIVersion;
-
-        pstr = props.getProperty(Client.THREAD_COUNT_PROPERTY, "1");
-        numThreads = Integer.parseInt(pstr);
-
-        pstr = props.getProperty(RONDB_REST_API_USE_ASYNC_REQUESTS, "false");
-        boolean async = Boolean.parseBoolean(pstr);
-
-        if(async) {
-          myHttpClient = new MyHttpClientAsync(numThreads);
-        } else{
-          myHttpClient = new MyHttpClientSync();
-        }
-
-        if (numThreads % readBatchSize != 0) {
-          RonDBClient.getLogger().error("Wrong batch size. Total threads should be evenly " +
-              "divisible by read batch size");
-          System.exit(1);
-        }
-
-        int numBarriers = numThreads / readBatchSize;
-        operations = new ConcurrentHashMap<>();
-        responses = new ConcurrentHashMap<>();
-
-        barriers = new ArrayList(numBarriers);
-
-        for (int i = 0; i < numBarriers; i++) {
-          operations.put(i, Collections.synchronizedList(new ArrayList<Operation>(readBatchSize)));
-          barriers.add(new CyclicBarrier(readBatchSize, new Batcher(i)));
-        }
-      }
-    } catch (Exception e) {
-      RonDBClient.getLogger().error("Unable to parse parameters for REST SERVER. " + e);
+    /*
+     * Each batch has an equal amount of threads assigned to it
+     * 9 threads, batch-size: 3
+     * --> 3 threads/operations per batch
+     * --> 3 threads synchronize their operations into a single batch
+     */
+    if (numThreads % readBatchSize != 0) {
+      RonDBClient.getLogger().error("Wrong batch size. Total threads should be evenly " +
+          "divisible by read batch size");
       System.exit(1);
     }
 
-    try {
-      if (useRESTAPI) {
-        // test connection
-        test();
-      }
-    } catch (Exception e) {
-      RonDBClient.getLogger().error("Unable to connect to REST server. " + e);
-      e.printStackTrace();
-      System.exit(1);
+    /*
+     * Essentially number of batches running at the same time
+     * Since each batch can be supported by multiple threads,
+     * some threads will need to share memory.
+     */
+    int numBarriers = numThreads / readBatchSize;
+    operations = new ConcurrentHashMap<>();
+    responses = new ConcurrentHashMap<>();
+
+    barriers = new ArrayList<CyclicBarrier>(numBarriers);
+
+    for (int i = 0; i < numBarriers; i++) {
+      operations.put(i, Collections.synchronizedList(new ArrayList<Operation>(readBatchSize)));
+      barriers.add(new CyclicBarrier(readBatchSize, new Batcher(i)));
     }
+
+    test();
   }
 
   /**
-   * Test the rest client.
+   * This tests the REST client connection.
    */
   private void test() throws IOException {
     CloseableHttpResponse response = null;
+    String url = restServerURI + "/stat";
+    RonDBClient.getLogger().info("Running test against url " + url);
     try {
-      HttpGet req = new HttpGet(restServerURI + "/stat");
+      HttpGet req = new HttpGet(url);
       myHttpClient.execute(req);
     } finally {
       if (response != null) {
@@ -207,26 +159,32 @@ public final class RonDBRestClient {
     }
   }
 
-  /**
-   * Is using rest client.
-   */
-  public static boolean useRESTAPI() {
-    return getClient().useRESTAPI;
-  }
-
   public void notifyAllBarriers() {
-//    synchronized (this) {
-//      for (int i = 0; i < barriers.size(); i++) {
-//        barriers.get(i).
-//      }
-//    }
   }
 
-  public Status read(Integer threadID, String table, String key, Set<String> fields,
-                     Map<String, ByteIterator> result) throws InterruptedException, BrokenBarrierException {
+  /*
+   * Since we allow multiple clients at once, we allow multiple
+   * reads at once. Technically, each client reads independently
+   * and does one read at a time.
+   * However, we try to batch together reads of multiple clients.
+   * We assign each operation to a batch/barrier, depending on the
+   * client/thread id. We then synchronize the barrier, so that
+   * the operations can be sent in a batch.
+   */
+  public Status read(
+      Integer threadID,
+      String table,
+      String key,
+      Set<String> fields,
+      Map<String, ByteIterator> result) throws InterruptedException, BrokenBarrierException {
 
-    int batchID = threadID / readBatchSize;
-    int barrierID = batchID;
+    /*
+     * Each client/thread is always assigned to the same batch/barrier id.
+     * We check here which barrier this is, so that we can synchronize
+     * the clients.
+     */
+    int batchID = threadID / readBatchSize; // this should round down
+    int barrierID = batchID; // barrier is simply a batch that is being processed and is shared by threads
 
     Operation op = new Operation();
     op.opId = maxID.incrementAndGet();
@@ -238,8 +196,9 @@ public final class RonDBRestClient {
     ops.add(op);
 
     try {
+      // This synchronizes the threads; A barrier has a runnable action, which will be
+      // executed here
       barriers.get(barrierID).await();
-      //barriers.get(barrierID).await(1, TimeUnit.SECONDS);
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -249,18 +208,18 @@ public final class RonDBRestClient {
       if (response != null) {
         for (String column : fields) {
           String val = response.getData(op.opId, column);
-          result.put(column, new ByteArrayByteIterator(val.getBytes(), 0, val.length()));
+          result.put(
+              column,
+              new ByteArrayByteIterator(val.getBytes(), 0, val.length()));
         }
         return Status.OK;
       } else {
-        //System.out.println("NOT FOUND");
         return Status.NOT_FOUND;
       }
     } finally {
       responses.remove(op.opId);
     }
   }
-
 
   private class Batcher implements Runnable {
     private int batchID;
@@ -276,14 +235,14 @@ public final class RonDBRestClient {
           String responseStr = batchRESTCall();
           processBatchResponse(responseStr);
         } catch (Exception e) {
-          RonDBClient.getLogger().trace("Error "+e);
+          RonDBClient.getLogger().trace("Error " + e);
         }
       } else {
         try {
           String responseStr = pkRESTCall();
           processPkResponse(responseStr);
         } catch (Exception e) {
-          RonDBClient.getLogger().trace("Error "+e);
+          RonDBClient.getLogger().trace("Error " + e);
         }
       }
     }
@@ -295,7 +254,7 @@ public final class RonDBRestClient {
 
       ops = operations.get(batchID);
       try {
-        //System.out.println("Batch ID: " + batchID + "   Length is " + ops.size());
+        // System.out.println("Batch ID: " + batchID + " Length is " + ops.size());
         if (ops.size() != 1) {
           throw new IllegalStateException("Batch size is expected to be 1");
         }
@@ -313,7 +272,7 @@ public final class RonDBRestClient {
           pkReq.addReadColumn(colName);
         }
         jsonReq = pkReq.toString();
-        //System.out.println(jsonReq);
+        // System.out.println(jsonReq);
 
         String uri = restServerURI + "/" + db + "/" + table + "/pk-read";
         HttpPost req = new HttpPost(uri);
@@ -346,13 +305,14 @@ public final class RonDBRestClient {
             String colName = (String) op.fields.toArray()[f];
             pkRequest.addReadColumn(colName);
           }
-          BatchSubOperation subOperation = new BatchSubOperation(db + "/" + ops.get(i).table +
-              "/pk-read", pkRequest);
+          BatchSubOperation subOperation = new BatchSubOperation(
+              db + "/" + ops.get(i).table + "/pk-read",
+              pkRequest);
           batch.addSubOperation(subOperation);
         }
 
         jsonReq = batch.toString();
-        //System.out.println(jsonReq);
+        // System.out.println(jsonReq);
 
         HttpPost req = new HttpPost(restServerURI + "/batch");
         StringEntity stringEntity = new StringEntity(jsonReq);

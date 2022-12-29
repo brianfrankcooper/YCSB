@@ -18,7 +18,7 @@
 /**
  * YCSB binding for <a href="https://rondb.com/">RonDB</a>.
  */
-package site.ycsb.db.rest.ds;
+package site.ycsb.db.http.ds;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -48,8 +48,7 @@ public class PKResponse {
   }
 
   private void parseStr() {
-    JsonParser parser = new JsonParser();
-    bodyJsonObj = parser.parse(bodyStr).getAsJsonObject();
+    bodyJsonObj = JsonParser.parseString(bodyStr).getAsJsonObject();
     parseJsonObj();
   }
 

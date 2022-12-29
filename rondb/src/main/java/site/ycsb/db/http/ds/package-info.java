@@ -17,30 +17,6 @@
 
 /**
  * YCSB binding for <a href="https://rondb.com/">RonDB</a>.
- * RonDB client binding for YCSB.
  */
-package site.ycsb.db.rest;
+package site.ycsb.db.http.ds;
 
-import java.io.IOException;
-
-/**
- * data not found.
- */
-public class MyHttpException extends IOException {
-
-  public MyHttpException() {
-    super();
-  }
-
-  public MyHttpException(String s) {
-    super(s);
-  }
-
-  public MyHttpException(Exception e) {
-    super(e);
-  }
-
-  public MyHttpException(String s, Exception e) {
-    super(s, e);
-  }
-}

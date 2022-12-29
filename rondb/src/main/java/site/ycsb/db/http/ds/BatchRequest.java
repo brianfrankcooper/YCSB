@@ -18,7 +18,7 @@
 /**
  * YCSB binding for <a href="https://rondb.com/">RonDB</a>.
  */
-package site.ycsb.db.rest.ds;
+package site.ycsb.db.http.ds;
 
 import java.util.ArrayList;
 import java.util.Arrays;

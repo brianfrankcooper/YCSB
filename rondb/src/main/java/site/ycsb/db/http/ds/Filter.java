@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Yahoo!, Inc. All rights reserved.
+ * Copyright (c) 2022, Yahoo!, Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -18,14 +18,34 @@
 /**
  * YCSB binding for <a href="https://rondb.com/">RonDB</a>.
  */
-package site.ycsb.db.table;
-
-import com.mysql.clusterj.DynamicObject;
-
-import java.io.Serializable;
+package site.ycsb.db.http.ds;
 
 /**
- * DBTable.
+ * Filter.
  */
-public class DBTable extends DynamicObject implements Serializable {
+public class Filter {
+  private String colName;
+  private String value;
+
+  public Filter(String colName, String value) {
+    this.colName = colName;
+    this.value = value;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("{");
+    sb.append("\"column\":");
+    sb.append("\"");
+    sb.append(colName);
+    sb.append("\"");
+    sb.append(",");
+    sb.append("\"value\":");
+    sb.append("\"");
+    sb.append(value);
+    sb.append("\"");
+    sb.append("}");
+    return  sb.toString();
+  }
 }

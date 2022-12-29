@@ -18,7 +18,7 @@
 /**
  * YCSB binding for <a href="https://rondb.com/">RonDB</a>.
  */
-package site.ycsb.db.table;
+package site.ycsb.db.clusterj.table;
 
 import com.mysql.clusterj.ColumnType;
 import com.mysql.clusterj.DynamicObject;
@@ -42,9 +42,8 @@ public final class UserTableHelper {
 
   }
 
-  public static DynamicObject createDTO(ClassGenerator classGenerator, Session session,
-                                        String tableName, String keyVal,
-                                        Map<String, ByteIterator> values) throws Exception {
+  public static DynamicObject createDTO(ClassGenerator classGenerator, Session session, String tableName, String keyVal,
+      Map<String, ByteIterator> values) throws Exception {
 
     DynamicObject persistable = getTableObject(classGenerator, session, tableName);
     setFieldValue(persistable, KEY, keyVal.getBytes(), keyVal.getBytes().length);
@@ -59,8 +58,7 @@ public final class UserTableHelper {
     return persistable;
   }
 
-  private static void setFieldValue(DynamicObject persistable, String colName, byte[] value,
-                                    int lenght) {
+  private static void setFieldValue(DynamicObject persistable, String colName, byte[] value, int lenght) {
     boolean found = false;
     for (int i = 0; i < persistable.columnMetadata().length; i++) {
       String fieldName = persistable.columnMetadata()[i].name();
@@ -89,8 +87,7 @@ public final class UserTableHelper {
     }
   }
 
-  public static HashMap<String, ByteIterator> readFieldsFromDTO(DynamicObject dto,
-                                                                Set<String> fields) {
+  public static HashMap<String, ByteIterator> readFieldsFromDTO(DynamicObject dto, Set<String> fields) {
     HashMap<String, ByteIterator> values = new HashMap<>();
     for (String field : fields) {
       values.put(field, readFieldFromDTO(field, dto));
@@ -119,16 +116,13 @@ public final class UserTableHelper {
     throw new IllegalArgumentException("Column \"" + colName + "\" not found in the table");
   }
 
-  public static DynamicObject getTableObject(ClassGenerator classGenerator, Session session,
-                                      String tableName)
+  public static DynamicObject getTableObject(ClassGenerator classGenerator, Session session, String tableName)
       throws Exception {
     Class<?> tableClass = getTableClass(classGenerator, tableName);
     return (DynamicObject) session.newInstance(tableClass);
   }
 
-  public static Class<?> getTableClass(ClassGenerator classGenerator,
-                                       String tableName)
-      throws Exception {
+  public static Class<?> getTableClass(ClassGenerator classGenerator, String tableName) throws Exception {
     return classGenerator.generateClass(tableName);
   }
 }
