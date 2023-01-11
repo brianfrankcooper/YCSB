@@ -341,8 +341,9 @@ public class YDBClient extends DB {
     if (isImport) {
       forceUpsert = true;
       useBulkUpsert = true;
-      bulkUpsertBatchSize = 500;
+      bulkUpsertBatchSize = 1000;
       insertInflight = 1000;
+      insertInflightLeft.set(insertInflight);
     }
 
     String url = properties.getProperty("dsn", null);
