@@ -2,8 +2,8 @@
 <Configuration status="WARN" monitorInterval="30">
   <Properties>
     <Property name="LOG_PATTERN">%-4r [%t] %-5p %c %x -%m%n</Property>
-    <Property name="BASE_PATH_DIAGNOSTICS">/tmp/cosmos_client_logs/diagnostics</Property>
-    <Property name="BASE_PATH_EXCEPTION">/tmp/cosmos_client_logs/exceptions</Property>
+    <Property name="BASE_PATH_DIAGNOSTICS">/tmp/cosmos_client_logs/cosmos_diagnostics</Property>
+    <Property name="BASE_PATH_EXCEPTION">/tmp/cosmos_client_logs/cosmos_exceptions</Property>
   </Properties>
 
   <Appenders>
