@@ -19,7 +19,7 @@
             <AppenderRef ref="Console"/>
         </Logger>
 
-        <Logger name="site.ycsb" level="warn" additivity="false">
+        <Logger name="site.ycsb" level="info" additivity="false">
             <AppenderRef ref="Console"/>
         </Logger>
 

@@ -56,8 +56,6 @@ import tech.ydb.table.values.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
-import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.HashMap;
@@ -68,7 +66,6 @@ import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.CompletableFuture;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * YDB client implementation.
@@ -102,69 +99,12 @@ public class YDBClient extends DB {
 
   private final AtomicInteger insertInflightLeft = new AtomicInteger(1);
 
-  private final List<Map<String, Value>> bulkBatch = new ArrayList<Map<String, Value>>();
+  private final List<Map<String, Value>> bulkBatch = new ArrayList<>();
 
   // YDB connection staff
   private String database;
   private TableClient tableclient;
   private SessionRetryContext retryctx;
-
-  // from RocksDBClient.java
-  private Map<String, ByteIterator> deserializeValues(final byte[] values, final Set<String> fields,
-      final Map<String, ByteIterator> result) {
-    final ByteBuffer buf = ByteBuffer.allocate(4);
-
-    int offset = 0;
-    while(offset < values.length) {
-      buf.put(values, offset, 4);
-      buf.flip();
-      final int keyLen = buf.getInt();
-      buf.clear();
-      offset += 4;
-
-      final String key = new String(values, offset, keyLen);
-      offset += keyLen;
-
-      buf.put(values, offset, 4);
-      buf.flip();
-      final int valueLen = buf.getInt();
-      buf.clear();
-      offset += 4;
-
-      if(fields == null || fields.contains(key)) {
-        result.put(key, new ByteArrayByteIterator(values, offset, valueLen));
-      }
-
-      offset += valueLen;
-    }
-
-    return result;
-  }
-
-  // from RocksDBClient.java
-  private byte[] serializeValues(final Map<String, ByteIterator> values) throws IOException {
-    try(final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-      final ByteBuffer buf = ByteBuffer.allocate(4);
-
-      for(final Map.Entry<String, ByteIterator> value : values.entrySet()) {
-        final byte[] keyBytes = value.getKey().getBytes(UTF_8);
-        final byte[] valueBytes = value.getValue().toArray();
-
-        buf.putInt(keyBytes.length);
-        baos.write(buf.array());
-        baos.write(keyBytes);
-
-        buf.clear();
-
-        buf.putInt(valueBytes.length);
-        baos.write(buf.array());
-        baos.write(valueBytes);
-
-        buf.clear();
-      }
-      return baos.toByteArray();
-    }
-  }
 
   private void dropTable() throws DBException {
     Status dropstatus =
@@ -246,7 +186,7 @@ public class YDBClient extends DB {
       builder.addNonnullColumn(keyColumnName, PrimitiveType.Text);
     }
 
-    Map<String, Type> types = new HashMap<String, Type>();
+    Map<String, Type> types = new HashMap<>();
     types.put(keyColumnName, PrimitiveType.Text);
 
     for (int i = 0; i < fieldcount; i++) {
@@ -380,7 +320,7 @@ public class YDBClient extends DB {
 
   @Override
   public void cleanup() throws DBException {
-    if (bulkBatch.size() > 0) {
+    if (!bulkBatch.isEmpty()) {
       sendBulkBatch();
     }
 
@@ -407,7 +347,7 @@ public class YDBClient extends DB {
     String query;
 
     String fieldsString = "*";
-    if (fields != null && fields.size() > 0) {
+    if (fields != null && !fields.isEmpty()) {
       fieldsString = String.join(",", fields);
     }
     query = "DECLARE $key as Text; SELECT " + fieldsString + " FROM " + tablename
@@ -447,7 +387,7 @@ public class YDBClient extends DB {
           }
         }
       }
-    } catch (Exception e) {
+    } catch (UnexpectedResultException e) {
       LOGGER.error(String.format("Select failed: %s", e.toString()));
       return site.ycsb.Status.ERROR;
     }
@@ -459,7 +399,7 @@ public class YDBClient extends DB {
   public site.ycsb.Status scan(String table, String startkey, int recordcount, Set<String> fields,
                      Vector<HashMap<String, ByteIterator>> result) {
     String fieldsString = "*";
-    if (fields != null && fields.size() > 0) {
+    if (fields != null && !fields.isEmpty()) {
       fieldsString = String.join(",", fields);
     }
     String query = "DECLARE $startKey as Text; DECLARE $limit as Uint32; SELECT " + fieldsString + " FROM " + tablename
@@ -485,7 +425,7 @@ public class YDBClient extends DB {
       final int keyColumnIndex = rs.getColumnIndex(keyColumnName);
       result.ensureCapacity(rs.getRowCount());
       while (rs.next()) {
-        HashMap<String, ByteIterator> columns = new HashMap<String, ByteIterator>();
+        HashMap<String, ByteIterator> columns = new HashMap<>();
         for (int i = 0; i < rs.getColumnCount(); ++i) {
           if (i == keyColumnIndex) {
             final byte[] val = rs.getColumn(i).getText().getBytes();
@@ -497,7 +437,7 @@ public class YDBClient extends DB {
         }
         result.add(columns);
       }
-    } catch (Exception e) {
+    } catch (UnexpectedResultException e) {
       LOGGER.error(String.format("Scan failed: %s", e.toString()));
       return site.ycsb.Status.ERROR;
     }
@@ -530,7 +470,7 @@ public class YDBClient extends DB {
       }
 
       return site.ycsb.Status.OK;
-    } catch (Exception e) {
+    } catch (InterruptedException | UnexpectedResultException e) {
       LOGGER.error(e.toString());
       return site.ycsb.Status.ERROR;
     }
@@ -646,10 +586,10 @@ public class YDBClient extends DB {
   }
 
   private site.ycsb.Status bulkUpsertBatched(String table, String key, Map<String, ByteIterator> values) {
-    Map<String, Type> types = new HashMap<String, Type>();
+    Map<String, Type> types = new HashMap<>();
     types.put(keyColumnName, PrimitiveType.Text);
 
-    Map<String, Value> ydbValues = new HashMap<String, Value>();
+    Map<String, Value> ydbValues = new HashMap<>();
     ydbValues.put(keyColumnName, PrimitiveValue.newText(key));
 
     for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
@@ -671,10 +611,10 @@ public class YDBClient extends DB {
       return bulkUpsertBatched(table, key, values);
     }
 
-    Map<String, Type> types = new HashMap<String, Type>();
+    Map<String, Type> types = new HashMap<>();
     types.put(keyColumnName, PrimitiveType.Text);
 
-    Map<String, Value> ydbValues = new HashMap<String, Value>();
+    Map<String, Value> ydbValues = new HashMap<>();
     ydbValues.put(keyColumnName, PrimitiveValue.newText(key));
 
     for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
