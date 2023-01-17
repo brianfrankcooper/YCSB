@@ -66,6 +66,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.CompletableFuture;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -99,6 +100,16 @@ public class YDBClient extends DB {
 
   private static StructType columnsStruct;
   private static ListType columnTypes;
+
+  // all threads must report to this on cleanup
+  private static AtomicLong totalOKs = new AtomicLong(0);
+  private static AtomicLong totalErrors = new AtomicLong(0);
+  private static AtomicLong totalNotFound = new AtomicLong(0);
+
+  // per instance counters
+  private long oks = 0;
+  private long errors = 0;
+  private long notFound = 0;
 
   private final AtomicInteger insertInflightLeft = new AtomicInteger(1);
 
@@ -388,10 +399,17 @@ public class YDBClient extends DB {
       // wait
     }
 
+    totalOKs.addAndGet(oks);
+    totalErrors.addAndGet(errors);
+    totalNotFound.addAndGet(notFound);
+
     if (INIT_COUNT.decrementAndGet() != 0) {
       return;
     }
 
+    System.out.println("[TotalOKs] " + totalOKs);
+    System.out.println("[TotalErros] " + totalErrors);
+    System.out.println("[TotalNotFound] " + totalNotFound);
 
     // last instance
 
@@ -427,11 +445,13 @@ public class YDBClient extends DB {
       DataQueryResult queryResult = resultWrapped.getValue();
 
       if (queryResult.getResultSetCount() == 0) {
+        ++notFound;
         return site.ycsb.Status.NOT_FOUND;
       }
 
       ResultSetReader rs = queryResult.getResultSet(0);
       if (rs.getRowCount() == 0) {
+        ++notFound;
         return site.ycsb.Status.NOT_FOUND;
       }
 
@@ -449,9 +469,11 @@ public class YDBClient extends DB {
       }
     } catch (Exception e) {
       LOGGER.error(String.format("Select failed: %s", e.toString()));
+      ++errors;
       return site.ycsb.Status.ERROR;
     }
 
+    ++oks;
     return site.ycsb.Status.OK;
   }
 
@@ -499,9 +521,11 @@ public class YDBClient extends DB {
       }
     } catch (Exception e) {
       LOGGER.error(String.format("Scan failed: %s", e.toString()));
+      ++errors;
       return site.ycsb.Status.ERROR;
     }
 
+    ++oks;
     return site.ycsb.Status.OK;
   }
 
@@ -529,9 +553,11 @@ public class YDBClient extends DB {
         }
       }
 
+      ++oks;
       return site.ycsb.Status.OK;
     } catch (Exception e) {
       LOGGER.error(e.toString());
+      ++errors;
       return site.ycsb.Status.ERROR;
     }
   }
@@ -638,9 +664,11 @@ public class YDBClient extends DB {
           Thread.sleep(1);
         }
       }
+      ++oks;
       return site.ycsb.Status.OK;
     } catch (Exception e) {
       LOGGER.error(e.toString());
+      ++errors;
       return site.ycsb.Status.ERROR;
     }
   }
@@ -705,9 +733,11 @@ public class YDBClient extends DB {
           Thread.sleep(1);
         }
       }
+      ++oks;
       return site.ycsb.Status.OK;
     } catch (Exception e) {
       LOGGER.error(e.toString());
+      ++errors;
       return site.ycsb.Status.ERROR;
     }
   }
@@ -757,10 +787,13 @@ public class YDBClient extends DB {
               .join().getStatus().getCode();
       switch (code) {
       case SUCCESS:
+        ++oks;
         return site.ycsb.Status.OK;
       case NOT_FOUND:
+        ++notFound;
         return site.ycsb.Status.NOT_FOUND;
       default:
+        ++errors;
         return site.ycsb.Status.ERROR;
       }
     } catch (Exception e) {
