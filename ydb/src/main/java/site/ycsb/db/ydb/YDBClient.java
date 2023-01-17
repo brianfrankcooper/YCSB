@@ -408,7 +408,7 @@ public class YDBClient extends DB {
     }
 
     System.out.println("[TotalOKs] " + totalOKs);
-    System.out.println("[TotalErros] " + totalErrors);
+    System.out.println("[TotalErrors] " + totalErrors);
     System.out.println("[TotalNotFound] " + totalNotFound);
 
     // last instance
