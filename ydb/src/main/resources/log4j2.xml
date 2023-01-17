@@ -23,6 +23,10 @@
             <AppenderRef ref="Console"/>
         </Logger>
 
+        <Logger name="tech.ydb.core.grpc.GrpcStatuses" level="error" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
         <Root level="debug" >
             <AppenderRef ref="Console"/>
         </Root>
