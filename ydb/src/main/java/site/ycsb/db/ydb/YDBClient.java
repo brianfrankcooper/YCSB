@@ -75,6 +75,7 @@ public class YDBClient extends DB {
   private long errors = 0;
   private long notFound = 0;
 
+  private int inflightSize = 1;
   private Semaphore inflightSemaphore = null;
 
   private final List<Map<String, Value>> bulkBatch = new ArrayList<>();
@@ -101,7 +102,7 @@ public class YDBClient extends DB {
       bulkUpsertBatchSize = 1000;
     }
 
-    int inflightSize = Integer.parseInt(properties.getProperty("insertInflight", "1"));
+    inflightSize = Integer.parseInt(properties.getProperty("insertInflight", "1"));
     if (inflightSize > 1) {
       inflightSemaphore = new Semaphore(inflightSize);
     }
@@ -114,6 +115,15 @@ public class YDBClient extends DB {
     if (!bulkBatch.isEmpty()) {
       YDBTable table = connection.tables().iterator().next();
       sendBulkBatch(table);
+    }
+
+    if (inflightSemaphore != null) {
+      try {
+        inflightSemaphore.acquire(inflightSize);
+        inflightSemaphore.release(inflightSize);
+      } catch (InterruptedException e) {
+        LOGGER.warn("inflight operations waiting is interrupted", e);
+      }
     }
 
     TOTAL_OKS.addAndGet(oks);
