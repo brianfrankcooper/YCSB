@@ -46,6 +46,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
 
 import tech.ydb.table.values.ListType;
@@ -73,6 +75,8 @@ public class YDBClient extends DB {
   private long errors = 0;
   private long notFound = 0;
 
+  private Semaphore inflightSemaphore = null;
+
   private final List<Map<String, Value>> bulkBatch = new ArrayList<>();
 
   // YDB connection staff
@@ -95,6 +99,11 @@ public class YDBClient extends DB {
       forceUpsert = true;
       useBulkUpsert = true;
       bulkUpsertBatchSize = 1000;
+    }
+
+    int inflightSize = Integer.parseInt(properties.getProperty("insertInflight", "1"));
+    if (inflightSize > 1) {
+      inflightSemaphore = new Semaphore(inflightSize);
     }
   }
 
@@ -119,7 +128,7 @@ public class YDBClient extends DB {
   }
 
   @Override
-  public site.ycsb.Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     LOGGER.debug("read table {} with key {}", table, key);
     YDBTable ydbTable = connection.findTable(table);
 
@@ -145,13 +154,13 @@ public class YDBClient extends DB {
 
       if (queryResult.getResultSetCount() == 0) {
         ++notFound;
-        return site.ycsb.Status.NOT_FOUND;
+        return Status.NOT_FOUND;
       }
 
       ResultSetReader rs = queryResult.getResultSet(0);
       if (rs.getRowCount() == 0) {
         ++notFound;
-        return site.ycsb.Status.NOT_FOUND;
+        return Status.NOT_FOUND;
       }
 
       final int keyColumnIndex = rs.getColumnIndex(ydbTable.keyColumnName());
@@ -169,15 +178,15 @@ public class YDBClient extends DB {
     } catch (UnexpectedResultException e) {
       LOGGER.error(String.format("Select failed: %s", e.toString()));
       ++errors;
-      return site.ycsb.Status.ERROR;
+      return Status.ERROR;
     }
 
     ++oks;
-    return site.ycsb.Status.OK;
+    return Status.OK;
   }
 
   @Override
-  public site.ycsb.Status scan(String table, String startkey, int recordcount, Set<String> fields,
+  public Status scan(String table, String startkey, int recordcount, Set<String> fields,
       Vector<HashMap<String, ByteIterator>> result) {
     LOGGER.debug("scan table {} from key {} and size {}", table, startkey, recordcount);
     YDBTable ydbTable = connection.findTable(table);
@@ -225,30 +234,48 @@ public class YDBClient extends DB {
     } catch (UnexpectedResultException e) {
       LOGGER.error(String.format("Scan failed: %s", e.toString()));
       ++errors;
-      return site.ycsb.Status.ERROR;
+      return Status.ERROR;
     }
 
     ++oks;
-    return site.ycsb.Status.OK;
+    return Status.OK;
   }
 
-  private site.ycsb.Status executeQuery(String query, Params params, String op) {
+  private Status executeQuery(String query, Params params, String op) {
     LOGGER.trace(query);
 
     try {
+      if (inflightSemaphore != null) {
+        inflightSemaphore.acquire();
+      }
+
       TxControl txControl = TxControl.serializableRw().setCommitTx(true);
-      connection.executeResult(session -> session.executeDataQuery(query, txControl, params))
-          .join().getStatus().expectSuccess(String.format("execute %s query problem", op));
-      ++oks;
-      return site.ycsb.Status.OK;
-    } catch (RuntimeException e) {
+      CompletableFuture<Result<DataQueryResult>> future = connection
+          .executeResult(session -> session.executeDataQuery(query, txControl, params));
+
+      if (inflightSemaphore != null) {
+        future.whenComplete((result, th) -> {
+            if (th == null && result != null && result.isSuccess()) {
+              ++oks;
+            } else {
+              ++errors;
+            }
+            inflightSemaphore.release();
+          });
+      } else {
+        future.join().getStatus().expectSuccess(String.format("execute %s query problem", op));
+        ++oks;
+      }
+
+      return Status.OK;
+    } catch (InterruptedException | RuntimeException e) {
       LOGGER.error(e.toString());
       ++errors;
-      return site.ycsb.Status.ERROR;
+      return Status.ERROR;
     }
   }
 
-  private site.ycsb.Status insertOrUpdatePrepared(
+  private Status insertOrUpdatePrepared(
       String table, String key, Map<String, ByteIterator> values, String op) {
     YDBTable ydbTable = connection.findTable(table);
 
@@ -275,7 +302,7 @@ public class YDBClient extends DB {
     return executeQuery(query, params, op);
   }
 
-  private site.ycsb.Status insertOrUpdateNotPrepared(
+  private Status insertOrUpdateNotPrepared(
       String table, String key, Map<String, ByteIterator> values, String op) {
     YDBTable ydbTable = connection.findTable(table);
 
@@ -296,9 +323,9 @@ public class YDBClient extends DB {
     return executeQuery(query, Params.empty(), op);
   }
 
-  private void sendBulkBatch(YDBTable ydbTable) {
+  private Status sendBulkBatch(YDBTable ydbTable) {
     if (bulkBatch.isEmpty()) {
-      return;
+      return Status.OK;
     }
 
     int bulkSize = bulkBatch.size();
@@ -319,17 +346,36 @@ public class YDBClient extends DB {
     bulkBatch.clear();
 
     try {
-      connection.executeStatus(session -> session.executeBulkUpsert(tablePath, bulkData))
-          .join().expectSuccess("bulk upsert problem for bulk size " + bulkSize);
-      oks += bulkSize;
-    } catch (RuntimeException e) {
+      if (inflightSemaphore != null) {
+        inflightSemaphore.acquire();
+      }
+
+      CompletableFuture<tech.ydb.core.Status> future = connection
+          .executeStatus(session -> session.executeBulkUpsert(tablePath, bulkData));
+
+      if (inflightSemaphore != null) {
+        future.whenComplete((result, th) -> {
+            if (th == null && result != null && result.isSuccess()) {
+              oks += bulkSize;
+            } else {
+              errors += bulkSize;
+            }
+            inflightSemaphore.release();
+          });
+      } else {
+        future.join().expectSuccess("bulk upsert problem for bulk size " + bulkSize);
+        oks += bulkSize;
+      }
+
+      return Status.OK;
+    } catch (InterruptedException | RuntimeException e) {
       LOGGER.error(e.toString());
       errors += bulkSize;
-      throw e;
+      return Status.ERROR;
     }
   }
 
-  private site.ycsb.Status bulkUpsertBatched(YDBTable ydbTable, String key, Map<String, ByteIterator> values) {
+  private Status bulkUpsertBatched(YDBTable ydbTable, String key, Map<String, ByteIterator> values) {
     Map<String, Value> ydbValues = new HashMap<>();
     ydbValues.put(ydbTable.keyColumnName(), PrimitiveValue.newText(key));
 
@@ -339,14 +385,13 @@ public class YDBClient extends DB {
 
     bulkBatch.add(ydbValues);
     if (bulkBatch.size() < bulkUpsertBatchSize) {
-      return site.ycsb.Status.BATCHED_OK;
+      return Status.BATCHED_OK;
     }
 
-    sendBulkBatch(ydbTable);
-    return site.ycsb.Status.OK;
+    return sendBulkBatch(ydbTable);
   }
 
-  private site.ycsb.Status bulkUpsert(String table, String key, Map<String, ByteIterator> values) {
+  private Status bulkUpsert(String table, String key, Map<String, ByteIterator> values) {
     YDBTable ydbTable = connection.findTable(table);
     String tablePath = connection.getDatabase() + "/" + ydbTable.name();
 
@@ -371,16 +416,16 @@ public class YDBClient extends DB {
       connection.executeStatus(session -> session.executeBulkUpsert(tablePath, ListValue.of(data)))
           .join().expectSuccess("bulk upsert problem for key " + key);
       ++oks;
-      return site.ycsb.Status.OK;
+      return Status.OK;
     } catch (RuntimeException e) {
       LOGGER.error(e.toString());
       ++errors;
-      return site.ycsb.Status.ERROR;
+      return Status.ERROR;
     }
   }
 
   @Override
-  public site.ycsb.Status update(String table, String key, Map<String, ByteIterator> values) {
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
     LOGGER.debug("update record table {} with key {}", table, key);
     // note that is is a blind update: i.e. we will never return NOT_FOUND
     if (usePreparedUpdateInsert) {
@@ -395,7 +440,7 @@ public class YDBClient extends DB {
   }
 
   @Override
-  public site.ycsb.Status insert(String table, String key, Map<String, ByteIterator> values) {
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     LOGGER.debug("insert record into table {} with key {}", table, key);
     // note that inserting same key twice results into error
     if (forceUpsert) {
@@ -410,7 +455,7 @@ public class YDBClient extends DB {
   }
 
   @Override
-  public site.ycsb.Status delete(String table, String key) {
+  public Status delete(String table, String key) {
     LOGGER.debug("delete record from table {} with key {}", table, key);
     YDBTable ydbTable = connection.findTable(table);
 
@@ -429,17 +474,17 @@ public class YDBClient extends DB {
       switch (code) {
       case SUCCESS:
         ++oks;
-        return site.ycsb.Status.OK;
+        return Status.OK;
       case NOT_FOUND:
         ++notFound;
-        return site.ycsb.Status.NOT_FOUND;
+        return Status.NOT_FOUND;
       default:
         ++errors;
-        return site.ycsb.Status.ERROR;
+        return Status.ERROR;
       }
     } catch (RuntimeException e) {
       LOGGER.error(e.toString());
-      return site.ycsb.Status.ERROR;
+      return Status.ERROR;
     }
   }
 }
