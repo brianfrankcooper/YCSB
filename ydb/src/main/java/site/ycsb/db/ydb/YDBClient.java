@@ -94,15 +94,16 @@ public class YDBClient extends DB {
     forceUpsert = Boolean.parseBoolean(properties.getProperty("forceUpsert", "false"));
     useBulkUpsert = Boolean.parseBoolean(properties.getProperty("bulkUpsert", "false"));
     bulkUpsertBatchSize = Integer.parseInt(properties.getProperty("bulkUpsertBatchSize", "1"));
+    inflightSize = Integer.parseInt(properties.getProperty("insertInflight", "1"));
 
     boolean isImport = Boolean.parseBoolean(properties.getProperty("import", "false"));
     if (isImport) {
       forceUpsert = true;
       useBulkUpsert = true;
-      bulkUpsertBatchSize = 1000;
+      bulkUpsertBatchSize = 500;
+      inflightSize = 1000;
     }
 
-    inflightSize = Integer.parseInt(properties.getProperty("insertInflight", "1"));
     if (inflightSize > 1) {
       inflightSemaphore = new Semaphore(inflightSize);
     }
