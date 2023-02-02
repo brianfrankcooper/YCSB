@@ -65,15 +65,17 @@ public class YDBConnection {
   private final GrpcTransport transport;
   private final TableClient tableClient;
   private final SessionRetryContext retryCtx;
+  private final int inflightSize;
 
   private final Map<String, YDBTable> tables = new HashMap<>();
 
   private final AtomicInteger clientCounter = new AtomicInteger(0);
 
-  public YDBConnection(GrpcTransport transport, TableClient tableClient) {
+  public YDBConnection(GrpcTransport transport, TableClient tableClient, int inflightSize) {
     this.transport = transport;
     this.tableClient = tableClient;
     this.retryCtx = SessionRetryContext.create(tableClient).build();
+    this.inflightSize = inflightSize;
   }
 
   public void addTable(YDBTable table) {
@@ -82,6 +84,10 @@ public class YDBConnection {
 
   public Collection<YDBTable> tables() {
     return tables.values();
+  }
+
+  public int inflightSize() {
+    return this.inflightSize;
   }
 
   public void register() throws DBException {
@@ -148,12 +154,15 @@ public class YDBConnection {
 
     try {
       int threadCount = Integer.parseInt(props.getProperty(Client.THREAD_COUNT_PROPERTY, "1"));
-      LOGGER.info("Create table client with session pool max size {}", threadCount);
+      int inflightSize = Integer.parseInt(props.getProperty("insertInflight", "1"));
+
+      int maxPoolSize = threadCount * inflightSize;
+      LOGGER.info("Create table client with session pool max size {}", maxPoolSize);
       TableClient tableClient = TableClient.newClient(transport)
-          .sessionPoolSize(0, threadCount)
+          .sessionPoolSize(0, maxPoolSize)
           .build();
 
-      return new YDBConnection(transport, tableClient);
+      return new YDBConnection(transport, tableClient, inflightSize);
     } catch (RuntimeException ex) {
       transport.close();
       throw ex;

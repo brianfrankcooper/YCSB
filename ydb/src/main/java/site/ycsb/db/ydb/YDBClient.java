@@ -77,7 +77,6 @@ public class YDBClient extends DB {
   private long errors = 0;
   private long notFound = 0;
 
-  private int inflightSize = 1;
   private Semaphore inflightSemaphore = null;
 
   private final List<Map<String, Value>> bulkBatch = new ArrayList<>();
@@ -88,26 +87,28 @@ public class YDBClient extends DB {
   @Override
   public void init() throws DBException {
     LOGGER.debug("init ydb client");
-    connection = YDBConnection.openConnection(getProperties());
 
     Properties properties = getProperties();
+
+    boolean isImport = Boolean.parseBoolean(properties.getProperty("import", "false"));
+    if (isImport) {
+      properties.setProperty("preparedInsertUpdateQueries", "true");
+      properties.setProperty("forceUpsert", "true");
+      properties.setProperty("bulkUpsert", "true");
+      properties.setProperty("bulkUpsertBatchSize", "500");
+      properties.setProperty("insertInflight", "1000");
+    }
+
+    connection = YDBConnection.openConnection(getProperties());
 
     usePreparedUpdateInsert = Boolean.parseBoolean(properties.getProperty("preparedInsertUpdateQueries", "true"));
     forceUpsert = Boolean.parseBoolean(properties.getProperty("forceUpsert", "false"));
     useBulkUpsert = Boolean.parseBoolean(properties.getProperty("bulkUpsert", "false"));
     bulkUpsertBatchSize = Integer.parseInt(properties.getProperty("bulkUpsertBatchSize", "1"));
-    inflightSize = Integer.parseInt(properties.getProperty("insertInflight", "1"));
 
-    boolean isImport = Boolean.parseBoolean(properties.getProperty("import", "false"));
-    if (isImport) {
-      forceUpsert = true;
-      useBulkUpsert = true;
-      bulkUpsertBatchSize = 500;
-      inflightSize = 1000;
-    }
 
-    if (inflightSize > 1) {
-      inflightSemaphore = new Semaphore(inflightSize);
+    if (connection.inflightSize() > 1) {
+      inflightSemaphore = new Semaphore(connection.inflightSize());
     }
   }
 
@@ -122,8 +123,8 @@ public class YDBClient extends DB {
 
     if (inflightSemaphore != null) {
       try {
-        inflightSemaphore.acquire(inflightSize);
-        inflightSemaphore.release(inflightSize);
+        inflightSemaphore.acquire(connection.inflightSize());
+        inflightSemaphore.release(connection.inflightSize());
       } catch (InterruptedException e) {
         LOGGER.warn("inflight operations waiting is interrupted", e);
       }
