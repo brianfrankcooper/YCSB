@@ -51,6 +51,8 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
 
 import tech.ydb.table.values.ListType;
+import tech.ydb.table.values.OptionalType;
+import tech.ydb.table.values.OptionalValue;
 import tech.ydb.table.values.StructValue;
 
 /**
@@ -345,18 +347,19 @@ public class YDBClient extends DB {
     final Map<String, Type> ydbTypes = new HashMap<>();
     ydbTypes.put(ydbTable.keyColumnName(), PrimitiveType.Text);
 
+    OptionalType optionalBytes = OptionalType.of(PrimitiveType.Bytes);
     ydbTable.columnNames().forEach(column -> {
-        ydbTypes.put(column, PrimitiveType.Bytes);
+        ydbTypes.put(column, optionalBytes);
       });
 
     StructType type = StructType.of(ydbTypes);
 
-    ListValue bulkData = ListType.of(type).newValue(
-        bulkBatch.stream().map(type::newValue).collect(Collectors.toList())
-    );
-    bulkBatch.clear();
-
     try {
+      ListValue bulkData = ListType.of(type).newValue(
+          bulkBatch.stream().map(type::newValue).collect(Collectors.toList())
+      );
+      bulkBatch.clear();
+
       if (inflightSemaphore != null) {
         inflightSemaphore.acquire();
       }
@@ -391,8 +394,16 @@ public class YDBClient extends DB {
     ydbValues.put(ydbTable.keyColumnName(), PrimitiveValue.newText(key));
 
     values.forEach((column, bytes) -> {
-        ydbValues.put(column, PrimitiveValue.newBytes(bytes.toArray()));
+        ydbValues.put(column, OptionalValue.of(PrimitiveValue.newBytes(bytes.toArray())));
       });
+
+    OptionalValue emptyBytes = OptionalType.of(PrimitiveType.Bytes).emptyValue();
+    ydbTable.columnNames().forEach(column -> {
+        if (!ydbValues.containsKey(column)) {
+          ydbValues.put(column, emptyBytes);
+        }
+      });
+
 
     bulkBatch.add(ydbValues);
     if (bulkBatch.size() < bulkUpsertBatchSize) {
@@ -438,6 +449,7 @@ public class YDBClient extends DB {
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
     LOGGER.debug("update record table {} with key {}", table, key);
+
     // note that is is a blind update: i.e. we will never return NOT_FOUND
     if (usePreparedUpdateInsert) {
       if (useBulkUpsert) {
