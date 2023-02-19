@@ -14,9 +14,24 @@
  * permissions and limitations under the License. See accompanying
  * LICENSE file.
  */
+package site.ycsb.db;
 
 /**
- * YCSB binding for <a href="https://rondb.com/">RonDB</a>.
+ * RonDB supported APIs.
  */
-package site.ycsb.db.http.ds;
+public enum RonDBAPIType {
+  CLUSTERJ("Clusterj"),
+  REST("REST"),
+  GRPC("gRPC");
 
+  private String name;
+
+  RonDBAPIType(String name) {
+    this.name = name;
+  }
+
+  @Override
+  public String toString() {
+    return name;
+  }
+}

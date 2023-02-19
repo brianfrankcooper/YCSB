@@ -59,12 +59,12 @@ This section describes how to run YCSB on RonDB.
 
     Inside the workload file, define RonDB-specific parameters:
     - `rondb.connection.string`  Default: 127.0.0.1:1186
-    - `rondb.schema`  I.e. database name; Default: ycsb
-    - `rondb.use.rest.api` Default: false; this means it will use ClusterJ; Rest API specific:
+    - `rondb.schema`  i.e. database name; Default: ycsb
+    - `rondb.api.type` i.e. clusterj, REST, gRPC. Default: clusterj
         - `rondb.rest.api.batch.size` Default: 1
-        - `rondb.rest.server.ip` Default: localhost
-        - `rondb.rest.server.port` Default: 5000
-        - `rondb.rest.api.version` Default: 0.1.0
+        - `rondb.api.server.ip` Default: localhost
+        - `rondb.api.server.port` Default: 5000
+        - `rondb.api.server.version` Default: 0.1.0
 
     Also, set the `fieldcount`, `fieldlength` and `fieldnameprefix` according to `usertable` schema. From the SQL examples above, this would be one of the two:
     - "fieldcount=1", "fieldlength=4096", "fieldnameprefix=FIELD"
@@ -77,7 +77,7 @@ This section describes how to run YCSB on RonDB.
     ./bin/ycsb load rondb -s -P workloads/workloada \
         -p "rondb.connection.string=127.0.0.1:1186" \
         -p "rondb.schema=ycsb" \
-        -p "rondb.use.rest.api=true" \
+        -p "rondb.api.type=clusterj" \
         -p "fieldcount=1"  \
         -p "fieldlength=4096"  \
         -p "fieldnameprefix=FIELD"
@@ -90,7 +90,7 @@ This section describes how to run YCSB on RonDB.
     ./bin/ycsb run rondb -s -P workloads/workloada \
         -p "rondb.connection.string=127.0.0.1:1186" \
         -p "rondb.schema=ycsb" \
-        -p "rondb.use.rest.api=true" \
+        -p "rondb.api.type=clusterj" \
         -p "fieldcount=1"  \
         -p "fieldlength=4096" \
         -p "fieldnameprefix=FIELD" 

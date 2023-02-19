@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Yahoo!, Inc. All rights reserved.
+ * Copyright (c) 2023, Hopsworks AB. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -13,12 +13,6 @@
  * implied. See the License for the specific language governing
  * permissions and limitations under the License. See accompanying
  * LICENSE file.
- */
-
-/**
- * YCSB binding for <a href="https://rondb.com/">RonDB</a>.
- * <p>
- * RonDB client binding for YCSB.
  */
 
 /**
@@ -52,10 +46,8 @@ public class RonDBClient extends DB {
 
   private static Object lock = new Object();
 
-  private static final String RONDB_USE_GRPC = "rondb.use.grpc";
-  private static final String RONDB_USE_REST_API = "rondb.use.rest.api";
-  private static boolean useRESTAPI;
-  private static boolean useGRPC;
+  private static final String RONDB_API_TYPE_PROP = "rondb.api.type";
+  private static RonDBAPIType ronDBAPIType;
   private long fieldCount;
   private Set<String> fieldNames;
   private static int maxThreadID = 0;
@@ -73,15 +65,26 @@ public class RonDBClient extends DB {
     synchronized (lock) {
       threadID = maxThreadID++;
 
-      useRESTAPI = Boolean.parseBoolean(properties.getProperty(RONDB_USE_REST_API, "false"));
-      useGRPC = Boolean.parseBoolean(properties.getProperty(RONDB_USE_GRPC, "false"));
-      if (useRESTAPI && useGRPC) {
-        logger.error("cannot use both REST API and GRPC");
-        System.exit(1);
+      String apiPropStr = properties.getProperty(RONDB_API_TYPE_PROP, RonDBAPIType.CLUSTERJ.toString());
+
+      try {
+        if (apiPropStr.compareToIgnoreCase(RonDBAPIType.CLUSTERJ.toString()) == 0) {
+          ronDBAPIType = RonDBAPIType.CLUSTERJ;
+          clusterJClient = new ClusterJClient(properties);
+        } else if (apiPropStr.compareToIgnoreCase(RonDBAPIType.REST.toString()) == 0) {
+          ronDBAPIType = RonDBAPIType.REST;
+          restApiClient = new RestApiClient(properties);
+        } else if (apiPropStr.compareToIgnoreCase(RonDBAPIType.GRPC.toString()) == 0) {
+          ronDBAPIType = RonDBAPIType.GRPC;
+          grpcClient = new GrpcClient(properties);
+        } else {
+          throw new IllegalArgumentException("Wrong argument " + RONDB_API_TYPE_PROP);
+        }
+      } catch (IOException e) {
+        logger.error(e.getMessage(), e);
+        throw new DBException("Failed to initialize. " + e);
       }
 
-      // It can apparently happen that the methods omit the parameter "fields", so
-      // we're just saving it here
       fieldCount = Long.parseLong(
           properties.getProperty(CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
       final String fieldnameprefix = properties.getProperty(CoreWorkload.FIELD_NAME_PREFIX,
@@ -89,25 +92,6 @@ public class RonDBClient extends DB {
       fieldNames = new HashSet<>();
       for (int i = 0; i < fieldCount; i++) {
         fieldNames.add(fieldnameprefix + i);
-      }
-    }
-
-    clusterJClient = new ClusterJClient(properties);
-    if (useRESTAPI) {
-      try {
-        restApiClient = new RestApiClient(properties);
-      } catch (IOException e) {
-        logger.error("error creating RonDB REST API client " + e);
-        e.printStackTrace();
-        System.exit(1);
-      }
-    } else if (useGRPC) {
-      try {
-        grpcClient = new GrpcClient(properties);
-      } catch (IOException e) {
-        logger.error("error creating RonDB gRPC client " + e);
-        e.printStackTrace();
-        System.exit(1);
       }
     }
   }
@@ -134,12 +118,14 @@ public class RonDBClient extends DB {
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     Set<String> fieldsToRead = fields != null ? fields : fieldNames;
     try {
-      if (useRESTAPI) {
+      if (ronDBAPIType == RonDBAPIType.REST) {
         return restApiClient.read(threadID, table, key, fieldsToRead, result);
-      } else if (useGRPC) {
+      } else if (ronDBAPIType == RonDBAPIType.GRPC) {
         return grpcClient.read(threadID, table, key, fieldsToRead, result);
-      } else {
+      } else if (ronDBAPIType == RonDBAPIType.CLUSTERJ) {
         return clusterJClient.read(table, key, fieldsToRead, result);
+      } else {
+        throw new UnsupportedOperationException("Read operation not supported for " + ronDBAPIType);
       }
     } catch (Exception e) {
       logger.error("Error " + e);
@@ -163,7 +149,20 @@ public class RonDBClient extends DB {
   public Status scan(String table, String startkey, int recordcount, Set<String> fields,
                      Vector<HashMap<String, ByteIterator>> result) {
     Set<String> fieldsToRead = fields != null ? fields : fieldNames;
-    return clusterJClient.scan(table, startkey, recordcount, fieldsToRead, result);
+    try {
+      if (ronDBAPIType == RonDBAPIType.REST) {
+        throw new UnsupportedOperationException("Scan operation not supported for " + ronDBAPIType);
+      } else if (ronDBAPIType == RonDBAPIType.GRPC) {
+        throw new UnsupportedOperationException("Scan operation not supported for " + ronDBAPIType);
+      } else if (ronDBAPIType == RonDBAPIType.CLUSTERJ) {
+        return clusterJClient.scan(table, startkey, recordcount, fieldsToRead, result);
+      } else {
+        throw new UnsupportedOperationException("Scan operation not supported for " + ronDBAPIType);
+      }
+    } catch (Exception e) {
+      logger.error("Error " + e);
+      return Status.ERROR;
+    }
   }
 
   /**
@@ -179,7 +178,20 @@ public class RonDBClient extends DB {
    */
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
-    return clusterJClient.update(table, key, values);
+    try {
+      if (ronDBAPIType == RonDBAPIType.REST) {
+        throw new UnsupportedOperationException("Update operation not supported for " + ronDBAPIType);
+      } else if (ronDBAPIType == RonDBAPIType.GRPC) {
+        throw new UnsupportedOperationException("Update operation not supported for " + ronDBAPIType);
+      } else if (ronDBAPIType == RonDBAPIType.CLUSTERJ) {
+        return clusterJClient.update(table, key, values);
+      } else {
+        throw new UnsupportedOperationException("Update Operation not supported for " + ronDBAPIType);
+      }
+    } catch (Exception e) {
+      logger.error("Error " + e);
+      return Status.ERROR;
+    }
   }
 
   /**
@@ -194,7 +206,20 @@ public class RonDBClient extends DB {
    */
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
-    return clusterJClient.insert(table, key, values);
+    try {
+      if (ronDBAPIType == RonDBAPIType.REST) {
+        throw new UnsupportedOperationException("Insert operation not supported for " + ronDBAPIType);
+      } else if (ronDBAPIType == RonDBAPIType.GRPC) {
+        throw new UnsupportedOperationException("Insert operation not supported for " + ronDBAPIType);
+      } else if (ronDBAPIType == RonDBAPIType.CLUSTERJ) {
+        return clusterJClient.insert(table, key, values);
+      } else {
+        throw new UnsupportedOperationException("Insert Operation not supported for " + ronDBAPIType);
+      }
+    } catch (Exception e) {
+      logger.error("Error " + e);
+      return Status.ERROR;
+    }
   }
 
   /**
@@ -206,7 +231,20 @@ public class RonDBClient extends DB {
    */
   @Override
   public Status delete(String table, String key) {
-    return clusterJClient.delete(table, key);
+    try {
+      if (ronDBAPIType == RonDBAPIType.REST) {
+        throw new UnsupportedOperationException("Delete operation not supported for " + ronDBAPIType);
+      } else if (ronDBAPIType == RonDBAPIType.GRPC) {
+        throw new UnsupportedOperationException("Delete operation not supported for " + ronDBAPIType);
+      } else if (ronDBAPIType == RonDBAPIType.CLUSTERJ) {
+        return clusterJClient.delete(table, key);
+      } else {
+        throw new UnsupportedOperationException("Delete Operation not supported for " + ronDBAPIType);
+      }
+    } catch (Exception e) {
+      logger.error("Error " + e);
+      return Status.ERROR;
+    }
   }
 
   public static Logger getLogger() {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Yahoo!, Inc. All rights reserved.
+ * Copyright (c) 2023, Hopsworks AB. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -53,9 +53,9 @@ public final class RestApiClient {
   protected static Logger logger = LoggerFactory.getLogger(RestApiClient.class);
 
   private static final String RONDB_REST_API_BATCH_SIZE = "rondb.rest.api.batch.size";
-  private static final String RONDB_REST_SERVER_IP = "rondb.rest.server.ip";
-  private static final String RONDB_REST_SERVER_PORT = "rondb.rest.server.port";
-  private static final String RONDB_REST_API_VERSION = "rondb.rest.api.version";  // TODO: Hard-code this
+  private static final String RONDB_REST_SERVER_IP = "rondb.api.server.ip";
+  private static final String RONDB_REST_SERVER_PORT = "rondb.api.server.port";
+  private static final String RONDB_REST_API_VERSION = "rondb.api.server.version";  // TODO: Hard-code this
 
   // TODO: Add documentation on this; this should only make a difference if MyHttpClient is static?
   private static final String RONDB_REST_API_USE_ASYNC_REQUESTS = "rondb.rest.api.use.async.requests";

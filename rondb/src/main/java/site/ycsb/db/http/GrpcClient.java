@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Yahoo!, Inc. All rights reserved.
+ * Copyright (c) 2023, Hopsworks AB. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -52,8 +52,8 @@ public final class GrpcClient {
 
   protected static Logger logger = LoggerFactory.getLogger(GrpcClient.class);
 
-  private static final String RONDB_REST_SERVER_IP = "rondb.rest.server.ip";
-  private static final String RONDB_REST_SERVER_PORT = "rondb.rest.server.port";
+  private static final String RONDB_REST_SERVER_IP = "rondb.api.server.ip";
+  private static final String RONDB_REST_SERVER_PORT = "rondb.api.server.port";
 
   private static Object lock = new Object();
 
