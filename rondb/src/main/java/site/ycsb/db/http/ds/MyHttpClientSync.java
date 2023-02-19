@@ -26,7 +26,6 @@ import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-
 import site.ycsb.db.http.MyHttpException;
 
 import java.io.IOException;

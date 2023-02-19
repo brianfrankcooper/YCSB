@@ -43,7 +43,7 @@ public final class UserTableHelper {
   }
 
   public static DynamicObject createDTO(ClassGenerator classGenerator, Session session, String tableName, String keyVal,
-      Map<String, ByteIterator> values) throws Exception {
+                                        Map<String, ByteIterator> values) throws Exception {
 
     DynamicObject persistable = getTableObject(classGenerator, session, tableName);
     setFieldValue(persistable, KEY, keyVal.getBytes(), keyVal.getBytes().length);

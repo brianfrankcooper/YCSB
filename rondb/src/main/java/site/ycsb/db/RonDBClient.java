@@ -17,6 +17,8 @@
 
 /**
  * YCSB binding for <a href="https://rondb.com/">RonDB</a>.
+ * <p>
+ * RonDB client binding for YCSB.
  */
 
 /**
@@ -32,17 +34,12 @@ import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
 import site.ycsb.db.clusterj.ClusterJClient;
-import site.ycsb.db.http.RestApiClient;
 import site.ycsb.db.http.GrpcClient;
+import site.ycsb.db.http.RestApiClient;
 import site.ycsb.workloads.CoreWorkload;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * This is the REST API client for RonDB.
@@ -164,7 +161,7 @@ public class RonDBClient extends DB {
    */
   @Override
   public Status scan(String table, String startkey, int recordcount, Set<String> fields,
-      Vector<HashMap<String, ByteIterator>> result) {
+                     Vector<HashMap<String, ByteIterator>> result) {
     Set<String> fieldsToRead = fields != null ? fields : fieldNames;
     return clusterJClient.scan(table, startkey, recordcount, fieldsToRead, result);
   }

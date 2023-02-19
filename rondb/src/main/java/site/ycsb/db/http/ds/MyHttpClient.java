@@ -21,7 +21,6 @@
 package site.ycsb.db.http.ds;
 
 import org.apache.http.client.methods.HttpRequestBase;
-
 import site.ycsb.db.http.MyHttpException;
 
 /**

@@ -20,11 +20,7 @@
  */
 package site.ycsb.db.clusterj.table;
 
-import javassist.CannotCompileException;
-import javassist.NotFoundException;
-import javassist.ClassPool;
-import javassist.CtClass;
-import javassist.CtMethod;
+import javassist.*;
 
 import java.io.Serializable;
 

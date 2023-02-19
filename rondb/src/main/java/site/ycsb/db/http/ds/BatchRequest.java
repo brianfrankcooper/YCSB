@@ -33,7 +33,7 @@ public class BatchRequest {
   public BatchRequest() {
   }
 
-  public void addSubOperation(BatchSubOperation subOp){
+  public void addSubOperation(BatchSubOperation subOp) {
     ops.add(subOp);
   }
 

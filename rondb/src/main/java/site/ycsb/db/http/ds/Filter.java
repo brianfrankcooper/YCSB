@@ -46,6 +46,6 @@ public class Filter {
     sb.append(value);
     sb.append("\"");
     sb.append("}");
-    return  sb.toString();
+    return sb.toString();
   }
 }

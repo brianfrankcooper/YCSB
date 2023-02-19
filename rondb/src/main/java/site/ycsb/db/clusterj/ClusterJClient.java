@@ -27,23 +27,17 @@ import com.mysql.clusterj.Session;
 import com.mysql.clusterj.query.Predicate;
 import com.mysql.clusterj.query.QueryBuilder;
 import com.mysql.clusterj.query.QueryDomainType;
-import site.ycsb.ByteIterator;
-import site.ycsb.Status;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import site.ycsb.ByteIterator;
 import site.ycsb.DBException;
+import site.ycsb.Status;
 import site.ycsb.db.clusterj.table.ClassGenerator;
 import site.ycsb.db.clusterj.table.UserTableHelper;
 import site.ycsb.db.clusterj.tx.TransactionReqHandler;
 import site.ycsb.workloads.CoreWorkload;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
-import java.util.HashMap;
+import java.util.*;
 
 /**
  * This is the ClusterJ client for RonDB.
@@ -160,7 +154,7 @@ public final class ClusterJClient {
   }
 
   public Status scan(String table, String startkey, int recordcount, Set<String> fields,
-      Vector<HashMap<String, ByteIterator>> result) {
+                     Vector<HashMap<String, ByteIterator>> result) {
 
     Class<DynamicObject> dbClass = getDTOClass(table);
     final Session session = connection.getSession();

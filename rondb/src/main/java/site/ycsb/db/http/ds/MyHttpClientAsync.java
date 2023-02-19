@@ -30,7 +30,6 @@ import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOReactorException;
 import org.apache.http.util.EntityUtils;
-
 import site.ycsb.db.http.MyHttpException;
 
 import java.util.concurrent.Future;

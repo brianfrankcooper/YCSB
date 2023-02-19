@@ -21,6 +21,14 @@
  */
 package site.ycsb.db.http;
 
+import com.rondb.grpcserver.*;
+import com.rondb.grpcserver.RonDBRESTGrpc.RonDBRESTBlockingStub;
+import io.grpc.Grpc;
+import io.grpc.InsecureChannelCredentials;
+import io.grpc.ManagedChannel;
+import io.grpc.StatusRuntimeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import site.ycsb.ByteArrayByteIterator;
 import site.ycsb.ByteIterator;
 import site.ycsb.Status;
@@ -28,29 +36,11 @@ import site.ycsb.db.RonDBClient;
 import site.ycsb.db.clusterj.RonDBConnection;
 import site.ycsb.db.clusterj.table.UserTableHelper;
 
-import io.grpc.StatusRuntimeException;
-import io.grpc.Grpc;
-import io.grpc.InsecureChannelCredentials;
-import io.grpc.ManagedChannel;
-
-import com.rondb.grpcserver.RonDBRESTGrpc;
-import com.rondb.grpcserver.RonDBRESTGrpc.RonDBRESTBlockingStub;
-import com.rondb.grpcserver.PKReadRequestProto;
-import com.rondb.grpcserver.PKReadResponseProto;
-import com.rondb.grpcserver.ColumnValueProto;
-import com.rondb.grpcserver.StatRequestProto;
-import com.rondb.grpcserver.StatResponseProto;
-import com.rondb.grpcserver.FilterProto;
-import com.rondb.grpcserver.ReadColumnProto;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.BrokenBarrierException;
-
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -82,12 +72,12 @@ public final class GrpcClient {
 
   public GrpcClient(Properties props) throws IOException {
     databaseName = props.getProperty(RonDBConnection.SCHEMA, "ycsb");
-    
+
     // In case we're e.g. using container names: https://github.com/grpc/grpc-java/issues/4564#issuecomment-396817986
     String grpcServerHostname = props.getProperty(RONDB_REST_SERVER_IP, "localhost");
     java.net.InetAddress inetAddress = java.net.InetAddress.getByName(grpcServerHostname);
     grpcServerIP = inetAddress.getHostAddress();
-    
+
     grpcServerPort = Integer.parseInt(props.getProperty(RONDB_REST_SERVER_PORT, "5000"));
     String grpcServerAddress = grpcServerIP + ":" + grpcServerPort;
 

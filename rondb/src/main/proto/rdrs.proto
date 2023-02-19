@@ -44,13 +44,10 @@ message PKReadRequestProto {
   optional string OperationID = 6;
 }
 
-// TODO: Could use bytes as type here
-// TODO: Why not place all of map<string, ColumnValueProto> Data here?
 message ColumnValueProto {
   optional string Name = 1;
 }
 
-// TODO: Could use enum for code (or simply grpc code)
 message PKReadResponseProto {
   optional string OperationID = 1;
   optional int32 code = 2;

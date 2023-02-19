@@ -27,7 +27,8 @@ public class BatchSubOperation {
   private String method = "POST";
   private String relativeURL;
   private PKRequest pkRequest;
-  public BatchSubOperation(String relativeURL, PKRequest pkReq){
+
+  public BatchSubOperation(String relativeURL, PKRequest pkReq) {
     this.relativeURL = relativeURL;
     this.pkRequest = pkReq;
   }

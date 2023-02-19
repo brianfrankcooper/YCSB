@@ -26,7 +26,8 @@ package site.ycsb.db.http.ds;
  */
 public class ReadColumn {
   private String colName;
-  public ReadColumn(String colName){
+
+  public ReadColumn(String colName) {
     this.colName = colName;
   }
 
