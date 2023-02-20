@@ -31,8 +31,8 @@ import site.ycsb.ByteArrayByteIterator;
 import site.ycsb.ByteIterator;
 import site.ycsb.Client;
 import site.ycsb.Status;
+import site.ycsb.db.ConfigKeys;
 import site.ycsb.db.RonDBClient;
-import site.ycsb.db.clusterj.RonDBConnection;
 import site.ycsb.db.clusterj.table.UserTableHelper;
 import site.ycsb.db.http.ds.*;
 
@@ -44,21 +44,11 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * RonDB res client wrapper.
+ * RonDB REST client wrapper.
  */
 public final class RestApiClient {
 
-  // TODO: Add API key; Place into HTTP header under "X-API-KEY"
-
   protected static Logger logger = LoggerFactory.getLogger(RestApiClient.class);
-
-  private static final String RONDB_REST_API_BATCH_SIZE = "rondb.rest.api.batch.size";
-  private static final String RONDB_REST_SERVER_IP = "rondb.api.server.ip";
-  private static final String RONDB_REST_SERVER_PORT = "rondb.api.server.port";
-  private static final String RONDB_REST_API_VERSION = "rondb.api.server.version";  // TODO: Hard-code this
-
-  // TODO: Add documentation on this; this should only make a difference if MyHttpClient is static?
-  private static final String RONDB_REST_API_USE_ASYNC_REQUESTS = "rondb.rest.api.use.async.requests";
 
   private int readBatchSize; // Number of operations per batch
   private int numThreads;
@@ -85,14 +75,21 @@ public final class RestApiClient {
 
   public RestApiClient(Properties props) throws IOException {
 
-    readBatchSize = Integer.parseInt(props.getProperty(RONDB_REST_API_BATCH_SIZE, "1"));
+    //FIXME remove the batch size parameter
+    readBatchSize = Integer.parseInt(props.getProperty(ConfigKeys.RONDB_REST_API_BATCH_SIZE, "1"));
+    //FIXME remove the batch size parameter
     numThreads = Integer.parseInt(props.getProperty(Client.THREAD_COUNT_PROPERTY, "1"));
-    db = props.getProperty(RonDBConnection.SCHEMA, "ycsb");
-    restServerIP = props.getProperty(RONDB_REST_SERVER_IP, "localhost");
-    restServerPort = Integer.parseInt(props.getProperty(RONDB_REST_SERVER_PORT, "5000"));
-    restAPIVersion = props.getProperty(RONDB_REST_API_VERSION, "0.1.0");
+    db = props.getProperty(ConfigKeys.SCHEMA_KEY, ConfigKeys.SCHEMA_DEFAULT);
+    restServerIP = props.getProperty(ConfigKeys.RONDB_REST_SERVER_IP_KEY,
+        ConfigKeys.RONDB_REST_SERVER_IP_DEFAULT);
+    restServerPort = Integer.parseInt(props.getProperty(ConfigKeys.RONDB_REST_SERVER_PORT_KEY,
+        Integer.toString(ConfigKeys.RONDB_REST_SERVER_PORT_DEFAULT)));
+    restAPIVersion = props.getProperty(ConfigKeys.RONDB_REST_API_VERSION_KEY,
+        ConfigKeys.RONDB_REST_API_VERSION_DEFAULT);
     restServerURI = "http://" + restServerIP + ":" + restServerPort + "/" + restAPIVersion;
-    boolean async = Boolean.parseBoolean(props.getProperty(RONDB_REST_API_USE_ASYNC_REQUESTS, "false"));
+    boolean async =
+        Boolean.parseBoolean(props.getProperty(ConfigKeys.RONDB_REST_API_USE_ASYNC_REQUESTS_KEY,
+            Boolean.toString(ConfigKeys.RONDB_REST_API_USE_ASYNC_REQUESTS_DEFAULT)));
     if (async) {
       myHttpClient = new MyHttpClientAsync(numThreads);
     } else {
@@ -123,7 +120,7 @@ public final class RestApiClient {
     barriers = new ArrayList<CyclicBarrier>(numBarriers);
 
     for (int i = 0; i < numBarriers; i++) {
-      operations.put(i, Collections.synchronizedList(new ArrayList<Operation>(readBatchSize)));
+      operations.put(i, Collections.synchronizedList(new ArrayList<>(readBatchSize)));
       barriers.add(new CyclicBarrier(readBatchSize, new Batcher(i)));
     }
 

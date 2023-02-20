@@ -27,6 +27,7 @@ import com.mysql.clusterj.SessionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import site.ycsb.DBException;
+import site.ycsb.db.ConfigKeys;
 
 import java.util.Properties;
 
@@ -37,25 +38,15 @@ public final class RonDBConnection {
 
   private static Logger logger = LoggerFactory.getLogger(RonDBConnection.class);
 
-  private static final String CONNECT_STR_PROPERTY = "rondb.connection.string";
-  public static final String SCHEMA = "rondb.schema";
   private static SessionFactory sessionFactory;
   private static ThreadLocal<Session> sessions = new ThreadLocal<>();
-
 
   private RonDBConnection() {
   }
 
   static synchronized RonDBConnection connect(Properties props) throws DBException {
-    String connString = props.getProperty(CONNECT_STR_PROPERTY);
-    if (connString == null) {
-      connString = "127.0.0.1:1186";
-    }
-    String schema = props.getProperty(SCHEMA);
-    if (schema == null) {
-      schema = "ycsb";
-    }
-
+    String connString = props.getProperty(ConfigKeys.CONNECT_STR_KEY, ConfigKeys.CONNECT_STR_DEFAULT);
+    String schema = props.getProperty(ConfigKeys.SCHEMA_KEY, ConfigKeys.SCHEMA_DEFAULT);
     RonDBConnection connection = new RonDBConnection();
     connection.setUpDBConnection(connString, schema);
     return connection;

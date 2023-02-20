@@ -32,8 +32,8 @@ import org.slf4j.LoggerFactory;
 import site.ycsb.ByteArrayByteIterator;
 import site.ycsb.ByteIterator;
 import site.ycsb.Status;
+import site.ycsb.db.ConfigKeys;
 import site.ycsb.db.RonDBClient;
-import site.ycsb.db.clusterj.RonDBConnection;
 import site.ycsb.db.clusterj.table.UserTableHelper;
 
 import java.io.IOException;
@@ -52,11 +52,7 @@ public final class GrpcClient {
 
   protected static Logger logger = LoggerFactory.getLogger(GrpcClient.class);
 
-  private static final String RONDB_REST_SERVER_IP = "rondb.api.server.ip";
-  private static final String RONDB_REST_SERVER_PORT = "rondb.api.server.port";
-
   private static Object lock = new Object();
-
   private String databaseName;
   private String grpcServerIP;
   private int grpcServerPort;
@@ -71,14 +67,16 @@ public final class GrpcClient {
   private static AtomicInteger maxID = new AtomicInteger(0);
 
   public GrpcClient(Properties props) throws IOException {
-    databaseName = props.getProperty(RonDBConnection.SCHEMA, "ycsb");
+    databaseName = props.getProperty(ConfigKeys.SCHEMA_KEY, ConfigKeys.SCHEMA_DEFAULT);
 
     // In case we're e.g. using container names: https://github.com/grpc/grpc-java/issues/4564#issuecomment-396817986
-    String grpcServerHostname = props.getProperty(RONDB_REST_SERVER_IP, "localhost");
+    String grpcServerHostname = props.getProperty(ConfigKeys.RONDB_REST_SERVER_IP_KEY,
+        ConfigKeys.RONDB_REST_SERVER_IP_DEFAULT);
     java.net.InetAddress inetAddress = java.net.InetAddress.getByName(grpcServerHostname);
     grpcServerIP = inetAddress.getHostAddress();
 
-    grpcServerPort = Integer.parseInt(props.getProperty(RONDB_REST_SERVER_PORT, "5000"));
+    grpcServerPort = Integer.parseInt(props.getProperty(ConfigKeys.RONDB_GRPC_SERVER_PORT_KEY,
+        Integer.toString(ConfigKeys.RONDB_GRPC_SERVER_PORT_DEFAULT)));
     String grpcServerAddress = grpcServerIP + ":" + grpcServerPort;
 
     basePkReadBuilder = PKReadRequestProto.newBuilder().setAPIKey("").setDB(databaseName);
