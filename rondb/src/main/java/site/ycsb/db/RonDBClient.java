@@ -87,11 +87,11 @@ public class RonDBClient extends DB {
 
       fieldCount = Long.parseLong(
           properties.getProperty(CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
-      final String fieldnameprefix = properties.getProperty(CoreWorkload.FIELD_NAME_PREFIX,
+      final String fieldNamePrefix = properties.getProperty(CoreWorkload.FIELD_NAME_PREFIX,
           CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
       fieldNames = new HashSet<>();
       for (int i = 0; i < fieldCount; i++) {
-        fieldNames.add(fieldnameprefix + i);
+        fieldNames.add(fieldNamePrefix + i);
       }
     }
   }
