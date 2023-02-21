@@ -25,12 +25,10 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.nio.reactor.IOReactorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import site.ycsb.ByteArrayByteIterator;
-import site.ycsb.ByteIterator;
-import site.ycsb.Client;
-import site.ycsb.Status;
+import site.ycsb.*;
 import site.ycsb.db.ConfigKeys;
 import site.ycsb.db.RonDBClient;
 import site.ycsb.db.clusterj.table.UserTableHelper;
@@ -38,7 +36,6 @@ import site.ycsb.db.http.ds.*;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -46,7 +43,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * RonDB REST client wrapper.
  */
-public final class RestApiClient {
+public final class RestApiClient extends DB {
 
   protected static Logger logger = LoggerFactory.getLogger(RestApiClient.class);
 
@@ -58,6 +55,7 @@ public final class RestApiClient {
   private String restAPIVersion;
   private String restServerURI;
   private MyHttpClient myHttpClient;
+  private final int threadID;
 
   private static AtomicInteger maxID = new AtomicInteger(0);
 
@@ -70,30 +68,42 @@ public final class RestApiClient {
 
   private Map<Integer/* batch id */, List<Operation>> operations = null;
   private Map<Integer, PKResponse> responses = null;
+  private Properties properties;
 
   private List<CyclicBarrier> barriers;
 
-  public RestApiClient(Properties props) throws IOException {
+  public RestApiClient(int threadID, Properties props) throws IOException {
+    this.properties = props;
+    this.threadID = threadID;
+  }
 
+  @Override
+  public void init() throws DBException {
     //FIXME remove the batch size parameter
-    readBatchSize = Integer.parseInt(props.getProperty(ConfigKeys.RONDB_REST_API_BATCH_SIZE, "1"));
+    readBatchSize = Integer.parseInt(properties.getProperty(ConfigKeys.RONDB_REST_API_BATCH_SIZE, "1"));
     //FIXME remove the batch size parameter
-    numThreads = Integer.parseInt(props.getProperty(Client.THREAD_COUNT_PROPERTY, "1"));
-    db = props.getProperty(ConfigKeys.SCHEMA_KEY, ConfigKeys.SCHEMA_DEFAULT);
-    restServerIP = props.getProperty(ConfigKeys.RONDB_REST_SERVER_IP_KEY,
+    numThreads = Integer.parseInt(properties.getProperty(Client.THREAD_COUNT_PROPERTY, "1"));
+    db = properties.getProperty(ConfigKeys.SCHEMA_KEY, ConfigKeys.SCHEMA_DEFAULT);
+    restServerIP = properties.getProperty(ConfigKeys.RONDB_REST_SERVER_IP_KEY,
         ConfigKeys.RONDB_REST_SERVER_IP_DEFAULT);
-    restServerPort = Integer.parseInt(props.getProperty(ConfigKeys.RONDB_REST_SERVER_PORT_KEY,
+    restServerPort = Integer.parseInt(properties.getProperty(ConfigKeys.RONDB_REST_SERVER_PORT_KEY,
         Integer.toString(ConfigKeys.RONDB_REST_SERVER_PORT_DEFAULT)));
-    restAPIVersion = props.getProperty(ConfigKeys.RONDB_REST_API_VERSION_KEY,
+    restAPIVersion = properties.getProperty(ConfigKeys.RONDB_REST_API_VERSION_KEY,
         ConfigKeys.RONDB_REST_API_VERSION_DEFAULT);
     restServerURI = "http://" + restServerIP + ":" + restServerPort + "/" + restAPIVersion;
     boolean async =
-        Boolean.parseBoolean(props.getProperty(ConfigKeys.RONDB_REST_API_USE_ASYNC_REQUESTS_KEY,
+        Boolean.parseBoolean(properties.getProperty(ConfigKeys.RONDB_REST_API_USE_ASYNC_REQUESTS_KEY,
             Boolean.toString(ConfigKeys.RONDB_REST_API_USE_ASYNC_REQUESTS_DEFAULT)));
-    if (async) {
-      myHttpClient = new MyHttpClientAsync(numThreads);
-    } else {
-      myHttpClient = new MyHttpClientSync();
+
+    try {
+      if (async) {
+        myHttpClient = new MyHttpClientAsync(numThreads);
+      } else {
+        myHttpClient = new MyHttpClientSync();
+      }
+    } catch (IOReactorException e) {
+      logger.error(e.getMessage(), e);
+      throw new DBException(e);
     }
 
     /*
@@ -124,7 +134,12 @@ public final class RestApiClient {
       barriers.add(new CyclicBarrier(readBatchSize, new Batcher(i)));
     }
 
-    test();
+    try {
+      test();
+    } catch (IOException e) {
+      logger.error(e.getMessage(), e);
+      throw new DBException(e);
+    }
   }
 
   /**
@@ -144,25 +159,9 @@ public final class RestApiClient {
     }
   }
 
-  public void notifyAllBarriers() {
-  }
 
-  /*
-   * Since we allow multiple clients at once, we allow multiple
-   * reads at once. Technically, each client reads independently
-   * and does one read at a time.
-   * However, we try to batch together reads of multiple clients.
-   * We assign each operation to a batch/barrier, depending on the
-   * client/thread id. We then synchronize the barrier, so that
-   * the operations can be sent in a batch.
-   */
-  public Status read(
-      Integer threadID,
-      String table,
-      String key,
-      Set<String> fields,
-      Map<String, ByteIterator> result) throws InterruptedException, BrokenBarrierException {
-
+  @Override
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     /*
      * Each client/thread is always assigned to the same batch/barrier id.
      * We check here which barrier this is, so that we can synchronize
@@ -205,6 +204,39 @@ public final class RestApiClient {
       responses.remove(op.opId);
     }
   }
+
+  @Override
+  public Status scan(String table, String startkey, int recordcount, Set<String> fields,
+                     Vector<HashMap<String, ByteIterator>> result) {
+    String msg = "Scan is not supported by REST API";
+    RuntimeException up = new UnsupportedOperationException(msg);
+    throw up;
+  }
+
+  @Override
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
+    String msg = "Update is not supported by REST API";
+    RuntimeException up = new UnsupportedOperationException(msg);
+    throw up;
+  }
+
+  @Override
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
+    String msg = "Insert is not supported by REST API";
+    RuntimeException up = new UnsupportedOperationException(msg);
+    throw up;
+  }
+
+  @Override
+  public Status delete(String table, String key) {
+    String msg = "Delete is not supported by REST API";
+    RuntimeException up = new UnsupportedOperationException(msg);
+    throw up;
+  }
+
+  public void notifyAllBarriers() {
+  }
+
 
   private class Batcher implements Runnable {
     private int batchID;
@@ -319,5 +351,10 @@ public final class RestApiClient {
         responses.put(pkResponse.getOpId(), pkResponse);
       }
     }
+  }
+
+  @Override
+  public void cleanup() throws DBException {
+
   }
 }

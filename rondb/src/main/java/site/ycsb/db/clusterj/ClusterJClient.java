@@ -30,9 +30,9 @@ import com.mysql.clusterj.query.QueryDomainType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import site.ycsb.ByteIterator;
+import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
-import site.ycsb.db.clusterj.table.ClassGenerator;
 import site.ycsb.db.clusterj.table.UserTableHelper;
 import site.ycsb.db.clusterj.tx.TransactionReqHandler;
 import site.ycsb.workloads.CoreWorkload;
@@ -42,70 +42,48 @@ import java.util.*;
 /**
  * This is the ClusterJ client for RonDB.
  */
-public final class ClusterJClient {
+public final class ClusterJClient extends DB {
   protected static Logger logger = LoggerFactory.getLogger(ClusterJClient.class);
   private static Object lock = new Object();
-  private static RonDBConnection connection;
-  private static ClassGenerator classGenerator = new ClassGenerator();
+  private static ClusterJConnection connection;
+  private Properties properties;
 
   public ClusterJClient(Properties properties) throws DBException {
+    this.properties = properties;
+  }
 
-    // Setting static class properties in parallel
+  @Override
+  public void init() throws DBException {
     synchronized (lock) {
       if (connection == null) {
-        connection = RonDBConnection.connect(properties);
+        connection = ClusterJConnection.connect(properties);
       }
 
-      // TODO: Add a comment what this does
+      //warmup
       String tableName = properties.getProperty(CoreWorkload.TABLENAME_PROPERTY,
           CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
       Session session = connection.getSession(); // initialize session for this thread
-      for (int i = 0; i < 1024; i++) {
-        try {
-          DynamicObject persistable = UserTableHelper.getTableObject(classGenerator, session, tableName);
-          releaseDTO(session, persistable);
-        } catch (Exception e) {
-          e.printStackTrace();
-          System.exit(1);
-        }
+      try {
+        DynamicObject persistable = UserTableHelper.getTableObject(ClusterJConnection.classGenerator,
+            session, tableName);
+        connection.releaseDTO(session, persistable);
+      } catch (Exception e) {
+        logger.error(e.getMessage(), e);
+        System.exit(1);
       }
-      connection.returnSession(session);
+      connection.releaseSession(session);
     }
   }
 
-  public static synchronized void cleanup() throws DBException {
-    if (connection != null) {
-      RonDBConnection.closeSession(connection);
-    }
+  @Override
+  public void cleanup() throws DBException {
+    ClusterJConnection.shutDown();
   }
 
-  private static void releaseDTO(Session session, DynamicObject dto) {
-    session.releaseCache(dto, dto.getClass());
-  }
-
-  /*
-   * private boolean isSessionClosing(Exception e) {
-   * if (e instanceof ClusterJException &&
-   * e.getMessage().contains("Db is closing")) {
-   * return true;
-   * }
-   * return false;
-   * }
-   */
-
-  private static Class<DynamicObject> getDTOClass(String tableName) {
-    try {
-      @SuppressWarnings("unchecked")
-      Class<DynamicObject> tableClass = (Class<DynamicObject>) UserTableHelper.getTableClass(classGenerator, tableName);
-      return tableClass;
-    } catch (Exception e) {
-      e.printStackTrace();
-      return null;
-    }
-  }
-
-  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
-    Class<DynamicObject> dbClass = getDTOClass(table);
+  @Override
+  public Status read(String table, String key, Set<String> fields,
+                     Map<String, ByteIterator> result) {
+    Class<DynamicObject> dbClass = connection.getDTOClass(table);
     final Session session = connection.getSession();
     try {
       TransactionReqHandler handler = new TransactionReqHandler("Read") {
@@ -119,7 +97,7 @@ public final class ClusterJClient {
           for (String field : fields) {
             result.put(field, UserTableHelper.readFieldFromDTO(field, row));
           }
-          releaseDTO(session, row);
+          connection.releaseDTO(session, row);
           if (logger.isDebugEnabled()) {
             logger.debug("Read Key " + key);
           }
@@ -128,35 +106,38 @@ public final class ClusterJClient {
       };
       return handler.runTx(session, dbClass, key);
     } finally {
-      connection.returnSession(session);
+      connection.releaseSession(session);
     }
   }
 
+  @Override
   public Status delete(String table, String key) {
     Class<DynamicObject> dbClass;
     final Session session = connection.getSession();
-    dbClass = getDTOClass(table);
+    dbClass = connection.getDTOClass(table);
 
     try {
       TransactionReqHandler handler = new TransactionReqHandler("Delete") {
         @Override
         public Status action() throws Exception {
-          DynamicObject row = UserTableHelper.createDTO(classGenerator, session, table, key, null);
+          DynamicObject row = UserTableHelper.createDTO(ClusterJConnection.classGenerator,
+              session, table, key, null);
           session.deletePersistent(row);
-          releaseDTO(session, row);
+          connection.releaseDTO(session, row);
           return Status.OK;
         }
       };
       return handler.runTx(session, dbClass, key);
     } finally {
-      connection.returnSession(session);
+      connection.releaseSession(session);
     }
   }
 
+  @Override
   public Status scan(String table, String startkey, int recordcount, Set<String> fields,
                      Vector<HashMap<String, ByteIterator>> result) {
 
-    Class<DynamicObject> dbClass = getDTOClass(table);
+    Class<DynamicObject> dbClass = connection.getDTOClass(table);
     final Session session = connection.getSession();
 
     try {
@@ -165,8 +146,8 @@ public final class ClusterJClient {
         public Status action() throws Exception {
           QueryBuilder qb = session.getQueryBuilder();
           QueryDomainType<DynamicObject> dobj = qb.createQueryDefinition(dbClass);
-          Predicate pred1 = dobj.get(UserTableHelper.KEY).greaterEqual(dobj.param(UserTableHelper.KEY +
-              "Param"));
+          Predicate pred1 = dobj.get(UserTableHelper.KEY).
+              greaterEqual(dobj.param(UserTableHelper.KEY + "Param"));
           dobj.where(pred1);
           Query<DynamicObject> query = session.createQuery(dobj);
           query.setParameter(UserTableHelper.KEY + "Param", startkey);
@@ -174,7 +155,7 @@ public final class ClusterJClient {
           List<DynamicObject> scanResults = query.getResultList();
           for (DynamicObject dto : scanResults) {
             result.add(UserTableHelper.readFieldsFromDTO(dto, fields));
-            releaseDTO(session, dto);
+            connection.releaseDTO(session, dto);
           }
 
           if (logger.isDebugEnabled()) {
@@ -185,21 +166,24 @@ public final class ClusterJClient {
       };
       return handler.runTx(session, dbClass, startkey);
     } finally {
-      connection.returnSession(session);
+      connection.releaseSession(session);
     }
   }
 
+  @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
-    Class<DynamicObject> dbClass = getDTOClass(table);
+    Class<DynamicObject> dbClass = connection.getDTOClass(table);
     final Session session = connection.getSession();
 
     try {
       TransactionReqHandler handler = new TransactionReqHandler("Update") {
         @Override
         public Status action() throws Exception {
-          DynamicObject row = UserTableHelper.createDTO(classGenerator, session, table, key, values);
+          DynamicObject row = UserTableHelper.createDTO(connection.classGenerator, session, table
+              , key,
+              values);
           session.savePersistent(row);
-          releaseDTO(session, row);
+          connection.releaseDTO(session, row);
           if (logger.isDebugEnabled()) {
             logger.debug("Updated Key " + key);
           }
@@ -208,22 +192,24 @@ public final class ClusterJClient {
       };
       return handler.runTx(session, dbClass, key);
     } finally {
-      connection.returnSession(session);
+      connection.releaseSession(session);
     }
   }
 
+  @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     Class<DynamicObject> dbClass;
     final Session session = connection.getSession();
-    dbClass = getDTOClass(table);
+    dbClass = connection.getDTOClass(table);
 
     try {
       TransactionReqHandler handler = new TransactionReqHandler("Insert") {
         @Override
         public Status action() throws Exception {
-          DynamicObject row = UserTableHelper.createDTO(classGenerator, session, table, key, values);
+          DynamicObject row = UserTableHelper.createDTO(ClusterJConnection.classGenerator,
+              session, table, key, values);
           session.makePersistent(row);
-          releaseDTO(session, row);
+          connection.releaseDTO(session, row);
           if (logger.isDebugEnabled()) {
             logger.debug("Inserted Key " + key);
           }
@@ -232,8 +218,7 @@ public final class ClusterJClient {
       };
       return handler.runTx(session, dbClass, key);
     } finally {
-      connection.returnSession(session);
+      connection.releaseSession(session);
     }
   }
-
 }

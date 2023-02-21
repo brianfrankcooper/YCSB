@@ -19,7 +19,7 @@
  * YCSB binding for <a href="https://rondb.com/">RonDB</a>.
  * RonDB client binding for YCSB.
  */
-package site.ycsb.db.http;
+package site.ycsb.db.grpc;
 
 import com.rondb.grpcserver.*;
 import com.rondb.grpcserver.RonDBRESTGrpc.RonDBRESTBlockingStub;
@@ -29,33 +29,27 @@ import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import site.ycsb.ByteArrayByteIterator;
-import site.ycsb.ByteIterator;
-import site.ycsb.Status;
+import site.ycsb.*;
 import site.ycsb.db.ConfigKeys;
-import site.ycsb.db.RonDBClient;
 import site.ycsb.db.clusterj.table.UserTableHelper;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.BrokenBarrierException;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * RonDB res client wrapper.
  */
-public final class GrpcClient {
-
+public final class GrpcClient extends DB {
   // TODO: Add API key; Place into HTTP header under "X-API-KEY"
-
   protected static Logger logger = LoggerFactory.getLogger(GrpcClient.class);
 
   private static Object lock = new Object();
   private String databaseName;
   private String grpcServerIP;
   private int grpcServerPort;
+  private final Properties properties;
+  private final int threadID;
 
   private PKReadRequestProto.Builder basePkReadBuilder;
   private ReadColumnProto.Builder readFieldsBuilder;
@@ -66,36 +60,46 @@ public final class GrpcClient {
 
   private static AtomicInteger maxID = new AtomicInteger(0);
 
-  public GrpcClient(Properties props) throws IOException {
-    databaseName = props.getProperty(ConfigKeys.SCHEMA_KEY, ConfigKeys.SCHEMA_DEFAULT);
+  public GrpcClient(int threadID, Properties props) throws IOException {
+    this.threadID = threadID;
+    this.properties = props;
+  }
 
-    // In case we're e.g. using container names: https://github.com/grpc/grpc-java/issues/4564#issuecomment-396817986
-    String grpcServerHostname = props.getProperty(ConfigKeys.RONDB_REST_SERVER_IP_KEY,
-        ConfigKeys.RONDB_REST_SERVER_IP_DEFAULT);
-    java.net.InetAddress inetAddress = java.net.InetAddress.getByName(grpcServerHostname);
-    grpcServerIP = inetAddress.getHostAddress();
+  public void init() throws DBException {
+    try {
+      databaseName = properties.getProperty(ConfigKeys.SCHEMA_KEY, ConfigKeys.SCHEMA_DEFAULT);
 
-    grpcServerPort = Integer.parseInt(props.getProperty(ConfigKeys.RONDB_GRPC_SERVER_PORT_KEY,
-        Integer.toString(ConfigKeys.RONDB_GRPC_SERVER_PORT_DEFAULT)));
-    String grpcServerAddress = grpcServerIP + ":" + grpcServerPort;
+      // In case we're e.g. using container names: https://github.com/grpc/grpc-java/issues/4564#issuecomment-396817986
+      String grpcServerHostname = properties.getProperty(ConfigKeys.RONDB_REST_SERVER_IP_KEY,
+          ConfigKeys.RONDB_REST_SERVER_IP_DEFAULT);
+      java.net.InetAddress inetAddress = java.net.InetAddress.getByName(grpcServerHostname);
+      grpcServerIP = inetAddress.getHostAddress();
 
-    basePkReadBuilder = PKReadRequestProto.newBuilder().setAPIKey("").setDB(databaseName);
-    synchronized (lock) {
-      if (channel == null) {
-        channel = Grpc.newChannelBuilder(grpcServerAddress, InsecureChannelCredentials.create()).build();
+      grpcServerPort = Integer.parseInt(properties.getProperty(ConfigKeys.RONDB_GRPC_SERVER_PORT_KEY,
+          Integer.toString(ConfigKeys.RONDB_GRPC_SERVER_PORT_DEFAULT)));
+      String grpcServerAddress = grpcServerIP + ":" + grpcServerPort;
+
+      basePkReadBuilder = PKReadRequestProto.newBuilder().setAPIKey("").setDB(databaseName);
+      synchronized (lock) {
+        if (channel == null) {
+          channel = Grpc.newChannelBuilder(grpcServerAddress, InsecureChannelCredentials.create()).build();
+        }
+        if (blockingStub == null) {
+          blockingStub = RonDBRESTGrpc.newBlockingStub(channel);
+        }
       }
-      if (blockingStub == null) {
-        blockingStub = RonDBRESTGrpc.newBlockingStub(channel);
-      }
+      test();
+    } catch (IOException e){
+      logger.error(e.getMessage(), e);
+      throw new DBException(e);
     }
-    test();
   }
 
   /**
    * This tests the REST client connection.
    */
-  private void test() throws IOException {
-    RonDBClient.getLogger().info("Running gRPC test against test endpoint");
+  private void test() throws DBException {
+    logger.info("Running gRPC test against test endpoint");
     try {
       StatResponseProto response = blockingStub.stat(StatRequestProto.newBuilder().build());
       if (response != null) {
@@ -110,12 +114,9 @@ public final class GrpcClient {
     }
   }
 
-  public Status read(
-      Integer threadID,
-      String table,
-      String key,
-      Set<String> fields,
-      Map<String, ByteIterator> result) throws InterruptedException, BrokenBarrierException {
+  @Override
+  public Status read(String table, String key, Set<String> fields,
+                     Map<String, ByteIterator> result) {
 
     String operationID = Integer.toString(maxID.incrementAndGet());
     FilterProto filter = FilterProto.newBuilder().setColumn(UserTableHelper.KEY).setValue(key).build();
@@ -152,5 +153,39 @@ public final class GrpcClient {
           new ByteArrayByteIterator(value, 0, value.length));
     }
     return Status.OK;
+  }
+
+  @Override
+  public Status scan(String table, String startkey, int recordcount, Set<String> fields,
+                     Vector<HashMap<String, ByteIterator>> result) {
+    String msg = "Scan is not supported by GRPC API";
+    RuntimeException up = new UnsupportedOperationException(msg);
+    throw up;
+  }
+
+  @Override
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
+    String msg = "Update is not supported by GRPC API";
+    RuntimeException up = new UnsupportedOperationException(msg);
+    throw up;
+  }
+
+  @Override
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
+    String msg = "Insert is not supported by GRPC API";
+    RuntimeException up = new UnsupportedOperationException(msg);
+    throw up;
+  }
+
+  @Override
+  public Status delete(String table, String key) {
+    String msg = "Delete is not supported by GRPC API";
+    RuntimeException up = new UnsupportedOperationException(msg);
+    throw up;
+  }
+
+  @Override
+  public void cleanup() throws DBException {
+
   }
 }
