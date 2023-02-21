@@ -188,7 +188,7 @@ LICENSE file.
     <module>maprdb</module>
     <module>maprjsondb</module>
     <module>memcached</module>
-    <module>mongodb</module>
+    <!-- module>mongodb</module --><!-- Does not compile due to failed repository -->
     <module>nosqldb</module>
     <module>orientdb</module>
     <module>postgrenosql</module>
@@ -200,7 +200,7 @@ LICENSE file.
     <module>s3</module>
     <module>seaweedfs</module>
     <module>scylla</module>
-    <module>solr7</module>
+    <!--module>solr7</module--><!-- Does not compile due to failed repository -->
     <module>tarantool</module>
     <module>tablestore</module>
     <module>voltdb</module>
