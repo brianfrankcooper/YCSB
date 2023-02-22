@@ -49,7 +49,7 @@ LICENSE file.
         <artifactId>protobuf-maven-plugin</artifactId>
         <version>0.6.1</version>
         <configuration>
-          <protocArtifact>com.google.protobuf:protoc:3.22.0:exe:${os.detected.classifier}
+          <protocArtifact>com.google.protobuf:protoc:3.21.2:exe:${os.detected.classifier}
           </protocArtifact>
           <pluginId>grpc-java</pluginId>
           <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.53.0:exe:${os.detected.classifier}
@@ -111,7 +111,7 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>io.grpc</groupId>
-      <artifactId>grpc-netty-shaded</artifactId>
+      <artifactId>grpc-netty</artifactId>
       <version>1.52.1</version>
     </dependency>
     <dependency>
@@ -128,6 +128,11 @@ LICENSE file.
       <groupId>org.apache.tomcat</groupId>
       <artifactId>annotations-api</artifactId>
       <version>6.0.53</version>
+    </dependency>
+    <dependency> 
+      <groupId>io.perfmark</groupId>
+      <artifactId>perfmark-api</artifactId>
+      <version>0.25.0</version>
     </dependency>
   </dependencies>
 

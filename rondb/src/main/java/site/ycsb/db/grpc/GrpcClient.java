@@ -21,12 +21,15 @@
  */
 package site.ycsb.db.grpc;
 
-import com.rondb.grpcserver.*;
+import com.rondb.grpcserver.RonDBGrpcProto;
+import com.rondb.grpcserver.RonDBGrpcProto.ColumnValueProto;
+import com.rondb.grpcserver.RonDBGrpcProto.FilterProto;
+import com.rondb.grpcserver.RonDBGrpcProto.PKReadRequestProto;
+import com.rondb.grpcserver.RonDBGrpcProto.ReadColumnProto;
+import com.rondb.grpcserver.RonDBRESTGrpc;
 import com.rondb.grpcserver.RonDBRESTGrpc.RonDBRESTBlockingStub;
-import io.grpc.Grpc;
-import io.grpc.InsecureChannelCredentials;
 import io.grpc.ManagedChannel;
-import io.grpc.StatusRuntimeException;
+import io.grpc.ManagedChannelBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import site.ycsb.*;
@@ -51,13 +54,9 @@ public final class GrpcClient extends DB {
   private final Properties properties;
   private final int threadID;
 
-  private PKReadRequestProto.Builder basePkReadBuilder;
-  private ReadColumnProto.Builder readFieldsBuilder;
-
-  private static ManagedChannel channel;
+  private ManagedChannel channel;
   // TODO: Use AsyncStub instead to use it in parallel
-  private static RonDBRESTBlockingStub blockingStub;
-
+  private RonDBRESTBlockingStub blockingStub;
   private static AtomicInteger maxID = new AtomicInteger(0);
 
   public GrpcClient(int threadID, Properties props) throws IOException {
@@ -69,28 +68,23 @@ public final class GrpcClient extends DB {
     try {
       databaseName = properties.getProperty(ConfigKeys.SCHEMA_KEY, ConfigKeys.SCHEMA_DEFAULT);
 
-      // In case we're e.g. using container names: https://github.com/grpc/grpc-java/issues/4564#issuecomment-396817986
+      // In case we're e.g. using container names:
+      // https://github.com/grpc/grpc-java/issues/4564#issuecomment-396817986
       String grpcServerHostname = properties.getProperty(ConfigKeys.RONDB_REST_SERVER_IP_KEY,
           ConfigKeys.RONDB_REST_SERVER_IP_DEFAULT);
       java.net.InetAddress inetAddress = java.net.InetAddress.getByName(grpcServerHostname);
       grpcServerIP = inetAddress.getHostAddress();
-
       grpcServerPort = Integer.parseInt(properties.getProperty(ConfigKeys.RONDB_GRPC_SERVER_PORT_KEY,
           Integer.toString(ConfigKeys.RONDB_GRPC_SERVER_PORT_DEFAULT)));
       String grpcServerAddress = grpcServerIP + ":" + grpcServerPort;
+      logger.info("Connecting to gRPC test endpoint " + grpcServerAddress);
 
-      basePkReadBuilder = PKReadRequestProto.newBuilder().setAPIKey("").setDB(databaseName);
-      synchronized (lock) {
-        if (channel == null) {
-          channel = Grpc.newChannelBuilder(grpcServerAddress, InsecureChannelCredentials.create()).build();
-        }
-        if (blockingStub == null) {
-          blockingStub = RonDBRESTGrpc.newBlockingStub(channel);
-        }
-      }
+      channel = ManagedChannelBuilder.forAddress(grpcServerIP,
+          grpcServerPort).usePlaintext().build();
+      blockingStub = RonDBRESTGrpc.newBlockingStub(channel);
+
       test();
-    } catch (IOException e){
-      logger.error(e.getMessage(), e);
+    } catch (IOException e) {
       throw new DBException(e);
     }
   }
@@ -99,58 +93,34 @@ public final class GrpcClient extends DB {
    * This tests the REST client connection.
    */
   private void test() throws DBException {
-    logger.info("Running gRPC test against test endpoint");
-    try {
-      StatResponseProto response = blockingStub.stat(StatRequestProto.newBuilder().build());
-      if (response != null) {
-        logger.info("response for stat endpoint: " + response.toString());
-      } else {
-        logger.error("response is null for Stat endpoint!");
-        System.exit(1);
-      }
-    } catch (StatusRuntimeException e) {
-      logger.warn("RPC failed: {0}", e.getStatus());
-      System.exit(1);
-    }
+    blockingStub.stat(RonDBGrpcProto.StatRequestProto.newBuilder().build());
   }
 
   @Override
-  public Status read(String table, String key, Set<String> fields,
-                     Map<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
 
-    String operationID = Integer.toString(maxID.incrementAndGet());
-    FilterProto filter = FilterProto.newBuilder().setColumn(UserTableHelper.KEY).setValue(key).build();
-    PKReadRequestProto.Builder pkReadBuilder = basePkReadBuilder.setOperationID(operationID)
-        .setTable(table)
-        .addFilters(filter);
+    PKReadRequestProto.Builder pkReadBuilder = PKReadRequestProto.newBuilder();
+    pkReadBuilder.setDB(databaseName);
+    pkReadBuilder.setTable(table);
+    pkReadBuilder.setOperationID(Integer.toString(maxID.incrementAndGet()));
+    pkReadBuilder.setAPIKey("Dummy Key");
+    pkReadBuilder.addFilters(FilterProto.newBuilder().setColumn(UserTableHelper.KEY).setValue(key).build());
+
     for (String field : fields) {
-      pkReadBuilder = pkReadBuilder.addReadColumns(readFieldsBuilder.setColumn(field).build());
+      pkReadBuilder.addReadColumns(ReadColumnProto.newBuilder().setColumn(field).build());
     }
+    PKReadRequestProto pkRead = pkReadBuilder.build();
 
-    logger.warn("Making pkReadRequest with operation number : " + operationID);
-    PKReadResponseProto response = PKReadResponseProto.newBuilder().build();
-    try {
-      PKReadRequestProto pkRead = pkReadBuilder.build();
-      response = blockingStub.pKRead(pkRead);
-    } catch (StatusRuntimeException e) {
-      e.printStackTrace();
-      System.exit(1);
-    }
-
+    RonDBGrpcProto.PKReadResponseProto response = blockingStub.pKRead(pkRead);
     if (response == null || !response.isInitialized()) {
-      logger.error("gRPC is empty");
       return Status.NOT_FOUND;
-    } else {
-      logger.warn("response for pkRead: " + response.toString());
     }
 
     Map<String, ColumnValueProto> dataMap = response.getDataMap();
     byte[] value;
     for (Map.Entry<String, ColumnValueProto> entry : dataMap.entrySet()) {
       value = entry.getValue().toByteArray();
-      result.put(
-          entry.getKey(),
-          new ByteArrayByteIterator(value, 0, value.length));
+      result.put(entry.getKey(), new ByteArrayByteIterator(value, 0, value.length));
     }
     return Status.OK;
   }
@@ -186,6 +156,6 @@ public final class GrpcClient extends DB {
 
   @Override
   public void cleanup() throws DBException {
-
+    channel.shutdown();
   }
 }

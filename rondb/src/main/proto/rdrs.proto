@@ -17,9 +17,10 @@
 
 syntax = "proto2";
 
-package grpcserver;
+//package grpcserver;
+option go_package = "./pkg/api";
 
-option java_multiple_files = true;
+option java_multiple_files = false;
 option java_package = "com.rondb.grpcserver";
 option java_outer_classname = "RonDBGrpcProto";
 

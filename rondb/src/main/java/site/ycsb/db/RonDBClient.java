@@ -32,7 +32,6 @@ import site.ycsb.db.grpc.GrpcClient;
 import site.ycsb.db.http.RestApiClient;
 import site.ycsb.workloads.CoreWorkload;
 
-import java.io.IOException;
 import java.util.*;
 
 /**
@@ -73,9 +72,14 @@ public class RonDBClient extends DB {
           throw new IllegalArgumentException("Wrong argument " + ConfigKeys.RONDB_API_TYPE_KEY);
         }
         dbClient.init();
-      } catch (IOException e) {
-        logger.error(e.getMessage(), e);
-        throw new DBException("Failed to initialize. " + e);
+      } catch (Exception e) {
+        logger.error("Initialization failed ", e);
+        e.printStackTrace();
+        if (e instanceof DBException) {
+          throw (DBException) e;
+        } else {
+          throw new DBException(e);
+        }
       }
 
       fieldCount = Long.parseLong(properties.getProperty(CoreWorkload.FIELD_COUNT_PROPERTY,
@@ -113,6 +117,7 @@ public class RonDBClient extends DB {
     try {
       return dbClient.read(table, key, fieldsToRead, result);
     } catch (Exception e) {
+      e.printStackTrace();
       logger.error("Error " + e);
       return Status.ERROR;
     }

@@ -355,6 +355,6 @@ public final class RestApiClient extends DB {
 
   @Override
   public void cleanup() throws DBException {
-
+        myHttpClient.c
   }
 }
