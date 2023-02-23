@@ -30,11 +30,7 @@ import site.ycsb.ByteIterator;
 import site.ycsb.DBException;
 import site.ycsb.Status;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * YCSB binding for <a href="http://www.aerospike.com/">Areospike</a>.
@@ -124,6 +120,12 @@ public class AerospikeClient extends site.ycsb.DB {
       System.err.println("Error while reading key " + key + ": " + e);
       return Status.ERROR;
     }
+  }
+
+  @Override
+  public Status batchRead(String table, LinkedList<String> keys, LinkedList<Set<String>> fields,
+                          Map<String, Map<String, ByteIterator>> result) {
+    throw  new UnsupportedOperationException("Batch reads are not yet supported");
   }
 
   @Override

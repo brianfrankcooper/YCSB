@@ -27,11 +27,7 @@ import site.ycsb.DBException;
 import site.ycsb.Status;
 
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -347,6 +343,12 @@ public class ScyllaCQLClient extends DB {
       return Status.ERROR;
     }
 
+  }
+
+  @Override
+  public Status batchRead(String table, LinkedList<String> keys, LinkedList<Set<String>> fields,
+                          Map<String, Map<String, ByteIterator>> result) {
+    throw  new UnsupportedOperationException("Batch reads are not yet supported");
   }
 
   /**

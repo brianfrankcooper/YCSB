@@ -37,14 +37,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 import static site.ycsb.db.elasticsearch5.Elasticsearch5.KEY;
 import static site.ycsb.db.elasticsearch5.Elasticsearch5.parseIntegerProperty;
@@ -294,6 +287,12 @@ public class ElasticsearchRestClient extends DB {
       e.printStackTrace();
       return Status.ERROR;
     }
+  }
+
+  @Override
+  public Status batchRead(String table, LinkedList<String> keys, LinkedList<Set<String>> fields,
+                          Map<String, Map<String, ByteIterator>> result) {
+    throw  new UnsupportedOperationException("Batch reads are not yet supported");
   }
 
   @Override

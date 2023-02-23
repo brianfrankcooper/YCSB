@@ -17,14 +17,7 @@
 
 package site.ycsb.db;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import oracle.kv.Consistency;
@@ -201,6 +194,12 @@ public class NoSqlDbClient extends DB {
     }
 
     return Status.OK;
+  }
+
+  @Override
+  public Status batchRead(String table, LinkedList<String> keys, LinkedList<Set<String>> fields,
+                          Map<String, Map<String, ByteIterator>> result) {
+    throw  new UnsupportedOperationException("Batch reads are not yet supported");
   }
 
   @Override

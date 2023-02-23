@@ -26,11 +26,7 @@ package site.ycsb.db.voltdb;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -156,6 +152,12 @@ public class VoltClient4 extends DB {
       logger.error("Error while GETing row", e);
       return Status.ERROR;
     }
+  }
+
+  @Override
+  public Status batchRead(String table, LinkedList<String> keys, LinkedList<Set<String>> fields,
+                          Map<String, Map<String, ByteIterator>> result) {
+    throw  new UnsupportedOperationException("Batch reads are not yet supported");
   }
 
   @Override

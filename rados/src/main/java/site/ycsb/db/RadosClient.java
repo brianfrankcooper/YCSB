@@ -31,12 +31,8 @@ import site.ycsb.Status;
 import site.ycsb.StringByteIterator;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
 
 import org.json.JSONObject;
 
@@ -135,6 +131,12 @@ public class RadosClient extends DB {
     }
 
     return result.isEmpty() ? Status.ERROR : Status.OK;
+  }
+
+  @Override
+  public Status batchRead(String table, LinkedList<String> keys, LinkedList<Set<String>> fields,
+                          Map<String, Map<String, ByteIterator>> result) {
+    throw  new UnsupportedOperationException("Batch reads are not yet supported");
   }
 
   @Override

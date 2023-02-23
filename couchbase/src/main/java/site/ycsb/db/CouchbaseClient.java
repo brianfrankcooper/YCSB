@@ -39,13 +39,7 @@ import org.slf4j.LoggerFactory;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.net.URI;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * A class that wraps the CouchbaseClient to allow it to be interfaced with YCSB.
@@ -198,6 +192,12 @@ public class CouchbaseClient extends DB {
       }
       return Status.ERROR;
     }
+  }
+
+  @Override
+  public Status batchRead(String table, LinkedList<String> keys, LinkedList<Set<String>> fields,
+                          Map<String, Map<String, ByteIterator>> result) {
+    throw  new UnsupportedOperationException("Batch reads are not yet supported");
   }
 
   @Override

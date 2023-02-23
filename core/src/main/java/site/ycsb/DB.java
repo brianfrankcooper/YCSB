@@ -17,11 +17,7 @@
 
 package site.ycsb;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * A layer for accessing a database to be benchmarked. Each thread in the client
@@ -87,6 +83,20 @@ public abstract class DB {
    * @return The result of the operation.
    */
   public abstract Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result);
+
+  /**
+   * Batch read records from the database. Each field/value pair from the result will be stored
+   * in a HashMap.
+   *
+   * @param table The name of the table
+   * @param keys record keys
+   * @param fields The list of fields to read, or null for all of them
+   * @param result A HashMap of field/value pairs for the result
+   * @return The result of the operation.
+   */
+  public abstract Status batchRead(String table, LinkedList<String> keys,
+                                   LinkedList<Set<String>> fields,
+                                   Map<String /*key*/,  Map<String/*field*/, ByteIterator>> result);
 
   /**
    * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored

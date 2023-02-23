@@ -41,12 +41,8 @@ import org.elasticsearch.transport.client.PreBuiltTransportClient;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
 
 import static site.ycsb.db.elasticsearch5.Elasticsearch5.KEY;
 import static site.ycsb.db.elasticsearch5.Elasticsearch5.parseIntegerProperty;
@@ -236,6 +232,12 @@ public class ElasticsearchClient extends DB {
       e.printStackTrace();
       return Status.ERROR;
     }
+  }
+
+  @Override
+  public Status batchRead(String table, LinkedList<String> keys, LinkedList<Set<String>> fields,
+                          Map<String, Map<String, ByteIterator>> result) {
+    throw  new UnsupportedOperationException("Batch reads are not yet supported");
   }
 
   @Override

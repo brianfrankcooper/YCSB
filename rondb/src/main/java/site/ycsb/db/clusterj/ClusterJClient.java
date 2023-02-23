@@ -111,6 +111,12 @@ public final class ClusterJClient extends DB {
   }
 
   @Override
+  public Status batchRead(String table, LinkedList<String> keys, LinkedList<Set<String>> fields,
+                          Map<String, Map<String, ByteIterator>> result) {
+    throw  new UnsupportedOperationException("Batch reads are not yet supported");
+  }
+
+  @Override
   public Status delete(String table, String key) {
     Class<DynamicObject> dbClass;
     final Session session = connection.getSession();

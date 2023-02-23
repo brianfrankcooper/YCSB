@@ -17,11 +17,9 @@
 
 package site.ycsb.db.crail;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.Vector;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,6 +120,12 @@ public class CrailClient extends DB {
       LOG.error("Error during read, table " + table + ", key " + key + ", exception " + e.getMessage());
       return new Status("read error", "reading exception");
     }
+  }
+
+  @Override
+  public Status batchRead(String table, LinkedList<String> keys, LinkedList<Set<String>> fields,
+                          Map<String, Map<String, ByteIterator>> result) {
+    throw  new UnsupportedOperationException("Batch reads are not yet supported");
   }
 
   @Override

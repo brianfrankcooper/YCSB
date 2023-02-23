@@ -38,14 +38,7 @@ import redis.clients.jedis.Protocol;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * YCSB binding for <a href="http://redis.io/">Redis</a>.
@@ -137,6 +130,12 @@ public class RedisClient extends DB {
       assert !fieldIterator.hasNext() && !valueIterator.hasNext();
     }
     return result.isEmpty() ? Status.ERROR : Status.OK;
+  }
+
+  @Override
+  public Status batchRead(String table, LinkedList<String> keys, LinkedList<Set<String>> fields,
+                          Map<String, Map<String, ByteIterator>> result) {
+    throw  new UnsupportedOperationException("Batch reads are not yet supported");
   }
 
   @Override

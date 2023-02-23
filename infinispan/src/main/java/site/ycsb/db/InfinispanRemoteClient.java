@@ -23,10 +23,7 @@ import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.util.logging.Log;
 import org.infinispan.util.logging.LogFactory;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * This is a client implementation for Infinispan 5.x in client-server mode.
@@ -90,6 +87,12 @@ public class InfinispanRemoteClient extends DB {
       LOGGER.error(e);
       return Status.ERROR;
     }
+  }
+
+  @Override
+  public Status batchRead(String table, LinkedList<String> keys, LinkedList<Set<String>> fields,
+                          Map<String, Map<String, ByteIterator>> result) {
+    throw  new UnsupportedOperationException("Batch reads are not yet supported");
   }
 
   @Override

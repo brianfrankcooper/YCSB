@@ -23,12 +23,7 @@ package site.ycsb.db.zookeeper;
 import java.io.IOException;
 import java.nio.charset.Charset;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.zookeeper.CreateMode;
@@ -120,6 +115,12 @@ public class ZKClient extends DB {
       LOG.error("Error when reading a path:{},tableName:{}", path, table, e);
       return Status.ERROR;
     }
+  }
+
+  @Override
+  public Status batchRead(String table, LinkedList<String> keys, LinkedList<Set<String>> fields,
+                          Map<String, Map<String, ByteIterator>> result) {
+    throw  new UnsupportedOperationException("Batch reads are not yet supported");
   }
 
   @Override

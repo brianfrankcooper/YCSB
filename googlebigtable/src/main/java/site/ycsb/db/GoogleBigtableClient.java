@@ -18,20 +18,13 @@ package site.ycsb.db;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import java.util.Set;
-import java.util.Vector;
 import java.util.concurrent.ExecutionException;
 
 import com.google.bigtable.v2.Column;
@@ -261,6 +254,12 @@ public class GoogleBigtableClient extends site.ycsb.DB {
       System.err.println("Exception during get: " + e);
       return Status.ERROR;
     }
+  }
+
+  @Override
+  public Status batchRead(String table, LinkedList<String> keys, LinkedList<Set<String>> fields,
+                          Map<String, Map<String, ByteIterator>> result) {
+    throw  new UnsupportedOperationException("Batch reads are not yet supported");
   }
 
   @Override

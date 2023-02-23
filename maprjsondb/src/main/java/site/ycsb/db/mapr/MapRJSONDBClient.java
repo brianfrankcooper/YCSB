@@ -16,10 +16,7 @@
 package site.ycsb.db.mapr;
 
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 import org.ojai.Document;
 import org.ojai.DocumentConstants;
@@ -70,6 +67,12 @@ public class MapRJSONDBClient extends site.ycsb.DB {
     } catch (Exception e) {
       return Status.ERROR;
     }
+  }
+
+  @Override
+  public Status batchRead(String table, LinkedList<String> keys, LinkedList<Set<String>> fields,
+                          Map<String, Map<String, ByteIterator>> result) {
+    throw  new UnsupportedOperationException("Batch reads are not yet supported");
   }
 
   @Override

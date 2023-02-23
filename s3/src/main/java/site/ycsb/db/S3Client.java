@@ -281,6 +281,13 @@ public class S3Client extends DB {
                      Map<String, ByteIterator> result) {
     return readFromStorage(bucket, key, result, ssecKey);
   }
+
+  @Override
+  public Status batchRead(String table, LinkedList<String> keys, LinkedList<Set<String>> fields,
+                          Map<String, Map<String, ByteIterator>> result) {
+    throw  new UnsupportedOperationException("Batch reads are not yet supported");
+  }
+
   /**
   * Update a file in the database. Any field/value pairs in the specified
   * values HashMap will be written into the file with the specified file

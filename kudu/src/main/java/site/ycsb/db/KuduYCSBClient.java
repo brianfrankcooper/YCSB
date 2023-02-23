@@ -30,13 +30,7 @@ import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.client.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 import static site.ycsb.Client.DEFAULT_RECORD_COUNT;
 import static site.ycsb.Client.RECORD_COUNT_PROPERTY;
@@ -301,6 +295,12 @@ public class KuduYCSBClient extends site.ycsb.DB {
     }
     result.putAll(results.firstElement());
     return Status.OK;
+  }
+
+  @Override
+  public Status batchRead(String table, LinkedList<String> keys, LinkedList<Set<String>> fields,
+                          Map<String, Map<String, ByteIterator>> result) {
+    throw  new UnsupportedOperationException("Batch reads are not yet supported");
   }
 
   @Override

@@ -365,6 +365,12 @@ public class JdbcDBClient extends DB {
   }
 
   @Override
+  public Status batchRead(String table, LinkedList<String> keys, LinkedList<Set<String>> fields,
+                          Map<String, Map<String, ByteIterator>> result) {
+    throw  new UnsupportedOperationException("Batch reads are not yet supported");
+  }
+
+  @Override
   public Status scan(String tableName, String startKey, int recordcount, Set<String> fields,
                      Vector<HashMap<String, ByteIterator>> result) {
     try {
