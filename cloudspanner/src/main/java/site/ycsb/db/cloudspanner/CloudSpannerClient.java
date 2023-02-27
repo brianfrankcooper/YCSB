@@ -154,6 +154,7 @@ public class CloudSpannerClient extends DB {
     int numThreads = Integer.parseInt(properties.getProperty(Client.THREAD_COUNT_PROPERTY, "1"));
     SpannerOptions.Builder optionsBuilder = SpannerOptions.newBuilder()
         .setSessionPoolOption(SessionPoolOptions.newBuilder()
+            .setMaxSessions(numThreads)
             .setMinSessions(numThreads)
             // Since we have no read-write transactions, we can set the write session fraction to 0.
             .setWriteSessionsFraction(0)
