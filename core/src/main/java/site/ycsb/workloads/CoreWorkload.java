@@ -769,33 +769,37 @@ public class CoreWorkload extends Workload {
   public void doTransactionBatchRead(DB db) {
     LinkedList<String> keys = new LinkedList<>();
     LinkedList<Set<String>> fieldsPerOp = new LinkedList<>();
-    Map<String /*key*/, Map<String/*field*/, ByteIterator>> result;
+    Map<String /*key*/, Map<String/*field*/, ByteIterator>> results = new HashMap<>();
 
     for (int i = 0; i < batchReadSize; i++) {
       // choose a random key
       long keynum = nextKeynum();
-      keys.add(CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts));
-      HashSet<String> fields = null;
+      String pk = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
+      keys.add(pk);
 
+      HashSet<String> fields = null;
       if (!readallfields) {
         // read a random field
         String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
-
         fields = new HashSet<String>();
         fields.add(fieldname);
       } else if (dataintegrity || readallfieldsbyname) {
         // pass the full field list if dataintegrity is on for verification
         fields = new HashSet<String>(fieldnames);
       }
+      fieldsPerOp.add(fields);
 
-      HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
-
+      HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
+      results.put(pk,result);
     }
 
-
-    db.read(table, keyname, fields, cells);
+    db.batchRead(table, keys, fieldsPerOp, results);
 
     if (dataintegrity) {
+      for(int i = 0 ; i < batchReadSize; i++){
+//        keys.get
+
+      }
       verifyRow(keyname, cells);
     }
   }
