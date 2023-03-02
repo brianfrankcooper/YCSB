@@ -83,6 +83,7 @@ public final class ClusterJClient extends DB {
   @Override
   public Status read(String table, String key, Set<String> fields,
                      Map<String, ByteIterator> result) {
+    new Exception().printStackTrace();
     Class<DynamicObject> dbClass = connection.getDTOClass(table);
     final Session session = connection.getSession();
     try {

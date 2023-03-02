@@ -145,6 +145,12 @@ public class RestWorkload extends CoreWorkload {
     deleteKeyChooser = getKeyChooser(requestDistrib, deleteUrlMap.size(), deleteZipfconstant, p);
 
     fieldlengthgenerator = getFieldLengthGenerator(p);
+
+    batchReadSize = Integer.parseInt(p.getProperty(
+        READ_BATCH_SIZE_PROPERTY, READ_BATCH_SIZE_PROPERTY_DEFAULT));
+    if (batchReadSize <= 0) {
+      throw new WorkloadException("Invalid read batch size \"" + batchReadSize + "\"");
+    }
   }
 
   public static DiscreteGenerator createOperationGenerator(final Properties p) {

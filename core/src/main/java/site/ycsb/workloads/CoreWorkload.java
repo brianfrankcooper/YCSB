@@ -211,6 +211,16 @@ public class CoreWorkload extends Workload {
   public static final String READ_PROPORTION_PROPERTY_DEFAULT = "0.95";
 
   /**
+   * The name of the property for the size of read batches
+   */
+  public static final String READ_BATCH_SIZE_PROPERTY = "readBatchSize";
+
+  /**
+   * The default read batch.
+   */
+  public static final String READ_BATCH_SIZE_PROPERTY_DEFAULT = "1";
+
+  /**
    * The name of the property for the proportion of transactions that are updates.
    */
   public static final String UPDATE_PROPORTION_PROPERTY = "updateproportion";
@@ -368,6 +378,7 @@ public class CoreWorkload extends Workload {
   protected int zeropadding;
   protected int insertionRetryLimit;
   protected int insertionRetryInterval;
+  protected int batchReadSize;
 
   private Measurements measurements = Measurements.getMeasurements();
 
@@ -545,6 +556,11 @@ public class CoreWorkload extends Workload {
         INSERTION_RETRY_LIMIT, INSERTION_RETRY_LIMIT_DEFAULT));
     insertionRetryInterval = Integer.parseInt(p.getProperty(
         INSERTION_RETRY_INTERVAL, INSERTION_RETRY_INTERVAL_DEFAULT));
+    batchReadSize = Integer.parseInt(p.getProperty(
+        READ_BATCH_SIZE_PROPERTY, READ_BATCH_SIZE_PROPERTY_DEFAULT));
+    if (batchReadSize <= 0) {
+      throw new WorkloadException("Invalid read batch size \"" + batchReadSize + "\"");
+    }
   }
 
   /**
@@ -661,7 +677,11 @@ public class CoreWorkload extends Workload {
 
     switch (operation) {
     case "READ":
-      doTransactionRead(db);
+      if (batchReadSize == 1){
+        doTransactionRead(db);
+      } else {
+        doTransactionBatchRead(db);
+      }
       break;
     case "UPDATE":
       doTransactionUpdate(db);
@@ -739,6 +759,40 @@ public class CoreWorkload extends Workload {
     }
 
     HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
+    db.read(table, keyname, fields, cells);
+
+    if (dataintegrity) {
+      verifyRow(keyname, cells);
+    }
+  }
+
+  public void doTransactionBatchRead(DB db) {
+    LinkedList<String> keys = new LinkedList<>();
+    LinkedList<Set<String>> fieldsPerOp = new LinkedList<>();
+    Map<String /*key*/, Map<String/*field*/, ByteIterator>> result;
+
+    for (int i = 0; i < batchReadSize; i++) {
+      // choose a random key
+      long keynum = nextKeynum();
+      keys.add(CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts));
+      HashSet<String> fields = null;
+
+      if (!readallfields) {
+        // read a random field
+        String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
+
+        fields = new HashSet<String>();
+        fields.add(fieldname);
+      } else if (dataintegrity || readallfieldsbyname) {
+        // pass the full field list if dataintegrity is on for verification
+        fields = new HashSet<String>(fieldnames);
+      }
+
+      HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
+
+    }
+
+
     db.read(table, keyname, fields, cells);
 
     if (dataintegrity) {
