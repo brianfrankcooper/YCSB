@@ -106,7 +106,7 @@ public class IgniteClient extends IgniteAbstractClient {
   }
 
   @Override
-  public Status batchRead(String table, LinkedList<String> keys, LinkedList<Set<String>> fields,
+  public Status batchRead(String table, List<String> keys, List<Set<String>> fields,
                           Map<String, Map<String, ByteIterator>> result) {
     throw  new UnsupportedOperationException("Batch reads are not yet supported");
   }

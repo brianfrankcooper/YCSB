@@ -94,8 +94,7 @@ public abstract class DB {
    * @param result A HashMap of field/value pairs for the result
    * @return The result of the operation.
    */
-  public abstract Status batchRead(String table, LinkedList<String> keys,
-                                   LinkedList<Set<String>> fields,
+  public abstract Status batchRead(String table, List<String> keys, List<Set<String>> fields,
                                    Map<String /*key*/,  Map<String/*field*/, ByteIterator>> result);
 
   /**

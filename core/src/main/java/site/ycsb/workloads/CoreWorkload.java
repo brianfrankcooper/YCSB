@@ -211,7 +211,7 @@ public class CoreWorkload extends Workload {
   public static final String READ_PROPORTION_PROPERTY_DEFAULT = "0.95";
 
   /**
-   * The name of the property for the size of read batches
+   * The name of the property for the size of read batches.
    */
   public static final String READ_BATCH_SIZE_PROPERTY = "readBatchSize";
 
@@ -790,17 +790,17 @@ public class CoreWorkload extends Workload {
       fieldsPerOp.add(fields);
 
       HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
-      results.put(pk,result);
+      results.put(pk, result);
     }
 
     db.batchRead(table, keys, fieldsPerOp, results);
 
     if (dataintegrity) {
-      for(int i = 0 ; i < batchReadSize; i++){
-//        keys.get
-
+      for (int i = 0; i < batchReadSize; i++) {
+        String pk = keys.get(i);
+        HashMap<String, ByteIterator> result = results.get(pk);
+        verifyRow(pk, result);
       }
-      verifyRow(keyname, cells);
     }
   }
 
