@@ -35,10 +35,8 @@ import site.ycsb.db.clusterj.table.UserTableHelper;
 import site.ycsb.db.http.ds.*;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * RonDB REST client wrapper.
@@ -47,7 +45,6 @@ public final class RestApiClient extends DB {
 
   protected static Logger logger = LoggerFactory.getLogger(RestApiClient.class);
 
-  private int readBatchSize = 1;
   private int numThreads;
   private String db;
   private String restServerIP;
@@ -57,20 +54,7 @@ public final class RestApiClient extends DB {
   private MyHttpClient myHttpClient;
   private final int threadID;
 
-  private static AtomicInteger maxID = new AtomicInteger(0);
-
-  private static class Operation {
-    private int opId;
-    private String table;
-    private String key;
-    private Set<String> fields;
-  }
-
-  private Map<Integer/* batch id */, List<Operation>> operations = null;
-  private Map<Integer, PKResponse> responses = null;
   private Properties properties;
-
-  private List<CyclicBarrier> barriers;
 
   public RestApiClient(int threadID, Properties props) throws IOException {
     this.properties = props;
@@ -79,7 +63,6 @@ public final class RestApiClient extends DB {
 
   @Override
   public void init() throws DBException {
-    //FIXME
     numThreads = Integer.parseInt(properties.getProperty(Client.THREAD_COUNT_PROPERTY, "1"));
     db = properties.getProperty(ConfigKeys.SCHEMA_KEY, ConfigKeys.SCHEMA_DEFAULT);
     restServerIP = properties.getProperty(ConfigKeys.RONDB_REST_SERVER_IP_KEY,
@@ -102,34 +85,6 @@ public final class RestApiClient extends DB {
     } catch (IOReactorException e) {
       logger.error(e.getMessage(), e);
       throw new DBException(e);
-    }
-
-    /*
-     * Each batch has an equal amount of threads assigned to it
-     * 9 threads, batch-size: 3
-     * --> 3 threads/operations per batch
-     * --> 3 threads synchronize their operations into a single batch
-     */
-    if (numThreads % readBatchSize != 0) {
-      RonDBClient.getLogger().error("Wrong batch size. Total threads should be evenly " +
-          "divisible by read batch size");
-      System.exit(1);
-    }
-
-    /*
-     * Essentially number of batches running at the same time
-     * Since each batch can be supported by multiple threads,
-     * some threads will need to share memory.
-     */
-    int numBarriers = numThreads / readBatchSize;
-    operations = new ConcurrentHashMap<>();
-    responses = new ConcurrentHashMap<>();
-
-    barriers = new ArrayList<CyclicBarrier>(numBarriers);
-
-    for (int i = 0; i < numBarriers; i++) {
-      operations.put(i, Collections.synchronizedList(new ArrayList<>(readBatchSize)));
-      barriers.add(new CyclicBarrier(readBatchSize, new Batcher(i)));
     }
 
     try {
@@ -160,53 +115,61 @@ public final class RestApiClient extends DB {
 
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
-    /*
-     * Each client/thread is always assigned to the same batch/barrier id.
-     * We check here which barrier this is, so that we can synchronize
-     * the clients.
-     */
-    int batchID = threadID / readBatchSize; // this should round down
-    int barrierID = batchID; // barrier is simply a batch that is being processed and is shared by threads
-
-    Operation op = new Operation();
-    op.opId = maxID.incrementAndGet();
-    op.key = key;
-    op.table = table;
-    op.fields = fields;
-
-    List<Operation> ops = operations.get(batchID);
-    ops.add(op);
-
+    String response;
     try {
-      // This synchronizes the threads; A barrier has a runnable action, which will be
-      // executed here
-      barriers.get(barrierID).await();
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
+      PKRequest pkReq = new PKRequest(key);
+      pkReq.addFilter(UserTableHelper.KEY, key);
 
-    try {
-      PKResponse response = responses.get(op.opId);
-      if (response != null) {
-        for (String column : fields) {
-          String val = response.getData(op.opId, column);
-          result.put(
-              column,
-              new ByteArrayByteIterator(val.getBytes(), 0, val.length()));
-        }
-        return Status.OK;
-      } else {
-        return Status.NOT_FOUND;
+      for (String colName : fields) {
+        pkReq.addReadColumn(colName);
       }
-    } finally {
-      responses.remove(op.opId);
+
+      String jsonReq = pkReq.toString();
+      String uri = restServerURI + "/" + db + "/" + table + "/pk-read";
+      HttpPost req = new HttpPost(uri);
+      StringEntity stringEntity = new StringEntity(jsonReq);
+      req.setEntity(stringEntity);
+      response = myHttpClient.execute(req);
+      return processPkResponse(response, fields, result);
+    } catch (MyHttpException | UnsupportedEncodingException e) {
+      RonDBClient.getLogger().warn("Error " + e);
+      return Status.ERROR;
     }
   }
 
   @Override
   public Status batchRead(String table, List<String> keys, List<Set<String>> fields,
                           HashMap<String, HashMap<String, ByteIterator>> result) {
-    throw new UnsupportedOperationException("Batch reads are not yet supported");
+    String jsonReq;
+    BatchRequest batch = new BatchRequest();
+    try {
+      for (int i = 0; i < keys.size(); i++) {
+        String key = keys.get(i);
+        Set<String> readColumns = fields.get(i);
+
+        PKRequest pkRequest = new PKRequest(key/*op id*/);
+        pkRequest.addFilter(UserTableHelper.KEY, key);
+        for (String columnName : readColumns) {
+          pkRequest.addReadColumn(columnName);
+        }
+        BatchSubOperation subOperation = new BatchSubOperation(
+            db + "/" + table + "/pk-read",
+            pkRequest);
+        batch.addSubOperation(subOperation);
+      }
+
+      jsonReq = batch.toString();
+      // System.out.println(jsonReq);
+
+      HttpPost req = new HttpPost(restServerURI + "/batch");
+      StringEntity stringEntity = new StringEntity(jsonReq);
+      req.setEntity(stringEntity);
+      String response = myHttpClient.execute(req);
+      return processBatchResponse(response, keys, fields, result);
+    } catch (MyHttpException | UnsupportedEncodingException e) {
+      RonDBClient.getLogger().warn("Error " + e);
+      return Status.ERROR;
+    }
   }
 
   @Override
@@ -238,119 +201,44 @@ public final class RestApiClient extends DB {
     throw up;
   }
 
-  public void notifyAllBarriers() {
+  private Status processPkResponse(String responseStr, Set<String> fields, Map<String,
+      ByteIterator> result) {
+
+    PKResponse response = new PKResponse(responseStr);
+    if (response != null) {
+      for (String column : fields) {
+        String val = response.getData(response.getOpId(), column);
+        result.put(column, new ByteArrayByteIterator(val.getBytes(), 0, val.length()));
+      }
+      return Status.OK;
+    } else {
+      return Status.NOT_FOUND;
+    }
   }
 
-
-  private class Batcher implements Runnable {
-    private int batchID;
-
-    Batcher(int id) {
-      this.batchID = id;
-    }
-
-    @Override
-    public void run() {
-      if (readBatchSize > 1) {
-        try {
-          String responseStr = batchRESTCall();
-          processBatchResponse(responseStr);
-        } catch (Exception e) {
-          RonDBClient.getLogger().trace("Error " + e);
+  private Status processBatchResponse(String responseStr, List<String> keys,
+                                      List<Set<String>> fields,
+                                      HashMap<String, HashMap<String, ByteIterator>> results) {
+    boolean allFound = true;
+    BatchResponse batchResponse = new BatchResponse(responseStr);
+    for (int i = 0; i < keys.size(); i++) {
+      String key = keys.get(i);
+      Set<String> projectionFields = fields.get(i);
+      HashMap<String, ByteIterator> result = results.get(key);
+      PKResponse subPkResponse = batchResponse.getSubResponses(key);
+      if (subPkResponse != null) {
+        for (String column : projectionFields) {
+          String val = subPkResponse.getData(key, column);
+          result.put(column, new ByteArrayByteIterator(val.getBytes(), 0, val.length()));
         }
       } else {
-        try {
-          String responseStr = pkRESTCall();
-          processPkResponse(responseStr);
-        } catch (Exception e) {
-          RonDBClient.getLogger().warn("Error " + e);
-        }
+        allFound = false;
       }
     }
-
-    private String pkRESTCall() throws Exception {
-      String jsonReq = null;
-      String table = null;
-      List<Operation> ops;
-
-      ops = operations.get(batchID);
-      try {
-        if (ops.size() != 1) {
-          throw new IllegalStateException("Batch size is expected to be 1");
-        }
-        Operation op = ops.get(0);
-
-        if (table == null) {
-          table = op.table;
-        }
-
-        PKRequest pkReq = new PKRequest(Integer.toString(op.opId));
-        pkReq.addFilter(UserTableHelper.KEY, op.key);
-
-        for (int i = 0; i < op.fields.size(); i++) {
-          String colName = (String) op.fields.toArray()[i];
-          pkReq.addReadColumn(colName);
-        }
-        jsonReq = pkReq.toString();
-        String uri = restServerURI + "/" + db + "/" + table + "/pk-read";
-        HttpPost req = new HttpPost(uri);
-        StringEntity stringEntity = new StringEntity(jsonReq);
-        req.setEntity(stringEntity);
-        return myHttpClient.execute(req);
-      } finally {
-        ops.clear();
-      }
-    }
-
-    private String batchRESTCall() throws Exception {
-      String jsonReq = null;
-      String table = null;
-      List<Operation> ops;
-      ops = operations.get(batchID);
-
-      BatchRequest batch = new BatchRequest();
-      try {
-        for (int i = 0; i < ops.size(); i++) {
-          Operation op = ops.get(i);
-          if (table == null) {
-            table = op.table;
-          }
-
-          PKRequest pkRequest = new PKRequest(Integer.toString(op.opId));
-          pkRequest.addFilter(UserTableHelper.KEY, op.key);
-
-          for (int f = 0; f < op.fields.size(); f++) {
-            String colName = (String) op.fields.toArray()[f];
-            pkRequest.addReadColumn(colName);
-          }
-          BatchSubOperation subOperation = new BatchSubOperation(
-              db + "/" + ops.get(i).table + "/pk-read",
-              pkRequest);
-          batch.addSubOperation(subOperation);
-        }
-
-        jsonReq = batch.toString();
-        // System.out.println(jsonReq);
-
-        HttpPost req = new HttpPost(restServerURI + "/batch");
-        StringEntity stringEntity = new StringEntity(jsonReq);
-        req.setEntity(stringEntity);
-        return myHttpClient.execute(req);
-      } finally {
-        ops.clear();
-      }
-    }
-
-    private void processPkResponse(String responseStr) {
-      PKResponse response = new PKResponse(responseStr);
-      responses.put(response.getOpId(), response);
-    }
-
-    private void processBatchResponse(String responseStr) {
-      BatchResponse batchResponse = new BatchResponse(responseStr);
-      for (PKResponse pkResponse : batchResponse.getSubResponses()) {
-        responses.put(pkResponse.getOpId(), pkResponse);
-      }
+    if (allFound) {
+      return Status.OK;
+    } else {
+      return Status.NOT_FOUND;
     }
   }
 

@@ -35,7 +35,7 @@ import java.util.Map;
  */
 public class BatchResponse {
   private String bodyStr;
-  private Map<Integer, PKResponse> subResponses = new HashMap<>();
+  private Map<String, PKResponse> subResponses = new HashMap<>();
 
   public BatchResponse(String body) {
     this.bodyStr = body;
@@ -43,7 +43,8 @@ public class BatchResponse {
   }
 
   public void parse() {
-    JsonArray jsonArray = JsonParser.parseString(bodyStr).getAsJsonArray();
+    JsonObject jsonObj = JsonParser.parseString(bodyStr).getAsJsonObject();
+    JsonArray jsonArray = jsonObj.get("result").getAsJsonArray();
     Iterator<JsonElement> itr = jsonArray.iterator();
 
     while (itr.hasNext()) {
@@ -55,5 +56,9 @@ public class BatchResponse {
 
   public Collection<PKResponse> getSubResponses() {
     return subResponses.values();
+  }
+
+  public PKResponse getSubResponses(String id) {
+    return subResponses.get(id);
   }
 }

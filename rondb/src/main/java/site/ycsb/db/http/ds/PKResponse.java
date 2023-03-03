@@ -34,8 +34,8 @@ import java.util.Set;
 public class PKResponse {
   private String bodyStr = null;
   private JsonObject bodyJsonObj = null;
-  private Map<Integer, Map<String, String>> bodyMap = new HashMap<>();
-  private int opId;
+  private Map<String, Map<String, String>> bodyMap = new HashMap<>();
+  private String opId;
 
   public PKResponse(String body) {
     this.bodyStr = body;
@@ -54,7 +54,7 @@ public class PKResponse {
 
   private void parseJsonObj() {
     Map<String, String> data = new HashMap<>();
-    opId = bodyJsonObj.get("operationId").getAsInt();
+    opId = bodyJsonObj.get("operationId").getAsString();
     Set<Map.Entry<String, JsonElement>> eset = bodyJsonObj.get("data").getAsJsonObject().entrySet();
     for (Map.Entry<String, JsonElement> e : eset) {
       data.put(e.getKey(), e.getValue().getAsString());
@@ -62,11 +62,11 @@ public class PKResponse {
     bodyMap.put(opId, data);
   }
 
-  public String getData(int opID, String filed) {
+  public String getData(String opID, String filed) {
     return bodyMap.get(opID).get(filed);
   }
 
-  public int getOpId() {
+  public String getOpId() {
     return opId;
   }
 }
