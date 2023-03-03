@@ -46,7 +46,4 @@ public final class ConfigKeys {
 
   public static final String RONDB_REST_API_USE_ASYNC_REQUESTS_KEY = "rondb.rest.api.use.async.requests";
   public static final boolean RONDB_REST_API_USE_ASYNC_REQUESTS_DEFAULT = false;
-
-  //FIXME remove this
-  public static final String RONDB_REST_API_BATCH_SIZE = "rondb.rest.api.batch.size";
 }

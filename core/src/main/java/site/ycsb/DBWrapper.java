@@ -148,8 +148,16 @@ public class DBWrapper extends DB {
 
   @Override
   public Status batchRead(String table, List<String> keys, List<Set<String>> fields,
-                          Map<String, Map<String, ByteIterator>> result) {
-    throw  new UnsupportedOperationException("Batch reads are not yet supported");
+                          HashMap<String, HashMap<String, ByteIterator>> result) {
+    try (final TraceScope span = tracer.newScope(scopeStringRead)) {
+      long ist = measurements.getIntendedStartTimeNs();
+      long st = System.nanoTime();
+      Status res = db.batchRead(table, keys, fields, result);
+      long en = System.nanoTime();
+      measure("BATCH_READ", res, ist, st, en);
+      measurements.reportStatus("BATCH_READ", res);
+      return res;
+    }
   }
 
   /**

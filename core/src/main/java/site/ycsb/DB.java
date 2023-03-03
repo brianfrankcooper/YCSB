@@ -95,7 +95,7 @@ public abstract class DB {
    * @return The result of the operation.
    */
   public abstract Status batchRead(String table, List<String> keys, List<Set<String>> fields,
-                                   Map<String /*key*/,  Map<String/*field*/, ByteIterator>> result);
+                                   HashMap<String /*key*/, HashMap<String/*field*/, ByteIterator>> result);
 
   /**
    * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored

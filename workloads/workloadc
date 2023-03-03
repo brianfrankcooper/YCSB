@@ -32,6 +32,8 @@ updateproportion=0
 scanproportion=0
 insertproportion=0
 
+readBatchSize=1
+
 requestdistribution=zipfian
 
 

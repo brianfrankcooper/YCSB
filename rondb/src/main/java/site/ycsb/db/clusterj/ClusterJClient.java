@@ -83,7 +83,6 @@ public final class ClusterJClient extends DB {
   @Override
   public Status read(String table, String key, Set<String> fields,
                      Map<String, ByteIterator> result) {
-    new Exception().printStackTrace();
     Class<DynamicObject> dbClass = connection.getDTOClass(table);
     final Session session = connection.getSession();
     try {
@@ -113,8 +112,50 @@ public final class ClusterJClient extends DB {
 
   @Override
   public Status batchRead(String table, List<String> keys, List<Set<String>> fields,
-                          Map<String, Map<String, ByteIterator>> result) {
-    throw  new UnsupportedOperationException("Batch reads are not yet supported");
+                          HashMap<String, HashMap<String, ByteIterator>> results) {
+    Class<DynamicObject> dbClass = connection.getDTOClass(table);
+    final Session session = connection.getSession();
+    try {
+      TransactionReqHandler handler = new TransactionReqHandler("BatchRead") {
+        @Override
+        public Status action() throws Exception {
+
+          List<DynamicObject> rows = new ArrayList<>(keys.size());
+          for (int i = 0; i < keys.size(); i++) {
+            String pk = keys.get(i);
+            DynamicObject row = session.newInstance(dbClass);
+            UserTableHelper.setPK(pk, row);
+            session.load(row);
+            rows.add(row);
+          }
+          session.flush();
+
+          for (int i = 0; i < keys.size(); i++) {
+            DynamicObject row = rows.get(i);
+            String pk = keys.get(i);
+
+            Set<String> rowFields = fields.get(i);
+            HashMap<String, ByteIterator> rowResult = results.get(pk);
+            for (String field : rowFields) {
+              rowResult.put(field, UserTableHelper.readFieldFromDTO(field, row));
+            }
+          }
+
+          for (int i = 0; i < keys.size(); i++) {
+            DynamicObject row = rows.get(i);
+            connection.releaseDTO(session, row);
+          }
+
+          if (logger.isDebugEnabled()) {
+            logger.debug("BatchRead " + keys.size() + " keys ");
+          }
+          return Status.OK;
+        }
+      };
+      return handler.runTx(session, dbClass, keys.get(0)/*use first key as partition key*/);
+    } finally {
+      connection.releaseSession(session);
+    }
   }
 
   @Override

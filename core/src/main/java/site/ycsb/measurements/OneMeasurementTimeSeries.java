@@ -18,6 +18,7 @@
 package site.ycsb.measurements;
 
 import site.ycsb.measurements.exporter.MeasurementsExporter;
+import site.ycsb.workloads.CoreWorkload;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
@@ -65,11 +66,14 @@ public class OneMeasurementTimeSeries extends OneMeasurement {
 
   private int min = -1;
   private int max = -1;
+  private final int readBatchSize;
 
   public OneMeasurementTimeSeries(String name, Properties props) {
     super(name);
     granularity = Integer.parseInt(props.getProperty(GRANULARITY, GRANULARITY_DEFAULT));
     measurements = new Vector<>();
+    readBatchSize = Integer.valueOf(props.getProperty(CoreWorkload.READ_BATCH_SIZE_PROPERTY,
+          CoreWorkload.READ_BATCH_SIZE_PROPERTY_DEFAULT));
   }
 
   private synchronized void checkEndOfUnit(boolean forceend) {
@@ -118,10 +122,15 @@ public class OneMeasurementTimeSeries extends OneMeasurement {
   public void exportMeasurements(MeasurementsExporter exporter) throws IOException {
     checkEndOfUnit(true);
 
-    exporter.write(getName(), "Operations", operations);
-    exporter.write(getName(), "AverageLatency(us)", (((double) totallatency) / ((double) operations)));
-    exporter.write(getName(), "MinLatency(us)", min);
-    exporter.write(getName(), "MaxLatency(us)", max);
+    String prepend = "";
+    if (getName().compareTo("BATCH_READ") == 0) {
+      exporter.write(getName(), "BatchSize", readBatchSize);
+      prepend = "Batch";
+    }
+    exporter.write(getName(), prepend+"Operations", operations);
+    exporter.write(getName(), prepend+"AverageLatency(us)", (((double) totallatency) / ((double) operations)));
+    exporter.write(getName(), prepend+"MinLatency(us)", min);
+    exporter.write(getName(), prepend+"MaxLatency(us)", max);
 
     // TODO: 95th and 99th percentile latency
 

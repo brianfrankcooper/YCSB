@@ -378,7 +378,7 @@ public class CoreWorkload extends Workload {
   protected int zeropadding;
   protected int insertionRetryLimit;
   protected int insertionRetryInterval;
-  protected int batchReadSize;
+  protected int readBatchSize;
 
   private Measurements measurements = Measurements.getMeasurements();
 
@@ -556,10 +556,10 @@ public class CoreWorkload extends Workload {
         INSERTION_RETRY_LIMIT, INSERTION_RETRY_LIMIT_DEFAULT));
     insertionRetryInterval = Integer.parseInt(p.getProperty(
         INSERTION_RETRY_INTERVAL, INSERTION_RETRY_INTERVAL_DEFAULT));
-    batchReadSize = Integer.parseInt(p.getProperty(
+    readBatchSize = Integer.parseInt(p.getProperty(
         READ_BATCH_SIZE_PROPERTY, READ_BATCH_SIZE_PROPERTY_DEFAULT));
-    if (batchReadSize <= 0) {
-      throw new WorkloadException("Invalid read batch size \"" + batchReadSize + "\"");
+    if (readBatchSize <= 0) {
+      throw new WorkloadException("Invalid read batch size \"" + readBatchSize + "\"");
     }
   }
 
@@ -677,7 +677,7 @@ public class CoreWorkload extends Workload {
 
     switch (operation) {
     case "READ":
-      if (batchReadSize == 1){
+      if (readBatchSize == 1){
         doTransactionRead(db);
       } else {
         doTransactionBatchRead(db);
@@ -769,9 +769,9 @@ public class CoreWorkload extends Workload {
   public void doTransactionBatchRead(DB db) {
     LinkedList<String> keys = new LinkedList<>();
     LinkedList<Set<String>> fieldsPerOp = new LinkedList<>();
-    Map<String /*key*/, Map<String/*field*/, ByteIterator>> results = new HashMap<>();
+    HashMap<String /*key*/, HashMap<String/*field*/, ByteIterator>> results = new HashMap<>();
 
-    for (int i = 0; i < batchReadSize; i++) {
+    for (int i = 0; i < readBatchSize; i++) {
       // choose a random key
       long keynum = nextKeynum();
       String pk = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
@@ -783,20 +783,20 @@ public class CoreWorkload extends Workload {
         String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
         fields = new HashSet<String>();
         fields.add(fieldname);
-      } else if (dataintegrity || readallfieldsbyname) {
+      } else {
         // pass the full field list if dataintegrity is on for verification
         fields = new HashSet<String>(fieldnames);
       }
       fieldsPerOp.add(fields);
 
-      HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
+      HashMap<String, ByteIterator> result = new HashMap<>();
       results.put(pk, result);
     }
 
     db.batchRead(table, keys, fieldsPerOp, results);
 
     if (dataintegrity) {
-      for (int i = 0; i < batchReadSize; i++) {
+      for (int i = 0; i < readBatchSize; i++) {
         String pk = keys.get(i);
         HashMap<String, ByteIterator> result = results.get(pk);
         verifyRow(pk, result);

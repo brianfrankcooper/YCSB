@@ -146,10 +146,10 @@ public class RestWorkload extends CoreWorkload {
 
     fieldlengthgenerator = getFieldLengthGenerator(p);
 
-    batchReadSize = Integer.parseInt(p.getProperty(
+    readBatchSize = Integer.parseInt(p.getProperty(
         READ_BATCH_SIZE_PROPERTY, READ_BATCH_SIZE_PROPERTY_DEFAULT));
-    if (batchReadSize <= 0) {
-      throw new WorkloadException("Invalid read batch size \"" + batchReadSize + "\"");
+    if (readBatchSize <= 0) {
+      throw new WorkloadException("Invalid read batch size \"" + readBatchSize + "\"");
     }
   }
 

@@ -47,7 +47,7 @@ public final class RestApiClient extends DB {
 
   protected static Logger logger = LoggerFactory.getLogger(RestApiClient.class);
 
-  private int readBatchSize; // Number of operations per batch
+  private int readBatchSize = 1;
   private int numThreads;
   private String db;
   private String restServerIP;
@@ -79,9 +79,7 @@ public final class RestApiClient extends DB {
 
   @Override
   public void init() throws DBException {
-    //FIXME remove the batch size parameter
-    readBatchSize = Integer.parseInt(properties.getProperty(ConfigKeys.RONDB_REST_API_BATCH_SIZE, "1"));
-    //FIXME remove the batch size parameter
+    //FIXME
     numThreads = Integer.parseInt(properties.getProperty(Client.THREAD_COUNT_PROPERTY, "1"));
     db = properties.getProperty(ConfigKeys.SCHEMA_KEY, ConfigKeys.SCHEMA_DEFAULT);
     restServerIP = properties.getProperty(ConfigKeys.RONDB_REST_SERVER_IP_KEY,
@@ -207,8 +205,8 @@ public final class RestApiClient extends DB {
 
   @Override
   public Status batchRead(String table, List<String> keys, List<Set<String>> fields,
-                          Map<String, Map<String, ByteIterator>> result) {
-    throw  new UnsupportedOperationException("Batch reads are not yet supported");
+                          HashMap<String, HashMap<String, ByteIterator>> result) {
+    throw new UnsupportedOperationException("Batch reads are not yet supported");
   }
 
   @Override
@@ -265,7 +263,7 @@ public final class RestApiClient extends DB {
           String responseStr = pkRESTCall();
           processPkResponse(responseStr);
         } catch (Exception e) {
-          RonDBClient.getLogger().trace("Error " + e);
+          RonDBClient.getLogger().warn("Error " + e);
         }
       }
     }
@@ -277,7 +275,6 @@ public final class RestApiClient extends DB {
 
       ops = operations.get(batchID);
       try {
-        // System.out.println("Batch ID: " + batchID + " Length is " + ops.size());
         if (ops.size() != 1) {
           throw new IllegalStateException("Batch size is expected to be 1");
         }
@@ -295,8 +292,6 @@ public final class RestApiClient extends DB {
           pkReq.addReadColumn(colName);
         }
         jsonReq = pkReq.toString();
-        // System.out.println(jsonReq);
-
         String uri = restServerURI + "/" + db + "/" + table + "/pk-read";
         HttpPost req = new HttpPost(uri);
         StringEntity stringEntity = new StringEntity(jsonReq);

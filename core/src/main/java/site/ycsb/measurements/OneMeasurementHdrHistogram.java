@@ -18,6 +18,8 @@
 package site.ycsb.measurements;
 
 import site.ycsb.measurements.exporter.MeasurementsExporter;
+import site.ycsb.workloads.CoreWorkload;
+
 import org.HdrHistogram.Histogram;
 import org.HdrHistogram.HistogramIterationValue;
 import org.HdrHistogram.HistogramLogWriter;
@@ -67,10 +69,14 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
   
   private final List<Double> percentiles;
 
+  private final int readBatchSize;
+
   public OneMeasurementHdrHistogram(String name, Properties props) {
     super(name);
     percentiles = getPercentileValues(props.getProperty(PERCENTILES_PROPERTY, PERCENTILES_PROPERTY_DEFAULT));
     verbose = Boolean.valueOf(props.getProperty(VERBOSE_PROPERTY, String.valueOf(false)));
+    readBatchSize =Integer.valueOf(props.getProperty(CoreWorkload.READ_BATCH_SIZE_PROPERTY,
+          CoreWorkload.READ_BATCH_SIZE_PROPERTY_DEFAULT));
     boolean shouldLog = Boolean.parseBoolean(props.getProperty("hdrhistogram.fileoutput", "false"));
     if (!shouldLog) {
       log = null;
@@ -113,13 +119,20 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
       // we can close now
       log.close();
     }
-    exporter.write(getName(), "Operations", totalHistogram.getTotalCount());
-    exporter.write(getName(), "AverageLatency(us)", totalHistogram.getMean());
-    exporter.write(getName(), "MinLatency(us)", totalHistogram.getMinValue());
-    exporter.write(getName(), "MaxLatency(us)", totalHistogram.getMaxValue());
+
+    String prepend = "";
+    if (getName().compareTo("BATCH_READ") == 0) {
+      exporter.write(getName(), "BatchSize", readBatchSize);
+      prepend = "Batch";
+    }
+
+    exporter.write(getName(), prepend+"Operations", totalHistogram.getTotalCount());
+    exporter.write(getName(), prepend+"AverageLatency(us)", totalHistogram.getMean());
+    exporter.write(getName(), prepend+"MinLatency(us)", totalHistogram.getMinValue());
+    exporter.write(getName(), prepend+"MaxLatency(us)", totalHistogram.getMaxValue());
 
     for (Double percentile : percentiles) {
-      exporter.write(getName(), ordinal(percentile) + "PercentileLatency(us)",
+      exporter.write(getName(), prepend+ordinal(percentile) + "PercentileLatency(us)",
           totalHistogram.getValueAtPercentile(percentile));
     }
 

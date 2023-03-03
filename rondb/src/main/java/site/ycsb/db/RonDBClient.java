@@ -117,7 +117,6 @@ public class RonDBClient extends DB {
     try {
       return dbClient.read(table, key, fieldsToRead, result);
     } catch (Exception e) {
-      e.printStackTrace();
       logger.error("Error " + e);
       return Status.ERROR;
     }
@@ -125,8 +124,14 @@ public class RonDBClient extends DB {
 
   @Override
   public Status batchRead(String table, List<String> keys, List<Set<String>> fields,
-                          Map<String, Map<String, ByteIterator>> result) {
-    throw  new UnsupportedOperationException("Batch reads are not yet supported");
+                          HashMap<String, HashMap<String, ByteIterator>> results) {
+    try {
+      return dbClient.batchRead(table, keys, fields, results);
+    } catch (Exception e) {
+      e.printStackTrace();
+      logger.error("Error " + e);
+      return Status.ERROR;
+    }
   }
 
   /**

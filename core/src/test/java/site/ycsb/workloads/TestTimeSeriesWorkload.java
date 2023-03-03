@@ -526,6 +526,11 @@ public class TestTimeSeriesWorkload {
     }
 
     @Override
+    public Status batchRead(String table, List<String> keys, List<Set<String>> fields, HashMap<String, HashMap<String, ByteIterator>> result) {
+      return Status.OK;
+    }
+
+    @Override
     public Status scan(String table, String startkey, int recordcount,
         Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
       // TODO Auto-generated method stub

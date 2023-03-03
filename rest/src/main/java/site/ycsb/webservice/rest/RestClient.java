@@ -99,6 +99,7 @@ public class RestClient extends DB {
 
   @Override
   public Status read(String table, String endpoint, Set<String> fields, Map<String, ByteIterator> result) {
+    System.out.println("read req ");
     int responseCode;
     try {
       responseCode = httpGet(urlPrefix + endpoint, result);
@@ -114,7 +115,8 @@ public class RestClient extends DB {
 
   @Override
   public Status batchRead(String table, List<String> keys, List<Set<String>> fields,
-                          Map<String, Map<String, ByteIterator>> result) {
+                          HashMap<String, HashMap<String, ByteIterator>> result) {
+    System.out.println("batchread req ");
     throw  new UnsupportedOperationException("Batch reads are not yet supported");
   }
 

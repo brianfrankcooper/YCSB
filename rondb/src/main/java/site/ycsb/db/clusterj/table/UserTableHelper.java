@@ -125,4 +125,20 @@ public final class UserTableHelper {
   public static Class<?> getTableClass(ClassGenerator classGenerator, String tableName) throws Exception {
     return classGenerator.generateClass(tableName);
   }
+
+  public static void setPK(String pk, DynamicObject row) {
+    boolean set = false;
+    for (int i = 0; i < row.columnMetadata().length; i++) {
+      String fieldName = row.columnMetadata()[i].name();
+      if (fieldName.equals(KEY)) {
+        row.set(i, pk);
+        set = true;
+        break;
+      }
+    }
+
+    if(!set){
+      throw new UnsupportedOperationException("Failed to set primary key for read operation");
+    }
+  }
 }
