@@ -25,16 +25,16 @@ This section describes how to run YCSB on RonDB.
 
 2. Create Table
 
-    Create the following table in a database. YCSB will assume the database name is "ycsb" by default. This can be changed in the workload configuration file, as described below. For the fields this benchmark only supports varbinary and varchar data types. Note that using varchar each character takes 4 bytes using the default Utf8_unicode_ci encoding.
+    Create the following table in a database. YCSB will assume the database name is "ycsb" by default. This can be changed in the workload configuration file, as described below. For the fields this benchmark only supports varchar data type. 
 
     ```sql
     -- One 4KB data column
-    CREATE TABLE usertable (YCSB_KEY VARCHAR(255) PRIMARY KEY, FIELD0 varbinary(4096)) engine=ndbcluster;
+    CREATE TABLE usertable (YCSB_KEY VARCHAR(255) PRIMARY KEY, FIELD0 varchar(4096)) charset latin1 engine=ndbcluster;
 
     -- OR
 
     -- Ten 400B data columns
-    CREATE TABLE usertable (YCSB_KEY VARCHAR(255) PRIMARY KEY, FIELD0 varchar(100), FIELD1 varchar(100), FIELD2 varchar(100), FIELD3 varchar(100), FIELD4 varchar(100), FIELD5 varchar(100), FIELD6 varchar(100), FIELD7 varchar(100), FIELD8 varchar(100), FIELD9 varchar(100)) engine=ndbcluster;
+    CREATE TABLE usertable (YCSB_KEY VARCHAR(255) PRIMARY KEY, FIELD0 varchar(100), FIELD1 varchar(100), FIELD2 varchar(100), FIELD3 varchar(100), FIELD4 varchar(100), FIELD5 varchar(100), FIELD6 varchar(100), FIELD7 varchar(100), FIELD8 varchar(100), FIELD9 varchar(100)) charset latin1 engine=ndbcluster;
     ```
 
     *Note:* The number of columns must be equal to `fieldcount`, and the columns' length must not be less than `fieldlength`
@@ -95,7 +95,7 @@ This section describes how to run YCSB on RonDB.
 
 
       - "fieldcount=1", "fieldlength=4096", "fieldnameprefix=FIELD"
-      - "fieldcount=10", "fieldlength=400", "fieldnameprefix=FIELD" //4 bytes per varchar character using Utf8_unicode_ci encoding
+      - "fieldcount=10", "fieldlength=100", "fieldnameprefix=FIELD" 
 
 7. Load the data
    

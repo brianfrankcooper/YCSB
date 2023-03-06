@@ -32,7 +32,7 @@ message FilterProto {
 
 message ReadColumnProto {
   required string Column = 1;
-  optional string DataReturnType = 2;
+  optional string DataReturnType = 2 [default="default"];
 }
 
 // TODO: Can place ApiKey into metadata

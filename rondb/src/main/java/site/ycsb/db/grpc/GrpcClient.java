@@ -99,27 +99,15 @@ public final class GrpcClient extends DB {
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
 
-    PKReadRequestProto.Builder pkReadBuilder = PKReadRequestProto.newBuilder();
-    pkReadBuilder.setDB(databaseName);
-    pkReadBuilder.setTable(table);
-    pkReadBuilder.setOperationID(Integer.toString(maxID.incrementAndGet()));
-    pkReadBuilder.setAPIKey("Dummy Key");
-    pkReadBuilder.addFilters(FilterProto.newBuilder().setColumn(UserTableHelper.KEY).setValue(key).build());
-
-    for (String field : fields) {
-      pkReadBuilder.addReadColumns(ReadColumnProto.newBuilder().setColumn(field).build());
-    }
-    PKReadRequestProto pkRead = pkReadBuilder.build();
-
+    PKReadRequestProto pkRead = createPKRequestProto(table, key, fields);
     RonDBGrpcProto.PKReadResponseProto response = blockingStub.pKRead(pkRead);
     if (response == null || !response.isInitialized()) {
       return Status.NOT_FOUND;
     }
 
     Map<String, ColumnValueProto> dataMap = response.getDataMap();
-    byte[] value;
     for (Map.Entry<String, ColumnValueProto> entry : dataMap.entrySet()) {
-      value = entry.getValue().toByteArray();
+      byte[] value = entry.getValue().toByteArray();
       result.put(entry.getKey(), new ByteArrayByteIterator(value, 0, value.length));
     }
     return Status.OK;
@@ -127,8 +115,65 @@ public final class GrpcClient extends DB {
 
   @Override
   public Status batchRead(String table, List<String> keys, List<Set<String>> fields,
-                          HashMap<String, HashMap<String, ByteIterator>> result) {
-    throw  new UnsupportedOperationException("Batch reads are not yet supported");
+                          HashMap<String, HashMap<String, ByteIterator>> results) {
+    RonDBGrpcProto.BatchRequestProto.Builder batchReqBuilder =
+        RonDBGrpcProto.BatchRequestProto.newBuilder();
+    batchReqBuilder.setAPIKey("Dummy Key");
+
+    // create operations
+    for (int i = 0; i < keys.size(); i++) {
+      String pk = keys.get(i);
+      Set<String> projectionFields = fields.get(i);
+      batchReqBuilder.addOperations(createPKRequestProto(table, pk, projectionFields));
+    }
+
+    RonDBGrpcProto.BatchResponseProto response = blockingStub.batch(batchReqBuilder.build());
+    if (response == null || !response.isInitialized()) {
+      return Status.ERROR;
+    }
+
+    boolean allGood = true;
+    // unpack the response
+    for (int i = 0; i < response.getResponsesCount(); i++) {
+      RonDBGrpcProto.PKReadResponseProto pkResponse = response.getResponses(i);
+      if (pkResponse.getCode() != 200){
+        allGood = false;
+        break;
+      }
+
+      String pk =  pkResponse.getOperationID();
+      HashMap<String, ByteIterator> result = results.get(pk);
+      assert result != null;
+
+      for (Map.Entry<String, ColumnValueProto> entry : pkResponse.getDataMap().entrySet()) {
+        byte[] value = entry.getValue().toByteArray();
+        result.put(entry.getKey(), new ByteArrayByteIterator(value, 0, value.length));
+      }
+    }
+
+    if(allGood) {
+      return Status.OK;
+    } else {
+      return Status.ERROR;
+    }
+  }
+
+  private PKReadRequestProto createPKRequestProto(String table, String pk,
+                                                  Set<String> fields) {
+    PKReadRequestProto.Builder pkReadBuilder = PKReadRequestProto.newBuilder();
+    pkReadBuilder.setDB(databaseName);
+    pkReadBuilder.setTable(table);
+    pkReadBuilder.setOperationID(pk/*operation id*/);
+    pkReadBuilder.setAPIKey("Dummy Key");
+    pkReadBuilder.addFilters(FilterProto.newBuilder().setColumn(UserTableHelper.KEY).setValue(pk).build());
+    for (String field : fields) {
+      pkReadBuilder.addReadColumns(ReadColumnProto.newBuilder().setColumn(field).build());
+    }
+    PKReadRequestProto pkRead = pkReadBuilder.build();
+    for (String field : fields) {
+      pkReadBuilder.addReadColumns(ReadColumnProto.newBuilder().setColumn(field).build());
+    }
+    return pkReadBuilder.build();
   }
 
   @Override
