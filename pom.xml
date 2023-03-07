@@ -135,6 +135,7 @@ LICENSE file.
     <maprhbase.version>1.1.8-mapr-1710</maprhbase.version>
     <mongodb.version>3.11.0</mongodb.version>
     <mongodb.async.version>2.0.1</mongodb.async.version>
+    <mongodbreactivestreams.version>4.9.0</mongodbreactivestreams.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
     <orientdb.version>2.2.37</orientdb.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -187,6 +188,7 @@ LICENSE file.
     <module>maprjsondb</module>
     <module>memcached</module>
     <module>mongodb</module>
+    <module>mongodbreactivestreams</module>
     <module>nosqldb</module>
     <module>orientdb</module>
     <module>postgrenosql</module>
