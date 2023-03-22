@@ -17,7 +17,7 @@
 
 package site.ycsb.generator;
 
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Random;
 
 /**
  * A generator of a zipfian distribution. It produces a sequence of items, such that some items are more popular than
@@ -41,6 +41,8 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class ZipfianGenerator extends NumberGenerator {
   public static final double ZIPFIAN_CONSTANT = 0.99;
+
+  private ThreadLocal<Random> random;
 
   /**
    * Number of items.
@@ -80,6 +82,16 @@ public class ZipfianGenerator extends NumberGenerator {
    * recompute.
    */
   private boolean allowitemcountdecrease = false;
+
+  // Pass returned ThreadLocal object to all threads which need it
+  public static ThreadLocal<Random> threadRandom(final long seed) {
+    return new ThreadLocal<Random>(){
+      @Override
+      protected Random initialValue() {
+          return new Random(seed);
+      }
+    };
+  }
 
   /******************************* Constructors **************************************/
 
@@ -130,6 +142,7 @@ public class ZipfianGenerator extends NumberGenerator {
    * @param zetan The precomputed zeta constant.
    */
   public ZipfianGenerator(long min, long max, double zipfianconstant, double zetan) {
+    random = threadRandom(1);
 
     items = max - min + 1;
     base = min;
@@ -138,7 +151,7 @@ public class ZipfianGenerator extends NumberGenerator {
     theta = this.zipfianconstant;
 
     zeta2theta = zeta(2, theta);
-    
+
     alpha = 1.0 / (1.0 - theta);
     this.zetan = zetan;
     countforzeta = items;
@@ -247,7 +260,7 @@ public class ZipfianGenerator extends NumberGenerator {
       }
     }
 
-    double u = ThreadLocalRandom.current().nextDouble();
+    double u = random.get().nextDouble();
     double uz = u * zetan;
 
     if (uz < 1.0) {
