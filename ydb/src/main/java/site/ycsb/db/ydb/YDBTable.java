@@ -51,7 +51,7 @@ public class YDBTable {
   private static final String KEY_DROP_ON_CLEAN_DEFAULT = "false";
 
   private static final String KEY_DO_COMPRESSION = "compression";
-  private static final String KEY_DO_COMPRESSION_DEFAULT = "false";
+  private static final String KEY_DO_COMPRESSION_DEFAULT = "";
 
   private static final String MAX_PARTITION_SIZE = "2000"; // 2 GB
   private static final String MAX_PARTITIONS_COUNT = "50";
@@ -131,15 +131,15 @@ public class YDBTable {
 
   private static TableDescription createTableDescription(
       Properties props, String keyColumnName, List<String> columnNames) {
-    boolean doCompression = Boolean.parseBoolean(props.getProperty(KEY_DO_COMPRESSION, KEY_DO_COMPRESSION_DEFAULT));
+    String compressionDevice = props.getProperty(KEY_DO_COMPRESSION, KEY_DO_COMPRESSION_DEFAULT);
     boolean autoPartitioning = Boolean.parseBoolean(props.getProperty("autopartitioning", "true"));
 
     TableDescription.Builder builder = TableDescription.newBuilder();
     String columnFamily = null;
 
-    if (doCompression) {
+    if (!compressionDevice.isEmpty()) {
       columnFamily = "default";
-      StoragePool pool = new StoragePool("ssd"); // TODO: must be from opts
+      StoragePool pool = new StoragePool(compressionDevice);
       ColumnFamily family = new ColumnFamily(columnFamily, pool, ColumnFamily.Compression.COMPRESSION_LZ4, false);
       builder.addColumnFamily(family);
     }

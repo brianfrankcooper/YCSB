@@ -115,8 +115,8 @@ Please note that you might want to use `-threads` option as well as run many ins
   - default 100
 
 - `compression`
-  - Use compression for all columns
-  - default `false`
+  - Use compression for all columns. Must specify a storage device type for the data in this column group, i.e. "ssd", "hdd" or "nvme".
+  - default ``, i.e. no compression
 
 - `splitByLoad`
   - Split parts when they're overloaded, see [AUTO_PARTITIONING_BY_LOAD](https://ydb.tech/en/docs/concepts/datamodel#auto_partitioning_by_load)
