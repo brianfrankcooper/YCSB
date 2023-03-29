@@ -64,6 +64,7 @@ public class YDBClient extends DB {
 
   private static boolean usePreparedUpdateInsert = true;
   private static boolean forceUpsert = false;
+  private static boolean forceUpdate = false;
   private static boolean useBulkUpsert = false;
   private static int bulkUpsertBatchSize = 1;
 
@@ -106,6 +107,7 @@ public class YDBClient extends DB {
     useBulkUpsert = Boolean.parseBoolean(properties.getProperty("bulkUpsert", "false"));
     bulkUpsertBatchSize = Integer.parseInt(properties.getProperty("bulkUpsertBatchSize", "1"));
 
+    forceUpdate = Boolean.parseBoolean(properties.getProperty("forceUpdate", "false"));
 
     if (connection.inflightSize() > 1) {
       inflightSemaphore = new Semaphore(connection.inflightSize());
@@ -289,7 +291,32 @@ public class YDBClient extends DB {
     }
   }
 
-  private Status insertOrUpdatePrepared(
+  private Status updatePrepared(
+      String table, String key, Map<String, ByteIterator> values) {
+    YDBTable ydbTable = connection.findTable(table);
+
+    final StringBuilder queryDeclare = new StringBuilder();
+    final Params params = Params.create();
+
+    queryDeclare.append("DECLARE $key AS Text;");
+    params.put("$key", PrimitiveValue.newText(key));
+
+    values.forEach((column, bytes) -> {
+        queryDeclare.append("DECLARE $").append(column).append(" AS Bytes;");
+        params.put("$" + column, PrimitiveValue.newBytes(bytes.toArray()));
+      });
+
+    String valuesString = values.entrySet().stream()
+        .map(e -> e.getKey() + "=$" + e.getKey())
+        .collect(Collectors.joining(","));
+
+    String query = queryDeclare.toString() + " UPDATE " + ydbTable.name() + " SET "
+        + valuesString + " WHERE " + ydbTable.keyColumnName() + "=$key;";
+
+    return executeQuery(query, params, "update");
+  }
+
+  private Status insertOrUpsertPrepared(
       String table, String key, Map<String, ByteIterator> values, String op) {
     YDBTable ydbTable = connection.findTable(table);
 
@@ -316,7 +343,7 @@ public class YDBClient extends DB {
     return executeQuery(query, params, op);
   }
 
-  private Status insertOrUpdateNotPrepared(
+  private Status insertOrUpsertNotPrepared(
       String table, String key, Map<String, ByteIterator> values, String op) {
     YDBTable ydbTable = connection.findTable(table);
 
@@ -451,15 +478,19 @@ public class YDBClient extends DB {
   public Status update(String table, String key, Map<String, ByteIterator> values) {
     LOGGER.debug("update record table {} with key {}", table, key);
 
-    // note that is is a blind update: i.e. we will never return NOT_FOUND
     if (usePreparedUpdateInsert) {
+      if (forceUpdate) {
+        return updatePrepared(table, key, values);
+      }
+
+      // note that is is a blind update: i.e. we will never return NOT_FOUND
       if (useBulkUpsert) {
         return bulkUpsert(table, key, values);
       } else {
-        return insertOrUpdatePrepared(table, key, values, "UPSERT");
+        return insertOrUpsertPrepared(table, key, values, "UPSERT");
       }
     } else {
-      return insertOrUpdateNotPrepared(table, key, values, "UPSERT");
+      return insertOrUpsertNotPrepared(table, key, values, "UPSERT");
     }
   }
 
@@ -472,9 +503,9 @@ public class YDBClient extends DB {
     }
 
     if (usePreparedUpdateInsert) {
-      return insertOrUpdatePrepared(table, key, values, "INSERT");
+      return insertOrUpsertPrepared(table, key, values, "INSERT");
     } else {
-      return insertOrUpdateNotPrepared(table, key, values, "INSERT");
+      return insertOrUpsertNotPrepared(table, key, values, "INSERT");
     }
   }
 

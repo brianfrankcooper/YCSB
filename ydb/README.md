@@ -106,6 +106,10 @@ Please note that you might want to use `-threads` option as well as run many ins
   - Both insert() and update() use upsert, i.e. blind writes
   - default `no`
 
+- `forceUpdate`
+  - update() by default uses upsert, i.e. blind writes, with this option it switches to update statement
+  - default `no`
+
 - `bulkUpsert`
   - upsert uses bulk iterface, can be combined with `forceUpsert` to speedup load phase
   - default `no`
