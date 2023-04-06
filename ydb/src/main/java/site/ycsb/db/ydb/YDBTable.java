@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import site.ycsb.Client;
 import site.ycsb.DBException;
 import site.ycsb.workloads.CoreWorkload;
 import tech.ydb.core.Status;
@@ -54,7 +53,7 @@ public class YDBTable {
   private static final String KEY_DO_COMPRESSION_DEFAULT = "";
 
   private static final String MAX_PARTITION_SIZE = "2000"; // 2 GB
-  private static final String MAX_PARTITIONS_COUNT = "50";
+  private static final String MAX_PARTITIONS_COUNT = "1000";
 
   private final String tableName;
   private final String keyColumnName;
@@ -132,7 +131,6 @@ public class YDBTable {
   private static TableDescription createTableDescription(
       Properties props, String keyColumnName, List<String> columnNames) {
     String compressionDevice = props.getProperty(KEY_DO_COMPRESSION, KEY_DO_COMPRESSION_DEFAULT);
-    boolean autoPartitioning = Boolean.parseBoolean(props.getProperty("autopartitioning", "true"));
 
     TableDescription.Builder builder = TableDescription.newBuilder();
     String columnFamily = null;
@@ -150,79 +148,27 @@ public class YDBTable {
     }
     builder.setPrimaryKey(keyColumnName);
 
-    if (autoPartitioning) {
-      int avgRowSize = calculateAvgRowSize(props);
-      long recordcount = Long.parseLong(props.getProperty(
-          Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
+    PartitioningSettings settings = new PartitioningSettings();
 
-      int maxPartSizeMB = Integer.parseInt(props.getProperty("maxpartsizeMB", MAX_PARTITION_SIZE));
-      int maxParts = Integer.parseInt(props.getProperty("maxparts", MAX_PARTITIONS_COUNT));
-      long minParts = maxParts;
+    final boolean splitByLoad = Boolean.parseBoolean(props.getProperty("splitByLoad", "true"));
+    settings.setPartitioningByLoad(splitByLoad);
 
-      long approximateDataSize = avgRowSize * recordcount;
-      long avgPartSizeMB = Math.max(approximateDataSize / maxParts / 1000000, 1);
-      long partSizeMB = Math.min(avgPartSizeMB, maxPartSizeMB);
-
-      final boolean splitByLoad = Boolean.parseBoolean(props.getProperty("splitByLoad", "true"));
-      final boolean splitBySize = Boolean.parseBoolean(props.getProperty("splitBySize", "true"));
-
-      LOGGER.info(String.format(
-          "After partitioning for %d records with avg row size %d: " +
-          "minParts=%d, maxParts=%d, partSize=%d MB, " +
-          "splitByLoad=%b, splitBySize=%b",
-          recordcount, avgRowSize, minParts, maxParts, partSizeMB, splitByLoad, splitBySize));
-
-      PartitioningSettings settings = new PartitioningSettings();
-
-      settings.setMinPartitionsCount(minParts);
+    String maxPartsProp = props.getProperty("maxparts");
+    if (maxPartsProp != null) {
+      int maxParts = Integer.parseInt(maxPartsProp);
       settings.setMaxPartitionsCount(maxParts);
-      settings.setPartitioningByLoad(splitByLoad);
-
-      if (splitBySize) {
-        settings.setPartitionSize(partSizeMB);
-        settings.setPartitioningBySize(true);
-      } else {
-        settings.setPartitioningBySize(true);
-      }
-
-      // set both until bug fixed
-      builder.setPartitioningSettings(settings);
     }
+
+    final boolean splitBySize = Boolean.parseBoolean(props.getProperty("splitBySize", "true"));
+    if (splitBySize) {
+      int maxPartSizeMB = Integer.parseInt(props.getProperty("maxpartsizeMB", MAX_PARTITION_SIZE));
+      settings.setPartitionSize(maxPartSizeMB);
+      settings.setPartitioningBySize(true);
+    }
+
+    // set both until bug fixed
+    builder.setPartitioningSettings(settings);
 
     return builder.build();
-  }
-
-  private static int calculateAvgRowSize(Properties props) {
-    int fieldLength = Integer.parseInt(props.getProperty(
-        CoreWorkload.FIELD_LENGTH_PROPERTY, CoreWorkload.FIELD_LENGTH_PROPERTY_DEFAULT));
-
-    int minFieldLength = Integer.parseInt(props.getProperty(
-        CoreWorkload.MIN_FIELD_LENGTH_PROPERTY, CoreWorkload.MIN_FIELD_LENGTH_PROPERTY_DEFAULT));
-
-    String fieldLengthDistribution = props.getProperty(
-        CoreWorkload.FIELD_LENGTH_DISTRIBUTION_PROPERTY, CoreWorkload.FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
-
-    int avgFieldLength;
-    if (fieldLengthDistribution.compareTo("constant") == 0) {
-      avgFieldLength = fieldLength;
-    } else if (fieldLengthDistribution.compareTo("uniform") == 0) {
-      if (minFieldLength < fieldLength) {
-        avgFieldLength = (fieldLength - minFieldLength) / 2 + 1;
-      } else {
-        avgFieldLength = fieldLength / 2 + 1;
-      }
-    } else if (fieldLengthDistribution.compareTo("zipfian") == 0) {
-      avgFieldLength = fieldLength / 4 + 1;
-    } else if (fieldLengthDistribution.compareTo("histogram") == 0) {
-      // TODO: properly handle this case, for now just some value
-      avgFieldLength = fieldLength;
-    } else {
-      avgFieldLength = fieldLength;
-    }
-
-    int fieldCount = Integer.parseInt(props.getProperty(
-        CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
-
-    return avgFieldLength * fieldCount;
   }
 }

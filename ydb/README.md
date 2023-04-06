@@ -78,10 +78,6 @@ Please note that you might want to use `-threads` option as well as run many ins
   - At the end table `usertable` will be dropped if parameter set to `true`
   - Default is `false`
 
-- `autopartitioning`
-  - Automatically calculates min number of partitions and split options
-  - Default is `true`
-
 - `maxparts`
   - Maximum number of partitions, see [AUTO_PARTITIONING_MAX_PARTITIONS_COUNT](https://ydb.tech/en/docs/concepts/datamodel#auto_partitioning_max_partitions_count)
   - Default is `50`
@@ -99,7 +95,7 @@ Please note that you might want to use `-threads` option as well as run many ins
   - default `1`
 
 - `import`
-  - Shortcut for "forceUpsert=true, bulkUpsert=true, insertInflight=1000, bulkUpsertBatchSize=500
+  - Shortcut for "forceUpsert=true, bulkUpsert=true, insertInflight=1000, bulkUpsertBatchSize=500"
   - default `false`
 
 - `forceUpsert`
