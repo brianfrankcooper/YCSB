@@ -18,10 +18,12 @@
 package site.ycsb.db.ydb;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import site.ycsb.Client;
 import site.ycsb.DBException;
 import site.ycsb.workloads.CoreWorkload;
 import tech.ydb.core.Status;
@@ -29,8 +31,12 @@ import tech.ydb.core.StatusCode;
 import tech.ydb.table.description.ColumnFamily;
 import tech.ydb.table.description.StoragePool;
 import tech.ydb.table.description.TableDescription;
+import tech.ydb.table.settings.CreateTableSettings;
+import tech.ydb.table.settings.PartitioningPolicy;
 import tech.ydb.table.settings.PartitioningSettings;
 import tech.ydb.table.values.PrimitiveType;
+import tech.ydb.table.values.PrimitiveValue;
+import tech.ydb.table.values.TupleValue;
 
 
 /**
@@ -52,6 +58,9 @@ public class YDBTable {
   private static final String KEY_DO_COMPRESSION = "compression";
   private static final String KEY_DO_COMPRESSION_DEFAULT = "";
 
+  private static final String KEY_DO_PRESPLIT = "presplitTable";
+  private static final String KEY_DO_PRESPLIT_DEFAULT = "";
+
   private static final String MAX_PARTITION_SIZE = "2000"; // 2 GB
   private static final String MAX_PARTITIONS_COUNT = "1000";
 
@@ -59,6 +68,7 @@ public class YDBTable {
   private final String keyColumnName;
   private final List<String> columnNames;
   private final TableDescription tableDescription;
+  private final CreateTableSettings createTableSettings;
 
   private final boolean dropOnInit;
   private final boolean dropOnClean;
@@ -77,6 +87,7 @@ public class YDBTable {
     }
 
     this.tableDescription = createTableDescription(props, keyColumnName, columnNames);
+    this.createTableSettings = createTableSettings(props, this.tableDescription);
     this.dropOnInit = Boolean.parseBoolean(props.getProperty(KEY_DROP_ON_INIT, KEY_DROP_ON_INIT_DEFAULT));
     this.dropOnClean = Boolean.parseBoolean(props.getProperty(KEY_DROP_ON_CLEAN, KEY_DROP_ON_CLEAN_DEFAULT));
   }
@@ -102,7 +113,13 @@ public class YDBTable {
     dropTable(connection);
 
     String tablePath = connection.getDatabase() + "/" + tableName;
-    Status createStatus = connection.executeStatus(session -> session.createTable(tablePath, tableDescription)).join();
+
+    Status createStatus = connection.executeStatus(
+        session -> session.createTable(
+            tablePath,
+            tableDescription,
+            createTableSettings)).join();
+
     if (!createStatus.isSuccess()) {
       String msg = "Failed to create '" + tablePath + "': " + createStatus.toString();
       throw new DBException(msg);
@@ -153,10 +170,20 @@ public class YDBTable {
     final boolean splitByLoad = Boolean.parseBoolean(props.getProperty("splitByLoad", "true"));
     settings.setPartitioningByLoad(splitByLoad);
 
-    String maxPartsProp = props.getProperty("maxparts");
+    final String maxPartsProp = props.getProperty("maxparts");
+    int maxParts = 0;
     if (maxPartsProp != null) {
-      int maxParts = Integer.parseInt(maxPartsProp);
+      maxParts = Integer.parseInt(maxPartsProp);
       settings.setMaxPartitionsCount(maxParts);
+    }
+
+    int threads = Integer.parseInt(props.getProperty(Client.THREAD_COUNT_PROPERTY, "1"));
+    if (threads > 1) {
+      int minParts = threads;
+      if (maxParts != 0 && maxParts < minParts) {
+        minParts = maxParts;
+      }
+      settings.setMinPartitionsCount(minParts);
     }
 
     final boolean splitBySize = Boolean.parseBoolean(props.getProperty("splitBySize", "true"));
@@ -170,5 +197,69 @@ public class YDBTable {
     builder.setPartitioningSettings(settings);
 
     return builder.build();
+  }
+
+  private static CreateTableSettings createTableSettings(Properties props, TableDescription description) {
+    Long maxParts = description.getPartitioningSettings().getMaxPartitionsCount();
+    int threads = Integer.parseInt(props.getProperty(Client.THREAD_COUNT_PROPERTY, "1"));
+    final boolean dosplit = Boolean.parseBoolean(props.getProperty(KEY_DO_PRESPLIT, KEY_DO_PRESPLIT_DEFAULT));
+    boolean hasManyParts = maxParts == null || maxParts == 0 || maxParts > 1;
+
+    if (!dosplit || !hasManyParts || threads <= 1) {
+      return new CreateTableSettings();
+    }
+
+    int rangecount = 0;
+    if (maxParts != null) {
+      rangecount = (int)maxParts.longValue();
+    }
+    if (rangecount == 0) {
+      rangecount = threads;
+    }
+    // note that rangecount > 1
+
+    final int zeropadding =
+        Integer.parseInt(
+            props.getProperty(CoreWorkload.ZERO_PADDING_PROPERTY, CoreWorkload.ZERO_PADDING_PROPERTY_DEFAULT));
+
+    long recordcount =
+        Long.parseLong(props.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
+    if (recordcount == 0) {
+      recordcount = Integer.MAX_VALUE;
+    }
+
+    boolean orderedinserts;
+    final String orderedprop =
+        props.getProperty(CoreWorkload.INSERT_ORDER_PROPERTY, CoreWorkload.INSERT_ORDER_PROPERTY_DEFAULT);
+    if (orderedprop.compareTo("hashed") == 0) {
+      orderedinserts = false;
+    } else {
+      orderedinserts = true;
+    }
+
+    LOGGER.info("Table will be presplitted into {} shards", rangecount);
+
+    final long rangesize = recordcount / rangecount + 1;
+    final int splitKeysSize = rangecount - 1;
+    String[] splitKeys = new String[splitKeysSize];
+    for (int i = 0; i < splitKeysSize; ++i) {
+      long keynum = i * rangesize;
+      splitKeys[i] = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
+    }
+
+    if (!orderedinserts) {
+      // keys are hashes, need to sort
+      Arrays.sort(splitKeys);
+    }
+
+    PartitioningPolicy policy = new PartitioningPolicy();
+    for (int i = 0; i < splitKeysSize; ++i) {
+      policy.addExplicitPartitioningPoint(TupleValue.of(PrimitiveValue.newText(splitKeys[i]).makeOptional()));
+    }
+
+    CreateTableSettings settings = new CreateTableSettings();
+    settings.setPartitioningPolicy(policy);
+
+    return settings;
   }
 }

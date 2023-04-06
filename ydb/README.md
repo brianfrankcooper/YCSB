@@ -47,15 +47,16 @@ Load the data:
     $ ./bin/ycsb load ydb -s -P workloads/workloada \
         -p dsn=grpc://SOME_YDB_HOST:2135/Root/db1 \
         -p dropOnInit=true \
-        -p insertorder=ordered \
-        -p import=true
+        -p import=true \
+        -threads 64
 
 Run the workload:
 
     $ ./bin/ycsb run ydb -s -P workloads/workloada \
-        -p dsn=grpc://SOME_YDB_HOST:2135/Root/db1
+        -p dsn=grpc://SOME_YDB_HOST:2135/Root/db1 \
+        -threads 64
 
-Please note that you might want to use `-threads` option as well as run many instances of YCSB on multiple servers, when you have a big YDB cluster.
+Please use `-threads` option depending on YDB cluster size.
 
 ## YDB Configuration Parameters
 
@@ -94,8 +95,12 @@ Please note that you might want to use `-threads` option as well as run many ins
   - Allow insert() to return OK before completing to have inflight > 1
   - default `1`
 
+- `presplitTable`
+  - When create table, set initial key ranges to speedup parallel load
+  - default `false`
+
 - `import`
-  - Shortcut for "forceUpsert=true, bulkUpsert=true, insertInflight=1000, bulkUpsertBatchSize=500"
+  - Shortcut for "forceUpsert=true, bulkUpsert=true, insertInflight=10, bulkUpsertBatchSize=500, presplitTable=true"
   - default `false`
 
 - `forceUpsert`
