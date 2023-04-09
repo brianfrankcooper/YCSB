@@ -73,6 +73,10 @@ public class YDBClient extends DB {
   private static final AtomicLong TOTAL_ERRORS = new AtomicLong(0);
   private static final AtomicLong TOTAL_NOT_FOUNDS = new AtomicLong(0);
 
+  // TODO: by default we always read all fields, but it is better
+  // to cache query per field set
+  private static final String READ_QUERY = "DECLARE $key as Text; SELECT * FROM usertable WHERE id = $key;";
+
   // per instance counters
   private long oks = 0;
   private long errors = 0;
@@ -148,22 +152,15 @@ public class YDBClient extends DB {
     LOGGER.debug("read table {} with key {}", table, key);
     YDBTable ydbTable = connection.findTable(table);
 
-    String fieldsString = "*";
-    if (fields != null && !fields.isEmpty()) {
-      fieldsString = String.join(",", fields);
-    }
-    String query = "DECLARE $key as Text; SELECT " + fieldsString + " FROM " + ydbTable.name()
-        + " WHERE " + ydbTable.keyColumnName() + " = $key;";
-
     Params params = Params.of("$key", PrimitiveValue.newText(key));
 
-    LOGGER.trace(query);
+    LOGGER.trace(READ_QUERY);
 
     TxControl txControl = TxControl.serializableRw().setCommitTx(true);
 
     try {
       Result<DataQueryResult> resultWrapped = connection.executeResult(
-          session -> session.executeDataQuery(query, txControl, params))
+          session -> session.executeDataQuery(READ_QUERY, txControl, params))
           .join();
       resultWrapped.getStatus().expectSuccess("execute read query");
       DataQueryResult queryResult = resultWrapped.getValue();
