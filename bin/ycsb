@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 #
 # Copyright (c) 2012 - 2020 YCSB contributors. All rights reserved.
 #
@@ -102,6 +102,10 @@ DATABASES = {
     "solr7"        : "site.ycsb.db.solr7.SolrClient",
     "tarantool"    : "site.ycsb.db.TarantoolClient",
     "tablestore"   : "site.ycsb.db.tablestore.TableStoreClient",
+    "ydb"          : "site.ycsb.db.ydb.YDBClient",
+    "yugabyteCQL"  : "site.ycsb.db.CassandraCQLClient",
+    "yugabyteSQL"  : "site.ycsb.db.JdbcDBClient",
+    "yugabyteSQL2Keys"  : "site.ycsb.db.JdbcDBClient",
     "zookeeper"    : "site.ycsb.db.zookeeper.ZKClient"
 }
 

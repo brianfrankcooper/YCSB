@@ -202,6 +202,10 @@ LICENSE file.
     <module>tarantool</module>
     <module>tablestore</module>
     <module>voltdb</module>
+    <module>ydb</module>
+    <module>yugabyteCQL</module>
+    <module>yugabyteSQL</module>
+    <module>yugabyteSQL2Keys</module>
     <module>zookeeper</module>
   </modules>
 
