@@ -25,6 +25,7 @@ import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.DirectConnectionConfig;
 import com.azure.cosmos.GatewayConnectionConfig;
 import com.azure.cosmos.ThrottlingRetryOptions;
+import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
 import com.azure.cosmos.models.CosmosItemRequestOptions;
 import com.azure.cosmos.models.CosmosItemResponse;
 import com.azure.cosmos.models.CosmosPatchOperations;
@@ -55,6 +56,7 @@ import site.ycsb.StringByteIterator;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -224,6 +226,13 @@ public class AzureCosmosClient extends DB {
       gatewayConnectionConfig.setIdleConnectionTimeout(Duration.ofSeconds(gatewayIdleConnectionTimeoutInSeconds));
     }
 
+    String preferredRegions = this.getStringProperty("azurecosmos.preferredRegionList", null);
+    List<String> preferredRegionList = null;
+    if (StringUtils.isNotEmpty(preferredRegions)) {
+      preferredRegions = preferredRegions.trim();
+      preferredRegionList = new ArrayList<>(Arrays.asList(preferredRegions.split(",")));
+    }
+    
     try {
       LOGGER.info(
           "Creating Cosmos DB client {}, useGateway={}, consistencyLevel={},"
@@ -241,6 +250,10 @@ public class AzureCosmosClient extends DB {
         builder = builder.gatewayMode(gatewayConnectionConfig);
       } else {
         builder = builder.directMode(directConnectionConfig);
+      }
+
+      if (preferredRegionList != null && preferredRegionList.size() > 0) {
+        builder.preferredRegions(preferredRegionList);
       }
 
       AzureCosmosClient.client = builder.buildClient();
