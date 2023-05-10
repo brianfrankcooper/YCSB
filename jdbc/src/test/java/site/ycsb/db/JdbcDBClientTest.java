@@ -34,7 +34,9 @@ import java.util.Vector;
 
 public class JdbcDBClientTest {
     private static final String TEST_DB_DRIVER = "org.hsqldb.jdbc.JDBCDriver";
-    private static final String TEST_DB_URL = "jdbc:hsqldb:mem:ycsb";
+    // The 'key=value' part in the connection URL is ignored by hsql. It is added to the URL to
+    // verify that URLs containing a semicolon work if a custom URL delimiter is set.
+    private static final String TEST_DB_URL = "jdbc:hsqldb:mem:ycsb;key=value";
     private static final String TEST_DB_USER = "sa";
     private static final String TABLE_NAME = "USERTABLE";
     private static final int FIELD_LENGTH = 32;
@@ -63,6 +65,7 @@ public class JdbcDBClientTest {
         p.setProperty(JdbcDBClient.DB_BATCH_SIZE, Integer.toString(batchSize));
         p.setProperty(JdbcDBClient.JDBC_BATCH_UPDATES, "true");
         p.setProperty(JdbcDBClient.JDBC_AUTO_COMMIT, Boolean.toString(autoCommit));
+        p.setProperty(JdbcDBClient.CONNECTION_URL_DELIMITER, ",");
 
         jdbcDBClient.setProperties(p);
         jdbcDBClient.init();
