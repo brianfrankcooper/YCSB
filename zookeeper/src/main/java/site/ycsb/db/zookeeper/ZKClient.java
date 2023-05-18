@@ -21,15 +21,12 @@
 package site.ycsb.db.zookeeper;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -37,6 +34,7 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.client.ConnectStringParser;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
@@ -67,6 +65,10 @@ public class ZKClient extends DB {
   private static final Charset UTF_8 = Charset.forName("UTF-8");
   private static final Logger LOG = LoggerFactory.getLogger(ZKClient.class);
 
+  private static List<InetSocketAddress> servers = new ArrayList<>();
+  private static AtomicInteger serverId = new AtomicInteger(-1);
+  private static String chroot = "";
+
   public void init() throws DBException {
     Properties props = getProperties();
 
@@ -75,7 +77,14 @@ public class ZKClient extends DB {
       connectString = DEFAULT_CONNECT_STRING;
     }
 
-    if(Boolean.parseBoolean(props.getProperty(WATCH_FLAG))) {
+    if (servers.isEmpty()) {
+      ConnectStringParser csp = new ConnectStringParser(connectString);
+      chroot = csp.getChrootPath();
+      servers = csp.getServerAddresses();
+    }
+
+
+    if (Boolean.parseBoolean(props.getProperty(WATCH_FLAG))) {
       watcher = new SimpleWatcher();
     } else {
       watcher = null;
@@ -90,7 +99,14 @@ public class ZKClient extends DB {
     }
 
     try {
-      zk = new ZooKeeper(connectString, (int) sessionTimeout, new SimpleWatcher());
+      int localServerId = serverId.incrementAndGet() % servers.size();
+      String connectStr = servers.get(localServerId).getHostName()
+          + ":" + servers.get(localServerId).getPort() + chroot;
+      LOG.info("ServerId: " + connectStr);
+      zk = new ZooKeeper(
+          connectStr,
+          (int) sessionTimeout,
+          new SimpleWatcher());
     } catch (IOException e) {
       throw new DBException("Creating connection failed.");
     }
