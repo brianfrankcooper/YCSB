@@ -14,6 +14,7 @@
         <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="DENY" onMismatch="NEUTRAL" />
         <MarkerFilter marker="PATCH_DIAGNOSTIC" onMatch="DENY" onMismatch="NEUTRAL" />
         <MarkerFilter marker="QUERY_DIAGNOSTIC" onMatch="DENY" onMismatch="NEUTRAL" />
+        <MarkerFilter marker="DELETE_DIAGNOSTIC" onMatch="DENY" onMismatch="NEUTRAL" />
         <MarkerFilter marker="CREATE_EXCEPTION" onMatch="DENY" onMismatch="NEUTRAL" />
         <MarkerFilter marker="READ_EXCEPTION" onMatch="DENY" onMismatch="NEUTRAL" />
         <MarkerFilter marker="PATCH_EXCEPTION" onMatch="DENY" onMismatch="NEUTRAL" />
@@ -79,7 +80,7 @@
         filePattern="${BASE_PATH_DIAGNOSTICS}/delete/diagnostics.%d{yyyy-MM-dd-hh-mm-ss}.log.gz"
         ignoreExceptions="false">
       <PatternLayout pattern="${LOG_PATTERN}"/>
-      <MarkerFilter marker="QUERY_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
+      <MarkerFilter marker="DELETE_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
       <Policies>
         <OnStartupTriggeringPolicy />
         <SizeBasedTriggeringPolicy size="500MB" />
@@ -144,7 +145,7 @@
         filePattern="${BASE_PATH_EXCEPTION}/delete/exceptions.%d{yyyy-MM-dd-hh-mm-ss}.log.gz"
         ignoreExceptions="false">
       <PatternLayout pattern="${LOG_PATTERN}"/>
-      <MarkerFilter marker="QUERY_EXCEPTION" onMatch="ACCEPT" onMismatch="DENY" />
+      <MarkerFilter marker="DELETE_EXCEPTION" onMatch="ACCEPT" onMismatch="DENY" />
       <Policies>
         <OnStartupTriggeringPolicy />
         <SizeBasedTriggeringPolicy size="500MB" />

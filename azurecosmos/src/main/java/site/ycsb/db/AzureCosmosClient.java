@@ -97,7 +97,7 @@ public class AzureCosmosClient extends DB {
   private static final Marker CREATE_EXCEPTION = MarkerFactory.getMarker("CREATE_EXCEPTION");
   private static final Marker READ_EXCEPTION = MarkerFactory.getMarker("READ_EXCEPTION");
   private static final Marker PATCH_EXCEPTION = MarkerFactory.getMarker("PATCH_EXCEPTION");
-  private static final Marker DELETE_EXCEPTION = MarkerFactory.getMarker("DELETE_DIAGNOSTIC");
+  private static final Marker DELETE_EXCEPTION = MarkerFactory.getMarker("DELETE_EXCEPTION");
   private static final Marker QUERY_EXCEPTION = MarkerFactory.getMarker("QUERY_EXCEPTION");
 
 
