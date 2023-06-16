@@ -199,6 +199,7 @@ LICENSE file.
     <module>seaweedfs</module>
     <module>scylla</module>
     <module>solr7</module>
+    <module>solr9</module>
     <module>tarantool</module>
     <module>tablestore</module>
     <module>voltdb</module>
