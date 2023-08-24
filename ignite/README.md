@@ -88,3 +88,7 @@ Run the workload test with ignite-sql:
          -p operationcount=100000 \
          -p recordcount=100000 \
           > output-ignite-sql.txt
+
+
+python2 ycsb run ignite -p hosts="127.0.0.1" -s -P ../workloads/workloada -threads 4 -p operationcount=1000000 -p recordcount=100000 -p measurementtype=timeseries -p dataintegrity=true
+

@@ -16,9 +16,9 @@ LICENSE file.
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>site.ycsb</groupId>
+    <groupId>org.gridgain.ycsb</groupId>
     <artifactId>binding-parent</artifactId>
-    <version>0.18.0-SNAPSHOT</version>
+    <version>2023.1-SNAPSHOT</version>
     <relativePath>../binding-parent/</relativePath>
   </parent>
 
@@ -47,7 +47,7 @@ LICENSE file.
         </exclusion>
       </exclusions>
     </dependency>
-    
+
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-log4j12</artifactId>
@@ -61,12 +61,12 @@ LICENSE file.
     </dependency>
 
     <dependency>
-      <groupId>site.ycsb</groupId>
+      <groupId>org.gridgain.ycsb</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
-    
+
     <dependency>
       <groupId>org.apache.zookeeper</groupId>
       <artifactId>zookeeper</artifactId>
@@ -86,28 +86,28 @@ LICENSE file.
         </exclusion>
       </exclusions>
     </dependency>
-    
+
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>4.12</version>
       <scope>test</scope>
     </dependency>
-    
+
     <dependency>
       <groupId>org.apache.hbase</groupId>
       <artifactId>hbase-shaded-testing-util</artifactId>
       <version>${hbase1.version}</version>
       <scope>test</scope>
     </dependency>
-    
+
     <dependency>
       <groupId>org.apache.hbase</groupId>
       <artifactId>hbase-shaded-client</artifactId>
       <version>${hbase1.version}</version>
       <scope>test</scope>
     </dependency>
-    
+
   </dependencies>
 
   <build>

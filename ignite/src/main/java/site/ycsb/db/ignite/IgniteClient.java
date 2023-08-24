@@ -16,21 +16,23 @@
  */
 package site.ycsb.db.ignite;
 
-import site.ycsb.*;
+import site.ycsb.ByteIterator;
+import site.ycsb.Status;
+import site.ycsb.StringByteIterator;
 import org.apache.ignite.binary.BinaryField;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.binary.BinaryObjectBuilder;
 import org.apache.ignite.binary.BinaryType;
 import org.apache.ignite.cache.CacheEntryProcessor;
 import org.apache.ignite.internal.util.typedef.F;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.cache.processor.EntryProcessorException;
 import javax.cache.processor.MutableEntry;
-import java.util.*;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 
 /**
@@ -39,17 +41,20 @@ import org.apache.logging.log4j.Logger;
  * See {@code ignite/README.md} for details.
  */
 public class IgniteClient extends IgniteAbstractClient {
-  /** */
+  /**
+   *
+   */
   private static Logger log = LogManager.getLogger(IgniteClient.class);
 
 
-
-  /** Cached binary type. */
+  /**
+   * Cached binary type.
+   */
   private BinaryType binType = null;
-  /** Cached binary type's fields. */
+  /**
+   * Cached binary type's fields.
+   */
   private final ConcurrentHashMap<String, BinaryField> fieldsCache = new ConcurrentHashMap<>();
-
-
 
 
   /**
@@ -215,7 +220,7 @@ public class IgniteClient extends IgniteAbstractClient {
      */
     @Override
     public Object process(MutableEntry<String, BinaryObject> mutableEntry, Object... objects)
-              throws EntryProcessorException {
+        throws EntryProcessorException {
       BinaryObjectBuilder bob = mutableEntry.getValue().toBuilder();
 
       for (int i = 0; i < flds.length; ++i) {

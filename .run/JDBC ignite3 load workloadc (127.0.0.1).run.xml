@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="JDBC ignite3 load workloadc (127.0.0.1)" type="Application" factoryName="Application" folderName="Scenarios">
+    <option name="MAIN_CLASS_NAME" value="site.ycsb.Client" />
+    <module name="ignite3-binding" />
+    <option name="PROGRAM_PARAMETERS" value="-load -db site.ycsb.db.ignite3.IgniteJdbcClient -P ./workloads/workloadc -p hosts=&quot;127.0.0.1&quot; -s -threads 1" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="site.ycsb.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

@@ -50,6 +50,7 @@ COMMANDS = {
     },
 }
 
+
 DATABASES = {
     "accumulo1.9"     : "site.ycsb.db.accumulo.AccumuloClient",
     "aerospike"    : "site.ycsb.db.AerospikeClient",
@@ -79,6 +80,9 @@ DATABASES = {
     "hbase2"      : "site.ycsb.db.hbase2.HBaseClient2",
     "ignite"       : "site.ycsb.db.ignite.IgniteClient",
     "ignite-sql"   : "site.ycsb.db.ignite.IgniteSqlClient",
+    "ignite3"      : "site.ycsb.db.ignite3.IgniteClient",
+    "ignite3-sql"  : "site.ycsb.db.ignite3.IgniteSqlClient",
+    "ignite3-jdbc" : "site.ycsb.db.ignite3.IgniteJdbcClient",
     "infinispan-cs": "site.ycsb.db.InfinispanRemoteClient",
     "infinispan"   : "site.ycsb.db.InfinispanClient",
     "jdbc"         : "site.ycsb.db.JdbcDBClient",
@@ -104,7 +108,6 @@ DATABASES = {
     "tablestore"   : "site.ycsb.db.tablestore.TableStoreClient",
     "zookeeper"    : "site.ycsb.db.zookeeper.ZKClient"
 }
-
 OPTIONS = {
     "-P file"        : "Specify workload file",
     "-p key=value"   : "Override workload property",

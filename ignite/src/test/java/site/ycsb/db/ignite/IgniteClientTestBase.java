@@ -48,7 +48,9 @@ public class IgniteClientTestBase {
    */
   @After
   public void tearDown() throws Exception {
-    client.cleanup();
+    if (client != null) {
+      client.cleanup();
+    }
   }
 
   /**
@@ -56,7 +58,9 @@ public class IgniteClientTestBase {
    */
   @AfterClass
   public static void afterClass() {
-    cluster.close();
+    if (cluster != null) {
+      cluster.close();
+    }
 
     try {
       Thread.sleep(1000);

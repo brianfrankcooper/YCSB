@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
+<!--
 Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -19,12 +19,12 @@ LICENSE file.
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>site.ycsb</groupId>
+    <groupId>org.gridgain.ycsb</groupId>
     <artifactId>binding-parent</artifactId>
-    <version>0.18.0-SNAPSHOT</version>
+    <version>2023.1-SNAPSHOT</version>
     <relativePath>../binding-parent</relativePath>
   </parent>
-  
+
   <artifactId>nosqldb-binding</artifactId>
   <name>Oracle NoSQL Database Binding</name>
   <packaging>jar</packaging>
@@ -36,7 +36,7 @@ LICENSE file.
       <version>3.0.5</version>
     </dependency>
     <dependency>
-      <groupId>site.ycsb</groupId>
+      <groupId>org.gridgain.ycsb</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
