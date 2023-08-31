@@ -24,6 +24,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgnitionManager;
 import org.apache.ignite.InitParameters;
@@ -65,6 +66,8 @@ public abstract class IgniteAbstractClient extends DB {
 
   protected static final String PRIMARY_COLUMN_NAME = "yscb_key";
 
+  protected static final String DEFAULT_ZONE_NAME = "Z1";
+
   /**
    * Single Ignite thin client per process.
    */
@@ -100,6 +103,21 @@ public abstract class IgniteAbstractClient extends DB {
   protected static boolean disableFsync = false;
 
   /**
+   * Used to choose storage engine (e.g., 'aipersist' or 'rocksdb').
+   */
+  protected static String dbEngine;
+
+  /**
+   * Used to choose replication factor value.
+   */
+  protected static String replicas;
+
+  /**
+   * Used to choose partitions value.
+   */
+  protected static String partitions;
+
+  /**
    * Initialize any state for this DB. Called once per DB instance; there is one
    * DB instance per client thread.
    */
@@ -116,6 +134,9 @@ public abstract class IgniteAbstractClient extends DB {
         debug = Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
         useEmbeddedIgnite = Boolean.parseBoolean(getProperties().getProperty("useEmbedded", "false"));
         disableFsync = Boolean.parseBoolean(getProperties().getProperty("disableFsync", "false"));
+        dbEngine = getProperties().getProperty("dbEngine", "");
+        replicas = getProperties().getProperty("replicas", "");
+        partitions = getProperties().getProperty("partitions", "");
 
         String workDirProperty = getProperties().getProperty("workDir",
             "../ignite3-ycsb-work/" + System.currentTimeMillis());
@@ -208,14 +229,34 @@ public abstract class IgniteAbstractClient extends DB {
           .map(e -> e + " VARCHAR")
           .collect(Collectors.joining(", "));
 
-      String request = "CREATE TABLE IF NOT EXISTS " + cacheName + " ("
-          + PRIMARY_COLUMN_NAME + " VARCHAR PRIMARY KEY, "
-          + fieldsSpecs + ")";
+      String createZoneReq = "";
+      String withZoneName = "";
+      if (!dbEngine.isEmpty() || !replicas.isEmpty() || !partitions.isEmpty()) {
+        String reqDbEngine = dbEngine.isEmpty() ? "" : " ENGINE " + dbEngine;
+        String paramReplicas = replicas.isEmpty() ? "" : "replicas=" + replicas;
+        String paramPartitions = partitions.isEmpty() ? "" : "partitions=" + partitions;
+        String params = Stream.of(paramReplicas, paramPartitions)
+            .filter(s -> !s.isEmpty())
+            .collect(Collectors.joining(", "));
+        String reqWithParams = params.isEmpty() ? "" : " WITH " + params;
 
-      LOG.info("Create table request: {}", request);
+        createZoneReq = "CREATE ZONE IF NOT EXISTS " + DEFAULT_ZONE_NAME + reqDbEngine + reqWithParams + ";";
+        withZoneName = String.format(" WITH PRIMARY_ZONE='%s';", DEFAULT_ZONE_NAME);
+
+        LOG.info("Create zone request: {}", createZoneReq);
+      }
+
+      String createTableReq = "CREATE TABLE IF NOT EXISTS " + cacheName + " ("
+          + PRIMARY_COLUMN_NAME + " VARCHAR PRIMARY KEY, "
+          + fieldsSpecs + ")" + withZoneName;
+
+      LOG.info("Create table request: {}", createTableReq);
 
       try (Session ses = node0.sql().createSession()) {
-        ses.execute(null, request).close();
+        if (!createZoneReq.isEmpty()) {
+          ses.execute(null, createZoneReq).close();
+        }
+        ses.execute(null, createTableReq).close();
       }
     } catch (Exception e) {
       throw new DBException(e);
