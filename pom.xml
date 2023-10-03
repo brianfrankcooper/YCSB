@@ -124,6 +124,7 @@ LICENSE file.
     <griddb.version>4.0.0</griddb.version>
     <hbase1.version>1.4.12</hbase1.version>
     <hbase2.version>2.2.3</hbase2.version>
+    <gridgain.version>8.8.34</gridgain.version>
     <ignite.version>2.11.1</ignite.version>
     <ignite3.version>3.0.0-SNAPSHOT</ignite3.version>
     <infinispan.version>7.2.2.Final</infinispan.version>

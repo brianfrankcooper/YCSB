@@ -38,30 +38,39 @@ LICENSE file.
     <skipJDK11Tests>true</skipJDK11Tests>
   </properties>
 
+  <repositories>
+    <repository>
+      <id>gridgain-external-repository</id>
+      <url>https://www.gridgainsystems.com/nexus/content/repositories/external</url>
+    </repository>
+  </repositories>
+
   <dependencies>
     <dependency>
-      <groupId>org.apache.ignite</groupId>
+      <groupId>org.gridgain</groupId>
       <artifactId>ignite-core</artifactId>
-      <version>${ignite.version}</version>
+      <version>${gridgain.version}</version>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
-      <groupId>org.apache.ignite</groupId>
+      <groupId>org.gridgain</groupId>
       <artifactId>ignite-indexing</artifactId>
-      <version>${ignite.version}</version>
+      <version>${gridgain.version}</version>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
-      <groupId>org.apache.ignite</groupId>
+      <groupId>org.gridgain</groupId>
       <artifactId>ignite-log4j2</artifactId>
-      <version>${ignite.version}</version>
+      <version>${gridgain.version}</version>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
       <groupId>org.gridgain.ycsb</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
-      <scope>provided</scope>
     </dependency>
 
     <dependency>

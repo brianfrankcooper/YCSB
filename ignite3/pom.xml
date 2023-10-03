@@ -61,30 +61,35 @@ LICENSE file.
       <groupId>org.apache.ignite</groupId>
       <artifactId>ignite-core</artifactId>
       <version>${ignite3.version}</version>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
       <groupId>org.apache.ignite</groupId>
       <artifactId>ignite-api</artifactId>
       <version>${ignite3.version}</version>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
       <groupId>org.apache.ignite</groupId>
       <artifactId>ignite-jdbc</artifactId>
       <version>${ignite3.version}</version>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
       <groupId>org.apache.ignite</groupId>
       <artifactId>ignite-client</artifactId>
       <version>${ignite3.version}</version>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
       <groupId>org.apache.ignite</groupId>
       <artifactId>ignite-runner</artifactId>
       <version>${ignite3.version}</version>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
