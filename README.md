@@ -82,8 +82,6 @@ To build a single database binding:
 How to run Hetu YCSB test
 --------------------
 
-    On Linux:
-    ```sh
+On Linux:
+
     mvn -pl site.ycsb:hetu-binding -am clean package
-    ```
-    
