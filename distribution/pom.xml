@@ -146,6 +146,11 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>site.ycsb</groupId>
+      <artifactId>hetu-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>site.ycsb</groupId>
       <artifactId>ignite-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
