@@ -78,3 +78,12 @@ To build the full distribution, with all database bindings:
 To build a single database binding:
 
     mvn -pl site.ycsb:mongodb-binding -am clean package
+
+How to run Hetu YCSB test
+--------------------
+
+On Linux:
+    ```sh
+    mvn -pl site.ycsb:hetu-binding -am clean package
+    ```
+    
