@@ -26,10 +26,6 @@ import org.postgresql.util.PGobject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -40,44 +36,64 @@ import java.util.*;
  * PostgreNoSQL client for YCSB framework.
  */
 public class PostgreNoSQLDBClient extends DB {
+
   private static final Logger LOG = LoggerFactory.getLogger(PostgreNoSQLDBClient.class);
 
-  /** Count the number of times initialized to teardown on the last. */
-  private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
-
-  /** Cache for already prepared statements. */
-  private static ConcurrentMap<StatementType, PreparedStatement> cachedStatements;
-
-  /** The driver to get the connection to postgresql. */
-  private static Driver postgrenosqlDriver;
-
-  /** The connection to the database. */
-  private static Connection connection;
-
-  /** The class to use as the jdbc driver. */
+  /**
+   * The class to use as the jdbc driver.
+   */
   public static final String DRIVER_CLASS = "db.driver";
 
-  /** The URL to connect to the database. */
+  /**
+   * The URL to connect to the database.
+   */
   public static final String CONNECTION_URL = "postgrenosql.url";
 
-  /** The user name to use to connect to the database. */
+  /**
+   * The user name to use to connect to the database.
+   */
   public static final String CONNECTION_USER = "postgrenosql.user";
 
-  /** The password to use for establishing the connection. */
+  /**
+   * The password to use for establishing the connection.
+   */
   public static final String CONNECTION_PASSWD = "postgrenosql.passwd";
 
-  /** The JDBC connection auto-commit property for the driver. */
+  /**
+   * The JDBC connection auto-commit property for the driver.
+   */
   public static final String JDBC_AUTO_COMMIT = "postgrenosql.autocommit";
 
-  /** The primary key in the user table. */
+  /**
+   * The primary key in the user table.
+   */
   public static final String PRIMARY_KEY = "YCSB_KEY";
 
-  /** The field name prefix in the table. */
+  /**
+   * The field name prefix in the table.
+   */
   public static final String COLUMN_NAME = "YCSB_VALUE";
 
   private static final String DEFAULT_PROP = "";
 
-  /** Returns parsed boolean value from the properties if set, otherwise returns defaultVal. */
+  /**
+   * Cache for already prepared statements.
+   */
+  private Map<StatementType, PreparedStatement> cachedStatements;
+
+  /**
+   * The driver to get the connection to postgresql.
+   */
+  private Driver postgrenosqlDriver;
+
+  /**
+   * The connection to the database.
+   */
+  private Connection connection;
+
+  /**
+   * Returns parsed boolean value from the properties if set, otherwise returns defaultVal.
+   */
   private static boolean getBoolProperty(Properties props, String key, boolean defaultVal) {
     String valueStr = props.getProperty(key);
     if (valueStr != null) {
@@ -88,54 +104,50 @@ public class PostgreNoSQLDBClient extends DB {
 
   @Override
   public void init() throws DBException {
-    INIT_COUNT.incrementAndGet();
-    synchronized (PostgreNoSQLDBClient.class) {
-      if (postgrenosqlDriver != null) {
-        return;
-      }
+    if (postgrenosqlDriver != null) {
+      return;
+    }
 
-      Properties props = getProperties();
-      String urls = props.getProperty(CONNECTION_URL, DEFAULT_PROP);
-      String user = props.getProperty(CONNECTION_USER, DEFAULT_PROP);
-      String passwd = props.getProperty(CONNECTION_PASSWD, DEFAULT_PROP);
-      boolean autoCommit = getBoolProperty(props, JDBC_AUTO_COMMIT, true);
+    Properties props = getProperties();
+    String urls = props.getProperty(CONNECTION_URL, DEFAULT_PROP);
+    String user = props.getProperty(CONNECTION_USER, DEFAULT_PROP);
+    String passwd = props.getProperty(CONNECTION_PASSWD, DEFAULT_PROP);
+    boolean autoCommit = getBoolProperty(props, JDBC_AUTO_COMMIT, true);
 
-      try {
-        Properties tmpProps = new Properties();
-        tmpProps.setProperty("user", user);
-        tmpProps.setProperty("password", passwd);
+    try {
+      Properties tmpProps = new Properties();
+      tmpProps.setProperty("user", user);
+      tmpProps.setProperty("password", passwd);
 
-        cachedStatements = new ConcurrentHashMap<>();
+      cachedStatements = new HashMap<>();
 
-        postgrenosqlDriver = new Driver();
-        connection = postgrenosqlDriver.connect(urls, tmpProps);
-        connection.setAutoCommit(autoCommit);
+      postgrenosqlDriver = new Driver();
+      connection = postgrenosqlDriver.connect(urls, tmpProps);
+      connection.setAutoCommit(autoCommit);
 
-      } catch (Exception e) {
-        LOG.error("Error during initialization: " + e);
-      }
+    } catch (Exception e) {
+      LOG.error("Error during initialization: " + e);
     }
   }
 
   @Override
   public void cleanup() throws DBException {
-    if (INIT_COUNT.decrementAndGet() == 0) {
-      try {
-        cachedStatements.clear();
+    try {
+      cachedStatements.clear();
 
-        if (!connection.getAutoCommit()){
-          connection.commit();
-        }
-        connection.close();
-      } catch (SQLException e) {
-        System.err.println("Error in cleanup execution. " + e);
+      if (!connection.getAutoCommit()) {
+        connection.commit();
       }
-      postgrenosqlDriver = null;
+      connection.close();
+    } catch (SQLException e) {
+      System.err.println("Error in cleanup execution. " + e);
     }
+    postgrenosqlDriver = null;
   }
 
   @Override
-  public Status read(String tableName, String key, Set<String> fields, Map<String, ByteIterator> result) {
+  public Status read(String tableName, String key, Set<String> fields,
+      Map<String, ByteIterator> result) {
     try {
       StatementType type = new StatementType(StatementType.Type.READ, tableName, fields);
       PreparedStatement readStatement = cachedStatements.get(type);
@@ -146,16 +158,16 @@ public class PostgreNoSQLDBClient extends DB {
       ResultSet resultSet = readStatement.executeQuery();
       if (!resultSet.next()) {
         resultSet.close();
-        return  Status.NOT_FOUND;
+        return Status.NOT_FOUND;
       }
 
       if (result != null) {
-        if (fields == null){
-          do{
+        if (fields == null) {
+          do {
             String field = resultSet.getString(2);
             String value = resultSet.getString(3);
             result.put(field, new StringByteIterator(value));
-          }while (resultSet.next());
+          } while (resultSet.next());
         } else {
           for (String field : fields) {
             String value = resultSet.getString(field);
@@ -174,7 +186,7 @@ public class PostgreNoSQLDBClient extends DB {
 
   @Override
   public Status scan(String tableName, String startKey, int recordcount, Set<String> fields,
-                     Vector<HashMap<String, ByteIterator>> result) {
+      Vector<HashMap<String, ByteIterator>> result) {
     try {
       StatementType type = new StatementType(StatementType.Type.SCAN, tableName, fields);
       PreparedStatement scanStatement = cachedStatements.get(type);
@@ -206,7 +218,7 @@ public class PostgreNoSQLDBClient extends DB {
 
   @Override
   public Status update(String tableName, String key, Map<String, ByteIterator> values) {
-    try{
+    try {
       StatementType type = new StatementType(StatementType.Type.UPDATE, tableName, null);
       PreparedStatement updateStatement = cachedStatements.get(type);
       if (updateStatement == null) {
@@ -238,7 +250,7 @@ public class PostgreNoSQLDBClient extends DB {
 
   @Override
   public Status insert(String tableName, String key, Map<String, ByteIterator> values) {
-    try{
+    try {
       StatementType type = new StatementType(StatementType.Type.INSERT, tableName, null);
       PreparedStatement insertStatement = cachedStatements.get(type);
       if (insertStatement == null) {
@@ -271,7 +283,7 @@ public class PostgreNoSQLDBClient extends DB {
 
   @Override
   public Status delete(String tableName, String key) {
-    try{
+    try {
       StatementType type = new StatementType(StatementType.Type.DELETE, tableName, null);
       PreparedStatement deleteStatement = cachedStatements.get(type);
       if (deleteStatement == null) {
@@ -280,7 +292,7 @@ public class PostgreNoSQLDBClient extends DB {
       deleteStatement.setString(1, key);
 
       int result = deleteStatement.executeUpdate();
-      if (result == 1){
+      if (result == 1) {
         return Status.OK;
       }
 
@@ -292,7 +304,7 @@ public class PostgreNoSQLDBClient extends DB {
   }
 
   private PreparedStatement createAndCacheReadStatement(StatementType readType)
-      throws SQLException{
+      throws SQLException {
     PreparedStatement readStatement = connection.prepareStatement(createReadStatement(readType));
     PreparedStatement statement = cachedStatements.putIfAbsent(readType, readStatement);
     if (statement == null) {
@@ -301,13 +313,13 @@ public class PostgreNoSQLDBClient extends DB {
     return statement;
   }
 
-  private String createReadStatement(StatementType readType){
+  private String createReadStatement(StatementType readType) {
     StringBuilder read = new StringBuilder("SELECT " + PRIMARY_KEY + " AS " + PRIMARY_KEY);
 
     if (readType.getFields() == null) {
       read.append(", (jsonb_each_text(" + COLUMN_NAME + ")).*");
     } else {
-      for (String field:readType.getFields()){
+      for (String field : readType.getFields()) {
         read.append(", " + COLUMN_NAME + "->>'" + field + "' AS " + field);
       }
     }
@@ -321,7 +333,7 @@ public class PostgreNoSQLDBClient extends DB {
   }
 
   private PreparedStatement createAndCacheScanStatement(StatementType scanType)
-      throws SQLException{
+      throws SQLException {
     PreparedStatement scanStatement = connection.prepareStatement(createScanStatement(scanType));
     PreparedStatement statement = cachedStatements.putIfAbsent(scanType, scanStatement);
     if (statement == null) {
@@ -330,10 +342,10 @@ public class PostgreNoSQLDBClient extends DB {
     return statement;
   }
 
-  private String createScanStatement(StatementType scanType){
+  private String createScanStatement(StatementType scanType) {
     StringBuilder scan = new StringBuilder("SELECT " + PRIMARY_KEY + " AS " + PRIMARY_KEY);
-    if (scanType.getFields() != null){
-      for (String field:scanType.getFields()){
+    if (scanType.getFields() != null) {
+      for (String field : scanType.getFields()) {
         scan.append(", " + COLUMN_NAME + "->>'" + field + "' AS " + field);
       }
     }
@@ -349,8 +361,9 @@ public class PostgreNoSQLDBClient extends DB {
   }
 
   public PreparedStatement createAndCacheUpdateStatement(StatementType updateType)
-      throws SQLException{
-    PreparedStatement updateStatement = connection.prepareStatement(createUpdateStatement(updateType));
+      throws SQLException {
+    PreparedStatement updateStatement = connection.prepareStatement(
+        createUpdateStatement(updateType));
     PreparedStatement statement = cachedStatements.putIfAbsent(updateType, updateStatement);
     if (statement == null) {
       return updateStatement;
@@ -358,7 +371,7 @@ public class PostgreNoSQLDBClient extends DB {
     return statement;
   }
 
-  private String createUpdateStatement(StatementType updateType){
+  private String createUpdateStatement(StatementType updateType) {
     StringBuilder update = new StringBuilder("UPDATE ");
     update.append(updateType.getTableName());
     update.append(" SET ");
@@ -371,8 +384,9 @@ public class PostgreNoSQLDBClient extends DB {
   }
 
   private PreparedStatement createAndCacheInsertStatement(StatementType insertType)
-      throws SQLException{
-    PreparedStatement insertStatement = connection.prepareStatement(createInsertStatement(insertType));
+      throws SQLException {
+    PreparedStatement insertStatement = connection.prepareStatement(
+        createInsertStatement(insertType));
     PreparedStatement statement = cachedStatements.putIfAbsent(insertType, insertStatement);
     if (statement == null) {
       return insertStatement;
@@ -380,7 +394,7 @@ public class PostgreNoSQLDBClient extends DB {
     return statement;
   }
 
-  private String createInsertStatement(StatementType insertType){
+  private String createInsertStatement(StatementType insertType) {
     StringBuilder insert = new StringBuilder("INSERT INTO ");
     insert.append(insertType.getTableName());
     insert.append(" (" + PRIMARY_KEY + "," + COLUMN_NAME + ")");
@@ -389,8 +403,9 @@ public class PostgreNoSQLDBClient extends DB {
   }
 
   private PreparedStatement createAndCacheDeleteStatement(StatementType deleteType)
-      throws SQLException{
-    PreparedStatement deleteStatement = connection.prepareStatement(createDeleteStatement(deleteType));
+      throws SQLException {
+    PreparedStatement deleteStatement = connection.prepareStatement(
+        createDeleteStatement(deleteType));
     PreparedStatement statement = cachedStatements.putIfAbsent(deleteType, deleteStatement);
     if (statement == null) {
       return deleteStatement;
@@ -398,7 +413,7 @@ public class PostgreNoSQLDBClient extends DB {
     return statement;
   }
 
-  private String createDeleteStatement(StatementType deleteType){
+  private String createDeleteStatement(StatementType deleteType) {
     StringBuilder delete = new StringBuilder("DELETE FROM ");
     delete.append(deleteType.getTableName());
     delete.append(" WHERE ");
