@@ -57,22 +57,22 @@ public class IgniteJdbcClient extends AbstractSqlClient {
         stmt.setString(1, key);
 
         try (ResultSet rs = stmt.executeQuery()) {
-            if (!rs.next()) {
-              return Status.NOT_FOUND;
-            }
+          if (!rs.next()) {
+            return Status.NOT_FOUND;
+          }
 
-            if (fields == null || fields.isEmpty()) {
-              fields = new HashSet<>();
-              fields.addAll(FIELDS);
-            }
+          if (fields == null || fields.isEmpty()) {
+            fields = new HashSet<>();
+            fields.addAll(FIELDS);
+          }
 
-            for (String column : fields) {
-              String val = rs.getString(FIELDS.indexOf(column) + 1);
+          for (String column : fields) {
+            String val = rs.getString(FIELDS.indexOf(column) + 1);
 
-              if (val != null) {
-                result.put(column, new StringByteIterator(val));
-              }
+            if (val != null) {
+              result.put(column, new StringByteIterator(val));
             }
+          }
         }
       }
     } catch (Exception e) {
