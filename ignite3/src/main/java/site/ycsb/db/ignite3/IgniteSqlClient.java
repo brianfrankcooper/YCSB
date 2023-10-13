@@ -42,18 +42,18 @@ public class IgniteSqlClient extends AbstractSqlClient {
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try {
-      String qry = prepareReadStatement(table, key);
+      String qry = prepareReadStatement(table);
 
       if (debug) {
         LOG.info(qry);
       }
 
-      try (ResultSet<SqlRow> rs = session.execute(null, qry)) {
-        SqlRow row = rs.next();
-
-        if (row == null) {
+      try (ResultSet<SqlRow> rs = session.execute(null, qry, key)) {
+        if (!rs.hasNext()) {
           return Status.NOT_FOUND;
         }
+
+        SqlRow row = rs.next();
 
         if (fields == null || fields.isEmpty()) {
           fields = new HashSet<>();

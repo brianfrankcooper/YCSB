@@ -2,6 +2,7 @@ package site.ycsb.db.ignite3;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.HashSet;
@@ -46,28 +47,32 @@ public class IgniteJdbcClient extends AbstractSqlClient {
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try {
-      String qry = prepareReadStatement(table, key);
+      String qry = prepareReadStatement(table);
 
       if (debug) {
         LOG.info(qry);
       }
 
-      try (Statement stmt = CONN.get().createStatement(); ResultSet rs = stmt.executeQuery(qry)) {
-        if (!rs.next()) {
-          return Status.NOT_FOUND;
-        }
+      try (PreparedStatement stmt = CONN.get().prepareStatement(qry)) {
+        stmt.setString(1, key);
 
-        if (fields == null || fields.isEmpty()) {
-          fields = new HashSet<>();
-          fields.addAll(FIELDS);
-        }
+        try (ResultSet rs = stmt.executeQuery()) {
+            if (!rs.next()) {
+              return Status.NOT_FOUND;
+            }
 
-        for (String column : fields) {
-          String val = rs.getString(FIELDS.indexOf(column) + 1);
+            if (fields == null || fields.isEmpty()) {
+              fields = new HashSet<>();
+              fields.addAll(FIELDS);
+            }
 
-          if (val != null) {
-            result.put(column, new StringByteIterator(val));
-          }
+            for (String column : fields) {
+              String val = rs.getString(FIELDS.indexOf(column) + 1);
+
+              if (val != null) {
+                result.put(column, new StringByteIterator(val));
+              }
+            }
         }
       }
     } catch (Exception e) {

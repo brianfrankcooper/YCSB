@@ -26,7 +26,7 @@ abstract class AbstractSqlClient extends IgniteAbstractClient {
     return String.format("INSERT INTO %s (%s) VALUES (%s)", table, columnsString, valuesString);
   }
 
-  static String prepareReadStatement(String table, String key) {
-    return String.format("SELECT * FROM %s WHERE %s = '%s'", table, PRIMARY_COLUMN_NAME, key);
+  static String prepareReadStatement(String table) {
+    return String.format("SELECT * FROM %s WHERE %s = ?", table, PRIMARY_COLUMN_NAME);
   }
 }
