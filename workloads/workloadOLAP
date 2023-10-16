@@ -1,0 +1,19 @@
+# 记录数量（例如100000表示10万条记录）
+recordcount=10000000
+
+# 操作数量（例如10000表示1万次操作）
+operationcount=10000000
+
+# 工作负载类别
+workload=site.ycsb.workloads.CoreWorkload
+
+# 读取和更新操作的比例。对于OLAP工作负载，读操作将占主导地位。
+readproportion=0.95
+updateproportion=0.05
+
+# 插入操作比例和扫描操作比例。对于OLAP，通常不会进行插入，但可能会进行扫描。
+insertproportion=0
+scanproportion=0.05
+
+# 请求分布。可以选择uniform, zipfian等。
+requestdistribution=zipfian

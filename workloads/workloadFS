@@ -1,0 +1,19 @@
+# 记录数量
+recordcount=10000000
+
+# 操作数量
+operationcount=10000000
+
+# 工作负载类别
+workload=site.ycsb.workloads.CoreWorkload
+
+# 读取和更新操作的比例，可以根据实际应用的读写比例来设定
+readproportion=0.8
+updateproportion=0.2
+
+# 插入操作和扫描操作的比例。这里的值也应根据实际应用来设定
+insertproportion=0
+scanproportion=0
+
+# 请求分布。可以选择uniform, zipfian等。根据实际应用的访问模式来设定
+requestdistribution=uniform
