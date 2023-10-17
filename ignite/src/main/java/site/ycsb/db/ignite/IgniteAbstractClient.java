@@ -85,9 +85,6 @@ public abstract class IgniteAbstractClient extends DB {
   /** Node access method ("kv" - Key-Value [default], "sql" - SQL). */
   protected static String accessMethod = "kv";
 
-  /** Node access method ("atomic" - ATOMIC [default], "tx" - TRANSACTIONAL). */
-  protected static String atomicityMode = "atomic";
-
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
    * DB instance per client thread.
@@ -110,7 +107,6 @@ public abstract class IgniteAbstractClient extends DB {
       try {
         debug = Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
         useEmbeddedIgnite = Boolean.parseBoolean(getProperties().getProperty("useEmbedded", "false"));
-        atomicityMode = getProperties().getProperty("atomicityMode", "atomic");
 
         if (useEmbeddedIgnite) {
           cluster = getEmbeddedServerNode();
@@ -178,15 +174,10 @@ public abstract class IgniteAbstractClient extends DB {
           + "Expected one of 'kv', 'sql'. Actual: " + accessMethod);
     }
 
-    if (!"atomic".equalsIgnoreCase(atomicityMode) && !"tx".equalsIgnoreCase(atomicityMode)) {
-      throw new RuntimeException("Wrong value for parameter 'atomicityMode'. "
-          + "Expected one of 'atomic', 'tx'. Actual: " + atomicityMode);
-    }
-
     String workDirProperty = getProperties().getProperty("workDir", "./ignite-ycsb-work");
     embeddedIgniteWorkDir = Paths.get(workDirProperty);
 
-    String cfgFileName = String.format("emb-%s-%s.xml", accessMethod.toLowerCase(), atomicityMode.toLowerCase());
+    String cfgFileName = String.format("emb-%s.xml", accessMethod.toLowerCase());
     Path cfgPath = embeddedIgniteWorkDir.resolve(cfgFileName);
 
     Files.createDirectories(embeddedIgniteWorkDir);

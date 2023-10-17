@@ -33,6 +33,9 @@
     xsi:schemaLocation="
         http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+  <bean id="placeholderConfig" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"/>
+
   <bean id="ignite.cfg" class="org.apache.ignite.configuration.IgniteConfiguration">
 
     <property name="dataStorageConfiguration">
@@ -55,10 +58,16 @@
       <list>
         <bean class="org.apache.ignite.configuration.CacheConfiguration">
           <property name="name" value="usertable"/>
-          <property name="atomicityMode" value="TRANSACTIONAL"/>
+          <property name="atomicityMode" value="${ATOMICITY_MODE}"/>
           <property name="cacheMode" value="PARTITIONED"/>
-          <property name="backups" value="0"/>
+          <property name="backups" value="${BACKUPS_COUNT}"/>
           <property name="writeSynchronizationMode" value="FULL_SYNC"/>
+          <property name="affinity">
+            <bean class="org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction">
+              <constructor-arg value="false"/>
+              <constructor-arg value="${PARTITIONS_COUNT}"/>
+            </bean>
+          </property>
 
           <property name="queryEntities">
             <list>
