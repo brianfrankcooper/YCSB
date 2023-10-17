@@ -62,7 +62,21 @@ LICENSE file.
 
     <dependency>
       <groupId>org.gridgain</groupId>
+      <artifactId>ignite-log4j</artifactId>
+      <version>${gridgain.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.gridgain</groupId>
       <artifactId>ignite-log4j2</artifactId>
+      <version>${gridgain.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.gridgain</groupId>
+      <artifactId>ignite-spring</artifactId>
       <version>${gridgain.version}</version>
       <scope>provided</scope>
     </dependency>

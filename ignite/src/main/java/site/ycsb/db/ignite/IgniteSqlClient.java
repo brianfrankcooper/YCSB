@@ -37,6 +37,11 @@ public class IgniteSqlClient extends IgniteAbstractClient {
   private static Logger log = LogManager.getLogger(IgniteSqlClient.class);
   /** */
   private static final String PRIMARY_KEY = "YCSB_KEY";
+
+  static {
+    accessMethod = "sql";
+  }
+
   /**
    * Read a record from the database. Each field/value pair from the result will
    * be stored in a HashMap.

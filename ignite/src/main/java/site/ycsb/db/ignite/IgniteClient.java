@@ -46,6 +46,9 @@ public class IgniteClient extends IgniteAbstractClient {
    */
   private static Logger log = LogManager.getLogger(IgniteClient.class);
 
+  static {
+    accessMethod = "kv";
+  }
 
   /**
    * Cached binary type.
