@@ -36,6 +36,7 @@ public class Measurements {
     HDRHISTOGRAM,
     HDRHISTOGRAM_AND_HISTOGRAM,
     HDRHISTOGRAM_AND_RAW,
+    HDRHISTOGRAM_AND_TIMESERIES,
     TIMESERIES,
     RAW
   }
@@ -95,6 +96,9 @@ public class Measurements {
     case "hdrhistogram+raw":
       measurementType = MeasurementType.HDRHISTOGRAM_AND_RAW;
       break;
+    case "hdrhistogram+timeseries":
+      measurementType = MeasurementType.HDRHISTOGRAM_AND_TIMESERIES;
+      break;
     case "timeseries":
       measurementType = MeasurementType.TIMESERIES;
       break;
@@ -135,6 +139,10 @@ public class Measurements {
       return new TwoInOneMeasurement(name,
           new OneMeasurementHdrHistogram("Hdr" + name, props),
           new OneMeasurementRaw("Raw" + name, props));
+    case HDRHISTOGRAM_AND_TIMESERIES:
+      return new TwoInOneMeasurement(name,
+          new OneMeasurementHdrHistogram(name, props),
+          new OneMeasurementTimeSeries(name, props));
     case TIMESERIES:
       return new OneMeasurementTimeSeries(name, props);
     case RAW:
