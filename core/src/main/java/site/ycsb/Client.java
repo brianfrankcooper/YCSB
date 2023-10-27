@@ -86,6 +86,11 @@ public final class Client {
   public static final String OPERATION_COUNT_PROPERTY = "operationcount";
 
   /**
+   * The target number of warm up operations to perform.
+   */
+  public static final String WARM_UP_OPERATIONS_COUNT_PROPERTY = "warmupops";
+
+  /**
    * The number of records to load into the database initially.
    */
   public static final String RECORD_COUNT_PROPERTY = "recordcount";
@@ -211,7 +216,7 @@ public final class Client {
    *
    * @throws IOException Either failed to write to output stream or failed to close it.
    */
-  private static void exportMeasurements(Properties props, int opcount, long runtime)
+  private static void exportMeasurements(Properties props, int opcount, int warmupopcount, long runtime)
       throws IOException {
     MeasurementsExporter exporter = null;
     try {
@@ -240,6 +245,8 @@ public final class Client {
       exporter.write("OVERALL", "RunTime(ms)", runtime);
       double throughput = 1000.0 * (opcount) / (runtime);
       exporter.write("OVERALL", "Throughput(ops/sec)", throughput);
+      exporter.write("OVERALL", "Operations(payload)", opcount);
+      exporter.write("OVERALL", "Operations(warm-up)", warmupopcount);
 
       final Map<String, Long[]> gcs = Utils.getGCStatst();
       long totalGCCount = 0;
@@ -325,6 +332,7 @@ public final class Client {
     long st;
     long en;
     int opsDone;
+    int warmUpOpsDone;
 
     try (final TraceScope span = tracer.newScope(CLIENT_WORKLOAD_SPAN)) {
 
@@ -345,11 +353,14 @@ public final class Client {
       }
 
       opsDone = 0;
+      warmUpOpsDone = 0;
 
       for (Map.Entry<Thread, ClientThread> entry : threads.entrySet()) {
         try {
           entry.getKey().join();
           opsDone += entry.getValue().getOpsDone();
+          warmUpOpsDone += entry.getValue().getWarmUpOpsDone();
+          st = entry.getValue().getPayloadStart();
         } catch (InterruptedException ignored) {
           // ignored
         }
@@ -386,7 +397,7 @@ public final class Client {
 
     try {
       try (final TraceScope span = tracer.newScope(CLIENT_EXPORT_MEASUREMENTS_SPAN)) {
-        exportMeasurements(props, opsDone, en - st);
+        exportMeasurements(props, opsDone, warmUpOpsDone, en - st);
       }
     } catch (IOException e) {
       System.err.println("Could not export measurements, error: " + e.getMessage());
@@ -419,6 +430,7 @@ public final class Client {
         threadcount = opcount;
         System.out.println("Warning: the threadcount is bigger than recordcount, the threadcount will be recordcount!");
       }
+      int warmupops = Integer.parseInt(props.getProperty(WARM_UP_OPERATIONS_COUNT_PROPERTY, "0"));
       for (int threadid = 0; threadid < threadcount; threadid++) {
         DB db;
         try {
@@ -430,14 +442,20 @@ public final class Client {
         }
 
         int threadopcount = opcount / threadcount;
+        int threadwarmupopcount = warmupops / threadcount;
 
         // ensure correct number of operations, in case opcount is not a multiple of threadcount
         if (threadid < opcount % threadcount) {
           ++threadopcount;
         }
 
-        ClientThread t = new ClientThread(db, dotransactions, workload, props, threadopcount, targetperthreadperms,
-            completeLatch);
+        // ensure correct number of operations, in case warmupopcount is not a multiple of threadcount
+        if (threadid < warmupops % threadcount) {
+          ++threadwarmupopcount;
+        }
+
+        ClientThread t = new ClientThread(db, dotransactions, workload, props, threadopcount,
+            threadwarmupopcount, targetperthreadperms, completeLatch);
         t.setThreadId(threadid);
         t.setThreadCount(threadcount);
         clients.add(t);

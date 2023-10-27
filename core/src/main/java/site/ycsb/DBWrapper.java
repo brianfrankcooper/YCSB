@@ -45,6 +45,8 @@ public class DBWrapper extends DB {
 
   private static final AtomicBoolean LOG_REPORT_CONFIG = new AtomicBoolean(false);
 
+  private final ThreadLocal<Integer> opsDone = ThreadLocal.withInitial(() -> 0);
+
   private final String scopeStringCleanup;
   private final String scopeStringDelete;
   private final String scopeStringInit;
@@ -119,7 +121,9 @@ public class DBWrapper extends DB {
       long st = System.nanoTime();
       db.cleanup();
       long en = System.nanoTime();
-      measure("CLEANUP", Status.OK, ist, st, en);
+      if (isWarmUpDone()) {
+        measure("CLEANUP", Status.OK, ist, st, en);
+      }
     }
   }
 
@@ -140,8 +144,10 @@ public class DBWrapper extends DB {
       long st = System.nanoTime();
       Status res = db.read(table, key, fields, result);
       long en = System.nanoTime();
-      measure("READ", res, ist, st, en);
-      measurements.reportStatus("READ", res);
+      if (isWarmUpDone()) {
+        measure("READ", res, ist, st, en);
+        measurements.reportStatus("READ", res);
+      }
       return res;
     }
   }
@@ -164,8 +170,10 @@ public class DBWrapper extends DB {
       long st = System.nanoTime();
       Status res = db.scan(table, startkey, recordcount, fields, result);
       long en = System.nanoTime();
-      measure("SCAN", res, ist, st, en);
-      measurements.reportStatus("SCAN", res);
+      if (isWarmUpDone()) {
+        measure("SCAN", res, ist, st, en);
+        measurements.reportStatus("SCAN", res);
+      }
       return res;
     }
   }
@@ -203,8 +211,10 @@ public class DBWrapper extends DB {
       long st = System.nanoTime();
       Status res = db.update(table, key, values);
       long en = System.nanoTime();
-      measure("UPDATE", res, ist, st, en);
-      measurements.reportStatus("UPDATE", res);
+      if (isWarmUpDone()) {
+        measure("UPDATE", res, ist, st, en);
+        measurements.reportStatus("UPDATE", res);
+      }
       return res;
     }
   }
@@ -226,8 +236,10 @@ public class DBWrapper extends DB {
       long st = System.nanoTime();
       Status res = db.insert(table, key, values);
       long en = System.nanoTime();
-      measure("INSERT", res, ist, st, en);
-      measurements.reportStatus("INSERT", res);
+      if (isWarmUpDone()) {
+        measure("INSERT", res, ist, st, en);
+        measurements.reportStatus("INSERT", res);
+      }
       return res;
     }
   }
@@ -245,9 +257,16 @@ public class DBWrapper extends DB {
       long st = System.nanoTime();
       Status res = db.delete(table, key);
       long en = System.nanoTime();
-      measure("DELETE", res, ist, st, en);
-      measurements.reportStatus("DELETE", res);
+      if (isWarmUpDone()) {
+        measure("DELETE", res, ist, st, en);
+        measurements.reportStatus("DELETE", res);
+      }
       return res;
     }
+  }
+
+  private boolean isWarmUpDone() {
+    opsDone.set(opsDone.get() + 1);
+    return opsDone.get() > measurements.getWarmUpOps();
   }
 }

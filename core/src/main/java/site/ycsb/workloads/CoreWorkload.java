@@ -371,6 +371,8 @@ public class CoreWorkload extends Workload {
 
   private Measurements measurements = Measurements.getMeasurements();
 
+  private final ThreadLocal<Integer> opsDone = ThreadLocal.withInitial(() -> 0);
+
   public static String buildKeyName(long keynum, int zeropadding, boolean orderedinserts) {
     if (!orderedinserts) {
       keynum = Utils.hash(keynum);
@@ -676,6 +678,8 @@ public class CoreWorkload extends Workload {
       doTransactionReadModifyWrite(db);
     }
 
+    opsDone.set(opsDone.get() + 1);
+
     return true;
   }
 
@@ -741,7 +745,7 @@ public class CoreWorkload extends Workload {
     HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
     db.read(table, keyname, fields, cells);
 
-    if (dataintegrity) {
+    if (dataintegrity && isWarmUpDone()) {
       verifyRow(keyname, cells);
     }
   }
@@ -785,7 +789,7 @@ public class CoreWorkload extends Workload {
 
     long en = System.nanoTime();
 
-    if (dataintegrity) {
+    if (dataintegrity && isWarmUpDone()) {
       verifyRow(keyname, cells);
     }
 
@@ -894,5 +898,9 @@ public class CoreWorkload extends Workload {
       operationchooser.addValue(readmodifywriteproportion, "READMODIFYWRITE");
     }
     return operationchooser;
+  }
+
+  private boolean isWarmUpDone() {
+    return opsDone.get() >= measurements.getWarmUpOps();
   }
 }

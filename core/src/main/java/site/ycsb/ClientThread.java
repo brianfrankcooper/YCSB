@@ -34,10 +34,14 @@ public class ClientThread implements Runnable {
   private DB db;
   private boolean dotransactions;
   private Workload workload;
-  private int opcount;
+  private int warmupopscount;
+  private int totalopscount;
   private double targetOpsPerMs;
+  private Long payloadStart = null;
 
   private int opsdone;
+  private int warmupopsdone;
+  private int totalopsdone;
   private int threadid;
   private int threadcount;
   private Object workloadstate;
@@ -53,16 +57,19 @@ public class ClientThread implements Runnable {
    * @param workload             the workload to use
    * @param props                the properties defining the experiment
    * @param opcount              the number of operations (transactions or inserts) to do
+   * @param warmupopscount       the number of warm up operations (transactions or inserts) to do
    * @param targetperthreadperms target number of operations per thread per ms
    * @param completeLatch        The latch tracking the completion of all clients.
    */
   public ClientThread(DB db, boolean dotransactions, Workload workload, Properties props, int opcount,
-                      double targetperthreadperms, CountDownLatch completeLatch) {
+                      int warmupopscount, double targetperthreadperms, CountDownLatch completeLatch) {
     this.db = db;
     this.dotransactions = dotransactions;
     this.workload = workload;
-    this.opcount = opcount;
+    this.warmupopscount = warmupopscount;
+    this.totalopscount = opcount + warmupopscount;
     opsdone = 0;
+    warmupopsdone = 0;
     if (targetperthreadperms > 0) {
       targetOpsPerMs = targetperthreadperms;
       targetOpsTickNs = (long) (1000000 / targetOpsPerMs);
@@ -83,6 +90,22 @@ public class ClientThread implements Runnable {
 
   public int getOpsDone() {
     return opsdone;
+  }
+
+  public int getWarmUpOpsDone() {
+    return warmupopsdone;
+  }
+
+  public int getTotalOpsDone() {
+    return totalopsdone;
+  }
+
+  public boolean isWarmUpDone() {
+    return warmupopsdone >= warmupopscount;
+  }
+
+  public long getPayloadStart() {
+    return payloadStart;
   }
 
   @Override
@@ -117,26 +140,44 @@ public class ClientThread implements Runnable {
       if (dotransactions) {
         long startTimeNanos = System.nanoTime();
 
-        while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
+        while (((totalopscount == 0) || (totalopsdone < totalopscount)) && !workload.isStopRequested()) {
 
           if (!workload.doTransaction(db, workloadstate)) {
             break;
           }
 
-          opsdone++;
+          if (isWarmUpDone()) {
+            if (payloadStart == null) {
+              payloadStart = System.currentTimeMillis();
+            }
+            opsdone++;
+          } else {
+            warmupopsdone++;
+          }
+
+          totalopsdone++;
 
           throttleNanos(startTimeNanos);
         }
       } else {
         long startTimeNanos = System.nanoTime();
 
-        while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
+        while (((totalopscount == 0) || (totalopsdone < totalopscount)) && !workload.isStopRequested()) {
 
           if (!workload.doInsert(db, workloadstate)) {
             break;
           }
 
-          opsdone++;
+          if (isWarmUpDone()) {
+            if (payloadStart == null) {
+              payloadStart = System.currentTimeMillis();
+            }
+            opsdone++;
+          } else {
+            warmupopsdone++;
+          }
+
+          totalopsdone++;
 
           throttleNanos(startTimeNanos);
         }
@@ -170,7 +211,7 @@ public class ClientThread implements Runnable {
     //throttle the operations
     if (targetOpsPerMs > 0) {
       // delay until next tick
-      long deadline = startTimeNanos + opsdone * targetOpsTickNs;
+      long deadline = startTimeNanos + totalopsdone * targetOpsTickNs;
       sleepUntil(deadline);
       measurements.setIntendedStartTimeNs(deadline);
     }
@@ -180,7 +221,7 @@ public class ClientThread implements Runnable {
    * The total amount of work this thread is still expected to do.
    */
   int getOpsTodo() {
-    int todo = opcount - opsdone;
+    int todo = totalopscount - totalopsdone;
     return todo < 0 ? 0 : todo;
   }
 }
