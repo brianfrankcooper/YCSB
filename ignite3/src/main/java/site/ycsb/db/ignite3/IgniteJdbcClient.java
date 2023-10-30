@@ -30,13 +30,17 @@ public class IgniteJdbcClient extends AbstractSqlClient {
   public void init() throws DBException {
     super.init();
 
-    if (host == null) {
+    if (hosts == null) {
       throw new DBException(String.format(
           "Required property \"%s\" missing for Ignite Cluster",
           HOSTS_PROPERTY));
     }
 
-    String url = "jdbc:ignite:thin://" + host + ":" + ports;
+    if (hosts.contains(",")) {
+      throw new DBException("JDBC supports only 1 server host");
+    }
+
+    String url = "jdbc:ignite:thin://" + hosts + (hosts.contains(":") ? "" : ":" + DEFAULT_PORT);
     try {
       CONN.set(DriverManager.getConnection(url));
     } catch (Exception e) {

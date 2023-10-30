@@ -62,7 +62,7 @@ public abstract class IgniteAbstractClient extends DB {
 
   protected static final String HOSTS_PROPERTY = "hosts";
 
-  protected static final String PORTS_PROPERTY = "ports";
+  protected static final String DEFAULT_PORT = "10800";
 
   protected static final String PRIMARY_COLUMN_NAME = "yscb_key";
 
@@ -73,9 +73,7 @@ public abstract class IgniteAbstractClient extends DB {
    */
   protected static Ignite node;
 
-  protected static String host;
-
-  protected static String ports;
+  protected static String hosts;
 
   protected static KeyValueView<Tuple, Tuple> kvView;
 
@@ -153,13 +151,12 @@ public abstract class IgniteAbstractClient extends DB {
           FIELDS.add(fieldPrefix + i);
         }
 
-        host = getProperties().getProperty(HOSTS_PROPERTY);
-        if (!useEmbeddedIgnite && host == null) {
+        hosts = getProperties().getProperty(HOSTS_PROPERTY);
+        if (!useEmbeddedIgnite && hosts == null) {
           throw new DBException(String.format(
               "Required property \"%s\" missing for Ignite Cluster",
               HOSTS_PROPERTY));
         }
-        ports = getProperties().getProperty(PORTS_PROPERTY, "10800");
 
         if (useEmbeddedIgnite) {
           initEmbeddedServerNode();
@@ -173,7 +170,7 @@ public abstract class IgniteAbstractClient extends DB {
   }
 
   private void initIgniteClientNode() throws DBException {
-    node = IgniteClient.builder().addresses(host + ":" + ports).build();
+    node = IgniteClient.builder().addresses(hosts.split(",")).build();
     createTestTable(node);
     kvView = node.tables().table(cacheName).keyValueView();
     if (kvView == null) {
