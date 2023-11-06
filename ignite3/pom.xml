@@ -56,6 +56,14 @@ LICENSE file.
     </profile>
   </profiles>
 
+  <repositories>
+    <repository>
+      <id>gridgain-snapshots</id>
+      <name>GridGain snapshots</name>
+      <url>https://www.gridgainsystems.com/nexus/content/repositories/gridgain-snapshots</url>
+    </repository>
+  </repositories>
+
   <dependencies>
     <dependency>
       <groupId>org.apache.ignite</groupId>
