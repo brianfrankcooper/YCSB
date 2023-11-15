@@ -5,8 +5,7 @@
         "localhost:3344"
       ]
     },
-    "port": 3344,
-    "portRange": 10
+    "port": 3344
   },
   "raft": {
     "fsync": false
