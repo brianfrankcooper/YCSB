@@ -33,6 +33,7 @@ import org.apache.ignite.sql.ResultSet;
 import org.apache.ignite.sql.Session;
 import org.apache.ignite.sql.SqlRow;
 import org.apache.ignite.table.KeyValueView;
+import org.apache.ignite.table.RecordView;
 import org.apache.ignite.table.Tuple;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -76,6 +77,8 @@ public abstract class IgniteAbstractClient extends DB {
   protected static String hosts;
 
   protected static KeyValueView<Tuple, Tuple> kvView;
+
+  protected RecordView<Tuple> rView;
 
   /**
    * Count the number of times initialized to teardown on the last
@@ -173,6 +176,7 @@ public abstract class IgniteAbstractClient extends DB {
     node = IgniteClient.builder().addresses(hosts.split(",")).build();
     createTestTable(node);
     kvView = node.tables().table(cacheName).keyValueView();
+    rView = node.tables().table(cacheName).recordView();
     if (kvView == null) {
       throw new DBException("Failed to find cache: " + cacheName);
     }
@@ -182,6 +186,7 @@ public abstract class IgniteAbstractClient extends DB {
     node = startIgniteNode();
     createTestTable(node);
     kvView = node.tables().table(cacheName).keyValueView();
+    rView = node.tables().table(cacheName).recordView();
     if (kvView == null) {
       throw new DBException("Failed to find cache: " + cacheName);
     }
