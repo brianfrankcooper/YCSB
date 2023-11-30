@@ -1,0 +1,21 @@
+recordcount=10000000
+# 表示load和run操作中，使用的YCSB实例记录数
+operationcount=10000000
+# 表示load和run操作中，使用的YCSB实例操作数
+workload=site.ycsb.workloads.CoreWorkload
+# 要使用的工作负载类
+
+readallfields=true
+# 默认值是1，应该读取读取所有字段（true），只读取一个（false）
+
+readproportion=0.5
+# 表示进行read的操作占所有操作的比例
+updateproportion=0.5
+# 表示进行update的操作占所有操作的比例
+scanproportion=0
+# 表示进行scan的操作占所有操作的比例
+insertproportion=0
+# 表示进行insert的操作占所有操作的比例
+
+requestdistribution=zipfian
+# 表示使用什么分布来选择要操作的记录：uniform, zipfian, hotspot, sequential, exponential 和 latest

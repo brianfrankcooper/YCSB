@@ -1,0 +1,207 @@
+# Copyright (c) 2012-2016 YCSB contributors. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you
+# may not use this file except in compliance with the License. You
+# may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing
+# permissions and limitations under the License. See accompanying
+# LICENSE file.
+
+# Yahoo! Cloud System Benchmark
+# Workload Template: Default Values
+#
+# File contains all properties that can be set to define a
+# YCSB session. All properties are set to their default
+# value if one exists. If not, the property is commented
+# out. When a property has a finite number of settings,
+# the default is enabled and the alternates are shown in
+# comments below it.
+# 
+# Use of most explained through comments in Client.java or 
+# CoreWorkload.java or on the YCSB wiki page:
+# https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties
+
+# The name of the workload class to use
+workload=site.ycsb.workloads.CoreWorkload
+
+# There is no default setting for recordcount but it is
+# required to be set.
+# The number of records in the table to be inserted in
+# the load phase or the number of records already in the 
+# table before the run phase.
+recordcount=1000000
+
+# There is no default setting for operationcount but it is
+# required to be set.
+# The number of operations to use during the run phase.
+operationcount=3000000
+
+# The number of insertions to do, if different from recordcount.
+# Used with insertstart to grow an existing table.
+#insertcount=
+
+# The offset of the first insertion
+insertstart=0
+
+# The number of fields in a record
+fieldcount=10
+
+# The size of each field (in bytes)
+fieldlength=100
+
+# Should read all fields
+readallfields=true
+
+# Should write all fields on update
+writeallfields=false
+
+# The distribution used to choose the length of a field
+fieldlengthdistribution=constant
+#fieldlengthdistribution=uniform
+#fieldlengthdistribution=zipfian
+
+# What proportion of operations are reads
+readproportion=0.95
+
+# What proportion of operations are updates
+updateproportion=0.05
+
+# What proportion of operations are inserts
+insertproportion=0
+
+# What proportion of operations read then modify a record
+readmodifywriteproportion=0
+
+# What proportion of operations are scans
+scanproportion=0
+
+# On a single scan, the maximum number of records to access
+maxscanlength=1000
+
+# The distribution used to choose the number of records to access on a scan
+scanlengthdistribution=uniform
+#scanlengthdistribution=zipfian
+
+# Should records be inserted in order or pseudo-randomly
+insertorder=hashed
+#insertorder=ordered
+
+# The distribution of requests across the keyspace
+requestdistribution=zipfian
+#requestdistribution=uniform
+#requestdistribution=latest
+
+# Percentage of data items that constitute the hot set
+hotspotdatafraction=0.2
+
+# Percentage of operations that access the hot set
+hotspotopnfraction=0.8
+
+# Maximum execution time in seconds
+#maxexecutiontime= 
+
+# The name of the database table to run queries against
+table=usertable
+
+# The column family of fields (required by some databases)
+#columnfamily=
+
+# How the latency measurements are presented
+measurementtype=histogram
+#measurementtype=timeseries
+#measurementtype=raw
+# When measurementtype is set to raw, measurements will be output
+# as RAW datapoints in the following csv format:
+# "operation, timestamp of the measurement, latency in us"
+#
+# Raw datapoints are collected in-memory while the test is running. Each
+# data point consumes about 50 bytes (including java object overhead).
+# For a typical run of 1 million to 10 million operations, this should
+# fit into memory most of the time. If you plan to do 100s of millions of
+# operations per run, consider provisioning a machine with larger RAM when using
+# the RAW measurement type, or split the run into multiple runs.
+#
+# Optionally, you can specify an output file to save raw datapoints.
+# Otherwise, raw datapoints will be written to stdout.
+# The output file will be appended to if it already exists, otherwise
+# a new output file will be created.
+#measurement.raw.output_file = /tmp/your_output_file_for_this_run
+
+# Whether or not to emit individual histogram buckets when measuring
+# using histograms.
+# measurement.histogram.verbose = false
+
+# JVM Reporting.
+#
+# Measure JVM information over time including GC counts, max and min memory
+# used, max and min thread counts, max and min system load and others. This
+# setting must be enabled in conjunction with the "-s" flag to run the status
+# thread. Every "status.interval", the status thread will capture JVM 
+# statistics and record the results. At the end of the run, max and mins will
+# be recorded.
+# measurement.trackjvm = false
+
+# The range of latencies to track in the histogram (milliseconds)
+histogram.buckets=1000
+
+# Granularity for time series (in milliseconds)
+timeseries.granularity=1000
+
+# Latency reporting.
+#
+# YCSB records latency of failed operations separately from successful ones.
+# Latency of all OK operations will be reported under their operation name,
+# such as [READ], [UPDATE], etc.
+#
+# For failed operations:
+# By default we don't track latency numbers of specific error status.
+# We just report latency of all failed operation under one measurement name
+# such as [READ-FAILED]. But optionally, user can configure to have either:
+# 1. Record and report latency for each and every error status code by
+#    setting reportLatencyForEachError to true, or
+# 2. Record and report latency for a select set of error status codes by
+#    providing a CSV list of Status codes via the "latencytrackederrors"
+#    property.
+# reportlatencyforeacherror=false
+# latencytrackederrors="<comma separated strings of error codes>"
+
+# Insertion error retry for the core workload.
+#
+# By default, the YCSB core workload does not retry any operations.
+# However, during the load process, if any insertion fails, the entire
+# load process is terminated.
+# If a user desires to have more robust behavior during this phase, they can
+# enable retry for insertion by setting the following property to a positive
+# number.
+# core_workload_insertion_retry_limit = 0
+#
+# the following number controls the interval between retries (in seconds):
+# core_workload_insertion_retry_interval = 3
+
+# Distributed Tracing via Apache HTrace (http://htrace.incubator.apache.org/)
+#
+# Defaults to blank / no tracing
+# Below sends to a local file, sampling at 0.1%
+#
+# htrace.sampler.classes=ProbabilitySampler
+# htrace.sampler.fraction=0.001
+# htrace.span.receiver.classes=org.apache.htrace.core.LocalFileSpanReceiver
+# htrace.local.file.span.receiver.path=/some/path/to/local/file
+#
+# To capture all spans, use the AlwaysSampler
+#
+# htrace.sampler.classes=AlwaysSampler
+#
+# To send spans to an HTraced receiver, use the below and ensure
+# your classpath contains the htrace-htraced jar (i.e. when invoking the ycsb
+# command add -cp /path/to/htrace-htraced.jar)
+#
+# htrace.span.receiver.classes=org.apache.htrace.impl.HTracedSpanReceiver
+# htrace.htraced.receiver.address=example.com:9075
+# htrace.htraced.error.log.period.ms=10000
