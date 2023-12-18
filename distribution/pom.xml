@@ -21,7 +21,7 @@ LICENSE file.
   <parent>
     <groupId>org.gridgain.ycsb</groupId>
     <artifactId>root</artifactId>
-    <version>2023.10-SNAPSHOT</version>
+    <version>2023.11-SNAPSHOT</version>
   </parent>
 
   <artifactId>ycsb</artifactId>
