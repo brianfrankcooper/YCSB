@@ -1,32 +1,60 @@
 package site.ycsb.db.ignite3;
 
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import site.ycsb.ByteIterator;
+import site.ycsb.DBException;
 
 abstract class AbstractSqlClient extends IgniteAbstractClient {
+  /** SQL string of prepared statement for reading values. */
+  protected static String readPreparedStatementString;
 
-  static String prepareInsertStatement(String table, String key, Map<String, ByteIterator> values) {
-    List<String> columns = new ArrayList<>(Collections.singletonList(PRIMARY_COLUMN_NAME));
-    List<String> insertValues = new ArrayList<>(Collections.singletonList(key));
+  /** SQL string of prepared statement for inserting values. */
+  protected static String insertPreparedStatementString;
 
-    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-      columns.add(entry.getKey());
-      insertValues.add(entry.getValue().toString());
+  /** {@inheritDoc} */
+  @Override
+  public void init() throws DBException {
+    super.init();
+
+    synchronized (AbstractSqlClient.class) {
+      if (readPreparedStatementString != null || insertPreparedStatementString != null) {
+        return;
+      }
+
+      readPreparedStatementString = String.format("SELECT * FROM %s WHERE %s = ?", cacheName, PRIMARY_COLUMN_NAME);
+
+      List<String> columns = new ArrayList<>(Collections.singletonList(PRIMARY_COLUMN_NAME));
+      columns.addAll(FIELDS);
+
+      String columnsString = String.join(", ", columns);
+
+      String valuesString = String.join(", ", Collections.nCopies(columns.size(), "?"));
+
+      insertPreparedStatementString = String.format("INSERT INTO %s (%s) VALUES (%s)",
+          cacheName, columnsString, valuesString);
     }
-
-    String columnsString = String.join(", ", columns);
-    String valuesString = insertValues.stream()
-        .map(e -> "'" + e.replaceAll("'", "''") + "'")
-        .collect(Collectors.joining(", "));
-
-    return String.format("INSERT INTO %s (%s) VALUES (%s)", table, columnsString, valuesString);
   }
 
-  static String prepareReadStatement(String table) {
-    return String.format("SELECT * FROM %s WHERE %s = ?", table, PRIMARY_COLUMN_NAME);
+  /**
+   * Set values for the prepared statement object.
+   *
+   * @param statement Prepared statement object.
+   * @param key Key field value.
+   * @param values Values.
+   */
+  static void setStatementValues(PreparedStatement statement, String key, Map<String, ByteIterator> values)
+      throws SQLException {
+    int i = 1;
+
+    statement.setString(i++, key);
+
+    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+      statement.setString(i++, entry.getValue().toString());
+    }
   }
 }
