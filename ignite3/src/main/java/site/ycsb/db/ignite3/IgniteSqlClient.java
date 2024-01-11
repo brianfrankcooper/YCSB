@@ -96,7 +96,7 @@ public class IgniteSqlClient extends AbstractSqlClient {
       if (table.equals(cacheName)) {
         List<String> valuesList = new ArrayList<>();
         valuesList.add(key);
-        values.values().forEach(v -> valuesList.add(String.valueOf(v)));
+        FIELDS.forEach(fieldName -> valuesList.add(String.valueOf(values.get(fieldName))));
         session.execute(null, insertPreparedStatementString, (Object[]) valuesList.toArray(new String[0])).close();
       } else {
         throw new UnsupportedOperationException("Unexpected table name: " + table);

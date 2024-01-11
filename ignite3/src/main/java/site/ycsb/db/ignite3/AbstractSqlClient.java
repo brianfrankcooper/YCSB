@@ -53,8 +53,8 @@ abstract class AbstractSqlClient extends IgniteAbstractClient {
 
     statement.setString(i++, key);
 
-    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-      statement.setString(i++, entry.getValue().toString());
+    for (String fieldName: FIELDS) {
+      statement.setString(i++, values.get(fieldName).toString());
     }
   }
 }

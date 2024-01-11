@@ -72,7 +72,7 @@ LICENSE file.
 
   <profiles>
     <profile>
-      <!-- Build profile when running via yscb.sh or yscb.bat-->
+      <!-- Build profile when running via ycsb.sh or ycsb.bat-->
       <id>source-run</id>
       <build>
         <plugins>

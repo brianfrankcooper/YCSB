@@ -19,7 +19,7 @@ declare -a WORKLOADS=(
 GLOBAL_ARGS=
 #GLOBAL_ARGS="-p operationcount=10 -p recordcount=10 -p debug=true"
 
-function runYscb() {
+function runYcsb() {
   local mode=$1
   local binding=$2
   local logFileName=$3
@@ -53,9 +53,9 @@ function runBinding() {
 
   rm -rf ignite3-work
 
-  runYscb "load" "${binding}" "${logFileName}" "-threads 4"
-  runYscb "run"  "${binding}" "${logFileName}" "-threads 1"
-  runYscb "run"  "${binding}" "${logFileName}" "-threads 4"
+  runYcsb "load" "${binding}" "${logFileName}" "-threads 4"
+  runYcsb "run"  "${binding}" "${logFileName}" "-threads 1"
+  runYcsb "run"  "${binding}" "${logFileName}" "-threads 4"
 }
 
 for binding in "${BINDINGS[@]}"; do
