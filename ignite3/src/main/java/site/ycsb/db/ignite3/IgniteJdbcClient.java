@@ -63,11 +63,7 @@ public class IgniteJdbcClient extends AbstractSqlClient {
           HOSTS_PROPERTY));
     }
 
-    if (hosts.contains(",")) {
-      throw new DBException("JDBC supports only 1 server host");
-    }
-
-    String url = "jdbc:ignite:thin://" + hosts + (hosts.contains(":") ? "" : ":" + DEFAULT_PORT);
+    String url = "jdbc:ignite:thin://" + hosts;
     try {
       CONN.set(DriverManager.getConnection(url));
     } catch (Exception e) {

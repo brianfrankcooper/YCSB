@@ -63,8 +63,6 @@ public abstract class IgniteAbstractClient extends DB {
 
   protected static final String HOSTS_PROPERTY = "hosts";
 
-  protected static final String DEFAULT_PORT = "10800";
-
   protected static final String PRIMARY_COLUMN_NAME = "ycsb_key";
 
   protected static final String DEFAULT_ZONE_NAME = "Z1";
