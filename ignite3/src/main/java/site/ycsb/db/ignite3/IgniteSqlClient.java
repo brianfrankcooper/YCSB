@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.ignite.sql.ResultSet;
 import org.apache.ignite.sql.Session;
 import org.apache.ignite.sql.SqlRow;
+import org.apache.ignite.sql.Statement;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import site.ycsb.ByteIterator;
@@ -26,6 +27,24 @@ public class IgniteSqlClient extends AbstractSqlClient {
   protected static Session session;
 
   private static final AtomicInteger SQL_INIT_COUNT = new AtomicInteger(0);
+
+  /** Statement for reading values. */
+  private static final ThreadLocal<Statement> READ_STATEMENT = ThreadLocal
+      .withInitial(IgniteSqlClient::buildReadStatement);
+
+  /** Statement for inserting values. */
+  private static final ThreadLocal<Statement> INSERT_STATEMENT = ThreadLocal
+      .withInitial(IgniteSqlClient::buildInsertStatement);
+
+  /** Build statement for reading values. */
+  private static Statement buildReadStatement() {
+    return node.sql().createStatement(readPreparedStatementString);
+  }
+
+  /** Build statement for inserting values. */
+  private static Statement buildInsertStatement() {
+    return node.sql().createStatement(insertPreparedStatementString);
+  }
 
   /** {@inheritDoc} */
   @Override
@@ -45,7 +64,7 @@ public class IgniteSqlClient extends AbstractSqlClient {
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try {
-      try (ResultSet<SqlRow> rs = session.execute(null, readPreparedStatementString, key)) {
+      try (ResultSet<SqlRow> rs = session.execute(null, READ_STATEMENT.get(), key)) {
         if (!rs.hasNext()) {
           return Status.NOT_FOUND;
         }
@@ -97,7 +116,7 @@ public class IgniteSqlClient extends AbstractSqlClient {
         List<String> valuesList = new ArrayList<>();
         valuesList.add(key);
         FIELDS.forEach(fieldName -> valuesList.add(String.valueOf(values.get(fieldName))));
-        session.execute(null, insertPreparedStatementString, (Object[]) valuesList.toArray(new String[0])).close();
+        session.execute(null, INSERT_STATEMENT.get(), (Object[]) valuesList.toArray(new String[0])).close();
       } else {
         throw new UnsupportedOperationException("Unexpected table name: " + table);
       }
@@ -140,6 +159,13 @@ public class IgniteSqlClient extends AbstractSqlClient {
 
       if (currInitCount <= 0) {
         try {
+          if (READ_STATEMENT.get() != null) {
+            READ_STATEMENT.get().close();
+          }
+          if (INSERT_STATEMENT.get() != null) {
+            INSERT_STATEMENT.get().close();
+          }
+
           session.close();
           session = null;
         } catch (Exception e) {
