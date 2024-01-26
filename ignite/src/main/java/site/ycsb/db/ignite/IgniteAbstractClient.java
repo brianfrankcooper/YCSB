@@ -23,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -59,9 +60,7 @@ public abstract class IgniteAbstractClient extends DB {
 
   protected static final String DEFAULT_CACHE_NAME = "usertable";
   protected static final String HOSTS_PROPERTY = "hosts";
-  protected static final String PORTS_PROPERTY = "ports";
   protected static final String CLIENT_NODE_NAME = "YCSB client node";
-  protected static final String PORTS_DEFAULTS = "47500..47509";
 
   /**
    * Count the number of times initialized to teardown on the last
@@ -132,27 +131,18 @@ public abstract class IgniteAbstractClient extends DB {
     IgniteConfiguration igcfg = new IgniteConfiguration();
     igcfg.setIgniteInstanceName(CLIENT_NODE_NAME);
 
-    String host = getProperties().getProperty(HOSTS_PROPERTY);
-    if (host == null) {
+    String hosts = getProperties().getProperty(HOSTS_PROPERTY);
+    if (hosts == null) {
       throw new DBException(String.format(
           "Required property \"%s\" missing for Ignite Cluster",
           HOSTS_PROPERTY));
-    }
-
-    String ports = getProperties().getProperty(PORTS_PROPERTY, PORTS_DEFAULTS);
-
-    if (ports == null) {
-      throw new DBException(String.format(
-          "Required property \"%s\" missing for Ignite Cluster",
-          PORTS_PROPERTY));
     }
 
     System.setProperty("IGNITE_QUIET", "false");
 
     TcpDiscoverySpi disco = new TcpDiscoverySpi();
 
-    Collection<String> addrs = new LinkedHashSet<>();
-    addrs.add(host + ":" + ports);
+    Collection<String> addrs = new LinkedHashSet<>(Arrays.asList(hosts.split(",")));
 
     ((TcpDiscoveryVmIpFinder) ipFinder).setAddresses(addrs);
     disco.setIpFinder(ipFinder);
