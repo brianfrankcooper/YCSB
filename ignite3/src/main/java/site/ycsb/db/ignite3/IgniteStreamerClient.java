@@ -42,8 +42,8 @@ public class IgniteStreamerClient extends IgniteAbstractClient {
    */
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
-  /** Data streamer batch size. */
-  protected static final int DATA_STREAMER_BATCH_SIZE = 1000;
+  /** Data streamer page size. */
+  protected static final int DATA_STREAMER_PAGE_SIZE = 1000;
 
   /** Data streamer auto-flush frequency. */
   protected static final int DATA_STREAMER_AUTOFLUSH_FREQUENCY = 5000;
@@ -67,7 +67,7 @@ public class IgniteStreamerClient extends IgniteAbstractClient {
       }
 
       DataStreamerOptions dsOptions = DataStreamerOptions.builder()
-          .batchSize(DATA_STREAMER_BATCH_SIZE)
+          .pageSize(DATA_STREAMER_PAGE_SIZE)
           .autoFlushFrequency(DATA_STREAMER_AUTOFLUSH_FREQUENCY)
           .build();
       rvPublisher = new SubmissionPublisher<Tuple>();
