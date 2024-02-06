@@ -102,7 +102,9 @@ public class RocksDBClient extends DB {
     final List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
 
     RocksDB.loadLibrary();
-    OptionsUtil.loadOptionsFromFile(optionsFile.toAbsolutePath().toString(), Env.getDefault(), options, cfDescriptors);
+    ConfigOptions configOptions = new ConfigOptions();
+    configOptions.setEnv(Env.getDefault());
+    OptionsUtil.loadOptionsFromFile(configOptions, optionsFile.toAbsolutePath().toString(), options, cfDescriptors);
     dbOptions = options;
 
     final RocksDB db = RocksDB.open(options, rocksDbDir.toAbsolutePath().toString(), cfDescriptors, cfHandles);
