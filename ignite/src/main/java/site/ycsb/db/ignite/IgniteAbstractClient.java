@@ -23,10 +23,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.Vector;
@@ -48,6 +51,7 @@ import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
+import site.ycsb.workloads.CoreWorkload;
 
 /**
  * Ignite abstract client.
@@ -59,8 +63,11 @@ public abstract class IgniteAbstractClient extends DB {
   protected static Logger log = LogManager.getLogger(IgniteAbstractClient.class);
 
   protected static final String DEFAULT_CACHE_NAME = "usertable";
+  protected static final String PRIMARY_COLUMN_NAME = "ycsb_key";
   protected static final String HOSTS_PROPERTY = "hosts";
   protected static final String CLIENT_NODE_NAME = "YCSB client node";
+  protected static final List<String> FIELDS = new ArrayList<>();
+  protected static final Set<String> ACCESS_METHODS = new HashSet<>(Arrays.asList("kv", "sql", "jdbc"));
 
   /**
    * Count the number of times initialized to teardown on the last
@@ -79,9 +86,17 @@ public abstract class IgniteAbstractClient extends DB {
   /** Start an embedded Ignite node instead of connecting to an external one. */
   protected static boolean useEmbeddedIgnite = false;
 
+  protected static String cacheName;
+
+  protected static int fieldCount;
+
+  protected static String fieldPrefix;
+
+  protected static String hosts;
+
   protected static Path embeddedIgniteWorkDir;
 
-  /** Node access method ("kv" - Key-Value [default], "sql" - SQL). */
+  /** Node access method ("kv" - Key-Value [default], "sql" - SQL, "jdbc" - JDBC). */
   protected static String accessMethod = "kv";
 
   /**
@@ -106,6 +121,16 @@ public abstract class IgniteAbstractClient extends DB {
       try {
         debug = Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
         useEmbeddedIgnite = Boolean.parseBoolean(getProperties().getProperty("useEmbedded", "false"));
+        cacheName = getProperties().getProperty(CoreWorkload.TABLENAME_PROPERTY,
+            CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
+        fieldCount = Integer.parseInt(getProperties().getProperty(
+            CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
+        fieldPrefix = getProperties().getProperty(CoreWorkload.FIELD_NAME_PREFIX,
+            CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
+
+        for (int i = 0; i < fieldCount; i++) {
+          FIELDS.add(fieldPrefix + i);
+        }
 
         if (useEmbeddedIgnite) {
           cluster = getEmbeddedServerNode();
@@ -131,7 +156,7 @@ public abstract class IgniteAbstractClient extends DB {
     IgniteConfiguration igcfg = new IgniteConfiguration();
     igcfg.setIgniteInstanceName(CLIENT_NODE_NAME);
 
-    String hosts = getProperties().getProperty(HOSTS_PROPERTY);
+    hosts = getProperties().getProperty(HOSTS_PROPERTY);
     if (hosts == null) {
       throw new DBException(String.format(
           "Required property \"%s\" missing for Ignite Cluster",
@@ -159,9 +184,9 @@ public abstract class IgniteAbstractClient extends DB {
   }
 
   private Ignite getEmbeddedServerNode() throws IOException {
-    if (!"kv".equalsIgnoreCase(accessMethod) && !"sql".equalsIgnoreCase(accessMethod)) {
+    if (ACCESS_METHODS.contains(accessMethod.toLowerCase())) {
       throw new RuntimeException("Wrong value for parameter 'accessMethod'. "
-          + "Expected one of 'kv', 'sql'. Actual: " + accessMethod);
+          + "Expected one of " + ACCESS_METHODS + " . Actual: " + accessMethod);
     }
 
     String workDirProperty = getProperties().getProperty("workDir", "./ignite-ycsb-work");

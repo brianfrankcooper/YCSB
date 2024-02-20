@@ -16,6 +16,9 @@ abstract class AbstractSqlClient extends IgniteAbstractClient {
   /** SQL string of prepared statement for inserting values. */
   protected static String insertPreparedStatementString;
 
+  /** SQL string of prepared statement for deleting values. */
+  protected static String deletePreparedStatementString;
+
   /** {@inheritDoc} */
   @Override
   public void init() throws DBException {

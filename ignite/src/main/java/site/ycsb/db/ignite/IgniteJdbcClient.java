@@ -1,4 +1,4 @@
-package site.ycsb.db.ignite3;
+package site.ycsb.db.ignite;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -20,10 +21,23 @@ import site.ycsb.Status;
 import site.ycsb.StringByteIterator;
 
 /**
- * Ignite3 JDBC client.
+ * Ignite2 JDBC client.
  */
-public class IgniteJdbcClient extends AbstractSqlClient {
+public class IgniteJdbcClient extends IgniteAbstractClient {
+  static {
+    accessMethod = "jdbc";
+  }
+
   public static final Logger LOG = LogManager.getLogger(IgniteJdbcClient.class);
+
+  /** SQL string of prepared statement for reading values. */
+  protected static String readPreparedStatementString;
+
+  /** SQL string of prepared statement for inserting values. */
+  protected static String insertPreparedStatementString;
+
+  /** SQL string of prepared statement for deleting values. */
+  protected static String deletePreparedStatementString;
 
   /**
    * Use separate connection per thread since sharing a single Connection object is not recommended.
@@ -74,17 +88,38 @@ public class IgniteJdbcClient extends AbstractSqlClient {
   public void init() throws DBException {
     super.init();
 
-    if (hosts == null) {
-      throw new DBException(String.format(
-          "Required property \"%s\" missing for Ignite Cluster",
-          HOSTS_PROPERTY));
-    }
+    synchronized (IgniteJdbcClient.class) {
+      if (readPreparedStatementString != null || insertPreparedStatementString != null
+          || deletePreparedStatementString != null) {
+        return;
+      }
 
-    String url = "jdbc:ignite:thin://" + hosts;
-    try {
-      CONN.set(DriverManager.getConnection(url));
-    } catch (Exception e) {
-      throw new DBException(e);
+      readPreparedStatementString = String.format("SELECT * FROM %s WHERE %s = ?", cacheName, PRIMARY_COLUMN_NAME);
+
+      List<String> columns = new ArrayList<>(Collections.singletonList(PRIMARY_COLUMN_NAME));
+      columns.addAll(FIELDS);
+
+      String columnsString = String.join(", ", columns);
+
+      String valuesString = String.join(", ", Collections.nCopies(columns.size(), "?"));
+
+      insertPreparedStatementString = String.format("INSERT INTO %s (%s) VALUES (%s)",
+          cacheName, columnsString, valuesString);
+
+      deletePreparedStatementString = String.format("DELETE * FROM %s WHERE %s = ?", cacheName, PRIMARY_COLUMN_NAME);
+
+      if (hosts == null) {
+        throw new DBException(String.format(
+            "Required property \"%s\" missing for Ignite Cluster",
+            HOSTS_PROPERTY));
+      }
+
+      String url = "jdbc:ignite:thin://" + hosts;
+      try {
+        CONN.set(DriverManager.getConnection(url));
+      } catch (Exception e) {
+        throw new DBException(e);
+      }
     }
   }
 
@@ -221,5 +256,23 @@ public class IgniteJdbcClient extends AbstractSqlClient {
     }
 
     super.cleanup();
+  }
+
+  /**
+   * Set values for the prepared statement object.
+   *
+   * @param statement Prepared statement object.
+   * @param key Key field value.
+   * @param values Values.
+   */
+  static void setStatementValues(PreparedStatement statement, String key, Map<String, ByteIterator> values)
+      throws SQLException {
+    int i = 1;
+
+    statement.setString(i++, key);
+
+    for (String fieldName : FIELDS) {
+      statement.setString(i++, values.get(fieldName).toString());
+    }
   }
 }
