@@ -96,7 +96,7 @@ public abstract class IgniteAbstractClient extends DB {
 
   protected static Path embeddedIgniteWorkDir;
 
-  /** Node access method ("kv" - Key-Value [default], "sql" - SQL, "jdbc" - JDBC). */
+  /** Node access method ("kv" - Key-Value [default], "sql" - Thick Java client SQL, "jdbc" - JDBC). */
   protected static String accessMethod = "kv";
 
   /**
