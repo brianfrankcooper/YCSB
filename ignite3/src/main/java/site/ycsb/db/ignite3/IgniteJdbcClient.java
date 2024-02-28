@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import site.ycsb.ByteIterator;
@@ -74,11 +75,9 @@ public class IgniteJdbcClient extends AbstractSqlClient {
   public void init() throws DBException {
     super.init();
 
-    if (hosts == null) {
-      throw new DBException(String.format(
-          "Required property \"%s\" missing for Ignite Cluster",
-          HOSTS_PROPERTY));
-    }
+    String hosts = node.clusterNodes().stream()
+        .map(clusterNode -> clusterNode.address().toString().split(":")[0])
+        .collect(Collectors.joining(","));
 
     String url = "jdbc:ignite:thin://" + hosts;
     try {

@@ -25,7 +25,8 @@ abstract class AbstractSqlClient extends IgniteAbstractClient {
     super.init();
 
     synchronized (AbstractSqlClient.class) {
-      if (readPreparedStatementString != null || insertPreparedStatementString != null) {
+      if (readPreparedStatementString != null || insertPreparedStatementString != null
+          || deletePreparedStatementString != null) {
         return;
       }
 
@@ -40,6 +41,8 @@ abstract class AbstractSqlClient extends IgniteAbstractClient {
 
       insertPreparedStatementString = String.format("INSERT INTO %s (%s) VALUES (%s)",
           cacheName, columnsString, valuesString);
+
+      deletePreparedStatementString = String.format("DELETE * FROM %s WHERE %s = ?", cacheName, PRIMARY_COLUMN_NAME);
     }
   }
 

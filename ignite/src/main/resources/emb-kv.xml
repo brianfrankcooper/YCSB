@@ -58,6 +58,7 @@
       <list>
         <bean class="org.apache.ignite.configuration.CacheConfiguration">
           <property name="name" value="usertable"/>
+          <property name="sqlSchema" value="PUBLIC"/>
           <property name="atomicityMode" value="${ATOMICITY_MODE}"/>
           <property name="cacheMode" value="PARTITIONED"/>
           <property name="backups" value="${BACKUPS_COUNT}"/>

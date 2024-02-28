@@ -184,7 +184,7 @@ public abstract class IgniteAbstractClient extends DB {
   }
 
   private Ignite getEmbeddedServerNode() throws IOException {
-    if (ACCESS_METHODS.contains(accessMethod.toLowerCase())) {
+    if (!ACCESS_METHODS.contains(accessMethod.toLowerCase())) {
       throw new RuntimeException("Wrong value for parameter 'accessMethod'. "
           + "Expected one of " + ACCESS_METHODS + " . Actual: " + accessMethod);
     }

@@ -108,11 +108,9 @@ public class IgniteJdbcClient extends IgniteAbstractClient {
 
       deletePreparedStatementString = String.format("DELETE * FROM %s WHERE %s = ?", cacheName, PRIMARY_COLUMN_NAME);
 
-      if (hosts == null) {
-        throw new DBException(String.format(
-            "Required property \"%s\" missing for Ignite Cluster",
-            HOSTS_PROPERTY));
-      }
+      Set<String> addrs = new HashSet<>();
+      cluster.cluster().nodes().forEach(clusterNode -> addrs.addAll(clusterNode.addresses()));
+      String hosts = String.join(",", addrs);
 
       String url = "jdbc:ignite:thin://" + hosts;
       try {
