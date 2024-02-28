@@ -23,7 +23,7 @@ LICENSE file.
   <parent>
     <groupId>org.gridgain.ycsb</groupId>
     <artifactId>binding-parent</artifactId>
-    <version>2024.3-SNAPSHOT</version>
+    <version>2024.4-SNAPSHOT</version>
     <relativePath>../binding-parent</relativePath>
   </parent>
 
