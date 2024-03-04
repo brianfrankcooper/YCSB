@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.SubmissionPublisher;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.ignite.table.DataStreamerItem;
 import org.apache.ignite.table.DataStreamerOptions;
 import org.apache.ignite.table.Tuple;
 import org.apache.logging.log4j.LogManager;
@@ -49,7 +50,7 @@ public class IgniteStreamerClient extends IgniteAbstractClient {
   protected static final int DATA_STREAMER_AUTOFLUSH_FREQUENCY = 5000;
 
   /** Record view publisher. */
-  protected SubmissionPublisher rvPublisher;
+  protected SubmissionPublisher<DataStreamerItem<Tuple>> rvPublisher;
 
   /** Record view data streamer completable future. */
   protected CompletableFuture<Void> rvStreamerFut;
@@ -61,7 +62,7 @@ public class IgniteStreamerClient extends IgniteAbstractClient {
 
     INIT_COUNT.incrementAndGet();
 
-    synchronized (IgniteSqlClient.class) {
+    synchronized (IgniteStreamerClient.class) {
       if (rvPublisher != null) {
         return;
       }
@@ -70,7 +71,7 @@ public class IgniteStreamerClient extends IgniteAbstractClient {
           .pageSize(DATA_STREAMER_PAGE_SIZE)
           .autoFlushFrequency(DATA_STREAMER_AUTOFLUSH_FREQUENCY)
           .build();
-      rvPublisher = new SubmissionPublisher<Tuple>();
+      rvPublisher = new SubmissionPublisher<>();
       rvStreamerFut = rView.streamData(rvPublisher, dsOptions);
     }
   }
@@ -86,7 +87,7 @@ public class IgniteStreamerClient extends IgniteAbstractClient {
       values.forEach((k, v) -> value.set(k, v.toString()));
 
       if (table.equals(cacheName)) {
-        rvPublisher.submit(value);
+        rvPublisher.submit(DataStreamerItem.of(value));
       } else {
         throw new UnsupportedOperationException("Unexpected table name: " + table);
       }
