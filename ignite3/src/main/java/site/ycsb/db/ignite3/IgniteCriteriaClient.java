@@ -19,13 +19,10 @@ package site.ycsb.db.ignite3;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Set;
 import org.apache.ignite.internal.util.IgniteUtils;
 import org.apache.ignite.lang.Cursor;
-import org.apache.ignite.sql.SqlRow;
 import org.apache.ignite.table.Tuple;
-import org.apache.ignite.table.criteria.Criteria;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import site.ycsb.ByteIterator;
@@ -42,16 +39,7 @@ public class IgniteCriteriaClient extends IgniteAbstractClient {
   /** Logger. */
   private static final Logger LOG = LogManager.getLogger(IgniteCriteriaClient.class);
 
-  /**
-   * Read a record from the database. Each field/value pair from the result will
-   * be stored in a HashMap.
-   *
-   * @param table  The name of the table
-   * @param key    The record key of the record to read.
-   * @param fields The list of fields to read, or null for all of them
-   * @param result A HashMap of field/value pairs for the result
-   * @return Zero on success, a non-zero error code on error
-   */
+  /** {@inheritDoc} */
   @Override
   public Status read(String table, String key, Set<String> fields,
                      Map<String, ByteIterator> result) {
