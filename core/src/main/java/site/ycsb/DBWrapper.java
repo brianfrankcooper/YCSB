@@ -17,6 +17,9 @@
 
 package site.ycsb;
 
+import static site.ycsb.Client.BATCH_SIZE_PROPERTY;
+import static site.ycsb.Client.DEFAULT_BATCH_SIZE;
+
 import java.util.Map;
 
 import site.ycsb.measurements.Measurements;
@@ -45,7 +48,11 @@ public class DBWrapper extends DB {
 
   private static final AtomicBoolean LOG_REPORT_CONFIG = new AtomicBoolean(false);
 
-  private final ThreadLocal<Integer> opsDone = ThreadLocal.withInitial(() -> 0);
+  private long opsDone = 0L;
+
+  private int threadWarmUpOpsCount;
+
+  private int batchSize;
 
   private final String scopeStringCleanup;
   private final String scopeStringDelete;
@@ -55,7 +62,7 @@ public class DBWrapper extends DB {
   private final String scopeStringScan;
   private final String scopeStringUpdate;
 
-  public DBWrapper(final DB db, final Tracer tracer) {
+  public DBWrapper(final DB db, final Tracer tracer, int threadWarmUpOpsCount) {
     this.db = db;
     measurements = Measurements.getMeasurements();
     this.tracer = tracer;
@@ -67,6 +74,7 @@ public class DBWrapper extends DB {
     scopeStringRead = simple + "#read";
     scopeStringScan = simple + "#scan";
     scopeStringUpdate = simple + "#update";
+    this.threadWarmUpOpsCount = threadWarmUpOpsCount;
   }
 
   /**
@@ -108,6 +116,9 @@ public class DBWrapper extends DB {
             this.reportLatencyForEachError + " and specific error codes to track" +
             " for latency are: " + this.latencyTrackedErrors.toString());
       }
+
+      batchSize = Integer.parseInt(getProperties().getProperty(BATCH_SIZE_PROPERTY, DEFAULT_BATCH_SIZE));
+      threadWarmUpOpsCount = threadWarmUpOpsCount / batchSize;
     }
   }
 
@@ -147,6 +158,31 @@ public class DBWrapper extends DB {
       if (isWarmUpDone()) {
         measure("READ", res, ist, st, en);
         measurements.reportStatus("READ", res);
+      }
+      return res;
+    }
+  }
+
+  /**
+   * Read a batch of records from the database. Each field/value pair from the result
+   * will be stored in a HashMap and collected to a list.
+   *
+   * @param table The name of the table.
+   * @param keys The list of record keys of the records to read.
+   * @param fields The list of sets of fields to read, or null for all of them.
+   * @param results A list of records where record is a Map of field/value pairs.
+   * @return The result of the operation.
+   */
+  public Status batchRead(String table, List<String> keys, List<Set<String>> fields,
+                          List<Map<String, ByteIterator>> results) {
+    try (final TraceScope span = tracer.newScope(scopeStringRead)) {
+      long ist = measurements.getIntendedStartTimeNs();
+      long st = System.nanoTime();
+      Status res = db.batchRead(table, keys, fields, results);
+      long en = System.nanoTime();
+      if (isWarmUpDone()) {
+        measure("BATCH-READ", res, ist, st, en);
+        measurements.reportStatus("BATCH-READ", res);
       }
       return res;
     }
@@ -245,6 +281,30 @@ public class DBWrapper extends DB {
   }
 
   /**
+   * Insert a batch of records in the database. Field/value pairs of the values list
+   * will be written into the records with the specified record keys.
+   *
+   * @param table The name of the table.
+   * @param keys The list of record keys to insert records by.
+   * @param values A list of records to insert where a record is a HashMap of field/value pairs.
+   * @return The result of the operation.
+   */
+  public Status batchInsert(String table, List<String> keys,
+                            List<Map<String, ByteIterator>> values) {
+    try (final TraceScope span = tracer.newScope(scopeStringInsert)) {
+      long ist = measurements.getIntendedStartTimeNs();
+      long st = System.nanoTime();
+      Status res = db.batchInsert(table, keys, values);
+      long en = System.nanoTime();
+      if (isWarmUpDone()) {
+        measure("BATCH-INSERT", res, ist, st, en);
+        measurements.reportStatus("BATCH-INSERT", res);
+      }
+      return res;
+    }
+  }
+
+  /**
    * Delete a record from the database.
    *
    * @param table The name of the table
@@ -266,7 +326,6 @@ public class DBWrapper extends DB {
   }
 
   private boolean isWarmUpDone() {
-    opsDone.set(opsDone.get() + 1);
-    return opsDone.get() > measurements.getWarmUpOps();
+    return ++opsDone > threadWarmUpOpsCount;
   }
 }

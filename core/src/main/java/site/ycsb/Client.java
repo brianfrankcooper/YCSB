@@ -81,6 +81,16 @@ public final class Client {
   public static final String DEFAULT_RECORD_COUNT = "0";
 
   /**
+   * Default warm-up operations count.
+   */
+  public static final String DEFAULT_WARMUP_OPS = "0";
+
+  /**
+   * Default batch size.
+   */
+  public static final String DEFAULT_BATCH_SIZE = "1";
+
+  /**
    * The target number of operations to perform.
    */
   public static final String OPERATION_COUNT_PROPERTY = "operationcount";
@@ -94,6 +104,11 @@ public final class Client {
    * The number of records to load into the database initially.
    */
   public static final String RECORD_COUNT_PROPERTY = "recordcount";
+
+  /**
+   * The number of records for batch operations.
+   */
+  public static final String BATCH_SIZE_PROPERTY = "batchsize";
 
   /**
    * The workload class to be loaded.
@@ -358,7 +373,7 @@ public final class Client {
       for (Map.Entry<Thread, ClientThread> entry : threads.entrySet()) {
         try {
           entry.getKey().join();
-          opsDone += entry.getValue().getOpsDone();
+          opsDone += entry.getValue().getPayloadOpsDone();
           warmUpOpsDone += entry.getValue().getWarmUpOpsDone();
           st = entry.getValue().getPayloadStart();
         } catch (InterruptedException ignored) {
@@ -430,17 +445,8 @@ public final class Client {
         threadcount = opcount;
         System.out.println("Warning: the threadcount is bigger than recordcount, the threadcount will be recordcount!");
       }
-      int warmupops = Integer.parseInt(props.getProperty(WARM_UP_OPERATIONS_COUNT_PROPERTY, "0"));
+      int warmupops = Integer.parseInt(props.getProperty(WARM_UP_OPERATIONS_COUNT_PROPERTY, DEFAULT_WARMUP_OPS));
       for (int threadid = 0; threadid < threadcount; threadid++) {
-        DB db;
-        try {
-          db = DBFactory.newDB(dbname, props, tracer);
-        } catch (UnknownDBException e) {
-          System.out.println("Unknown DB " + dbname);
-          initFailed = true;
-          break;
-        }
-
         int threadopcount = opcount / threadcount;
         int threadwarmupopcount = warmupops / threadcount;
 
@@ -452,6 +458,15 @@ public final class Client {
         // ensure correct number of operations, in case warmupopcount is not a multiple of threadcount
         if (threadid < warmupops % threadcount) {
           ++threadwarmupopcount;
+        }
+
+        DB db;
+        try {
+          db = DBFactory.newDB(dbname, props, tracer, threadwarmupopcount);
+        } catch (UnknownDBException e) {
+          System.err.println("Unknown DB " + dbname);
+          initFailed = true;
+          break;
         }
 
         ClientThread t = new ClientThread(db, dotransactions, workload, props, threadopcount,

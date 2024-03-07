@@ -18,6 +18,7 @@
 package site.ycsb;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -89,6 +90,21 @@ public abstract class DB {
   public abstract Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result);
 
   /**
+   * Read a batch of records from the database. Each field/value pair from the result
+   * will be stored in a HashMap and collected to a list.
+   *
+   * @param table The name of the table.
+   * @param keys The list of record keys of the records to read.
+   * @param fields The list of sets of fields to read, or null for all of them.
+   * @param results A list of records where record is a Map of field/value pairs.
+   * @return The result of the operation.
+   */
+  public Status batchRead(String table, List<String> keys, List<Set<String>> fields,
+                          List<Map<String, ByteIterator>> results) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
    * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored
    * in a HashMap.
    *
@@ -123,6 +139,19 @@ public abstract class DB {
    * @return The result of the operation.
    */
   public abstract Status insert(String table, String key, Map<String, ByteIterator> values);
+
+  /**
+   * Insert a batch of records in the database. Field/value pairs of the values list
+   * will be written into the records with the specified record keys.
+   *
+   * @param table The name of the table.
+   * @param keys The list of record keys to insert records by.
+   * @param values A list of records to insert where a record is a HashMap of field/value pairs.
+   * @return The result of the operation.
+   */
+  public Status batchInsert(String table, List<String> keys, List<Map<String, ByteIterator>> values) {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * Delete a record from the database.

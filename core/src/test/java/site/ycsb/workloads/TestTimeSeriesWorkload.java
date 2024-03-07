@@ -526,6 +526,12 @@ public class TestTimeSeriesWorkload {
     }
 
     @Override
+    public Status batchRead(String table, List<String> keys, List<Set<String>> fields,
+        List<Map<String, ByteIterator>> results) {
+      return Status.OK;
+    }
+
+    @Override
     public Status scan(String table, String startkey, int recordcount,
         Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
       // TODO Auto-generated method stub
@@ -544,6 +550,11 @@ public class TestTimeSeriesWorkload {
         Map<String, ByteIterator> values) {
       keys.add(key);
       this.values.add(values);
+      return Status.OK;
+    }
+
+    @Override
+    public Status batchInsert(String table, List<String> keys, List<Map<String, ByteIterator>> values) {
       return Status.OK;
     }
 

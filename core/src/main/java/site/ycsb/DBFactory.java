@@ -30,6 +30,11 @@ public final class DBFactory {
   }
 
   public static DB newDB(String dbname, Properties properties, final Tracer tracer) throws UnknownDBException {
+    return newDB(dbname, properties, tracer, 0);
+  }
+
+  public static DB newDB(String dbname, Properties properties, final Tracer tracer, int threadWarmUpOpsCount)
+                         throws UnknownDBException {
     ClassLoader classLoader = DBFactory.class.getClassLoader();
 
     DB ret;
@@ -45,7 +50,7 @@ public final class DBFactory {
 
     ret.setProperties(properties);
 
-    return new DBWrapper(ret, tracer);
+    return new DBWrapper(ret, tracer, threadWarmUpOpsCount);
   }
 
 }

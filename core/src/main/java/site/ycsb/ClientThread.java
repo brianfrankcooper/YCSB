@@ -39,7 +39,7 @@ public class ClientThread implements Runnable {
   private double targetOpsPerMs;
   private Long payloadStart = null;
 
-  private int opsdone;
+  private int payloadopsdone;
   private int warmupopsdone;
   private int totalopsdone;
   private int threadid;
@@ -68,7 +68,7 @@ public class ClientThread implements Runnable {
     this.workload = workload;
     this.warmupopscount = warmupopscount;
     this.totalopscount = opcount + warmupopscount;
-    opsdone = 0;
+    payloadopsdone = 0;
     warmupopsdone = 0;
     if (targetperthreadperms > 0) {
       targetOpsPerMs = targetperthreadperms;
@@ -88,8 +88,8 @@ public class ClientThread implements Runnable {
     threadcount = threadCount;
   }
 
-  public int getOpsDone() {
-    return opsdone;
+  public int getPayloadOpsDone() {
+    return payloadopsdone;
   }
 
   public int getWarmUpOpsDone() {
@@ -150,7 +150,7 @@ public class ClientThread implements Runnable {
             if (payloadStart == null) {
               payloadStart = System.currentTimeMillis();
             }
-            opsdone++;
+            payloadopsdone++;
           } else {
             warmupopsdone++;
           }
@@ -172,7 +172,7 @@ public class ClientThread implements Runnable {
             if (payloadStart == null) {
               payloadStart = System.currentTimeMillis();
             }
-            opsdone++;
+            payloadopsdone++;
           } else {
             warmupopsdone++;
           }

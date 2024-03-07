@@ -17,8 +17,6 @@
 
 package site.ycsb.measurements;
 
-import static site.ycsb.Client.WARM_UP_OPERATIONS_COUNT_PROPERTY;
-
 import site.ycsb.Status;
 import site.ycsb.measurements.exporter.MeasurementsExporter;
 
@@ -54,8 +52,6 @@ public class Measurements {
 
   private static Measurements singleton = null;
   private static Properties measurementproperties = null;
-
-  private static int mWarmUpOps = 0;
 
   public static void setProperties(Properties props) {
     measurementproperties = props;
@@ -126,13 +122,6 @@ public class Measurements {
       break;
     default:
       throw new IllegalArgumentException("unknown " + MEASUREMENT_INTERVAL + "=" + mIntervalString);
-    }
-
-    String mWarmUpOpsProp = this.props.getProperty(WARM_UP_OPERATIONS_COUNT_PROPERTY, "0");
-    try {
-      mWarmUpOps = Integer.parseInt(mWarmUpOpsProp);
-    } catch (Exception e) {
-      throw new IllegalArgumentException("Could not convert to int warmupops=" + mWarmUpOps, e);
     }
   }
 
@@ -296,12 +285,4 @@ public class Measurements {
     }
     return ret;
   }
-
-  /**
-   * Get warm-up operations value.
-   */
-  public int getWarmUpOps() {
-    return mWarmUpOps;
-  }
-
 }

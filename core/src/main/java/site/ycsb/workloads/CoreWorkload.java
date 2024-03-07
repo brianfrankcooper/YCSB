@@ -17,6 +17,10 @@
 
 package site.ycsb.workloads;
 
+import static site.ycsb.Client.DEFAULT_WARMUP_OPS;
+import static site.ycsb.Client.WARM_UP_OPERATIONS_COUNT_PROPERTY;
+
+import java.util.concurrent.atomic.AtomicLong;
 import site.ycsb.*;
 import site.ycsb.generator.*;
 import site.ycsb.generator.UniformLongGenerator;
@@ -363,15 +367,25 @@ public class CoreWorkload extends Workload {
   protected AcknowledgedCounterGenerator transactioninsertkeysequence;
   protected NumberGenerator scanlength;
   protected boolean orderedinserts;
+  protected boolean isBatched;
   protected long fieldcount;
   protected long recordcount;
+  protected long warmupops;
+  protected long totalrecordcount;
+  protected int batchsize;
   protected int zeropadding;
   protected int insertionRetryLimit;
   protected int insertionRetryInterval;
 
   private Measurements measurements = Measurements.getMeasurements();
 
-  private final ThreadLocal<Integer> opsDone = ThreadLocal.withInitial(() -> 0);
+  private final AtomicLong opsDone = new AtomicLong(0L);
+
+  private List<String> batchKeysList;
+
+  private List<Set<String>> batchFieldsList;
+
+  private List<Map<String, ByteIterator>> batchValuesList;
 
   public static String buildKeyName(long keynum, int zeropadding, boolean orderedinserts) {
     if (!orderedinserts) {
@@ -433,11 +447,39 @@ public class CoreWorkload extends Workload {
     }
     fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
 
+    warmupops =
+        Long.parseLong(p.getProperty(WARM_UP_OPERATIONS_COUNT_PROPERTY, DEFAULT_WARMUP_OPS));
+    if (warmupops < 0) {
+      System.err.println("Invalid warmupops=" + warmupops + ". warmupops must not be negative.");
+      System.exit(-1);
+    }
     recordcount =
         Long.parseLong(p.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
     if (recordcount == 0) {
       recordcount = Integer.MAX_VALUE;
     }
+    totalrecordcount = recordcount + warmupops;
+
+    int threads = Integer.parseInt(p.getProperty(Client.THREAD_COUNT_PROPERTY, "1"));
+
+    batchsize =
+        Integer.parseInt(p.getProperty(Client.BATCH_SIZE_PROPERTY, Client.DEFAULT_BATCH_SIZE));
+    if (batchsize < 1) {
+      System.err.println("Invalid batchsize=" + batchsize + ". batchsize must be bigger than 0.");
+      System.exit(-1);
+    }
+    if (batchsize > 1 && threads > 1) {
+      System.err.println("Batch tests do not support more then 1 thread run."
+          + " Either set batchsize = 1 or threadcount = 1");
+      System.exit(-1);
+    }
+    isBatched = batchsize > 1;
+    if (isBatched) {
+      batchKeysList = new ArrayList<>(batchsize);
+      batchFieldsList = new ArrayList<>(batchsize);
+      batchValuesList = new ArrayList<>(batchsize);
+    }
+
     String requestdistrib =
         p.getProperty(REQUEST_DISTRIBUTION_PROPERTY, REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
     int minscanlength =
@@ -469,8 +511,7 @@ public class CoreWorkload extends Workload {
 
     dataintegrity = Boolean.parseBoolean(
         p.getProperty(DATA_INTEGRITY_PROPERTY, DATA_INTEGRITY_PROPERTY_DEFAULT));
-    // Confirm that fieldlengthgenerator returns a constant if data
-    // integrity check requested.
+    // Confirm that fieldlengthgenerator returns a constant if data integrity check requested.
     if (dataintegrity && !(p.getProperty(
         FIELD_LENGTH_DISTRIBUTION_PROPERTY,
         FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT)).equals("constant")) {
@@ -481,11 +522,7 @@ public class CoreWorkload extends Workload {
       System.out.println("Data integrity is enabled.");
     }
 
-    if (p.getProperty(INSERT_ORDER_PROPERTY, INSERT_ORDER_PROPERTY_DEFAULT).compareTo("hashed") == 0) {
-      orderedinserts = false;
-    } else {
-      orderedinserts = true;
-    }
+    orderedinserts = p.getProperty(INSERT_ORDER_PROPERTY, INSERT_ORDER_PROPERTY_DEFAULT).compareTo("hashed") != 0;
 
     keysequence = new CounterGenerator(insertstart);
     operationchooser = createOperationGenerator(p);
@@ -539,8 +576,7 @@ public class CoreWorkload extends Workload {
     } else if (scanlengthdistrib.compareTo("zipfian") == 0) {
       scanlength = new ZipfianGenerator(minscanlength, maxscanlength);
     } else {
-      throw new WorkloadException(
-          "Distribution \"" + scanlengthdistrib + "\" not allowed for scan length");
+      throw new WorkloadException("Distribution \"" + scanlengthdistrib + "\" not allowed for scan length");
     }
 
     insertionRetryLimit = Integer.parseInt(p.getProperty(
@@ -620,7 +656,23 @@ public class CoreWorkload extends Workload {
     Status status;
     int numOfRetries = 0;
     do {
-      status = db.insert(table, dbkey, values);
+      if (!isBatched) {
+        status = db.insert(table, dbkey, values);
+      } else {
+        batchKeysList.add(dbkey);
+        batchValuesList.add(values);
+
+        long currentOpNum = opsDone.get() + 1;
+
+        if (batchKeysList.size() == batchsize || currentOpNum == warmupops || currentOpNum == totalrecordcount) {
+          status = db.batchInsert(table, batchKeysList, batchValuesList);
+          batchKeysList.clear();
+          batchValuesList.clear();
+        } else {
+          status = Status.BATCHED_OK;
+        }
+      }
+
       if (null != status && status.isOk()) {
         break;
       }
@@ -644,6 +696,8 @@ public class CoreWorkload extends Workload {
 
       }
     } while (true);
+
+    opsDone.incrementAndGet();
 
     return null != status && status.isOk();
   }
@@ -678,7 +732,7 @@ public class CoreWorkload extends Workload {
       doTransactionReadModifyWrite(db);
     }
 
-    opsDone.set(opsDone.get() + 1);
+    opsDone.incrementAndGet();
 
     return true;
   }
@@ -742,11 +796,31 @@ public class CoreWorkload extends Workload {
       fields = new HashSet<String>(fieldnames);
     }
 
-    HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
-    db.read(table, keyname, fields, cells);
+    if (!isBatched) {
+      HashMap<String, ByteIterator> cells = new HashMap<>();
+      db.read(table, keyname, fields, cells);
 
-    if (dataintegrity && isWarmUpDone()) {
-      verifyRow(keyname, cells);
+      if (dataintegrity && isWarmUpDone()) {
+        verifyRow(keyname, cells);
+      }
+    } else {
+      batchKeysList.add(keyname);
+      batchFieldsList.add(fields);
+
+      long currentOpNum = opsDone.get() + 1;
+
+      if (batchKeysList.size() == batchsize || currentOpNum == warmupops || currentOpNum == totalrecordcount) {
+        List<Map<String, ByteIterator>> results = new LinkedList<>();
+        db.batchRead(table, batchKeysList, batchFieldsList, results);
+        batchKeysList.clear();
+        batchFieldsList.clear();
+
+        if (dataintegrity && isWarmUpDone()) {
+          for (int i = 0; i < batchKeysList.size(); i++) {
+            verifyRow(batchKeysList.get(i), (HashMap<String, ByteIterator>) results.get(i));
+          }
+        }
+      }
     }
   }
 
@@ -846,7 +920,21 @@ public class CoreWorkload extends Workload {
       String dbkey = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
 
       HashMap<String, ByteIterator> values = buildValues(dbkey);
-      db.insert(table, dbkey, values);
+
+      if (!isBatched) {
+        db.insert(table, dbkey, values);
+      } else {
+        batchKeysList.add(dbkey);
+        batchValuesList.add(values);
+
+        long currentOpNum = opsDone.get() + 1;
+
+        if (batchKeysList.size() == batchsize || currentOpNum == warmupops || currentOpNum == totalrecordcount) {
+          db.batchInsert(table, batchKeysList, batchValuesList);
+          batchKeysList.clear();
+          batchValuesList.clear();
+        }
+      }
     } finally {
       transactioninsertkeysequence.acknowledge(keynum);
     }
@@ -901,6 +989,6 @@ public class CoreWorkload extends Workload {
   }
 
   private boolean isWarmUpDone() {
-    return opsDone.get() >= measurements.getWarmUpOps();
+    return opsDone.get() >= warmupops;
   }
 }

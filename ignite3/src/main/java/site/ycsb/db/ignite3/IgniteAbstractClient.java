@@ -38,6 +38,7 @@ import org.apache.ignite.table.Tuple;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import site.ycsb.ByteIterator;
+import site.ycsb.Client;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
@@ -58,6 +59,10 @@ public abstract class IgniteAbstractClient extends DB {
   protected static int fieldCount;
 
   protected static String fieldPrefix;
+
+  protected static long recordsCount;
+
+  protected static long batchSize;
 
   protected static final List<String> FIELDS = new ArrayList<>();
 
@@ -147,6 +152,10 @@ public abstract class IgniteAbstractClient extends DB {
             CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
         fieldPrefix = getProperties().getProperty(CoreWorkload.FIELD_NAME_PREFIX,
             CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
+        recordsCount = Long.parseLong(getProperties().getProperty(Client.RECORD_COUNT_PROPERTY,
+            Client.DEFAULT_RECORD_COUNT));
+        batchSize = Long.parseLong(getProperties().getProperty(Client.BATCH_SIZE_PROPERTY,
+            Client.DEFAULT_BATCH_SIZE));
 
         for (int i = 0; i < fieldCount; i++) {
           FIELDS.add(fieldPrefix + i);

@@ -16,6 +16,7 @@
  */
 package site.ycsb.db.ignite3;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -43,9 +44,6 @@ public class IgniteStreamerClient extends IgniteAbstractClient {
    */
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
-  /** Data streamer page size. */
-  protected static final int DATA_STREAMER_PAGE_SIZE = 1000;
-
   /** Data streamer auto-flush frequency. */
   protected static final int DATA_STREAMER_AUTOFLUSH_FREQUENCY = 5000;
 
@@ -68,7 +66,7 @@ public class IgniteStreamerClient extends IgniteAbstractClient {
       }
 
       DataStreamerOptions dsOptions = DataStreamerOptions.builder()
-          .pageSize(DATA_STREAMER_PAGE_SIZE)
+          .pageSize((int) batchSize)
           .autoFlushFrequency(DATA_STREAMER_AUTOFLUSH_FREQUENCY)
           .build();
       rvPublisher = new SubmissionPublisher<>();
@@ -79,22 +77,28 @@ public class IgniteStreamerClient extends IgniteAbstractClient {
   /** {@inheritDoc} */
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
+    return Status.NOT_IMPLEMENTED;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Status batchInsert(String table, List<String> keys, List<Map<String, ByteIterator>> values) {
     try {
-      Tuple value = Tuple.create(fieldCount + 1);
-
-      value.set(PRIMARY_COLUMN_NAME, key);
-
-      values.forEach((k, v) -> value.set(k, v.toString()));
-
-      if (table.equals(cacheName)) {
-        rvPublisher.submit(DataStreamerItem.of(value));
-      } else {
+      if (!table.equals(cacheName)) {
         throw new UnsupportedOperationException("Unexpected table name: " + table);
+      }
+
+      for (int i = 0; i < keys.size(); i++) {
+        Tuple value = Tuple.create(fieldCount + 1);
+        value.set(PRIMARY_COLUMN_NAME, keys.get(i));
+        values.get(i).forEach((k, v) -> value.set(k, v.toString()));
+
+        rvPublisher.submit(DataStreamerItem.of(value));
       }
 
       return Status.OK;
     } catch (Exception e) {
-      LOG.error(String.format("Error inserting key: %s", key), e);
+      LOG.error("Error inserting batch of keys.", e);
 
       return Status.ERROR;
     }
@@ -104,6 +108,13 @@ public class IgniteStreamerClient extends IgniteAbstractClient {
   @Override
   public Status read(String table, String key, Set<String> fields,
                      Map<String, ByteIterator> result) {
+    return Status.NOT_IMPLEMENTED;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Status batchRead(String table, List<String> keys, List<Set<String>> fields,
+                          List<Map<String, ByteIterator>> result) {
     return Status.NOT_IMPLEMENTED;
   }
 
