@@ -42,7 +42,8 @@ public class IgniteJdbcClient extends IgniteAbstractClient {
   /**
    * Use separate connection per thread since sharing a single Connection object is not recommended.
    */
-  private static final ThreadLocal<Connection> CONN = new ThreadLocal<>();
+  private static final ThreadLocal<Connection> CONN = ThreadLocal
+      .withInitial(IgniteJdbcClient::buildConnection);
 
   /** Prepared statement for reading values. */
   private static final ThreadLocal<PreparedStatement> READ_PREPARED_STATEMENT = ThreadLocal
@@ -62,6 +63,26 @@ public class IgniteJdbcClient extends IgniteAbstractClient {
       return CONN.get().prepareStatement(readPreparedStatementString);
     } catch (SQLException e) {
       throw new RuntimeException("Unable to prepare statement for SQL: " + readPreparedStatementString, e);
+    }
+  }
+
+  /** Build JDBC connection. */
+  private static Connection buildConnection() {
+    String hostsStr;
+
+    if (useEmbeddedIgnite) {
+      Set<String> addrs = new HashSet<>();
+      cluster.cluster().nodes().forEach(clusterNode -> addrs.addAll(clusterNode.addresses()));
+      hostsStr = String.join(",", addrs);
+    } else {
+      hostsStr = hosts;
+    }
+
+    String url = "jdbc:ignite:thin://" + hostsStr;
+    try {
+      return DriverManager.getConnection(url);
+    } catch (Exception e) {
+      throw new RuntimeException("Unable to establish connection with " + url, e);
     }
   }
 
@@ -107,17 +128,6 @@ public class IgniteJdbcClient extends IgniteAbstractClient {
           cacheName, columnsString, valuesString);
 
       deletePreparedStatementString = String.format("DELETE * FROM %s WHERE %s = ?", cacheName, PRIMARY_COLUMN_NAME);
-
-      Set<String> addrs = new HashSet<>();
-      cluster.cluster().nodes().forEach(clusterNode -> addrs.addAll(clusterNode.addresses()));
-      String hosts = String.join(",", addrs);
-
-      String url = "jdbc:ignite:thin://" + hosts;
-      try {
-        CONN.set(DriverManager.getConnection(url));
-      } catch (Exception e) {
-        throw new DBException(e);
-      }
     }
   }
 
