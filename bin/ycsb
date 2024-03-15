@@ -284,7 +284,7 @@ def main():
         # include top-level conf for when we're a binding-specific artifact.
         # If we add top-level conf to the general artifact, starting here
         # will allow binding-specific conf to override (because it's prepended)
-        cp = [os.path.join(ycsb_home, "conf")]
+        cp = [os.path.join(ycsb_home, "conf/")]
         cp.extend(find_jars(os.path.join(ycsb_home, "lib")))
         cp.extend(find_jars(os.path.join(db_dir, "lib")))
     else:
