@@ -116,7 +116,7 @@ OPTIONS = {
 }
 
 def usage():
-    output = io.BytesIO()
+    output = io.StringIO()
     print("%s command database [options]" % sys.argv[0], file=output)
 
     print("\nCommands:", file=output)
@@ -164,7 +164,7 @@ def check_output(*popenargs, **kwargs):
     """
     if 'stdout' in kwargs:
         raise ValueError('stdout argument not allowed, it will be overridden.')
-    process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
+    process = subprocess.Popen(stdout=subprocess.PIPE, text=True, *popenargs, **kwargs)
     output, unused_err = process.communicate()
     retcode = process.poll()
     if retcode:
