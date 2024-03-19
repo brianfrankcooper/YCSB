@@ -61,5 +61,10 @@ LICENSE file.
       <artifactId>micrometer-core</artifactId>
       <version>1.6.1</version>
     </dependency>
+    <dependency>
+      <groupId>com.microsoft.azure</groupId>
+      <artifactId>applicationinsights-agent</artifactId>
+      <version>3.5.1</version>
+    </dependency>
   </dependencies>
 </project>

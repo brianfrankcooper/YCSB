@@ -229,7 +229,15 @@ public class AzureCosmosClient extends DB {
       preferredRegions = preferredRegions.trim();
       preferredRegionList = new ArrayList<>(Arrays.asList(preferredRegions.split(",")));
     }
-    
+
+    int pointOperationLatencyThresholdInMS = this.getIntProperty("azurecosmos.pointOperationLatencyThresholdInMS",
+        100);
+
+    int nonPointOperationLatencyThresholdInMS = this.getIntProperty("azurecosmos.nonPointOperationLatencyThresholdInMS",
+        500);
+
+    int requestChargeThreshold = this.getIntProperty("azurecosmos.requestChargeThreshold", 100);
+
     try {
       LOGGER.info(
           "Creating Cosmos DB client {}, useGateway={}, consistencyLevel={},"
@@ -249,9 +257,9 @@ public class AzureCosmosClient extends DB {
           .clientTelemetryConfig(new CosmosClientTelemetryConfig()
               .diagnosticsThresholds(
                   new CosmosDiagnosticsThresholds()
-                      .setPointOperationLatencyThreshold(Duration.ofMillis(100))
-                      .setNonPointOperationLatencyThreshold(Duration.ofMillis(500))
-                      .setRequestChargeThreshold(100)));
+                      .setPointOperationLatencyThreshold(Duration.ofMillis(pointOperationLatencyThresholdInMS))
+                      .setNonPointOperationLatencyThreshold(Duration.ofMillis(nonPointOperationLatencyThresholdInMS))
+                      .setRequestChargeThreshold(requestChargeThreshold)));
 
       if (useGateway) {
         builder = builder.gatewayMode(gatewayConnectionConfig);
@@ -288,7 +296,6 @@ public class AzureCosmosClient extends DB {
 
     String appInsightConnectionString = this.getStringProperty("azurecosmos.appInsightConnectionString", null);
     if (appInsightConnectionString != null) {
-      System.setProperty("applicationinsights.connection.string", appInsightConnectionString);
       registerMeter();
     }
   }
@@ -654,8 +661,6 @@ public class AzureCosmosClient extends DB {
   }
 
   private void registerMeter() {
-    System.setProperty("applicationinsights.metrics.interval.seconds", "10");
-    
     if (this.getDoubleProperty("readproportion", 0) > 0) {
       readSuccessCounter = Metrics.globalRegistry.counter("Read Successful Operations");
       readFailureCounter = Metrics.globalRegistry.counter("Read Unsuccessful Operations");
