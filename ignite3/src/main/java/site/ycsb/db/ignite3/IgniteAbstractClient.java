@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.ignite.Ignite;
@@ -37,6 +38,8 @@ import org.apache.ignite.table.RecordView;
 import org.apache.ignite.table.Tuple;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Range;
 import site.ycsb.ByteIterator;
 import site.ycsb.Client;
 import site.ycsb.DB;
@@ -71,6 +74,8 @@ public abstract class IgniteAbstractClient extends DB {
   protected static final String PRIMARY_COLUMN_NAME = "ycsb_key";
 
   protected static final String DEFAULT_ZONE_NAME = "Z1";
+
+  protected static final long TABLE_CREATION_TIMEOUT_SECONDS = 10L;
 
   /**
    * Single Ignite thin client per process.
@@ -267,6 +272,13 @@ public abstract class IgniteAbstractClient extends DB {
         }
         ses.execute(null, createTableReq).close();
       }
+
+      boolean cachePresent = waitForCondition(() -> node.tables().table(cacheName) != null,
+          TABLE_CREATION_TIMEOUT_SECONDS * 1_000L);
+
+      if (!cachePresent) {
+        throw new DBException("Table wasn't created in " + TABLE_CREATION_TIMEOUT_SECONDS + " seconds.");
+      }
     } catch (Exception e) {
       throw new DBException(e);
     }
@@ -287,6 +299,47 @@ public abstract class IgniteAbstractClient extends DB {
     }
 
     return entries;
+  }
+
+  /**
+   * Try to get positive result for the given amount of time (but at least once, to mitigate some GC pauses).
+   *
+   * @param cond Condition to check.
+   * @param timeout Timeout in milliseconds.
+   * @return {@code True} if condition has happened within the timeout.
+   */
+  public static boolean waitForCondition(@NotNull BooleanSupplier cond,
+      @Range(from = 1, to = Integer.MAX_VALUE) long timeout) {
+    return waitForCondition(cond, timeout, 50);
+  }
+
+  /**
+   * Try to get positive result for the given amount of time (but at least once, to mitigate some GC pauses).
+   *
+   * @param cond Condition to check.
+   * @param timeout Timeout in milliseconds.
+   * @param interval Interval to test condition in milliseconds.
+   * @return {@code True} if condition has happened within the timeout.
+   */
+  @SuppressWarnings("BusyWait")
+  public static boolean waitForCondition(@NotNull BooleanSupplier cond,
+      @Range(from = 1, to = Integer.MAX_VALUE) long timeout,
+      @Range(from = 1, to = Integer.MAX_VALUE) long interval) {
+    long stop = System.currentTimeMillis() + timeout;
+
+    do {
+      if (cond.getAsBoolean()) {
+        return true;
+      }
+
+      try {
+        Thread.sleep(interval);
+      } catch (InterruptedException e) {
+        return false;
+      }
+    } while (System.currentTimeMillis() < stop);
+
+    return false;
   }
 
   /**
