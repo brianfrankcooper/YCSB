@@ -237,7 +237,7 @@ def main():
     p.add_argument('-cp', dest='classpath', help="""Additional classpath
                    entries, e.g.  '-cp /tmp/hbase-1.0.1.1/conf'. Will be
                    prepended to the YCSB classpath.""")
-    p.add_argument("-jvm-args", default=[], type=shlex.split,
+    p.add_argument("-jvm-args", default="-javaagent:/tmp/ycsb/ycsb-azurecosmos-binding-0.18.0-SNAPSHOT/lib/applicationinsights-agent-3.5.1.jar", type=shlex.split,
                    help="""Additional arguments to pass to 'java', e.g.
                    '-Xmx4g'""")
     p.add_argument("command", choices=sorted(COMMANDS),
