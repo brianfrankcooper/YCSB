@@ -58,8 +58,9 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>io.micrometer</groupId>
-      <artifactId>micrometer-core</artifactId>
-      <version>1.6.1</version>
+      <artifactId>micrometer-registry-azure-monitor</artifactId>
+      <version>1.9.2</version> <!-- {x-version-update;io.micrometer:micrometer-registry-azure-monitor;external_dependency} -->
+      <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>com.microsoft.azure</groupId>
