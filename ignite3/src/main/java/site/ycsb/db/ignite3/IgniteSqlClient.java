@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.ignite.sql.ResultSet;
-import org.apache.ignite.sql.Session;
 import org.apache.ignite.sql.SqlRow;
 import org.apache.ignite.sql.Statement;
 import org.apache.logging.log4j.LogManager;
@@ -23,8 +22,6 @@ import site.ycsb.StringByteIterator;
 public class IgniteSqlClient extends AbstractSqlClient {
 
   private static final Logger LOG = LogManager.getLogger(IgniteSqlClient.class);
-
-  protected static Session session;
 
   private static final AtomicInteger SQL_INIT_COUNT = new AtomicInteger(0);
 
@@ -52,19 +49,13 @@ public class IgniteSqlClient extends AbstractSqlClient {
     super.init();
 
     SQL_INIT_COUNT.incrementAndGet();
-
-    synchronized (IgniteSqlClient.class) {
-      if (session == null) {
-        session = node.sql().createSession();
-      }
-    }
   }
 
   /** {@inheritDoc} */
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try {
-      try (ResultSet<SqlRow> rs = session.execute(null, READ_STATEMENT.get(), key)) {
+      try (ResultSet<SqlRow> rs = node.sql().execute(null, READ_STATEMENT.get(), key)) {
         if (!rs.hasNext()) {
           return Status.NOT_FOUND;
         }
@@ -116,7 +107,7 @@ public class IgniteSqlClient extends AbstractSqlClient {
         List<String> valuesList = new ArrayList<>();
         valuesList.add(key);
         FIELDS.forEach(fieldName -> valuesList.add(String.valueOf(values.get(fieldName))));
-        session.execute(null, INSERT_STATEMENT.get(), (Object[]) valuesList.toArray(new String[0])).close();
+        node.sql().execute(null, INSERT_STATEMENT.get(), (Object[]) valuesList.toArray(new String[0])).close();
       } else {
         throw new UnsupportedOperationException("Unexpected table name: " + table);
       }
@@ -141,7 +132,7 @@ public class IgniteSqlClient extends AbstractSqlClient {
         LOG.info(deleteStatement);
       }
 
-      session.execute(null, deleteStatement).close();
+      node.sql().execute(null, deleteStatement).close();
 
       return Status.OK;
     } catch (Exception e) {
@@ -165,9 +156,6 @@ public class IgniteSqlClient extends AbstractSqlClient {
           if (INSERT_STATEMENT.get() != null) {
             INSERT_STATEMENT.get().close();
           }
-
-          session.close();
-          session = null;
         } catch (Exception e) {
           throw new DBException(e);
         }

@@ -22,7 +22,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.Vector;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -31,23 +39,17 @@ import org.apache.ignite.IgnitionManager;
 import org.apache.ignite.InitParameters;
 import org.apache.ignite.client.IgniteClient;
 import org.apache.ignite.sql.ResultSet;
-import org.apache.ignite.sql.Session;
 import org.apache.ignite.sql.SqlRow;
 import org.apache.ignite.table.KeyValueView;
 import org.apache.ignite.table.RecordView;
 import org.apache.ignite.table.Tuple;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Range;
 import site.ycsb.ByteIterator;
 import site.ycsb.Client;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
-
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import site.ycsb.workloads.CoreWorkload;
 
 /**
@@ -266,12 +268,10 @@ public abstract class IgniteAbstractClient extends DB {
 
       LOG.info("Create table request: {}", createTableReq);
 
-      try (Session ses = node0.sql().createSession()) {
-        if (!createZoneReq.isEmpty()) {
-          ses.execute(null, createZoneReq).close();
-        }
-        ses.execute(null, createTableReq).close();
+      if (!createZoneReq.isEmpty()) {
+        node0.sql().execute(null, createZoneReq).close();
       }
+      node0.sql().execute(null, createTableReq).close();
 
       boolean cachePresent = waitForCondition(() -> node.tables().table(cacheName) != null,
           TABLE_CREATION_TIMEOUT_SECONDS * 1_000L);
@@ -287,8 +287,7 @@ public abstract class IgniteAbstractClient extends DB {
   private static long entriesInTable(Ignite ignite0, String tableName) throws DBException {
     long entries = 0L;
 
-    try (Session session = ignite0.sql().createSession();
-        ResultSet<SqlRow> res = session.execute(null, "SELECT COUNT(*) FROM " + tableName)) {
+    try (ResultSet<SqlRow> res = ignite0.sql().execute(null, "SELECT COUNT(*) FROM " + tableName)) {
       while (res.hasNext()) {
         SqlRow row = res.next();
 
@@ -308,8 +307,7 @@ public abstract class IgniteAbstractClient extends DB {
    * @param timeout Timeout in milliseconds.
    * @return {@code True} if condition has happened within the timeout.
    */
-  public static boolean waitForCondition(@NotNull BooleanSupplier cond,
-      @Range(from = 1, to = Integer.MAX_VALUE) long timeout) {
+  public static boolean waitForCondition(BooleanSupplier cond, long timeout) {
     return waitForCondition(cond, timeout, 50);
   }
 
@@ -322,9 +320,7 @@ public abstract class IgniteAbstractClient extends DB {
    * @return {@code True} if condition has happened within the timeout.
    */
   @SuppressWarnings("BusyWait")
-  public static boolean waitForCondition(@NotNull BooleanSupplier cond,
-      @Range(from = 1, to = Integer.MAX_VALUE) long timeout,
-      @Range(from = 1, to = Integer.MAX_VALUE) long interval) {
+  public static boolean waitForCondition(BooleanSupplier cond, long timeout, long interval) {
     long stop = System.currentTimeMillis() + timeout;
 
     do {
