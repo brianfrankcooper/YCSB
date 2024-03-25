@@ -122,25 +122,7 @@ These parameters are also defined in a template configuration file in the
 following location:
   $YCSB_HOME/azurecosmos/conf/azurecosmos.properties
 
-### 3. Sending YCSB Telemetry to Azure Application Insights
-- YCSB supports sending telemetry data like operation metrics & Cosmos client diagnostic logs to Azure Application Insights.
-- In order to send the telemetry data to Azure Application Insights, you need to set the following parameters in the azurecosmos/conf/azurecosmos.properties file:
-  
-  | Parameter                                       | Default Value |
-  |-------------------------------------------------|----------|
-  | azurecosmos.appInsightConnectionString          |    ""      |
-  | azurecosmos.pointOperationLatencyThresholdInMS  | 100      |
-  | azurecosmos.nonPointOperationLatencyThresholdInMS | 500    |
-  | azurecosmos.requestChargeThreshold              | 100      |
-  
-- Also, need to set the following environment variables on the machine where YCSB is running:
-```bash
-echo 'export APPLICATIONINSIGHTS_CONNECTION_STRING="<connection string>"' >> ~/.profile
-echo 'export APPLICATIONINSIGHTS_METRIC_INTERVAL_SECONDS=<interval in seconds, e.g. 10>' >> ~/.profile
-echo 'export JAVA_OPTS=-javaagent:"/tmp/ycsb/ycsb-azurecosmos-binding-0.18.0-SNAPSHOT/lib/applicationinsights-agent-3.5.1.jar"' >> ~/.profile
-source ~/.profile
-```
-- **Please do not change the JAVA_OPTS value above as it is required for the telemetry to work.**
+### 3. FAQs
 
 ### 4. Example command
 ./bin/ycsb run azurecosmos -P workloads/workloadc -p azurecosmos.primaryKey=<your key eg:45fgt...==> -p azurecosmos.uri=https://<your account>.documents.azure.com:443/ -p recordcount=100 -p operationcount=100
