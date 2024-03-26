@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="30">
+  <Properties>
+    <Property name="LOG_PATTERN">%-4r [%t] %-5p %c %x -%m%n</Property>
+    <Property name="BASE_PATH_DIAGNOSTICS">/tmp/cosmos_client_logs/cosmos_diagnostics</Property>
+    <Property name="BASE_PATH_EXCEPTION">/tmp/cosmos_client_logs/cosmos_exceptions</Property>
+  </Properties>
+
+  <Appenders>
+    <Console name="console" target="SYSTEM_OUT" follow="true">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <Filters>
+        <MarkerFilter marker="CREATE_DIAGNOSTIC" onMatch="DENY" onMismatch="NEUTRAL" />
+        <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="DENY" onMismatch="NEUTRAL" />
+        <MarkerFilter marker="PATCH_DIAGNOSTIC" onMatch="DENY" onMismatch="NEUTRAL" />
+        <MarkerFilter marker="QUERY_DIAGNOSTIC" onMatch="DENY" onMismatch="NEUTRAL" />
+        <MarkerFilter marker="DELETE_DIAGNOSTIC" onMatch="DENY" onMismatch="NEUTRAL" />
+        <MarkerFilter marker="CREATE_EXCEPTION" onMatch="DENY" onMismatch="NEUTRAL" />
+        <MarkerFilter marker="READ_EXCEPTION" onMatch="DENY" onMismatch="NEUTRAL" />
+        <MarkerFilter marker="PATCH_EXCEPTION" onMatch="DENY" onMismatch="NEUTRAL" />
+        <MarkerFilter marker="QUERY_EXCEPTION" onMatch="DENY" onMismatch="NEUTRAL" />
+        <MarkerFilter marker="DELETE_EXCEPTION" onMatch="DENY" onMismatch="ACCEPT" />
+      </Filters>
+    </Console>
+    <RollingFile
+        name="createRequestDiagnosticsRollingFileAppender"
+        fileName="${BASE_PATH_DIAGNOSTICS}/create/diagnostics.log"
+        filePattern="${BASE_PATH_DIAGNOSTICS}/create/diagnostics.%d{yyyy-MM-dd-hh-mm-ss}.log.gz"
+        ignoreExceptions="false">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <MarkerFilter marker="CREATE_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="500MB" />
+      </Policies>
+    </RollingFile>
+
+    <RollingFile
+        name="readRequestDiagnosticsRollingFileAppender"
+        fileName="${BASE_PATH_DIAGNOSTICS}/read/diagnostics.log"
+        filePattern="${BASE_PATH_DIAGNOSTICS}/read/diagnostics.%d{yyyy-MM-dd-hh-mm-ss}.log.gz"
+        ignoreExceptions="false">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <MarkerFilter marker="READ_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="500MB" />
+      </Policies>
+    </RollingFile>
+
+    <RollingFile
+        name="patchRequestDiagnosticsRollingFileAppender"
+        fileName="${BASE_PATH_DIAGNOSTICS}/patch/diagnostics.log"
+        filePattern="${BASE_PATH_DIAGNOSTICS}/patch/diagnostics.%d{yyyy-MM-dd-hh-mm-ss}.log.gz"
+        ignoreExceptions="false">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <MarkerFilter marker="PATCH_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="500MB" />
+      </Policies>
+    </RollingFile>
+
+    <RollingFile
+        name="queryRequestDiagnosticsRollingFileAppender"
+        fileName="${BASE_PATH_DIAGNOSTICS}/query/diagnostics.log"
+        filePattern="${BASE_PATH_DIAGNOSTICS}/query/diagnostics.%d{yyyy-MM-dd-hh-mm-ss}.log.gz"
+        ignoreExceptions="false">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <MarkerFilter marker="QUERY_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="500MB" />
+      </Policies>
+    </RollingFile>
+
+    <RollingFile
+        name="deleteRequestDiagnosticsRollingFileAppender"
+        fileName="${BASE_PATH_DIAGNOSTICS}/delete/diagnostics.log"
+        filePattern="${BASE_PATH_DIAGNOSTICS}/delete/diagnostics.%d{yyyy-MM-dd-hh-mm-ss}.log.gz"
+        ignoreExceptions="false">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <MarkerFilter marker="DELETE_DIAGNOSTIC" onMatch="ACCEPT" onMismatch="DENY" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="500MB" />
+      </Policies>
+    </RollingFile>
+
+    <RollingFile
+        name="createRequestExceptionRollingFileAppender"
+        fileName="${BASE_PATH_EXCEPTION}/create/exceptions.log"
+        filePattern="${BASE_PATH_EXCEPTION}/create/exceptions.%d{yyyy-MM-dd-hh-mm-ss}.log.gz"
+        ignoreExceptions="false">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <MarkerFilter marker="CREATE_EXCEPTION" onMatch="ACCEPT" onMismatch="DENY" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="500MB" />
+      </Policies>
+    </RollingFile>
+
+    <RollingFile
+        name="readRequestExceptionRollingFileAppender"
+        fileName="${BASE_PATH_EXCEPTION}/read/exceptions.log"
+        filePattern="${BASE_PATH_EXCEPTION}/read/exceptions.%d{yyyy-MM-dd-hh-mm-ss}.log.gz"
+        ignoreExceptions="false">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <MarkerFilter marker="READ_EXCEPTION" onMatch="ACCEPT" onMismatch="DENY" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="500MB" />
+      </Policies>
+    </RollingFile>
+
+    <RollingFile
+        name="patchRequestExceptionRollingFileAppender"
+        fileName="${BASE_PATH_EXCEPTION}/patch/exceptions.log"
+        filePattern="${BASE_PATH_EXCEPTION}/patch/exceptions.%d{yyyy-MM-dd-hh-mm-ss}.log.gz"
+        ignoreExceptions="false">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <MarkerFilter marker="PATCH_EXCEPTION" onMatch="ACCEPT" onMismatch="DENY" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="500MB" />
+      </Policies>
+    </RollingFile>
+
+    <RollingFile
+        name="queryRequestExceptionRollingFileAppender"
+        fileName="${BASE_PATH_EXCEPTION}/query/exceptions.log"
+        filePattern="${BASE_PATH_EXCEPTION}/query/exceptions.%d{yyyy-MM-dd-hh-mm-ss}.log.gz"
+        ignoreExceptions="false">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <MarkerFilter marker="QUERY_EXCEPTION" onMatch="ACCEPT" onMismatch="DENY" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="500MB" />
+      </Policies>
+    </RollingFile>
+
+    <RollingFile
+        name="deleteRequestExceptionRollingFileAppender"
+        fileName="${BASE_PATH_EXCEPTION}/delete/exceptions.log"
+        filePattern="${BASE_PATH_EXCEPTION}/delete/exceptions.%d{yyyy-MM-dd-hh-mm-ss}.log.gz"
+        ignoreExceptions="false">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <MarkerFilter marker="DELETE_EXCEPTION" onMatch="ACCEPT" onMismatch="DENY" />
+      <Policies>
+        <OnStartupTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="500MB" />
+      </Policies>
+    </RollingFile>
+
+  </Appenders>
+  <Loggers>
+    <Logger name="log4j.category.org.apache.http" level="INFO"/>
+    <Logger name="log4j.category.org.apache.http.wire" level="INFO"/>
+    <Logger name="log4j.category.org.apache.http.header" level="INFO"/>
+    <Root level="info">
+      <AppenderRef ref="console"/>
+      <AppenderRef ref="createRequestDiagnosticsRollingFileAppender"/>
+      <AppenderRef ref="readRequestDiagnosticsRollingFileAppender"/>
+      <AppenderRef ref="queryRequestDiagnosticsRollingFileAppender"/>
+      <AppenderRef ref="patchRequestDiagnosticsRollingFileAppender"/>
+      <AppenderRef ref="deleteRequestDiagnosticsRollingFileAppender"/>
+      <AppenderRef ref="createRequestExceptionRollingFileAppender"/>
+      <AppenderRef ref="readRequestExceptionRollingFileAppender"/>
+      <AppenderRef ref="patchRequestExceptionRollingFileAppender"/>
+      <AppenderRef ref="queryRequestExceptionRollingFileAppender"/>
+      <AppenderRef ref="deleteRequestExceptionRollingFileAppender"/>
+    </Root>
+  </Loggers>
+</Configuration>

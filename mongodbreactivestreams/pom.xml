@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 
-Copyright (c) 2018 YCSB contributors. All rights reserved.
+Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -17,6 +17,7 @@ LICENSE file.
 -->
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>site.ycsb</groupId>
@@ -25,15 +26,15 @@ LICENSE file.
     <relativePath>../binding-parent</relativePath>
   </parent>
 
-  <artifactId>azurecosmos-binding</artifactId>
-  <name>Azure Cosmos Binding</name>
+  <artifactId>mongodbreactivestreams-binding</artifactId>
+  <name>MongoDB ReactiveStreams Binding</name>
   <packaging>jar</packaging>
- 
+
   <dependencies>
     <dependency>
-      <groupId>com.azure</groupId>
-      <artifactId>azure-cosmos</artifactId>
-      <version>${azurecosmos.version}</version>
+      <groupId>org.mongodb</groupId>
+      <artifactId>mongodb-driver-reactivestreams</artifactId>
+      <version>${mongodbreactivestreams.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
@@ -54,18 +55,14 @@ LICENSE file.
       <groupId>site.ycsb</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
-    <scope>provided</scope>
+      <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>io.micrometer</groupId>
-      <artifactId>micrometer-registry-azure-monitor</artifactId>
-      <version>1.9.2</version> <!-- {x-version-update;io.micrometer:micrometer-registry-azure-monitor;external_dependency} -->
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.microsoft.azure</groupId>
-      <artifactId>applicationinsights-agent</artifactId>
-      <version>3.5.1</version>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.13.1</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
+
 </project>
