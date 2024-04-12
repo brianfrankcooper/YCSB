@@ -16,9 +16,15 @@
  */
 package site.ycsb.db.ignite;
 
-import site.ycsb.ByteIterator;
-import site.ycsb.Status;
-import site.ycsb.StringByteIterator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import javax.cache.processor.EntryProcessorException;
+import javax.cache.processor.MutableEntry;
 import org.apache.ignite.binary.BinaryField;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.binary.BinaryObjectBuilder;
@@ -27,23 +33,17 @@ import org.apache.ignite.cache.CacheEntryProcessor;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import javax.cache.processor.EntryProcessorException;
-import javax.cache.processor.MutableEntry;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
+import site.ycsb.ByteIterator;
+import site.ycsb.Status;
+import site.ycsb.StringByteIterator;
 
 /**
  * Ignite client.
- * <p>
+ *
  * See {@code ignite/README.md} for details.
  */
 public class IgniteClient extends IgniteAbstractClient {
-  /**
-   *
-   */
+  /** */
   private static Logger log = LogManager.getLogger(IgniteClient.class);
 
   static {
@@ -54,58 +54,19 @@ public class IgniteClient extends IgniteAbstractClient {
    * Cached binary type.
    */
   private BinaryType binType = null;
+
   /**
    * Cached binary type's fields.
    */
   private final ConcurrentHashMap<String, BinaryField> fieldsCache = new ConcurrentHashMap<>();
 
-
-  /**
-   * Read a record from the database. Each field/value pair from the result will
-   * be stored in a HashMap.
-   *
-   * @param table  The name of the table
-   * @param key    The record key of the record to read.
-   * @param fields The list of fields to read, or null for all of them
-   * @param result A HashMap of field/value pairs for the result
-   * @return Zero on success, a non-zero error code on error
-   */
+  /** {@inheritDoc} */
   @Override
-  public Status read(String table, String key, Set<String> fields,
-                     Map<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try {
-      BinaryObject po = cache.get(key);
+      BinaryObject binObj = cache.get(key);
 
-      if (po == null) {
-        return Status.NOT_FOUND;
-      }
-
-      if (binType == null) {
-        binType = po.type();
-      }
-
-      for (String s : F.isEmpty(fields) ? binType.fieldNames() : fields) {
-        BinaryField bfld = fieldsCache.get(s);
-
-        if (bfld == null) {
-          bfld = binType.field(s);
-          fieldsCache.put(s, bfld);
-        }
-
-        String val = bfld.value(po);
-        if (val != null) {
-          result.put(s, new StringByteIterator(val));
-        }
-
-        if (debug) {
-          log.info("table:{" + table + "}, key:{" + key + "}" + ", fields:{" + fields + "}");
-          log.info("fields in po{" + binType.fieldNames() + "}");
-          log.info("result {" + result + "}");
-        }
-      }
-
-      return Status.OK;
-
+      return convert(binObj, fields, result);
     } catch (Exception e) {
       log.error(String.format("Error reading key: %s", key), e);
 
@@ -113,19 +74,38 @@ public class IgniteClient extends IgniteAbstractClient {
     }
   }
 
-  /**
-   * Update a record in the database. Any field/value pairs in the specified
-   * values HashMap will be written into the record with the specified record
-   * key, overwriting any existing values with the same field name.
-   *
-   * @param table  The name of the table
-   * @param key    The record key of the record to write.
-   * @param values A HashMap of field/value pairs to update in the record
-   * @return Zero on success, a non-zero error code on error
-   */
+  /** {@inheritDoc} */
   @Override
-  public Status update(String table, String key,
-                       Map<String, ByteIterator> values) {
+  public Status batchRead(String table, List<String> keys, List<Set<String>> fields,
+                          List<Map<String, ByteIterator>> results) {
+    try {
+      Map<String, BinaryObject> map = cache.getAll(new HashSet<>(keys));
+
+      for (int i = 0; i < keys.size(); i++) {
+        BinaryObject binObj = map.get(keys.get(i));
+
+        Map<String, ByteIterator> record = new HashMap<>();
+
+        Status status = convert(binObj, fields.get(i), record);
+
+        if (!status.isOk()) {
+          return status;
+        }
+
+        results.add(record);
+      }
+
+      return Status.OK;
+    } catch (Exception e) {
+      log.error("Error reading batch of keys.", e);
+
+      return Status.ERROR;
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
     try {
       cache.invoke(key, new Updater(values));
 
@@ -137,37 +117,13 @@ public class IgniteClient extends IgniteAbstractClient {
     }
   }
 
-  /**
-   * Insert a record in the database. Any field/value pairs in the specified
-   * values HashMap will be written into the record with the specified record
-   * key.
-   *
-   * @param table  The name of the table
-   * @param key    The record key of the record to insert.
-   * @param values A HashMap of field/value pairs to insert in the record
-   * @return Zero on success, a non-zero error code on error
-   */
+  /** {@inheritDoc} */
   @Override
-  public Status insert(String table, String key,
-                       Map<String, ByteIterator> values) {
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
-      BinaryObjectBuilder bob = cluster.binary().builder("CustomType");
+      BinaryObject binObj = convert(values);
 
-      for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-        bob.setField(entry.getKey(), entry.getValue().toString());
-
-        if (debug) {
-          log.info(entry.getKey() + ":" + entry.getValue());
-        }
-      }
-
-      BinaryObject bo = bob.build();
-
-      if (table.equals(DEFAULT_CACHE_NAME)) {
-        cache.put(key, bo);
-      } else {
-        throw new UnsupportedOperationException("Unexpected table name: " + table);
-      }
+      cache.put(key, binObj);
 
       return Status.OK;
     } catch (Exception e) {
@@ -177,23 +133,90 @@ public class IgniteClient extends IgniteAbstractClient {
     }
   }
 
-  /**
-   * Delete a record from the database.
-   *
-   * @param table The name of the table
-   * @param key   The record key of the record to delete.
-   * @return Zero on success, a non-zero error code on error
-   */
+  /** {@inheritDoc} */
+  @Override
+  public Status batchInsert(String table, List<String> keys, List<Map<String, ByteIterator>> values) {
+    try {
+      Map<String, BinaryObject> map = new LinkedHashMap<>();
+
+      for (int i = 0; i < keys.size(); i++) {
+        BinaryObject binObj = convert(values.get(i));
+
+        map.put(keys.get(i), binObj);
+      }
+
+      cache.putAll(map);
+
+      return Status.OK;
+    } catch (Exception e) {
+      log.error("Error inserting batch of keys.", e);
+
+      return Status.ERROR;
+    }
+  }
+
+  /** {@inheritDoc} */
   @Override
   public Status delete(String table, String key) {
     try {
       cache.remove(key);
+
       return Status.OK;
     } catch (Exception e) {
       log.error(String.format("Error deleting key: %s ", key), e);
+
+      return Status.ERROR;
+    }
+  }
+
+  /**
+   * Convert Map<String, ByteIterator> to BinaryObject.
+   *
+   * @param values Values in Map<String, ByteIterator> format.
+   * @return Binary object.
+   */
+  private BinaryObject convert(Map<String, ByteIterator> values) {
+    BinaryObjectBuilder bob = cluster.binary().builder("CustomType");
+
+    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+      bob.setField(entry.getKey(), entry.getValue().toString());
     }
 
-    return Status.ERROR;
+    return bob.build();
+  }
+
+  /**
+   * Convert BinaryObject to Map<String, ByteIterator>.
+   *
+   * @param binObj Binary object.
+   * @param fields Fields set.
+   * @param result Result in Map<String, ByteIterator> format.
+   * @return Status.
+   */
+  private Status convert(BinaryObject binObj, Set<String> fields, Map<String, ByteIterator> result) {
+    if (binObj == null) {
+      return Status.NOT_FOUND;
+    }
+
+    if (binType == null) {
+      binType = binObj.type();
+    }
+
+    for (String s : F.isEmpty(fields) ? binType.fieldNames() : fields) {
+      BinaryField binField = fieldsCache.get(s);
+
+      if (binField == null) {
+        binField = binType.field(s);
+        fieldsCache.put(s, binField);
+      }
+
+      String val = binField.value(binObj);
+      if (val != null) {
+        result.put(s, new StringByteIterator(val));
+      }
+    }
+
+    return Status.OK;
   }
 
   /**

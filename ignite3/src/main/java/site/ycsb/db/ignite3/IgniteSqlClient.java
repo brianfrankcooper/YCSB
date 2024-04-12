@@ -103,14 +103,10 @@ public class IgniteSqlClient extends AbstractSqlClient {
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
-      if (table.equals(cacheName)) {
-        List<String> valuesList = new ArrayList<>();
-        valuesList.add(key);
-        FIELDS.forEach(fieldName -> valuesList.add(String.valueOf(values.get(fieldName))));
-        node.sql().execute(null, INSERT_STATEMENT.get(), (Object[]) valuesList.toArray(new String[0])).close();
-      } else {
-        throw new UnsupportedOperationException("Unexpected table name: " + table);
-      }
+      List<String> valuesList = new ArrayList<>();
+      valuesList.add(key);
+      FIELDS.forEach(fieldName -> valuesList.add(String.valueOf(values.get(fieldName))));
+      node.sql().execute(null, INSERT_STATEMENT.get(), (Object[]) valuesList.toArray(new String[0])).close();
 
       return Status.OK;
     } catch (Exception e) {

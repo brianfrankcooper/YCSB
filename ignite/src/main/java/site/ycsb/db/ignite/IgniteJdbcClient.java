@@ -171,21 +171,17 @@ public class IgniteJdbcClient extends IgniteAbstractClient {
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
     try {
-      if (table.equals(cacheName)) {
-        try (Statement stmt = CONN.get().createStatement()) {
+      try (Statement stmt = CONN.get().createStatement()) {
 
-          List<String> updateValuesList = new ArrayList<>();
-          for (Entry<String, ByteIterator> entry : values.entrySet()) {
-            updateValuesList.add(String.format("%s='%s'", entry.getKey(), entry.getValue().toString()));
-          }
-
-          String sql = String.format("UPDATE %s SET %s WHERE %s = '%s'",
-              cacheName, String.join(", ", updateValuesList), PRIMARY_COLUMN_NAME, key);
-
-          stmt.executeUpdate(sql);
+        List<String> updateValuesList = new ArrayList<>();
+        for (Entry<String, ByteIterator> entry : values.entrySet()) {
+          updateValuesList.add(String.format("%s='%s'", entry.getKey(), entry.getValue().toString()));
         }
-      } else {
-        throw new UnsupportedOperationException("Unexpected table name: " + table);
+
+        String sql = String.format("UPDATE %s SET %s WHERE %s = '%s'",
+            cacheName, String.join(", ", updateValuesList), PRIMARY_COLUMN_NAME, key);
+
+        stmt.executeUpdate(sql);
       }
 
       return Status.OK;
@@ -200,15 +196,11 @@ public class IgniteJdbcClient extends IgniteAbstractClient {
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
-      if (table.equals(cacheName)) {
-        PreparedStatement stmt = INSERT_PREPARED_STATEMENT.get();
+      PreparedStatement stmt = INSERT_PREPARED_STATEMENT.get();
 
-        setStatementValues(stmt, key, values);
+      setStatementValues(stmt, key, values);
 
-        stmt.executeUpdate();
-      } else {
-        throw new UnsupportedOperationException("Unexpected table name: " + table);
-      }
+      stmt.executeUpdate();
 
       return Status.OK;
     } catch (Exception e) {
@@ -222,15 +214,11 @@ public class IgniteJdbcClient extends IgniteAbstractClient {
   @Override
   public Status delete(String table, String key) {
     try {
-      if (table.equals(cacheName)) {
-        PreparedStatement stmt = DELETE_PREPARED_STATEMENT.get();
+      PreparedStatement stmt = DELETE_PREPARED_STATEMENT.get();
 
-        stmt.setString(1, key);
+      stmt.setString(1, key);
 
-        stmt.executeUpdate();
-      } else {
-        throw new UnsupportedOperationException("Unexpected table name: " + table);
-      }
+      stmt.executeUpdate();
 
       return Status.OK;
     } catch (Exception e) {

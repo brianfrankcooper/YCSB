@@ -62,7 +62,6 @@ public abstract class IgniteAbstractClient extends DB {
   /** */
   protected static Logger log = LogManager.getLogger(IgniteAbstractClient.class);
 
-  protected static final String DEFAULT_CACHE_NAME = "usertable";
   protected static final String PRIMARY_COLUMN_NAME = "ycsb_key";
   protected static final String HOSTS_PROPERTY = "hosts";
   protected static final String CLIENT_NODE_NAME = "YCSB client node";
@@ -141,10 +140,10 @@ public abstract class IgniteAbstractClient extends DB {
         log.info("Activate Ignite cluster.");
         cluster.cluster().state(ClusterState.ACTIVE);
 
-        cache = cluster.cache(DEFAULT_CACHE_NAME).withKeepBinary();
+        cache = cluster.cache(cacheName).withKeepBinary();
 
         if (cache == null) {
-          throw new DBException(new IgniteCheckedException("Failed to find cache " + DEFAULT_CACHE_NAME));
+          throw new DBException(new IgniteCheckedException("Failed to find cache " + cacheName));
         }
       } catch (Exception e) {
         throw new DBException(e);

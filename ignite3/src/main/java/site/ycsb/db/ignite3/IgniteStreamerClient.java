@@ -84,10 +84,6 @@ public class IgniteStreamerClient extends IgniteAbstractClient {
   @Override
   public Status batchInsert(String table, List<String> keys, List<Map<String, ByteIterator>> values) {
     try {
-      if (!table.equals(cacheName)) {
-        throw new UnsupportedOperationException("Unexpected table name: " + table);
-      }
-
       for (int i = 0; i < keys.size(); i++) {
         Tuple value = Tuple.create(fieldCount + 1);
         value.set(PRIMARY_COLUMN_NAME, keys.get(i));

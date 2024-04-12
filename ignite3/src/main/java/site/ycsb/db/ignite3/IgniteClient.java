@@ -41,10 +41,6 @@ public class IgniteClient extends IgniteAbstractClient {
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
-      if (!table.equals(cacheName)) {
-        throw new UnsupportedOperationException("Unexpected table name: " + table);
-      }
-
       Tuple tKey = Tuple.create(1).set(PRIMARY_COLUMN_NAME, key);
 
       Tuple tValue = Tuple.create(fieldCount);
@@ -64,10 +60,6 @@ public class IgniteClient extends IgniteAbstractClient {
   @Override
   public Status batchInsert(String table, List<String> keys, List<Map<String, ByteIterator>> values) {
     try {
-      if (!table.equals(cacheName)) {
-        throw new UnsupportedOperationException("Unexpected table name: " + table);
-      }
-
       Map<Tuple, Tuple> tBatch = new LinkedHashMap<>();
       for (int i = 0; i < keys.size(); i++) {
         Tuple tKey = Tuple.create(1).set(PRIMARY_COLUMN_NAME, keys.get(i));
