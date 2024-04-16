@@ -9,5 +9,21 @@
   },
   "raft": {
     "fsync": false
+  },
+  "storage": {
+    "profiles": [
+      {
+        "name": "default_aimem",
+        "engine": "aimem"
+      },
+      {
+        "name": "default_aipersist",
+        "engine": "aipersist"
+      },
+      {
+        "name": "default_rocksdb",
+        "engine": "rocksDb"
+      }
+    ]
   }
 }

@@ -115,8 +115,16 @@ public abstract class IgniteAbstractClient extends DB {
 
   /**
    * Used to choose storage engine (e.g., 'aipersist' or 'rocksdb').
+   * @deprecated Removed in <a href="https://ggsystems.atlassian.net/browse/IGN-23905">IGN-23905</a>
    */
+  @Deprecated
   protected static String dbEngine;
+
+  /**
+   * Used to choose storage profiles separated by comma
+   * (e.g., 'default', 'default_aimem', 'default_aipersist,default_rocksdb', etc.).
+   */
+  protected static String storageProfiles;
 
   /**
    * Used to choose replication factor value.
@@ -146,6 +154,17 @@ public abstract class IgniteAbstractClient extends DB {
         useEmbeddedIgnite = Boolean.parseBoolean(getProperties().getProperty("useEmbedded", "false"));
         disableFsync = Boolean.parseBoolean(getProperties().getProperty("disableFsync", "false"));
         dbEngine = getProperties().getProperty("dbEngine", "");
+        storageProfiles = getProperties().getProperty("storage_profiles", "");
+
+        // backward compatibility of setting 'dbEngine' as storage engine name only.
+        if (storageProfiles.isEmpty() && !dbEngine.isEmpty()) {
+          if (!dbEngine.startsWith("default_")) {
+            dbEngine = "default_" + dbEngine.toLowerCase();
+          }
+
+          storageProfiles = dbEngine;
+        }
+
         replicas = getProperties().getProperty("replicas", "");
         partitions = getProperties().getProperty("partitions", "");
 
@@ -169,6 +188,7 @@ public abstract class IgniteAbstractClient extends DB {
         }
 
         hosts = getProperties().getProperty(HOSTS_PROPERTY);
+
         if (!useEmbeddedIgnite && hosts == null) {
           throw new DBException(String.format(
               "Required property \"%s\" missing for Ignite Cluster",
@@ -191,6 +211,7 @@ public abstract class IgniteAbstractClient extends DB {
     createTestTable(node);
     kvView = node.tables().table(cacheName).keyValueView();
     rView = node.tables().table(cacheName).recordView();
+
     if (kvView == null) {
       throw new DBException("Failed to find cache: " + cacheName);
     }
@@ -201,6 +222,7 @@ public abstract class IgniteAbstractClient extends DB {
     createTestTable(node);
     kvView = node.tables().table(cacheName).keyValueView();
     rView = node.tables().table(cacheName).recordView();
+
     if (kvView == null) {
       throw new DBException("Failed to find cache: " + cacheName);
     }
@@ -245,22 +267,10 @@ public abstract class IgniteAbstractClient extends DB {
           .map(e -> e + " VARCHAR")
           .collect(Collectors.joining(", "));
 
-      String createZoneReq = "";
-      String withZoneName = "";
-      if (!dbEngine.isEmpty() || !replicas.isEmpty() || !partitions.isEmpty()) {
-        String reqDbEngine = dbEngine.isEmpty() ? "" : " ENGINE " + dbEngine;
-        String paramReplicas = replicas.isEmpty() ? "" : "replicas=" + replicas;
-        String paramPartitions = partitions.isEmpty() ? "" : "partitions=" + partitions;
-        String params = Stream.of(paramReplicas, paramPartitions)
-            .filter(s -> !s.isEmpty())
-            .collect(Collectors.joining(", "));
-        String reqWithParams = params.isEmpty() ? "" : " WITH " + params;
+      String createZoneReq = createZoneSQL();
 
-        createZoneReq = "CREATE ZONE IF NOT EXISTS " + DEFAULT_ZONE_NAME + reqDbEngine + reqWithParams + ";";
-        withZoneName = String.format(" WITH PRIMARY_ZONE='%s';", DEFAULT_ZONE_NAME);
-
-        LOG.info("Create zone request: {}", createZoneReq);
-      }
+      String withZoneName = createZoneReq.isEmpty() ?
+          "" : String.format(" WITH PRIMARY_ZONE='%s';", DEFAULT_ZONE_NAME);
 
       String createTableReq = "CREATE TABLE IF NOT EXISTS " + cacheName + " ("
           + PRIMARY_COLUMN_NAME + " VARCHAR PRIMARY KEY, "
@@ -271,6 +281,7 @@ public abstract class IgniteAbstractClient extends DB {
       if (!createZoneReq.isEmpty()) {
         node0.sql().execute(null, createZoneReq).close();
       }
+
       node0.sql().execute(null, createTableReq).close();
 
       boolean cachePresent = waitForCondition(() -> node.tables().table(cacheName) != null,
@@ -282,6 +293,27 @@ public abstract class IgniteAbstractClient extends DB {
     } catch (Exception e) {
       throw new DBException(e);
     }
+  }
+
+  private String createZoneSQL() {
+    if (storageProfiles.isEmpty() && replicas.isEmpty() && partitions.isEmpty()) {
+      return "";
+    }
+
+    String paramStorageProfiles = String.format("STORAGE_PROFILES='%s'",
+            storageProfiles.isEmpty() ? "default" : storageProfiles);
+    String paramReplicas = replicas.isEmpty() ? "" : "replicas=" + replicas;
+    String paramPartitions = partitions.isEmpty() ? "" : "partitions=" + partitions;
+    String params = Stream.of(paramStorageProfiles, paramReplicas, paramPartitions)
+        .filter(s -> !s.isEmpty())
+        .collect(Collectors.joining(", "));
+    String reqWithParams = params.isEmpty() ? "" : " WITH " + params;
+
+    String createZoneReq = "CREATE ZONE IF NOT EXISTS " + DEFAULT_ZONE_NAME + reqWithParams + ";";
+
+    LOG.info("Create zone request: {}", createZoneReq);
+
+    return createZoneReq;
   }
 
   private static long entriesInTable(Ignite ignite0, String tableName) throws DBException {
