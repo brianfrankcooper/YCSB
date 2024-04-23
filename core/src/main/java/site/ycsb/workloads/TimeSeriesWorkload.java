@@ -711,29 +711,49 @@ public class TimeSeriesWorkload extends Workload {
     if (threadstate == null) {
       throw new IllegalStateException("Missing thread state.");
     }
+
+    Status status = db.start();
+    if(!status.isOk()){
+      db.rollback();
+      return false;
+    }
+
     switch (operationchooser.nextString()) {
     case "READ":
-      doTransactionRead(db, threadstate);
+      status = doTransactionRead(db, threadstate);
       break;
     case "UPDATE":
-      doTransactionUpdate(db, threadstate);
+      status = doTransactionUpdate(db, threadstate);
       break;
     case "INSERT": 
-      doTransactionInsert(db, threadstate);
+      status = doTransactionInsert(db, threadstate);
       break;
     case "SCAN":
-      doTransactionScan(db, threadstate);
+      status = doTransactionScan(db, threadstate);
       break;
     case "DELETE":
-      doTransactionDelete(db, threadstate);
+      status = doTransactionDelete(db, threadstate);
       break;
     default:
+      db.rollback();
+      return false;
+    }
+
+    if(!status.isOk()){
+      db.rollback();
+      return false;
+    }
+
+    status = db.commit();
+    if(!status.isOk()){
+      db.rollback();
       return false;
     }
     return true;
   }
 
-  protected void doTransactionRead(final DB db, Object threadstate) {
+
+  protected Status doTransactionRead(final DB db, Object threadstate) {
     final ThreadState state = (ThreadState) threadstate;
     final String keyname = keys[keychooser.nextValue().intValue()];
     final Random random = ThreadLocalRandom.current();
@@ -781,22 +801,28 @@ public class TimeSeriesWorkload extends Workload {
     if (dataintegrity && status == Status.OK) {
       verifyRow(keyname, cells);
     }
+    return status;
   }
   
-  protected void doTransactionUpdate(final DB db, Object threadstate) {
+  protected Status doTransactionUpdate(final DB db, Object threadstate) {
     if (threadstate == null) {
       throw new IllegalStateException("Missing thread state.");
     }
     final Map<String, ByteIterator> tags = new TreeMap<String, ByteIterator>();
     final String key = ((ThreadState)threadstate).nextDataPoint(tags, false);
-    db.update(table, key, tags);
+    return db.update(table, key, tags);
   }
   
-  protected void doTransactionInsert(final DB db, Object threadstate) {
-    doInsert(db, threadstate);
+  protected Status doTransactionInsert(final DB db, Object threadstate) {
+    if (threadstate == null) {
+      throw new IllegalStateException("Missing thread state.");
+    }
+    final Map<String, ByteIterator> tags = new TreeMap<String, ByteIterator>();
+    final String key = ((ThreadState)threadstate).nextDataPoint(tags, true);
+    return db.insert(table, key, tags);
   }
   
-  protected void doTransactionScan(final DB db, Object threadstate) {
+  protected Status doTransactionScan(final DB db, Object threadstate) {
     final ThreadState state = (ThreadState) threadstate;
     final Random random = ThreadLocalRandom.current();
     final String keyname = keys[random.nextInt(keys.length)];
@@ -842,10 +868,10 @@ public class TimeSeriesWorkload extends Workload {
     }
     
     final Vector<HashMap<String, ByteIterator>> results = new Vector<HashMap<String, ByteIterator>>();
-    db.scan(table, keyname, len, fields, results);
+    return db.scan(table, keyname, len, fields, results);
   }
   
-  protected void doTransactionDelete(final DB db, Object threadstate) {
+  protected Status doTransactionDelete(final DB db, Object threadstate) {
     final ThreadState state = (ThreadState) threadstate;
     final Random random = ThreadLocalRandom.current();
     final StringBuilder buf = new StringBuilder().append(keys[random.nextInt(keys.length)]);
@@ -883,7 +909,7 @@ public class TimeSeriesWorkload extends Workload {
          .append(timestampKey + tagPairDelimiter + startTimestamp);  
     }
     
-    db.delete(table, buf.toString());
+    return db.delete(table, buf.toString());
   }
   
   /**

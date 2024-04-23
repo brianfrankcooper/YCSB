@@ -46,6 +46,9 @@ public class DBWrapper extends DB {
   private static final AtomicBoolean LOG_REPORT_CONFIG = new AtomicBoolean(false);
 
   private final String scopeStringCleanup;
+  private final String scopeStringStartTransaction;
+  private final String scopeStringCommitTransaction;
+  private final String scopeStringRollbackTransaction;
   private final String scopeStringDelete;
   private final String scopeStringInit;
   private final String scopeStringInsert;
@@ -59,6 +62,9 @@ public class DBWrapper extends DB {
     this.tracer = tracer;
     final String simple = db.getClass().getSimpleName();
     scopeStringCleanup = simple + "#cleanup";
+    scopeStringStartTransaction = simple + "#startTransaction";
+    scopeStringCommitTransaction = simple + "#commitTransaction";
+    scopeStringRollbackTransaction = simple + "#rollbackTransaction";
     scopeStringDelete = simple + "#delete";
     scopeStringInit = simple + "#init";
     scopeStringInsert = simple + "#insert";
@@ -120,6 +126,42 @@ public class DBWrapper extends DB {
       db.cleanup();
       long en = System.nanoTime();
       measure("CLEANUP", Status.OK, ist, st, en);
+    }
+  }
+
+  public Status start() {
+    try (final TraceScope span = tracer.newScope(scopeStringStartTransaction)) {
+      long ist = measurements.getIntendedStartTimeNs();
+      long st = System.nanoTime();
+      Status res = db.start();
+      long en = System.nanoTime();
+      measure("START", res, ist, st, en);
+      measurements.reportStatus("START", res);
+      return res;
+    }
+  }
+
+  public Status commit() {
+    try (final TraceScope span = tracer.newScope(scopeStringCommitTransaction)) {
+      long ist = measurements.getIntendedStartTimeNs();
+      long st = System.nanoTime();
+      Status res = db.commit();
+      long en = System.nanoTime();
+      measure("COMMIT", res, ist, st, en);
+      measurements.reportStatus("COMMIT", res);
+      return res;
+    }
+  }
+
+  public Status rollback() {
+    try (final TraceScope span = tracer.newScope(scopeStringRollbackTransaction)) {
+      long ist = measurements.getIntendedStartTimeNs();
+      long st = System.nanoTime();
+      Status res = db.rollback();
+      long en = System.nanoTime();
+      measure("ROLLBACK", res, ist, st, en);
+      measurements.reportStatus("ROLLBACK", res);
+      return res;
     }
   }
 
