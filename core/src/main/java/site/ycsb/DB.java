@@ -78,16 +78,28 @@ public abstract class DB {
   }
 
   /**
-   * Starts a new transaction in the database
+   * Start a new transaction in the database
+   *
+   * @return The result of the operation
    */
   public Status start() {
     return Status.OK;
   }
 
+  /**
+   * Commit the currently active transaction of the db instance
+   *
+   * @return The result of the operation
+   */
   public Status commit() {
     return Status.OK;
   }
 
+  /**
+   * Rollback the currently active transaction of the db instance
+   *
+   * @return The result of the operation
+   */
   public Status rollback() {
     return Status.OK;
   }
