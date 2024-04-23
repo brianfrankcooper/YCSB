@@ -78,6 +78,21 @@ public abstract class DB {
   }
 
   /**
+   * Starts a new transaction in the database
+   */
+  public Status start() {
+    return Status.OK;
+  }
+
+  public Status commit() {
+    return Status.OK;
+  }
+
+  public Status rollback() {
+    return Status.OK;
+  }
+
+  /**
    * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
    *
    * @param table The name of the table

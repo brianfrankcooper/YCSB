@@ -618,7 +618,14 @@ public class CoreWorkload extends Workload {
     Status status;
     int numOfRetries = 0;
     do {
-      status = db.insert(table, dbkey, values);
+      status = db.start();
+      if(status != null && status.isOk()) {
+        status = db.insert(table, dbkey, values);
+        if(status != null && status.isOk()) {
+          status = db.commit();
+        }
+      }
+
       if (null != status && status.isOk()) {
         break;
       }
@@ -659,6 +666,8 @@ public class CoreWorkload extends Workload {
       return false;
     }
 
+    db.start();
+
     switch (operation) {
     case "READ":
       doTransactionRead(db);
@@ -675,7 +684,7 @@ public class CoreWorkload extends Workload {
     default:
       doTransactionReadModifyWrite(db);
     }
-
+    db.commit();
     return true;
   }
 
