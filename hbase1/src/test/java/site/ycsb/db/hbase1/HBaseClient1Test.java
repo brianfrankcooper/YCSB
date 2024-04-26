@@ -120,6 +120,7 @@ public class HBaseClient1Test {
   public void tearDown() throws Exception {
     table.close();
     testingUtil.deleteTable(tableName);
+    client.cleanup();
   }
 
   @Test
