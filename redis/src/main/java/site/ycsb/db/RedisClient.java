@@ -29,15 +29,14 @@ import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
 import site.ycsb.StringByteIterator;
-import redis.clients.jedis.BasicCommands;
+import redis.clients.jedis.DefaultJedisClientConfig;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisCluster;
-import redis.clients.jedis.JedisCommands;
+import redis.clients.jedis.commands.JedisCommands;
 import redis.clients.jedis.Protocol;
+import redis.clients.jedis.DefaultJedisClientConfig.Builder;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.HashSet;
@@ -61,6 +60,7 @@ public class RedisClient extends DB {
   public static final String PASSWORD_PROPERTY = "redis.password";
   public static final String CLUSTER_PROPERTY = "redis.cluster";
   public static final String TIMEOUT_PROPERTY = "redis.timeout";
+  public static final String SSL_PROPERTY = "redis.ssl";
 
   public static final String INDEX_KEY = "_indices";
 
@@ -77,30 +77,36 @@ public class RedisClient extends DB {
     String host = props.getProperty(HOST_PROPERTY);
 
     boolean clusterEnabled = Boolean.parseBoolean(props.getProperty(CLUSTER_PROPERTY));
+    boolean sslEnabled = Boolean.parseBoolean(props.getProperty(SSL_PROPERTY));
+    String password = props.getProperty(PASSWORD_PROPERTY);
     if (clusterEnabled) {
       Set<HostAndPort> jedisClusterNodes = new HashSet<>();
       jedisClusterNodes.add(new HostAndPort(host, port));
-      jedis = new JedisCluster(jedisClusterNodes);
+      Builder builder = DefaultJedisClientConfig.builder().ssl(sslEnabled);
+      if (password != null) {
+        builder = builder.password(password);
+      }
+      jedis = new JedisCluster(jedisClusterNodes, builder.build());
     } else {
       String redisTimeout = props.getProperty(TIMEOUT_PROPERTY);
-      if (redisTimeout != null){
-        jedis = new Jedis(host, port, Integer.parseInt(redisTimeout));
+      Jedis jedisServer;
+      if (redisTimeout != null) {
+        jedisServer = new Jedis(host, port, Integer.parseInt(redisTimeout), sslEnabled);
       } else {
-        jedis = new Jedis(host, port);
+        jedisServer = new Jedis(host, port, sslEnabled);
       }
-      ((Jedis) jedis).connect();
-    }
-
-    String password = props.getProperty(PASSWORD_PROPERTY);
-    if (password != null) {
-      ((BasicCommands) jedis).auth(password);
+      jedisServer.connect();
+      jedis = jedisServer;
+      if (password != null) {
+        jedisServer.auth(password);
+      }
     }
   }
 
   public void cleanup() throws DBException {
     try {
-      ((Closeable) jedis).close();
-    } catch (IOException e) {
+      ((AutoCloseable) jedis).close();
+    } catch (Exception e) {
       throw new DBException("Closing connection failed.");
     }
   }
@@ -123,8 +129,7 @@ public class RedisClient extends DB {
     if (fields == null) {
       StringByteIterator.putAllAsByteIterators(result, jedis.hgetAll(key));
     } else {
-      String[] fieldArray =
-          (String[]) fields.toArray(new String[fields.size()]);
+      String[] fieldArray = (String[]) fields.toArray(new String[fields.size()]);
       List<String> values = jedis.hmget(key, fieldArray);
 
       Iterator<String> fieldIterator = fields.iterator();
@@ -166,7 +171,7 @@ public class RedisClient extends DB {
   @Override
   public Status scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-    Set<String> keys = jedis.zrangeByScore(INDEX_KEY, hash(startkey),
+    List<String> keys = jedis.zrangeByScore(INDEX_KEY, hash(startkey),
         Double.POSITIVE_INFINITY, 0, recordcount);
 
     HashMap<String, ByteIterator> values;
