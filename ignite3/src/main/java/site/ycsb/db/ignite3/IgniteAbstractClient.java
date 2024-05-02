@@ -150,11 +150,11 @@ public abstract class IgniteAbstractClient extends DB {
       }
 
       try {
-        debug = IgniteParam.DEBUG.getValue(getProperties()); // Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
-        useEmbeddedIgnite = IgniteParam.USE_EMBEDDED.getValue(getProperties()); //Boolean.parseBoolean(getProperties().getProperty("useEmbedded", "false"));
-        disableFsync = IgniteParam.DISABLE_FSYNC.getValue(getProperties()); //Boolean.parseBoolean(getProperties().getProperty("disableFsync", "false"));
-        dbEngine = IgniteParam.DB_ENGINE.getValue(getProperties()); //getProperties().getProperty("dbEngine", "");
-        storageProfiles = IgniteParam.STORAGE_PROFILES.getValue(getProperties()); //getProperties().getProperty("storage_profiles", "");
+        debug = IgniteParam.DEBUG.getValue(getProperties());
+        useEmbeddedIgnite = IgniteParam.USE_EMBEDDED.getValue(getProperties());
+        disableFsync = IgniteParam.DISABLE_FSYNC.getValue(getProperties());
+        dbEngine = IgniteParam.DB_ENGINE.getValue(getProperties());
+        storageProfiles = IgniteParam.STORAGE_PROFILES.getValue(getProperties());
 
         // backward compatibility of setting 'dbEngine' as storage engine name only.
         if (storageProfiles.isEmpty() && !dbEngine.isEmpty()) {
@@ -165,10 +165,10 @@ public abstract class IgniteAbstractClient extends DB {
           storageProfiles = dbEngine;
         }
 
-        replicas = IgniteParam.REPLICAS.getValue(getProperties()); //getProperties().getProperty("replicas", "");
-        partitions = IgniteParam.PARTITIONS.getValue(getProperties()); //getProperties().getProperty("partitions", "");
+        replicas = IgniteParam.REPLICAS.getValue(getProperties());
+        partitions = IgniteParam.PARTITIONS.getValue(getProperties());
 
-        String workDirProperty = IgniteParam.WORK_DIR.getValue(getProperties()); //getProperties().getProperty("workDir", "../ignite3-ycsb-work/" + System.currentTimeMillis());
+        String workDirProperty = IgniteParam.WORK_DIR.getValue(getProperties());
         embeddedIgniteWorkDir = Paths.get(workDirProperty);
 
         cacheName = getProperties().getProperty(CoreWorkload.TABLENAME_PROPERTY,
