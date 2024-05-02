@@ -16,6 +16,8 @@
  */
 package site.ycsb.workloads;
 
+import static site.ycsb.Client.parseIntWithModifiers;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -545,7 +547,7 @@ public class TimeSeriesWorkload extends Workload {
   public void init(final Properties p) throws WorkloadException {
     properties = p;
     recordcount =
-        Integer.parseInt(p.getProperty(Client.RECORD_COUNT_PROPERTY, 
+        parseIntWithModifiers(p.getProperty(Client.RECORD_COUNT_PROPERTY,
             Client.DEFAULT_RECORD_COUNT));
     if (recordcount == 0) {
       recordcount = Integer.MAX_VALUE;

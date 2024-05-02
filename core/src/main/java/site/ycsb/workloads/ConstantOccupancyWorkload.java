@@ -17,6 +17,7 @@
 package site.ycsb.workloads;
 
 import site.ycsb.Client;
+import site.ycsb.Workload;
 import site.ycsb.WorkloadException;
 import site.ycsb.generator.NumberGenerator;
 
@@ -65,7 +66,7 @@ public class ConstantOccupancyWorkload extends CoreWorkload {
     occupancy = Double.parseDouble(p.getProperty(OCCUPANCY_PROPERTY, String.valueOf(OCCUPANCY_PROPERTY_DEFAULT)));
 
     if (p.getProperty(Client.RECORD_COUNT_PROPERTY) != null ||
-        p.getProperty(Client.INSERT_COUNT_PROPERTY) != null ||
+        p.getProperty(Workload.INSERT_COUNT_PROPERTY) != null ||
         p.getProperty(Client.OPERATION_COUNT_PROPERTY) != null) {
       System.err.println("Warning: record, insert or operation count was set prior to initting " +
           "ConstantOccupancyWorkload.  Overriding old values.");
@@ -80,7 +81,7 @@ public class ConstantOccupancyWorkload extends CoreWorkload {
     }
     p.setProperty(Client.RECORD_COUNT_PROPERTY, String.valueOf(objectCount));
     p.setProperty(Client.OPERATION_COUNT_PROPERTY, String.valueOf(storageages * objectCount));
-    p.setProperty(Client.INSERT_COUNT_PROPERTY, String.valueOf(objectCount));
+    p.setProperty(Workload.INSERT_COUNT_PROPERTY, String.valueOf(objectCount));
 
     super.init(p);
   }

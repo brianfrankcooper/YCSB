@@ -17,6 +17,8 @@
 
 package site.ycsb;
 
+import static site.ycsb.Workload.INSERT_COUNT_PROPERTY;
+
 import site.ycsb.measurements.Measurements;
 import site.ycsb.measurements.exporter.MeasurementsExporter;
 import site.ycsb.measurements.exporter.TextMeasurementsExporter;
@@ -136,13 +138,6 @@ public final class Client {
    * The number of YCSB client threads to run.
    */
   public static final String THREAD_COUNT_PROPERTY = "threadcount";
-
-  /**
-   * Indicates how many inserts to do if less than recordcount.
-   * Useful for partitioning the load among multiple servers if the client is the bottleneck.
-   * Additionally workloads should support the "insertstart" property which tells them which record to start at.
-   */
-  public static final String INSERT_COUNT_PROPERTY = "insertcount";
 
   /**
    * Target number of operations per second.
@@ -433,19 +428,19 @@ public final class Client {
     try (final TraceScope span = tracer.newScope(CLIENT_INIT_SPAN)) {
       int opcount;
       if (dotransactions) {
-        opcount = Integer.parseInt(props.getProperty(OPERATION_COUNT_PROPERTY, "0"));
+        opcount = parseIntWithModifiers(props.getProperty(OPERATION_COUNT_PROPERTY, "0"));
       } else {
         if (props.containsKey(INSERT_COUNT_PROPERTY)) {
-          opcount = Integer.parseInt(props.getProperty(INSERT_COUNT_PROPERTY, "0"));
+          opcount = parseIntWithModifiers(props.getProperty(INSERT_COUNT_PROPERTY, "0"));
         } else {
-          opcount = Integer.parseInt(props.getProperty(RECORD_COUNT_PROPERTY, DEFAULT_RECORD_COUNT));
+          opcount = parseIntWithModifiers(props.getProperty(RECORD_COUNT_PROPERTY, DEFAULT_RECORD_COUNT));
         }
       }
       if (threadcount > opcount && opcount > 0){
         threadcount = opcount;
         System.out.println("Warning: the threadcount is bigger than recordcount, the threadcount will be recordcount!");
       }
-      int warmupops = Integer.parseInt(props.getProperty(WARM_UP_OPERATIONS_COUNT_PROPERTY, DEFAULT_WARMUP_OPS));
+      int warmupops = parseIntWithModifiers(props.getProperty(WARM_UP_OPERATIONS_COUNT_PROPERTY, DEFAULT_WARMUP_OPS));
       for (int threadid = 0; threadid < threadcount; threadid++) {
         int threadopcount = opcount / threadcount;
         int threadwarmupopcount = warmupops / threadcount;
@@ -705,5 +700,27 @@ public final class Client {
     }
 
     return props;
+  }
+
+  /**
+   * Parse string (with possible modifiers: k=1000, and m=1000000) to int.
+   */
+  public static int parseIntWithModifiers(String value) {
+    return (int) parseLongWithModifiers(value);
+  }
+
+  /**
+   * Parse string (with possible modifiers: k=1000, and m=1000000) to long.
+   */
+  public static long parseLongWithModifiers(String value) {
+    if (value.endsWith("k") || value.endsWith("K")) {
+      return (long) (Double.parseDouble(value.substring(0, value.length() - 1)) * 1000);
+    }
+
+    if (value.endsWith("m") || value.endsWith("M")) {
+      return (long) (Double.parseDouble(value.substring(0, value.length() - 1)) * 1000000);
+    }
+
+    return Long.parseLong(value);
   }
 }

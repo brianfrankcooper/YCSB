@@ -17,6 +17,8 @@
 
 package site.ycsb.db.ignite3;
 
+import static site.ycsb.Client.parseLongWithModifiers;
+
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -178,9 +180,9 @@ public abstract class IgniteAbstractClient extends DB {
             CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
         fieldPrefix = getProperties().getProperty(CoreWorkload.FIELD_NAME_PREFIX,
             CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
-        recordsCount = Long.parseLong(getProperties().getProperty(Client.RECORD_COUNT_PROPERTY,
+        recordsCount = parseLongWithModifiers(getProperties().getProperty(Client.RECORD_COUNT_PROPERTY,
             Client.DEFAULT_RECORD_COUNT));
-        batchSize = Long.parseLong(getProperties().getProperty(Client.BATCH_SIZE_PROPERTY,
+        batchSize = parseLongWithModifiers(getProperties().getProperty(Client.BATCH_SIZE_PROPERTY,
             Client.DEFAULT_BATCH_SIZE));
 
         for (int i = 0; i < fieldCount; i++) {

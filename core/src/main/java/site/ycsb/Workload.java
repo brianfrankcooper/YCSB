@@ -36,7 +36,17 @@ import java.util.Properties;
  * client how many inserts to do. In the example above, both clients should have insertcount=500000.
  */
 public abstract class Workload {
+  /**
+   * Indicates which record to start at when do inserts.
+   * Useful for partitioning the load among multiple servers if the client is the bottleneck.
+   */
   public static final String INSERT_START_PROPERTY = "insertstart";
+
+  /**
+   * Indicates how many inserts to do if less than recordcount.
+   * Useful for partitioning the load among multiple servers if the client is the bottleneck.
+   * Support the "insertstart" property which tells them which record to start at.
+   */
   public static final String INSERT_COUNT_PROPERTY = "insertcount";
   
   public static final String INSERT_START_PROPERTY_DEFAULT = "0";

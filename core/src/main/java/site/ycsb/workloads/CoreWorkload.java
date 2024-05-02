@@ -19,6 +19,8 @@ package site.ycsb.workloads;
 
 import static site.ycsb.Client.DEFAULT_WARMUP_OPS;
 import static site.ycsb.Client.WARM_UP_OPERATIONS_COUNT_PROPERTY;
+import static site.ycsb.Client.parseIntWithModifiers;
+import static site.ycsb.Client.parseLongWithModifiers;
 
 import java.util.concurrent.atomic.AtomicLong;
 import site.ycsb.*;
@@ -448,13 +450,13 @@ public class CoreWorkload extends Workload {
     fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
 
     warmupops =
-        Long.parseLong(p.getProperty(WARM_UP_OPERATIONS_COUNT_PROPERTY, DEFAULT_WARMUP_OPS));
+        parseLongWithModifiers(p.getProperty(WARM_UP_OPERATIONS_COUNT_PROPERTY, DEFAULT_WARMUP_OPS));
     if (warmupops < 0) {
       System.err.println("Invalid warmupops=" + warmupops + ". warmupops must not be negative.");
       System.exit(-1);
     }
     recordcount =
-        Long.parseLong(p.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
+        parseLongWithModifiers(p.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
     if (recordcount == 0) {
       recordcount = Integer.MAX_VALUE;
     }
@@ -463,7 +465,7 @@ public class CoreWorkload extends Workload {
     int threads = Integer.parseInt(p.getProperty(Client.THREAD_COUNT_PROPERTY, "1"));
 
     batchsize =
-        Integer.parseInt(p.getProperty(Client.BATCH_SIZE_PROPERTY, Client.DEFAULT_BATCH_SIZE));
+        parseIntWithModifiers(p.getProperty(Client.BATCH_SIZE_PROPERTY, Client.DEFAULT_BATCH_SIZE));
     if (batchsize < 1) {
       System.err.println("Invalid batchsize=" + batchsize + ". batchsize must be bigger than 0.");
       System.exit(-1);
@@ -490,9 +492,9 @@ public class CoreWorkload extends Workload {
         p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY, SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
 
     long insertstart =
-        Long.parseLong(p.getProperty(INSERT_START_PROPERTY, INSERT_START_PROPERTY_DEFAULT));
+        parseLongWithModifiers(p.getProperty(INSERT_START_PROPERTY, INSERT_START_PROPERTY_DEFAULT));
     long insertcount=
-        Integer.parseInt(p.getProperty(INSERT_COUNT_PROPERTY, String.valueOf(recordcount - insertstart)));
+        parseLongWithModifiers(p.getProperty(INSERT_COUNT_PROPERTY, String.valueOf(recordcount - insertstart)));
     // Confirm valid values for insertstart and insertcount in relation to recordcount
     if (recordcount < (insertstart + insertcount)) {
       System.err.println("Invalid combination of insertstart, insertcount and recordcount.");
@@ -552,7 +554,7 @@ public class CoreWorkload extends Workload {
       // the keyspace doesn't change from the perspective of the scrambled zipfian generator
       final double insertproportion = Double.parseDouble(
           p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
-      int opcount = Integer.parseInt(p.getProperty(Client.OPERATION_COUNT_PROPERTY));
+      int opcount = parseIntWithModifiers(p.getProperty(Client.OPERATION_COUNT_PROPERTY));
       int expectednewkeys = (int) ((opcount) * insertproportion * 2.0); // 2 is fudge factor
 
       keychooser = new ScrambledZipfianGenerator(insertstart, insertstart + insertcount + expectednewkeys);
