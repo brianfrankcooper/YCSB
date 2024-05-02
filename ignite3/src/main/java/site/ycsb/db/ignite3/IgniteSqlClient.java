@@ -149,6 +149,7 @@ public class IgniteSqlClient extends AbstractSqlClient {
           if (READ_STATEMENT.get() != null) {
             READ_STATEMENT.get().close();
           }
+
           if (INSERT_STATEMENT.get() != null) {
             INSERT_STATEMENT.get().close();
           }
