@@ -61,6 +61,7 @@ public class IgniteClient extends IgniteAbstractClient {
   public Status batchInsert(String table, List<String> keys, List<Map<String, ByteIterator>> values) {
     try {
       Map<Tuple, Tuple> tBatch = new LinkedHashMap<>();
+
       for (int i = 0; i < keys.size(); i++) {
         Tuple tKey = Tuple.create(1).set(PRIMARY_COLUMN_NAME, keys.get(i));
 
@@ -94,6 +95,7 @@ public class IgniteClient extends IgniteAbstractClient {
 
       if (fields == null || fields.isEmpty()) {
         fields = new HashSet<>();
+
         for (int colIdx = 0; colIdx < tValue.columnCount(); colIdx++) {
           fields.add(tValue.columnName(colIdx));
         }
@@ -129,9 +131,10 @@ public class IgniteClient extends IgniteAbstractClient {
         tKey.set(PRIMARY_COLUMN_NAME, keys.get(i));
 
         final Set<String> fieldsForKey;
-        if (fields == null || fields.isEmpty() ||
-            fields.get(i) == null || fields.get(i).isEmpty()) {
+
+        if (fields == null || fields.isEmpty() || fields.get(i) == null || fields.get(i).isEmpty()) {
           fieldsForKey = new HashSet<>();
+
           for (int colIdx = 0; colIdx < tResults.get(tKey).columnCount(); colIdx++) {
             fieldsForKey.add(tResults.get(tKey).columnName(colIdx));
           }
@@ -146,6 +149,7 @@ public class IgniteClient extends IgniteAbstractClient {
         }
 
         Map<String, ByteIterator> value = new LinkedHashMap<>();
+
         for (String field : fieldsForKey) {
           if (!Objects.equals(tValue.stringValue(field), null)) {
             value.put(field, new StringByteIterator(tValue.stringValue(field)));
@@ -165,8 +169,7 @@ public class IgniteClient extends IgniteAbstractClient {
 
   /** {@inheritDoc} */
   @Override
-  public Status update(String table, String key,
-                       Map<String, ByteIterator> values) {
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
     return Status.NOT_IMPLEMENTED;
   }
 

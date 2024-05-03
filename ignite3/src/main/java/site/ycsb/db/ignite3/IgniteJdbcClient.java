@@ -134,8 +134,8 @@ public class IgniteJdbcClient extends AbstractSqlClient {
   public Status update(String table, String key, Map<String, ByteIterator> values) {
     try {
       try (Statement stmt = CONN.get().createStatement()) {
-
         List<String> updateValuesList = new ArrayList<>();
+
         for (Entry<String, ByteIterator> entry : values.entrySet()) {
           updateValuesList.add(String.format("%s='%s'", entry.getKey(), entry.getValue().toString()));
         }

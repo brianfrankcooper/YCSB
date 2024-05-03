@@ -152,11 +152,11 @@ public abstract class IgniteAbstractClient extends DB {
       }
 
       try {
-        debug = Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
-        useEmbeddedIgnite = Boolean.parseBoolean(getProperties().getProperty("useEmbedded", "false"));
-        disableFsync = Boolean.parseBoolean(getProperties().getProperty("disableFsync", "false"));
-        dbEngine = getProperties().getProperty("dbEngine", "");
-        storageProfiles = getProperties().getProperty("storage_profiles", "");
+        debug = IgniteParam.DEBUG.getValue(getProperties());
+        useEmbeddedIgnite = IgniteParam.USE_EMBEDDED.getValue(getProperties());
+        disableFsync = IgniteParam.DISABLE_FSYNC.getValue(getProperties());
+        dbEngine = IgniteParam.DB_ENGINE.getValue(getProperties());
+        storageProfiles = IgniteParam.STORAGE_PROFILES.getValue(getProperties());
 
         // backward compatibility of setting 'dbEngine' as storage engine name only.
         if (storageProfiles.isEmpty() && !dbEngine.isEmpty()) {
@@ -167,11 +167,10 @@ public abstract class IgniteAbstractClient extends DB {
           storageProfiles = dbEngine;
         }
 
-        replicas = getProperties().getProperty("replicas", "");
-        partitions = getProperties().getProperty("partitions", "");
+        replicas = IgniteParam.REPLICAS.getValue(getProperties());
+        partitions = IgniteParam.PARTITIONS.getValue(getProperties());
 
-        String workDirProperty = getProperties().getProperty("workDir",
-            "../ignite3-ycsb-work/" + System.currentTimeMillis());
+        String workDirProperty = IgniteParam.WORK_DIR.getValue(getProperties());
         embeddedIgniteWorkDir = Paths.get(workDirProperty);
 
         cacheName = getProperties().getProperty(CoreWorkload.TABLENAME_PROPERTY,
