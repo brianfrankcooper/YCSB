@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
 import java.util.*;
+import java.util.concurrent.CompletionException;
 
 /**
  * FoundationDB client for YCSB framework.
@@ -47,6 +48,8 @@ public class FoundationDBClient extends DB {
   private static final String DB_BATCH_SIZE_DEFAULT = "0";
   private static final String DB_BATCH_SIZE         = "foundationdb.batchsize";
 
+
+  private Transaction transaction;
   private Vector<String> batchKeys;
   private Vector<Map<String, ByteIterator>> batchValues;
 
@@ -86,7 +89,18 @@ public class FoundationDBClient extends DB {
   @Override
   public void cleanup() throws DBException {
     if (batchCount > 0) {
-      batchInsert();
+      start();
+
+      Status status = batchInsert();
+      if (status != Status.OK) {
+        logger.error(MessageFormatter.format("Error in database operation: {}", "cleanup").getMessage());
+        throw new DBException();
+      }
+      status = commit();
+      if (status != Status.OK) {
+        logger.error(MessageFormatter.format("Error in database operation: {}", "cleanup").getMessage());
+        throw new DBException();
+      }
       batchCount = 0;
     }
     try {
@@ -125,9 +139,10 @@ public class FoundationDBClient extends DB {
     return Status.OK;
   }
 
-  private void batchInsert() {
+  private Status batchInsert() {
+    Status status = Status.OK;
     try {
-      db.run(tr -> {
+      transaction.run(tr -> {
           for (int i = 0; i < batchCount; ++i) {
             Tuple t = new Tuple();
             for (Map.Entry<String, String> entry : StringByteIterator.getStringMap(batchValues.get(i)).entrySet()) {
@@ -140,24 +155,47 @@ public class FoundationDBClient extends DB {
           }
           return null;
         });
-    } catch (FDBException e) {
-      for (int i = 0; i < batchCount; ++i) {
-        logger.error(MessageFormatter.format("Error batch inserting key {}", batchKeys.get(i)).getMessage(), e);
-      }
-      e.printStackTrace();
     } catch (Throwable e) {
       for (int i = 0; i < batchCount; ++i) {
         logger.error(MessageFormatter.format("Error batch inserting key {}", batchKeys.get(i)).getMessage(), e);
       }
-      e.printStackTrace();
+      status = Status.ERROR;
     } finally {
       batchKeys.clear();
       batchValues.clear();
     }
+    return status;
+  }
+
+
+  @Override
+  public Status start() {
+    transaction = db.createTransaction();
+    return Status.OK;
+  }
+
+  @Override
+  public Status commit() {
+    try {
+      transaction.commit().join();
+    } catch (CompletionException e) {
+      return Status.ERROR;
+    } finally {
+      transaction.close();
+    }
+    return Status.OK;
+  }
+
+  @Override
+  public Status rollback() {
+    transaction.cancel();
+    transaction.close();
+    return Status.OK;
   }
 
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
+    Status status = Status.OK;
     String rowKey = getRowKey(dbName, table, key);
     logger.debug("insert key = {}", rowKey);
     try {
@@ -165,15 +203,14 @@ public class FoundationDBClient extends DB {
       batchValues.addElement(new HashMap<String, ByteIterator>(values));
       batchCount++;
       if (batchSize == 0 || batchSize == batchCount) {
-        batchInsert();
+        status = batchInsert();
         batchCount = 0;
       }
-      return Status.OK;
     } catch (Throwable e) {
       logger.error(MessageFormatter.format("Error inserting key: {}", rowKey).getMessage(), e);
-      e.printStackTrace();
+      status = Status.ERROR;
     }
-    return Status.ERROR;
+    return status;
   }
 
   @Override
@@ -181,19 +218,15 @@ public class FoundationDBClient extends DB {
     String rowKey = getRowKey(dbName, table, key);
     logger.debug("delete key = {}", rowKey);
     try {
-      db.run(tr -> {
+      transaction.run(tr -> {
           tr.clear(Tuple.from(rowKey).pack());
           return null;
         });
-      return Status.OK;
-    } catch (FDBException e) {
-      logger.error(MessageFormatter.format("Error deleting key: {}", rowKey).getMessage(), e);
-      e.printStackTrace();
     } catch (Exception e) {
       logger.error(MessageFormatter.format("Error deleting key: {}", rowKey).getMessage(), e);
-      e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
+    return Status.OK;
   }
 
   @Override
@@ -201,22 +234,15 @@ public class FoundationDBClient extends DB {
     String rowKey = getRowKey(dbName, table, key);
     logger.debug("read key = {}", rowKey);
     try {
-      byte[] row = db.run(tr -> {
-          byte[] r = tr.get(Tuple.from(rowKey).pack()).join();
-          return r;
-        });
+      byte[] row = transaction.run(tr -> tr.get(Tuple.from(rowKey).pack()).join());
       Tuple t = Tuple.fromBytes(row);
-      if (t.size() == 0) {
+      if (t.isEmpty()) {
         logger.debug("key not fount: {}", rowKey);
         return Status.NOT_FOUND;
       }
       return convTupleToMap(t, fields, result);
-    } catch (FDBException e) {
-      logger.error(MessageFormatter.format("Error reading key: {}", rowKey).getMessage(), e);
-      e.printStackTrace();
     } catch (Exception e) {
       logger.error(MessageFormatter.format("Error reading key: {}", rowKey).getMessage(), e);
-      e.printStackTrace();
     }
     return Status.ERROR;
   }
@@ -226,10 +252,10 @@ public class FoundationDBClient extends DB {
     String rowKey = getRowKey(dbName, table, key);
     logger.debug("update key = {}", rowKey);
     try {
-      Status s = db.run(tr -> {
+      return transaction.run(tr -> {
           byte[] row = tr.get(Tuple.from(rowKey).pack()).join();
           Tuple o = Tuple.fromBytes(row);
-          if (o.size() == 0) {
+          if (o.isEmpty()) {
             logger.debug("key not fount: {}", rowKey);
             return Status.NOT_FOUND;
           }
@@ -255,15 +281,10 @@ public class FoundationDBClient extends DB {
           tr.set(Tuple.from(rowKey).pack(), t.pack());
           return Status.OK;
         });
-      return s;
-    } catch (FDBException e) {
-      logger.error(MessageFormatter.format("Error updating key: {}", rowKey).getMessage(), e);
-      e.printStackTrace();
     } catch (Exception e) {
       logger.error(MessageFormatter.format("Error updating key: {}", rowKey).getMessage(), e);
-      e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
   }
 
   @Override
@@ -272,14 +293,14 @@ public class FoundationDBClient extends DB {
     String startRowKey = getRowKey(dbName, table, startkey);
     String endRowKey = getEndRowKey(table);
     logger.debug("scan key from {} to {} limit {} ", startkey, endRowKey, recordcount);
-    try (Transaction tr = db.createTransaction()) {
-      tr.options().setReadYourWritesDisable();
-      AsyncIterable<KeyValue> entryList = tr.getRange(Tuple.from(startRowKey).pack(), Tuple.from(endRowKey).pack(),
-          recordcount > 0 ? recordcount : 0);
+    try {
+      // TODO Was previously a separate read only transaction. Should we change back?
+      AsyncIterable<KeyValue> entryList = transaction.getRange(Tuple.from(startRowKey).pack(), Tuple.from(endRowKey).pack(),
+          Math.max(recordcount, 0));
       List<KeyValue> entries = entryList.asList().join();
-      for (int i = 0; i < entries.size(); ++i) {
+      for (KeyValue entry : entries) {
         final HashMap<String, ByteIterator> map = new HashMap<>();
-        Tuple value = Tuple.fromBytes(entries.get(i).getValue());
+        Tuple value = Tuple.fromBytes(entry.getValue());
         if (convTupleToMap(value, fields, map) == Status.OK) {
           result.add(map);
         } else {
@@ -288,15 +309,10 @@ public class FoundationDBClient extends DB {
         }
       }
       return Status.OK;
-    } catch (FDBException e) {
-      logger.error(MessageFormatter.format("Error scanning keys: from {} to {} ",
-          startRowKey, endRowKey).getMessage(), e);
-      e.printStackTrace();
     } catch (Exception e) {
       logger.error(MessageFormatter.format("Error scanning keys: from {} to {} ",
           startRowKey, endRowKey).getMessage(), e);
-      e.printStackTrace();
+      return Status.ERROR;
     }
-    return Status.ERROR;
   }
 }
