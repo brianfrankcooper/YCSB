@@ -2,7 +2,6 @@ package site.ycsb.db.ignite3;
 
 import java.util.Properties;
 import java.util.function.Function;
-import javax.validation.constraints.NotNull;
 
 /**
  * Ignite client parameter.
@@ -45,13 +44,13 @@ public class IgniteParam<T> {
    */
   Function<String, T> parser;
 
-  private IgniteParam(@NotNull String parameter, T defaultValue, @NotNull Function<String, T> parser) {
+  private IgniteParam(String parameter, T defaultValue, Function<String, T> parser) {
     this.parameter = parameter;
     this.defaultValue = defaultValue;
     this.parser = parser;
   }
 
-  public T getValue(@NotNull Properties properties) {
+  public T getValue(Properties properties) {
     if (properties.containsKey(parameter)) {
       return parser.apply(properties.getProperty(parameter));
     }

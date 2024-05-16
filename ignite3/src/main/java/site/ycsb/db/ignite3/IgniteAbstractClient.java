@@ -123,10 +123,9 @@ public abstract class IgniteAbstractClient extends DB {
   protected static String dbEngine;
 
   /**
-   * Used to choose storage profiles separated by comma
-   * (e.g., 'default', 'default_aimem', 'default_aipersist,default_rocksdb', etc.).
+   * Used to choose storage profile (e.g., 'default', 'aimem', 'aipersist', 'rocksdb').
    */
-  protected static String storageProfiles;
+  protected static String storageProfile;
 
   /**
    * Used to choose replication factor value.
@@ -156,15 +155,11 @@ public abstract class IgniteAbstractClient extends DB {
         useEmbeddedIgnite = IgniteParam.USE_EMBEDDED.getValue(getProperties());
         disableFsync = IgniteParam.DISABLE_FSYNC.getValue(getProperties());
         dbEngine = IgniteParam.DB_ENGINE.getValue(getProperties());
-        storageProfiles = IgniteParam.STORAGE_PROFILES.getValue(getProperties());
+        storageProfile = IgniteParam.STORAGE_PROFILES.getValue(getProperties()).toLowerCase();
 
         // backward compatibility of setting 'dbEngine' as storage engine name only.
-        if (storageProfiles.isEmpty() && !dbEngine.isEmpty()) {
-          if (!dbEngine.startsWith("default_")) {
-            dbEngine = "default_" + dbEngine.toLowerCase();
-          }
-
-          storageProfiles = dbEngine;
+        if (storageProfile.isEmpty() && !dbEngine.isEmpty()) {
+          storageProfile = dbEngine.toLowerCase();
         }
 
         replicas = IgniteParam.REPLICAS.getValue(getProperties());
@@ -235,7 +230,9 @@ public abstract class IgniteAbstractClient extends DB {
     String nodeName = "defaultNode";
 
     try {
-      String cfgResourceName = disableFsync ? "ignite-config-nofsync.json" : "ignite-config.json";
+      String cfgResourceName = String.format("ignite-config%s%s.json",
+          disableFsync ? "-nofsync" : "",
+          storageProfile.isEmpty() ? "" : "-" + storageProfile);
       Path cfgPath = embeddedIgniteWorkDir.resolve(cfgResourceName);
 
       Files.createDirectories(embeddedIgniteWorkDir);
@@ -297,12 +294,12 @@ public abstract class IgniteAbstractClient extends DB {
   }
 
   private String createZoneSQL() {
-    if (storageProfiles.isEmpty() && replicas.isEmpty() && partitions.isEmpty()) {
+    if (storageProfile.isEmpty() && replicas.isEmpty() && partitions.isEmpty()) {
       return "";
     }
 
     String paramStorageProfiles = String.format("STORAGE_PROFILES='%s'",
-            storageProfiles.isEmpty() ? "default" : storageProfiles);
+            storageProfile.isEmpty() ? "default" : storageProfile);
     String paramReplicas = replicas.isEmpty() ? "" : "replicas=" + replicas;
     String paramPartitions = partitions.isEmpty() ? "" : "partitions=" + partitions;
     String params = Stream.of(paramStorageProfiles, paramReplicas, paramPartitions)

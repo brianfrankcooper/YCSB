@@ -11,7 +11,7 @@
     "profiles": [
       {
         "name": "default",
-        "engine": "aipersist"
+        "engine": "aimem"
       }
     ]
   }

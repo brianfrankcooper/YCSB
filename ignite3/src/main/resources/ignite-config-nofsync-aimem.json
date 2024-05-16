@@ -7,11 +7,14 @@
     },
     "port": 3344
   },
+  "raft": {
+    "fsync": false
+  },
   "storage": {
     "profiles": [
       {
         "name": "default",
-        "engine": "aipersist"
+        "engine": "aimem"
       }
     ]
   }
