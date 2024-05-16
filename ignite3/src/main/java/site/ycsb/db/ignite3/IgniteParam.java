@@ -2,13 +2,14 @@ package site.ycsb.db.ignite3;
 
 import java.util.Properties;
 import java.util.function.Function;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Ignite client parameter.
  *
  * @param <T> Parameter value type.
  */
-public class IgniteParam<T> {
+public final class IgniteParam<T> {
   public static final IgniteParam<Boolean> DEBUG = new IgniteParam<>("debug", false,
       Boolean::parseBoolean);
 
@@ -32,25 +33,41 @@ public class IgniteParam<T> {
   /**
    * Parameter name.
    */
-  String parameter;
+  @NotNull
+  private String parameter;
 
   /**
    * Default parameter value.
    */
-  T defaultValue;
+  @NotNull
+  private T defaultValue;
 
   /**
    * Parsing function to get parameter value from property.
    */
-  Function<String, T> parser;
+  @NotNull
+  private Function<String, T> parser;
 
-  private IgniteParam(String parameter, T defaultValue, Function<String, T> parser) {
+  /**
+   * Constructor.
+   *
+   * @param parameter Parameter.
+   * @param defaultValue Default value for parameter.
+   * @param parser Parsing function to get parameter value from property.
+   */
+  private IgniteParam(@NotNull String parameter, @NotNull T defaultValue, @NotNull Function<String, T> parser) {
     this.parameter = parameter;
     this.defaultValue = defaultValue;
     this.parser = parser;
   }
 
-  public T getValue(Properties properties) {
+  /**
+   * Get parameter value from properties.
+   *
+   * @param properties Properties.
+   */
+  @NotNull
+  public T getValue(@NotNull Properties properties) {
     if (properties.containsKey(parameter)) {
       return parser.apply(properties.getProperty(parameter));
     }
