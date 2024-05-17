@@ -93,6 +93,7 @@ DATABASES = {
     "postgrenosql" : "site.ycsb.postgrenosql.PostgreNoSQLDBClient",
     "rados"        : "site.ycsb.db.RadosClient",
     "redis"        : "site.ycsb.db.RedisClient",
+    "redislettuce" : "site.ycsb.db.RedisLettuceClient",
     "rest"         : "site.ycsb.webservice.rest.RestClient",
     "riak"         : "site.ycsb.db.riak.RiakKVClient",
     "rocksdb"      : "site.ycsb.db.rocksdb.RocksDBClient",
