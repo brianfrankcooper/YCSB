@@ -18,9 +18,10 @@
  */
 package site.ycsb.postgrenosql;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import site.ycsb.*;
 import org.json.simple.JSONObject;
-import org.postgresql.Driver;
 import org.postgresql.util.PGobject;
 
 import org.slf4j.Logger;
@@ -45,8 +46,12 @@ public class MultiPostgreNoSQLDBClient extends DB {
   /** Count the number of times initialized to teardown on the last. */
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
-  /** The class to use as the jdbc driver. */
-  public static final String DRIVER_CLASS = "db.driver";
+  /** The connection pool **/
+  private static final HikariConfig hikariConfig = new HikariConfig();
+  private static HikariDataSource hikariDataSource;
+
+  /** Cache for already generated SQL statements. */
+  private static final ConcurrentMap<StatementType, String> cachedSQLStatements = new ConcurrentHashMap<>();
 
   /** The URL to connect to the database. */
   public static final String CONNECTION_URL = "postgrenosql.url";
@@ -59,6 +64,10 @@ public class MultiPostgreNoSQLDBClient extends DB {
 
   /** The JDBC connection auto-commit property for the driver. */
   public static final String JDBC_AUTO_COMMIT = "postgrenosql.autocommit";
+
+  public static final String CONNECTION_POOL_SIZE = "postgrenosql.connection_pool_size";
+  public static final String CONNECTION_TIMEOUT = "postgrenosql.connection_timeout";
+  public static final String CONNECTION_IDLE_TIMEOUT = "postgrenosql.connection_idle_timeout";
 
   /** The primary key in the user table. */
   public static final String PRIMARY_KEY = "YCSB_KEY";
@@ -77,11 +86,16 @@ public class MultiPostgreNoSQLDBClient extends DB {
     return defaultVal;
   }
 
+  static int parseIntegerProperty(final Properties properties, final String key, final int defaultValue) {
+    final String value = properties.getProperty(key);
+    return value == null ? defaultValue : Integer.parseInt(value);
+  }
+
   @Override
-  public void init() throws DBException {
+  public void init()  {
     INIT_COUNT.incrementAndGet();
     synchronized (MultiPostgreNoSQLDBClient.class) {
-      if (postgrenosqlDriver != null) {
+      if (hikariDataSource != null) {
         return;
       }
 
@@ -89,18 +103,29 @@ public class MultiPostgreNoSQLDBClient extends DB {
       String urls = props.getProperty(CONNECTION_URL, DEFAULT_PROP);
       String user = props.getProperty(CONNECTION_USER, DEFAULT_PROP);
       String passwd = props.getProperty(CONNECTION_PASSWD, DEFAULT_PROP);
+      int connectionPoolSize = parseIntegerProperty(props,CONNECTION_POOL_SIZE, 0);
+      int connectionTimeout = parseIntegerProperty(props,CONNECTION_TIMEOUT, 0);
+      int connectionIdleTimeout = parseIntegerProperty(props,CONNECTION_IDLE_TIMEOUT, 0);
       boolean autoCommit = getBoolProperty(props, JDBC_AUTO_COMMIT, true);
 
       try {
-        Properties tmpProps = new Properties();
-        tmpProps.setProperty("user", user);
-        tmpProps.setProperty("password", passwd);
 
-        cachedStatements = new ConcurrentHashMap<>();
+        hikariConfig.setJdbcUrl(urls);
+        hikariConfig.setUsername(user);
+        hikariConfig.setPassword(passwd);
+        if(connectionPoolSize>0) {
+          hikariConfig.setMaximumPoolSize(connectionPoolSize);
+        }
 
-        postgrenosqlDriver = new Driver();
-        connection = postgrenosqlDriver.connect(urls, tmpProps);
-        connection.setAutoCommit(autoCommit);
+        if(connectionIdleTimeout>0) {
+          hikariConfig.setIdleTimeout(10000);
+        }
+
+        if(connectionTimeout>0) {
+          hikariConfig.setConnectionTimeout(connectionTimeout);
+        }
+        hikariConfig.setAutoCommit(autoCommit);
+        hikariDataSource = new HikariDataSource(hikariConfig);
 
       } catch (Exception e) {
         LOG.error("Error during initialization: " + e);
@@ -109,30 +134,18 @@ public class MultiPostgreNoSQLDBClient extends DB {
   }
 
   @Override
-  public void cleanup() throws DBException {
+  public void cleanup()  {
     if (INIT_COUNT.decrementAndGet() == 0) {
-      try {
-        cachedStatements.clear();
-
-        if (!connection.getAutoCommit()){
-          connection.commit();
-        }
-        connection.close();
-      } catch (SQLException e) {
-        System.err.println("Error in cleanup execution. " + e);
-      }
-      postgrenosqlDriver = null;
+      hikariDataSource.close();
     }
   }
 
   @Override
   public Status read(String tableName, String key, Set<String> fields, Map<String, ByteIterator> result) {
+    PreparedStatement readStatement=null;
     try {
       StatementType type = new StatementType(StatementType.Type.READ, tableName, fields);
-      PreparedStatement readStatement = cachedStatements.get(type);
-      if (readStatement == null) {
-        readStatement = createAndCacheReadStatement(type);
-      }
+      readStatement = createAndCacheReadStatement(type);
       readStatement.setString(1, key);
       ResultSet resultSet = readStatement.executeQuery();
       if (!resultSet.next()) {
@@ -160,24 +173,35 @@ public class MultiPostgreNoSQLDBClient extends DB {
     } catch (SQLException e) {
       LOG.error("Error in processing read of table " + tableName + ": " + e);
       return Status.ERROR;
+    } finally {
+      if (readStatement != null) {
+        disposePreparedStatement(readStatement);
+      }
+    }
+  }
+
+  private void disposePreparedStatement(PreparedStatement readStatement) {
+    try {
+    readStatement.getConnection().close();
+    readStatement.close();
+    } catch (SQLException e) {
+      e.printStackTrace();
     }
   }
 
   @Override
   public Status scan(String tableName, String startKey, int recordcount, Set<String> fields,
                      Vector<HashMap<String, ByteIterator>> result) {
+    PreparedStatement scanStatement = null;
     try {
       StatementType type = new StatementType(StatementType.Type.SCAN, tableName, fields);
-      PreparedStatement scanStatement = cachedStatements.get(type);
-      if (scanStatement == null) {
-        scanStatement = createAndCacheScanStatement(type);
-      }
+      scanStatement = createAndCacheScanStatement(type);
       scanStatement.setString(1, startKey);
       scanStatement.setInt(2, recordcount);
       ResultSet resultSet = scanStatement.executeQuery();
       for (int i = 0; i < recordcount && resultSet.next(); i++) {
         if (result != null && fields != null) {
-          HashMap<String, ByteIterator> values = new HashMap<String, ByteIterator>();
+          HashMap<String, ByteIterator> values = new HashMap<>();
           for (String field : fields) {
             String value = resultSet.getString(field);
             values.put(field, new StringByteIterator(value));
@@ -192,17 +216,19 @@ public class MultiPostgreNoSQLDBClient extends DB {
     } catch (SQLException e) {
       LOG.error("Error in processing scan of table: " + tableName + ": " + e);
       return Status.ERROR;
+    } finally {
+      if (scanStatement != null) {
+        disposePreparedStatement(scanStatement);
+      }
     }
   }
 
   @Override
   public Status update(String tableName, String key, Map<String, ByteIterator> values) {
+    PreparedStatement updateStatement = null;
     try{
       StatementType type = new StatementType(StatementType.Type.UPDATE, tableName, null);
-      PreparedStatement updateStatement = cachedStatements.get(type);
-      if (updateStatement == null) {
-        updateStatement = createAndCacheUpdateStatement(type);
-      }
+      updateStatement = createAndCacheUpdateStatement(type);
 
       JSONObject jsonObject = new JSONObject();
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
@@ -224,17 +250,17 @@ public class MultiPostgreNoSQLDBClient extends DB {
     } catch (SQLException e) {
       LOG.error("Error in processing update to table: " + tableName + e);
       return Status.ERROR;
+    } finally {
+      disposePreparedStatement(updateStatement);
     }
   }
 
   @Override
   public Status insert(String tableName, String key, Map<String, ByteIterator> values) {
+    PreparedStatement insertStatement=null;
     try{
       StatementType type = new StatementType(StatementType.Type.INSERT, tableName, null);
-      PreparedStatement insertStatement = cachedStatements.get(type);
-      if (insertStatement == null) {
-        insertStatement = createAndCacheInsertStatement(type);
-      }
+      insertStatement = createAndCacheInsertStatement(type);
 
       JSONObject jsonObject = new JSONObject();
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
@@ -257,17 +283,17 @@ public class MultiPostgreNoSQLDBClient extends DB {
     } catch (SQLException e) {
       LOG.error("Error in processing insert to table: " + tableName + ": " + e);
       return Status.ERROR;
+    } finally {
+      disposePreparedStatement(insertStatement);
     }
   }
 
   @Override
   public Status delete(String tableName, String key) {
+    PreparedStatement deleteStatement=null;
     try{
       StatementType type = new StatementType(StatementType.Type.DELETE, tableName, null);
-      PreparedStatement deleteStatement = cachedStatements.get(type);
-      if (deleteStatement == null) {
-        deleteStatement = createAndCacheDeleteStatement(type);
-      }
+      deleteStatement = createAndCacheDeleteStatement(type);
       deleteStatement.setString(1, key);
 
       int result = deleteStatement.executeUpdate();
@@ -279,122 +305,130 @@ public class MultiPostgreNoSQLDBClient extends DB {
     } catch (SQLException e) {
       LOG.error("Error in processing delete to table: " + tableName + e);
       return Status.ERROR;
+    } finally {
+      disposePreparedStatement(deleteStatement);
     }
   }
 
   private PreparedStatement createAndCacheReadStatement(StatementType readType)
       throws SQLException{
-    PreparedStatement readStatement = connection.prepareStatement(createReadStatement(readType));
-    PreparedStatement statement = cachedStatements.putIfAbsent(readType, readStatement);
-    if (statement == null) {
-      return readStatement;
-    }
-    return statement;
+    Connection connection = hikariDataSource.getConnection();
+    return connection.prepareStatement(createReadStatement(readType));
   }
 
-  private String createReadStatement(StatementType readType){
-    StringBuilder read = new StringBuilder("SELECT " + PRIMARY_KEY + " AS " + PRIMARY_KEY);
+  private String createReadStatement(StatementType readType) {
 
-    if (readType.getFields() == null) {
-      read.append(", (jsonb_each_text(" + COLUMN_NAME + ")).*");
-    } else {
-      for (String field:readType.getFields()){
-        read.append(", " + COLUMN_NAME + "->>'" + field + "' AS " + field);
+    String res = cachedSQLStatements.get(readType);
+    if (res == null) {
+      StringBuilder read = new StringBuilder("SELECT " + PRIMARY_KEY + " AS " + PRIMARY_KEY);
+
+      if (readType.getFields() == null) {
+        read.append(", (jsonb_each_text(" + COLUMN_NAME + ")).*");
+      } else {
+        for (String field : readType.getFields()) {
+          read.append(", " + COLUMN_NAME + "->>'" + field + "' AS " + field);
+        }
       }
-    }
 
-    read.append(" FROM " + readType.getTableName());
-    read.append(" WHERE ");
-    read.append(PRIMARY_KEY);
-    read.append(" = ");
-    read.append("?");
-    return read.toString();
+      read.append(" FROM " + readType.getTableName());
+      read.append(" WHERE ");
+      read.append(PRIMARY_KEY);
+      read.append(" = ");
+      read.append("?");
+      cachedSQLStatements.putIfAbsent(readType, read.toString());
+      res = cachedSQLStatements.get(readType);
+    }
+    return res;
   }
 
   private PreparedStatement createAndCacheScanStatement(StatementType scanType)
       throws SQLException{
-    PreparedStatement scanStatement = connection.prepareStatement(createScanStatement(scanType));
-    PreparedStatement statement = cachedStatements.putIfAbsent(scanType, scanStatement);
-    if (statement == null) {
-      return scanStatement;
-    }
-    return statement;
+
+    Connection connection = hikariDataSource.getConnection();
+    return connection.prepareStatement(createScanStatement(scanType));
   }
 
   private String createScanStatement(StatementType scanType){
-    StringBuilder scan = new StringBuilder("SELECT " + PRIMARY_KEY + " AS " + PRIMARY_KEY);
-    if (scanType.getFields() != null){
-      for (String field:scanType.getFields()){
-        scan.append(", " + COLUMN_NAME + "->>'" + field + "' AS " + field);
+    String res = cachedSQLStatements.get(scanType);
+    if (res == null) {
+      StringBuilder scan = new StringBuilder("SELECT " + PRIMARY_KEY + " AS " + PRIMARY_KEY);
+      if (scanType.getFields() != null) {
+        for (String field : scanType.getFields()) {
+          scan.append(", " + COLUMN_NAME + "->>'" + field + "' AS " + field);
+        }
       }
+      scan.append(" FROM " + scanType.getTableName());
+      scan.append(" WHERE ");
+      scan.append(PRIMARY_KEY);
+      scan.append(" >= ?");
+      scan.append(" ORDER BY ");
+      scan.append(PRIMARY_KEY);
+      scan.append(" LIMIT ?");
+      cachedSQLStatements.putIfAbsent(scanType,scan.toString());
+      res = cachedSQLStatements.get(scanType);
     }
-    scan.append(" FROM " + scanType.getTableName());
-    scan.append(" WHERE ");
-    scan.append(PRIMARY_KEY);
-    scan.append(" >= ?");
-    scan.append(" ORDER BY ");
-    scan.append(PRIMARY_KEY);
-    scan.append(" LIMIT ?");
-
-    return scan.toString();
+    return res;
   }
 
   public PreparedStatement createAndCacheUpdateStatement(StatementType updateType)
       throws SQLException{
-    PreparedStatement updateStatement = connection.prepareStatement(createUpdateStatement(updateType));
-    PreparedStatement statement = cachedStatements.putIfAbsent(updateType, updateStatement);
-    if (statement == null) {
-      return updateStatement;
-    }
-    return statement;
+    Connection connection = hikariDataSource.getConnection();
+    return connection.prepareStatement(createUpdateStatement(updateType));
   }
 
   private String createUpdateStatement(StatementType updateType){
-    StringBuilder update = new StringBuilder("UPDATE ");
-    update.append(updateType.getTableName());
-    update.append(" SET ");
-    update.append(COLUMN_NAME + " = " + COLUMN_NAME);
-    update.append(" || ? ");
-    update.append(" WHERE ");
-    update.append(PRIMARY_KEY);
-    update.append(" = ?");
-    return update.toString();
+    String res = cachedSQLStatements.get(updateType);
+    if (res == null) {
+      StringBuilder update = new StringBuilder("UPDATE ");
+      update.append(updateType.getTableName());
+      update.append(" SET ");
+      update.append(COLUMN_NAME + " = " + COLUMN_NAME);
+      update.append(" || ? ");
+      update.append(" WHERE ");
+      update.append(PRIMARY_KEY);
+      update.append(" = ?");
+      cachedSQLStatements.putIfAbsent(updateType,update.toString());
+      res = cachedSQLStatements.get(updateType);
+    }
+    return res;
   }
 
   private PreparedStatement createAndCacheInsertStatement(StatementType insertType)
       throws SQLException{
-    PreparedStatement insertStatement = connection.prepareStatement(createInsertStatement(insertType));
-    PreparedStatement statement = cachedStatements.putIfAbsent(insertType, insertStatement);
-    if (statement == null) {
-      return insertStatement;
-    }
-    return statement;
+    Connection connection = hikariDataSource.getConnection();
+    return connection.prepareStatement(createInsertStatement(insertType));
   }
 
   private String createInsertStatement(StatementType insertType){
-    StringBuilder insert = new StringBuilder("INSERT INTO ");
-    insert.append(insertType.getTableName());
-    insert.append(" (" + PRIMARY_KEY + "," + COLUMN_NAME + ")");
-    insert.append(" VALUES(?,?)");
-    return insert.toString();
+    String res = cachedSQLStatements.get(insertType);
+    if (res == null) {
+      StringBuilder insert = new StringBuilder("INSERT INTO ");
+      insert.append(insertType.getTableName());
+      insert.append(" (" + PRIMARY_KEY + "," + COLUMN_NAME + ")");
+      insert.append(" VALUES(?,?)");
+      cachedSQLStatements.putIfAbsent(insertType,insert.toString());
+      res = cachedSQLStatements.get(insertType);
+    }
+    return res;
   }
 
   private PreparedStatement createAndCacheDeleteStatement(StatementType deleteType)
       throws SQLException{
-    PreparedStatement deleteStatement = connection.prepareStatement(createDeleteStatement(deleteType));
-    PreparedStatement statement = cachedStatements.putIfAbsent(deleteType, deleteStatement);
-    if (statement == null) {
-      return deleteStatement;
-    }
-    return statement;
+    Connection connection = hikariDataSource.getConnection();
+    return connection.prepareStatement(createDeleteStatement(deleteType));
   }
 
-  private String createDeleteStatement(StatementType deleteType){
-    StringBuilder delete = new StringBuilder("DELETE FROM ");
-    delete.append(deleteType.getTableName());
-    delete.append(" WHERE ");
-    delete.append(PRIMARY_KEY);
-    delete.append(" = ?");
-    return delete.toString();
+  private String createDeleteStatement(StatementType deleteType) {
+    String res = cachedSQLStatements.get(deleteType);
+    if (res == null) {
+      StringBuilder delete = new StringBuilder("DELETE FROM ");
+      delete.append(deleteType.getTableName());
+      delete.append(" WHERE ");
+      delete.append(PRIMARY_KEY);
+      delete.append(" = ?");
+      cachedSQLStatements.putIfAbsent(deleteType, delete.toString());
+      res = cachedSQLStatements.get(deleteType);
+    }
+    return res;
   }
 }
