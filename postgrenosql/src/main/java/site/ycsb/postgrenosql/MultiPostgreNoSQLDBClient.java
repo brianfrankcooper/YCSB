@@ -45,9 +45,6 @@ public class MultiPostgreNoSQLDBClient extends DB {
   /** Count the number of times initialized to teardown on the last. */
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
-  /** Cache for already prepared statements. */
-  private static ConcurrentMap<StatementType, PreparedStatement> cachedStatements;
-
   /** The class to use as the jdbc driver. */
   public static final String DRIVER_CLASS = "db.driver";
 
