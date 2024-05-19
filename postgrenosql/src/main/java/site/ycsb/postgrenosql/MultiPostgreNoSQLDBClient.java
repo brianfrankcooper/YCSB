@@ -48,12 +48,6 @@ public class MultiPostgreNoSQLDBClient extends DB {
   /** Cache for already prepared statements. */
   private static ConcurrentMap<StatementType, PreparedStatement> cachedStatements;
 
-  /** The driver to get the connection to postgresql. */
-  private static Driver postgrenosqlDriver;
-
-  /** The connection to the database. */
-  private static Connection connection;
-
   /** The class to use as the jdbc driver. */
   public static final String DRIVER_CLASS = "db.driver";
 
