@@ -623,6 +623,8 @@ public class CoreWorkload extends Workload {
         status = db.insert(table, dbkey, values);
         if(status != null && status.isOk()) {
           status = db.commit();
+        } else {
+          status = db.rollback();
         }
       }
 
@@ -643,7 +645,7 @@ public class CoreWorkload extends Workload {
         }
 
       } else {
-        System.err.println("Error inserting, not retrying any more. number of attempts: " + numOfRetries +
+        System.err.println("Error inserting, not retrying any more. number of attempts: " + numOfRetries + ". " +
             "Insertion Retry Limit: " + insertionRetryLimit);
         break;
 
@@ -669,7 +671,7 @@ public class CoreWorkload extends Workload {
     Status status = db.start();
     if(!status.isOk()) {
       db.rollback();
-      return false;
+      return true;
     }
 
     switch (operation) {
@@ -691,14 +693,10 @@ public class CoreWorkload extends Workload {
 
     if(!status.isOk()) {
       db.rollback();
-      return false;
+    } else {
+      db.commit();
     }
 
-    status = db.commit();
-    if(!status.isOk()) {
-      db.rollback();
-      return false;
-    }
     return true;
   }
 
