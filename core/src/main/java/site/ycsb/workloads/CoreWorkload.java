@@ -652,7 +652,7 @@ public class CoreWorkload extends Workload {
       }
     } while (true);
 
-    return true;
+    return null != status && status.isOk();
   }
 
   /**

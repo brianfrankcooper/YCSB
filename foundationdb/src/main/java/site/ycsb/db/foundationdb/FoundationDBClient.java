@@ -104,6 +104,7 @@ public class FoundationDBClient extends DB {
       batchCount = 0;
     }
     try {
+      transaction.close();
       db.close();
     } catch (FDBException e) {
       logger.error(MessageFormatter.format("Error in database operation: {}", "cleanup").getMessage(), e);
