@@ -619,9 +619,9 @@ public class CoreWorkload extends Workload {
     int numOfRetries = 0;
     do {
       status = db.start();
-      if(status.isOk()) {
+      if(status != null && status.isOk()) {
         status = db.insert(table, dbkey, values);
-        if(status.isOk()) {
+        if(status != null && status.isOk()) {
           status = db.commit();
         } else {
           status = db.rollback();
