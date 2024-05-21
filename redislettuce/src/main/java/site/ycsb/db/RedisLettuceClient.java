@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Properties;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import site.ycsb.ByteIterator;
 import site.ycsb.DB;
@@ -44,16 +45,25 @@ public class RedisLettuceClient extends DB {
   public static final int DEFAULT_PORT = 6379;
   public static final String PASSWORD_PROPERTY = "redis.password";
   public static final String CLUSTER_PROPERTY = "redis.cluster";
-  public static final String READ_FROM = "redis.readfrom";
+  public static final String READ_FROM = "redis.readfrom"; // replica_preferred, replica, master_preferred, master
   public static final String TIMEOUT_PROPERTY = "redis.timeout";
   public static final String SSL_PROPERTY = "redis.ssl";
+
+  public static final String CONNECTION_PROPERTY = "redis.connection"; // connection mode
+  public static final String CONNECTION_SINGLE = "single";  // single connection for all threads
+  public static final String CONNECTION_MULTIPLE = "multi"; // multiple connections for all threads
+  public static final String MULTI_SIZE_PROPERTY = "multi.size";  // connections amount for multi connection model
+
+  enum ConnectionMode {
+    SINGLE, MULTIPLE
+  }
 
   public static final String INDEX_KEY = "_indices";
 
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
   private static AbstractRedisClient client = null;
-  private static StatefulConnection<String, String> stringConnection = null;
+  private static ConnectionProvider stringConnectionProvider = null;
   private static boolean isCluster = false;
 
   /**
@@ -63,7 +73,7 @@ public class RedisLettuceClient extends DB {
    * @param enableSSL
    * @return
    */
-  private RedisClusterClient createClusterClient(String host, int port, boolean enableSSL) {
+  static RedisClusterClient createClusterClient(String host, int port, boolean enableSSL) {
     DefaultClientResources resources = DefaultClientResources.builder()
         .dnsResolver(new DirContextDnsResolver())
         .build();
@@ -77,6 +87,15 @@ public class RedisLettuceClient extends DB {
     return clusterClient;
   }
 
+  static StatefulRedisClusterConnection<String, String> createConnection(
+      RedisClusterClient clusterClient, ReadFrom readFrom) {
+    StatefulRedisClusterConnection<String, String> clusterConnection = clusterClient.connect(StringCodec.UTF8);
+    if (readFrom != null) {
+      clusterConnection.setReadFrom(readFrom);
+    }
+    return clusterConnection;
+  }
+
   /**
    * for redis instances not in a cluster.
    * @param host
@@ -84,7 +103,7 @@ public class RedisLettuceClient extends DB {
    * @param enableSSL
    * @return
    */
-  private RedisClient createClient() {
+  static RedisClient createClient() {
     DefaultClientResources resources = DefaultClientResources.builder()
         .dnsResolver(new DirContextDnsResolver())
         .build();
@@ -92,8 +111,13 @@ public class RedisLettuceClient extends DB {
     return redisClient;
   }
 
-  private StatefulRedisMasterReplicaConnection<String, String> createConnection(RedisClient redisClient,
+  static StatefulRedisMasterReplicaConnection<String, String> createConnection(RedisClient redisClient,
       List<String> hosts, int port, boolean enableSSL, ReadFrom readFrom) {
+    List<RedisURI> nodes = getNodes(hosts, port, enableSSL);
+    return createConnection(redisClient, nodes, readFrom);
+  }
+
+  static List<RedisURI> getNodes(List<String> hosts, int port, boolean enableSSL) {
     List<RedisURI> nodes = new ArrayList<RedisURI>();
     for (String host : hosts) {
       RedisURI node = RedisURI.builder()
@@ -103,6 +127,11 @@ public class RedisLettuceClient extends DB {
           .build();
       nodes.add(node);
     }
+    return nodes;
+  }
+
+  static StatefulRedisMasterReplicaConnection<String, String> createConnection(RedisClient redisClient,
+      List<RedisURI> nodes, ReadFrom readFrom) {
     StatefulRedisMasterReplicaConnection<String, String> masterReplicaConnection =
         MasterReplica.connect(redisClient, StringCodec.UTF8, nodes);
     if (readFrom != null) {
@@ -142,39 +171,72 @@ public class RedisLettuceClient extends DB {
       } else if ("replica".equals(readFromString)) {
         readFrom = ReadFrom.REPLICA;
       } else {
-        throw new DBException("readfrom " + readFromString + " not support");
+        throw new DBException("unknown readfrom: " + readFromString);
       }
+    }
+
+    ConnectionMode connectionMode;
+    String connectionModeString = props.getProperty(CONNECTION_PROPERTY);
+    if (CONNECTION_SINGLE.equals(connectionModeString)) {
+      connectionMode = ConnectionMode.SINGLE;
+    } else if (CONNECTION_MULTIPLE.equals(connectionModeString)) {
+      connectionMode = ConnectionMode.MULTIPLE;
+    } else {
+      throw new DBException("unknown connectionMode: " + connectionModeString);
     }
 
     if (clusterEnabled) {
       RedisClusterClient clusterClient = createClusterClient(host, port, sslEnabled);
-      StatefulRedisClusterConnection<String, String> clusterConnection = clusterClient.connect(StringCodec.UTF8);
-      if (readFrom != null) {
-        clusterConnection.setReadFrom(readFrom);
+      ConnectionProvider connectionProvider = null;
+      if (connectionMode == ConnectionMode.SINGLE) {
+        connectionProvider = new SingleConnectionProvider(clusterClient, readFrom);
+      } else if (connectionMode == ConnectionMode.MULTIPLE) {
+        int processors = Runtime.getRuntime().availableProcessors();
+        int amount = Integer.parseInt(props.getProperty(MULTI_SIZE_PROPERTY, Integer.toString(processors)));
+        connectionProvider = new MultipleConnectionsProvider(clusterClient, readFrom, amount);
       }
+
       client = clusterClient;
-      stringConnection = clusterConnection;
+      stringConnectionProvider = connectionProvider;
       isCluster = true;
     } else {
       List<String> hosts = Arrays.asList(host.split(","));
       RedisClient redisClient = createClient();
-      StatefulRedisMasterReplicaConnection masterReplicaConnection = createConnection(redisClient, hosts,
-          port, sslEnabled, readFrom);
+      List<RedisURI> nodes = getNodes(hosts, port, sslEnabled);
+
+      ConnectionProvider connectionProvider = null;
+      if (connectionMode == ConnectionMode.SINGLE) {
+        connectionProvider = new SingleConnectionProvider(redisClient, nodes, readFrom);
+      } else if (connectionMode == ConnectionMode.MULTIPLE) {
+        int processors = Runtime.getRuntime().availableProcessors();
+        int amount = Integer.parseInt(props.getProperty(MULTI_SIZE_PROPERTY, Integer.toString(processors)));
+        connectionProvider = new MultipleConnectionsProvider(redisClient, nodes, readFrom, amount);
+      }
+
       client = redisClient;
-      stringConnection = masterReplicaConnection;
+      stringConnectionProvider = connectionProvider;
       isCluster = false;
     }
   }
 
   private void shutdownConnection() throws DBException {
-    stringConnection.close();
-    stringConnection = null;
+    if (stringConnectionProvider != null) {
+      try {
+        stringConnectionProvider.close();
+      } catch(Exception ex) {
+        // ignore
+      }
+      stringConnectionProvider = null;
+    }
 
-    client.close();
-    client = null;
+    if (client != null) {
+      client.close();
+      client = null;
+    }
   }
 
   private RedisClusterCommands<String, String> getRedisClusterCommands() {
+    StatefulConnection<String, String> stringConnection = stringConnectionProvider.getConnection();
     RedisClusterCommands cmds = null;
     if (stringConnection != null) {
       if (isCluster) {
@@ -329,6 +391,64 @@ public class RedisLettuceClient extends DB {
     RedisClusterCommands<String, String> cmds = getRedisClusterCommands();
     return cmds.del(key) == 0 && cmds.zrem(INDEX_KEY, key) == 0 ? Status.ERROR
         : Status.OK;
+  }
+
+  private interface ConnectionProvider extends AutoCloseable {
+    StatefulConnection<String, String> getConnection();
+  }
+
+  private static class SingleConnectionProvider implements ConnectionProvider {
+
+    private StatefulConnection<String, String> stringConnection = null;
+
+    public SingleConnectionProvider(RedisClusterClient clusterClient, ReadFrom readFrom) {
+      this.stringConnection = createConnection(clusterClient, readFrom);
+    }
+
+    public SingleConnectionProvider(RedisClient redisClient, List<RedisURI> nodes, ReadFrom readFrom) {
+      this.stringConnection = createConnection(redisClient, nodes, readFrom);
+    }
+
+    @Override
+    public StatefulConnection<String, String> getConnection() {
+      return stringConnection;
+    }
+
+    @Override
+    public void close() throws Exception {
+      stringConnection.close();
+    }
+  }
+
+  private static class MultipleConnectionsProvider implements ConnectionProvider {
+    private List<StatefulConnection<String, String>> stringConnections =
+        new ArrayList<StatefulConnection<String, String>>();
+
+    public MultipleConnectionsProvider(RedisClusterClient clusterClient, ReadFrom readFrom, int amount) {
+      for (int i = 0; i < amount; i++) {
+        this.stringConnections.add(createConnection(clusterClient, readFrom));
+      }
+    }
+
+    public MultipleConnectionsProvider(RedisClient redisClient, List<RedisURI> nodes, ReadFrom readFrom, int amount) {
+      for (int i = 0; i < amount; i++) {
+        this.stringConnections.add(createConnection(redisClient, nodes, readFrom));
+      }
+    }
+
+    @Override
+    public StatefulConnection<String, String> getConnection() {
+      ThreadLocalRandom random = ThreadLocalRandom.current();
+      return this.stringConnections.get(random.nextInt(0, this.stringConnections.size()));
+    }
+
+    @Override
+    public void close() throws Exception {
+      for (StatefulConnection<String, String> stringConnection: stringConnections) {
+        stringConnection.close();
+      }
+      stringConnections.clear();
+    }
   }
 
 }
