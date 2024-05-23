@@ -1,11 +1,13 @@
 package site.ycsb.db;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import site.ycsb.ByteIterator;
 import site.ycsb.DB;
@@ -15,6 +17,8 @@ import site.ycsb.StringByteIterator;
 
 import io.lettuce.core.api.StatefulConnection;
 import io.lettuce.core.AbstractRedisClient;
+import io.lettuce.core.ClientOptions;
+import io.lettuce.core.cluster.ClusterClientOptions;
 import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
 import io.lettuce.core.cluster.api.sync.RedisClusterCommands;
@@ -22,6 +26,7 @@ import io.lettuce.core.codec.StringCodec;
 import io.lettuce.core.masterreplica.MasterReplica;
 import io.lettuce.core.masterreplica.StatefulRedisMasterReplicaConnection;
 import io.lettuce.core.resource.DefaultClientResources;
+import io.lettuce.core.resource.Delay;
 import io.lettuce.core.resource.DirContextDnsResolver;
 import io.lettuce.core.KeyValue;
 import io.lettuce.core.Limit;
@@ -29,6 +34,8 @@ import io.lettuce.core.Range;
 import io.lettuce.core.ReadFrom;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
+import io.lettuce.core.SocketOptions;
+import io.lettuce.core.TimeoutOptions;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -49,10 +56,17 @@ public class RedisLettuceClient extends DB {
   public static final String TIMEOUT_PROPERTY = "redis.timeout";
   public static final String SSL_PROPERTY = "redis.ssl";
 
-  public static final String CONNECTION_PROPERTY = "redis.connection"; // connection mode
+  public static final String CONNECTION_PROPERTY = "redis.con"; // connection mode
   public static final String CONNECTION_SINGLE = "single";  // single connection for all threads
   public static final String CONNECTION_MULTIPLE = "multi"; // multiple connections for all threads
   public static final String MULTI_SIZE_PROPERTY = "multi.size";  // connections amount for multi connection model
+
+  // default Redis Settings which are consistent with our application
+  private static final long DEFAULT_CONNECT_TIMEOUT_SECONDS = 10; // 10 seconds
+  private static final int DEFAULT_REQUEST_QUEUE_SIZE = 65536; // 2^16 default is 2^31-1
+  private static final int DEFAULT_RECONNECT_DELAY_SECONDS = 1;
+//  private static final long DEFAULT_TOPOLOGY_REFRESH_PERIOD = 1 * 60 * 60 * 1000L;
+  private static final long DEFAULT_COMMAND_TIMEOUT_MILLIS = 100L; // 100ms
 
   enum ConnectionMode {
     SINGLE, MULTIPLE
@@ -76,6 +90,7 @@ public class RedisLettuceClient extends DB {
   static RedisClusterClient createClusterClient(String host, int port, boolean enableSSL) {
     DefaultClientResources resources = DefaultClientResources.builder()
         .dnsResolver(new DirContextDnsResolver())
+        .reconnectDelay(Delay.constant(DEFAULT_RECONNECT_DELAY_SECONDS, TimeUnit.SECONDS))
         .build();
     RedisURI primaryNode = RedisURI.builder()
         .withSsl(enableSSL)
@@ -84,6 +99,23 @@ public class RedisLettuceClient extends DB {
         .build();
 
     RedisClusterClient clusterClient = RedisClusterClient.create(resources, primaryNode);
+
+    ClusterClientOptions clientOptions = ClusterClientOptions.builder()
+        .requestQueueSize(DEFAULT_REQUEST_QUEUE_SIZE)
+        .socketOptions(
+            SocketOptions.builder()
+                .connectTimeout(DEFAULT_CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .build()
+        )
+        .timeoutOptions(
+            TimeoutOptions.builder()
+                .timeoutCommands(true)
+                .fixedTimeout(Duration.ofMillis(DEFAULT_COMMAND_TIMEOUT_MILLIS))
+                .build()
+        )
+        .build();
+    clusterClient.setOptions(clientOptions);
+
     return clusterClient;
   }
 
@@ -108,6 +140,23 @@ public class RedisLettuceClient extends DB {
         .dnsResolver(new DirContextDnsResolver())
         .build();
     RedisClient redisClient = RedisClient.create(resources);
+
+    ClientOptions clientOptions = ClientOptions.builder()
+        .requestQueueSize(DEFAULT_REQUEST_QUEUE_SIZE)
+        .socketOptions(
+            SocketOptions.builder()
+                .connectTimeout(DEFAULT_CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .build()
+        )
+        .timeoutOptions(
+            TimeoutOptions.builder()
+                .timeoutCommands(true)
+                .fixedTimeout(Duration.ofMillis(DEFAULT_COMMAND_TIMEOUT_MILLIS))
+                .build()
+        )
+        .build();
+    redisClient.setOptions(clientOptions);
+
     return redisClient;
   }
 
@@ -176,7 +225,7 @@ public class RedisLettuceClient extends DB {
     }
 
     ConnectionMode connectionMode;
-    String connectionModeString = props.getProperty(CONNECTION_PROPERTY);
+    String connectionModeString = props.getProperty(CONNECTION_PROPERTY, CONNECTION_SINGLE);
     if (CONNECTION_SINGLE.equals(connectionModeString)) {
       connectionMode = ConnectionMode.SINGLE;
     } else if (CONNECTION_MULTIPLE.equals(connectionModeString)) {
