@@ -34,6 +34,7 @@ import io.lettuce.core.Limit;
 import io.lettuce.core.Range;
 import io.lettuce.core.ReadFrom;
 import io.lettuce.core.RedisClient;
+import io.lettuce.core.RedisCommandTimeoutException;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.SocketOptions;
 import io.lettuce.core.TimeoutOptions;
@@ -358,21 +359,25 @@ public class RedisLettuceClient extends DB {
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     RedisClusterCommands<String, String> cmds = getRedisClusterCommands();
-    if (fields == null) {
-      StringByteIterator.putAllAsByteIterators(result, cmds.hgetall(key));
-    } else {
-      String[] fieldArray = (String[]) fields.toArray(new String[fields.size()]);
-      List<KeyValue<String, String>> values = cmds.hmget(key, fieldArray);
+    try {
+      if (fields == null) {
+        StringByteIterator.putAllAsByteIterators(result, cmds.hgetall(key));
+      } else {
+        String[] fieldArray = (String[]) fields.toArray(new String[fields.size()]);
+        List<KeyValue<String, String>> values = cmds.hmget(key, fieldArray);
 
-      Iterator<KeyValue<String, String>> fieldValueIterator = values.iterator();
+        Iterator<KeyValue<String, String>> fieldValueIterator = values.iterator();
 
-      while (fieldValueIterator.hasNext()) {
-        KeyValue<String, String> fieldValue = fieldValueIterator.next();
-        result.put(fieldValue.getKey(),
-            new StringByteIterator(fieldValue.getValue()));
+        while (fieldValueIterator.hasNext()) {
+          KeyValue<String, String> fieldValue = fieldValueIterator.next();
+          result.put(fieldValue.getKey(),
+              new StringByteIterator(fieldValue.getValue()));
+        }
       }
+      return result.isEmpty() ? Status.ERROR : Status.OK;
+    } catch (RedisCommandTimeoutException e) {
+      return Status.TIMEOUT;
     }
-    return result.isEmpty() ? Status.ERROR : Status.OK;
   }
 
   private double hash(String key) {
@@ -394,18 +399,22 @@ public class RedisLettuceClient extends DB {
   public Status scan(String table, String startkey, int recordcount, Set<String> fields,
       Vector<HashMap<String, ByteIterator>> result) {
     RedisClusterCommands<String, String> cmds = getRedisClusterCommands();
-    List<String> keys = cmds.zrangebyscore(INDEX_KEY,
-        Range.from(Range.Boundary.excluding(hash(startkey)), Range.Boundary.excluding(Double.POSITIVE_INFINITY)),
-        Limit.from(recordcount));
+    try {
+      List<String> keys = cmds.zrangebyscore(INDEX_KEY,
+          Range.from(Range.Boundary.excluding(hash(startkey)), Range.Boundary.excluding(Double.POSITIVE_INFINITY)),
+          Limit.from(recordcount));
 
-    HashMap<String, ByteIterator> values;
-    for (String key : keys) {
-      values = new HashMap<String, ByteIterator>();
-      read(table, key, fields, values);
-      result.add(values);
+      HashMap<String, ByteIterator> values;
+      for (String key : keys) {
+        values = new HashMap<String, ByteIterator>();
+        read(table, key, fields, values);
+        result.add(values);
+      }
+
+      return Status.OK;
+    } catch (RedisCommandTimeoutException e) {
+      return Status.TIMEOUT;
     }
-
-    return Status.OK;
   }
 
   /**
@@ -420,8 +429,12 @@ public class RedisLettuceClient extends DB {
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
     RedisClusterCommands<String, String> cmds = getRedisClusterCommands();
-    return cmds.hmset(key, StringByteIterator.getStringMap(values))
-        .equals("OK") ? Status.OK : Status.ERROR;
+    try {
+      return cmds.hmset(key, StringByteIterator.getStringMap(values))
+          .equals("OK") ? Status.OK : Status.ERROR;
+    } catch (RedisCommandTimeoutException e) {
+      return Status.TIMEOUT;
+    }
   }
 
   /**
@@ -436,12 +449,16 @@ public class RedisLettuceClient extends DB {
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     RedisClusterCommands<String, String> cmds = getRedisClusterCommands();
-    if (cmds.hmset(key, StringByteIterator.getStringMap(values))
-        .equals("OK")) {
-      cmds.zadd(INDEX_KEY, hash(key), key);
-      return Status.OK;
+    try {
+      if (cmds.hmset(key, StringByteIterator.getStringMap(values))
+          .equals("OK")) {
+        cmds.zadd(INDEX_KEY, hash(key), key);
+        return Status.OK;
+      }
+      return Status.ERROR;
+    } catch (RedisCommandTimeoutException e) {
+      return Status.TIMEOUT;
     }
-    return Status.ERROR;
   }
 
   /**
@@ -454,8 +471,12 @@ public class RedisLettuceClient extends DB {
   @Override
   public Status delete(String table, String key) {
     RedisClusterCommands<String, String> cmds = getRedisClusterCommands();
-    return cmds.del(key) == 0 && cmds.zrem(INDEX_KEY, key) == 0 ? Status.ERROR
-        : Status.OK;
+    try {
+      return cmds.del(key) == 0 && cmds.zrem(INDEX_KEY, key) == 0 ? Status.ERROR
+          : Status.OK;
+    } catch (RedisCommandTimeoutException e) {
+      return Status.TIMEOUT;
+    }
   }
 
   private interface ConnectionProvider extends AutoCloseable {
