@@ -140,6 +140,7 @@ LICENSE file.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <redis.version>5.1.2</redis.version>
     <redis.lettuce.version>6.2.4.RELEASE</redis.lettuce.version>
+    <commons.pool2.version>2.11.1</commons.pool2.version>
     <riak.version>2.0.5</riak.version>
     <rocksdb.version>6.2.2</rocksdb.version>
     <s3.version>1.10.20</s3.version>

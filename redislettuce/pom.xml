@@ -36,6 +36,11 @@ LICENSE file.
       <version>${redis.lettuce.version}</version>
     </dependency>
     <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-pool2</artifactId>
+      <version>${commons.pool2.version}</version>
+    </dependency>
+    <dependency>
       <groupId>site.ycsb</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>

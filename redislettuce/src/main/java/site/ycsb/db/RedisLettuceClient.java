@@ -1,5 +1,6 @@
 package site.ycsb.db;
 
+import io.lettuce.core.support.ConnectionPoolSupport;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -9,6 +10,9 @@ import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
@@ -63,7 +67,9 @@ public class RedisLettuceClient extends DB {
   public static final String CONNECTION_PROPERTY = "redis.con"; // connection mode
   public static final String CONNECTION_SINGLE = "single";  // single connection for all threads
   public static final String CONNECTION_MULTIPLE = "multi"; // multiple connections for all threads
-  public static final String MULTI_SIZE_PROPERTY = "multi.size";  // connections amount for multi connection model
+  public static final String MULTI_SIZE_PROPERTY = "multi.size";  // connections amount for multi connection mode
+  public static final String CONNECTION_POOLING = "pool"; // connection pool for all threads
+  public static final String POOL_SIZE_PROPERTY = "pool.size"; // connection pool size for pooling mode
 
   // default Redis Settings
   private static final long DEFAULT_TIMEOUT_MILLIS = 2000L; // 2 seconds
@@ -74,7 +80,7 @@ public class RedisLettuceClient extends DB {
 //  private static final long DEFAULT_COMMAND_TIMEOUT_MILLIS = 2000L; // 2 seconds
 
   enum ConnectionMode {
-    SINGLE, MULTIPLE
+    SINGLE, MULTIPLE, POOLING
   }
 
   public static final String INDEX_KEY = "_indices";
@@ -145,7 +151,6 @@ public class RedisLettuceClient extends DB {
    * @param host
    * @param port
    * @param enableSSL
-   * @return
    */
   static RedisClient createClient(long connectTimeoutMillis, long commandTimeoutMillis) {
     DefaultClientResources resources = DefaultClientResources.builder()
@@ -247,6 +252,8 @@ public class RedisLettuceClient extends DB {
       connectionMode = ConnectionMode.SINGLE;
     } else if (CONNECTION_MULTIPLE.equals(connectionModeString)) {
       connectionMode = ConnectionMode.MULTIPLE;
+    } else if (CONNECTION_POOLING.equals(connectionModeString)) {
+      connectionMode = ConnectionMode.POOLING;
     } else {
       throw new DBException("unknown connectionMode: " + connectionModeString);
     }
@@ -260,6 +267,10 @@ public class RedisLettuceClient extends DB {
         int processors = Runtime.getRuntime().availableProcessors();
         int amount = Integer.parseInt(props.getProperty(MULTI_SIZE_PROPERTY, Integer.toString(processors)));
         connectionProvider = new MultipleConnectionsProvider(clusterClient, readFrom, amount);
+      } else if (connectionMode == ConnectionMode.POOLING) {
+        int processors = Runtime.getRuntime().availableProcessors();
+        int poolSize = Integer.parseInt(props.getProperty(POOL_SIZE_PROPERTY, Integer.toString(processors)));
+        connectionProvider = new PoolingConnectionsProvider(clusterClient, readFrom, poolSize);
       }
 
       client = clusterClient;
@@ -277,6 +288,10 @@ public class RedisLettuceClient extends DB {
         int processors = Runtime.getRuntime().availableProcessors();
         int amount = Integer.parseInt(props.getProperty(MULTI_SIZE_PROPERTY, Integer.toString(processors)));
         connectionProvider = new MultipleConnectionsProvider(redisClient, nodes, readFrom, amount);
+      } else if (connectionMode == ConnectionMode.POOLING) {
+        int processors = Runtime.getRuntime().availableProcessors();
+        int poolSize = Integer.parseInt(props.getProperty(POOL_SIZE_PROPERTY, Integer.toString(processors)));
+        connectionProvider = new PoolingConnectionsProvider(redisClient, nodes, readFrom, poolSize);
       }
 
       client = redisClient;
@@ -301,8 +316,8 @@ public class RedisLettuceClient extends DB {
     }
   }
 
-  private RedisClusterCommands<String, String> getRedisClusterCommands() {
-    StatefulConnection<String, String> stringConnection = stringConnectionProvider.getConnection();
+  private RedisClusterCommands<String, String> getRedisClusterCommands(
+      StatefulConnection<String, String> stringConnection) {
     RedisClusterCommands cmds = null;
     if (stringConnection != null) {
       if (isCluster) {
@@ -312,6 +327,22 @@ public class RedisLettuceClient extends DB {
       }
     }
     return cmds;
+  }
+
+  private Status withRedisClusterCommands(Function<RedisClusterCommands, Status> function) {
+    try {
+      StatefulConnection<String, String> stringConnection = stringConnectionProvider.getConnection();
+      try {
+        RedisClusterCommands<String, String> cmds = getRedisClusterCommands(stringConnection);
+        return function.apply(cmds);
+      } catch (RedisCommandTimeoutException e) {
+        return Status.TIMEOUT;
+      } finally {
+        stringConnectionProvider.returnConnection(stringConnection);
+      }
+    } catch (Exception e) { // getConnection exception
+      return Status.ERROR;
+    }
   }
 
   /**
@@ -358,26 +389,24 @@ public class RedisLettuceClient extends DB {
    */
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
-    RedisClusterCommands<String, String> cmds = getRedisClusterCommands();
-    try {
-      if (fields == null) {
-        StringByteIterator.putAllAsByteIterators(result, cmds.hgetall(key));
-      } else {
-        String[] fieldArray = (String[]) fields.toArray(new String[fields.size()]);
-        List<KeyValue<String, String>> values = cmds.hmget(key, fieldArray);
+    return withRedisClusterCommands((cmds) -> {
+        if (fields == null) {
+          StringByteIterator.putAllAsByteIterators(result, cmds.hgetall(key));
+        } else {
+          String[] fieldArray = (String[]) fields.toArray(new String[fields.size()]);
+          List<KeyValue<String, String>> values = cmds.hmget(key, fieldArray);
 
-        Iterator<KeyValue<String, String>> fieldValueIterator = values.iterator();
+          Iterator<KeyValue<String, String>> fieldValueIterator = values.iterator();
 
-        while (fieldValueIterator.hasNext()) {
-          KeyValue<String, String> fieldValue = fieldValueIterator.next();
-          result.put(fieldValue.getKey(),
-              new StringByteIterator(fieldValue.getValue()));
+          while (fieldValueIterator.hasNext()) {
+            KeyValue<String, String> fieldValue = fieldValueIterator.next();
+            result.put(fieldValue.getKey(),
+                new StringByteIterator(fieldValue.getValue()));
+          }
         }
+        return result.isEmpty() ? Status.ERROR : Status.OK;
       }
-      return result.isEmpty() ? Status.ERROR : Status.OK;
-    } catch (RedisCommandTimeoutException e) {
-      return Status.TIMEOUT;
-    }
+    );
   }
 
   private double hash(String key) {
@@ -398,23 +427,21 @@ public class RedisLettuceClient extends DB {
   @Override
   public Status scan(String table, String startkey, int recordcount, Set<String> fields,
       Vector<HashMap<String, ByteIterator>> result) {
-    RedisClusterCommands<String, String> cmds = getRedisClusterCommands();
-    try {
-      List<String> keys = cmds.zrangebyscore(INDEX_KEY,
-          Range.from(Range.Boundary.excluding(hash(startkey)), Range.Boundary.excluding(Double.POSITIVE_INFINITY)),
-          Limit.from(recordcount));
+    return withRedisClusterCommands((cmds) -> {
+        List<String> keys = cmds.zrangebyscore(INDEX_KEY,
+            Range.from(Range.Boundary.excluding(hash(startkey)), Range.Boundary.excluding(Double.POSITIVE_INFINITY)),
+            Limit.from(recordcount));
 
-      HashMap<String, ByteIterator> values;
-      for (String key : keys) {
-        values = new HashMap<String, ByteIterator>();
-        read(table, key, fields, values);
-        result.add(values);
+        HashMap<String, ByteIterator> values;
+        for (String key : keys) {
+          values = new HashMap<String, ByteIterator>();
+          read(table, key, fields, values);
+          result.add(values);
+        }
+
+        return Status.OK;
       }
-
-      return Status.OK;
-    } catch (RedisCommandTimeoutException e) {
-      return Status.TIMEOUT;
-    }
+    );
   }
 
   /**
@@ -428,13 +455,11 @@ public class RedisLettuceClient extends DB {
    */
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
-    RedisClusterCommands<String, String> cmds = getRedisClusterCommands();
-    try {
-      return cmds.hmset(key, StringByteIterator.getStringMap(values))
-          .equals("OK") ? Status.OK : Status.ERROR;
-    } catch (RedisCommandTimeoutException e) {
-      return Status.TIMEOUT;
-    }
+    return withRedisClusterCommands((cmds) -> {
+        return cmds.hmset(key, StringByteIterator.getStringMap(values))
+            .equals("OK") ? Status.OK : Status.ERROR;
+      }
+    );
   }
 
   /**
@@ -448,17 +473,15 @@ public class RedisLettuceClient extends DB {
    */
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
-    RedisClusterCommands<String, String> cmds = getRedisClusterCommands();
-    try {
-      if (cmds.hmset(key, StringByteIterator.getStringMap(values))
-          .equals("OK")) {
-        cmds.zadd(INDEX_KEY, hash(key), key);
-        return Status.OK;
+    return withRedisClusterCommands((cmds) -> {
+        if (cmds.hmset(key, StringByteIterator.getStringMap(values))
+            .equals("OK")) {
+          cmds.zadd(INDEX_KEY, hash(key), key);
+          return Status.OK;
+        }
+        return Status.ERROR;
       }
-      return Status.ERROR;
-    } catch (RedisCommandTimeoutException e) {
-      return Status.TIMEOUT;
-    }
+    );
   }
 
   /**
@@ -470,17 +493,16 @@ public class RedisLettuceClient extends DB {
    */
   @Override
   public Status delete(String table, String key) {
-    RedisClusterCommands<String, String> cmds = getRedisClusterCommands();
-    try {
-      return cmds.del(key) == 0 && cmds.zrem(INDEX_KEY, key) == 0 ? Status.ERROR
-          : Status.OK;
-    } catch (RedisCommandTimeoutException e) {
-      return Status.TIMEOUT;
-    }
+    return withRedisClusterCommands((cmds) -> {
+        return cmds.del(key) == 0 && cmds.zrem(INDEX_KEY, key) == 0 ? Status.ERROR
+              : Status.OK;
+      }
+    );
   }
 
   private interface ConnectionProvider extends AutoCloseable {
-    StatefulConnection<String, String> getConnection();
+    StatefulConnection<String, String> getConnection() throws Exception;
+    void returnConnection(StatefulConnection<String, String> connection);
   }
 
   private static class SingleConnectionProvider implements ConnectionProvider {
@@ -496,13 +518,21 @@ public class RedisLettuceClient extends DB {
     }
 
     @Override
-    public StatefulConnection<String, String> getConnection() {
+    public StatefulConnection<String, String> getConnection() throws Exception {
       return stringConnection;
     }
 
     @Override
+    public void returnConnection(StatefulConnection<String, String> connection) {
+      // do nothing
+    }
+
+    @Override
     public void close() throws Exception {
-      stringConnection.close();
+      if (stringConnection != null) {
+        stringConnection.close();
+        stringConnection = null;
+      }
     }
   }
 
@@ -523,9 +553,14 @@ public class RedisLettuceClient extends DB {
     }
 
     @Override
-    public StatefulConnection<String, String> getConnection() {
+    public StatefulConnection<String, String> getConnection() throws Exception {
       ThreadLocalRandom random = ThreadLocalRandom.current();
       return this.stringConnections.get(random.nextInt(0, this.stringConnections.size()));
+    }
+
+    @Override
+    public void returnConnection(StatefulConnection<String, String> connection) {
+      // do nothing
     }
 
     @Override
@@ -534,6 +569,59 @@ public class RedisLettuceClient extends DB {
         stringConnection.close();
       }
       stringConnections.clear();
+    }
+  }
+
+  private static class PoolingConnectionsProvider implements ConnectionProvider {
+
+    private GenericObjectPool<StatefulRedisClusterConnection<String, String>> clusterConnectionPool = null;
+    private GenericObjectPool<StatefulRedisMasterReplicaConnection<String, String>> masterReplicaConnectionPool = null;
+    private boolean isCluster = false;
+
+
+    public PoolingConnectionsProvider(RedisClusterClient clusterClient, ReadFrom readFrom, int poolSize) {
+      GenericObjectPoolConfig<StatefulRedisClusterConnection<String, String>> poolConfig =
+          new GenericObjectPoolConfig<StatefulRedisClusterConnection<String, String>>();
+      poolConfig.setMaxTotal(poolSize);
+      poolConfig.setMaxIdle(poolSize);
+      clusterConnectionPool = ConnectionPoolSupport.createGenericObjectPool(
+          () -> { return createConnection(clusterClient, readFrom); }, poolConfig);
+      isCluster = true;
+    }
+
+    public PoolingConnectionsProvider(RedisClient redisClient, List<RedisURI> nodes, ReadFrom readFrom, int poolSize) {
+      GenericObjectPoolConfig<StatefulRedisMasterReplicaConnection<String, String>> poolConfig =
+          new GenericObjectPoolConfig<StatefulRedisMasterReplicaConnection<String, String>>();
+      poolConfig.setMaxTotal(poolSize);
+      poolConfig.setMaxIdle(poolSize);
+      masterReplicaConnectionPool = ConnectionPoolSupport.createGenericObjectPool(
+          () -> { return createConnection(redisClient, nodes, readFrom); }, poolConfig);
+    }
+
+    @Override
+    public StatefulConnection<String, String> getConnection() throws Exception {
+      return isCluster ? clusterConnectionPool.borrowObject() : masterReplicaConnectionPool.borrowObject();
+    }
+
+    @Override
+    public void returnConnection(StatefulConnection<String, String> connection) {
+      if (isCluster) {
+        clusterConnectionPool.returnObject((StatefulRedisClusterConnection<String, String>)connection);
+      } else {
+        masterReplicaConnectionPool.returnObject((StatefulRedisMasterReplicaConnection<String, String>)connection);
+      }
+    }
+
+    @Override
+    public void close() throws Exception {
+      if (clusterConnectionPool != null) {
+        clusterConnectionPool.close();
+        clusterConnectionPool = null;
+      }
+      if (masterReplicaConnectionPool != null) {
+        masterReplicaConnectionPool.close();
+        masterReplicaConnectionPool = null;
+      }
     }
   }
 
