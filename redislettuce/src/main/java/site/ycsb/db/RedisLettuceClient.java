@@ -19,6 +19,7 @@ import io.lettuce.core.api.StatefulConnection;
 import io.lettuce.core.AbstractRedisClient;
 import io.lettuce.core.ClientOptions;
 import io.lettuce.core.cluster.ClusterClientOptions;
+import io.lettuce.core.cluster.ClusterTopologyRefreshOptions;
 import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
 import io.lettuce.core.cluster.api.sync.RedisClusterCommands;
@@ -54,6 +55,8 @@ public class RedisLettuceClient extends DB {
   public static final String CLUSTER_PROPERTY = "redis.cluster";
   public static final String READ_FROM = "redis.readfrom"; // replica_preferred, replica, master_preferred, master
   public static final String TIMEOUT_PROPERTY = "redis.timeout";
+  public static final String CONNECTION_TIMEOUT_PROPERTY = "redis.con.timeout";
+  public static final String COMMAND_TIMEOUT_PROPERTY = "redis.cmd.timeout";
   public static final String SSL_PROPERTY = "redis.ssl";
 
   public static final String CONNECTION_PROPERTY = "redis.con"; // connection mode
@@ -61,12 +64,13 @@ public class RedisLettuceClient extends DB {
   public static final String CONNECTION_MULTIPLE = "multi"; // multiple connections for all threads
   public static final String MULTI_SIZE_PROPERTY = "multi.size";  // connections amount for multi connection model
 
-  // default Redis Settings which are consistent with our application
-  private static final long DEFAULT_CONNECT_TIMEOUT_SECONDS = 10; // 10 seconds
+  // default Redis Settings
+  private static final long DEFAULT_TIMEOUT_MILLIS = 2000L; // 2 seconds
+//  private static final long DEFAULT_CONNECT_TIMEOUT_SECONDS = 2; // 2 seconds
   private static final int DEFAULT_REQUEST_QUEUE_SIZE = 65536; // 2^16 default is 2^31-1
   private static final int DEFAULT_RECONNECT_DELAY_SECONDS = 1;
-//  private static final long DEFAULT_TOPOLOGY_REFRESH_PERIOD = 1 * 60 * 60 * 1000L;
-  private static final long DEFAULT_COMMAND_TIMEOUT_MILLIS = 100L; // 100ms
+  private static final int DEFAULT_TOPOLOGY_REFRESH_PERIOD_MINUTES = 60;  // 1 hour
+//  private static final long DEFAULT_COMMAND_TIMEOUT_MILLIS = 2000L; // 2 seconds
 
   enum ConnectionMode {
     SINGLE, MULTIPLE
@@ -87,7 +91,8 @@ public class RedisLettuceClient extends DB {
    * @param enableSSL
    * @return
    */
-  static RedisClusterClient createClusterClient(String host, int port, boolean enableSSL) {
+  static RedisClusterClient createClusterClient(String host, int port, boolean enableSSL,
+      long connectTimeoutMillis, long commandTimeoutMillis) {
     DefaultClientResources resources = DefaultClientResources.builder()
         .dnsResolver(new DirContextDnsResolver())
         .reconnectDelay(Delay.constant(DEFAULT_RECONNECT_DELAY_SECONDS, TimeUnit.SECONDS))
@@ -100,19 +105,25 @@ public class RedisLettuceClient extends DB {
 
     RedisClusterClient clusterClient = RedisClusterClient.create(resources, primaryNode);
 
+    ClusterTopologyRefreshOptions topologyRefreshOptions = ClusterTopologyRefreshOptions.builder()
+        .enableAllAdaptiveRefreshTriggers()
+        .enablePeriodicRefresh(Duration.ofMinutes(DEFAULT_TOPOLOGY_REFRESH_PERIOD_MINUTES))
+        .build();
+
     ClusterClientOptions clientOptions = ClusterClientOptions.builder()
         .requestQueueSize(DEFAULT_REQUEST_QUEUE_SIZE)
         .socketOptions(
             SocketOptions.builder()
-                .connectTimeout(DEFAULT_CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .connectTimeout(Duration.ofMillis(connectTimeoutMillis))
                 .build()
         )
         .timeoutOptions(
             TimeoutOptions.builder()
                 .timeoutCommands(true)
-                .fixedTimeout(Duration.ofMillis(DEFAULT_COMMAND_TIMEOUT_MILLIS))
+                .fixedTimeout(Duration.ofMillis(commandTimeoutMillis))
                 .build()
         )
+        .topologyRefreshOptions(topologyRefreshOptions)
         .build();
     clusterClient.setOptions(clientOptions);
 
@@ -135,7 +146,7 @@ public class RedisLettuceClient extends DB {
    * @param enableSSL
    * @return
    */
-  static RedisClient createClient() {
+  static RedisClient createClient(long connectTimeoutMillis, long commandTimeoutMillis) {
     DefaultClientResources resources = DefaultClientResources.builder()
         .dnsResolver(new DirContextDnsResolver())
         .build();
@@ -145,13 +156,13 @@ public class RedisLettuceClient extends DB {
         .requestQueueSize(DEFAULT_REQUEST_QUEUE_SIZE)
         .socketOptions(
             SocketOptions.builder()
-                .connectTimeout(DEFAULT_CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .connectTimeout(Duration.ofMillis(connectTimeoutMillis))
                 .build()
         )
         .timeoutOptions(
             TimeoutOptions.builder()
                 .timeoutCommands(true)
-                .fixedTimeout(Duration.ofMillis(DEFAULT_COMMAND_TIMEOUT_MILLIS))
+                .fixedTimeout(Duration.ofMillis(commandTimeoutMillis))
                 .build()
         )
         .build();
@@ -208,6 +219,11 @@ public class RedisLettuceClient extends DB {
     boolean clusterEnabled = Boolean.parseBoolean(props.getProperty(CLUSTER_PROPERTY));
     boolean sslEnabled = Boolean.parseBoolean(props.getProperty(SSL_PROPERTY, "false"));
 
+    String timeoutString = props.getProperty(TIMEOUT_PROPERTY, Long.toString(DEFAULT_TIMEOUT_MILLIS));
+    long timeout = Long.parseLong(timeoutString);
+    long conTimeout = Long.parseLong(props.getProperty(CONNECTION_TIMEOUT_PROPERTY, Long.toString(timeout)));
+    long cmdTimeout = Long.parseLong(props.getProperty(COMMAND_TIMEOUT_PROPERTY, Long.toString(timeout)));
+
     ReadFrom readFrom = null;
     String readFromString = props.getProperty(READ_FROM);
     if (readFromString != null) {
@@ -235,7 +251,7 @@ public class RedisLettuceClient extends DB {
     }
 
     if (clusterEnabled) {
-      RedisClusterClient clusterClient = createClusterClient(host, port, sslEnabled);
+      RedisClusterClient clusterClient = createClusterClient(host, port, sslEnabled, conTimeout, cmdTimeout);
       ConnectionProvider connectionProvider = null;
       if (connectionMode == ConnectionMode.SINGLE) {
         connectionProvider = new SingleConnectionProvider(clusterClient, readFrom);
@@ -250,7 +266,7 @@ public class RedisLettuceClient extends DB {
       isCluster = true;
     } else {
       List<String> hosts = Arrays.asList(host.split(","));
-      RedisClient redisClient = createClient();
+      RedisClient redisClient = createClient(conTimeout, cmdTimeout);
       List<RedisURI> nodes = getNodes(hosts, port, sslEnabled);
 
       ConnectionProvider connectionProvider = null;
