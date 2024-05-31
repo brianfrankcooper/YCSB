@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 
 import site.ycsb.ByteIterator;
 import site.ycsb.Client;
+import site.ycsb.ClientThread;
 import site.ycsb.DB;
 import site.ycsb.NumericByteIterator;
 import site.ycsb.Status;
@@ -688,7 +689,8 @@ public class TimeSeriesWorkload extends Workload {
   }
   
   @Override
-  public Object initThread(Properties p, int mythreadid, int threadcount) throws WorkloadException {
+  public Object initThread(Properties p, int mythreadid, int threadcount, ClientThread thread)
+      throws WorkloadException {
     if (properties == null) {
       throw new WorkloadException("Workload has not been initialized.");
     }

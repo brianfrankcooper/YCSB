@@ -22,7 +22,6 @@ import static site.ycsb.Client.WARM_UP_OPERATIONS_COUNT_PROPERTY;
 import static site.ycsb.Client.parseIntWithModifiers;
 import static site.ycsb.Client.parseLongWithModifiers;
 
-import java.util.concurrent.atomic.AtomicLong;
 import site.ycsb.*;
 import site.ycsb.generator.*;
 import site.ycsb.generator.UniformLongGenerator;
@@ -381,14 +380,6 @@ public class CoreWorkload extends Workload {
 
   private Measurements measurements = Measurements.getMeasurements();
 
-  private final AtomicLong opsDone = new AtomicLong(0L);
-
-  private List<String> batchKeysList;
-
-  private List<Set<String>> batchFieldsList;
-
-  private List<Map<String, ByteIterator>> batchValuesList;
-
   public static String buildKeyName(long keynum, int zeropadding, boolean orderedinserts) {
     if (!orderedinserts) {
       keynum = Utils.hash(keynum);
@@ -470,17 +461,7 @@ public class CoreWorkload extends Workload {
       System.err.println("Invalid batchsize=" + batchsize + ". batchsize must be bigger than 0.");
       System.exit(-1);
     }
-    if (batchsize > 1 && threads > 1) {
-      System.err.println("Batch tests do not support more then 1 thread run."
-          + " Either set batchsize = 1 or threadcount = 1");
-      System.exit(-1);
-    }
     isBatched = batchsize > 1;
-    if (isBatched) {
-      batchKeysList = new ArrayList<>(batchsize);
-      batchFieldsList = new ArrayList<>(batchsize);
-      batchValuesList = new ArrayList<>(batchsize);
-    }
 
     String requestdistrib =
         p.getProperty(REQUEST_DISTRIBUTION_PROPERTY, REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
@@ -643,6 +624,18 @@ public class CoreWorkload extends Workload {
     return sb.toString();
   }
 
+  @Override
+  public Object initThread(Properties p, int mythreadid, int threadcount, ClientThread thread)
+      throws WorkloadException {
+    CoreWorkloadThreadState threadState = new CoreWorkloadThreadState(thread);
+
+    if (isBatched) {
+      threadState.initBatchArrays(batchsize);
+    }
+
+    return threadState;
+  }
+
   /**
    * Do one insert operation. Because it will be called concurrently from multiple client threads,
    * this function must be thread safe. However, avoid synchronized, or the threads will block waiting
@@ -651,6 +644,8 @@ public class CoreWorkload extends Workload {
    */
   @Override
   public boolean doInsert(DB db, Object threadstate) {
+    CoreWorkloadThreadState threadState = (CoreWorkloadThreadState) threadstate;
+
     int keynum = keysequence.nextValue().intValue();
     String dbkey = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
     HashMap<String, ByteIterator> values = buildValues(dbkey);
@@ -661,15 +656,13 @@ public class CoreWorkload extends Workload {
       if (!isBatched) {
         status = db.insert(table, dbkey, values);
       } else {
-        batchKeysList.add(dbkey);
-        batchValuesList.add(values);
+        threadState.getBatchKeysList().add(dbkey);
+        threadState.getBatchValuesList().add(values);
 
-        long currentOpNum = opsDone.get() + 1;
-
-        if (batchKeysList.size() == batchsize || currentOpNum == warmupops || currentOpNum == totalrecordcount) {
-          status = db.batchInsert(table, batchKeysList, batchValuesList);
-          batchKeysList.clear();
-          batchValuesList.clear();
+        if (threadState.isBatchPrepared(batchsize)) {
+          status = db.batchInsert(table, threadState.getBatchKeysList(), threadState.getBatchValuesList());
+          threadState.getBatchKeysList().clear();
+          threadState.getBatchValuesList().clear();
         } else {
           status = Status.BATCHED_OK;
         }
@@ -699,7 +692,7 @@ public class CoreWorkload extends Workload {
       }
     } while (true);
 
-    opsDone.incrementAndGet();
+    threadState.incrementOps();
 
     return null != status && status.isOk();
   }
@@ -712,6 +705,8 @@ public class CoreWorkload extends Workload {
    */
   @Override
   public boolean doTransaction(DB db, Object threadstate) {
+    CoreWorkloadThreadState threadState = (CoreWorkloadThreadState) threadstate;
+
     String operation = operationchooser.nextString();
     if(operation == null) {
       return false;
@@ -719,22 +714,22 @@ public class CoreWorkload extends Workload {
 
     switch (operation) {
     case "READ":
-      doTransactionRead(db);
+      doTransactionRead(db, threadState);
       break;
     case "UPDATE":
-      doTransactionUpdate(db);
+      doTransactionUpdate(db, threadState);
       break;
     case "INSERT":
-      doTransactionInsert(db);
+      doTransactionInsert(db, threadState);
       break;
     case "SCAN":
-      doTransactionScan(db);
+      doTransactionScan(db, threadState);
       break;
     default:
-      doTransactionReadModifyWrite(db);
+      doTransactionReadModifyWrite(db, threadState);
     }
 
-    opsDone.incrementAndGet();
+    threadState.incrementOps();
 
     return true;
   }
@@ -779,7 +774,7 @@ public class CoreWorkload extends Workload {
     return keynum;
   }
 
-  public void doTransactionRead(DB db) {
+  public void doTransactionRead(DB db, CoreWorkloadThreadState threadState) {
     // choose a random key
     long keynum = nextKeynum();
 
@@ -802,31 +797,29 @@ public class CoreWorkload extends Workload {
       HashMap<String, ByteIterator> cells = new HashMap<>();
       db.read(table, keyname, fields, cells);
 
-      if (dataintegrity && isWarmUpDone()) {
+      if (dataintegrity && threadState.isWarmUpDone()) {
         verifyRow(keyname, cells);
       }
     } else {
-      batchKeysList.add(keyname);
-      batchFieldsList.add(fields);
+      threadState.getBatchKeysList().add(keyname);
+      threadState.getBatchFieldsList().add(fields);
 
-      long currentOpNum = opsDone.get() + 1;
-
-      if (batchKeysList.size() == batchsize || currentOpNum == warmupops || currentOpNum == totalrecordcount) {
+      if (threadState.isBatchPrepared(batchsize)) {
         List<Map<String, ByteIterator>> results = new LinkedList<>();
-        db.batchRead(table, batchKeysList, batchFieldsList, results);
-        batchKeysList.clear();
-        batchFieldsList.clear();
+        db.batchRead(table, threadState.getBatchKeysList(), threadState.getBatchFieldsList(), results);
+        threadState.getBatchKeysList().clear();
+        threadState.getBatchFieldsList().clear();
 
-        if (dataintegrity && isWarmUpDone()) {
-          for (int i = 0; i < batchKeysList.size(); i++) {
-            verifyRow(batchKeysList.get(i), (HashMap<String, ByteIterator>) results.get(i));
+        if (dataintegrity && threadState.isWarmUpDone()) {
+          for (int i = 0; i < threadState.getBatchKeysList().size(); i++) {
+            verifyRow(threadState.getBatchKeysList().get(i), (HashMap<String, ByteIterator>) results.get(i));
           }
         }
       }
     }
   }
 
-  public void doTransactionReadModifyWrite(DB db) {
+  public void doTransactionReadModifyWrite(DB db, CoreWorkloadThreadState threadState) {
     // choose a random key
     long keynum = nextKeynum();
 
@@ -865,7 +858,7 @@ public class CoreWorkload extends Workload {
 
     long en = System.nanoTime();
 
-    if (dataintegrity && isWarmUpDone()) {
+    if (dataintegrity && threadState.isWarmUpDone()) {
       verifyRow(keyname, cells);
     }
 
@@ -873,7 +866,7 @@ public class CoreWorkload extends Workload {
     measurements.measureIntended("READ-MODIFY-WRITE", (int) ((en - ist) / 1000));
   }
 
-  public void doTransactionScan(DB db) {
+  public void doTransactionScan(DB db, CoreWorkloadThreadState threadState) {
     // choose a random key
     long keynum = nextKeynum();
 
@@ -895,7 +888,7 @@ public class CoreWorkload extends Workload {
     db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
   }
 
-  public void doTransactionUpdate(DB db) {
+  public void doTransactionUpdate(DB db, CoreWorkloadThreadState threadState) {
     // choose a random key
     long keynum = nextKeynum();
 
@@ -914,7 +907,7 @@ public class CoreWorkload extends Workload {
     db.update(table, keyname, values);
   }
 
-  public void doTransactionInsert(DB db) {
+  public void doTransactionInsert(DB db, CoreWorkloadThreadState threadState) {
     // choose the next key
     long keynum = transactioninsertkeysequence.nextValue();
 
@@ -926,15 +919,13 @@ public class CoreWorkload extends Workload {
       if (!isBatched) {
         db.insert(table, dbkey, values);
       } else {
-        batchKeysList.add(dbkey);
-        batchValuesList.add(values);
+        threadState.getBatchKeysList().add(dbkey);
+        threadState.getBatchValuesList().add(values);
 
-        long currentOpNum = opsDone.get() + 1;
-
-        if (batchKeysList.size() == batchsize || currentOpNum == warmupops || currentOpNum == totalrecordcount) {
-          db.batchInsert(table, batchKeysList, batchValuesList);
-          batchKeysList.clear();
-          batchValuesList.clear();
+        if (threadState.isBatchPrepared(batchsize)) {
+          db.batchInsert(table, threadState.getBatchKeysList(), threadState.getBatchValuesList());
+          threadState.getBatchKeysList().clear();
+          threadState.getBatchValuesList().clear();
         }
       }
     } finally {
@@ -988,9 +979,5 @@ public class CoreWorkload extends Workload {
       operationchooser.addValue(readmodifywriteproportion, "READMODIFYWRITE");
     }
     return operationchooser;
-  }
-
-  private boolean isWarmUpDone() {
-    return opsDone.get() >= warmupops;
   }
 }

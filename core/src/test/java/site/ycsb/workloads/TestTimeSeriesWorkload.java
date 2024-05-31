@@ -46,7 +46,7 @@ import site.ycsb.measurements.Measurements;
 import org.testng.annotations.Test;
 
 public class TestTimeSeriesWorkload {
-  
+
   @Test
   public void twoThreads() throws Exception {
     final Properties p = getUTProperties();
@@ -54,7 +54,7 @@ public class TestTimeSeriesWorkload {
     
     final TimeSeriesWorkload wl = new TimeSeriesWorkload();
     wl.init(p);
-    Object threadState = wl.initThread(p, 0, 2);
+    Object threadState = wl.initThread(p, 0, 2, null);
     
     MockDB db = new MockDB();
     for (int i = 0; i < 74; i++) {
@@ -78,7 +78,7 @@ public class TestTimeSeriesWorkload {
       }
     }
     
-    threadState = wl.initThread(p, 1, 2);
+    threadState = wl.initThread(p, 1, 2, null);
     db = new MockDB();
     for (int i = 0; i < 74; i++) {
       assertTrue(wl.doInsert(db, threadState));
@@ -114,7 +114,7 @@ public class TestTimeSeriesWorkload {
     final Properties p = getUTProperties();
     final TimeSeriesWorkload wl = getWorkload(p, false);
     //wl.init(p); // <-- we NEED this :(
-    final Object threadState = wl.initThread(p, 0, 2);
+    final Object threadState = wl.initThread(p, 0, 2, null);
     
     final MockDB db = new MockDB();
     wl.doInsert(db, threadState);
@@ -136,7 +136,7 @@ public class TestTimeSeriesWorkload {
     p.put(TimeSeriesWorkload.TAG_COUNT_PROPERTY, "1");
     p.put(TimeSeriesWorkload.TAG_CARDINALITY_PROPERTY, "1");
     final TimeSeriesWorkload wl = getWorkload(p, true);
-    final Object threadState = wl.initThread(p, 0, 1);
+    final Object threadState = wl.initThread(p, 0, 1, null);
 
     final MockDB db = new MockDB();
     for (int i = 0; i < 74; i++) {
@@ -161,7 +161,7 @@ public class TestTimeSeriesWorkload {
     final Properties p = getUTProperties();
     p.put(CoreWorkload.FIELD_COUNT_PROPERTY, "1");
     final TimeSeriesWorkload wl = getWorkload(p, true);
-    final Object threadState = wl.initThread(p, 0, 1);
+    final Object threadState = wl.initThread(p, 0, 1, null);
     
     final MockDB db = new MockDB();
     for (int i = 0; i < 74; i++) {
@@ -192,7 +192,7 @@ public class TestTimeSeriesWorkload {
     final Properties p = getUTProperties();
     
     final TimeSeriesWorkload wl = getWorkload(p, true);
-    final Object threadState = wl.initThread(p, 0, 1);
+    final Object threadState = wl.initThread(p, 0, 1, null);
     
     final MockDB db = new MockDB();
     for (int i = 0; i < 74; i++) {
@@ -231,7 +231,7 @@ public class TestTimeSeriesWorkload {
     final Properties p = getUTProperties();
     
     final TimeSeriesWorkload wl = getWorkload(p, true);
-    Object threadState = wl.initThread(p, 0, 2);
+    Object threadState = wl.initThread(p, 0, 2, null);
     
     MockDB db = new MockDB();
     for (int i = 0; i < 74; i++) {
@@ -256,7 +256,7 @@ public class TestTimeSeriesWorkload {
       }
     }
     
-    threadState = wl.initThread(p, 1, 2);
+    threadState = wl.initThread(p, 1, 2, null);
     db = new MockDB();
     for (int i = 0; i < 74; i++) {
       assertTrue(wl.doInsert(db, threadState));
@@ -287,7 +287,7 @@ public class TestTimeSeriesWorkload {
     p.put(CoreWorkload.FIELD_COUNT_PROPERTY, "3");
     
     final TimeSeriesWorkload wl = getWorkload(p, true);
-    Object threadState = wl.initThread(p, 0, 2);
+    Object threadState = wl.initThread(p, 0, 2, null);
     
     MockDB db = new MockDB();
     for (int i = 0; i < 74; i++) {
@@ -312,7 +312,7 @@ public class TestTimeSeriesWorkload {
       }
     }
     
-    threadState = wl.initThread(p, 1, 2);
+    threadState = wl.initThread(p, 1, 2, null);
     db = new MockDB();
     for (int i = 0; i < 74; i++) {
       assertTrue(wl.doInsert(db, threadState));
@@ -349,7 +349,7 @@ public class TestTimeSeriesWorkload {
     p.put(CoreWorkload.DATA_INTEGRITY_PROPERTY, "true");
     p.put(TimeSeriesWorkload.VALUE_TYPE_PROPERTY, "integers");
     final TimeSeriesWorkload wl = getWorkload(p, true);
-    final Object threadState = wl.initThread(p, 0, 1);
+    final Object threadState = wl.initThread(p, 0, 1, null);
     
     final MockDB db = new MockDB();
     for (int i = 0; i < 74; i++) {
@@ -392,7 +392,7 @@ public class TestTimeSeriesWorkload {
   public void read() throws Exception {
     final Properties p = getUTProperties();
     final TimeSeriesWorkload wl = getWorkload(p, true);
-    final Object threadState = wl.initThread(p, 0, 1);
+    final Object threadState = wl.initThread(p, 0, 1, null);
     
     final MockDB db = new MockDB();
     for (int i = 0; i < 20; i++) {

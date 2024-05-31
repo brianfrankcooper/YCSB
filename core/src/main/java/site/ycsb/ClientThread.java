@@ -34,6 +34,7 @@ public class ClientThread implements Runnable {
   private DB db;
   private boolean dotransactions;
   private Workload workload;
+  private int opscount;
   private int warmupopscount;
   private int totalopscount;
   private double targetOpsPerMs;
@@ -66,6 +67,7 @@ public class ClientThread implements Runnable {
     this.db = db;
     this.dotransactions = dotransactions;
     this.workload = workload;
+    this.opscount = opcount;
     this.warmupopscount = warmupopscount;
     this.totalopscount = opcount + warmupopscount;
     payloadopsdone = 0;
@@ -86,6 +88,18 @@ public class ClientThread implements Runnable {
 
   public void setThreadCount(final int threadCount) {
     threadcount = threadCount;
+  }
+
+  public int getOpsCount() {
+    return opscount;
+  }
+
+  public int getWarmupOpsCount() {
+    return warmupopscount;
+  }
+
+  public int getTotalOpsCount() {
+    return totalopscount;
   }
 
   public int getPayloadOpsDone() {
@@ -119,7 +133,7 @@ public class ClientThread implements Runnable {
     }
 
     try {
-      workloadstate = workload.initThread(props, threadid, threadcount);
+      workloadstate = workload.initThread(props, threadid, threadcount, this);
     } catch (WorkloadException e) {
       e.printStackTrace();
       e.printStackTrace(System.out);

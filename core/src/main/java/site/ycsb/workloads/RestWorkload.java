@@ -241,6 +241,8 @@ public class RestWorkload extends CoreWorkload {
 
   @Override
   public boolean doTransaction(DB db, Object threadstate) {
+    CoreWorkloadThreadState threadState = (CoreWorkloadThreadState) threadstate;
+
     String operation = operationchooser.nextString();
     if (operation == null) {
       return false;
@@ -248,16 +250,16 @@ public class RestWorkload extends CoreWorkload {
 
     switch (operation) {
     case "UPDATE":
-      doTransactionUpdate(db);
+      doTransactionUpdate(db, threadState);
       break;
     case "INSERT":
-      doTransactionInsert(db);
+      doTransactionInsert(db, threadState);
       break;
     case "DELETE":
-      doTransactionDelete(db);
+      doTransactionDelete(db, threadState);
       break;
     default:
-      doTransactionRead(db);
+      doTransactionRead(db, threadState);
     }
     return true;
   }
@@ -278,25 +280,25 @@ public class RestWorkload extends CoreWorkload {
   }
 
   @Override
-  public void doTransactionRead(DB db) {
+  public void doTransactionRead(DB db, CoreWorkloadThreadState threadState) {
     HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
     db.read(null, getNextURL(1), null, result);
   }
 
   @Override
-  public void doTransactionInsert(DB db) {
+  public void doTransactionInsert(DB db, CoreWorkloadThreadState threadState) {
     HashMap<String, ByteIterator> value = new HashMap<String, ByteIterator>();
     // Create random bytes of insert data with a specific size.
     value.put("data", new RandomByteIterator(fieldlengthgenerator.nextValue().longValue()));
     db.insert(null, getNextURL(2), value);
   }
 
-  public void doTransactionDelete(DB db) {
+  public void doTransactionDelete(DB db, CoreWorkloadThreadState threadState) {
     db.delete(null, getNextURL(3));
   }
 
   @Override
-  public void doTransactionUpdate(DB db) {
+  public void doTransactionUpdate(DB db, CoreWorkloadThreadState threadState) {
     HashMap<String, ByteIterator> value = new HashMap<String, ByteIterator>();
     // Create random bytes of update data with a specific size.
     value.put("data", new RandomByteIterator(fieldlengthgenerator.nextValue().longValue()));
