@@ -49,10 +49,16 @@ public class DBWrapper extends DB {
 
   private static final AtomicBoolean LOG_REPORT_CONFIG = new AtomicBoolean(false);
 
-  private long opsDone = 0L;
+  /** Number of batch operations performed. */
+  private long batchOpsDone = 0L;
 
-  private int threadWarmUpOpsCount;
+  /** Number of warm-up operations to perform (records to process). */
+  private int warmUpOpsCount;
 
+  /** Number of batch warm-up operations to perform. */
+  private int warmUpBatchOps;
+
+  /** Batch size. */
   private int batchSize;
 
   private final String scopeStringCleanup;
@@ -63,7 +69,7 @@ public class DBWrapper extends DB {
   private final String scopeStringScan;
   private final String scopeStringUpdate;
 
-  public DBWrapper(final DB db, final Tracer tracer, int threadWarmUpOpsCount) {
+  public DBWrapper(final DB db, final Tracer tracer, int warmUpOpsCount) {
     this.db = db;
     measurements = Measurements.getMeasurements();
     this.tracer = tracer;
@@ -75,7 +81,7 @@ public class DBWrapper extends DB {
     scopeStringRead = simple + "#read";
     scopeStringScan = simple + "#scan";
     scopeStringUpdate = simple + "#update";
-    this.threadWarmUpOpsCount = threadWarmUpOpsCount;
+    this.warmUpOpsCount = warmUpOpsCount;
   }
 
   /**
@@ -119,7 +125,11 @@ public class DBWrapper extends DB {
       }
 
       batchSize = parseIntWithModifiers(getProperties().getProperty(BATCH_SIZE_PROPERTY, DEFAULT_BATCH_SIZE));
-      threadWarmUpOpsCount = threadWarmUpOpsCount / batchSize;
+      if (batchSize < 1) {
+        System.err.println("Invalid batchsize=" + batchSize + ". batchsize must be bigger than 0.");
+        System.exit(-1);
+      }
+      warmUpBatchOps = (warmUpOpsCount - 1) / batchSize + 1;
     }
   }
 
@@ -327,6 +337,6 @@ public class DBWrapper extends DB {
   }
 
   private boolean isWarmUpDone() {
-    return ++opsDone > threadWarmUpOpsCount;
+    return ++batchOpsDone > warmUpBatchOps;
   }
 }
