@@ -27,6 +27,7 @@ import io.lettuce.core.cluster.ClusterTopologyRefreshOptions;
 import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
 import io.lettuce.core.cluster.api.sync.RedisClusterCommands;
+import io.lettuce.core.cluster.models.partitions.RedisClusterNode;
 import io.lettuce.core.codec.StringCodec;
 import io.lettuce.core.masterreplica.MasterReplica;
 import io.lettuce.core.masterreplica.StatefulRedisMasterReplicaConnection;
@@ -102,7 +103,9 @@ public class RedisLettuceClient extends DB {
       long connectTimeoutMillis, long commandTimeoutMillis) {
     DefaultClientResources resources = DefaultClientResources.builder()
         .dnsResolver(new DirContextDnsResolver())
-        .reconnectDelay(Delay.constant(DEFAULT_RECONNECT_DELAY_SECONDS, TimeUnit.SECONDS))
+        .reconnectDelay(
+            Delay.fullJitter(Duration.ofMillis(100), Duration.ofSeconds(10), 100, TimeUnit.MILLISECONDS)
+        )
         .build();
     RedisURI primaryNode = RedisURI.builder()
         .withSsl(enableSSL)
@@ -114,7 +117,7 @@ public class RedisLettuceClient extends DB {
 
     ClusterTopologyRefreshOptions topologyRefreshOptions = ClusterTopologyRefreshOptions.builder()
         .enableAllAdaptiveRefreshTriggers()
-        .enablePeriodicRefresh(Duration.ofMinutes(DEFAULT_TOPOLOGY_REFRESH_PERIOD_MINUTES))
+        .enablePeriodicRefresh() // Duration.ofMinutes(DEFAULT_TOPOLOGY_REFRESH_PERIOD_MINUTES))
         .build();
 
     ClusterClientOptions clientOptions = ClusterClientOptions.builder()
@@ -122,6 +125,7 @@ public class RedisLettuceClient extends DB {
         .socketOptions(
             SocketOptions.builder()
                 .connectTimeout(Duration.ofMillis(connectTimeoutMillis))
+                .keepAlive(true)
                 .build()
         )
         .timeoutOptions(
@@ -131,6 +135,13 @@ public class RedisLettuceClient extends DB {
                 .build()
         )
         .topologyRefreshOptions(topologyRefreshOptions)
+        .nodeFilter(it ->
+        !(it.is(RedisClusterNode.NodeFlag.FAIL)
+            || it.is(RedisClusterNode.NodeFlag.EVENTUAL_FAIL)
+            || it.is(RedisClusterNode.NodeFlag.HANDSHAKE)
+            || it.is(RedisClusterNode.NodeFlag.NOADDR))
+            )
+        .validateClusterNodeMembership(false)
         .build();
     clusterClient.setOptions(clientOptions);
 
