@@ -128,7 +128,17 @@ public class RedisLettuceClient extends DB {
 
     ClusterTopologyRefreshOptions topologyRefreshOptions = ClusterTopologyRefreshOptions.builder()
         .enableAllAdaptiveRefreshTriggers()
-        .enablePeriodicRefresh() // Duration.ofMinutes(DEFAULT_TOPOLOGY_REFRESH_PERIOD_MINUTES))
+        // The topology periodic refresh interval impacts the behavior of reads if readFrom=replica_preferred.
+        // The default interval in ClusterTopologyRefreshOptions is one minute, and in common-redis lib
+        // we set it as one hour in default.
+        // For readFrom=replica_preferred, the read connection always uses the first replica node of the
+        // received topology data. But when the topology data is refreshed in the background, the order of
+        // replicas may change.
+        // Here we use one hour as the periodic refresh interval, which means within one hour the topology
+        // data does not change at all, so if the testing is within one hour, the reads always come from
+        // the same replica node for readFrom=replica_preferred even if we have 2 or more replicas.
+        // If we want to distribute read load evenly from all replica nodes, we should use readFrom=any_replica.
+        .enablePeriodicRefresh(Duration.ofMinutes(DEFAULT_TOPOLOGY_REFRESH_PERIOD_MINUTES))
         .build();
 
     ClusterClientOptions clientOptions = ClusterClientOptions.builder()
