@@ -80,6 +80,17 @@ public class RedisLettuceClient extends DB {
   private static final int DEFAULT_TOPOLOGY_REFRESH_PERIOD_MINUTES = 60;  // 1 hour
 //  private static final long DEFAULT_COMMAND_TIMEOUT_MILLIS = 2000L; // 2 seconds
 
+  private static final Map<String, ReadFrom> READ_FROM_MAP = new HashMap<String, ReadFrom>();
+  static {
+    READ_FROM_MAP.put("replica_preferred", ReadFrom.REPLICA_PREFERRED);
+    READ_FROM_MAP.put("replica", ReadFrom.REPLICA);
+    READ_FROM_MAP.put("any_replica", ReadFrom.ANY_REPLICA);
+    READ_FROM_MAP.put("master", ReadFrom.MASTER);
+    READ_FROM_MAP.put("master_preferred", ReadFrom.MASTER_PREFERRED);
+    READ_FROM_MAP.put("any", ReadFrom.ANY);
+    READ_FROM_MAP.put("lowest_latency", ReadFrom.LOWEST_LATENCY);
+  }
+
   enum ConnectionMode {
     SINGLE, MULTIPLE, POOLING
   }
@@ -244,16 +255,9 @@ public class RedisLettuceClient extends DB {
     ReadFrom readFrom = null;
     String readFromString = props.getProperty(READ_FROM);
     if (readFromString != null) {
-      if ("replica_preferred".equals(readFromString)) {
-        readFrom = ReadFrom.REPLICA_PREFERRED;
-      } else if ("master_preferred".equals(readFromString)) {
-        readFrom = ReadFrom.MASTER_PREFERRED;
-      } else if ("master".equals(readFromString)) {
-        readFrom = ReadFrom.MASTER;
-      } else if ("replica".equals(readFromString)) {
-        readFrom = ReadFrom.REPLICA;
-      } else {
-        throw new DBException("unknown readfrom: " + readFromString);
+      readFrom = READ_FROM_MAP.get(readFromString);
+      if (readFrom == null) {
+        throw new DBException("do not support readfrom: " + readFromString);
       }
     }
 
