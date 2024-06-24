@@ -190,6 +190,53 @@ public class HBaseClient2Test {
   }
 
   @Test
+  public void testScanReversed() throws Exception {
+    setUp();
+
+    // Fill with data
+    final String colStr = "row_number";
+    final byte[] col = Bytes.toBytes(colStr);
+    final int n = 10;
+    final List<Put> puts = new ArrayList<Put>(n);
+    for(int i = 0; i < n; i++) {
+      final byte[] key = Bytes.toBytes(String.format("%05d", i));
+      final byte[] value = java.nio.ByteBuffer.allocate(4).putInt(i).array();
+      final Put p = new Put(key);
+      p.addColumn(Bytes.toBytes(COLUMN_FAMILY), col, value);
+      puts.add(p);
+    }
+    table.put(puts);
+
+    Properties p = new Properties();
+    p.setProperty("columnfamily", COLUMN_FAMILY);
+    p.setProperty("hbase.reversescans", "true");
+    HBaseClient2 reversedClient = new HBaseClient2();
+    reversedClient.setProperties(p);
+    reversedClient.init();
+
+    // Test
+    final Vector<HashMap<String, ByteIterator>> result =
+        new Vector<HashMap<String, ByteIterator>>();
+
+    try {
+      reversedClient.scan(tableName, "00008", 5, null, result);
+    } finally {
+      reversedClient.cleanup();
+    }
+
+    assertEquals(5, result.size());
+    int rowNumber = 8;
+    for (HashMap<String, ByteIterator> row : result) {
+      assertEquals(1, row.size());
+      assertTrue(row.containsKey(colStr));
+      final byte[] bytes = row.get(colStr).toArray();
+      final ByteBuffer buf = ByteBuffer.wrap(bytes);
+      final int rowNum = buf.getInt();
+      assertEquals(rowNumber--, rowNum);
+    }
+  }
+
+  @Test
   public void testScanWithValueFilteringUsingDefaultProperties() throws Exception {
     testScanWithValueFiltering(null, null, 100, new byte[][] {
         Bytes.fromHex("0000"), Bytes.fromHex("1111"), Bytes.fromHex("2222"), Bytes.fromHex("3333"),
