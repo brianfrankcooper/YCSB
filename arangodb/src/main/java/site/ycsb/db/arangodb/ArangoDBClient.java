@@ -111,7 +111,7 @@ public class ArangoDBClient extends DB {
       
       // Init ArangoDB connection
       try {
-        arangoDB = new ArangoDB.Builder().host(ip).port(port).useProtocol(protocol).build();
+        arangoDB = new ArangoDB.Builder().host(ip, port).useProtocol(protocol).build();
       } catch (Exception e) {
         logger.error("Failed to initialize ArangoDB", e);
         System.exit(-1);
