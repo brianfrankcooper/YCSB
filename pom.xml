@@ -102,6 +102,11 @@ LICENSE file.
         <artifactId>slf4j-api</artifactId>
         <version>1.7.25</version>
       </dependency>
+      <dependency>
+        <groupId>com.github.javafaker</groupId>
+        <artifactId>javafaker</artifactId>
+        <version>1.0.2</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -123,6 +128,7 @@ LICENSE file.
 		<couchbase2.version>2.3.1</couchbase2.version>
 		<crail.version>1.1-incubating</crail.version>
     <elasticsearch5-version>5.5.1</elasticsearch5-version>
+    <elasticsearch7-version>7.12.0</elasticsearch7-version>
     <foundationdb.version>5.2.5</foundationdb.version>
     <geode.version>1.2.0</geode.version>
     <googlebigtable.version>1.4.0</googlebigtable.version>
@@ -133,12 +139,13 @@ LICENSE file.
     <infinispan.version>7.2.2.Final</infinispan.version>
     <kudu.version>1.11.1</kudu.version>
     <maprhbase.version>1.1.8-mapr-1710</maprhbase.version>
-    <mongodb.version>3.11.0</mongodb.version>
+    <mongodb.version>3.12.8</mongodb.version>
     <mongodb.async.version>2.0.1</mongodb.async.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
     <orientdb.version>2.2.37</orientdb.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <redis.version>2.9.0</redis.version>
+    <jedis.redisearch.version>3.5.2</jedis.redisearch.version>
+    <redis.version>3.5.1</redis.version>
     <riak.version>2.0.5</riak.version>
     <rocksdb.version>6.2.2</rocksdb.version>
     <s3.version>1.10.20</s3.version>
@@ -172,6 +179,7 @@ LICENSE file.
     <module>dynamodb</module>
     <module>elasticsearch</module>
     <module>elasticsearch5</module>
+    <module>elasticsearch7</module>
     <module>foundationdb</module>
     <module>geode</module>
     <module>googlebigtable</module>
@@ -192,6 +200,8 @@ LICENSE file.
     <module>postgrenosql</module>
     <module>rados</module>
     <module>redis</module>
+    <module>redisearch</module>
+    <module>redisjson2</module>
     <module>rest</module>
     <module>riak</module>
     <module>rocksdb</module>

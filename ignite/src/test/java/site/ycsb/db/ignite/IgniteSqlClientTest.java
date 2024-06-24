@@ -19,6 +19,8 @@ package site.ycsb.db.ignite;
 
 import site.ycsb.ByteIterator;
 import site.ycsb.Status;
+import org.javatuples.Pair;
+
 import site.ycsb.StringByteIterator;
 import site.ycsb.measurements.Measurements;
 import org.apache.ignite.IgniteCheckedException;

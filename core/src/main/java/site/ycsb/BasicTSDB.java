@@ -16,13 +16,10 @@
  */
 package site.ycsb;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
 
+import org.javatuples.Pair;
 import site.ycsb.workloads.TimeSeriesWorkload;
 
 /**
@@ -220,6 +217,15 @@ public class BasicTSDB extends BasicDB {
       }
     }
 
+    return Status.OK;
+  }
+
+  @Override
+  public Status search(String table,
+                       Pair<String, String> queryPair, boolean onlyinsale,
+                       Pair<Integer, Integer> pagePair,
+                       HashSet<String> fields,
+                       Vector<HashMap<String, ByteIterator>> hashMaps) {
     return Status.OK;
   }
 

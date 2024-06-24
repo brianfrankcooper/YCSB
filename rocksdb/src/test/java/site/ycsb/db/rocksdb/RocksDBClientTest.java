@@ -19,6 +19,8 @@ package site.ycsb.db.rocksdb;
 
 import site.ycsb.ByteIterator;
 import site.ycsb.Status;
+import org.javatuples.Pair;
+
 import site.ycsb.StringByteIterator;
 import site.ycsb.workloads.CoreWorkload;
 import org.junit.*;

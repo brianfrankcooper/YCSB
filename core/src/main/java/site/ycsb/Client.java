@@ -311,19 +311,6 @@ public final class Client {
     final List<ClientThread> clients = initDb(dbname, props, threadcount, targetperthreadperms,
         workload, tracer, completeLatch);
 
-    if (status) {
-      boolean standardstatus = false;
-      if (props.getProperty(Measurements.MEASUREMENT_TYPE_PROPERTY, "").compareTo("timeseries") == 0) {
-        standardstatus = true;
-      }
-      int statusIntervalSeconds = Integer.parseInt(props.getProperty("status.interval", "10"));
-      boolean trackJVMStats = props.getProperty(Measurements.MEASUREMENT_TRACK_JVM_PROPERTY,
-          Measurements.MEASUREMENT_TRACK_JVM_PROPERTY_DEFAULT).equals("true");
-      statusthread = new StatusThread(completeLatch, clients, label, standardstatus, statusIntervalSeconds,
-          trackJVMStats);
-      statusthread.start();
-    }
-
     Thread terminator = null;
     long st;
     long en;
@@ -336,8 +323,6 @@ public final class Client {
         threads.put(new Thread(tracer.wrap(client, "ClientThread")), client);
       }
 
-      st = System.currentTimeMillis();
-
       for (Thread t : threads.keySet()) {
         t.start();
       }
@@ -347,7 +332,22 @@ public final class Client {
         terminator.start();
       }
 
+
+      if (status) {
+        boolean standardstatus = false;
+        if (props.getProperty(Measurements.MEASUREMENT_TYPE_PROPERTY, "").compareTo("timeseries") == 0) {
+          standardstatus = true;
+        }
+        int statusIntervalSeconds = Integer.parseInt(props.getProperty("status.interval", "10"));
+        boolean trackJVMStats = props.getProperty(Measurements.MEASUREMENT_TRACK_JVM_PROPERTY,
+            Measurements.MEASUREMENT_TRACK_JVM_PROPERTY_DEFAULT).equals("true");
+        statusthread = new StatusThread(completeLatch, clients, label, standardstatus, statusIntervalSeconds,
+            trackJVMStats);
+        statusthread.start();
+      }
+
       opsDone = 0;
+      st = System.currentTimeMillis();
 
       for (Map.Entry<Thread, ClientThread> entry : threads.entrySet()) {
         try {

@@ -18,6 +18,7 @@
  */
 package site.ycsb.postgrenosql;
 
+import org.javatuples.Pair;
 import site.ycsb.*;
 import org.json.simple.JSONObject;
 import org.postgresql.Driver;
@@ -405,5 +406,23 @@ public class PostgreNoSQLDBClient extends DB {
     delete.append(PRIMARY_KEY);
     delete.append(" = ?");
     return delete.toString();
+  }
+
+  @Override
+  /**
+   * Full text search a record from the database.
+   *
+   * @param table The name of the table
+   * @param queryPair   The search query pair of words.
+   * @param pagePair   The paginated pair info.
+   * @param pagePair   The return fields for the search query.
+   * @hashMaps values A HashMap of field/value pairs of the search result
+   * @return Status.NOT_IMPLEMENTED or the search results
+   * in case the operation is supported.
+   */
+  public Status search(String table, Pair<String, String> queryPair, boolean onlyinsale,
+       Pair<Integer, Integer> pagePair,
+       HashSet<String> fields, Vector<HashMap<String, ByteIterator>> hashMaps) {
+    return Status.NOT_IMPLEMENTED;
   }
 }

@@ -78,6 +78,11 @@ LICENSE file.
       <artifactId>slf4j-api</artifactId>
       <version>1.7.13</version>
     </dependency>
+      <dependency>
+          <groupId>org.javatuples</groupId>
+          <artifactId>javatuples</artifactId>
+          <version>1.2</version>
+      </dependency>
   </dependencies>
   <build>
     <testResources>

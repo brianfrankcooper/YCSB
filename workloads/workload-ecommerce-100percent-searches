@@ -1,0 +1,52 @@
+# Copyright (c) 2010 Yahoo! Inc. All rights reserved.                                                                                                                             
+#                                                                                                                                                                                 
+# Licensed under the Apache License, Version 2.0 (the "License"); you                                                                                                             
+# may not use this file except in compliance with the License. You                                                                                                                
+# may obtain a copy of the License at                                                                                                                                             
+#                                                                                                                                                                                 
+# http://www.apache.org/licenses/LICENSE-2.0                                                                                                                                      
+#                                                                                                                                                                                 
+# Unless required by applicable law or agreed to in writing, software                                                                                                             
+# distributed under the License is distributed on an "AS IS" BASIS,                                                                                                               
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or                                                                                                                 
+# implied. See the License for the specific language governing                                                                                                                    
+# permissions and limitations under the License. See accompanying                                                                                                                 
+# LICENSE file.                                                                                                                                                                   
+
+# Yahoo! Cloud System Benchmark
+# Workload Ecommerce: Search and Read heavy workload
+#   Application example: Ecommerce website with:
+#                        - PDP: Product display pages being associated with read queries.
+#                        - PLP: Product listing pages being associated with search queries.
+#                        - Backoffice: Product updates and product inserts being showcase by update/insert queries.
+#
+#                        
+#   Read/Update/Search/Insert ratio: 15/0/85/0
+#   Default data size: 500 B records, plus key
+#   Request distribution: zipfian
+
+# The UCI online retail file contains product names retrieved from the open
+# benchmark https://archive.ics.uci.edu/ml/datasets/Online+Retail+II
+dictfile=./bin/uci_online_retail.csv
+recordcount=1000
+operationcount=1000
+workload=site.ycsb.workloads.CommerceWorkload
+
+nonindexedfields=code,image,price,currencyCode,stockCount,creator,shipsFrom,brand,department,productDescription,inSale,inStock,color,material
+indexedfields=productName
+
+searchfields=productName
+searchfieldsproportion=1.0
+searchlengthdistribution=zipfian
+maxsearchlength=20
+minsearchlength=3
+
+readproportion=0.0
+searchproportion=1.0
+updateproportion=0.0
+insertproportion=0.0
+scanproportion=0
+readmodifywriteproportion=0
+
+requestdistribution=zipfian
+

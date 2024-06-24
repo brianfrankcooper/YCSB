@@ -21,6 +21,8 @@ import com.stumbleupon.async.TimeoutException;
 import site.ycsb.ByteIterator;
 import site.ycsb.DBException;
 import site.ycsb.Status;
+import org.javatuples.Pair;
+
 import site.ycsb.StringByteIterator;
 import site.ycsb.workloads.CoreWorkload;
 import org.slf4j.Logger;
@@ -30,13 +32,7 @@ import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.client.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 import static site.ycsb.Client.DEFAULT_RECORD_COUNT;
 import static site.ycsb.Client.RECORD_COUNT_PROPERTY;
@@ -416,5 +412,23 @@ public class KuduYCSBClient extends site.ycsb.DB {
     } catch (KuduException ex) {
       LOG.warn("Write operation failed", ex);
     }
+  }
+
+  @Override
+  /**
+   * Full text search a record from the database.
+   *
+   * @param table The name of the table
+   * @param queryPair   The search query pair of words.
+   * @param pagePair   The paginated pair info.
+   * @param pagePair   The return fields for the search query.
+   * @hashMaps values A HashMap of field/value pairs of the search result
+   * @return Status.NOT_IMPLEMENTED or the search results
+   * in case the operation is supported.
+   */
+  public Status search(String table, Pair<String, String> queryPair, boolean onlyinsale,
+       Pair<Integer, Integer> pagePair,
+       HashSet<String> fields, Vector<HashMap<String, ByteIterator>> hashMaps) {
+    return Status.NOT_IMPLEMENTED;
   }
 }
