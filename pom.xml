@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-Copyright (c) 2012 - 2020 YCSB contributors. All rights reserved.
+Copyright (c) 2012 - 2023 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -138,7 +138,7 @@ LICENSE file.
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
     <orientdb.version>2.2.37</orientdb.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <redis.version>2.9.0</redis.version>
+    <jedis.version>4.4.5</jedis.version>
     <riak.version>2.0.5</riak.version>
     <rocksdb.version>6.2.2</rocksdb.version>
     <s3.version>1.10.20</s3.version>
