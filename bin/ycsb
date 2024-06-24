@@ -211,11 +211,10 @@ def is_distribution():
 def get_classpath_from_maven(module):
     try:
         debug("Running 'mvn -pl site.ycsb:" + module + " -am package -DskipTests "
-              "dependency:build-classpath -DincludeScope=compile -Dmdep.outputFilterFile=true'")
+              "dependency:build-classpath -Dmdep.outputFilterFile=true'")
         mvn_output = check_output(["mvn", "-pl", "site.ycsb:" + module,
                                    "-am", "package", "-DskipTests",
                                    "dependency:build-classpath",
-                                   "-DincludeScope=compile",
                                    "-Dmdep.outputFilterFile=true"])
         # the above outputs a "classpath=/path/tojar:/path/to/other/jar" for each module
         # the last module will be the datastore binding
