@@ -13,7 +13,7 @@
   "storage": {
     "profiles": [
       {
-        "name": "default",
+        "name": "aimem",
         "engine": "aimem"
       }
     ]

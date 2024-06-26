@@ -10,7 +10,7 @@
   "storage": {
     "profiles": [
       {
-        "name": "default",
+        "name": "rocksdb",
         "engine": "rocksdb"
       }
     ]
