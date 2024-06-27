@@ -139,8 +139,15 @@ public class IgniteStreamerClient extends IgniteAbstractClient {
 
           rvStreamerFut.join();
 
-          node.close();
-          node = null;
+          if (igniteClient != null) {
+            igniteClient.close();
+          }
+
+          if (igniteServer != null) {
+            igniteServer.shutdown();
+          }
+
+          ignite = null;
         } catch (Exception e) {
           throw new DBException(e);
         }

@@ -76,7 +76,7 @@ public class IgniteJdbcClient extends AbstractSqlClient {
     super.init();
 
     String hostsStr = useEmbeddedIgnite ?
-        node.clusterNodes().stream()
+        ignite.clusterNodes().stream()
             .map(clusterNode -> clusterNode.address().host())
             .collect(Collectors.joining(",")) :
         hosts;

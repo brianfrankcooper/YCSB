@@ -35,12 +35,12 @@ public class IgniteSqlClient extends AbstractSqlClient {
 
   /** Build statement for reading values. */
   private static Statement buildReadStatement() {
-    return node.sql().createStatement(readPreparedStatementString);
+    return ignite.sql().createStatement(readPreparedStatementString);
   }
 
   /** Build statement for inserting values. */
   private static Statement buildInsertStatement() {
-    return node.sql().createStatement(insertPreparedStatementString);
+    return ignite.sql().createStatement(insertPreparedStatementString);
   }
 
   /** {@inheritDoc} */
@@ -55,7 +55,7 @@ public class IgniteSqlClient extends AbstractSqlClient {
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try {
-      try (ResultSet<SqlRow> rs = node.sql().execute(null, READ_STATEMENT.get(), key)) {
+      try (ResultSet<SqlRow> rs = ignite.sql().execute(null, READ_STATEMENT.get(), key)) {
         if (!rs.hasNext()) {
           return Status.NOT_FOUND;
         }
@@ -106,7 +106,7 @@ public class IgniteSqlClient extends AbstractSqlClient {
       List<String> valuesList = new ArrayList<>();
       valuesList.add(key);
       FIELDS.forEach(fieldName -> valuesList.add(String.valueOf(values.get(fieldName))));
-      node.sql().execute(null, INSERT_STATEMENT.get(), (Object[]) valuesList.toArray(new String[0])).close();
+      ignite.sql().execute(null, INSERT_STATEMENT.get(), (Object[]) valuesList.toArray(new String[0])).close();
 
       return Status.OK;
     } catch (Exception e) {
@@ -128,7 +128,7 @@ public class IgniteSqlClient extends AbstractSqlClient {
         LOG.info(deleteStatement);
       }
 
-      node.sql().execute(null, deleteStatement).close();
+      ignite.sql().execute(null, deleteStatement).close();
 
       return Status.OK;
     } catch (Exception e) {

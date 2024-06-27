@@ -25,19 +25,17 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.Vector;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.ignite.Ignite;
-import org.apache.ignite.IgnitionManager;
+import org.apache.ignite.IgniteServer;
 import org.apache.ignite.InitParameters;
 import org.apache.ignite.client.IgniteClient;
 import org.apache.ignite.sql.ResultSet;
@@ -84,7 +82,11 @@ public abstract class IgniteAbstractClient extends DB {
   /**
    * Single Ignite thin client per process.
    */
-  protected static Ignite node;
+  protected static Ignite ignite;
+
+  protected static IgniteClient igniteClient;
+
+  protected static IgniteServer igniteServer;
 
   protected static String hosts;
 
@@ -146,7 +148,7 @@ public abstract class IgniteAbstractClient extends DB {
     INIT_COUNT.incrementAndGet();
 
     synchronized (IgniteAbstractClient.class) {
-      if (node != null) {
+      if (ignite != null) {
         return;
       }
 
@@ -203,10 +205,11 @@ public abstract class IgniteAbstractClient extends DB {
   }
 
   private void initIgniteClientNode() throws DBException {
-    node = IgniteClient.builder().addresses(hosts.split(",")).build();
-    createTestTable(node);
-    kvView = node.tables().table(cacheName).keyValueView();
-    rView = node.tables().table(cacheName).recordView();
+    igniteClient = IgniteClient.builder().addresses(hosts.split(",")).build();
+    ignite = igniteClient;
+    createTestTable(ignite);
+    kvView = ignite.tables().table(cacheName).keyValueView();
+    rView = ignite.tables().table(cacheName).recordView();
 
     if (kvView == null) {
       throw new DBException("Failed to find cache: " + cacheName);
@@ -214,18 +217,19 @@ public abstract class IgniteAbstractClient extends DB {
   }
 
   private void initEmbeddedServerNode() throws DBException {
-    node = startIgniteNode();
-    createTestTable(node);
-    kvView = node.tables().table(cacheName).keyValueView();
-    rView = node.tables().table(cacheName).recordView();
+    igniteServer = startEmbeddedNode();
+    ignite = igniteServer.api();
+    createTestTable(ignite);
+    kvView = ignite.tables().table(cacheName).keyValueView();
+    rView = ignite.tables().table(cacheName).recordView();
 
     if (kvView == null) {
       throw new DBException("Failed to find cache: " + cacheName);
     }
   }
 
-  private static Ignite startIgniteNode() throws DBException {
-    Ignite ignite;
+  private static IgniteServer startEmbeddedNode() throws DBException {
+    IgniteServer embeddedIgnite;
     String clusterName = "myCluster";
     String nodeName = "defaultNode";
 
@@ -242,21 +246,19 @@ public abstract class IgniteAbstractClient extends DB {
       }
 
       LOG.info("Starting Ignite node {} in {} with config {}", nodeName, embeddedIgniteWorkDir, cfgPath);
-      CompletableFuture<Ignite> fut = IgnitionManager.start(nodeName, cfgPath, embeddedIgniteWorkDir);
+      embeddedIgnite = IgniteServer.start(nodeName, cfgPath, embeddedIgniteWorkDir);
 
       InitParameters initParameters = InitParameters.builder()
-          .destinationNodeName(nodeName)
-          .metaStorageNodeNames(Collections.singletonList(nodeName))
+          .metaStorageNodeNames(nodeName)
           .clusterName(clusterName)
           .build();
-      IgnitionManager.init(initParameters);
 
-      ignite = fut.join();
+      embeddedIgnite.initCluster(initParameters);
     } catch (Exception e) {
       throw new DBException("Failed to start an embedded Ignite node", e);
     }
 
-    return ignite;
+    return embeddedIgnite;
   }
 
   private void createTestTable(Ignite node0) throws DBException {
@@ -282,7 +284,7 @@ public abstract class IgniteAbstractClient extends DB {
 
       node0.sql().execute(null, createTableReq).close();
 
-      boolean cachePresent = waitForCondition(() -> node.tables().table(cacheName) != null,
+      boolean cachePresent = waitForCondition(() -> ignite.tables().table(cacheName) != null,
           TABLE_CREATION_TIMEOUT_SECONDS * 1_000L);
 
       if (!cachePresent) {
@@ -380,11 +382,18 @@ public abstract class IgniteAbstractClient extends DB {
       if (curInitCount <= 0) {
         try {
           if (debug) {
-            LOG.info("Records in table {}: {}", cacheName, entriesInTable(node, cacheName));
+            LOG.info("Records in table {}: {}", cacheName, entriesInTable(ignite, cacheName));
           }
 
-          node.close();
-          node = null;
+          if (igniteClient != null) {
+            igniteClient.close();
+          }
+
+          if (igniteServer != null) {
+            igniteServer.shutdown();
+          }
+
+          ignite = null;
         } catch (Exception e) {
           throw new DBException(e);
         }
