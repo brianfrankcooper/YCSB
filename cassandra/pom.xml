@@ -92,12 +92,12 @@ LICENSE file.
       </properties>
     </profile>
   </profiles>
-  <!-- sigar-dist can be downloaded from jboss repository -->
+  <!-- sigar-dist can be downloaded from redhat repository -->
 	<repositories>
 		<repository>
 			<id>central2</id>
 			<name>sigar Repository</name>
-			<url>https://repository.jboss.org/nexus/content/groups/public-jboss/</url>
+			<url>https://maven.repository.redhat.com/ga/</url>
 			<layout>default</layout>
 			<snapshots>
 				<enabled>false</enabled>
