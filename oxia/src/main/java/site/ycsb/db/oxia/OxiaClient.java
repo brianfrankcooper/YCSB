@@ -126,13 +126,13 @@ public final class OxiaClient extends DB {
     final ByteBuf b = ByteBufAllocator.DEFAULT.heapBuffer();
     try {
       structurePayload.forEach((field, value) -> {
-        final byte[] v = value.toArray();
-        final byte[] f = field.getBytes(StandardCharsets.UTF_8);
-        b.writeInt(f.length);
-        b.writeBytes(f);
-        b.writeInt(v.length);
-        b.writeBytes(v);
-      });
+          final byte[] v = value.toArray();
+          final byte[] f = field.getBytes(StandardCharsets.UTF_8);
+          b.writeInt(f.length);
+          b.writeBytes(f);
+          b.writeInt(v.length);
+          b.writeBytes(v);
+        });
       final byte[] payload = new byte[b.readableBytes()];
       b.readBytes(payload);
       return payload;
