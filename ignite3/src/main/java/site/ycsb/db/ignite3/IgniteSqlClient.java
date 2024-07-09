@@ -137,28 +137,4 @@ public class IgniteSqlClient extends AbstractSqlClient {
 
     return Status.ERROR;
   }
-
-  /** {@inheritDoc} */
-  @Override
-  public void cleanup() throws DBException {
-    synchronized (IgniteSqlClient.class) {
-      int currInitCount = SQL_INIT_COUNT.decrementAndGet();
-
-      if (currInitCount <= 0) {
-        try {
-          if (READ_STATEMENT.get() != null) {
-            READ_STATEMENT.get().close();
-          }
-
-          if (INSERT_STATEMENT.get() != null) {
-            INSERT_STATEMENT.get().close();
-          }
-        } catch (Exception e) {
-          throw new DBException(e);
-        }
-      }
-    }
-
-    super.cleanup();
-  }
 }
