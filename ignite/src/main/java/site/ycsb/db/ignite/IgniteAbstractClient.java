@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -73,10 +74,17 @@ public abstract class IgniteAbstractClient extends DB {
    * {@link #cleanup()}.
    */
   protected static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
+
+  private static volatile boolean initCompleted = false;
+
+  private static volatile boolean externalIgnite = false;
+
   /** Ignite cluster. */
-  protected static Ignite cluster = null;
+  protected static Ignite ignite = null;
+
   /** Ignite cache to store key-values. */
   protected static IgniteCache<String, BinaryObject> cache = null;
+
   /** Debug flag. */
   protected static boolean debug = false;
 
@@ -99,6 +107,16 @@ public abstract class IgniteAbstractClient extends DB {
   protected static String accessMethod = "kv";
 
   /**
+   * Set Ignite instance to work with.
+   *
+   * @param igniteSrv Ignite instance.
+   */
+  public static void setIgniteServer(Ignite igniteSrv) {
+    ignite = igniteSrv;
+    externalIgnite = true;
+  }
+
+  /**
    * Initialize any state for this DB. Called once per DB instance; there is one
    * DB instance per client thread.
    */
@@ -112,45 +130,78 @@ public abstract class IgniteAbstractClient extends DB {
     // cluster/session instance for all the threads.
     synchronized (INIT_COUNT) {
 
-      // Check if the cluster has already been initialized
-      if (cluster != null) {
+      if (initCompleted) {
         return;
       }
 
+      initProperties(getProperties());
+
+      initIgnite();
+
+      initTestCache();
+    }
+  }
+
+  /**
+   * Init property values.
+   *
+   * @param properties Properties.
+   */
+  private void initProperties(Properties properties) throws DBException {
+    try {
+      debug = Boolean.parseBoolean(properties.getProperty("debug", "false"));
+      useEmbeddedIgnite = Boolean.parseBoolean(properties.getProperty("useEmbedded", "false"));
+      cacheName = properties.getProperty(CoreWorkload.TABLENAME_PROPERTY,
+          CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
+      fieldCount = Integer.parseInt(properties.getProperty(
+          CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
+      fieldPrefix = properties.getProperty(CoreWorkload.FIELD_NAME_PREFIX,
+          CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
+
+      for (int i = 0; i < fieldCount; i++) {
+        FIELDS.add(fieldPrefix + i);
+      }
+    } catch (Exception e) {
+      throw new DBException(e);
+    }
+  }
+
+  /**
+   * - Start embedded Ignite node (if needed).
+   * - Get Ignite client (if needed).
+   * - Activate cluster.
+   */
+  private void initIgnite() throws DBException {
+    if (ignite == null) {
       try {
-        debug = Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
-        useEmbeddedIgnite = Boolean.parseBoolean(getProperties().getProperty("useEmbedded", "false"));
-        cacheName = getProperties().getProperty(CoreWorkload.TABLENAME_PROPERTY,
-            CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
-        fieldCount = Integer.parseInt(getProperties().getProperty(
-            CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
-        fieldPrefix = getProperties().getProperty(CoreWorkload.FIELD_NAME_PREFIX,
-            CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
-
-        for (int i = 0; i < fieldCount; i++) {
-          FIELDS.add(fieldPrefix + i);
-        }
-
         if (useEmbeddedIgnite) {
-          cluster = getEmbeddedServerNode();
+          ignite = getEmbeddedServerNode();
         } else {
-          cluster = getIgniteClientNode();
-        }
-
-        log.info("Activate Ignite cluster.");
-        cluster.cluster().state(ClusterState.ACTIVE);
-
-        cache = cluster.cache(cacheName).withKeepBinary();
-
-        if (cache == null) {
-          throw new DBException(new IgniteCheckedException("Failed to find cache " + cacheName));
+          ignite = getIgniteClientNode();
         }
       } catch (Exception e) {
         throw new DBException(e);
       }
-    } // synchronized
+    }
+
+    log.info("Activate Ignite cluster.");
+    ignite.cluster().state(ClusterState.ACTIVE);
   }
 
+  /**
+   * Init test cache.
+   */
+  private void initTestCache() throws DBException {
+    cache = ignite.cache(cacheName).withKeepBinary();
+
+    if (cache == null) {
+      throw new DBException(new IgniteCheckedException("Failed to find cache " + cacheName));
+    }
+  }
+
+  /**
+   * Start Ignite thick client.
+   */
   private Ignite getIgniteClientNode() throws DBException, IgniteCheckedException {
     IgniteConfiguration igcfg = new IgniteConfiguration();
     igcfg.setIgniteInstanceName(CLIENT_NODE_NAME);
@@ -182,6 +233,9 @@ public abstract class IgniteAbstractClient extends DB {
     return Ignition.start(igcfg);
   }
 
+  /**
+   * Start embedded Ignite node.
+   */
   private Ignite getEmbeddedServerNode() throws IOException {
     if (!ACCESS_METHODS.contains(accessMethod.toLowerCase())) {
       throw new RuntimeException("Wrong value for parameter 'accessMethod'. "
@@ -212,9 +266,9 @@ public abstract class IgniteAbstractClient extends DB {
     synchronized (INIT_COUNT) {
       final int curInitCount = INIT_COUNT.decrementAndGet();
 
-      if (curInitCount <= 0) {
-        cluster.close();
-        cluster = null;
+      if (curInitCount <= 0 && !externalIgnite) {
+        ignite.close();
+        ignite = null;
       }
 
       if (curInitCount < 0) {
@@ -225,6 +279,7 @@ public abstract class IgniteAbstractClient extends DB {
     }
   }
 
+  /** {@inheritDoc} */
   @Override
   public Status scan(String table, String startkey, int recordcount,
                      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {

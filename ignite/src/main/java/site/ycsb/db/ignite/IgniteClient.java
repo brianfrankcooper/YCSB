@@ -176,7 +176,7 @@ public class IgniteClient extends IgniteAbstractClient {
    * @return Binary object.
    */
   private BinaryObject convert(Map<String, ByteIterator> values) {
-    BinaryObjectBuilder bob = cluster.binary().builder("CustomType");
+    BinaryObjectBuilder bob = ignite.binary().builder("CustomType");
 
     for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
       bob.setField(entry.getKey(), entry.getValue().toString());

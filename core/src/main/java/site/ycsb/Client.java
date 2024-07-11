@@ -294,6 +294,13 @@ public final class Client {
   public static void main(String[] args) {
     Properties props = parseArguments(args);
 
+    run(props);
+
+    System.exit(0);
+  }
+
+  @SuppressWarnings("unchecked")
+  public static void run(Properties props) {
     boolean status = Boolean.valueOf(props.getProperty(STATUS_PROPERTY, String.valueOf(false)));
     String label = props.getProperty(LABEL_PROPERTY, "");
 
@@ -414,8 +421,6 @@ public final class Client {
       e.printStackTrace();
       System.exit(-1);
     }
-
-    System.exit(0);
   }
 
   private static List<ClientThread> initDb(String dbname, Properties props, int threadcount,

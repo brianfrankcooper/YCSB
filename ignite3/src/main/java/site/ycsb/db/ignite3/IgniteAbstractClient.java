@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -80,7 +81,7 @@ public abstract class IgniteAbstractClient extends DB {
   protected static final long TABLE_CREATION_TIMEOUT_SECONDS = 10L;
 
   /**
-   * Single Ignite thin client per process.
+   * Single Ignite client per process.
    */
   protected static Ignite ignite;
 
@@ -92,13 +93,17 @@ public abstract class IgniteAbstractClient extends DB {
 
   protected static KeyValueView<Tuple, Tuple> kvView;
 
-  protected RecordView<Tuple> rView;
+  protected static RecordView<Tuple> rView;
 
   /**
    * Count the number of times initialized to teardown on the last
    * {@link #cleanup()}.
    */
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
+
+  private static volatile boolean initCompleted = false;
+
+  private static volatile boolean externalIgnite = false;
 
   /**
    * Used to print more information into logs for debugging purposes.
@@ -140,94 +145,109 @@ public abstract class IgniteAbstractClient extends DB {
   protected static String partitions;
 
   /**
-   * Initialize any state for this DB. Called once per DB instance; there is one
-   * DB instance per client thread.
+   * Set IgniteServer instance to work with.
+   *
+   * @param igniteSrv Ignite.
    */
+  public static void setIgniteServer(IgniteServer igniteSrv) {
+    igniteServer = igniteSrv;
+    ignite = igniteServer.api();
+    externalIgnite = true;
+  }
+
+  /** {@inheritDoc} */
   @Override
   public void init() throws DBException {
     INIT_COUNT.incrementAndGet();
 
     synchronized (IgniteAbstractClient.class) {
-      if (ignite != null) {
+      if (initCompleted) {
         return;
       }
 
-      try {
-        debug = IgniteParam.DEBUG.getValue(getProperties());
-        useEmbeddedIgnite = IgniteParam.USE_EMBEDDED.getValue(getProperties());
-        disableFsync = IgniteParam.DISABLE_FSYNC.getValue(getProperties());
-        dbEngine = IgniteParam.DB_ENGINE.getValue(getProperties());
-        storageProfile = IgniteParam.STORAGE_PROFILES.getValue(getProperties()).toLowerCase();
+      initProperties(getProperties());
 
-        // backward compatibility of setting 'dbEngine' as storage engine name only.
-        if (storageProfile.isEmpty() && !dbEngine.isEmpty()) {
-          storageProfile = dbEngine.toLowerCase();
-        }
+      initIgnite(useEmbeddedIgnite);
 
-        replicas = IgniteParam.REPLICAS.getValue(getProperties());
-        partitions = IgniteParam.PARTITIONS.getValue(getProperties());
+      createTestTable(ignite);
 
-        String workDirProperty = IgniteParam.WORK_DIR.getValue(getProperties());
-        embeddedIgniteWorkDir = Paths.get(workDirProperty);
+      initCompleted = true;
+    }
+  }
 
-        cacheName = getProperties().getProperty(CoreWorkload.TABLENAME_PROPERTY,
-            CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
-        fieldCount = Integer.parseInt(getProperties().getProperty(
-            CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
-        fieldPrefix = getProperties().getProperty(CoreWorkload.FIELD_NAME_PREFIX,
-            CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
-        recordsCount = parseLongWithModifiers(getProperties().getProperty(Client.RECORD_COUNT_PROPERTY,
-            Client.DEFAULT_RECORD_COUNT));
-        batchSize = parseLongWithModifiers(getProperties().getProperty(Client.BATCH_SIZE_PROPERTY,
-            Client.DEFAULT_BATCH_SIZE));
+  /**
+   * Init property values.
+   *
+   * @param properties Properties.
+   */
+  private void initProperties(Properties properties) throws DBException {
+    try {
+      debug = IgniteParam.DEBUG.getValue(properties);
+      useEmbeddedIgnite = IgniteParam.USE_EMBEDDED.getValue(properties);
+      disableFsync = IgniteParam.DISABLE_FSYNC.getValue(properties);
+      dbEngine = IgniteParam.DB_ENGINE.getValue(properties);
+      storageProfile = IgniteParam.STORAGE_PROFILES.getValue(properties).toLowerCase();
 
-        for (int i = 0; i < fieldCount; i++) {
-          FIELDS.add(fieldPrefix + i);
-        }
+      // backward compatibility of setting 'dbEngine' as storage engine name only.
+      if (storageProfile.isEmpty() && !dbEngine.isEmpty()) {
+        storageProfile = dbEngine.toLowerCase();
+      }
 
-        hosts = getProperties().getProperty(HOSTS_PROPERTY);
+      replicas = IgniteParam.REPLICAS.getValue(properties);
+      partitions = IgniteParam.PARTITIONS.getValue(properties);
 
-        if (!useEmbeddedIgnite && hosts == null) {
-          throw new DBException(String.format(
-              "Required property \"%s\" missing for Ignite Cluster",
-              HOSTS_PROPERTY));
-        }
+      String workDirProperty = IgniteParam.WORK_DIR.getValue(properties);
+      embeddedIgniteWorkDir = Paths.get(workDirProperty);
 
-        if (useEmbeddedIgnite) {
-          initEmbeddedServerNode();
-        } else {
-          initIgniteClientNode();
-        }
-      } catch (Exception e) {
-        throw new DBException(e);
+      cacheName = properties.getProperty(CoreWorkload.TABLENAME_PROPERTY,
+          CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
+      fieldCount = Integer.parseInt(properties.getProperty(
+          CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
+      fieldPrefix = properties.getProperty(CoreWorkload.FIELD_NAME_PREFIX,
+          CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
+      recordsCount = parseLongWithModifiers(properties.getProperty(Client.RECORD_COUNT_PROPERTY,
+          Client.DEFAULT_RECORD_COUNT));
+      batchSize = parseLongWithModifiers(properties.getProperty(Client.BATCH_SIZE_PROPERTY,
+          Client.DEFAULT_BATCH_SIZE));
+
+      for (int i = 0; i < fieldCount; i++) {
+        FIELDS.add(fieldPrefix + i);
+      }
+
+      hosts = properties.getProperty(HOSTS_PROPERTY);
+
+      if (ignite == null && !useEmbeddedIgnite && hosts == null) {
+        throw new DBException(String.format(
+            "Required property \"%s\" is missing for Ignite Cluster",
+            HOSTS_PROPERTY));
+      }
+    } catch (Exception e) {
+      throw new DBException(e);
+    }
+  }
+
+  /**
+   * - Start embedded Ignite node (if needed).
+   * - Get Ignite client (if needed).
+   *
+   * @param isEmbedded Whether to start embedded node.
+   */
+  private void initIgnite(boolean isEmbedded) throws DBException {
+    //skip if 'ignite' was set with 'setIgniteServer'
+    if (ignite == null) {
+      if (isEmbedded) {
+        igniteServer = startEmbeddedNode();
+        ignite = igniteServer.api();
+      } else {
+        igniteClient = IgniteClient.builder().addresses(hosts.split(",")).build();
+        ignite = igniteClient;
       }
     }
   }
 
-  private void initIgniteClientNode() throws DBException {
-    igniteClient = IgniteClient.builder().addresses(hosts.split(",")).build();
-    ignite = igniteClient;
-    createTestTable(ignite);
-    kvView = ignite.tables().table(cacheName).keyValueView();
-    rView = ignite.tables().table(cacheName).recordView();
-
-    if (kvView == null) {
-      throw new DBException("Failed to find cache: " + cacheName);
-    }
-  }
-
-  private void initEmbeddedServerNode() throws DBException {
-    igniteServer = startEmbeddedNode();
-    ignite = igniteServer.api();
-    createTestTable(ignite);
-    kvView = ignite.tables().table(cacheName).keyValueView();
-    rView = ignite.tables().table(cacheName).recordView();
-
-    if (kvView == null) {
-      throw new DBException("Failed to find cache: " + cacheName);
-    }
-  }
-
+  /**
+   * Start embedded Ignite node.
+   */
   private static IgniteServer startEmbeddedNode() throws DBException {
     IgniteServer embeddedIgnite;
     String clusterName = "myCluster";
@@ -261,6 +281,11 @@ public abstract class IgniteAbstractClient extends DB {
     return embeddedIgnite;
   }
 
+  /**
+   * Create test table.
+   *
+   * @param node0 Ignite node.
+   */
   private void createTestTable(Ignite node0) throws DBException {
     try {
       String fieldsSpecs = FIELDS.stream()
@@ -290,11 +315,17 @@ public abstract class IgniteAbstractClient extends DB {
       if (!cachePresent) {
         throw new DBException("Table wasn't created in " + TABLE_CREATION_TIMEOUT_SECONDS + " seconds.");
       }
+
+      kvView = ignite.tables().table(cacheName).keyValueView();
+      rView = ignite.tables().table(cacheName).recordView();
     } catch (Exception e) {
       throw new DBException(e);
     }
   }
 
+  /**
+   * Prepare the creation zone SQL line.
+   */
   private String createZoneSQL() {
     if (storageProfile.isEmpty() && replicas.isEmpty() && partitions.isEmpty()) {
       return "";
@@ -316,6 +347,12 @@ public abstract class IgniteAbstractClient extends DB {
     return createZoneReq;
   }
 
+  /**
+   * Get table entries amount.
+   *
+   * @param ignite0 Ignite node.
+   * @param tableName Table name.
+   */
   private static long entriesInTable(Ignite ignite0, String tableName) throws DBException {
     long entries = 0L;
 
@@ -370,10 +407,7 @@ public abstract class IgniteAbstractClient extends DB {
     return false;
   }
 
-  /**
-   * Cleanup any state for this DB. Called once per DB instance; there is one DB
-   * instance per client thread.
-   */
+  /** {@inheritDoc} */
   @Override
   public void cleanup() throws DBException {
     synchronized (IgniteAbstractClient.class) {
@@ -389,7 +423,7 @@ public abstract class IgniteAbstractClient extends DB {
             igniteClient.close();
           }
 
-          if (igniteServer != null) {
+          if (igniteServer != null && !externalIgnite) {
             igniteServer.shutdown();
           }
 
@@ -401,6 +435,7 @@ public abstract class IgniteAbstractClient extends DB {
     }
   }
 
+  /** {@inheritDoc} */
   @Override
   public Status scan(String table, String startkey, int recordcount,
                      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {

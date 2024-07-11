@@ -72,7 +72,7 @@ public class IgniteJdbcClient extends IgniteAbstractClient {
 
     if (useEmbeddedIgnite) {
       Set<String> addrs = new HashSet<>();
-      cluster.cluster().nodes().forEach(clusterNode -> addrs.addAll(clusterNode.addresses()));
+      ignite.cluster().nodes().forEach(clusterNode -> addrs.addAll(clusterNode.addresses()));
       hostsStr = String.join(",", addrs);
     } else {
       hostsStr = hosts;
