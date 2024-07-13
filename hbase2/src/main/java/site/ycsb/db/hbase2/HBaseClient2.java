@@ -98,6 +98,9 @@ public class HBaseClient2 extends site.ycsb.DB {
   /** Whether or not a page filter should be used to limit scan length. */
   private boolean usePageFilter = true;
 
+  /** If scans should be reversed. */
+  private boolean reverseScans = false;
+
   /**
    * If true, buffer mutations on the client. This is the default behavior for
    * HBaseClient. For measuring insert/update/delete latencies, client side
@@ -183,6 +186,8 @@ public class HBaseClient2 extends site.ycsb.DB {
 
     usePageFilter = isBooleanParamSet("hbase.usepagefilter", usePageFilter);
 
+    reverseScans = Boolean.parseBoolean(
+        getProperties().getProperty("hbase.reversescans", "false"));
 
     if (isBooleanParamSet("hbase.usescanvaluefiltering", false)) {
       useScanValueFiltering=true;
@@ -361,6 +366,8 @@ public class HBaseClient2 extends site.ycsb.DB {
     if (this.usePageFilter) {
       filterList.addFilter(new PageFilter(recordcount));
     }
+
+    s.setReversed(reverseScans);
 
     // add specified fields or else all fields
     if (fields == null) {
