@@ -164,6 +164,7 @@ LICENSE file.
     <module>asynchbase</module>
     <module>azurecosmos</module>
     <module>azuretablestorage</module>
+    <module>basictcp</module>
     <module>cassandra</module>
     <module>cloudspanner</module>
     <module>couchbase</module>
