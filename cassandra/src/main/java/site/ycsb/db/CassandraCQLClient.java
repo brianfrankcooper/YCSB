@@ -32,6 +32,8 @@ import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 import com.datastax.driver.core.querybuilder.Update;
+import com.datastax.driver.core.ExexcutionInfo;
+import com.datastax.driver.core.QueryTrace;
 import site.ycsb.ByteArrayByteIterator;
 import site.ycsb.ByteIterator;
 import site.ycsb.DB;
@@ -39,11 +41,7 @@ import site.ycsb.DBException;
 import site.ycsb.Status;
 
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -122,7 +120,7 @@ public class CassandraCQLClient extends DB {
    * {@link #cleanup()}.
    */
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
-
+  private static final AtomicInteger TRACE_COUNT = new AtomicInteger(0);
   private static boolean debug = false;
 
   private static boolean trace = false;
@@ -420,6 +418,29 @@ public class CassandraCQLClient extends DB {
       logger.debug("startKey = {}, recordcount = {}", startkey, recordcount);
 
       ResultSet rs = session.execute(stmt.bind(startkey, Integer.valueOf(recordcount)));
+      if (trace) {
+        final int count = TRACE_COUNT.getAndIncrement();
+        if (count % 5 == 0) {
+          final ExecutionInfo executionInfo = rs.getExecutionInfo();
+          final UUID tracingId = executionInfo.getTracingId();
+          final QueryTrace qtrace = executionInfo.getQueryTrace();
+          System.out.printf(
+              "[%s] '%s' to %s took %dμs%n",
+              tracingId,
+              qtrace.getRequestType(),
+              qtrace.getCoordinator(),
+              qtrace.getDurationMicros()
+          );
+          for (final TraceEvent event : qtrace.getEvents()) {
+            System.out.printf(
+                "  %d - %s - %s%n",
+                event.getSourceElapsedMicros(),
+                event.getSource(),
+                event.getActivity()
+            );
+          }
+        }
+      }
 
       HashMap<String, ByteIterator> tuple;
       while (!rs.isExhausted()) {
