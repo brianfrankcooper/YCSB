@@ -88,7 +88,9 @@ public class CassandraCQLClient extends DB {
   public static final String DRIVER_PROFILE_DELETE_PROPERTY = "cassandra.driverprofile.delete";
   public static final String DRIVER_PROFILE_UPDATE_PROPERTY = "cassandra.driverprofile.update";
   public static final String TRACING_PROPERTY = "cassandra.tracing";
+  public static final String TRACING_FREQUENCY_PROPERTY = "cassandra.tracingfrequency";
   public static final String TRACING_PROPERTY_DEFAULT = "false";
+  public static final String TRACING_FREQUENCY_PROPERTY_DEFAULT = "1000";
 
   /**
    * Count the number of times initialized to teardown on the last
@@ -97,6 +99,7 @@ public class CassandraCQLClient extends DB {
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
   private static final AtomicInteger TRACE_COUNT = new AtomicInteger(0);
   private static boolean trace = false;
+  private static int traceFrequency;
   
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
@@ -115,6 +118,10 @@ public class CassandraCQLClient extends DB {
       }
       try {
         trace = Boolean.parseBoolean(getProperties().getProperty(TRACING_PROPERTY, TRACING_PROPERTY_DEFAULT));
+        traceFrequency = Integer.parseInt(getProperties().getProperty(
+            TRACING_FREQUENCY_PROPERTY,
+            TRACING_FREQUENCY_PROPERTY_DEFAULT
+        ));
         String driverConfigPath = getProperties().getProperty(DRIVER_CONFIG_PROPERTY);
         if (driverConfigPath == null) {
           throw new IllegalArgumentException("Missing required driver config file path set via: '"
@@ -269,7 +276,7 @@ public class CassandraCQLClient extends DB {
         }
         SimpleStatement simpleStatement = select.where(Relation.token(YCSB_KEY)
                 .isGreaterThanOrEqualTo(QueryBuilder.function(
-                    "token",
+                    "\"token\"",
                     QueryBuilder.bindMarker()
                 ))
             ).limit(QueryBuilder.bindMarker())
@@ -290,7 +297,7 @@ public class CassandraCQLClient extends DB {
       ResultSet rs = session.execute(stmt.bind(startkey, recordcount));
       if (trace) {
         int count = TRACE_COUNT.getAndIncrement();
-        if (count % 5 == 0) {
+        if (count % traceFrequency == 0) {
           ExecutionInfo executionInfo = rs.getExecutionInfo();
           UUID tracingId = executionInfo.getTracingId();
           QueryTrace qtrace = executionInfo.getQueryTrace();
