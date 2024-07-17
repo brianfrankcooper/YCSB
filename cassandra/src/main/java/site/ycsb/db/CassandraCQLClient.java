@@ -43,6 +43,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -85,12 +86,20 @@ public class CassandraCQLClient extends DB {
 
   public static final String DRIVER_CONFIG_PROPERTY = "cassandra.driverconfig";
   public static final String DRIVER_PROFILE_READ_PROPERTY = "cassandra.driverprofile.read";
-  public static final String DRIVER_PROFILE_INSERT_PROPERTY = "cassandra.driverprofile.insert";
   public static final String DRIVER_PROFILE_SCAN_PROPERTY = "cassandra.driverprofile.scan";
-  public static final String DRIVER_PROFILE_DELETE_PROPERTY = "cassandra.driverprofile.delete";
+  public static final String DRIVER_PROFILE_INSERT_PROPERTY = "cassandra.driverprofile.insert";
   public static final String DRIVER_PROFILE_UPDATE_PROPERTY = "cassandra.driverprofile.update";
-  public static final String TRACING_PROPERTY = "cassandra.tracing";
-  public static final String TRACING_FREQUENCY_PROPERTY = "cassandra.tracingfrequency";
+  public static final String DRIVER_PROFILE_DELETE_PROPERTY = "cassandra.driverprofile.delete";
+  public static final String TRACING_READ_PROPERTY = "cassandra.tracing.read";
+  public static final String TRACING_SCAN_PROPERTY = "cassandra.tracing.scan";
+  public static final String TRACING_INSERT_PROPERTY = "cassandra.tracing.insert";
+  public static final String TRACING_UPDATE_PROPERTY = "cassandra.tracing.update";
+  public static final String TRACING_DELETE_PROPERTY = "cassandra.tracing.delete";
+  public static final String TRACING_FREQUENCY_READ_PROPERTY = "cassandra.tracingfrequency.read";
+  public static final String TRACING_FREQUENCY_SCAN_PROPERTY = "cassandra.tracingfrequency.scan";
+  public static final String TRACING_FREQUENCY_INSERT_PROPERTY = "cassandra.tracingfrequency.insert";
+  public static final String TRACING_FREQUENCY_UPDATE_PROPERTY = "cassandra.tracingfrequency.update";
+  public static final String TRACING_FREQUENCY_DELETE_PROPERTY = "cassandra.tracingfrequency.delete";
   public static final String TRACING_PROPERTY_DEFAULT = "false";
   public static final String TRACING_FREQUENCY_PROPERTY_DEFAULT = "1000";
 
@@ -99,10 +108,23 @@ public class CassandraCQLClient extends DB {
    * {@link #cleanup()}.
    */
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
-  private static final AtomicInteger TRACE_COUNT = new AtomicInteger(0);
-  private static boolean trace = false;
-  private static int traceFrequency;
-  
+  private static final AtomicLong READ_TRACE_COUNT = new AtomicLong(0);
+  private static final AtomicLong SCAN_TRACE_COUNT = new AtomicLong(0);
+  private static final AtomicLong INSERT_TRACE_COUNT = new AtomicLong(0);
+  private static final AtomicLong UPDATE_TRACE_COUNT = new AtomicLong(0);
+  private static final AtomicLong DELETE_TRACE_COUNT = new AtomicLong(0);
+  private static boolean traceRead = false;
+  private static boolean traceScan = false;
+  private static boolean traceInsert = false;
+  private static boolean traceUpdate = false;
+  private static boolean traceDelete = false;
+  private static int traceReadFrequency = 1000;
+  private static int traceScanFrequency = 1000;
+  private static int traceInsertFrequency = 1000;
+  private static int traceUpdateFrequency = 1000;
+  private static int traceDeleteFrequency = 1000;
+
+
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
    * DB instance per client thread.
@@ -119,9 +141,49 @@ public class CassandraCQLClient extends DB {
         return;
       }
       try {
-        trace = Boolean.parseBoolean(getProperties().getProperty(TRACING_PROPERTY, TRACING_PROPERTY_DEFAULT));
-        traceFrequency = Integer.parseInt(getProperties().getProperty(
-            TRACING_FREQUENCY_PROPERTY,
+        READ_TRACE_COUNT.set(0);
+        SCAN_TRACE_COUNT.set(0);
+        INSERT_TRACE_COUNT.set(0);
+        UPDATE_TRACE_COUNT.set(0);
+        DELETE_TRACE_COUNT.set(0);
+        traceRead = Boolean.parseBoolean(getProperties().getProperty(
+            TRACING_READ_PROPERTY,
+            TRACING_PROPERTY_DEFAULT
+        ));
+        traceReadFrequency = Integer.parseInt(getProperties().getProperty(
+            TRACING_FREQUENCY_READ_PROPERTY,
+            TRACING_FREQUENCY_PROPERTY_DEFAULT
+        ));
+        traceScan = Boolean.parseBoolean(getProperties().getProperty(
+            TRACING_SCAN_PROPERTY,
+            TRACING_PROPERTY_DEFAULT
+        ));
+        traceScanFrequency = Integer.parseInt(getProperties().getProperty(
+            TRACING_FREQUENCY_SCAN_PROPERTY,
+            TRACING_FREQUENCY_PROPERTY_DEFAULT
+        ));
+        traceInsert = Boolean.parseBoolean(getProperties().getProperty(
+            TRACING_INSERT_PROPERTY,
+            TRACING_PROPERTY_DEFAULT
+        ));
+        traceInsertFrequency = Integer.parseInt(getProperties().getProperty(
+            TRACING_FREQUENCY_INSERT_PROPERTY,
+            TRACING_FREQUENCY_PROPERTY_DEFAULT
+        ));
+        traceUpdate = Boolean.parseBoolean(getProperties().getProperty(
+            TRACING_UPDATE_PROPERTY,
+            TRACING_PROPERTY_DEFAULT
+        ));
+        traceUpdateFrequency = Integer.parseInt(getProperties().getProperty(
+            TRACING_FREQUENCY_UPDATE_PROPERTY,
+            TRACING_FREQUENCY_PROPERTY_DEFAULT
+        ));
+        traceDelete = Boolean.parseBoolean(getProperties().getProperty(
+            TRACING_DELETE_PROPERTY,
+            TRACING_PROPERTY_DEFAULT
+        ));
+        traceDeleteFrequency = Integer.parseInt(getProperties().getProperty(
+            TRACING_FREQUENCY_DELETE_PROPERTY,
             TRACING_FREQUENCY_PROPERTY_DEFAULT
         ));
         String driverConfigPath = getProperties().getProperty(DRIVER_CONFIG_PROPERTY);
@@ -165,6 +227,11 @@ public class CassandraCQLClient extends DB {
         readAllStmt.set(null);
         scanAllStmt.set(null);
         deleteStmt.set(null);
+        READ_TRACE_COUNT.set(0);
+        SCAN_TRACE_COUNT.set(0);
+        INSERT_TRACE_COUNT.set(0);
+        UPDATE_TRACE_COUNT.set(0);
+        DELETE_TRACE_COUNT.set(0);
         session.close();
         session = null;
       }
@@ -174,6 +241,38 @@ public class CassandraCQLClient extends DB {
             String.format("initCount is negative: %d", curInitCount));
       }
     }
+  }
+
+  /**
+   * Logs the trace events of a query submitted with tracing enabled.
+   *
+   * @param rs {@code ResultSet} from a {@code session.execute(...)} invocation.
+   */
+  private void logTraceOutput(final ResultSet rs) {
+    final ExecutionInfo executionInfo = rs.getExecutionInfo();
+    final UUID tracingId = executionInfo.getTracingId();
+    final QueryTrace qtrace = executionInfo.getQueryTrace();
+    logger.info(
+        "[{}] '{}' to {} took {}μs",
+        tracingId,
+        qtrace.getRequestType(),
+        qtrace.getCoordinatorAddress(),
+        qtrace.getDurationMicros()
+    );
+    int eventIndex = 0;
+    for (final TraceEvent event : qtrace.getEvents()) {
+      logger.info(
+          " {} - [{}μs] {} :: {}",
+          eventIndex++,
+          event.getSourceElapsedMicros(),
+          event.getThreadName(),
+          event.getActivity()
+      );
+    }
+  }
+
+  private boolean shouldTraceQuery(final boolean flag, final AtomicLong counter, final int frequency) {
+    return flag && counter.get() % frequency == 0;
   }
 
   /**
@@ -193,6 +292,7 @@ public class CassandraCQLClient extends DB {
   @Override
   public Status read(String table, String key, Set<String> fields,
       Map<String, ByteIterator> result) {
+    final boolean shouldTrace = shouldTraceQuery(traceRead, READ_TRACE_COUNT, traceReadFrequency);
     try {
       PreparedStatement stmt = (fields == null) ? readAllStmt.get() : readStmts.get(fields);
       // Prepare statement on demand
@@ -207,7 +307,7 @@ public class CassandraCQLClient extends DB {
             .limit(1)
             .build()
             .setConsistencyLevel(readConsistencyLevel)
-            .setTracing(trace)
+            .setTracing(shouldTrace)
             .setExecutionProfile(readProfile);
         stmt = session.prepare(simpleStatement);
         PreparedStatement prevStmt = (fields == null) ?
@@ -220,6 +320,9 @@ public class CassandraCQLClient extends DB {
       logger.debug(stmt.getQuery());
       logger.debug("key = {}", key);
       ResultSet rs = session.execute(stmt.bind(key));
+      if (shouldTrace) {
+        logTraceOutput(rs);
+      }
       // Should be only 1 row
       Row row = rs.one();
       if (row == null) {
@@ -265,7 +368,7 @@ public class CassandraCQLClient extends DB {
   @Override
   public Status scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-
+    final boolean shouldTrace = shouldTraceQuery(traceScan, SCAN_TRACE_COUNT, traceScanFrequency);
     try {
       PreparedStatement stmt = (fields == null) ? scanAllStmt.get() : scanStmts.get(fields);
       // Prepare statement on demand
@@ -284,7 +387,7 @@ public class CassandraCQLClient extends DB {
             ).limit(QueryBuilder.bindMarker())
             .build()
             .setConsistencyLevel(readConsistencyLevel)
-            .setTracing(trace)
+            .setTracing(shouldTrace)
             .setExecutionProfile(scanProfile);
         stmt = session.prepare(simpleStatement);
         final PreparedStatement prevStmt = (fields == null) ?
@@ -297,28 +400,8 @@ public class CassandraCQLClient extends DB {
       logger.debug(stmt.getQuery());
       logger.debug("startKey = {}, record count = {}", startkey, recordcount);
       ResultSet rs = session.execute(stmt.bind(startkey, recordcount));
-      if (trace) {
-        int count = TRACE_COUNT.getAndIncrement();
-        if (count % traceFrequency == 0) {
-          ExecutionInfo executionInfo = rs.getExecutionInfo();
-          UUID tracingId = executionInfo.getTracingId();
-          QueryTrace qtrace = executionInfo.getQueryTrace();
-          logger.info(
-              "[{}] '{}' to {} took {}μs",
-              tracingId,
-              qtrace.getRequestType(),
-              qtrace.getCoordinatorAddress(),
-              qtrace.getDurationMicros()
-          );
-          for (final TraceEvent event : qtrace.getEvents()) {
-            logger.info(
-                " - [{}] {} :: {}",
-                event.getSourceElapsedMicros(),
-                event.getThreadName(),
-                event.getActivity()
-            );
-          }
-        }
+      if (shouldTrace) {
+        logTraceOutput(rs);
       }
       HashMap<String, ByteIterator> tuple;
       Row row;
@@ -360,11 +443,10 @@ public class CassandraCQLClient extends DB {
    */
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
-
+    final boolean shouldTrace = shouldTraceQuery(traceUpdate, UPDATE_TRACE_COUNT, traceUpdateFrequency);
     try {
       Set<String> fields = values.keySet();
       PreparedStatement stmt = updateStmts.get(fields);
-
       // Prepare statement on demand
       if (stmt == null) {
         UpdateStart updateStmt = QueryBuilder.update(table);
@@ -377,7 +459,7 @@ public class CassandraCQLClient extends DB {
             .where(Relation.column(YCSB_KEY).isEqualTo(QueryBuilder.bindMarker()));
         SimpleStatement simpleStatement = update.build()
             .setConsistencyLevel(writeConsistencyLevel)
-            .setTracing(trace)
+            .setTracing(shouldTrace)
             .setExecutionProfile(updateProfile);
         stmt = session.prepare(simpleStatement);
         PreparedStatement prevStmt = updateStmts.putIfAbsent(new HashSet<>(fields), stmt);
@@ -407,7 +489,10 @@ public class CassandraCQLClient extends DB {
       }
       // Add key
       boundStmt = boundStmt.setString(vars.size() - 1, key);
-      session.execute(boundStmt);
+      final ResultSet rs = session.execute(boundStmt);
+      if (shouldTrace) {
+        logTraceOutput(rs);
+      }
       return Status.OK;
     } catch (Exception e) {
       logger.error(MessageFormatter.format("Error updating key: {}", key).getMessage(), e);
@@ -430,6 +515,7 @@ public class CassandraCQLClient extends DB {
    */
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
+    final boolean shouldTrace = shouldTraceQuery(traceInsert, INSERT_TRACE_COUNT, traceInsertFrequency);
     try {
       Set<String> fields = values.keySet();
       PreparedStatement stmt = insertStmts.get(fields);
@@ -444,7 +530,7 @@ public class CassandraCQLClient extends DB {
             )));
         SimpleStatement simpleStatement = regularInsert.build()
             .setConsistencyLevel(writeConsistencyLevel)
-            .setTracing(trace)
+            .setTracing(shouldTrace)
             .setExecutionProfile(insertProfile);
         stmt = session.prepare(simpleStatement);
         PreparedStatement prevStmt = insertStmts.putIfAbsent(new HashSet<>(fields), stmt);
@@ -473,7 +559,10 @@ public class CassandraCQLClient extends DB {
             ).toString()
         );
       }
-      session.execute(boundStmt);
+      final ResultSet rs = session.execute(boundStmt);
+      if (shouldTrace) {
+        logTraceOutput(rs);
+      }
       return Status.OK;
     } catch (Exception e) {
       logger.error(MessageFormatter.format("Error inserting key: {}", key).getMessage(), e);
@@ -492,7 +581,7 @@ public class CassandraCQLClient extends DB {
    */
   @Override
   public Status delete(String table, String key) {
-
+    final boolean shouldTrace = shouldTraceQuery(traceDelete, DELETE_TRACE_COUNT, traceDeleteFrequency);
     try {
       PreparedStatement stmt = deleteStmt.get();
       // Prepare statement on demand
@@ -501,7 +590,7 @@ public class CassandraCQLClient extends DB {
             .where(Relation.column(YCSB_KEY).isEqualTo(QueryBuilder.bindMarker()));
         stmt = session.prepare(delete.build()
             .setConsistencyLevel(writeConsistencyLevel)
-            .setTracing(trace)
+            .setTracing(shouldTrace)
             .setExecutionProfile(deleteProfile)
         );
         PreparedStatement prevStmt = deleteStmt.getAndSet(stmt);
@@ -511,7 +600,10 @@ public class CassandraCQLClient extends DB {
       }
       logger.debug(stmt.getQuery());
       logger.debug("key = {}", key);
-      session.execute(stmt.bind(key));
+      final ResultSet rs = session.execute(stmt.bind(key));
+      if (shouldTrace) {
+        logTraceOutput(rs);
+      }
       return Status.OK;
     } catch (Exception e) {
       logger.error(MessageFormatter.format("Error deleting key: {}", key).getMessage(), e);

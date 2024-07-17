@@ -55,33 +55,21 @@ CREATE TABLE ycsb.usertable (
 
 * `cassandra.driverconfig` (**required**)
   * Path to a HOCON configuration for configuring the Cassandra driver.
-  * See the reference configuration here <https://docs.datastax.com/en/developer/java-driver/4.17/manual/core/configuration/reference/index.html>
+  * See the reference configuration here <https://docs.datastax.com/en/developer/java-driver/4.17/manual/core/configuration/reference/index.html>.
 
-* `cassandra.driverprofile.read`
-  * Profile within the driver config to use for read queries.
-  * Driver configs have an anonymous config that all profiles inherit from (and you can modify this), which is used by default if this parameter is not specified
+* `cassandra.driverprofile.<operation>`
+  * `<operation>` is one of `read`, `scan`, `insert`, `update` or `delete`.
+  * Defaults to anonymous global profile.
+  * Profile within the driver config to use for a specific operation.
+  * Driver configs have an anonymous config that all profiles inherit from (and you can modify this), which is used by default if this parameter is not specified.
 
-* `cassandra.driverprofile.scan`
-  * Profile within the driver config to use for scan queries.
-  * Driver configs have an anonymous config that all profiles inherit from (and you can modify this), which is used by default if this parameter is not specified
-
-* `cassandra.driverprofile.insert`
-  * Profile within the driver config to use for insert queries.
-  * Driver configs have an anonymous config that all profiles inherit from (and you can modify this), which is used by default if this parameter is not specified
-
-* `cassandra.driverprofile.update`
-  * Profile within the driver config to use for update queries.
-  * Driver configs have an anonymous config that all profiles inherit from (and you can modify this), which is used by default if this parameter is not specified
-
-* `cassandra.driverprofile.delete`
-  * Profile within the driver config to use for delete queries.
-  * Driver configs have an anonymous config that all profiles inherit from (and you can modify this), which is used by default if this parameter is not specified
-
-* `cassandra.tracing`
-  * Default is `false`
+* `cassandra.tracing.<operation>`
+  * `<operation>` is one of `read`, `scan`, `insert`, `update` or `delete`.
+  * Default is `false`.
   * Captures detailed information about the internal operations performed by all nodes in the cluster in order to build the response.
   * This is an expensive operation and should only be done on a few queries, adjusted by `cassandra.tracingfrequency`.
 
-* `cassandra.tracingfrequency`
-  * Default is `1000`
+* `cassandra.tracingfrequency.<operation>`
+  * `<operation>` is one of `read`, `scan`, `insert`, `update` or `delete`.
+  * Default is `1000`.
   * Determines how often tracing will be performed, i.e. for every `n` queries, tracing will be enabled on that query.
