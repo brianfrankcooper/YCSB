@@ -141,11 +141,6 @@ public class CassandraCQLClient extends DB {
         return;
       }
       try {
-        READ_TRACE_COUNT.set(0);
-        SCAN_TRACE_COUNT.set(0);
-        INSERT_TRACE_COUNT.set(0);
-        UPDATE_TRACE_COUNT.set(0);
-        DELETE_TRACE_COUNT.set(0);
         traceRead = Boolean.parseBoolean(getProperties().getProperty(
             TRACING_READ_PROPERTY,
             TRACING_PROPERTY_DEFAULT
