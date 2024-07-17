@@ -14,6 +14,7 @@
  * the License. See accompanying LICENSE file.
  *
  * Submitted by Chrisjan Matser on 10/11/2010.
+ * Updated by EngineersBox (Jack Kilrain) on 17/07/2024
  */
 package site.ycsb.db;
 
@@ -51,11 +52,12 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
 /**
- * Cassandra 2.x CQL client.
+ * Cassandra CQL client for versions >= 2.1.
  *
- * See {@code cassandra2/README.md} for details.
+ * See {@code cassandra/README.md} for details.
  *
  * @author cmatser
+ * @author EngineersBox (Jack Kilrain)
  */
 public class CassandraCQLClient extends DB {
 
