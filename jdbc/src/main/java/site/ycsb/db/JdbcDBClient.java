@@ -47,6 +47,9 @@ public class JdbcDBClient extends DB {
   /** The class to use as the jdbc driver. */
   public static final String DRIVER_CLASS = "db.driver";
 
+  /** The class to use as the jdbc driver. */
+  public static final String DB_DIALECT = "db.dialect";
+
   /** The URL to connect to the database. */
   public static final String CONNECTION_URL = "db.url";
 
@@ -187,6 +190,7 @@ public class JdbcDBClient extends DB {
     String user = props.getProperty(CONNECTION_USER, DEFAULT_PROP);
     String passwd = props.getProperty(CONNECTION_PASSWD, DEFAULT_PROP);
     String driver = props.getProperty(DRIVER_CLASS);
+    String dialect = props.getProperty(DB_DIALECT);
 
     this.jdbcFetchSize = getIntProperty(props, JDBC_FETCH_SIZE);
     this.batchSize = getIntProperty(props, DB_BATCH_SIZE);
@@ -239,7 +243,12 @@ public class JdbcDBClient extends DB {
 
       cachedStatements = new ConcurrentHashMap<StatementType, PreparedStatement>();
 
-      this.dbFlavor = DBFlavor.fromJdbcUrl(urlArr[0]);
+      if (dialect == null) {
+        this.dbFlavor = DBFlavor.fromJdbcUrl(urlArr[0]);
+      } else {
+        this.dbFlavor = DBFlavor.fromJdbcUrl(dialect);
+        System.out.println("Using database dialect: " + dialect);
+      }
     } catch (ClassNotFoundException e) {
       System.err.println("Error in initializing the JDBS driver: " + e);
       throw new DBException(e);
