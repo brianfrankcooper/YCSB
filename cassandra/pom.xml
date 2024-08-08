@@ -39,9 +39,20 @@ LICENSE file.
   <dependencies>
     <!-- CQL driver -->
     <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-core</artifactId>
+      <version>${cassandra.cql.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-query-builder</artifactId>
+      <version>${cassandra.cql.version}</version>
+    </dependency>
+    <dependency>
       <groupId>com.datastax.cassandra</groupId>
       <artifactId>cassandra-driver-core</artifactId>
-      <version>${cassandra.cql.version}</version>
+      <version>3.0.0</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>site.ycsb</groupId>
@@ -59,8 +70,7 @@ LICENSE file.
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
-      <version>1.7.21</version>
-      <scope>test</scope>
+      <version>1.7.25</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
