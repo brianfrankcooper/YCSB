@@ -44,8 +44,8 @@ public class IgniteStreamerClient extends IgniteAbstractClient {
    */
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
-  /** Data streamer auto-flush frequency. */
-  protected static final int DATA_STREAMER_AUTOFLUSH_FREQUENCY = 5000;
+  /** Data streamer auto-flush interval in ms. */
+  protected static final int DATA_STREAMER_AUTOFLUSH_INTERVAL = 5000;
 
   /** Record view publisher. */
   protected SubmissionPublisher<DataStreamerItem<Tuple>> rvPublisher;
@@ -67,7 +67,7 @@ public class IgniteStreamerClient extends IgniteAbstractClient {
 
       DataStreamerOptions dsOptions = DataStreamerOptions.builder()
           .pageSize((int) batchSize)
-          .autoFlushFrequency(DATA_STREAMER_AUTOFLUSH_FREQUENCY)
+          .autoFlushInterval(DATA_STREAMER_AUTOFLUSH_INTERVAL)
           .build();
       rvPublisher = new SubmissionPublisher<>();
       rvStreamerFut = rView.streamData(rvPublisher, dsOptions);
