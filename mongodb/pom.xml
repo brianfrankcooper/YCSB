@@ -67,6 +67,12 @@ LICENSE file.
       <type>jar</type>
       <scope>compile</scope>
     </dependency>
+
+    <dependency>
+    <groupId>com.google.protobuf</groupId>
+    <artifactId>protobuf-java</artifactId>
+    <version>3.19.6</version>
+</dependency>
   </dependencies>
   <repositories>
     <repository>
