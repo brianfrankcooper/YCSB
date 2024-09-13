@@ -103,7 +103,8 @@ DATABASES = {
     "solr7"        : "site.ycsb.db.solr7.SolrClient",
     "tarantool"    : "site.ycsb.db.TarantoolClient",
     "tablestore"   : "site.ycsb.db.tablestore.TableStoreClient",
-    "zookeeper"    : "site.ycsb.db.zookeeper.ZKClient"
+    "zookeeper"    : "site.ycsb.db.zookeeper.ZKClient",
+    "mongodb-modubft" : "site.ycsb.db.MongoDbModubftClient"
 }
 
 OPTIONS = {
