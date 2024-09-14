@@ -1,0 +1,6 @@
+syntax = "proto3";
+package responseMessage;
+option go_package = "./responseMessage";
+message Response {
+ repeated string result = 1;
+}
