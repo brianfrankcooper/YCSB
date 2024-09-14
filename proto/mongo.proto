@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package mongo;
+
+option go_package = "./";
+
+message MongoRequest {
+  enum RequestType {
+    CLEANUP = 0;
+    DELETE = 1;
+    INSERT = 2;
+    READ = 3;
+    SCAN = 4;
+    UPDATE = 5;
+  }
+
+  RequestType type = 1;
+
+  oneof request {
+    CleanupRequest cleanup = 2;
+    DeleteRequest delete = 3;
+    InsertRequest insert = 4;
+    ReadRequest read = 5;
+    ScanRequest scan = 6;
+    UpdateRequest update = 7;
+  }
+}
+
+message MongoResponse {
+  enum Status {
+    OK = 0;
+    ERROR = 1;
+    NOT_FOUND = 2;
+    BATCHED_OK = 3;
+  }
+
+  Status status = 1;
+
+  oneof response {
+    CleanupResponse cleanup = 2;
+    DeleteResponse delete = 3;
+    InsertResponse insert = 4;
+    ReadResponse read = 5;
+    ScanResponse scan = 6;
+    UpdateResponse update = 7;
+  }
+}
+
+message CleanupRequest {}
+message CleanupResponse {}
+
+message DeleteRequest {
+  string collection = 1;
+  string id = 2;
+}
+message DeleteResponse {}
+
+message InsertRequest {
+  string collection = 1;
+  repeated BSONDocument documents = 2;
+}
+
+message BSONDocument {
+  bytes data = 1;
+}
+message InsertResponse {}
+
+message ReadRequest {
+  string collection = 1;
+  string id = 2;
+  repeated string fields = 3;
+}
+message ReadResponse {
+  BSONDocument document = 1;
+}
+
+message ScanRequest {
+  string collection = 1;
+  string startkey = 2;
+  int32 recordcount = 3;
+  repeated string fields = 4;
+}
+message ScanResponse {
+  repeated BSONDocument documents = 1;
+}
+
+
+message UpdateRequest {
+  string collection = 1;
+  string id = 2;
+ BSONDocument updateDocument = 3;
+}
+message UpdateResponse {}

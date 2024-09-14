@@ -75,7 +75,7 @@ final class RemainingFormatter {
  */
 public final class Client {
   private Client() {
-    //not used
+    // not used
   }
 
   public static final String DEFAULT_RECORD_COUNT = "0";
@@ -119,8 +119,10 @@ public final class Client {
 
   /**
    * Indicates how many inserts to do if less than recordcount.
-   * Useful for partitioning the load among multiple servers if the client is the bottleneck.
-   * Additionally workloads should support the "insertstart" property which tells them which record to start at.
+   * Useful for partitioning the load among multiple servers if the client is the
+   * bottleneck.
+   * Additionally workloads should support the "insertstart" property which tells
+   * them which record to start at.
    */
   public static final String INSERT_COUNT_PROPERTY = "insertcount";
 
@@ -204,12 +206,12 @@ public final class Client {
     return true;
   }
 
-
   /**
    * Exports the measurements to either sysout or a file using the exporter
    * loaded from conf.
    *
-   * @throws IOException Either failed to write to output stream or failed to close it.
+   * @throws IOException Either failed to write to output stream or failed to
+   *                     close it.
    */
   private static void exportMeasurements(Properties props, int opcount, long runtime)
       throws IOException {
@@ -282,12 +284,12 @@ public final class Client {
 
     long maxExecutionTime = Integer.parseInt(props.getProperty(MAX_EXECUTION_TIME, "0"));
 
-    //get number of threads, target and db
+    // get number of threads, target and db
     int threadcount = Integer.parseInt(props.getProperty(THREAD_COUNT_PROPERTY, "1"));
     String dbname = props.getProperty(DB_PROPERTY, "site.ycsb.BasicDB");
     int target = Integer.parseInt(props.getProperty(TARGET_PROPERTY, "0"));
 
-    //compute the target throughput
+    // compute the target throughput
     double targetperthreadperms = -1;
     if (target > 0) {
       double targetperthread = ((double) target) / ((double) threadcount);
@@ -371,7 +373,8 @@ public final class Client {
         if (status) {
           // wake up status thread if it's asleep
           statusthread.interrupt();
-          // at this point we assume all the monitored threads are already gone as per above join loop.
+          // at this point we assume all the monitored threads are already gone as per
+          // above join loop.
           try {
             statusthread.join();
           } catch (InterruptedException ignored) {
@@ -401,8 +404,8 @@ public final class Client {
   }
 
   private static List<ClientThread> initDb(String dbname, Properties props, int threadcount,
-                                           double targetperthreadperms, Workload workload, Tracer tracer,
-                                           CountDownLatch completeLatch) {
+      double targetperthreadperms, Workload workload, Tracer tracer,
+      CountDownLatch completeLatch) {
     boolean initFailed = false;
     boolean dotransactions = Boolean.valueOf(props.getProperty(DO_TRANSACTIONS_PROPERTY, String.valueOf(true)));
 
@@ -418,7 +421,7 @@ public final class Client {
           opcount = Integer.parseInt(props.getProperty(RECORD_COUNT_PROPERTY, DEFAULT_RECORD_COUNT));
         }
       }
-      if (threadcount > opcount && opcount > 0){
+      if (threadcount > opcount && opcount > 0) {
         threadcount = opcount;
         System.out.println("Warning: the threadcount is bigger than recordcount, the threadcount will be recordcount!");
       }
@@ -426,6 +429,9 @@ public final class Client {
         DB db;
         try {
           db = DBFactory.newDB(dbname, props, tracer);
+          Properties newProps = (Properties) props.clone();
+          newProps.setProperty("threadId", Integer.toString(threadid));
+          db.setProperties(newProps);
         } catch (UnknownDBException e) {
           System.out.println("Unknown DB " + dbname);
           initFailed = true;
@@ -434,7 +440,8 @@ public final class Client {
 
         int threadopcount = opcount / threadcount;
 
-        // ensure correct number of operations, in case opcount is not a multiple of threadcount
+        // ensure correct number of operations, in case opcount is not a multiple of
+        // threadcount
         if (threadid < opcount % threadcount) {
           ++threadopcount;
         }
@@ -484,9 +491,10 @@ public final class Client {
   }
 
   private static Thread setupWarningThread() {
-    //show a warning message that creating the workload is taking a while
-    //but only do so if it is taking longer than 2 seconds
-    //(showing the message right away if the setup wasn't taking very long was confusing people)
+    // show a warning message that creating the workload is taking a while
+    // but only do so if it is taking longer than 2 seconds
+    // (showing the message right away if the setup wasn't taking very long was
+    // confusing people)
     return new Thread() {
       @Override
       public void run() {
@@ -610,7 +618,8 @@ public final class Client {
           System.exit(0);
         }
 
-        //Issue #5 - remove call to stringPropertyNames to make compilable under Java 1.5
+        // Issue #5 - remove call to stringPropertyNames to make compilable under Java
+        // 1.5
         for (Enumeration e = myfileprops.propertyNames(); e.hasMoreElements();) {
           String prop = (String) e.nextElement();
 
@@ -658,9 +667,10 @@ public final class Client {
       System.exit(0);
     }
 
-    //overwrite file properties with properties from the command line
+    // overwrite file properties with properties from the command line
 
-    //Issue #5 - remove call to stringPropertyNames to make compilable under Java 1.5
+    // Issue #5 - remove call to stringPropertyNames to make compilable under Java
+    // 1.5
     for (Enumeration e = props.propertyNames(); e.hasMoreElements();) {
       String prop = (String) e.nextElement();
 
