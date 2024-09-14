@@ -104,7 +104,8 @@ DATABASES = {
     "tarantool"    : "site.ycsb.db.TarantoolClient",
     "tablestore"   : "site.ycsb.db.tablestore.TableStoreClient",
     "zookeeper"    : "site.ycsb.db.zookeeper.ZKClient",
-    "mongodb-modubft" : "site.ycsb.db.MongoDbModubftClient"
+    "mongodb-modubft" : "site.ycsb.db.MongoDbModubftClient",
+    "redis-modubft"        : "site.ycsb.db.RedisModubftClient"
 }
 
 OPTIONS = {
