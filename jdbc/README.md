@@ -91,6 +91,18 @@ db.user=admin
 db.passwd=admin
 ```
 
+You can specify a custom delimiter for multiple connection URLs by setting `db.urldelimiter` if your connection URL might contain a `;`.
+The default delimiter is `,` for Google Cloud Spanner, SQLServer, H2, and Apache Phoenix. It is `;` for all
+other databases.
+
+```sh
+db.driver=com.google.cloud.spanner.jdbc.JdbcDriver
+db.url=jdbc:cloudspanner:/projects/my-project/instances/my-instance/databass/my-database;minSessions=1000;maxSessions=1000;numChannels=20
+db.urldelimiter=,
+db.user=
+db.passwd=
+```
+
 You can add these to your workload configuration or a separate properties file and specify it with ```-P``` or you can add the properties individually to your ycsb command with ```-p```.
 
 ### 5. Add your JDBC Driver to the classpath
