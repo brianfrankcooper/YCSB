@@ -1,18 +1,20 @@
 {
-  "network": {
-    "nodeFinder": {
-      "netClusterNodes": [
-        "localhost:3344"
-      ]
+  "ignite": {
+    "network": {
+      "nodeFinder": {
+        "netClusterNodes": [
+          "localhost:3344"
+        ]
+      },
+      "port": 3344
     },
-    "port": 3344
-  },
-  "storage": {
-    "profiles": [
-      {
-        "name": "aipersist",
-        "engine": "aipersist"
-      }
-    ]
+    "storage": {
+      "profiles": [
+        {
+          "name": "aipersist",
+          "engine": "aipersist"
+        }
+      ]
+    }
   }
 }

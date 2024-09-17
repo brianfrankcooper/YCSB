@@ -111,6 +111,11 @@ public abstract class IgniteAbstractClient extends DB {
   protected static boolean debug = false;
 
   /**
+   * Whether to shut down externally provided Ignite instance.
+   */
+  protected static boolean shutdownExternalIgnite = false;
+
+  /**
    * Start an embedded Ignite node instead of connecting to an external one.
    */
   protected static boolean useEmbeddedIgnite = false;
@@ -183,6 +188,7 @@ public abstract class IgniteAbstractClient extends DB {
   private void initProperties(Properties properties) throws DBException {
     try {
       debug = IgniteParam.DEBUG.getValue(properties);
+      shutdownExternalIgnite = IgniteParam.SHUTDOWN_IGNITE.getValue(properties);
       useEmbeddedIgnite = IgniteParam.USE_EMBEDDED.getValue(properties);
       disableFsync = IgniteParam.DISABLE_FSYNC.getValue(properties);
       dbEngine = IgniteParam.DB_ENGINE.getValue(properties);
@@ -423,7 +429,7 @@ public abstract class IgniteAbstractClient extends DB {
             igniteClient.close();
           }
 
-          if (igniteServer != null && !externalIgnite) {
+          if (igniteServer != null && (!externalIgnite || shutdownExternalIgnite)) {
             igniteServer.shutdown();
           }
 

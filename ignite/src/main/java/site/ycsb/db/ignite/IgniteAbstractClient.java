@@ -90,6 +90,9 @@ public abstract class IgniteAbstractClient extends DB {
 
   protected static TcpDiscoveryIpFinder ipFinder = new TcpDiscoveryVmIpFinder(true);
 
+  /** Whether to shut down externally provided Ignite instance. */
+  protected static boolean shutdownExternalIgnite = false;
+
   /** Start an embedded Ignite node instead of connecting to an external one. */
   protected static boolean useEmbeddedIgnite = false;
 
@@ -150,6 +153,7 @@ public abstract class IgniteAbstractClient extends DB {
   private void initProperties(Properties properties) throws DBException {
     try {
       debug = Boolean.parseBoolean(properties.getProperty("debug", "false"));
+      shutdownExternalIgnite = Boolean.parseBoolean(properties.getProperty("shutdownIgnite", "false"));
       useEmbeddedIgnite = Boolean.parseBoolean(properties.getProperty("useEmbedded", "false"));
       cacheName = properties.getProperty(CoreWorkload.TABLENAME_PROPERTY,
           CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
@@ -266,7 +270,7 @@ public abstract class IgniteAbstractClient extends DB {
     synchronized (INIT_COUNT) {
       final int curInitCount = INIT_COUNT.decrementAndGet();
 
-      if (curInitCount <= 0 && !externalIgnite) {
+      if (curInitCount <= 0 && (!externalIgnite || shutdownExternalIgnite)) {
         ignite.close();
         ignite = null;
       }

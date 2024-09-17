@@ -13,6 +13,9 @@ public final class IgniteParam<T> {
   public static final IgniteParam<Boolean> DEBUG = new IgniteParam<>("debug", false,
       Boolean::parseBoolean);
 
+  public static final IgniteParam<Boolean> SHUTDOWN_IGNITE = new IgniteParam<>("shutdownIgnite", false,
+      Boolean::parseBoolean);
+
   public static final IgniteParam<Boolean> USE_EMBEDDED = new IgniteParam<>("useEmbedded", false,
       Boolean::parseBoolean);
 

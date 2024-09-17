@@ -1,21 +1,23 @@
 {
-  "network": {
-    "nodeFinder": {
-      "netClusterNodes": [
-        "localhost:3344"
-      ]
+  "ignite": {
+    "network": {
+      "nodeFinder": {
+        "netClusterNodes": [
+          "localhost:3344"
+        ]
+      },
+      "port": 3344
     },
-    "port": 3344
-  },
-  "raft": {
-    "fsync": false
-  },
-  "storage": {
-    "profiles": [
-      {
-        "name": "aimem",
-        "engine": "aimem"
-      }
-    ]
+    "raft": {
+      "fsync": false
+    },
+    "storage": {
+      "profiles": [
+        {
+          "name": "aimem",
+          "engine": "aimem"
+        }
+      ]
+    }
   }
 }

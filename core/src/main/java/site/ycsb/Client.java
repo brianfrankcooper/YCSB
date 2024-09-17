@@ -719,11 +719,15 @@ public final class Client {
    */
   public static long parseLongWithModifiers(String value) {
     if (value.endsWith("k") || value.endsWith("K")) {
-      return (long) (Double.parseDouble(value.substring(0, value.length() - 1)) * 1000);
+      return (long) (Double.parseDouble(value.substring(0, value.length() - 1)) * 1_000);
     }
 
     if (value.endsWith("m") || value.endsWith("M")) {
-      return (long) (Double.parseDouble(value.substring(0, value.length() - 1)) * 1000000);
+      return (long) (Double.parseDouble(value.substring(0, value.length() - 1)) * 1_000_000);
+    }
+
+    if (value.endsWith("b") || value.endsWith("B")) {
+      return (long) (Double.parseDouble(value.substring(0, value.length() - 1)) * 1_000_000_000);
     }
 
     return Long.parseLong(value);
