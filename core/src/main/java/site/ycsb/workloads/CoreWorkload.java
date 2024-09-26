@@ -41,6 +41,7 @@ import java.util.*;
  * <LI><b>readproportion</b>: what proportion of operations should be reads (default: 0.95)
  * <LI><b>updateproportion</b>: what proportion of operations should be updates (default: 0.05)
  * <LI><b>insertproportion</b>: what proportion of operations should be inserts (default: 0)
+ * <LI><b>deleteproportion</b>: what proportion of operations should be deletes (default: 0)
  * <LI><b>scanproportion</b>: what proportion of operations should be scans (default: 0)
  * <LI><b>readmodifywriteproportion</b>: what proportion of operations should be read a record,
  * modify it, write it back (default: 0)
@@ -239,6 +240,16 @@ public class CoreWorkload extends Workload {
    * The default proportion of transactions that are scans.
    */
   public static final String SCAN_PROPORTION_PROPERTY_DEFAULT = "0.0";
+
+  /**
+   * The name of the property for the proportion of transactions that are deletes.
+   */
+  public static final String DELETE_PROPORTION_PROPERTY = "deleteproportion";
+
+  /**
+   * The default proportion of transactions that are delete.
+   */
+  public static final String DELETE_PROPORTION_PROPERTY_DEFAULT = "0.0";
 
   /**
    * The name of the property for the proportion of transactions that are read-modify-write.
@@ -488,7 +499,7 @@ public class CoreWorkload extends Workload {
     keysequence = new CounterGenerator(insertstart);
     operationchooser = createOperationGenerator(p);
 
-    transactioninsertkeysequence = new AcknowledgedCounterGenerator(recordcount);
+    transactioninsertkeysequence = new AcknowledgedCounterGenerator(insertstart);
     if (requestdistrib.compareTo("uniform") == 0) {
       keychooser = new UniformLongGenerator(insertstart, insertstart + insertcount - 1);
     } else if (requestdistrib.compareTo("exponential") == 0) {
@@ -500,7 +511,7 @@ public class CoreWorkload extends Workload {
           ExponentialGenerator.EXPONENTIAL_FRAC_DEFAULT));
       keychooser = new ExponentialGenerator(percentile, recordcount * frac);
     } else if (requestdistrib.compareTo("sequential") == 0) {
-      keychooser = new SequentialGenerator(insertstart, insertstart + insertcount - 1);
+      keychooser = new SequentialGenerator(insertstart, insertstart + recordcount - 1);
     } else if (requestdistrib.compareTo("zipfian") == 0) {
       // it does this by generating a random "next key" in part by taking the modulus over the
       // number of keys.
@@ -669,6 +680,9 @@ public class CoreWorkload extends Workload {
     case "INSERT":
       doTransactionInsert(db);
       break;
+    case "DELETE":
+      doTransactionDelete(db);
+      break;
     case "SCAN":
       doTransactionScan(db);
       break;
@@ -711,6 +725,8 @@ public class CoreWorkload extends Workload {
       do {
         keynum = transactioninsertkeysequence.lastValue() - keychooser.nextValue().intValue();
       } while (keynum < 0);
+    } else if (keychooser instanceof SequentialGenerator) {
+      keynum = keychooser.nextValue().intValue();
     } else {
       do {
         keynum = keychooser.nextValue().intValue();
@@ -720,7 +736,6 @@ public class CoreWorkload extends Workload {
   }
 
   public void doTransactionRead(DB db) {
-    // choose a random key
     long keynum = nextKeynum();
 
     String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
@@ -747,7 +762,6 @@ public class CoreWorkload extends Workload {
   }
 
   public void doTransactionReadModifyWrite(DB db) {
-    // choose a random key
     long keynum = nextKeynum();
 
     String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
@@ -794,7 +808,6 @@ public class CoreWorkload extends Workload {
   }
 
   public void doTransactionScan(DB db) {
-    // choose a random key
     long keynum = nextKeynum();
 
     String startkeyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
@@ -816,7 +829,6 @@ public class CoreWorkload extends Workload {
   }
 
   public void doTransactionUpdate(DB db) {
-    // choose a random key
     long keynum = nextKeynum();
 
     String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
@@ -848,11 +860,19 @@ public class CoreWorkload extends Workload {
     }
   }
 
+  public void doTransactionDelete(DB db) {
+    long keynum = nextKeynum();
+
+    String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
+
+    db.delete(table, keyname);
+  }
+
   /**
    * Creates a weighted discrete values with database operations for a workload to perform.
    * Weights/proportions are read from the properties list and defaults are used
    * when values are not configured.
-   * Current operations are "READ", "UPDATE", "INSERT", "SCAN" and "READMODIFYWRITE".
+   * Current operations are "READ", "UPDATE", "INSERT", "SCAN", "READMODIFYWRITE", "DELETE".
    *
    * @param p The properties list to pull weights from.
    * @return A generator that can be used to determine the next operation to perform.
@@ -868,6 +888,8 @@ public class CoreWorkload extends Workload {
         p.getProperty(UPDATE_PROPORTION_PROPERTY, UPDATE_PROPORTION_PROPERTY_DEFAULT));
     final double insertproportion = Double.parseDouble(
         p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
+    final double deleteproportion = Double.parseDouble(
+        p.getProperty(DELETE_PROPORTION_PROPERTY, DELETE_PROPORTION_PROPERTY_DEFAULT));
     final double scanproportion = Double.parseDouble(
         p.getProperty(SCAN_PROPORTION_PROPERTY, SCAN_PROPORTION_PROPERTY_DEFAULT));
     final double readmodifywriteproportion = Double.parseDouble(p.getProperty(
@@ -884,6 +906,10 @@ public class CoreWorkload extends Workload {
 
     if (insertproportion > 0) {
       operationchooser.addValue(insertproportion, "INSERT");
+    }
+
+    if (deleteproportion > 0) {
+      operationchooser.addValue(deleteproportion, "DELETE");
     }
 
     if (scanproportion > 0) {
