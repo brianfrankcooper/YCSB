@@ -26,18 +26,27 @@ import com.google.datastore.v1.CommitRequest.Mode;
 import com.google.datastore.v1.Key;
 import com.google.datastore.v1.ReadOptions.ReadConsistency;
 import com.google.datastore.v1.Value;
-//import com.google.cloud.datastore.v1.DatastoreSettings;
-//import com.google.datastore.v1.client.DatastoreException;
 import com.google.datastore.v1.client.DatastoreHelper;
-//import com.google.datastore.v1.client.DatastoreOptions;
-//import com.google.datastore.v1.client.DatastoreFactory;
-//import com.google.datastore.v1.client.Datastore;
-//import com.google.cloud.grpc.GrpcTransportOptions;
-//import com.google.api.gax.grpc.ChannelPoolSettings;
-//import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
 import com.google.cloud.datastore.Datastore;
 import com.google.cloud.datastore.DatastoreOptions;
-
+//import com.google.cloud.opentelemetry.trace.TraceConfiguration;
+import com.google.cloud.opentelemetry.trace.TraceExporter;
+//import io.opentelemetry.api.GlobalOpenTelemetry;
+//import io.opentelemetry.api.trace.Span;
+//import io.opentelemetry.api.trace.SpanContext;
+//import io.opentelemetry.api.trace.TraceFlags;
+//import io.opentelemetry.api.trace.TraceState;
+//import io.opentelemetry.api.trace.Tracer;
+//import io.opentelemetry.context.Context;
+//import io.opentelemetry.context.Scope;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.resources.Resource;
+import io.opentelemetry.sdk.trace.SdkTracerProvider;
+import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
+import io.opentelemetry.sdk.trace.samplers.Sampler;
+import io.opentelemetry.sdk.trace.export.SpanExporter;
+import io.opentelemetry.sdk.trace.SpanProcessor;
+import static io.opentelemetry.semconv.resource.attributes.ResourceAttributes.SERVICE_NAME;
 
 import site.ycsb.ByteIterator;
 import site.ycsb.DB;
@@ -133,20 +142,6 @@ public class GoogleDatastoreClient extends DB {
           "Required property \"datasetId\" missing.");
     }
 
-    boolean usegRPC = false;
-    String usegRPCConfig = getProperties().getProperty("googledatastore.usegRPC", null);
-    if (usegRPCConfig != null && usegRPCConfig.trim().toUpperCase().equals("TRUE")) {
-      usegRPC = true;
-    }
-    logger.debug("usegRPC:" + usegRPCConfig);
-
-    boolean useChannelProvider = false;
-    String useChannelProviderConfig = getProperties().getProperty("googledatastore.useChannelProvider", null);
-    if (useChannelProviderConfig != null && useChannelProviderConfig.trim().toUpperCase().equals("TRUE")) {
-      useChannelProvider = true;
-    }
-    logger.debug("useChannelProvider:" + useChannelProviderConfig);
-
     String privateKeyFile = getProperties().getProperty(
         "googledatastore.privateKeyFile", null);
     String serviceAccountEmail = getProperties().getProperty(
@@ -206,39 +201,38 @@ public class GoogleDatastoreClient extends DB {
         logger.info("DatasetID: " + datasetId
             + ", Service Account Email: " + ((GoogleCredential) credential).getServiceAccountId());
       }
+      // Configure OpenTelemetry Tracing SDK
+      Resource resource = Resource
+          .getDefault().merge(Resource.builder().put(SERVICE_NAME, "My App").build());
+      SpanExporter gcpTraceExporter = TraceExporter.createWithDefaultConfiguration();
 
-      //      datastore = DatastoreFactory.get().create(
-      //          options.credential(credential).projectId(datasetId).build());
+      // Using a batch span processor
+      // You can use `.setScheduleDelay()`, `.setExporterTimeout()`,
+      // `.setMaxQueueSize`(), and `.setMaxExportBatchSize()` to further customize.
+      SpanProcessor gcpBatchSpanProcessor =
+          BatchSpanProcessor.builder(gcpTraceExporter).build();
 
-      if (usegRPC) {
-        if (useChannelProvider) {
-//          InstantiatingGrpcChannelProvider channelProvider = DatastoreSettings
-//              .defaultGrpcTransportProviderBuilder()
-//              .setChannelPoolSettings(ChannelPoolSettings.builder()
-//                  .setInitialChannelCount(10)
-//                  .setMaxChannelCount(20)
-//                  .build()).build();
-//          datastore = DatastoreOptions.newBuilder()
-//              .setChannelProvider(channelProvider)
-//              .setTransportOptions(GrpcTransportOptions.newBuilder().build())
-//              .setProjectId(projectId)
-//              .setDatabaseId(datasetId)
-//              .build()
-//              .getService();
-        } else {
-//          datastore = DatastoreOptions.newBuilder()
-//              .setTransportOptions(GrpcTransportOptions.newBuilder().build())
-//              .setProjectId(projectId)
-//              .setDatabaseId(datasetId)
-//              .build()
-//              .getService();
-        }
-      } else {
-        datastore = DatastoreOptions.newBuilder()
-            .setProjectId(projectId)
-            .setDatabaseId(datasetId)
-            .build().getService();
-      }
+      // Export directly Cloud Trace with 10% trace sampling ratio
+      OpenTelemetrySdk otel = OpenTelemetrySdk.builder()
+          .setTracerProvider(SdkTracerProvider.builder()
+              .setResource(resource)
+              .addSpanProcessor(gcpBatchSpanProcessor)
+              .setSampler(Sampler.traceIdRatioBased(0.5))
+              .build()).buildAndRegisterGlobal();
+
+      DatastoreOptions datastoreOptions = DatastoreOptions
+          .newBuilder()
+          .setProjectId(projectId)
+          .setDatabaseId(datasetId)
+          .setOpenTelemetryOptions(
+              DatastoreOpenTelemetryOptions.newBuilder()
+                  .setTracingEnabled(true)
+                  .setOpenTelemetry(otel)
+                  .build())
+          .build();
+
+      datastore = datastoreOptions.getService();
+
     } catch (GeneralSecurityException exception) {
       throw new DBException("Security error connecting to the datastore: " +
           exception.getMessage(), exception);
