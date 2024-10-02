@@ -111,7 +111,7 @@ public class GoogleDatastoreClient extends DB {
 
   private static boolean skipIndex = true;
 
-  private Tracer tracer = null;
+  private Tracer tracer;
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is
@@ -119,10 +119,12 @@ public class GoogleDatastoreClient extends DB {
    */
   @Override
   public void init() throws DBException {
-    String debug = getProperties().getProperty("googledatastore.debug", null);
-    if (null != debug && "true".equalsIgnoreCase(debug)) {
-      logger.setLevel(Level.DEBUG);
-    }
+//    String debug = getProperties().getProperty("googledatastore.debug", null);
+//    if (null != debug && "true".equalsIgnoreCase(debug)) {
+//      logger.setLevel(Level.DEBUG);
+//    }
+
+    logger.setLevel(Level.INFO);
 
     String skipIndexString = getProperties().getProperty(
         "googledatastore.skipIndex", null);
@@ -217,13 +219,16 @@ public class GoogleDatastoreClient extends DB {
             .setSampler(Sampler.traceIdRatioBased(0.5))
             .build()).build();
 
+    logger.info("otel sdk class: " + otel.toString());
     tracer = otel.getTracer("YCSB_Datastore_Test");
+    logger.info("tracer class: " + tracer.getClass().getName());
 
     try {
       // Setup the connection to Google Cloud Datastore with the credentials
       // obtained from the configure.
       //DatastoreOptions.Builder options = new DatastoreOptions.Builder().projectId("cindy-cloud-sdk-test");
       Credential credential = GoogleCredential.getApplicationDefault();
+
       if (serviceAccountEmail != null && privateKeyFile != null) {
         credential = DatastoreHelper.getServiceAccountCredential(
             serviceAccountEmail, privateKeyFile);
@@ -235,6 +240,8 @@ public class GoogleDatastoreClient extends DB {
         logger.info("DatasetID: " + datasetId
             + ", Service Account Email: " + ((GoogleCredential) credential).getServiceAccountId());
       }
+
+      logger.info("credential: " + credential);
 
       DatastoreOptions datastoreOptions = DatastoreOptions
           .newBuilder()
@@ -291,7 +298,7 @@ public class GoogleDatastoreClient extends DB {
 
     System.out.println(entity);
 
-    logger.debug("Read entity: " + entity.toString());
+    // logger.debug("Read entity: " + entity.toString());
 
     Map<String, com.google.cloud.datastore.Value<?>> properties = entity.getProperties();
     Set<String> propertiesToReturn =
@@ -382,7 +389,7 @@ public class GoogleDatastoreClient extends DB {
             .setExcludeFromIndexes(skipIndex).build()));
       }
       Entity entity = entityBuilder.build();
-      logger.debug("entity built as: " + entity.toString());
+    //  logger.debug("entity built as: " + entity.toString());
 
       try (Scope ignore = singleItemSpan.makeCurrent()) {
         if (mutationType == MutationType.UPSERT) {
