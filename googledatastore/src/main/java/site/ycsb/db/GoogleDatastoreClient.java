@@ -31,6 +31,7 @@ import com.google.cloud.datastore.Datastore;
 import com.google.cloud.datastore.DatastoreOptions;
 //import com.google.cloud.opentelemetry.trace.TraceConfiguration;
 import com.google.cloud.opentelemetry.trace.TraceExporter;
+import com.google.cloud.opentelemetry.trace.TraceConfiguration;
 //import io.opentelemetry.api.GlobalOpenTelemetry;
 //import io.opentelemetry.api.trace.Span;
 //import io.opentelemetry.api.trace.SpanContext;
@@ -123,9 +124,7 @@ public class GoogleDatastoreClient extends DB {
 //    if (null != debug && "true".equalsIgnoreCase(debug)) {
 //      logger.setLevel(Level.DEBUG);
 //    }
-
     logger.setLevel(Level.INFO);
-
     String skipIndexString = getProperties().getProperty(
         "googledatastore.skipIndex", null);
     if (null != skipIndexString && "false".equalsIgnoreCase(skipIndexString)) {
@@ -156,14 +155,12 @@ public class GoogleDatastoreClient extends DB {
         "googledatastore.serviceAccountEmail", null);
 
     // Below are properties related to benchmarking.
-
     String readConsistencyConfig = getProperties().getProperty(
         "googledatastore.readConsistency", null);
     if (readConsistencyConfig != null) {
       try {
         this.readConsistency = ReadConsistency.valueOf(
             readConsistencyConfig.trim().toUpperCase());
-
         this.isEventualConsistency = readConsistencyConfig.trim().toUpperCase().equals("EVENTUAL");
         logger.debug("ReadConsistency: " + this.readConsistency + ". isEventual: " + this.isEventualConsistency);
 
@@ -172,7 +169,6 @@ public class GoogleDatastoreClient extends DB {
             readConsistencyConfig + ". Expecting STRONG or EVENTUAL.");
       }
     }
-
     //
     // Entity Grouping Mode (googledatastore.entitygroupingmode), see
     // documentation in conf/googledatastore.properties.
@@ -189,11 +185,8 @@ public class GoogleDatastoreClient extends DB {
             "MULTI_ENTITY_PER_GROUP.");
       }
     }
-
     this.rootEntityName = getProperties().getProperty(
         "googledatastore.rootEntityName", "YCSB_ROOT_ENTITY");
-
-
     // Configure OpenTelemetry Tracing SDK
     Resource resource = Resource
         .getDefault().merge(Resource.builder().put(SERVICE_NAME, "My App").build());
