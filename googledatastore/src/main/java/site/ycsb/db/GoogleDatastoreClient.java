@@ -358,7 +358,7 @@ public class GoogleDatastoreClient extends DB {
                                       MutationType mutationType) {
     // First build the key.
     Key.Builder datastoreKey = buildPrimaryKey(table, key);
-    Span singleItemSpan = tracer.spanBuilder("ycsb-UPDATE").startSpan();
+    Span singleItemSpan = tracer.spanBuilder("ycsb-update").startSpan();
 
     // Build a commit request in non-transactional mode.
     // Single item mutation to google datastore
