@@ -82,6 +82,11 @@ LICENSE file.
       <artifactId>opentelemetry-semconv</artifactId>
       <version>1.1.0-alpha</version>
     </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-exporters-logging</artifactId>
+      <version>0.9.1</version>
+    </dependency>
     <!-- END OpenTelemetry -->
     <!-- Cloud Ops -->
     <dependency>

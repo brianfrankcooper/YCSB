@@ -47,8 +47,12 @@ import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.resources.Resource;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
-import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
-import io.opentelemetry.sdk.trace.samplers.Sampler;
+//import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
+import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
+import io.opentelemetry.exporters.logging.*;
+//import io.opentelemetry.exporter.logging.LoggingSpanExporter;
+import io.opentelemetry.exporters.logging.LoggingSpanExporter;
+//import io.opentelemetry.sdk.trace.samplers.Sampler;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
 import io.opentelemetry.sdk.trace.SpanProcessor;
 import static io.opentelemetry.semconv.resource.attributes.ResourceAttributes.SERVICE_NAME;
@@ -204,15 +208,17 @@ public class GoogleDatastoreClient extends DB {
     // Using a batch span processor
     // You can use `.setScheduleDelay()`, `.setExporterTimeout()`,
     // `.setMaxQueueSize`(), and `.setMaxExportBatchSize()` to further customize.
-    SpanProcessor gcpBatchSpanProcessor =
-        BatchSpanProcessor.builder(gcpTraceExporter).build();
+    SpanProcessor gcpSpanProcessor =
+        SimpleSpanProcessor.builder(gcpTraceExporter).build();
+  //  LoggingSpanExporter loggingSpanExporter = LoggingSpanExporter.create();
+    SpanProcessor loggingSpanProcessor = SimpleSpanProcessor.builder(new LoggingSpanExporter()).build();
 
     // Export directly Cloud Trace with 50% trace sampling ratio
     OpenTelemetrySdk otel = OpenTelemetrySdk.builder()
         .setTracerProvider(SdkTracerProvider.builder()
             .setResource(resource)
-            .addSpanProcessor(gcpBatchSpanProcessor)
-            .setSampler(Sampler.traceIdRatioBased(0.5))
+            .addSpanProcessor(gcpSpanProcessor)
+            .addSpanProcessor(loggingSpanProcessor)
             .build()).build();
 
     logger.info("otel sdk class: " + otel.toString());
