@@ -39,6 +39,10 @@ import com.google.cloud.opentelemetry.trace.TraceExporter;
 //import io.opentelemetry.api.trace.Tracer;
 //import io.opentelemetry.context.Context;
 //import io.opentelemetry.context.Scope;
+import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.context.Scope;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.resources.Resource;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
@@ -106,6 +110,8 @@ public class GoogleDatastoreClient extends DB {
   private Datastore datastore = null;
 
   private static boolean skipIndex = true;
+
+  private Tracer tracer = null;
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is
@@ -185,6 +191,34 @@ public class GoogleDatastoreClient extends DB {
     this.rootEntityName = getProperties().getProperty(
         "googledatastore.rootEntityName", "YCSB_ROOT_ENTITY");
 
+
+    // Configure OpenTelemetry Tracing SDK
+    Resource resource = Resource
+        .getDefault().merge(Resource.builder().put(SERVICE_NAME, "My App").build());
+    SpanExporter gcpTraceExporter;
+    try {
+      gcpTraceExporter = TraceExporter.createWithDefaultConfiguration();
+    } catch (Exception exception) {
+      throw new DBException("Unable to create gcp trace exporter " +
+          exception.getMessage(), exception);
+    }
+
+    // Using a batch span processor
+    // You can use `.setScheduleDelay()`, `.setExporterTimeout()`,
+    // `.setMaxQueueSize`(), and `.setMaxExportBatchSize()` to further customize.
+    SpanProcessor gcpBatchSpanProcessor =
+        BatchSpanProcessor.builder(gcpTraceExporter).build();
+
+    // Export directly Cloud Trace with 10% trace sampling ratio
+    OpenTelemetrySdk otel = OpenTelemetrySdk.builder()
+        .setTracerProvider(SdkTracerProvider.builder()
+            .setResource(resource)
+            .addSpanProcessor(gcpBatchSpanProcessor)
+            .setSampler(Sampler.traceIdRatioBased(0.5))
+            .build()).buildAndRegisterGlobal();
+
+    tracer = otel.getTracer("YCSB_Datastore_Test");
+
     try {
       // Setup the connection to Google Cloud Datastore with the credentials
       // obtained from the configure.
@@ -201,24 +235,6 @@ public class GoogleDatastoreClient extends DB {
         logger.info("DatasetID: " + datasetId
             + ", Service Account Email: " + ((GoogleCredential) credential).getServiceAccountId());
       }
-      // Configure OpenTelemetry Tracing SDK
-      Resource resource = Resource
-          .getDefault().merge(Resource.builder().put(SERVICE_NAME, "My App").build());
-      SpanExporter gcpTraceExporter = TraceExporter.createWithDefaultConfiguration();
-
-      // Using a batch span processor
-      // You can use `.setScheduleDelay()`, `.setExporterTimeout()`,
-      // `.setMaxQueueSize`(), and `.setMaxExportBatchSize()` to further customize.
-      SpanProcessor gcpBatchSpanProcessor =
-          BatchSpanProcessor.builder(gcpTraceExporter).build();
-
-      // Export directly Cloud Trace with 10% trace sampling ratio
-      OpenTelemetrySdk otel = OpenTelemetrySdk.builder()
-          .setTracerProvider(SdkTracerProvider.builder()
-              .setResource(resource)
-              .addSpanProcessor(gcpBatchSpanProcessor)
-              .setSampler(Sampler.traceIdRatioBased(0.5))
-              .build()).buildAndRegisterGlobal();
 
       DatastoreOptions datastoreOptions = DatastoreOptions
           .newBuilder()
@@ -252,13 +268,15 @@ public class GoogleDatastoreClient extends DB {
 
     KeyFactory keyFactory = datastore.newKeyFactory().setKind(table);
     Entity entity = null;
-    try {
+    Span readSpan = tracer.spanBuilder("ycsb-read").startSpan();
+    try (Scope ignore = readSpan.makeCurrent()) {
       if (isEventualConsistency) {
         entity = datastore.get(keyFactory.newKey(key), ReadOption.eventualConsistency());
       } else {
         entity = datastore.get(keyFactory.newKey(key));
       }
     } catch (com.google.cloud.datastore.DatastoreException exception) {
+      readSpan.setStatus(StatusCode.ERROR, exception.getMessage());
       logger.error(
           String.format("Datastore Exception when reading (%s): %s",
               exception.getMessage(),
@@ -267,6 +285,8 @@ public class GoogleDatastoreClient extends DB {
       // DatastoreException.getCode() returns an HTTP response code which we
       // will bubble up to the user as part of the YCSB Status "name".
       return new Status("ERROR-" + exception.getCode(), exception.getMessage());
+    } finally {
+      readSpan.end();
     }
 
     System.out.println(entity);
@@ -338,6 +358,7 @@ public class GoogleDatastoreClient extends DB {
                                       MutationType mutationType) {
     // First build the key.
     Key.Builder datastoreKey = buildPrimaryKey(table, key);
+    Span singleItemSpan = tracer.spanBuilder("ycsb-UPDATE").startSpan();
 
     // Build a commit request in non-transactional mode.
     // Single item mutation to google datastore
@@ -363,7 +384,7 @@ public class GoogleDatastoreClient extends DB {
       Entity entity = entityBuilder.build();
       logger.debug("entity built as: " + entity.toString());
 
-      try {
+      try (Scope ignore = singleItemSpan.makeCurrent()) {
         if (mutationType == MutationType.UPSERT) {
           //  commitRequest.addMutationsBuilder().setUpsert(entity);
           datastore.put(entity);
@@ -374,6 +395,7 @@ public class GoogleDatastoreClient extends DB {
           throw new RuntimeException("Impossible MutationType, code bug.");
         }
       } catch (Exception exception) {
+        singleItemSpan.setStatus(StatusCode.ERROR, exception.getMessage());
         // Catch all Datastore rpc errors.
         // Log the exception, the name of the method called and the error code.
         logger.error(
@@ -383,6 +405,8 @@ public class GoogleDatastoreClient extends DB {
         // DatastoreException.getCode() returns an HTTP response code which we
         // will bubble up to the user as part of the YCSB Status "name".
         return new Status("ERROR-", exception.getMessage());
+      } finally {
+        singleItemSpan.end();
       }
     }
 
