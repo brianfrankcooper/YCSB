@@ -199,7 +199,10 @@ public class GoogleDatastoreClient extends DB {
         .getDefault().merge(Resource.builder().put(SERVICE_NAME, "My App").build());
     SpanExporter gcpTraceExporter;
     try {
-      gcpTraceExporter = TraceExporter.createWithDefaultConfiguration();
+      gcpTraceExporter = TraceExporter.createWithConfiguration(
+          TraceConfiguration.builder().setProjectId("cindy-cloud-sdk-test").build()
+      );
+
     } catch (Exception exception) {
       throw new DBException("Unable to create gcp trace exporter " +
           exception.getMessage(), exception);
