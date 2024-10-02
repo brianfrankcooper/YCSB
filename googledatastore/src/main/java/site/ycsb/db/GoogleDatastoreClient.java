@@ -209,13 +209,13 @@ public class GoogleDatastoreClient extends DB {
     SpanProcessor gcpBatchSpanProcessor =
         BatchSpanProcessor.builder(gcpTraceExporter).build();
 
-    // Export directly Cloud Trace with 10% trace sampling ratio
+    // Export directly Cloud Trace with 50% trace sampling ratio
     OpenTelemetrySdk otel = OpenTelemetrySdk.builder()
         .setTracerProvider(SdkTracerProvider.builder()
             .setResource(resource)
             .addSpanProcessor(gcpBatchSpanProcessor)
             .setSampler(Sampler.traceIdRatioBased(0.5))
-            .build()).buildAndRegisterGlobal();
+            .build()).build();
 
     tracer = otel.getTracer("YCSB_Datastore_Test");
 
