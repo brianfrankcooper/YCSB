@@ -221,7 +221,6 @@ public class GoogleDatastoreClient extends DB {
 
     logger.info("otel sdk class: " + otel.toString());
     tracer = otel.getTracer("YCSB_Datastore_Test");
-    logger.info("tracer class: " + tracer.getClass().getName());
 
     try {
       // Setup the connection to Google Cloud Datastore with the credentials
@@ -241,7 +240,7 @@ public class GoogleDatastoreClient extends DB {
             + ", Service Account Email: " + ((GoogleCredential) credential).getServiceAccountId());
       }
 
-      logger.info("credential: " + credential);
+      logger.info("credential: " + ((GoogleCredential) credential).toString());
 
       DatastoreOptions datastoreOptions = DatastoreOptions
           .newBuilder()
@@ -276,6 +275,7 @@ public class GoogleDatastoreClient extends DB {
     KeyFactory keyFactory = datastore.newKeyFactory().setKind(table);
     Entity entity = null;
     Span readSpan = tracer.spanBuilder("ycsb-read").startSpan();
+    logger.info("readspan: " + readSpan);
     try (Scope ignore = readSpan.makeCurrent()) {
       if (isEventualConsistency) {
         entity = datastore.get(keyFactory.newKey(key), ReadOption.eventualConsistency());
