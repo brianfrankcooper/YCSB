@@ -26,15 +26,18 @@ import com.google.datastore.v1.CommitRequest.Mode;
 import com.google.datastore.v1.Key;
 import com.google.datastore.v1.ReadOptions.ReadConsistency;
 import com.google.datastore.v1.Value;
-import com.google.cloud.datastore.v1.DatastoreSettings;
+//import com.google.cloud.datastore.v1.DatastoreSettings;
 //import com.google.datastore.v1.client.DatastoreException;
 import com.google.datastore.v1.client.DatastoreHelper;
 //import com.google.datastore.v1.client.DatastoreOptions;
 //import com.google.datastore.v1.client.DatastoreFactory;
 //import com.google.datastore.v1.client.Datastore;
-import com.google.cloud.grpc.GrpcTransportOptions;
-import com.google.api.gax.grpc.ChannelPoolSettings;
-import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
+//import com.google.cloud.grpc.GrpcTransportOptions;
+//import com.google.api.gax.grpc.ChannelPoolSettings;
+//import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
+import com.google.cloud.datastore.Datastore;
+import com.google.cloud.datastore.DatastoreOptions;
+
 
 import site.ycsb.ByteIterator;
 import site.ycsb.DB;
@@ -209,26 +212,26 @@ public class GoogleDatastoreClient extends DB {
 
       if (usegRPC) {
         if (useChannelProvider) {
-          InstantiatingGrpcChannelProvider channelProvider = DatastoreSettings
-              .defaultGrpcTransportProviderBuilder()
-              .setChannelPoolSettings(ChannelPoolSettings.builder()
-                  .setInitialChannelCount(10)
-                  .setMaxChannelCount(20)
-                  .build()).build();
-          datastore = DatastoreOptions.newBuilder()
-              .setChannelProvider(channelProvider)
-              .setTransportOptions(GrpcTransportOptions.newBuilder().build())
-              .setProjectId(projectId)
-              .setDatabaseId(datasetId)
-              .build()
-              .getService();
+//          InstantiatingGrpcChannelProvider channelProvider = DatastoreSettings
+//              .defaultGrpcTransportProviderBuilder()
+//              .setChannelPoolSettings(ChannelPoolSettings.builder()
+//                  .setInitialChannelCount(10)
+//                  .setMaxChannelCount(20)
+//                  .build()).build();
+//          datastore = DatastoreOptions.newBuilder()
+//              .setChannelProvider(channelProvider)
+//              .setTransportOptions(GrpcTransportOptions.newBuilder().build())
+//              .setProjectId(projectId)
+//              .setDatabaseId(datasetId)
+//              .build()
+//              .getService();
         } else {
-          datastore = DatastoreOptions.newBuilder()
-              .setTransportOptions(GrpcTransportOptions.newBuilder().build())
-              .setProjectId(projectId)
-              .setDatabaseId(datasetId)
-              .build()
-              .getService();
+//          datastore = DatastoreOptions.newBuilder()
+//              .setTransportOptions(GrpcTransportOptions.newBuilder().build())
+//              .setProjectId(projectId)
+//              .setDatabaseId(datasetId)
+//              .build()
+//              .getService();
         }
       } else {
         datastore = DatastoreOptions.newBuilder()
