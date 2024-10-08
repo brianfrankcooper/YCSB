@@ -123,6 +123,7 @@ LICENSE file.
 		<couchbase2.version>2.3.1</couchbase2.version>
 		<crail.version>1.1-incubating</crail.version>
     <elasticsearch5-version>5.5.1</elasticsearch5-version>
+    <etcd-version>3.5.7</etcd-version>
     <foundationdb.version>5.2.5</foundationdb.version>
     <geode.version>1.2.0</geode.version>
     <googlebigtable.version>1.4.0</googlebigtable.version>
@@ -172,6 +173,7 @@ LICENSE file.
     <module>dynamodb</module>
     <module>elasticsearch</module>
     <module>elasticsearch5</module>
+    <module>etcd</module>
     <module>foundationdb</module>
     <module>geode</module>
     <module>googlebigtable</module>
