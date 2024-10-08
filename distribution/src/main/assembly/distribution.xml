@@ -36,6 +36,14 @@ LICENSE file.
     <fileSet>
       <directory>../bin</directory>
       <outputDirectory>bin</outputDirectory>
+      <fileMode>0644</fileMode>
+      <includes>
+        <include>uci_online_retail.csv</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <directory>../bin</directory>
+      <outputDirectory>bin</outputDirectory>
       <fileMode>0755</fileMode>
       <includes>
         <include>ycsb*</include>

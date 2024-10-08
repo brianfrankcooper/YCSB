@@ -17,6 +17,8 @@
 
 package site.ycsb;
 
+import org.javatuples.Pair;
+
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.Map;
@@ -297,6 +299,16 @@ public class BasicDB extends DB {
       }
     }
   }
+
+  @Override
+  public Status search(String table,
+                       Pair<String, String> queryPair, boolean onlyinsale,
+                       Pair<Integer, Integer> pagePair,
+                       HashSet<String> fields,
+                       Vector<HashMap<String, ByteIterator>> hashMaps) {
+    return Status.OK;
+  }
+
   
   /**
    * Increments the count on the hash in the map.

@@ -64,7 +64,13 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
    * Whether or not to emit the histogram buckets.
    */
   private final boolean verbose;
-  
+
+  /**
+   * Whether or not to export the percentile output text file.
+   */
+  private final boolean exportPercentileOutputFile;
+  private final String exportPercentileOutputFileName;
+
   private final List<Double> percentiles;
 
   public OneMeasurementHdrHistogram(String name, Properties props) {
@@ -72,6 +78,10 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
     percentiles = getPercentileValues(props.getProperty(PERCENTILES_PROPERTY, PERCENTILES_PROPERTY_DEFAULT));
     verbose = Boolean.valueOf(props.getProperty(VERBOSE_PROPERTY, String.valueOf(false)));
     boolean shouldLog = Boolean.parseBoolean(props.getProperty("hdrhistogram.fileoutput", "false"));
+    String percentileFileProp = props.getProperty("hdrhistogram.percentiles.export", "false");
+    exportPercentileOutputFile = Boolean.parseBoolean(percentileFileProp);
+    exportPercentileOutputFileName = props.getProperty("hdrhistogram.percentiles.export.filepath", "")
+        + name + "-percentiles.txt";
     if (!shouldLog) {
       log = null;
       histogramLogWriter = null;
@@ -137,6 +147,19 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
   
         exporter.write(getName(), Integer.toString(value), (double)v.getCountAtValueIteratedTo());
       }
+    }
+
+    // export percentile output format
+    if (exportPercentileOutputFile) {
+      try {
+        PrintStream percentileStream = new PrintStream(new FileOutputStream(exportPercentileOutputFileName), false);
+        totalHistogram.outputPercentileDistribution(percentileStream, 1.0);
+        percentileStream.close();
+      } catch (FileNotFoundException e) {
+        throw new RuntimeException("Failed to open hdr histogram percentile output file", e);
+      }
+      System.out.println("[INFO] Finished exporting the full latency spectrum in percentile output format for "
+          + getName() + " into file " + exportPercentileOutputFileName + ".");
     }
   }
 

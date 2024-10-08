@@ -22,6 +22,8 @@ import java.util.*;
 
 import site.ycsb.ByteIterator;
 import site.ycsb.Status;
+import org.javatuples.Pair;
+
 import site.ycsb.StringByteIterator;
 
 import org.junit.AfterClass;

@@ -38,7 +38,8 @@ import org.elasticsearch.index.query.RangeQueryBuilder;
 import org.elasticsearch.index.query.TermQueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
-
+import java.util.*;
+import org.javatuples.Pair;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.HashMap;
@@ -328,6 +329,24 @@ public class ElasticsearchClient extends DB {
   private SearchResponse search(final String table, final String key) {
     refreshIfNeeded();
     return client.prepareSearch(indexKey).setTypes(table).setQuery(new TermQueryBuilder(KEY, key)).get();
+  }
+
+  @Override
+  /**
+   * Full text search a record from the database.
+   *
+   * @param table The name of the table
+   * @param queryPair   The search query pair of words.
+   * @param pagePair   The paginated pair info.
+   * @param pagePair   The return fields for the search query.
+   * @hashMaps values A HashMap of field/value pairs of the search result
+   * @return Status.NOT_IMPLEMENTED or the search results
+   * in case the operation is supported.
+   */
+  public Status search(String table, Pair<String, String> queryPair, boolean onlyinsale,
+                       Pair<Integer, Integer> pagePair,
+                       HashSet<String> fields, Vector<HashMap<String, ByteIterator>> hashMaps) {
+    return Status.NOT_IMPLEMENTED;
   }
 
 }

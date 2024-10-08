@@ -21,13 +21,8 @@ package site.ycsb.db.accumulo;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -58,6 +53,8 @@ import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
+import org.javatuples.Pair;
+
 
 /**
  * <a href="https://accumulo.apache.org/">Accumulo</a> binding for YCSB.
@@ -337,6 +334,25 @@ public class AccumuloClient extends DB {
     }
 
     return Status.OK;
+  }
+
+
+  @Override
+  /**
+   * Full text search a record from the database.
+   *
+   * @param table The name of the table
+   * @param queryPair   The search query pair of words.
+   * @param pagePair   The paginated pair info.
+   * @param pagePair   The return fields for the search query.
+   * @hashMaps values A HashMap of field/value pairs of the search result
+   * @return Status.NOT_IMPLEMENTED or the search results
+   * in case the operation is supported.
+   */
+  public Status search(String table, Pair<String, String> queryPair, boolean onlyinsale,
+       Pair<Integer, Integer> pagePair,
+       HashSet<String> fields, Vector<HashMap<String, ByteIterator>> hashMaps) {
+    return Status.NOT_IMPLEMENTED;
   }
 
   // These functions are adapted from RowOperations.java:

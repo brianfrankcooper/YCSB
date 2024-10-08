@@ -17,11 +17,9 @@
 
 package site.ycsb;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.Vector;
+import org.javatuples.Pair;
+
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
@@ -84,6 +82,14 @@ public class GoodBadUglyDB extends DB {
     for (String delay : getProperties().getProperty(SIMULATE_DELAY, SIMULATE_DELAY_DEFAULT).split(",")) {
       delays[i++] = Long.parseLong(delay);
     }
+  }
+
+  public Status search(String table,
+                       Pair<String, String> queryPair, boolean onlyinsale,
+                       Pair<Integer, Integer> pagePair,
+                       HashSet<String> fields,
+                       Vector<HashMap<String, ByteIterator>> hashMaps) {
+    return Status.OK;
   }
 
   /**

@@ -20,6 +20,8 @@ package site.ycsb.db.ignite;
 import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.Status;
+import org.javatuples.Pair;
+
 import site.ycsb.StringByteIterator;
 import org.apache.ignite.Ignite;
 import org.junit.After;

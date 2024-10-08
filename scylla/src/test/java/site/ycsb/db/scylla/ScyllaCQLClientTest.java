@@ -34,6 +34,8 @@ import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 import site.ycsb.ByteIterator;
 import site.ycsb.Status;
+import org.javatuples.Pair;
+
 import site.ycsb.StringByteIterator;
 import site.ycsb.measurements.Measurements;
 import site.ycsb.workloads.CoreWorkload;
