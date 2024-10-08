@@ -1,0 +1,66 @@
+<?xml version="1.0" ?>
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one or more
+ contributor license agreements.  See the NOTICE file distributed with
+ this work for additional information regarding copyright ownership.
+ The ASF licenses this file to You under the Apache License, Version 2.0
+ (the "License"); you may not use this file except in compliance with
+ the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+<!--
+ Copied from Apache Solr 7.7.2 solr/solrj/src/test-files/solrj/solr/collection1/conf/schema.xml
+ Modified to only required types and fields for YCSB testing.
+-->
+<schema name="test" version="1.6">
+
+  <!-- field type definitions... note that the "name" attribute is
+       just a label to be used by field definitions.  The "class"
+       attribute and any other attributes determine the real type and
+       behavior of the fieldType.
+    -->
+
+  <types>
+  <fieldType name="int" class="solr.IntPointField" docValues="true"/>
+  <fieldType name="long" class="solr.LongPointField" docValues="true"/>
+  <fieldType name="string" class="solr.StrField" sortMissingLast="true" docValues="true" />
+
+  <fieldType name="text" class="solr.TextField">
+    <analyzer>
+      <tokenizer class="solr.StandardTokenizerFactory"/>
+      <filter class="solr.LowerCaseFilterFactory"/>
+      <filter class="solr.StopFilterFactory"/>
+      <filter class="solr.PorterStemFilterFactory"/>
+    </analyzer>
+  </fieldType>
+  </types>
+
+
+  <fields>
+  <field name="id" type="string" indexed="true" stored="true" multiValued="false" required="false"/>
+  <field name="text" type="text" indexed="true" stored="false"/>
+
+  <field name="_version_" type="long" indexed="false" stored="false"/>
+
+    <field name="field0" type="text" indexed="true" stored="true"/>
+    <field name="field1" type="text" indexed="true" stored="true"/>
+    <field name="field2" type="text" indexed="true" stored="true"/>
+    <field name="field3" type="text" indexed="true" stored="true"/>
+    <field name="field4" type="text" indexed="true" stored="true"/>
+    <field name="field5" type="text" indexed="true" stored="true"/>
+    <field name="field6" type="text" indexed="true" stored="true"/>
+    <field name="field7" type="text" indexed="true" stored="true"/>
+    <field name="field8" type="text" indexed="true" stored="true"/>
+    <field name="field9" type="text" indexed="true" stored="true"/>
+  </fields>
+
+  <uniqueKey>id</uniqueKey>
+
+</schema>
