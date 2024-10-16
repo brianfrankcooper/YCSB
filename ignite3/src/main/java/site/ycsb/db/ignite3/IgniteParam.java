@@ -10,28 +10,38 @@ import org.jetbrains.annotations.NotNull;
  * @param <T> Parameter value type.
  */
 public final class IgniteParam<T> {
-  public static final IgniteParam<Boolean> DEBUG = new IgniteParam<>("debug", false,
-      Boolean::parseBoolean);
+  public static final IgniteParam<Boolean> DEBUG =
+      new IgniteParam<>("debug", false, Boolean::parseBoolean);
 
-  public static final IgniteParam<Boolean> SHUTDOWN_IGNITE = new IgniteParam<>("shutdownIgnite", false,
-      Boolean::parseBoolean);
+  public static final IgniteParam<Boolean> SHUTDOWN_IGNITE =
+      new IgniteParam<>("shutdownIgnite", false, Boolean::parseBoolean);
 
-  public static final IgniteParam<Boolean> USE_EMBEDDED = new IgniteParam<>("useEmbedded", false,
-      Boolean::parseBoolean);
+  public static final IgniteParam<Boolean> USE_EMBEDDED =
+      new IgniteParam<>("useEmbedded", false, Boolean::parseBoolean);
 
-  public static final IgniteParam<Boolean> DISABLE_FSYNC = new IgniteParam<>("disableFsync", false,
-      Boolean::parseBoolean);
+  public static final IgniteParam<Boolean> DISABLE_FSYNC =
+      new IgniteParam<>("disableFsync", false, Boolean::parseBoolean);
 
-  public static final IgniteParam<String> DB_ENGINE = new IgniteParam<>("dbEngine", "", s -> s);
+  public static final IgniteParam<Boolean> USE_COLUMNAR =
+      new IgniteParam<>("useColumnar", false, Boolean::parseBoolean);
 
-  public static final IgniteParam<String> STORAGE_PROFILES = new IgniteParam<>("storage_profiles", "", s -> s);
+  public static final IgniteParam<String> DB_ENGINE =
+      new IgniteParam<>("dbEngine", "", s -> s);
 
-  public static final IgniteParam<String> REPLICAS = new IgniteParam<>("replicas", "", s -> s);
+  public static final IgniteParam<String> STORAGE_PROFILES =
+      new IgniteParam<>("storage_profiles", "", s -> s);
 
-  public static final IgniteParam<String> PARTITIONS = new IgniteParam<>("partitions", "", s -> s);
+  public static final IgniteParam<String> SECONDARY_STORAGE_PROFILE =
+      new IgniteParam<>("secondary_storage_profile", "", s -> s);
 
-  public static final IgniteParam<String> WORK_DIR = new IgniteParam<>("workDir",
-      "../ignite3-ycsb-work/" + System.currentTimeMillis(), s -> s);
+  public static final IgniteParam<String> REPLICAS =
+      new IgniteParam<>("replicas", "", s -> s);
+
+  public static final IgniteParam<String> PARTITIONS =
+      new IgniteParam<>("partitions", "", s -> s);
+
+  public static final IgniteParam<String> WORK_DIR =
+      new IgniteParam<>("workDir", "../ignite3-ycsb-work/" + System.currentTimeMillis(), s -> s);
 
   /**
    * Parameter name.

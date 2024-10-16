@@ -74,6 +74,11 @@ LICENSE file.
       <name>GridGain snapshots</name>
       <url>https://www.gridgainsystems.com/nexus/content/repositories/gridgain-snapshots</url>
     </repository>
+    <repository>
+      <id>gridgain-external-repository</id>
+      <name>GridGain external</name>
+      <url>https://www.gridgainsystems.com/nexus/content/repositories/external</url>
+    </repository>
   </repositories>
 
   <dependencies>
@@ -109,6 +114,13 @@ LICENSE file.
       <groupId>org.apache.ignite</groupId>
       <artifactId>ignite-runner</artifactId>
       <version>${ignite3.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.gridgain</groupId>
+      <artifactId>gridgain-columnar</artifactId>
+      <version>${gridgain9.version}</version>
       <scope>provided</scope>
     </dependency>
 

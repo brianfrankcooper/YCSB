@@ -25,12 +25,15 @@ abstract class AbstractSqlClient extends IgniteAbstractClient {
     super.init();
 
     synchronized (AbstractSqlClient.class) {
-      if (readPreparedStatementString != null || insertPreparedStatementString != null
+      if (readPreparedStatementString != null
+          || insertPreparedStatementString != null
           || deletePreparedStatementString != null) {
         return;
       }
 
-      readPreparedStatementString = String.format("SELECT * FROM %s WHERE %s = ?", cacheName, PRIMARY_COLUMN_NAME);
+      readPreparedStatementString = useColumnar ?
+          String.format("SELECT * FROM %s /*+ use_secondary_storage */ WHERE %s = ?", cacheName, PRIMARY_COLUMN_NAME) :
+          String.format("SELECT * FROM %s WHERE %s = ?", cacheName, PRIMARY_COLUMN_NAME);
 
       List<String> columns = new ArrayList<>(Collections.singletonList(PRIMARY_COLUMN_NAME));
       columns.addAll(FIELDS);

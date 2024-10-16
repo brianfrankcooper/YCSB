@@ -127,6 +127,7 @@ LICENSE file.
     <gridgain.version>8.8.34</gridgain.version>
     <ignite.version>2.11.1</ignite.version>
     <ignite3.version>3.0.0-SNAPSHOT</ignite3.version>
+    <gridgain9.version>9.0.127-SNAPSHOT</gridgain9.version>
     <infinispan.version>7.2.2.Final</infinispan.version>
     <kudu.version>1.11.1</kudu.version>
     <maprhbase.version>1.1.8-mapr-1710</maprhbase.version>

@@ -78,6 +78,10 @@ public abstract class IgniteAbstractClient extends DB {
 
   protected static final String DEFAULT_ZONE_NAME = "Z1";
 
+  protected static final String DEFAULT_STORAGE_PROFILE_NAME = "default";
+
+  protected static final String DEFAULT_COLUMNAR_PROFILE_NAME = "myColumnarStore";
+
   protected static final long TABLE_CREATION_TIMEOUT_SECONDS = 10L;
 
   /**
@@ -128,6 +132,11 @@ public abstract class IgniteAbstractClient extends DB {
   protected static boolean disableFsync = false;
 
   /**
+   * Create table with columnar secondary storage profile and use it to fetch data.
+   */
+  protected static boolean useColumnar = false;
+
+  /**
    * Used to choose storage engine (e.g., 'aipersist' or 'rocksdb').
    * @deprecated Removed in <a href="https://ggsystems.atlassian.net/browse/IGN-23905">IGN-23905</a>
    */
@@ -138,6 +147,11 @@ public abstract class IgniteAbstractClient extends DB {
    * Used to choose storage profile (e.g., 'default', 'aimem', 'aipersist', 'rocksdb').
    */
   protected static String storageProfile;
+
+  /**
+   * Used to choose secondary storage profile (e.g., 'columnar').
+   */
+  protected static String secondaryStorageProfile;
 
   /**
    * Used to choose replication factor value.
@@ -192,11 +206,13 @@ public abstract class IgniteAbstractClient extends DB {
       useEmbeddedIgnite = IgniteParam.USE_EMBEDDED.getValue(properties);
       disableFsync = IgniteParam.DISABLE_FSYNC.getValue(properties);
       dbEngine = IgniteParam.DB_ENGINE.getValue(properties);
-      storageProfile = IgniteParam.STORAGE_PROFILES.getValue(properties).toLowerCase();
+      storageProfile = IgniteParam.STORAGE_PROFILES.getValue(properties);
+      useColumnar = IgniteParam.USE_COLUMNAR.getValue(properties);
+      secondaryStorageProfile = IgniteParam.SECONDARY_STORAGE_PROFILE.getValue(properties);
 
       // backward compatibility of setting 'dbEngine' as storage engine name only.
       if (storageProfile.isEmpty() && !dbEngine.isEmpty()) {
-        storageProfile = dbEngine.toLowerCase();
+        storageProfile = dbEngine;
       }
 
       replicas = IgniteParam.REPLICAS.getValue(properties);
@@ -300,8 +316,18 @@ public abstract class IgniteAbstractClient extends DB {
 
       String createZoneReq = createZoneSQL();
 
-      String withZoneName = createZoneReq.isEmpty() ?
-          "" : String.format(" WITH PRIMARY_ZONE='%s';", DEFAULT_ZONE_NAME);
+      String withZoneName = "";
+      if (!createZoneReq.isEmpty()) {
+        if (useColumnar) {
+          withZoneName = String.format(
+              " WITH PRIMARY_ZONE='%s', STORAGE_PROFILE='%s', SECONDARY_STORAGE_PROFILE='%s'",
+              DEFAULT_ZONE_NAME,
+              storageProfile,
+              secondaryStorageProfile);
+        } else {
+          withZoneName = String.format(" WITH PRIMARY_ZONE='%s';", DEFAULT_ZONE_NAME);
+        }
+      }
 
       String createTableReq = "CREATE TABLE IF NOT EXISTS " + cacheName + " ("
           + PRIMARY_COLUMN_NAME + " VARCHAR PRIMARY KEY, "
@@ -333,12 +359,22 @@ public abstract class IgniteAbstractClient extends DB {
    * Prepare the creation zone SQL line.
    */
   private String createZoneSQL() {
-    if (storageProfile.isEmpty() && replicas.isEmpty() && partitions.isEmpty()) {
+    if (storageProfile.isEmpty() && replicas.isEmpty() && partitions.isEmpty() && !useColumnar) {
       return "";
     }
 
-    String paramStorageProfiles = String.format("STORAGE_PROFILES='%s'",
-            storageProfile.isEmpty() ? "default" : storageProfile);
+    storageProfile = storageProfile.isEmpty() ?
+        DEFAULT_STORAGE_PROFILE_NAME :
+        storageProfile;
+    secondaryStorageProfile = secondaryStorageProfile.isEmpty() ?
+        DEFAULT_COLUMNAR_PROFILE_NAME :
+        secondaryStorageProfile;
+
+    String storageProfiles = useColumnar ?
+        String.join(",", storageProfile, secondaryStorageProfile) :
+        storageProfile;
+
+    String paramStorageProfiles = String.format("STORAGE_PROFILES='%s'", storageProfiles);
     String paramReplicas = replicas.isEmpty() ? "" : "replicas=" + replicas;
     String paramPartitions = partitions.isEmpty() ? "" : "partitions=" + partitions;
     String params = Stream.of(paramStorageProfiles, paramReplicas, paramPartitions)
