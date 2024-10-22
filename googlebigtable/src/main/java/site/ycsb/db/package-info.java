@@ -16,7 +16,6 @@
  */
 
 /**
- * The YCSB binding for Google's <a href="https://cloud.google.com/bigtable/">
- * Bigtable</a>.
+ * Old/Deprecated YCSB binding for Google's Bigtable. Please use googlebigtable2 binding.
  */
 package site.ycsb.db;
