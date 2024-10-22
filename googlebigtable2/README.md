@@ -65,18 +65,21 @@ Make sure to replace the variables in the angle brackets above with the proper v
 The `load` step only executes inserts into the datastore. After loading data, run the same workload to mix reads with writes.
 
 ```
-bin/ycsb run googlebigtable -p columnfamily=cf -p google.bigtable.project.id=<PROJECT_ID> -p google.bigtable.instance.id=<INSTANCE> -p google.bigtable.auth.json.keyfile=<PATH_TO_JSON_KEY> -P workloads/workloada
+GOOGLE_APPLICATION_CREDENTIALS=<PATH_TO_JSON_KEY> \
+  bin/ycsb run googlebigtable2 \
+  -p googlebigtable2.project=$PROJECT -p googlebigtable2.instance=$INSTANCE -p googlebigtable2.family=cf \
+  -P workloads/workloada
 
 ```
 
 ## Configuration Options
 
-The following options can be configured using CLI (using the `-p` parameter) or hbase-site.xml (add the HBase config directory to YCSB's class path via CLI). Check the [Cloud Bigtable Client](https://github.com/manolama/cloud-bigtable-client) project for additional tuning parameters.
+The following options can be configured using CLI (using the `-p` parameter).
 
-* `columnfamily`: (Required) The Bigtable column family to target.
-* `google.bigtable.project.id`: (Required) The ID of a Bigtable project.
-* `google.bigtable.instance.id`: (Required) The name of a Bigtable instance.
-* `google.bigtable.auth.service.account.enable`: Whether or not to authenticate with a service account. The default is true.
-* `google.bigtable.auth.json.keyfile`: (Required) A service account key for authentication.
+* `googlebigtable2.project`: (Required) The ID of a Bigtable project.
+* `googlebigtable2.instance`: (Required) The name of a Bigtable instance.
+* `googlebigtable2.app-profile`: (Optional) The app profile to use.
+* `googlebigtable2.family`: (Required) The Bigtable column family to target.
 * `debug`: If true, prints debug information to standard out. The default is false.
-* `clientbuffering`: Whether or not to use client side buffering and batching of write operations. This can significantly improve performance and defaults to true.
+* `googlebigtable2.use-batching`: (Optional) Whether or not to use client side buffering and batching of write operations. This can significantly improve performance and defaults to true.
+* `googlebigtable2..max-outstanding-bytes`: (Optional) When batching is enabled, override the limit of number of outstanding mutation bytes.

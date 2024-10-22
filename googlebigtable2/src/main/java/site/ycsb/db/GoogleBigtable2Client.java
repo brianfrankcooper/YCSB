@@ -83,7 +83,7 @@ public class GoogleBigtable2Client extends site.ycsb.DB {
    * If true, buffer mutations on the client. For measuring insert/update/delete latencies, client
    * side buffering should be disabled.
    */
-  private static boolean clientSideBuffering = false;
+  private static boolean clientSideBuffering = true;
 
   /**
    * Thread local Bigtable native API objects.
@@ -135,7 +135,7 @@ public class GoogleBigtable2Client extends site.ycsb.DB {
     clientSideBuffering =
         Optional.ofNullable(props.getProperty(CLIENT_SIDE_BUFFERING))
             .map(Boolean::parseBoolean)
-            .orElse(false);
+            .orElse(true);
 
     Optional.ofNullable(props.getProperty(MAX_OUTSTANDING_BYTES))
         .map(Long::parseLong)
