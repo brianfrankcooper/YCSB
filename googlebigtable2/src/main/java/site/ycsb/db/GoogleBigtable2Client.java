@@ -178,10 +178,7 @@ public class GoogleBigtable2Client extends site.ycsb.DB {
       try {
         batcher.close();
       } catch (BatchingException e) {
-        // BatchingExceptions summarize individual entry errors, which YCSB already does
-        if (debug) {
-          System.err.println(e);
-        }
+        System.err.println(e);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
       }
@@ -397,24 +394,4 @@ public class GoogleBigtable2Client extends site.ycsb.DB {
       return remaining;
     }
   }
-  //
-  //  public static void main(String[] args) throws Exception {
-  //    GoogleBigtable2Client client = new GoogleBigtable2Client();
-  //    Properties properties = new Properties();
-  //    properties.setProperty(PROJECT_KEY, "google.com:cloud-bigtable-dev");
-  //    properties.setProperty(INSTANCE_KEY, "igorbernstein-dev");
-  //    properties.setProperty(FAMILY_KEY, "f");
-  //    properties.setProperty(CLIENT_SIDE_BUFFERING, "true");
-  //
-  //    client.setProperties(properties);
-  //    client.init();
-  //
-  ////    Vector<HashMap<String, ByteIterator>> result = new Vector<>();
-  ////    client.scan("table2","", 10, null, result);
-  //
-  //    client.update("table2", "test-key", ImmutableMap.of("k1", new StringByteIterator("v1")));
-  //    client.cleanup();
-  //
-  //    //System.out.println(result);
-  //  }
 }
