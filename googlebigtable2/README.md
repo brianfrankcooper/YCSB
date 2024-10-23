@@ -83,3 +83,4 @@ The following options can be configured using CLI (using the `-p` parameter).
 * `debug`: If true, prints debug information to standard out. The default is false.
 * `googlebigtable2.use-batching`: (Optional) Whether or not to use client side buffering and batching of write operations. This can significantly improve performance and defaults to true.
 * `googlebigtable2..max-outstanding-bytes`: (Optional) When batching is enabled, override the limit of number of outstanding mutation bytes.
+* `googlebigtable2.reverse-scans`: (Optional) When enabled, scan start keys will be treated as end keys

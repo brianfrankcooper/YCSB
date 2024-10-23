@@ -22,6 +22,7 @@ import com.google.cloud.bigtable.data.v2.models.Filters;
 import com.google.cloud.bigtable.data.v2.models.MutationApi;
 import com.google.cloud.bigtable.data.v2.models.Query;
 import com.google.cloud.bigtable.data.v2.models.Range;
+import com.google.cloud.bigtable.data.v2.models.Range.ByteStringRange;
 import com.google.cloud.bigtable.data.v2.models.Row;
 import com.google.cloud.bigtable.data.v2.models.RowCell;
 import com.google.cloud.bigtable.data.v2.models.RowMutation;
@@ -60,8 +61,9 @@ public class GoogleBigtable2Client extends site.ycsb.DB {
   private static final String APP_PROFILE_ID_KEY = PROP_PREFIX + ".app-profile";
   private static final String FAMILY_KEY = PROP_PREFIX + ".family";
 
-  private static final String MAX_OUTSTANDING_BYTES = PROP_PREFIX + ".max-outstanding-bytes";
-  private static final String CLIENT_SIDE_BUFFERING = PROP_PREFIX + ".use-batching";
+  private static final String MAX_OUTSTANDING_BYTES_KEY = PROP_PREFIX + ".max-outstanding-bytes";
+  private static final String CLIENT_SIDE_BUFFERING_KEY = PROP_PREFIX + ".use-batching";
+  private static final String REVERSE_SCANS_KEY = PROP_PREFIX + ".reverse-scans";
 
   /**
    * Print debug information to standard out.
@@ -84,6 +86,7 @@ public class GoogleBigtable2Client extends site.ycsb.DB {
    * side buffering should be disabled.
    */
   private static boolean clientSideBuffering = true;
+  private static boolean reverseScans = false;
 
   /**
    * Thread local Bigtable native API objects.
@@ -133,11 +136,15 @@ public class GoogleBigtable2Client extends site.ycsb.DB {
 
     // Other settings
     clientSideBuffering =
-        Optional.ofNullable(props.getProperty(CLIENT_SIDE_BUFFERING))
+        Optional.ofNullable(props.getProperty(CLIENT_SIDE_BUFFERING_KEY))
             .map(Boolean::parseBoolean)
             .orElse(true);
 
-    Optional.ofNullable(props.getProperty(MAX_OUTSTANDING_BYTES))
+    reverseScans = Optional.ofNullable(props.getProperty(REVERSE_SCANS_KEY))
+        .map(Boolean::parseBoolean)
+        .orElse(false);
+
+    Optional.ofNullable(props.getProperty(MAX_OUTSTANDING_BYTES_KEY))
         .map(Long::parseLong)
         .ifPresent(newLimit -> {
             BatchingSettings oldSettings =
@@ -239,10 +246,15 @@ public class GoogleBigtable2Client extends site.ycsb.DB {
     }
     Filters.Filter filter = buildFilter(fields);
 
+    ByteStringRange range = reverseScans
+        ? Range.ByteStringRange.unbounded().endClosed(startkey)
+        : Range.ByteStringRange.unbounded().startClosed(startkey);
+
     Query query =
         Query.create(table)
+            .reversed(reverseScans)
             .filter(filter)
-            .range(Range.ByteStringRange.unbounded().startClosed(startkey))
+            .range(range)
             .limit(recordcount);
 
     final List<Row> rows;
