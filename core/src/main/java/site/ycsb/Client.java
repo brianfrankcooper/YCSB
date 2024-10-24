@@ -339,6 +339,7 @@ public final class Client {
       st = System.currentTimeMillis();
 
       for (Thread t : threads.keySet()) {
+        t.setName("rocksdb:Client");
         t.start();
       }
 
