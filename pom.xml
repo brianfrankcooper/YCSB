@@ -125,7 +125,9 @@ LICENSE file.
     <elasticsearch5-version>5.5.1</elasticsearch5-version>
     <foundationdb.version>5.2.5</foundationdb.version>
     <geode.version>1.2.0</geode.version>
+    <!-- deprecated, please use googlebigtable2 -->
     <googlebigtable.version>1.4.0</googlebigtable.version>
+    <googlebigtable2.version>2.45.1</googlebigtable2.version>
     <griddb.version>4.0.0</griddb.version>
     <hbase1.version>1.4.12</hbase1.version>
     <hbase2.version>2.2.3</hbase2.version>
@@ -175,6 +177,7 @@ LICENSE file.
     <module>foundationdb</module>
     <module>geode</module>
     <module>googlebigtable</module>
+    <module>googlebigtable2</module>
     <module>googledatastore</module>
     <module>griddb</module>
     <module>hbase1</module>
