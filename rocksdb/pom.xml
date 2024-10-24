@@ -34,7 +34,9 @@ LICENSE file.
       <groupId>org.rocksdb</groupId>
       <artifactId>rocksdbjni</artifactId>
       <version>${rocksdb.version}</version>
-    </dependency>
+      <scope>system</scope>
+      <systemPath>${project.basedir}/build/rocksdbjni-8.3.2-linux64.jar</systemPath>
+  </dependency>
     <dependency>
       <groupId>site.ycsb</groupId>
       <artifactId>core</artifactId>
