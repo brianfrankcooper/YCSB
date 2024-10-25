@@ -8,7 +8,6 @@ Build  RocksDB
 
 Clone the YCSB git repository and compile:
 
-    git clone https://github.com/brianfrankcooper/YCSB.git
     cd YCSB
     mvn -pl site.ycsb:rocksdb-binding -am clean package
 
