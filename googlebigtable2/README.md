@@ -39,7 +39,7 @@ PROJECT=<PROJECT_ID>
 INSTANCE=<INSTANCE>
 FAMILY=cf
 SPLITS=$(echo 'num_splits = 200; puts (1..num_splits).map {|i| "user#{1000+i*(9999-1000)/num_splits}"}.join(",")' | ruby)
-cbt -project $PROJECT -instance=$INSTANCE createtable usertable families=$FAMILY splits=$SPLITS
+cbt -project $PROJECT -instance=$INSTANCE createtable usertable families=$FAMILY:maxversions=1 splits=$SPLITS
 ```
 
 Make a note of the column family, in this example it's `cf``.

@@ -13,12 +13,15 @@
  */
 package site.ycsb.db;
 
+import static com.google.cloud.bigtable.data.v2.models.Filters.FILTERS;
+
 import com.google.api.gax.batching.Batcher;
 import com.google.api.gax.batching.BatchingException;
 import com.google.api.gax.batching.BatchingSettings;
 import com.google.cloud.bigtable.data.v2.BigtableDataClient;
 import com.google.cloud.bigtable.data.v2.BigtableDataSettings;
 import com.google.cloud.bigtable.data.v2.models.Filters;
+import com.google.cloud.bigtable.data.v2.models.Filters.ChainFilter;
 import com.google.cloud.bigtable.data.v2.models.MutationApi;
 import com.google.cloud.bigtable.data.v2.models.Query;
 import com.google.cloud.bigtable.data.v2.models.Range;
@@ -367,17 +370,14 @@ public class GoogleBigtable2Client extends site.ycsb.DB {
   }
 
   private static Filters.Filter buildFilter(Set<String> fields) {
-    Filters.Filter filter = Filters.FILTERS.family().exactMatch(GoogleBigtable2Client.columnFamily);
+    ChainFilter chain = FILTERS.chain()
+        .filter(FILTERS.family().exactMatch(columnFamily))
+        .filter(FILTERS.limit().cellsPerColumn(1));
 
     if (fields != null && !fields.isEmpty()) {
-      filter =
-          Filters.FILTERS
-              .chain()
-              .filter(filter)
-              .filter(Filters.FILTERS.limit().cellsPerColumn(1))
-              .filter(Filters.FILTERS.qualifier().exactMatch(String.join("|", fields)));
+      chain = chain.filter(FILTERS.qualifier().exactMatch(String.join("|", fields)));
     }
-    return filter;
+    return chain;
   }
 
   private static class ByteStringWrapper extends ByteIterator {
