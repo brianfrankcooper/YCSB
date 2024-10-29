@@ -67,6 +67,7 @@ public class GoogleBigtable2Client extends site.ycsb.DB {
   private static final String MAX_OUTSTANDING_BYTES_KEY = PROP_PREFIX + ".max-outstanding-bytes";
   private static final String CLIENT_SIDE_BUFFERING_KEY = PROP_PREFIX + ".use-batching";
   private static final String REVERSE_SCANS_KEY = PROP_PREFIX + ".reverse-scans";
+  private static final String FIXED_TIMESTAMP_KEY = PROP_PREFIX + ".timestamp";
 
   /**
    * Print debug information to standard out.
@@ -90,6 +91,7 @@ public class GoogleBigtable2Client extends site.ycsb.DB {
    */
   private static boolean clientSideBuffering = true;
   private static boolean reverseScans = false;
+  private static Optional<Long> fixedTimestamp = Optional.empty();
 
   /**
    * Thread local Bigtable native API objects.
@@ -138,6 +140,9 @@ public class GoogleBigtable2Client extends site.ycsb.DB {
     }
 
     // Other settings
+    fixedTimestamp = Optional.ofNullable(props.getProperty(FIXED_TIMESTAMP_KEY))
+        .map(Long::parseLong);
+
     clientSideBuffering =
         Optional.ofNullable(props.getProperty(CLIENT_SIDE_BUFFERING_KEY))
             .map(Boolean::parseBoolean)
@@ -362,10 +367,18 @@ public class GoogleBigtable2Client extends site.ycsb.DB {
 
   private void mapToMutation(Map<String, ByteIterator> values, MutationApi<?> m) {
     for (Entry<String, ByteIterator> e : values.entrySet()) {
-      m.setCell(
-          columnFamily,
-          ByteString.copyFromUtf8(e.getKey()),
-          ByteString.copyFrom(e.getValue().toArray()));
+      if (fixedTimestamp.isPresent()) {
+        m.setCell(
+            columnFamily,
+            ByteString.copyFromUtf8(e.getKey()),
+            fixedTimestamp.get(),
+            ByteString.copyFrom(e.getValue().toArray()));
+      } else {
+        m.setCell(
+            columnFamily,
+            ByteString.copyFromUtf8(e.getKey()),
+            ByteString.copyFrom(e.getValue().toArray()));
+      }
     }
   }
 
