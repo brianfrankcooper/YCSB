@@ -84,4 +84,4 @@ The following options can be configured using CLI (using the `-p` parameter).
 * `googlebigtable2.use-batching`: (Optional) Whether or not to use client side buffering and batching of write operations. This can significantly improve performance and defaults to true.
 * `googlebigtable2..max-outstanding-bytes`: (Optional) When batching is enabled, override the limit of number of outstanding mutation bytes.
 * `googlebigtable2.reverse-scans`: (Optional) When enabled, scan start keys will be treated as end keys
-* * `googlebigtable2.timestamp`: (Optional) When set, the timestamp will be used for all mutations, avoiding unbounded growth of cell versions.
+* `googlebigtable2.timestamp`: (Optional) When set, the timestamp will be used for all mutations, avoiding unbounded growth of cell versions.
