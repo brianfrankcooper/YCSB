@@ -38,7 +38,7 @@ public class ClientThread implements Runnable {
   private int warmupopscount;
   private int totalopscount;
   private double targetOpsPerMs;
-  private Long payloadStart = null;
+  private long payloadStart = 0;
 
   private int payloadopsdone;
   private int warmupopsdone;
@@ -161,7 +161,7 @@ public class ClientThread implements Runnable {
           }
 
           if (isWarmUpDone()) {
-            if (payloadStart == null) {
+            if (payloadStart == 0) {
               payloadStart = System.currentTimeMillis();
             }
             payloadopsdone++;
@@ -183,7 +183,7 @@ public class ClientThread implements Runnable {
           }
 
           if (isWarmUpDone()) {
-            if (payloadStart == null) {
+            if (payloadStart == 0) {
               payloadStart = System.currentTimeMillis();
             }
             payloadopsdone++;
