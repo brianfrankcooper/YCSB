@@ -64,7 +64,7 @@ public class IgniteSqlClient extends AbstractSqlClient {
 
         if (fields == null || fields.isEmpty()) {
           fields = new HashSet<>();
-          fields.addAll(FIELDS);
+          fields.addAll(this.fields);
         }
 
         for (String column : fields) {
@@ -72,7 +72,7 @@ public class IgniteSqlClient extends AbstractSqlClient {
           // String val = row.stringValue(column);
 
           // Shift to exclude the first column from the result
-          String val = row.stringValue(FIELDS.indexOf(column) + 1);
+          String val = row.stringValue(this.fields.indexOf(column) + 1);
 
           if (val != null) {
             result.put(column, new StringByteIterator(val));
@@ -105,7 +105,7 @@ public class IgniteSqlClient extends AbstractSqlClient {
     try {
       List<String> valuesList = new ArrayList<>();
       valuesList.add(key);
-      FIELDS.forEach(fieldName -> valuesList.add(String.valueOf(values.get(fieldName))));
+      fields.forEach(fieldName -> valuesList.add(String.valueOf(values.get(fieldName))));
       ignite.sql().execute(null, INSERT_STATEMENT.get(), (Object[]) valuesList.toArray(new String[0])).close();
 
       return Status.OK;

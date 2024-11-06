@@ -36,7 +36,7 @@ abstract class AbstractSqlClient extends IgniteAbstractClient {
           String.format("SELECT * FROM %s WHERE %s = ?", cacheName, PRIMARY_COLUMN_NAME);
 
       List<String> columns = new ArrayList<>(Collections.singletonList(PRIMARY_COLUMN_NAME));
-      columns.addAll(FIELDS);
+      columns.addAll(fields);
 
       String columnsString = String.join(", ", columns);
 
@@ -62,7 +62,7 @@ abstract class AbstractSqlClient extends IgniteAbstractClient {
 
     statement.setString(i++, key);
 
-    for (String fieldName: FIELDS) {
+    for (String fieldName: fields) {
       statement.setString(i++, values.get(fieldName).toString());
     }
   }
