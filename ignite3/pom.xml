@@ -66,6 +66,51 @@ LICENSE file.
         </repository>
       </repositories>
     </profile>
+    <profile>
+      <!-- Profile to run YCSB with external AI3 from IDE -->
+      <id>ignite3</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.ignite</groupId>
+          <artifactId>ignite-core</artifactId>
+          <version>${ignite3.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.ignite</groupId>
+          <artifactId>ignite-api</artifactId>
+          <version>${ignite3.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.ignite</groupId>
+          <artifactId>ignite-jdbc</artifactId>
+          <version>${ignite3.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.ignite</groupId>
+          <artifactId>ignite-client</artifactId>
+          <version>${ignite3.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.ignite</groupId>
+          <artifactId>ignite-runner</artifactId>
+          <version>${ignite3.version}</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <!-- Profile to run YCSB with external AI3 from IDE -->
+      <id>gridgain9</id>
+      <dependencies>
+        <!-- TBD or remove dependency -->
+        <dependency>
+          <groupId>org.gridgain</groupId>
+          <artifactId>gridgain-columnar</artifactId>
+          <version>${gridgain9.version}</version>
+          <scope>provided</scope>
+        </dependency>
+
+      </dependencies>
+    </profile>
   </profiles>
 
   <repositories>
@@ -160,6 +205,12 @@ LICENSE file.
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-core</artifactId>
       <version>2.11.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
+      <version>16.0.3</version>
     </dependency>
   </dependencies>
 </project>

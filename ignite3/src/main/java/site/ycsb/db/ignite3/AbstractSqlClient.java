@@ -36,7 +36,7 @@ abstract class AbstractSqlClient extends IgniteAbstractClient {
           String.format("SELECT * FROM %s WHERE %s = ?", cacheName, PRIMARY_COLUMN_NAME);
 
       List<String> columns = new ArrayList<>(Collections.singletonList(PRIMARY_COLUMN_NAME));
-      columns.addAll(FIELDS);
+      columns.addAll(valueFields);
 
       String columnsString = String.join(", ", columns);
 
@@ -56,13 +56,13 @@ abstract class AbstractSqlClient extends IgniteAbstractClient {
    * @param key Key field value.
    * @param values Values.
    */
-  static void setStatementValues(PreparedStatement statement, String key, Map<String, ByteIterator> values)
+  protected void setStatementValues(PreparedStatement statement, String key, Map<String, ByteIterator> values)
       throws SQLException {
     int i = 1;
 
     statement.setString(i++, key);
 
-    for (String fieldName: FIELDS) {
+    for (String fieldName: valueFields) {
       statement.setString(i++, values.get(fieldName).toString());
     }
   }

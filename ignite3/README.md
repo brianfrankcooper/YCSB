@@ -35,3 +35,7 @@ Git clone YCSB and compile:
 ### 3. Load Data and Run Tests
 
 ` python bin/ycsb run ignite3 -p hosts="127.0.0.1" -s -P ./workloads/workloada -threads 4 -p operationcount=1000000 -p recordcount=1000000 -p measurementtype=timeseries -p dataintegrity=true`
+
+## Run from IDE
+
+To run YCSB from IDE use appropriate profiles: gridgain9 or ignite3.
