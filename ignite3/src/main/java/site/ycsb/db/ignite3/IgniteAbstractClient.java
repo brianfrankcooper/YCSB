@@ -81,7 +81,7 @@ public abstract class IgniteAbstractClient extends DB {
 
   protected long batchSize;
 
-  protected final List<String> fields = new ArrayList<>();
+  protected final List<String> valueFields = new ArrayList<>();
 
   /**
    * Single Ignite client per process.
@@ -232,7 +232,7 @@ public abstract class IgniteAbstractClient extends DB {
           Client.DEFAULT_BATCH_SIZE));
 
       for (int i = 0; i < fieldCount; i++) {
-        fields.add(fieldPrefix + i);
+        valueFields.add(fieldPrefix + i);
       }
 
       hosts = properties.getProperty(HOSTS_PROPERTY);
@@ -335,7 +335,7 @@ public abstract class IgniteAbstractClient extends DB {
   }
 
   public String createTableSQL(String createZoneReq) {
-    String fieldsSpecs = fields.stream()
+    String fieldsSpecs = valueFields.stream()
         .map(e -> e + " VARCHAR")
         .collect(Collectors.joining(", "));
 
