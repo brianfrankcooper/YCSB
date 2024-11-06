@@ -57,21 +57,6 @@ import site.ycsb.workloads.CoreWorkload;
  * Ignite abstract client.
  */
 public abstract class IgniteAbstractClient extends DB {
-
-  private static final Logger LOG = LogManager.getLogger(IgniteAbstractClient.class);
-
-  protected static String cacheName;
-
-  protected static int fieldCount;
-
-  protected static String fieldPrefix;
-
-  protected static long recordsCount;
-
-  protected static long batchSize;
-
-  protected static final List<String> FIELDS = new ArrayList<>();
-
   protected static final String HOSTS_PROPERTY = "hosts";
 
   protected static final String PRIMARY_COLUMN_NAME = "ycsb_key";
@@ -84,20 +69,34 @@ public abstract class IgniteAbstractClient extends DB {
 
   protected static final long TABLE_CREATION_TIMEOUT_SECONDS = 10L;
 
+  private static final Logger LOG = LogManager.getLogger(IgniteAbstractClient.class);
+
+  protected String cacheName;
+
+  protected int fieldCount;
+
+  protected String fieldPrefix;
+
+  protected long recordsCount;
+
+  protected long batchSize;
+
+  protected final List<String> FIELDS = new ArrayList<>();
+
   /**
    * Single Ignite client per process.
    */
   protected static Ignite ignite;
 
-  protected static IgniteClient igniteClient;
+  protected IgniteClient igniteClient;
 
   protected static IgniteServer igniteServer;
 
-  protected static String hosts;
+  protected String hosts;
 
-  protected static KeyValueView<Tuple, Tuple> kvView;
+  protected KeyValueView<Tuple, Tuple> kvView;
 
-  protected static RecordView<Tuple> rView;
+  protected RecordView<Tuple> rView;
 
   /**
    * Count the number of times initialized to teardown on the last
@@ -199,7 +198,7 @@ public abstract class IgniteAbstractClient extends DB {
    *
    * @param properties Properties.
    */
-  private void initProperties(Properties properties) throws DBException {
+  public void initProperties(Properties properties) throws DBException {
     try {
       debug = IgniteParam.DEBUG.getValue(properties);
       shutdownExternalIgnite = IgniteParam.SHUTDOWN_IGNITE.getValue(properties);
@@ -310,30 +309,10 @@ public abstract class IgniteAbstractClient extends DB {
    */
   private void createTestTable(Ignite node0) throws DBException {
     try {
-      String fieldsSpecs = FIELDS.stream()
-          .map(e -> e + " VARCHAR")
-          .collect(Collectors.joining(", "));
 
       String createZoneReq = createZoneSQL();
 
-      String withZoneName = "";
-      if (!createZoneReq.isEmpty()) {
-        if (useColumnar) {
-          withZoneName = String.format(
-              " WITH PRIMARY_ZONE='%s', STORAGE_PROFILE='%s', SECONDARY_STORAGE_PROFILE='%s'",
-              DEFAULT_ZONE_NAME,
-              storageProfile,
-              secondaryStorageProfile);
-        } else {
-          withZoneName = String.format(" WITH PRIMARY_ZONE='%s';", DEFAULT_ZONE_NAME);
-        }
-      }
-
-      String createTableReq = "CREATE TABLE IF NOT EXISTS " + cacheName + " ("
-          + PRIMARY_COLUMN_NAME + " VARCHAR PRIMARY KEY, "
-          + fieldsSpecs + ")" + withZoneName;
-
-      LOG.info("Create table request: {}", createTableReq);
+      String createTableReq = createTableSQL(createZoneReq);
 
       if (!createZoneReq.isEmpty()) {
         node0.sql().execute(null, createZoneReq).close();
@@ -355,10 +334,36 @@ public abstract class IgniteAbstractClient extends DB {
     }
   }
 
+  public String createTableSQL(String createZoneReq) {
+    String fieldsSpecs = FIELDS.stream()
+        .map(e -> e + " VARCHAR")
+        .collect(Collectors.joining(", "));
+
+    String withZoneName = "";
+    if (!createZoneReq.isEmpty()) {
+      if (useColumnar) {
+        withZoneName = String.format(
+            " ZONE=\"%s\", STORAGE PROFILE '%s', SECONDARY STORAGE PROFILE '%s'",
+            DEFAULT_ZONE_NAME,
+            storageProfile,
+            secondaryStorageProfile);
+      } else {
+        withZoneName = String.format(" ZONE \"%s\";", DEFAULT_ZONE_NAME);
+      }
+    }
+
+    String createTableReq = String.format("CREATE TABLE IF NOT EXISTS %s(%s  VARCHAR PRIMARY KEY, %s) %s", cacheName,
+        PRIMARY_COLUMN_NAME, fieldsSpecs, withZoneName);
+
+    LOG.info("Create table request: {}", createTableReq);
+
+    return createTableReq;
+  }
+
   /**
    * Prepare the creation zone SQL line.
    */
-  private String createZoneSQL() {
+  public String createZoneSQL() {
     if (storageProfile.isEmpty() && replicas.isEmpty() && partitions.isEmpty() && !useColumnar) {
       return "";
     }
@@ -370,19 +375,16 @@ public abstract class IgniteAbstractClient extends DB {
         DEFAULT_COLUMNAR_PROFILE_NAME :
         secondaryStorageProfile;
 
-    String storageProfiles = useColumnar ?
-        String.join(",", storageProfile, secondaryStorageProfile) :
-        storageProfile;
-
-    String paramStorageProfiles = String.format("STORAGE_PROFILES='%s'", storageProfiles);
+    String paramStorageProfile = String.format("STORAGE PROFILE '%s'", storageProfile);
+    String paramSecondaryStorageProfile = String.format("SECONDARY STORAGE PROFILE '%s'", secondaryStorageProfile);
     String paramReplicas = replicas.isEmpty() ? "" : "replicas=" + replicas;
     String paramPartitions = partitions.isEmpty() ? "" : "partitions=" + partitions;
-    String params = Stream.of(paramStorageProfiles, paramReplicas, paramPartitions)
+
+    String params = Stream.of(paramStorageProfile, paramSecondaryStorageProfile, paramReplicas, paramPartitions)
         .filter(s -> !s.isEmpty())
         .collect(Collectors.joining(", "));
-    String reqWithParams = params.isEmpty() ? "" : " WITH " + params;
 
-    String createZoneReq = "CREATE ZONE IF NOT EXISTS " + DEFAULT_ZONE_NAME + reqWithParams + ";";
+    String createZoneReq = String.format("CREATE ZONE IF NOT EXISTS %s WITH %s;", DEFAULT_ZONE_NAME, params);
 
     LOG.info("Create zone request: {}", createZoneReq);
 

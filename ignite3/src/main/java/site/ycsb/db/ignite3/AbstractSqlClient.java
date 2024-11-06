@@ -56,7 +56,7 @@ abstract class AbstractSqlClient extends IgniteAbstractClient {
    * @param key Key field value.
    * @param values Values.
    */
-  static void setStatementValues(PreparedStatement statement, String key, Map<String, ByteIterator> values)
+  protected void setStatementValues(PreparedStatement statement, String key, Map<String, ByteIterator> values)
       throws SQLException {
     int i = 1;
 
