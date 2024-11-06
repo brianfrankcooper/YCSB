@@ -88,7 +88,7 @@ public abstract class IgniteAbstractClient extends DB {
    */
   protected static Ignite ignite;
 
-  protected IgniteClient igniteClient;
+  protected static IgniteClient igniteClient;
 
   protected static IgniteServer igniteServer;
 
