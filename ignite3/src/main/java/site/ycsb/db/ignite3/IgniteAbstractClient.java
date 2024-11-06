@@ -348,7 +348,7 @@ public abstract class IgniteAbstractClient extends DB {
             storageProfile,
             secondaryStorageProfile);
       } else {
-        withZoneName = String.format(" ZONE \"%s\";", DEFAULT_ZONE_NAME);
+        withZoneName = String.format(" ZONE \"%s\"", DEFAULT_ZONE_NAME);
       }
     }
 
