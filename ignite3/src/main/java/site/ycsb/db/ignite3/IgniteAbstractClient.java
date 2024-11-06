@@ -352,7 +352,7 @@ public abstract class IgniteAbstractClient extends DB {
       }
     }
 
-    String createTableReq = String.format("CREATE TABLE IF NOT EXISTS %s(%s  VARCHAR PRIMARY KEY, %s) %s", cacheName,
+    String createTableReq = String.format("CREATE TABLE IF NOT EXISTS %s(%s VARCHAR PRIMARY KEY, %s)%s", cacheName,
         PRIMARY_COLUMN_NAME, fieldsSpecs, withZoneName);
 
     LOG.info("Create table request: {}", createTableReq);
