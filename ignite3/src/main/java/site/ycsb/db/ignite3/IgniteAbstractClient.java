@@ -343,7 +343,7 @@ public abstract class IgniteAbstractClient extends DB {
     if (!createZoneReq.isEmpty()) {
       if (useColumnar) {
         withZoneName = String.format(
-            " ZONE=\"%s\" STORAGE PROFILE '%s' SECONDARY STORAGE PROFILE '%s'",
+            " ZONE \"%s\" STORAGE PROFILE '%s' SECONDARY STORAGE PROFILE '%s'",
             DEFAULT_ZONE_NAME,
             storageProfile,
             secondaryStorageProfile);
@@ -375,16 +375,19 @@ public abstract class IgniteAbstractClient extends DB {
         DEFAULT_COLUMNAR_PROFILE_NAME :
         secondaryStorageProfile;
 
-    String paramStorageProfile = String.format("STORAGE PROFILE '%s'", storageProfile);
-    String paramSecondaryStorageProfile = String.format("SECONDARY STORAGE PROFILE '%s'", secondaryStorageProfile);
+    String storageProfiles = useColumnar ?
+        String.join(",", storageProfile, secondaryStorageProfile) :
+        storageProfile;
+
+    String paramStorageProfiles = String.format("STORAGE_PROFILES='%s'", storageProfiles);
     String paramReplicas = replicas.isEmpty() ? "" : "replicas=" + replicas;
     String paramPartitions = partitions.isEmpty() ? "" : "partitions=" + partitions;
-
-    String params = Stream.of(paramStorageProfile, paramSecondaryStorageProfile, paramReplicas, paramPartitions)
+    String params = Stream.of(paramStorageProfiles, paramReplicas, paramPartitions)
         .filter(s -> !s.isEmpty())
         .collect(Collectors.joining(", "));
+    String reqWithParams = params.isEmpty() ? "" : " WITH " + params;
 
-    String createZoneReq = String.format("CREATE ZONE IF NOT EXISTS %s WITH %s;", DEFAULT_ZONE_NAME, params);
+    String createZoneReq = "CREATE ZONE IF NOT EXISTS " + DEFAULT_ZONE_NAME + reqWithParams + ";";
 
     LOG.info("Create zone request: {}", createZoneReq);
 

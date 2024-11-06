@@ -11,7 +11,7 @@ import static org.junit.Assert.assertEquals;
  */
 public class IgniteAbstractClientTest {
   private static final String CREATE_TABLE_DDL =
-      "CREATE TABLE IF NOT EXISTS usertable(ycsb_key  VARCHAR PRIMARY KEY, field0 VARCHAR, " +
+      "CREATE TABLE IF NOT EXISTS usertable(ycsb_key VARCHAR PRIMARY KEY, field0 VARCHAR, " +
           "field1 VARCHAR, field2 VARCHAR, field3 VARCHAR, field4 VARCHAR, field5 VARCHAR, field6 VARCHAR, " +
           "field7 VARCHAR, field8 VARCHAR, field9 VARCHAR)";
 
@@ -26,8 +26,8 @@ public class IgniteAbstractClientTest {
   @Test
   public void testCreateDdl() throws DBException {
     doTestCreateDdl(
-        "CREATE ZONE IF NOT EXISTS Z1 WITH STORAGE PROFILE 'default', SECONDARY STORAGE PROFILE 'myColumnarStore';",
-        CREATE_TABLE_DDL + "  ZONE=\"Z1\", STORAGE PROFILE 'default', SECONDARY STORAGE PROFILE 'myColumnarStore'", true);
+        "CREATE ZONE IF NOT EXISTS Z1 WITH STORAGE_PROFILES='default,myColumnarStore';",
+        CREATE_TABLE_DDL + " ZONE=\"Z1\" STORAGE PROFILE 'default' SECONDARY STORAGE PROFILE 'myColumnarStore'", true);
     doTestCreateDdl("", CREATE_TABLE_DDL, false);
   }
 
