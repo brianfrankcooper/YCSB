@@ -343,7 +343,7 @@ public abstract class IgniteAbstractClient extends DB {
     if (!createZoneReq.isEmpty()) {
       if (useColumnar) {
         withZoneName = String.format(
-            " ZONE=\"%s\", STORAGE PROFILE '%s', SECONDARY STORAGE PROFILE '%s'",
+            " ZONE=\"%s\" STORAGE PROFILE '%s' SECONDARY STORAGE PROFILE '%s'",
             DEFAULT_ZONE_NAME,
             storageProfile,
             secondaryStorageProfile);
