@@ -179,18 +179,18 @@ public abstract class IgniteAbstractClient extends DB {
   public void init() throws DBException {
     INIT_COUNT.incrementAndGet();
 
+    initProperties(getProperties());
+
     synchronized (IgniteAbstractClient.class) {
       if (initCompleted) {
-        return;
+        initIgnite(useEmbeddedIgnite);
+
+        createTestTable(ignite);
+
+        initCompleted = true;
       }
 
-      initProperties(getProperties());
-
-      initIgnite(useEmbeddedIgnite);
-
-      createTestTable(ignite);
-
-      initCompleted = true;
+      initViews();
     }
   }
 
@@ -347,12 +347,14 @@ public abstract class IgniteAbstractClient extends DB {
       if (!cachePresent) {
         throw new DBException("Table wasn't created in " + TABLE_CREATION_TIMEOUT_SECONDS + " seconds.");
       }
-
-      kvView = ignite.tables().table(cacheName).keyValueView();
-      rView = ignite.tables().table(cacheName).recordView();
     } catch (Exception e) {
       throw new DBException(e);
     }
+  }
+
+  public void initViews() {
+    kvView = ignite.tables().table(cacheName).keyValueView();
+    rView = ignite.tables().table(cacheName).recordView();
   }
 
   /**
@@ -480,7 +482,7 @@ public abstract class IgniteAbstractClient extends DB {
   /** {@inheritDoc} */
   @Override
   public Status scan(String table, String startkey, int recordcount,
-                     Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     return Status.NOT_IMPLEMENTED;
   }
 }
