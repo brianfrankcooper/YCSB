@@ -14,7 +14,7 @@
   <parent>
     <groupId>org.gridgain.ycsb</groupId>
     <artifactId>binding-parent</artifactId>
-    <version>2024.17-SNAPSHOT</version>
+    <version>2024.18-SNAPSHOT</version>
     <relativePath>../binding-parent</relativePath>
   </parent>
 
