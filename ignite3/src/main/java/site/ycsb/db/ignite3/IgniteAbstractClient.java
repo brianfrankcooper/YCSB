@@ -182,18 +182,22 @@ public abstract class IgniteAbstractClient extends DB {
     initProperties(getProperties());
 
     synchronized (IgniteAbstractClient.class) {
-      if (initCompleted) {
+      if (!initCompleted) {
         initIgnite(useEmbeddedIgnite);
 
         createTestTable(ignite);
 
         initCompleted = true;
       }
-
-      initViews();
     }
+
+    initViews();
   }
 
+  private void initViews() {
+    kvView = ignite.tables().table(cacheName).keyValueView();
+    rView = ignite.tables().table(cacheName).recordView();
+  }
   /**
    * Init property values.
    *
@@ -350,11 +354,6 @@ public abstract class IgniteAbstractClient extends DB {
     } catch (Exception e) {
       throw new DBException(e);
     }
-  }
-
-  public void initViews() {
-    kvView = ignite.tables().table(cacheName).keyValueView();
-    rView = ignite.tables().table(cacheName).recordView();
   }
 
   /**
