@@ -52,7 +52,7 @@ Follow these instructions for [Generating a JSON key](https://cloud.google.com/b
 
 Switch to the root of the YCSB repo and choose the workload you want to run and `load` it first. With the CLI you must provide the column family and instance properties to load.
 
-```
+```sh
 GOOGLE_APPLICATION_CREDENTIALS=<PATH_TO_JSON_KEY> \
   ./bin/ycsb load googlebigtable2 \
   -p googlebigtable2.project=$PROJECT -p googlebigtable2.instance=$INSTANCE -p googlebigtable2.family=cf \
@@ -64,7 +64,7 @@ Make sure to replace the variables in the angle brackets above with the proper v
 
 The `load` step only executes inserts into the datastore. After loading data, run the same workload to mix reads with writes.
 
-```
+```sh
 GOOGLE_APPLICATION_CREDENTIALS=<PATH_TO_JSON_KEY> \
   bin/ycsb run googlebigtable2 \
   -p googlebigtable2.project=$PROJECT -p googlebigtable2.instance=$INSTANCE -p googlebigtable2.family=cf \
@@ -85,3 +85,29 @@ The following options can be configured using CLI (using the `-p` parameter).
 * `googlebigtable2..max-outstanding-bytes`: (Optional) When batching is enabled, override the limit of number of outstanding mutation bytes.
 * `googlebigtable2.reverse-scans`: (Optional) When enabled, scan start keys will be treated as end keys
 * `googlebigtable2.timestamp`: (Optional) When set, the timestamp will be used for all mutations, avoiding unbounded growth of cell versions.
+
+## Bigtable client version
+
+As of this writing, Cloud Bigtable releases a new version of the client every 2 weeks. Newer client
+versions will have performance optimizations not present in the version referenced by YCSB. However
+when invoking ycsb using maven >= 3.9.0, the end user can override the Cloud Bigtable client version
+via the `MAVEN_ARGS` environment variable. Please note, currently, the oldest version of the client
+that this driver supports is 2.37.0 (released 2024/03/27).
+
+Here are a couple of examples:
+
+```sh
+# Force version 2.47.0 of Cloud Bigtable client (released 2024/11/13
+GOOGLE_APPLICATION_CREDENTIALS=<PATH_TO_JSON_KEY> \
+MAVEN_ARGS="-Dgooglebigtable2.version=2.47.0" \
+  bin/ycsb run googlebigtable2 \
+  -p googlebigtable2.project=$PROJECT -p googlebigtable2.instance=$INSTANCE -p googlebigtable2.family=cf \
+  -P workloads/workloada
+
+# Use the latest version of Cloud Bigtable client (released 2024/11/13
+GOOGLE_APPLICATION_CREDENTIALS=<PATH_TO_JSON_KEY> \
+MAVEN_ARGS="-Dgooglebigtable2.version=RELEASE" \
+  bin/ycsb run googlebigtable2 \
+  -p googlebigtable2.project=$PROJECT -p googlebigtable2.instance=$INSTANCE -p googlebigtable2.family=cf \
+  -P workloads/workloada
+```
