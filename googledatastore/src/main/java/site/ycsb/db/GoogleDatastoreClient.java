@@ -21,11 +21,8 @@ import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.cloud.datastore.*;
 import com.google.cloud.datastore.Entity;
-import com.google.datastore.v1.*;
-import com.google.datastore.v1.CommitRequest.Mode;
 import com.google.datastore.v1.Key;
 import com.google.datastore.v1.ReadOptions.ReadConsistency;
-import com.google.datastore.v1.Value;
 import com.google.datastore.v1.client.DatastoreHelper;
 import com.google.cloud.datastore.Datastore;
 import com.google.cloud.datastore.DatastoreOptions;
@@ -39,9 +36,6 @@ import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.resources.Resource;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
-import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
-import io.opentelemetry.exporters.logging.*;
-import io.opentelemetry.exporters.logging.LoggingSpanExporter;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
 import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
 import io.opentelemetry.sdk.trace.SpanProcessor;
@@ -183,10 +177,9 @@ public class GoogleDatastoreClient extends DB {
     }
 
     try {
-      // Setup the connection to Google Cloud Datastore with the credentials
-      // obtained from the configure.
+      // Set up the connection to Google Cloud Datastore with the credentials
+      // obtained from the configuration.
       Credential credential = GoogleCredential.getApplicationDefault();
-
       if (serviceAccountEmail != null && privateKeyFile != null) {
         credential = DatastoreHelper.getServiceAccountCredential(
             serviceAccountEmail, privateKeyFile);
@@ -198,8 +191,6 @@ public class GoogleDatastoreClient extends DB {
         logger.info("DatasetID: " + datasetId
             + ", Service Account Email: " + ((GoogleCredential) credential).getServiceAccountId());
       }
-
-      logger.info("credential: " + ((GoogleCredential) credential).toString());
 
       // googledatastore.tracingenabled must be set to enable publishing traces to Cloud Trace
       // Tracing depends on the following external APIs/Services:
@@ -217,7 +208,6 @@ public class GoogleDatastoreClient extends DB {
       tracer = otel.getTracer("YCSB_Datastore_Test");
       logger.info("tracingEnabled=" + tracingEnabled);
 
-
       DatastoreOptions.Builder datastoreOptionsBuilder = DatastoreOptions
           .newBuilder()
           .setProjectId(projectId)
@@ -230,7 +220,6 @@ public class GoogleDatastoreClient extends DB {
 
       DatastoreOptions datastoreOptions = datastoreOptionsBuilder.build();
       datastore = datastoreOptions.getService();
-
     } catch (GeneralSecurityException exception) {
       throw new DBException("Security error connecting to the datastore: " +
           exception.getMessage(), exception);
@@ -290,7 +279,8 @@ public class GoogleDatastoreClient extends DB {
         .setSampler(Sampler.parentBased(Sampler.traceIdRatioBased(traceIdRatio)))
         .build();
     if (!tracingEnabled) {
-      tracerProvider.shutdown(); // disable tracing
+      // disable tracing
+      tracerProvider.shutdown();
       logger.info("TracerProvider shutdown");
     }
     otel = OpenTelemetrySdk.builder()
@@ -325,7 +315,7 @@ public class GoogleDatastoreClient extends DB {
     } finally {
       readSpan.end();
     }
-   Map<String, com.google.cloud.datastore.Value<?>> properties = entity.getProperties();
+    Map<String, com.google.cloud.datastore.Value<?>> properties = entity.getProperties();
     Set<String> propertiesToReturn =
         (fields == null ? properties.keySet() : fields);
 
@@ -355,7 +345,7 @@ public class GoogleDatastoreClient extends DB {
   @Override
   public Status insert(String table, String key,
                        Map<String, ByteIterator> values) {
-    // Use Upsert to allow overwrite of existing key instead of failing the
+    // Use Upsert to allow to overwrite of existing key instead of failing the
     // load (or run) just because the DB already has the key.
     // This is the same behavior as what other DB does here (such as
     // the DynamoDB client).
@@ -380,48 +370,27 @@ public class GoogleDatastoreClient extends DB {
         .setName(key));
   }
 
-  private com.google.cloud.datastore.Key buildPrimaryKey1(String table, String key) {
-
-    return datastore.newKeyFactory().setKind(table).newKey(key);
-  }
-
   private Status doSingleItemMutation(String table, String key,
                                       @Nullable Map<String, ByteIterator> values,
                                       MutationType mutationType) {
     // First build the key.
-    Key.Builder datastoreKey = buildPrimaryKey(table, key);
+    com.google.cloud.datastore.Key datastoreKey = datastore.newKeyFactory().setKind(table).newKey(key);
     Span singleItemSpan = tracer.spanBuilder("ycsb-update").startSpan();
 
-    // Build a commit request in non-transactional mode.
-    // Single item mutation to google datastore
-    // is always atomic and strongly consistent. Transaction is only necessary
-    // for multi-item mutation, or Read-modify-write operation.
-    CommitRequest.Builder commitRequest = CommitRequest.newBuilder();
-    commitRequest.setMode(Mode.NON_TRANSACTIONAL);
-
     if (mutationType == MutationType.DELETE) {
-      commitRequest.addMutationsBuilder().setDelete(datastoreKey);
-
+      datastore.delete(datastoreKey);
     } else {
       // If this is not for delete, build the entity.
-      Entity.Builder entityBuilder = Entity.newBuilder(buildPrimaryKey1(table, key));
-      //  entityBuilder.setKey(buildPrimaryKey1(table, key));
-
-      // Entity entity1 = Entity.newBuilder(datastoreKey);
+      Entity.Builder entityBuilder = Entity.newBuilder(datastoreKey);
       for (Entry<String, ByteIterator> val : values.entrySet()) {
-        entityBuilder.set(val.getKey(), com.google.cloud.datastore.Value.fromPb(Value.newBuilder()
-            .setStringValue(val.getValue().toString())
-            .setExcludeFromIndexes(skipIndex).build()));
+        entityBuilder.set(val.getKey(), StringValue.newBuilder(val.getValue().toString())
+            .setExcludeFromIndexes(skipIndex).build());
       }
       Entity entity = entityBuilder.build();
-    //  logger.debug("entity built as: " + entity.toString());
-
       try (Scope ignore = singleItemSpan.makeCurrent()) {
         if (mutationType == MutationType.UPSERT) {
-          //  commitRequest.addMutationsBuilder().setUpsert(entity);
           datastore.put(entity);
         } else if (mutationType == MutationType.UPDATE) {
-          // commitRequest.addMutationsBuilder().setUpdate(entity);
           datastore.update(entity);
         } else {
           throw new RuntimeException("Impossible MutationType, code bug.");
