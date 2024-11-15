@@ -21,9 +21,11 @@ import errno
 import fnmatch
 import io
 import os
+import re
 import shlex
 import sys
 import subprocess
+import tempfile
 
 try:
     mod = __import__('argparse')
@@ -74,6 +76,7 @@ DATABASES = {
     "foundationdb" : "site.ycsb.db.foundationdb.FoundationDBClient",
     "geode"        : "site.ycsb.db.GeodeClient",
     "googlebigtable"  : "site.ycsb.db.GoogleBigtableClient",
+    "googlebigtable2"  : "site.ycsb.db.GoogleBigtable2Client",
     "googledatastore" : "site.ycsb.db.GoogleDatastoreClient",
     "griddb"       : "site.ycsb.db.griddb.GridDBClient",
     "hbase1"      : "site.ycsb.db.hbase1.HBaseClient1",
@@ -209,26 +212,31 @@ def is_distribution():
 # presumes maven properly handles system-specific path separators
 # Given module is full module name eg. 'core' or 'couchbase-binding'
 def get_classpath_from_maven(module):
-    try:
-        debug("Running 'mvn -pl site.ycsb:" + module + " -am package -DskipTests "
-              "dependency:build-classpath -DincludeScope=compile -Dmdep.outputFilterFile=true'")
-        mvn_output = check_output(["mvn", "-pl", "site.ycsb:" + module,
-                                   "-am", "package", "-DskipTests",
-                                   "dependency:build-classpath",
-                                   "-DincludeScope=compile",
-                                   "-Dmdep.outputFilterFile=true"])
-        # the above outputs a "classpath=/path/tojar:/path/to/other/jar" for each module
-        # the last module will be the datastore binding
-        line = [x for x in mvn_output.splitlines() if x.startswith("classpath=")][-1:]
-        return line[0][len("classpath="):]
-    except subprocess.CalledProcessError as err:
-        error("Attempting to generate a classpath from Maven failed "
-              "with return code '" + str(err.returncode) + "'. The output from "
-              "Maven follows, try running "
-              "'mvn -DskipTests package dependency:build=classpath' on your "
-              "own and correct errors." + os.linesep + os.linesep + "mvn output:" + os.linesep
-              + err.output)
-        sys.exit(err.returncode)
+    output_file = tempfile.NamedTemporaryFile(delete=True)
+    cmd = ["mvn", "-B", "-pl", "site.ycsb:" + module,
+           "-am", "package", "-DskipTests",
+           "dependency:list",
+           "-DoutputAbsoluteArtifactFilename",
+           "-DappendOutput=false",
+           "-DoutputFile=" + output_file.name
+           ]
+    debug("Running '" + " ".join(cmd) + "'")
+    subprocess.check_call(cmd)
+
+    # the output file will now contain all of the dependencies in the format:
+    # group:artifact:type:[classifier:]version:scope:path[ -- module info]
+    classpath_items = []
+    with open(output_file.name) as f:
+        for l in f.readlines():
+            l = l.strip()
+            m = re.match('(?P<group>[^:]+):(?P<artifact>[^:]+):(?P<type>[^:]+)(?::(?P<classifier>[^:]+))?:(?P<version>[^:]+):(?P<scope>[^:]+):(?P<path>.*?)( -- module .*)?$', l)
+            if not m:
+                continue
+            if m.groupdict()["scope"] == "test":
+                continue
+            classpath_items.append(m.groupdict()["path"])
+    return ":".join(classpath_items)
+
 
 def main():
     p = argparse.ArgumentParser(
