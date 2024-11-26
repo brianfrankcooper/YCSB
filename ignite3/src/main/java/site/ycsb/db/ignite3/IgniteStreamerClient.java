@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.SubmissionPublisher;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.ignite.table.DataStreamerItem;
 import org.apache.ignite.table.DataStreamerOptions;
 import org.apache.ignite.table.Tuple;
@@ -38,12 +37,6 @@ public class IgniteStreamerClient extends IgniteAbstractClient {
   /** Logger. */
   private static final Logger LOG = LogManager.getLogger(IgniteStreamerClient.class);
 
-  /**
-   * Count the number of times initialized to teardown on the last
-   * {@link #cleanup()}.
-   */
-  private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
-
   /** Data streamer auto-flush interval in ms. */
   protected static final int DATA_STREAMER_AUTOFLUSH_INTERVAL = 5000;
 
@@ -58,20 +51,12 @@ public class IgniteStreamerClient extends IgniteAbstractClient {
   public void init() throws DBException {
     super.init();
 
-    INIT_COUNT.incrementAndGet();
-
-    synchronized (IgniteStreamerClient.class) {
-      if (rvPublisher != null) {
-        return;
-      }
-
-      DataStreamerOptions dsOptions = DataStreamerOptions.builder()
-          .pageSize((int) batchSize)
-          .autoFlushInterval(DATA_STREAMER_AUTOFLUSH_INTERVAL)
-          .build();
-      rvPublisher = new SubmissionPublisher<>();
-      rvStreamerFut = rView.streamData(rvPublisher, dsOptions);
-    }
+    DataStreamerOptions dsOptions = DataStreamerOptions.builder()
+        .pageSize((int) batchSize)
+        .autoFlushInterval(DATA_STREAMER_AUTOFLUSH_INTERVAL)
+        .build();
+    rvPublisher = new SubmissionPublisher<>();
+    rvStreamerFut = rView.streamData(rvPublisher, dsOptions);
   }
 
   /** {@inheritDoc} */
@@ -130,28 +115,10 @@ public class IgniteStreamerClient extends IgniteAbstractClient {
   /** {@inheritDoc} */
   @Override
   public void cleanup() throws DBException {
-    synchronized (IgniteStreamerClient.class) {
-      int curInitCount = INIT_COUNT.decrementAndGet();
+    rvPublisher.close();
 
-      if (curInitCount <= 0) {
-        try {
-          rvPublisher.close();
+    rvStreamerFut.join();
 
-          rvStreamerFut.join();
-
-          if (igniteClient != null) {
-            igniteClient.close();
-          }
-
-          if (igniteServer != null) {
-            igniteServer.shutdown();
-          }
-
-          ignite = null;
-        } catch (Exception e) {
-          throw new DBException(e);
-        }
-      }
-    }
+    super.cleanup();
   }
 }

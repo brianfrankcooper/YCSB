@@ -5,14 +5,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.ignite.sql.ResultSet;
 import org.apache.ignite.sql.SqlRow;
 import org.apache.ignite.sql.Statement;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import site.ycsb.ByteIterator;
-import site.ycsb.DBException;
 import site.ycsb.Status;
 import site.ycsb.StringByteIterator;
 
@@ -22,8 +20,6 @@ import site.ycsb.StringByteIterator;
 public class IgniteSqlClient extends AbstractSqlClient {
 
   private static final Logger LOG = LogManager.getLogger(IgniteSqlClient.class);
-
-  private static final AtomicInteger SQL_INIT_COUNT = new AtomicInteger(0);
 
   /** Statement for reading values. */
   private static final ThreadLocal<Statement> READ_STATEMENT = ThreadLocal
@@ -41,14 +37,6 @@ public class IgniteSqlClient extends AbstractSqlClient {
   /** Build statement for inserting values. */
   private static Statement buildInsertStatement() {
     return ignite.sql().createStatement(insertPreparedStatementString);
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public void init() throws DBException {
-    super.init();
-
-    SQL_INIT_COUNT.incrementAndGet();
   }
 
   /** {@inheritDoc} */
