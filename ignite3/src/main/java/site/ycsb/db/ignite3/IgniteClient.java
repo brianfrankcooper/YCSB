@@ -24,8 +24,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.apache.ignite.table.Tuple;
+import org.apache.ignite.tx.Transaction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 import site.ycsb.ByteIterator;
 import site.ycsb.Status;
 import site.ycsb.StringByteIterator;
@@ -41,12 +43,7 @@ public class IgniteClient extends IgniteAbstractClient {
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
-      Tuple tKey = Tuple.create(1).set(PRIMARY_COLUMN_NAME, key);
-
-      Tuple tValue = Tuple.create(fieldCount);
-      values.forEach((field, value) -> tValue.set(field, value.toString()));
-
-      kvView.put(null, tKey, tValue);
+      put(null, key, values);
 
       return Status.OK;
     } catch (Exception e) {
@@ -86,28 +83,7 @@ public class IgniteClient extends IgniteAbstractClient {
   public Status read(String table, String key, Set<String> fields,
                      Map<String, ByteIterator> result) {
     try {
-      Tuple tKey = Tuple.create(1).set(PRIMARY_COLUMN_NAME, key);
-      Tuple tValue = kvView.get(null, tKey);
-
-      if (tValue == null) {
-        return Status.NOT_FOUND;
-      }
-
-      if (fields == null || fields.isEmpty()) {
-        fields = new HashSet<>();
-
-        for (int colIdx = 0; colIdx < tValue.columnCount(); colIdx++) {
-          fields.add(tValue.columnName(colIdx));
-        }
-      }
-
-      for (String column : fields) {
-        if (!Objects.equals(tValue.stringValue(column), null)) {
-          result.put(column, new StringByteIterator(tValue.stringValue(column)));
-        }
-      }
-
-      return Status.OK;
+      return get(null, key, fields, result);
     } catch (Exception e) {
       LOG.error(String.format("Error reading key: %s", key), e);
 
@@ -185,5 +161,55 @@ public class IgniteClient extends IgniteAbstractClient {
     }
 
     return Status.ERROR;
+  }
+
+  /**
+   * Perform single put operation with key-value view.
+   *
+   * @param tx Transaction.
+   * @param key Key.
+   * @param values Values.
+   */
+  protected void put(Transaction tx, String key, Map<String, ByteIterator> values) {
+    Tuple tKey = Tuple.create(1).set(PRIMARY_COLUMN_NAME, key);
+
+    Tuple tValue = Tuple.create(fieldCount);
+    values.forEach((field, value) -> tValue.set(field, value.toString()));
+
+    kvView.put(tx, tKey, tValue);
+  }
+
+  /**
+   * Perform single get operation with key-value view.
+   *
+   * @param tx Transaction.
+   * @param key Key.
+   * @param fields Fields.
+   * @param result Result.
+   */
+  @NotNull
+  protected Status get(Transaction tx, String key, Set<String> fields, Map<String, ByteIterator> result) {
+    Tuple tKey = Tuple.create(1).set(PRIMARY_COLUMN_NAME, key);
+    Tuple tValue = kvView.get(tx, tKey);
+
+    if (tValue == null) {
+      return Status.NOT_FOUND;
+    }
+
+    if (fields == null || fields.isEmpty()) {
+      fields = new HashSet<>();
+
+      for (int colIdx = 0; colIdx < tValue.columnCount(); colIdx++) {
+        fields.add(tValue.columnName(colIdx));
+      }
+    }
+
+    for (String column : fields) {
+      if (!Objects.equals(tValue.stringValue(column), null)) {
+        result.put(column, new StringByteIterator(tValue.stringValue(column)));
+      }
+    }
+
+    return Status.OK;
   }
 }

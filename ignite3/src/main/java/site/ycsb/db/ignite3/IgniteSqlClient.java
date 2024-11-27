@@ -8,8 +8,10 @@ import java.util.Set;
 import org.apache.ignite.sql.ResultSet;
 import org.apache.ignite.sql.SqlRow;
 import org.apache.ignite.sql.Statement;
+import org.apache.ignite.tx.Transaction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
 import site.ycsb.ByteIterator;
 import site.ycsb.Status;
 import site.ycsb.StringByteIterator;
@@ -43,42 +45,12 @@ public class IgniteSqlClient extends AbstractSqlClient {
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try {
-      try (ResultSet<SqlRow> rs = ignite.sql().execute(null, READ_STATEMENT.get(), key)) {
-        if (!rs.hasNext()) {
-          return Status.NOT_FOUND;
-        }
-
-        SqlRow row = rs.next();
-
-        if (fields == null || fields.isEmpty()) {
-          fields = new HashSet<>();
-          fields.addAll(this.valueFields);
-        }
-
-        for (String column : fields) {
-          // TODO: this does not work. A bug?
-          // String val = row.stringValue(column);
-
-          // Shift to exclude the first column from the result
-          String val = row.stringValue(this.valueFields.indexOf(column) + 1);
-
-          if (val != null) {
-            result.put(column, new StringByteIterator(val));
-          }
-        }
-      }
-
-      if (debug) {
-        LOG.info("table: {}, key: {}, fields: {}", table, key, fields);
-        LOG.info("result: {}", result);
-      }
+      return get(null, table, key, fields, result);
     } catch (Exception e) {
       LOG.error(String.format("Error reading key: %s", key), e);
 
       return Status.ERROR;
     }
-
-    return Status.OK;
   }
 
   /** {@inheritDoc} */
@@ -91,10 +63,7 @@ public class IgniteSqlClient extends AbstractSqlClient {
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
-      List<String> valuesList = new ArrayList<>();
-      valuesList.add(key);
-      valueFields.forEach(fieldName -> valuesList.add(String.valueOf(values.get(fieldName))));
-      ignite.sql().execute(null, INSERT_STATEMENT.get(), (Object[]) valuesList.toArray(new String[0])).close();
+      put(null, key, values);
 
       return Status.OK;
     } catch (Exception e) {
@@ -124,5 +93,60 @@ public class IgniteSqlClient extends AbstractSqlClient {
     }
 
     return Status.ERROR;
+  }
+
+  /**
+   * Perform single INSERT operation with Ignite SQL.
+   *
+   * @param tx Transaction.
+   * @param key Key.
+   * @param values Values.
+   */
+  protected void put(Transaction tx, String key, Map<String, ByteIterator> values) {
+    List<String> valuesList = new ArrayList<>();
+    valuesList.add(key);
+    valueFields.forEach(fieldName -> valuesList.add(String.valueOf(values.get(fieldName))));
+    ignite.sql().execute(tx, INSERT_STATEMENT.get(), (Object[]) valuesList.toArray(new String[0])).close();
+  }
+
+  /**
+   * Perform single SELECT operation with Ignite SQL.
+   *
+   * @param tx Tx.
+   * @param table Table.
+   * @param key Key.
+   * @param fields Fields.
+   * @param result Result.
+   */
+  @Nullable
+  protected Status get(Transaction tx, String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
+    try (ResultSet<SqlRow> rs = ignite.sql().execute(tx, READ_STATEMENT.get(), key)) {
+      if (!rs.hasNext()) {
+        return Status.NOT_FOUND;
+      }
+
+      SqlRow row = rs.next();
+
+      if (fields == null || fields.isEmpty()) {
+        fields = new HashSet<>();
+        fields.addAll(this.valueFields);
+      }
+
+      for (String column : fields) {
+        // Shift to exclude the first column from the result
+        String val = row.stringValue(this.valueFields.indexOf(column) + 1);
+
+        if (val != null) {
+          result.put(column, new StringByteIterator(val));
+        }
+      }
+    }
+
+    if (debug) {
+      LOG.info("table: {}, key: {}, fields: {}", table, key, fields);
+      LOG.info("result: {}", result);
+    }
+
+    return Status.OK;
   }
 }
