@@ -291,15 +291,14 @@ public class GoogleDatastoreClient extends DB {
   @Override
   public Status read(String table, String key, Set<String> fields,
                      Map<String, ByteIterator> result) {
-
-    KeyFactory keyFactory = datastore.newKeyFactory().setKind(table);
+    com.google.cloud.datastore.Key newKey = buildPrimaryKey(table).newKey(key);
     Entity entity = null;
     Span readSpan = tracer.spanBuilder("ycsb-read").startSpan();
     try (Scope ignore = readSpan.makeCurrent()) {
       if (isEventualConsistency) {
-        entity = datastore.get(keyFactory.newKey(key), ReadOption.eventualConsistency());
+        entity = datastore.get(newKey, ReadOption.eventualConsistency());
       } else {
-        entity = datastore.get(keyFactory.newKey(key));
+        entity = datastore.get(newKey);
       }
       readSpan.addEvent("datastore.get returned");
     } catch (com.google.cloud.datastore.DatastoreException exception) {
@@ -357,24 +356,21 @@ public class GoogleDatastoreClient extends DB {
     return doSingleItemMutation(table, key, null, MutationType.DELETE);
   }
 
-  private Key.Builder buildPrimaryKey(String table, String key) {
-    Key.Builder result = Key.newBuilder();
-
+  private KeyFactory buildPrimaryKey(String table) {
+    KeyFactory keyFactory = datastore.newKeyFactory().setKind(table);
     if (this.entityGroupingMode == EntityGroupingMode.MULTI_ENTITY_PER_GROUP) {
       // All entities are in side the same group when we are in this mode.
-      result.addPath(Key.PathElement.newBuilder().setKind(table).
-          setName(rootEntityName));
+      keyFactory.addAncestor(PathElement.of(table, rootEntityName));
     }
 
-    return result.addPath(Key.PathElement.newBuilder().setKind(table)
-        .setName(key));
+    return keyFactory;
   }
 
   private Status doSingleItemMutation(String table, String key,
                                       @Nullable Map<String, ByteIterator> values,
                                       MutationType mutationType) {
     // First build the key.
-    com.google.cloud.datastore.Key datastoreKey = datastore.newKeyFactory().setKind(table).newKey(key);
+    com.google.cloud.datastore.Key datastoreKey = buildPrimaryKey(table).newKey(key);
     Span singleItemSpan = tracer.spanBuilder("ycsb-update").startSpan();
 
     if (mutationType == MutationType.DELETE) {

@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2015 YCSB contributors.
+Copyright (c) 2024 YCSB contributors.
 All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -49,7 +49,8 @@ authentication:
 
 https://cloud.google.com/datastore/docs/activate#accessing_the_datastore_api_from_another_platform
 
-After you setup your environment, you will have 3 pieces of information ready:
+After you setup your environment, you will have 4 pieces of information ready:
+- projectId,
 - datasetId,
 - service account email, and
 - a private key file in P12 format.
