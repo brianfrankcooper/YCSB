@@ -42,7 +42,7 @@ for more information on setup.
 
 # Details
 
-A. Configuration and setup:
+## Configuration and setup:
 
 See this link for instructions about setting up Google Cloud Datastore and
 authentication:
@@ -57,7 +57,7 @@ After you setup your environment, you will have 4 pieces of information ready:
 
 These will be configured via corresponding properties in the googledatastore.properties file.
 
-B. EntityGroupingMode
+## EntityGroupingMode
 
 In Google Datastore, Entity Group is the unit in which the user can
 perform strongly consistent query on multiple items; Meanwhile, Entity group
@@ -91,5 +91,20 @@ group of the Google Datastore.
 
 While in this mode, one can optionally specify a root key name. If not
 specified, a default name will be used.
+
+## Enable tracing for benchmarking
+ To enable publishing traces to Google Cloud Trace while running benchmarking tests, `googledatastore.tracingenabled` must be set.
+ Tracing depends on the following external APIs/Services:
+1. Java OpenTelemetry SDK
+2. Cloud Trace Exporter
+3. TraceServiceClient from Cloud Trace API v1.
+
+You wil need to have these permissions to enabled tracing feature:
+1. gcloud auth application-default login must be run with the test user.
+2. To write traces, test user must have one of roles/cloudtrace.[admin|agent|user] roles.
+3. To read traces, test user must have one of roles/cloudtrace.[admin|user] roles.
+
+For more details about setting permissions, please refer to [Permissions and predefined Cloud Trace roles
+](https://cloud.google.com/trace/docs/iam#trace-roles).
 
 
