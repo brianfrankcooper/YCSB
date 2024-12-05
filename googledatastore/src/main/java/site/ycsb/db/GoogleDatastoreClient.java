@@ -21,7 +21,6 @@ import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.cloud.datastore.*;
 import com.google.cloud.datastore.Entity;
-import com.google.datastore.v1.Key;
 import com.google.datastore.v1.ReadOptions.ReadConsistency;
 import com.google.datastore.v1.client.DatastoreHelper;
 import com.google.cloud.datastore.Datastore;
