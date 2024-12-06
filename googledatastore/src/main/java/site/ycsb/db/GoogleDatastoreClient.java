@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 YCSB contributors. All Rights Reserved.
+ * Copyright 2024 YCSB contributors. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -19,15 +19,28 @@ package site.ycsb.db;
 
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
-import com.google.datastore.v1.*;
-import com.google.datastore.v1.CommitRequest.Mode;
+import com.google.cloud.datastore.*;
+import com.google.cloud.datastore.Entity;
 import com.google.datastore.v1.ReadOptions.ReadConsistency;
-import com.google.datastore.v1.client.Datastore;
-import com.google.datastore.v1.client.DatastoreException;
-import com.google.datastore.v1.client.DatastoreFactory;
 import com.google.datastore.v1.client.DatastoreHelper;
-import com.google.datastore.v1.client.DatastoreOptions;
+import com.google.cloud.datastore.Datastore;
+import com.google.cloud.datastore.DatastoreOptions;
+import com.google.cloud.opentelemetry.trace.TraceExporter;
+import com.google.cloud.opentelemetry.trace.TraceConfiguration;
+import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.context.Scope;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.resources.Resource;
+import io.opentelemetry.sdk.trace.SdkTracerProvider;
+import io.opentelemetry.sdk.trace.samplers.Sampler;
+import io.opentelemetry.sdk.trace.export.SpanExporter;
+import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
+import io.opentelemetry.sdk.trace.SpanProcessor;
+import static io.opentelemetry.semconv.resource.attributes.ResourceAttributes.SERVICE_NAME;
 
+import java.time.Duration;
 import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
@@ -76,6 +89,11 @@ public class GoogleDatastoreClient extends DB {
   // User can override this via configure.
   private ReadConsistency readConsistency = ReadConsistency.STRONG;
 
+  private boolean isEventualConsistency = false;
+  private boolean tracingEnabled = false;
+  private OpenTelemetrySdk otel;
+
+  private Tracer tracer;
   private EntityGroupingMode entityGroupingMode =
       EntityGroupingMode.ONE_ENTITY_PER_GROUP;
 
@@ -95,18 +113,24 @@ public class GoogleDatastoreClient extends DB {
     if (null != debug && "true".equalsIgnoreCase(debug)) {
       logger.setLevel(Level.DEBUG);
     }
-
     String skipIndexString = getProperties().getProperty(
         "googledatastore.skipIndex", null);
     if (null != skipIndexString && "false".equalsIgnoreCase(skipIndexString)) {
       skipIndex = false;
     }
 
-    // We need the following 3 essential properties to initialize datastore:
+    // We need the following 4 essential properties to initialize datastore:
     //
+    // - ProjectId,
     // - DatasetId,
     // - Path to private key file,
     // - Service account email address.
+    String projectId = getProperties().getProperty(
+        "googledatastore.projectId", null);
+    if (projectId == null) {
+      throw new DBException(
+          "Required property \"projectId\" missing.");
+    }
     String datasetId = getProperties().getProperty(
         "googledatastore.datasetId", null);
     if (datasetId == null) {
@@ -127,6 +151,7 @@ public class GoogleDatastoreClient extends DB {
       try {
         this.readConsistency = ReadConsistency.valueOf(
             readConsistencyConfig.trim().toUpperCase());
+        this.isEventualConsistency = readConsistencyConfig.trim().toUpperCase().equals("EVENTUAL");
       } catch (IllegalArgumentException e) {
         throw new DBException("Invalid read consistency specified: " +
             readConsistencyConfig + ". Expecting STRONG or EVENTUAL.");
@@ -150,13 +175,9 @@ public class GoogleDatastoreClient extends DB {
       }
     }
 
-    this.rootEntityName = getProperties().getProperty(
-        "googledatastore.rootEntityName", "YCSB_ROOT_ENTITY");
-
     try {
-      // Setup the connection to Google Cloud Datastore with the credentials
-      // obtained from the configure.
-      DatastoreOptions.Builder options = new DatastoreOptions.Builder();
+      // Set up the connection to Google Cloud Datastore with the credentials
+      // obtained from the configuration.
       Credential credential = GoogleCredential.getApplicationDefault();
       if (serviceAccountEmail != null && privateKeyFile != null) {
         credential = DatastoreHelper.getServiceAccountCredential(
@@ -170,9 +191,34 @@ public class GoogleDatastoreClient extends DB {
             + ", Service Account Email: " + ((GoogleCredential) credential).getServiceAccountId());
       }
 
-      datastore = DatastoreFactory.get().create(
-          options.credential(credential).projectId(datasetId).build());
+      // googledatastore.tracingenabled must be set to enable publishing traces to Cloud Trace
+      // Tracing depends on the following external APIs/Services:
+      // 1. Java OpenTelemetry SDK
+      // 2. Cloud Trace Exporter
+      // 3. TraceServiceClient from Cloud Trace API v1.
+      // Permissions to enabled tracing (https://cloud.google.com/trace/docs/iam#trace-roles):
+      // 1. gcloud auth application-default login must be run with the test user.
+      // 2. To write traces, test user must have one of roles/cloudtrace.[admin|agent|user] roles.
+      // 3. To read traces, test user must have one of roles/cloudtrace.[admin|user] roles.
+      tracingEnabled = Boolean.parseBoolean(getProperties()
+          .getProperty("googledatastore.tracingenabled", "false"));
+      otel = getOtelSdk(projectId);
+      logger.info("otel sdk class: " + otel.toString());
+      tracer = otel.getTracer("YCSB_Datastore_Test");
+      logger.info("tracingEnabled=" + tracingEnabled);
 
+      DatastoreOptions.Builder datastoreOptionsBuilder = DatastoreOptions
+          .newBuilder()
+          .setProjectId(projectId)
+          .setDatabaseId(datasetId)
+          .setOpenTelemetryOptions(
+              DatastoreOpenTelemetryOptions.newBuilder()
+                  .setTracingEnabled(tracingEnabled)
+                  .setOpenTelemetry(otel)
+                  .build());
+
+      DatastoreOptions datastoreOptions = datastoreOptionsBuilder.build();
+      datastore = datastoreOptions.getService();
     } catch (GeneralSecurityException exception) {
       throw new DBException("Security error connecting to the datastore: " +
           exception.getMessage(), exception);
@@ -186,62 +232,103 @@ public class GoogleDatastoreClient extends DB {
         datastore.toString());
   }
 
+  private OpenTelemetrySdk getOtelSdk(String projectId) throws DBException {
+    // Configure OpenTelemetry Tracing SDK
+    Resource resource = Resource
+        .getDefault().merge(Resource.builder().put(SERVICE_NAME, "YCSB Datastore").build());
+    SpanExporter gcpTraceExporter;
+    try {
+      gcpTraceExporter = TraceExporter.createWithConfiguration(
+          TraceConfiguration.builder().setProjectId(projectId).build()
+      );
+
+    } catch (Exception exception) {
+      throw new DBException("Unable to create gcp trace exporter " +
+          exception.getMessage(), exception);
+    }
+
+    int traceSpanProcessorDelayMs =
+        Integer.parseInt(
+            getProperties().getProperty(
+                "googledatastore.tracespanprocessordelayms", "5000"));
+    int traceSpanQueueSize =
+        Integer.parseInt(getProperties().getProperty(
+            "googledatastore.tracespanqueuesize", "4096"));
+    int traceSpanExportBatchSize = Integer.parseInt(
+        getProperties().getProperty(
+            "googledatastore.tracespanexportbatchsize", "4096"));
+    // Using a batch span processor
+    // You can use `.setScheduleDelay()`, `.setExporterTimeout()`,
+    // `.setMaxQueueSize`(), and `.setMaxExportBatchSize()` to further customize.
+    SpanProcessor gcpSpanProcessor = BatchSpanProcessor.builder(gcpTraceExporter)
+        .setScheduleDelay(Duration.ofMillis(traceSpanProcessorDelayMs)) // milliseconds
+        .setMaxQueueSize(traceSpanQueueSize) // max queue size before dropping spans
+        .setMaxExportBatchSize(traceSpanExportBatchSize).build(); // max number of spans per batch
+
+    // Default trace ID ratio of 10% when enabled
+    Double traceIdRatio = Double.valueOf(
+        getProperties().getProperty("googledatastore.tracesamplingratio", "0.10"));
+
+    logger.info("trace sampling ratio: " + traceIdRatio);
+    // Export directly Cloud Trace with 10% trace sampling ratio by default when
+    // googledatastore.tracingenabled=true
+    SdkTracerProvider tracerProvider = SdkTracerProvider.builder()
+        .setResource(resource)
+        .addSpanProcessor(gcpSpanProcessor)
+        .setSampler(Sampler.parentBased(Sampler.traceIdRatioBased(traceIdRatio)))
+        .build();
+    if (!tracingEnabled) {
+      // disable tracing
+      tracerProvider.shutdown();
+      logger.info("TracerProvider shutdown");
+    }
+    otel = OpenTelemetrySdk.builder()
+        .setTracerProvider(tracerProvider).build();
+    return otel;
+  }
+
   @Override
   public Status read(String table, String key, Set<String> fields,
-          Map<String, ByteIterator> result) {
-    LookupRequest.Builder lookupRequest = LookupRequest.newBuilder();
-    lookupRequest.addKeys(buildPrimaryKey(table, key));
-    lookupRequest.getReadOptionsBuilder().setReadConsistency(
-        this.readConsistency);
-    // Note above, datastore lookupRequest always reads the entire entity, it
-    // does not support reading a subset of "fields" (properties) of an entity.
-
-    logger.debug("Built lookup request as: " + lookupRequest.toString());
-
-    LookupResponse response = null;
-    try {
-      response = datastore.lookup(lookupRequest.build());
-
-    } catch (DatastoreException exception) {
+                     Map<String, ByteIterator> result) {
+    com.google.cloud.datastore.Key newKey = buildPrimaryKey(table).newKey(key);
+    Entity entity = null;
+    Span readSpan = tracer.spanBuilder("ycsb-read").startSpan();
+    try (Scope ignore = readSpan.makeCurrent()) {
+      if (isEventualConsistency) {
+        entity = datastore.get(newKey, ReadOption.eventualConsistency());
+      } else {
+        entity = datastore.get(newKey);
+      }
+      readSpan.addEvent("datastore.get returned");
+    } catch (com.google.cloud.datastore.DatastoreException exception) {
+      readSpan.setStatus(StatusCode.ERROR, exception.getMessage());
       logger.error(
-          String.format("Datastore Exception when reading (%s): %s %s",
+          String.format("Datastore Exception when reading (%s): %s",
               exception.getMessage(),
-              exception.getMethodName(),
               exception.getCode()));
 
       // DatastoreException.getCode() returns an HTTP response code which we
       // will bubble up to the user as part of the YCSB Status "name".
       return new Status("ERROR-" + exception.getCode(), exception.getMessage());
+    } finally {
+      readSpan.end();
     }
-
-    if (response.getFoundCount() == 0) {
-      return new Status("ERROR-404", "Not Found, key is: " + key);
-    } else if (response.getFoundCount() > 1) {
-      // We only asked to lookup for one key, shouldn't have got more than one
-      // entity back. Unexpected State.
-      return Status.UNEXPECTED_STATE;
-    }
-
-    Entity entity = response.getFound(0).getEntity();
-    logger.debug("Read entity: " + entity.toString());
-
-    Map<String, Value> properties = entity.getProperties();
+    Map<String, com.google.cloud.datastore.Value<?>> properties = entity.getProperties();
     Set<String> propertiesToReturn =
         (fields == null ? properties.keySet() : fields);
 
     for (String name : propertiesToReturn) {
       if (properties.containsKey(name)) {
         result.put(name, new StringByteIterator(properties.get(name)
-            .getStringValue()));
+            .toString()));
       }
     }
-
     return Status.OK;
   }
 
   @Override
   public Status scan(String table, String startkey, int recordcount,
-      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+                     Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     // TODO: Implement Scan as query on primary key.
     return Status.NOT_IMPLEMENTED;
   }
@@ -256,7 +343,7 @@ public class GoogleDatastoreClient extends DB {
   @Override
   public Status insert(String table, String key,
                        Map<String, ByteIterator> values) {
-    // Use Upsert to allow overwrite of existing key instead of failing the
+    // Use Upsert to allow to overwrite of existing key instead of failing the
     // load (or run) just because the DB already has the key.
     // This is the same behavior as what other DB does here (such as
     // the DynamoDB client).
@@ -268,76 +355,58 @@ public class GoogleDatastoreClient extends DB {
     return doSingleItemMutation(table, key, null, MutationType.DELETE);
   }
 
-  private Key.Builder buildPrimaryKey(String table, String key) {
-    Key.Builder result = Key.newBuilder();
-
+  private KeyFactory buildPrimaryKey(String table) {
+    KeyFactory keyFactory = datastore.newKeyFactory().setKind(table);
     if (this.entityGroupingMode == EntityGroupingMode.MULTI_ENTITY_PER_GROUP) {
       // All entities are in side the same group when we are in this mode.
-      result.addPath(Key.PathElement.newBuilder().setKind(table).
-          setName(rootEntityName));
+      keyFactory.addAncestor(PathElement.of(table, rootEntityName));
     }
 
-    return result.addPath(Key.PathElement.newBuilder().setKind(table)
-        .setName(key));
+    return keyFactory;
   }
 
   private Status doSingleItemMutation(String table, String key,
-      @Nullable Map<String, ByteIterator> values,
-      MutationType mutationType) {
+                                      @Nullable Map<String, ByteIterator> values,
+                                      MutationType mutationType) {
     // First build the key.
-    Key.Builder datastoreKey = buildPrimaryKey(table, key);
-
-    // Build a commit request in non-transactional mode.
-    // Single item mutation to google datastore
-    // is always atomic and strongly consistent. Transaction is only necessary
-    // for multi-item mutation, or Read-modify-write operation.
-    CommitRequest.Builder commitRequest = CommitRequest.newBuilder();
-    commitRequest.setMode(Mode.NON_TRANSACTIONAL);
+    com.google.cloud.datastore.Key datastoreKey = buildPrimaryKey(table).newKey(key);
+    Span singleItemSpan = tracer.spanBuilder("ycsb-update").startSpan();
 
     if (mutationType == MutationType.DELETE) {
-      commitRequest.addMutationsBuilder().setDelete(datastoreKey);
-
+      datastore.delete(datastoreKey);
     } else {
       // If this is not for delete, build the entity.
-      Entity.Builder entityBuilder = Entity.newBuilder();
-      entityBuilder.setKey(datastoreKey);
+      Entity.Builder entityBuilder = Entity.newBuilder(datastoreKey);
       for (Entry<String, ByteIterator> val : values.entrySet()) {
-        entityBuilder.getMutableProperties()
-            .put(val.getKey(),
-                Value.newBuilder()
-                .setStringValue(val.getValue().toString())
-                .setExcludeFromIndexes(skipIndex).build());
+        entityBuilder.set(val.getKey(), StringValue.newBuilder(val.getValue().toString())
+            .setExcludeFromIndexes(skipIndex).build());
       }
       Entity entity = entityBuilder.build();
-      logger.debug("entity built as: " + entity.toString());
+      try (Scope ignore = singleItemSpan.makeCurrent()) {
+        if (mutationType == MutationType.UPSERT) {
+          datastore.put(entity);
+        } else if (mutationType == MutationType.UPDATE) {
+          datastore.update(entity);
+        } else {
+          throw new RuntimeException("Impossible MutationType, code bug.");
+        }
+      } catch (Exception exception) {
+        singleItemSpan.setStatus(StatusCode.ERROR, exception.getMessage());
+        // Catch all Datastore rpc errors.
+        // Log the exception, the name of the method called and the error code.
+        logger.error(
+            String.format("Datastore Exception when committing : %s",
+                exception.getMessage()));
 
-      if (mutationType == MutationType.UPSERT) {
-        commitRequest.addMutationsBuilder().setUpsert(entity);
-      } else if (mutationType == MutationType.UPDATE){
-        commitRequest.addMutationsBuilder().setUpdate(entity);
-      } else {
-        throw new RuntimeException("Impossible MutationType, code bug.");
+        // DatastoreException.getCode() returns an HTTP response code which we
+        // will bubble up to the user as part of the YCSB Status "name".
+        return new Status("ERROR-", exception.getMessage());
+      } finally {
+        singleItemSpan.end();
       }
-    }
-
-    try {
-      datastore.commit(commitRequest.build());
-      logger.debug("successfully committed.");
-
-    } catch (DatastoreException exception) {
-      // Catch all Datastore rpc errors.
-      // Log the exception, the name of the method called and the error code.
-      logger.error(
-          String.format("Datastore Exception when committing (%s): %s %s",
-              exception.getMessage(),
-              exception.getMethodName(),
-              exception.getCode()));
-
-      // DatastoreException.getCode() returns an HTTP response code which we
-      // will bubble up to the user as part of the YCSB Status "name".
-      return new Status("ERROR-" + exception.getCode(), exception.getMessage());
     }
 
     return Status.OK;
   }
 }
+ 
