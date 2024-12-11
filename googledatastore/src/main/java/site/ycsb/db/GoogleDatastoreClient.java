@@ -133,11 +133,6 @@ public class GoogleDatastoreClient extends DB {
     }
     String datasetId = getProperties().getProperty(
         "googledatastore.datasetId", null);
-    if (datasetId == null) {
-      throw new DBException(
-          "Required property \"datasetId\" missing.");
-    }
-
     String privateKeyFile = getProperties().getProperty(
         "googledatastore.privateKeyFile", null);
     String serviceAccountEmail = getProperties().getProperty(
@@ -210,12 +205,14 @@ public class GoogleDatastoreClient extends DB {
       DatastoreOptions.Builder datastoreOptionsBuilder = DatastoreOptions
           .newBuilder()
           .setProjectId(projectId)
-          .setDatabaseId(datasetId)
           .setOpenTelemetryOptions(
               DatastoreOpenTelemetryOptions.newBuilder()
                   .setTracingEnabled(tracingEnabled)
                   .setOpenTelemetry(otel)
                   .build());
+      if (datasetId != null) {
+        datastoreOptionsBuilder.setDatabaseId(datasetId);
+      }
 
       DatastoreOptions datastoreOptions = datastoreOptionsBuilder.build();
       datastore = datastoreOptions.getService();
