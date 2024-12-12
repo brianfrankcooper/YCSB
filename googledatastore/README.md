@@ -51,7 +51,7 @@ https://cloud.google.com/datastore/docs/activate#accessing_the_datastore_api_fro
 
 After you setup your environment, you will have 4 pieces of information ready:
 - projectId,
-- datasetId,
+- datasetId (omit to use the default database),
 - service account email, and
 - a private key file in P12 format.
 
