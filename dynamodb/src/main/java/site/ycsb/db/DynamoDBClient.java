@@ -63,6 +63,8 @@ public class DynamoDBClient extends DB {
   // DynamoDB.Properties file for more details.
   private String hashKeyValue;
   private String hashKeyName;
+  private String ttlKeyName = null;
+  private long ttlDuration;
 
   private boolean consistentRead = false;
   private String region = "us-east-1";
@@ -83,6 +85,8 @@ public class DynamoDBClient extends DB {
     String configuredEndpoint = getProperties().getProperty("dynamodb.endpoint", null);
     String credentialsFile = getProperties().getProperty("dynamodb.awsCredentialsFile", null);
     String primaryKey = getProperties().getProperty("dynamodb.primaryKey", null);
+    String ttlKeyConfiguration = getProperties().getProperty("dynamodb.ttlKey", null);
+    String ttlDurationConfiguration = getProperties().getProperty("dynamodb.ttlDuration", null);
     String primaryKeyTypeString = getProperties().getProperty("dynamodb.primaryKeyType", null);
     String consistentReads = getProperties().getProperty("dynamodb.consistentReads", null);
     String connectMax = getProperties().getProperty("dynamodb.connectMax", null);
@@ -98,6 +102,14 @@ public class DynamoDBClient extends DB {
 
     if (null != configuredEndpoint) {
       this.endpoint = configuredEndpoint;
+    }
+
+    if (null != ttlKeyConfiguration && null != ttlDurationConfiguration) {
+      this.ttlKeyName = ttlKeyConfiguration;
+      this.ttlDuration = Integer.parseInt(ttlDurationConfiguration);
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("ttlKeyName: " + this.ttlKeyName + " ttlDuration: " + this.ttlDuration);
+      }
     }
 
     if (null == primaryKey || primaryKey.length() < 1) {
@@ -284,6 +296,11 @@ public class DynamoDBClient extends DB {
       // into the attributes map above is the range key part of the primary
       // key, we still need to put in the hash key part here.
       attributes.put(hashKeyName, new AttributeValue(hashKeyValue));
+    }
+
+    if (null != this.ttlKeyName) {
+      attributes.put(this.ttlKeyName, new AttributeValue(
+          String.valueOf((System.currentTimeMillis() / 1000L) + this.ttlDuration)));
     }
 
     PutItemRequest putItemRequest = new PutItemRequest(table, attributes);
