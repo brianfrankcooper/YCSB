@@ -89,9 +89,19 @@ public class CoreWorkload extends Workload {
   public static final String FIELD_COUNT_PROPERTY = "fieldcount";
 
   /**
+   * The name of the property for the number of indexed fields.
+   */
+  public static final String INDEX_COUNT_PROPERTY = "indexcount";
+
+  /**
    * Default number of fields in a record.
    */
   public static final String FIELD_COUNT_PROPERTY_DEFAULT = "10";
+
+  /**
+   * Default number of indexed fields (secondary indexes).
+   */
+  public static final String INDEX_COUNT_PROPERTY_DEFAULT = "0";
   
   private List<String> fieldnames;
 

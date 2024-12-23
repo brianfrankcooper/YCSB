@@ -25,6 +25,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
@@ -74,6 +75,8 @@ public abstract class IgniteAbstractClient extends DB {
   protected String cacheName;
 
   protected int fieldCount;
+
+  protected int indexCount;
 
   protected String fieldPrefix;
 
@@ -224,16 +227,25 @@ public abstract class IgniteAbstractClient extends DB {
       String workDirProperty = IgniteParam.WORK_DIR.getValue(properties);
       embeddedIgniteWorkDir = Paths.get(workDirProperty);
 
-      cacheName = properties.getProperty(CoreWorkload.TABLENAME_PROPERTY,
-          CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
+      cacheName = properties.getProperty(
+          CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
       fieldCount = Integer.parseInt(properties.getProperty(
           CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
-      fieldPrefix = properties.getProperty(CoreWorkload.FIELD_NAME_PREFIX,
-          CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
-      recordsCount = parseLongWithModifiers(properties.getProperty(Client.RECORD_COUNT_PROPERTY,
-          Client.DEFAULT_RECORD_COUNT));
-      batchSize = parseLongWithModifiers(properties.getProperty(Client.BATCH_SIZE_PROPERTY,
-          Client.DEFAULT_BATCH_SIZE));
+      fieldPrefix = properties.getProperty(
+          CoreWorkload.FIELD_NAME_PREFIX, CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
+      indexCount = Integer.parseInt(properties.getProperty(
+          CoreWorkload.INDEX_COUNT_PROPERTY, CoreWorkload.INDEX_COUNT_PROPERTY_DEFAULT));
+
+      if (indexCount > fieldCount) {
+        throw new DBException(String.format(
+            "Indexed fields count (%s=%s) should be less or equal to fields count (%s=%s)",
+            CoreWorkload.INDEX_COUNT_PROPERTY, indexCount, CoreWorkload.FIELD_COUNT_PROPERTY, fieldCount));
+      }
+
+      recordsCount = parseLongWithModifiers(properties.getProperty(
+          Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
+      batchSize = parseLongWithModifiers(properties.getProperty(
+          Client.BATCH_SIZE_PROPERTY, Client.DEFAULT_BATCH_SIZE));
 
       for (int i = 0; i < fieldCount; i++) {
         valueFields.add(fieldPrefix + i);
@@ -318,10 +330,14 @@ public abstract class IgniteAbstractClient extends DB {
 
       String createTableReq = createTableSQL(createZoneReq);
 
+      List<String> createIndexesReqs = createIndexesSQL();
+
       if (!createZoneReq.isEmpty()) {
+        LOG.info("Creating zone. SQL line: {}", createZoneReq);
         node0.sql().execute(null, createZoneReq).close();
       }
 
+      LOG.info("Creating table. SQL line: {}", createTableReq);
       node0.sql().execute(null, createTableReq).close();
 
       boolean cachePresent = waitForCondition(() -> ignite.tables().table(cacheName) != null,
@@ -330,11 +346,25 @@ public abstract class IgniteAbstractClient extends DB {
       if (!cachePresent) {
         throw new DBException("Table wasn't created in " + TABLE_CREATION_TIMEOUT_SECONDS + " seconds.");
       }
+
+      if (!createIndexesReqs.isEmpty()) {
+        LOG.info(String.format("Creating %s indexes.", indexCount));
+
+        createIndexesReqs.forEach(idxReq -> {
+            LOG.info("SQL line: {}", idxReq);
+            node0.sql().execute(null, idxReq).close();
+          });
+      }
     } catch (Exception e) {
       throw new DBException(e);
     }
   }
 
+  /**
+   * Prepare the creation table SQL line.
+   *
+   * @param createZoneReq Create zone request.
+   */
   public String createTableSQL(String createZoneReq) {
     String fieldsSpecs = valueFields.stream()
         .map(e -> e + " VARCHAR")
@@ -353,12 +383,9 @@ public abstract class IgniteAbstractClient extends DB {
       }
     }
 
-    String createTableReq = String.format("CREATE TABLE IF NOT EXISTS %s(%s VARCHAR PRIMARY KEY, %s)%s", cacheName,
-        PRIMARY_COLUMN_NAME, fieldsSpecs, withZoneName);
-
-    LOG.info("Create table request: {}", createTableReq);
-
-    return createTableReq;
+    return String.format(
+        "CREATE TABLE IF NOT EXISTS %s(%s VARCHAR PRIMARY KEY, %s)%s",
+        cacheName, PRIMARY_COLUMN_NAME, fieldsSpecs, withZoneName);
   }
 
   /**
@@ -388,11 +415,24 @@ public abstract class IgniteAbstractClient extends DB {
         .collect(Collectors.joining(", "));
     String reqWithParams = params.isEmpty() ? "" : " WITH " + params;
 
-    String createZoneReq = "CREATE ZONE IF NOT EXISTS " + DEFAULT_ZONE_NAME + reqWithParams + ";";
+    return String.format("CREATE ZONE IF NOT EXISTS %s%s;", DEFAULT_ZONE_NAME, reqWithParams);
+  }
 
-    LOG.info("Create zone request: {}", createZoneReq);
+  /**
+   * Prepare the creation indexes SQL lines.
+   */
+  public List<String> createIndexesSQL() {
+    if (indexCount <= 0) {
+      return Collections.emptyList();
+    }
 
-    return createZoneReq;
+    List<String> createIndexesReqs = new ArrayList<>();
+
+    valueFields.subList(0, indexCount).forEach(field ->
+        createIndexesReqs.add(
+            String.format("CREATE INDEX IF NOT EXISTS idx_%s ON %s (%s);", field, cacheName, field)));
+
+    return createIndexesReqs;
   }
 
   /**
