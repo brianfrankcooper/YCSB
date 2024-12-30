@@ -38,17 +38,17 @@ import site.ycsb.Status;
 import site.ycsb.StringByteIterator;
 
 /**
- * Ignite client.
+ * Ignite key-value client.
  *
  * See {@code ignite/README.md} for details.
  */
 public class IgniteClient extends IgniteAbstractClient {
-  /** */
-  private static Logger log = LogManager.getLogger(IgniteClient.class);
-
   static {
     accessMethod = "kv";
   }
+
+  /** */
+  protected static final Logger LOG = LogManager.getLogger(IgniteClient.class);
 
   /**
    * Cached binary type.
@@ -68,7 +68,7 @@ public class IgniteClient extends IgniteAbstractClient {
 
       return convert(binObj, fields, result);
     } catch (Exception e) {
-      log.error(String.format("Error reading key: %s", key), e);
+      LOG.error(String.format("Error reading key: %s", key), e);
 
       return Status.ERROR;
     }
@@ -97,7 +97,7 @@ public class IgniteClient extends IgniteAbstractClient {
 
       return Status.OK;
     } catch (Exception e) {
-      log.error("Error reading batch of keys.", e);
+      LOG.error("Error reading batch of keys.", e);
 
       return Status.ERROR;
     }
@@ -111,7 +111,7 @@ public class IgniteClient extends IgniteAbstractClient {
 
       return Status.OK;
     } catch (Exception e) {
-      log.error(String.format("Error updating key: %s", key), e);
+      LOG.error(String.format("Error updating key: %s", key), e);
 
       return Status.ERROR;
     }
@@ -127,7 +127,7 @@ public class IgniteClient extends IgniteAbstractClient {
 
       return Status.OK;
     } catch (Exception e) {
-      log.error(String.format("Error inserting key: %s", key), e);
+      LOG.error(String.format("Error inserting key: %s", key), e);
 
       return Status.ERROR;
     }
@@ -149,7 +149,7 @@ public class IgniteClient extends IgniteAbstractClient {
 
       return Status.OK;
     } catch (Exception e) {
-      log.error("Error inserting batch of keys.", e);
+      LOG.error("Error inserting batch of keys.", e);
 
       return Status.ERROR;
     }
@@ -163,7 +163,7 @@ public class IgniteClient extends IgniteAbstractClient {
 
       return Status.OK;
     } catch (Exception e) {
-      log.error(String.format("Error deleting key: %s ", key), e);
+      LOG.error(String.format("Error deleting key: %s ", key), e);
 
       return Status.ERROR;
     }
@@ -175,7 +175,7 @@ public class IgniteClient extends IgniteAbstractClient {
    * @param values Values in Map<String, ByteIterator> format.
    * @return Binary object.
    */
-  private BinaryObject convert(Map<String, ByteIterator> values) {
+  protected BinaryObject convert(Map<String, ByteIterator> values) {
     BinaryObjectBuilder bob = ignite.binary().builder("CustomType");
 
     for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
@@ -193,7 +193,7 @@ public class IgniteClient extends IgniteAbstractClient {
    * @param result Result in Map<String, ByteIterator> format.
    * @return Status.
    */
-  private Status convert(BinaryObject binObj, Set<String> fields, Map<String, ByteIterator> result) {
+  protected Status convert(BinaryObject binObj, Set<String> fields, Map<String, ByteIterator> result) {
     if (binObj == null) {
       return Status.NOT_FOUND;
     }

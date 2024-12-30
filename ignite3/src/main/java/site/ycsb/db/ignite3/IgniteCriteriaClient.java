@@ -16,6 +16,9 @@
  */
 package site.ycsb.db.ignite3;
 
+import static org.apache.ignite.table.criteria.Criteria.columnValue;
+import static org.apache.ignite.table.criteria.Criteria.equalTo;
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -28,9 +31,6 @@ import org.apache.logging.log4j.Logger;
 import site.ycsb.ByteIterator;
 import site.ycsb.Status;
 import site.ycsb.StringByteIterator;
-
-import static org.apache.ignite.table.criteria.Criteria.columnValue;
-import static org.apache.ignite.table.criteria.Criteria.equalTo;
 
 /**
  * Ignite3 criteria query client.

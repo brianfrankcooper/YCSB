@@ -45,6 +45,7 @@ import org.apache.ignite.sql.SqlRow;
 import org.apache.ignite.table.KeyValueView;
 import org.apache.ignite.table.RecordView;
 import org.apache.ignite.table.Tuple;
+import org.apache.ignite.tx.TransactionOptions;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import site.ycsb.ByteIterator;
@@ -166,6 +167,16 @@ public abstract class IgniteAbstractClient extends DB {
   protected static String partitions;
 
   /**
+   * Used to set explicit RO transactions (used in pair with Tx clients and 'batchsize').
+   */
+  protected static boolean txReadOnly;
+
+  /**
+   * Explicit transaction options (for example, use RO transactions for Tx clients).
+   */
+  protected static TransactionOptions txOptions;
+
+  /**
    * Set IgniteServer instance to work with.
    *
    * @param igniteSrv Ignite.
@@ -223,6 +234,7 @@ public abstract class IgniteAbstractClient extends DB {
 
       replicas = IgniteParam.REPLICAS.getValue(properties);
       partitions = IgniteParam.PARTITIONS.getValue(properties);
+      txOptions = new TransactionOptions().readOnly(IgniteParam.TX_READ_ONLY.getValue(properties));
 
       String workDirProperty = IgniteParam.WORK_DIR.getValue(properties);
       embeddedIgniteWorkDir = Paths.get(workDirProperty);

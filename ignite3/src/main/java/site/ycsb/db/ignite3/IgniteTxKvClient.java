@@ -42,7 +42,7 @@ public class IgniteTxKvClient extends IgniteClient {
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
-      tx = ignite.transactions().begin();
+      tx = ignite.transactions().begin(txOptions);
 
       put(tx, key, values);
 
@@ -65,7 +65,7 @@ public class IgniteTxKvClient extends IgniteClient {
   @Override
   public Status batchInsert(String table, List<String> keys, List<Map<String, ByteIterator>> values) {
     try {
-      tx = ignite.transactions().begin();
+      tx = ignite.transactions().begin(txOptions);
 
       for (int i = 0; i < keys.size(); i++) {
         put(tx, keys.get(i), values.get(i));
@@ -93,7 +93,7 @@ public class IgniteTxKvClient extends IgniteClient {
     try {
       Status status;
 
-      tx = ignite.transactions().begin();
+      tx = ignite.transactions().begin(txOptions);
 
       status = get(tx, key, fields, result);
 
@@ -117,14 +117,14 @@ public class IgniteTxKvClient extends IgniteClient {
   public Status batchRead(String table, List<String> keys, List<Set<String>> fields,
                           List<Map<String, ByteIterator>> results) {
     try {
-      tx = ignite.transactions().begin();
+      tx = ignite.transactions().begin(txOptions);
 
       for (int i = 0; i < keys.size(); i++) {
         HashMap<String, ByteIterator> result = new HashMap<>();
 
         Status status = get(tx, keys.get(i), fields.get(i), result);
 
-        if (status != Status.OK) {
+        if (!status.isOk()) {
           throw new TransactionException(-1, String.format("Unable to read key %s", keys.get(i)));
         }
 
@@ -150,7 +150,7 @@ public class IgniteTxKvClient extends IgniteClient {
   @Override
   public Status delete(String table, String key) {
     try {
-      tx = ignite.transactions().begin();
+      tx = ignite.transactions().begin(txOptions);
 
       kvView.remove(tx, Tuple.create(1).set(PRIMARY_COLUMN_NAME, key));
 
@@ -164,8 +164,8 @@ public class IgniteTxKvClient extends IgniteClient {
       throw txEx;
     } catch (Exception e) {
       LOG.error(String.format("Error deleting key: %s ", key), e);
-    }
 
-    return Status.ERROR;
+      return Status.ERROR;
+    }
   }
 }

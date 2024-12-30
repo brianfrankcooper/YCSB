@@ -40,6 +40,9 @@ public final class IgniteParam<T> {
   public static final IgniteParam<String> PARTITIONS =
       new IgniteParam<>("partitions", "", s -> s);
 
+  public static final IgniteParam<Boolean> TX_READ_ONLY =
+      new IgniteParam<>("txreadonly", false, Boolean::parseBoolean);
+
   public static final IgniteParam<String> WORK_DIR =
       new IgniteParam<>("workDir", "../ignite3-ycsb-work/" + System.currentTimeMillis(), s -> s);
 

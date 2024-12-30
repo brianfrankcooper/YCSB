@@ -14,14 +14,14 @@
  * the License. See accompanying LICENSE file.
  * <p>
  */
-package site.ycsb.db.ignite3;
+package site.ycsb.db.ignite;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.ignite.tx.TransactionException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -30,10 +30,15 @@ import site.ycsb.DBException;
 import site.ycsb.Status;
 
 /**
- * Ignite3 JDBC client with using transactions.
+ * Ignite JDBC client with using transactions.
  */
 public class IgniteTxJdbcClient extends IgniteJdbcClient {
-  public static final Logger LOG = LogManager.getLogger(IgniteTxJdbcClient.class);
+  static {
+    accessMethod = "txjdbc";
+  }
+
+  /** */
+  protected static final Logger LOG = LogManager.getLogger(IgniteTxJdbcClient.class);
 
   /** {@inheritDoc} */
   @Override
@@ -42,6 +47,22 @@ public class IgniteTxJdbcClient extends IgniteJdbcClient {
 
     try {
       CONN.get().setAutoCommit(false);
+
+      int isolationLevel;
+
+      switch (txIsolation) {
+      case READ_COMMITTED:
+        isolationLevel = Connection.TRANSACTION_READ_COMMITTED;
+        break;
+      case REPEATABLE_READ:
+        isolationLevel = Connection.TRANSACTION_REPEATABLE_READ;
+        break;
+      case SERIALIZABLE:
+      default:
+        isolationLevel = Connection.TRANSACTION_SERIALIZABLE;
+      }
+
+      CONN.get().setTransactionIsolation(isolationLevel);
     } catch (Exception e) {
       throw new DBException(e);
     }
@@ -77,8 +98,8 @@ public class IgniteTxJdbcClient extends IgniteJdbcClient {
 
         Status status = get(keys.get(i), fields.get(i), result);
 
-        if (status != Status.OK) {
-          throw new TransactionException(-1, String.format("Unable to read key %s", keys.get(i)));
+        if (!status.isOk()) {
+          throw new SQLException("Error reading batch of keys.");
         }
 
         results.add(result);
@@ -93,6 +114,26 @@ public class IgniteTxJdbcClient extends IgniteJdbcClient {
       return rollback();
     } catch (Exception e) {
       LOG.error("Error reading batch of keys.", e);
+
+      return Status.ERROR;
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
+    try {
+      modify(key, values);
+
+      CONN.get().commit();
+
+      return Status.OK;
+    } catch (SQLException e) {
+      LOG.error("Error updating key in transaction. Calling rollback.", e);
+
+      return rollback();
+    } catch (Exception e) {
+      LOG.error(String.format("Error updating key: %s", key), e);
 
       return Status.ERROR;
     }
@@ -138,12 +179,6 @@ public class IgniteTxJdbcClient extends IgniteJdbcClient {
 
       return Status.ERROR;
     }
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public Status update(String table, String key, Map<String, ByteIterator> values) {
-    return Status.NOT_IMPLEMENTED;
   }
 
   /** {@inheritDoc} */

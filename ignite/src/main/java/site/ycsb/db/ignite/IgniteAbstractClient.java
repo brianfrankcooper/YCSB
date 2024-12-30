@@ -46,6 +46,9 @@ import org.apache.ignite.logger.log4j2.Log4J2Logger;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
+import org.apache.ignite.transactions.Transaction;
+import org.apache.ignite.transactions.TransactionConcurrency;
+import org.apache.ignite.transactions.TransactionIsolation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import site.ycsb.ByteIterator;
@@ -61,13 +64,18 @@ import site.ycsb.workloads.CoreWorkload;
  */
 public abstract class IgniteAbstractClient extends DB {
   /** */
-  protected static Logger log = LogManager.getLogger(IgniteAbstractClient.class);
+  protected static final Logger LOG = LogManager.getLogger(IgniteAbstractClient.class);
 
   protected static final String PRIMARY_COLUMN_NAME = "ycsb_key";
   protected static final String HOSTS_PROPERTY = "hosts";
   protected static final String CLIENT_NODE_NAME = "YCSB client node";
+  protected static final String TX_CONCURRENCY_PROPERTY = "txconcurrency";
+  protected static final String TX_CONCURRENCY_DEFAULT = "pessimistic";
+  protected static final String TX_ISOLATION_PROPERTY = "txisolation";
+  protected static final String TX_ISOLATION_DEFAULT = "serializable";
   protected static final List<String> FIELDS = new ArrayList<>();
-  protected static final Set<String> ACCESS_METHODS = new HashSet<>(Arrays.asList("kv", "sql", "jdbc"));
+  protected static final Set<String> ACCESS_METHODS =
+      new HashSet<>(Arrays.asList("kv", "sql", "jdbc", "txkv", "txsql", "txjdbc"));
 
   /**
    * Count the number of times initialized to teardown on the last
@@ -108,6 +116,15 @@ public abstract class IgniteAbstractClient extends DB {
 
   /** Node access method ("kv" - Key-Value [default], "sql" - Thick Java client SQL, "jdbc" - JDBC). */
   protected static String accessMethod = "kv";
+
+  /** Transaction concurrency. */
+  protected static TransactionConcurrency txConcurrency;
+
+  /** Transaction isolation. */
+  protected static TransactionIsolation txIsolation;
+
+  /** Transaction. */
+  protected Transaction tx;
 
   /**
    * Set Ignite instance to work with.
@@ -161,6 +178,10 @@ public abstract class IgniteAbstractClient extends DB {
           CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
       fieldPrefix = properties.getProperty(CoreWorkload.FIELD_NAME_PREFIX,
           CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
+      String txConcurrencyStr = properties.getProperty(TX_CONCURRENCY_PROPERTY, TX_CONCURRENCY_DEFAULT);
+      txConcurrency = TransactionConcurrency.valueOf(txConcurrencyStr.trim().toUpperCase());
+      String txIsolationStr = properties.getProperty(TX_ISOLATION_PROPERTY, TX_ISOLATION_DEFAULT);
+      txIsolation = TransactionIsolation.valueOf(txIsolationStr.trim().toUpperCase());
 
       for (int i = 0; i < fieldCount; i++) {
         FIELDS.add(fieldPrefix + i);
@@ -188,7 +209,7 @@ public abstract class IgniteAbstractClient extends DB {
       }
     }
 
-    log.info("Activate Ignite cluster.");
+    LOG.info("Activate Ignite cluster.");
     ignite.cluster().state(ClusterState.ACTIVE);
   }
 
@@ -233,7 +254,7 @@ public abstract class IgniteAbstractClient extends DB {
     Log4J2Logger logger = new Log4J2Logger(this.getClass().getClassLoader().getResource("log4j2.xml"));
     igcfg.setGridLogger(logger);
 
-    log.info("Start Ignite client node.");
+    LOG.info("Start Ignite client node.");
     return Ignition.start(igcfg);
   }
 
@@ -257,7 +278,7 @@ public abstract class IgniteAbstractClient extends DB {
       Files.copy(Objects.requireNonNull(cfgIs), cfgPath, StandardCopyOption.REPLACE_EXISTING);
     }
 
-    log.info("Start embedded Ignite node.");
+    LOG.info("Start embedded Ignite node.");
     return Ignition.start(cfgPath.toString());
   }
 
@@ -288,5 +309,12 @@ public abstract class IgniteAbstractClient extends DB {
   public Status scan(String table, String startkey, int recordcount,
                      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     return Status.NOT_IMPLEMENTED;
+  }
+
+  /**
+   * Start transaction.
+   */
+  protected void txStart() {
+    tx = ignite.transactions().txStart(txConcurrency, txIsolation);
   }
 }

@@ -14,43 +14,47 @@
  * the License. See accompanying LICENSE file.
  * <p>
  */
-package site.ycsb.db.ignite3;
+package site.ycsb.db.ignite;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.ignite.tx.Transaction;
-import org.apache.ignite.tx.TransactionException;
+import javax.cache.CacheException;
+import org.apache.ignite.IgniteException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import site.ycsb.ByteIterator;
 import site.ycsb.Status;
 
 /**
- * Ignite3 SQL API client with using transactions.
+ * Ignite client.
+ * <p>
+ * See {@code ignite/README.md} for details.
  */
 public class IgniteTxSqlClient extends IgniteSqlClient {
-  /** */
-  private static final Logger LOG = LogManager.getLogger(IgniteTxSqlClient.class);
+  static {
+    accessMethod = "txsql";
+  }
 
-  /** Transaction. */
-  private Transaction tx;
+  /** */
+  protected static final Logger LOG = LogManager.getLogger(IgniteTxSqlClient.class);
 
   /** {@inheritDoc} */
   @Override
-  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
+  public Status read(String table, String key, Set<String> fields,
+      Map<String, ByteIterator> result) {
     try {
       Status status;
 
-      tx = ignite.transactions().begin(txOptions);
+      txStart();
 
-      status = get(tx, table, key, fields, result);
+      status = get(table, key, fields, result);
 
       tx.commit();
 
       return status;
-    } catch (TransactionException txEx) {
+    } catch (IgniteException txEx) {
       LOG.error("Error reading key in transaction. Calling rollback.", txEx);
       tx.rollback();
 
@@ -59,23 +63,25 @@ public class IgniteTxSqlClient extends IgniteSqlClient {
       LOG.error(String.format("Error reading key: %s", key), e);
 
       return Status.ERROR;
+    } finally {
+      tx.close();
     }
   }
 
   /** {@inheritDoc} */
   @Override
   public Status batchRead(String table, List<String> keys, List<Set<String>> fields,
-                          List<Map<String, ByteIterator>> results) {
+      List<Map<String, ByteIterator>> results) {
     try {
-      tx = ignite.transactions().begin(txOptions);
+      txStart();
 
       for (int i = 0; i < keys.size(); i++) {
         HashMap<String, ByteIterator> result = new HashMap<>();
 
-        Status status = get(tx, table, keys.get(i), fields.get(i), result);
+        Status status = get(table, keys.get(i), fields.get(i), result);
 
         if (!status.isOk()) {
-          throw new TransactionException(-1, String.format("Unable to read key %s", keys.get(i)));
+          throw new IgniteException("Error reading batch of keys.");
         }
 
         results.add(result);
@@ -84,7 +90,7 @@ public class IgniteTxSqlClient extends IgniteSqlClient {
       tx.commit();
 
       return Status.OK;
-    } catch (TransactionException txEx) {
+    } catch (IgniteException txEx) {
       LOG.error("Error reading batch of keys in transaction. Calling rollback.", txEx);
       tx.rollback();
 
@@ -93,27 +99,57 @@ public class IgniteTxSqlClient extends IgniteSqlClient {
       LOG.error("Error reading batch of keys.", e);
 
       return Status.ERROR;
+    } finally {
+      tx.close();
     }
   }
 
   /** {@inheritDoc} */
   @Override
-  public Status update(String table, String key, Map<String, ByteIterator> values) {
-    return Status.NOT_IMPLEMENTED;
+  public Status update(String table, String key,
+      Map<String, ByteIterator> values) {
+    while (true) {
+      try {
+        txStart();
+
+        modify(table, key, values);
+
+        tx.commit();
+
+        return Status.OK;
+      } catch (IgniteException txEx) {
+        LOG.error("Error updating key in transaction. Calling rollback.", txEx);
+        tx.rollback();
+
+        throw txEx;
+      } catch (CacheException e) {
+        if (!e.getMessage().contains("Failed to update some keys because they had been modified concurrently")) {
+          LOG.error(String.format("Error in processing update table: %s", table), e);
+
+          return Status.ERROR;
+        }
+      } catch (Exception e) {
+        LOG.error(String.format("Error updating key: %s", key), e);
+
+        return Status.ERROR;
+      } finally {
+        tx.close();
+      }
+    }
   }
 
   /** {@inheritDoc} */
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
-      tx = ignite.transactions().begin(txOptions);
+      txStart();
 
-      put(tx, key, values);
+      put(table, key, values);
 
       tx.commit();
 
       return Status.OK;
-    } catch (TransactionException txEx) {
+    } catch (IgniteException txEx) {
       LOG.error("Error inserting key in transaction. Calling rollback.", txEx);
       tx.rollback();
 
@@ -122,6 +158,8 @@ public class IgniteTxSqlClient extends IgniteSqlClient {
       LOG.error(String.format("Error inserting key: %s", key), e);
 
       return Status.ERROR;
+    } finally {
+      tx.close();
     }
   }
 
@@ -129,16 +167,16 @@ public class IgniteTxSqlClient extends IgniteSqlClient {
   @Override
   public Status batchInsert(String table, List<String> keys, List<Map<String, ByteIterator>> values) {
     try {
-      tx = ignite.transactions().begin(txOptions);
+      txStart();
 
       for (int i = 0; i < keys.size(); i++) {
-        put(tx, keys.get(i), values.get(i));
+        put(table, keys.get(i), values.get(i));
       }
 
       tx.commit();
 
       return Status.OK;
-    } catch (TransactionException txEx) {
+    } catch (IgniteException txEx) {
       LOG.error("Error inserting batch of keys in transaction. Calling rollback.", txEx);
       tx.rollback();
 
@@ -147,37 +185,33 @@ public class IgniteTxSqlClient extends IgniteSqlClient {
       LOG.error("Error inserting batch of keys.", e);
 
       return Status.ERROR;
+    } finally {
+      tx.close();
     }
   }
 
   /** {@inheritDoc} */
   @Override
   public Status delete(String table, String key) {
-    String deleteStatement = String.format(
-        "DELETE FROM %s WHERE %s = '%s'", table, PRIMARY_COLUMN_NAME, key
-    );
-
     try {
-      if (debug) {
-        LOG.info(deleteStatement);
-      }
+      txStart();
 
-      tx = ignite.transactions().begin(txOptions);
-
-      ignite.sql().execute(tx, deleteStatement).close();
+      remove(table, key);
 
       tx.commit();
 
       return Status.OK;
-    } catch (TransactionException txEx) {
+    } catch (IgniteException txEx) {
       LOG.error("Error deleting key in transaction. Calling rollback.", txEx);
       tx.rollback();
 
       throw txEx;
     } catch (Exception e) {
-      LOG.error(String.format("Error deleting key: %s ", key), e);
+      LOG.error(String.format("Error deleting key: %s", key), e);
 
       return Status.ERROR;
+    } finally {
+      tx.close();
     }
   }
 }
