@@ -79,6 +79,17 @@ To build a single database binding:
 
     mvn -pl site.ycsb:mongodb-binding -am clean package
 
+**NOTE**: Executing YCSB from the `bin` folder after building a single database binding will generate the following warning:
+```
+[WARN]  Running against a source checkout. In order to get our runtime dependencies we'll have to invoke Maven. Depending on the state of your system, this may take ~30-45 seconds
+```
+To save 30 seconds every time you run YCSB, use the files contained in `<database>/target/ycsb-*.tar.gz` (generated during the database binding build process). For instance:
+```console
+  cd mongodb/target/
+  tar -xvzf ycsb-mongodb-binding-0.18.0-SNAPSHOT.tar.gz
+  cd ycsb-mongodb-binding-0.18.0-SNAPSHOT/ && ./bin/ycsb load mongodb -s -P workloads/workloada -p mongodb.url=mongodb://localhost:27017/ycsb?w=0
+```
+
 Running multiple instances and latency percentiles
 --------------------------------------------------
 
