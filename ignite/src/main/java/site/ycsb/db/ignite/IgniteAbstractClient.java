@@ -159,6 +159,8 @@ public abstract class IgniteAbstractClient extends DB {
       initIgnite();
 
       initTestCache();
+
+      initCompleted = true;
     }
   }
 
