@@ -94,6 +94,16 @@ public class CoreWorkload extends Workload {
   public static final String INDEX_COUNT_PROPERTY = "indexcount";
 
   /**
+   * The name of the property for the type of indexes for creation.
+   */
+  public static final String INDEX_TYPE_PROPERTY = "indextype";
+
+  /**
+   * The name of the property for the additional options of indexes for creation.
+   */
+  public static final String INDEX_OPTIONS_PROPERTY = "indexoptions";
+
+  /**
    * Default number of fields in a record.
    */
   public static final String FIELD_COUNT_PROPERTY_DEFAULT = "10";

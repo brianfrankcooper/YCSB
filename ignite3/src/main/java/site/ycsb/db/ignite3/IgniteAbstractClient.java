@@ -79,6 +79,8 @@ public abstract class IgniteAbstractClient extends DB {
 
   protected int indexCount;
 
+  protected String indexType;
+
   protected String fieldPrefix;
 
   protected long recordsCount;
@@ -247,6 +249,7 @@ public abstract class IgniteAbstractClient extends DB {
           CoreWorkload.FIELD_NAME_PREFIX, CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
       indexCount = Integer.parseInt(properties.getProperty(
           CoreWorkload.INDEX_COUNT_PROPERTY, CoreWorkload.INDEX_COUNT_PROPERTY_DEFAULT));
+      indexType = properties.getProperty(CoreWorkload.INDEX_TYPE_PROPERTY, "");
 
       if (indexCount > fieldCount) {
         throw new DBException(String.format(
@@ -440,9 +443,11 @@ public abstract class IgniteAbstractClient extends DB {
 
     List<String> createIndexesReqs = new ArrayList<>();
 
+    String usingIndexType = indexType != null && !indexType.isEmpty() ? " USING " + indexType.toUpperCase() : "";
+
     valueFields.subList(0, indexCount).forEach(field ->
         createIndexesReqs.add(
-            String.format("CREATE INDEX IF NOT EXISTS idx_%s ON %s (%s);", field, cacheName, field)));
+            String.format("CREATE INDEX IF NOT EXISTS idx_%s ON %s%s (%s);", field, cacheName, usingIndexType, field)));
 
     return createIndexesReqs;
   }

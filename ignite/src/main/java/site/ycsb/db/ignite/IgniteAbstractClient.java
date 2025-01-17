@@ -26,6 +26,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -40,6 +41,7 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.binary.BinaryObject;
+import org.apache.ignite.cache.query.SqlFieldsQuery;
 import org.apache.ignite.cluster.ClusterState;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.logger.log4j2.Log4J2Logger;
@@ -110,6 +112,10 @@ public abstract class IgniteAbstractClient extends DB {
 
   protected static String fieldPrefix;
 
+  protected static int indexCount;
+
+  protected static String indexOptions;
+
   protected static String hosts;
 
   protected static Path embeddedIgniteWorkDir;
@@ -160,6 +166,8 @@ public abstract class IgniteAbstractClient extends DB {
 
       initTestCache();
 
+      createIndexes();
+
       initCompleted = true;
     }
   }
@@ -180,10 +188,19 @@ public abstract class IgniteAbstractClient extends DB {
           CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
       fieldPrefix = properties.getProperty(CoreWorkload.FIELD_NAME_PREFIX,
           CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
+      indexCount = Integer.parseInt(properties.getProperty(
+          CoreWorkload.INDEX_COUNT_PROPERTY, CoreWorkload.INDEX_COUNT_PROPERTY_DEFAULT));
+      indexOptions = properties.getProperty(CoreWorkload.INDEX_OPTIONS_PROPERTY, "");
       String txConcurrencyStr = properties.getProperty(TX_CONCURRENCY_PROPERTY, TX_CONCURRENCY_DEFAULT);
       txConcurrency = TransactionConcurrency.valueOf(txConcurrencyStr.trim().toUpperCase());
       String txIsolationStr = properties.getProperty(TX_ISOLATION_PROPERTY, TX_ISOLATION_DEFAULT);
       txIsolation = TransactionIsolation.valueOf(txIsolationStr.trim().toUpperCase());
+
+      if (indexCount > fieldCount) {
+        throw new DBException(String.format(
+            "Indexed fields count (%s=%s) should be less or equal to fields count (%s=%s)",
+            CoreWorkload.INDEX_COUNT_PROPERTY, indexCount, CoreWorkload.FIELD_COUNT_PROPERTY, fieldCount));
+      }
 
       for (int i = 0; i < fieldCount; i++) {
         FIELDS.add(fieldPrefix + i);
@@ -282,6 +299,40 @@ public abstract class IgniteAbstractClient extends DB {
 
     LOG.info("Start embedded Ignite node.");
     return Ignition.start(cfgPath.toString());
+  }
+
+  /**
+   * Create indexes if needed.
+   */
+  private void createIndexes() {
+    List<String> createIndexesReqs = createIndexesSQL();
+
+    if (!createIndexesReqs.isEmpty()) {
+      LOG.info(String.format("Creating %s indexes.", indexCount));
+
+      createIndexesReqs.forEach(idxReq -> {
+          LOG.info("SQL line: {}", idxReq);
+
+          cache.query(new SqlFieldsQuery(idxReq)).getAll();
+        });
+    }
+  }
+
+  /**
+   * Prepare the creation indexes SQL lines.
+   */
+  private List<String> createIndexesSQL() {
+    if (indexCount <= 0) {
+      return Collections.emptyList();
+    }
+
+    List<String> createIndexesReqs = new ArrayList<>();
+
+    FIELDS.subList(0, indexCount).forEach(field ->
+        createIndexesReqs.add(
+            String.format("CREATE INDEX IF NOT EXISTS idx_%s ON %s (%s)%s;", field, cacheName, field, indexOptions)));
+
+    return createIndexesReqs;
   }
 
   /**
