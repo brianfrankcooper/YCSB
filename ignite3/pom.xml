@@ -117,12 +117,14 @@ LICENSE file.
     <repository>
       <id>gridgain-snapshots</id>
       <name>GridGain snapshots</name>
-      <url>https://www.gridgainsystems.com/nexus/content/repositories/gridgain-snapshots</url>
+      <!-- FIXME: https://ggsystems.atlassian.net/browse/QA-5791 -->
+      <url>https://gg-nexus2-01.gridgain.com/nexus/content/repositories/gridgain-snapshots</url>
     </repository>
     <repository>
       <id>gridgain-external-repository</id>
       <name>GridGain external</name>
-      <url>https://www.gridgainsystems.com/nexus/content/repositories/external</url>
+      <!-- FIXME: https://ggsystems.atlassian.net/browse/QA-5791 -->
+      <url>https://gg-nexus2-01.gridgain.com/nexus/content/repositories/external</url>
     </repository>
   </repositories>
 

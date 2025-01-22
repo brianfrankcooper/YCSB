@@ -41,7 +41,8 @@ LICENSE file.
   <repositories>
     <repository>
       <id>gridgain-external-repository</id>
-      <url>https://www.gridgainsystems.com/nexus/content/repositories/external</url>
+      <!-- FIXME: https://ggsystems.atlassian.net/browse/QA-5791 -->
+      <url>https://gg-nexus2-01.gridgain.com/nexus/content/repositories/external</url>
     </repository>
   </repositories>
 

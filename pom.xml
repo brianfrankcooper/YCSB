@@ -72,7 +72,8 @@ LICENSE file.
     <repository>
       <id>gridgain-private</id>
       <name>GridGain Private Maven Repository</name>
-      <url>https://gridgainsystems.com/nexus/content/repositories/gridgain-private/</url>
+      <!-- FIXME: https://ggsystems.atlassian.net/browse/QA-5791 -->
+      <url>https://gg-nexus2-01.gridgain.com/nexus/content/repositories/gridgain-private/</url>
     </repository>
   </distributionManagement>
   <dependencyManagement>
