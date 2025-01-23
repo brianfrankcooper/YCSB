@@ -161,15 +161,52 @@ public class MemcachedClient extends DB {
     // when dealing with IPv6 addresses.
     //
     // TODO(mbrukman): fix this.
+    // Since the following address cannot be identified:
+    // fe80::2:22 can be identified as fe80::2:22(port: default) or fe80::2(port: 22)
+    // It's suggested to use brackets for spliting the address and port.
+    // "[fe80::2]:22" or "[fe80::2:22]"
     List<InetSocketAddress> addresses = new ArrayList<InetSocketAddress>();
     String[] hosts = getProperties().getProperty(HOSTS_PROPERTY).split(",");
     for (String address : hosts) {
-      int colon = address.indexOf(":");
+      int brackets = address.indexOf("[");
       int port = DEFAULT_PORT;
       String host = address;
-      if (colon != -1) {
-        port = Integer.parseInt(address.substring(colon + 1));
-        host = address.substring(0, colon);
+
+      if(brackets == -1){
+        // No brackets
+        int colon = address.indexOf(":");  
+        if (colon != -1) {
+          port = Integer.parseInt(address.substring(colon + 1));
+          host = address.substring(0, colon);
+        }
+        addresses.add(new InetSocketAddress(host, port));
+        continue;
+      }
+
+      int rightBrackets = address.indexOf("]");
+      if(rightBrackets <= brackets){
+        throw new Exception("Left brackets should be placed in front of the right brackets.");
+      }
+
+      if(brackets != address.lastIndexOf("[")){
+        throw new Exception("No more than 1 bracket.");
+      }
+      
+      if(rightBrackets != address.lastIndexOf("]")){
+        throw new Exception("No more than 1 bracket.");
+      }
+
+      if(rightBrackets == -1){
+        throw new Exception("Brackets should be paired.");
+      }
+      
+      host = address.substring(brackets + 1, rightBrackets);
+      if(rightBrackets != address.length() - 1) {
+        String portString = address.substring(rightBrackets + 1);
+        int colon = portString.indexOf(":");
+        if(colon != -1){
+          port = Integer.parseInt(portString.substring(colon + 1));
+        }
       }
       addresses.add(new InetSocketAddress(host, port));
     }
