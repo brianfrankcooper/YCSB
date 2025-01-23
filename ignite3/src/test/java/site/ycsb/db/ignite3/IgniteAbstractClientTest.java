@@ -27,7 +27,7 @@ public class IgniteAbstractClientTest {
   public void testCreateDdl() throws DBException {
     doTestCreateDdl(
         "CREATE ZONE IF NOT EXISTS Z1 WITH STORAGE_PROFILES='default,myColumnarStore';",
-        CREATE_TABLE_DDL + " ZONE=\"Z1\" STORAGE PROFILE 'default' SECONDARY STORAGE PROFILE 'myColumnarStore'", true);
+        CREATE_TABLE_DDL + " ZONE=\"Z1\" STORAGE PROFILE 'default' SECONDARY ZONE \"Z1\" SECONDARY STORAGE PROFILE 'myColumnarStore'", true);
     doTestCreateDdl("", CREATE_TABLE_DDL, false);
   }
 
