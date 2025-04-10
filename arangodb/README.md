@@ -22,44 +22,11 @@ This section describes how to run YCSB on ArangoDB.
 ### 1. Start ArangoDB
 See https://docs.arangodb.com/Installing/index.html
 
-### 2. Install Java and Maven
+### 2. Set Up YCSB
 
-Go to http://www.oracle.com/technetwork/java/javase/downloads/index.html
+Download the [latest YCSB](https://github.com/brianfrankcooper/YCSB/releases/latest) file. Follow the instructions.
 
-and get the url to download the rpm into your server. For example:
-
-    wget http://download.oracle.com/otn-pub/java/jdk/7u40-b43/jdk-7u40-linux-x64.rpm?AuthParam=11232426132 -o jdk-7u40-linux-x64.rpm
-    rpm -Uvh jdk-7u40-linux-x64.rpm
-    
-Or install via yum/apt-get
-
-    sudo yum install java-devel
-
-Download MVN from http://maven.apache.org/download.cgi
-
-    wget http://ftp.heanet.ie/mirrors/www.apache.org/dist/maven/maven-3/3.1.1/binaries/apache-maven-3.1.1-bin.tar.gz
-    sudo tar xzf apache-maven-*-bin.tar.gz -C /usr/local
-    cd /usr/local
-    sudo ln -s apache-maven-* maven
-    sudo vi /etc/profile.d/maven.sh
-
-Add the following to `maven.sh`
-
-    export M2_HOME=/usr/local/maven
-    export PATH=${M2_HOME}/bin:${PATH}
-
-Reload bash and test mvn
-
-    bash
-    mvn -version
-
-### 3. Set Up YCSB
-
-Clone this YCSB source code:
-
-    git clone https://github.com/brianfrankcooper/YCSB.git
-
-### 4. Run YCSB
+### 3. Run YCSB
 
 Now you are ready to run! First, drop the existing collection: "usertable" under database "ycsb":
 	
@@ -74,10 +41,6 @@ Then, run the workload:
     ./bin/ycsb run arangodb -s -P workloads/workloada -p arangodb.ip=xxx -p arangodb.port=xxx
 
 See the next section for the list of configuration parameters for ArangoDB.
-
-### 5. Run against ArangoDB 3.0 and previews versions
-
-Running YCSB on ArangoDB in version 3.0 or previews versions requires to use HTTP as network protocol. Since VST (VelcoyStream) is the default used protocol one have to set the configuration parameter `arangodb.protocol` to `HTTP_JSON`. For more infos take a look into the official [ArangoDB Java Driver Docs](https://github.com/arangodb/arangodb-java-driver/blob/master/docs/Drivers/Java/Reference/README.md#network-protocol). 
 
 ## ArangoDB Configuration Parameters
 
@@ -98,3 +61,5 @@ Running YCSB on ArangoDB in version 3.0 or previews versions requires to use HTT
 
 - `arangodb.dropDBBeforeRun`
   - Default value is `false`.
+
+For more infos take a look into the official [ArangoDB Java Driver Docs](https://www.arangodb.com/docs/stable/drivers/java-reference-setup.html#network-protocol). Note that very old versions of ArangoDB (i.e. 3.0) require settings the protocol to "HTTP_JSON".
