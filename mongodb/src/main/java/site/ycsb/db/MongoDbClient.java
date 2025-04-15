@@ -35,6 +35,7 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.InsertManyOptions;
 import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import site.ycsb.ByteArrayByteIterator;
@@ -77,6 +78,8 @@ public class MongoDbClient extends DB {
 
   /** The options to use for inserting a single document. */
   private static final UpdateOptions UPDATE_WITH_UPSERT = new UpdateOptions()
+      .upsert(true);
+  private static final ReplaceOptions REPLACE_WITH_UPSERT = new ReplaceOptions()
       .upsert(true);
 
   /**
@@ -266,7 +269,7 @@ public class MongoDbClient extends DB {
           // to current inability of the framework to clean up after itself
           // between test runs.
           collection.replaceOne(new Document("_id", toInsert.get("_id")),
-              toInsert, UPDATE_WITH_UPSERT);
+              toInsert, REPLACE_WITH_UPSERT);
         } else {
           collection.insertOne(toInsert);
         }
