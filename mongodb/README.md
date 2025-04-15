@@ -112,7 +112,7 @@ bin/ycsb run mongodb -jvm-args="-Dlogback.configurationFile=/path/to/logback.xml
   - Default value of database is `ycsb`
 
 - `mongodb.batchsize`
-  - Useful for the insert workload as it will submit the inserts in batches inproving throughput.
+  - Useful for the insert workload as it will submit the inserts in batches improving throughput.
   - Default value is `1`.
 
 - `mongodb.upsert`
