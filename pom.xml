@@ -196,6 +196,7 @@ LICENSE file.
     <module>rados</module>
     <module>redis</module>
     <module>rest</module>
+    <module>rex_store</module>
     <module>riak</module>
     <module>rocksdb</module>
     <module>s3</module>
