@@ -18,6 +18,7 @@ import static com.google.cloud.bigtable.data.v2.models.Filters.FILTERS;
 import com.google.api.gax.batching.Batcher;
 import com.google.api.gax.batching.BatchingException;
 import com.google.api.gax.batching.BatchingSettings;
+import com.google.api.gax.grpc.ChannelPoolSettings;
 import com.google.cloud.bigtable.data.v2.BigtableDataClient;
 import com.google.cloud.bigtable.data.v2.BigtableDataSettings;
 import com.google.cloud.bigtable.data.v2.models.Filters;
@@ -31,6 +32,7 @@ import com.google.cloud.bigtable.data.v2.models.RowCell;
 import com.google.cloud.bigtable.data.v2.models.RowMutation;
 import com.google.cloud.bigtable.data.v2.models.RowMutationEntry;
 import com.google.cloud.bigtable.data.v2.models.TableId;
+import com.google.cloud.bigtable.data.v2.stub.EnhancedBigtableStubSettings;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
@@ -68,6 +70,8 @@ public class GoogleBigtable2Client extends site.ycsb.DB {
   private static final String CLIENT_SIDE_BUFFERING_KEY = PROP_PREFIX + ".use-batching";
   private static final String REVERSE_SCANS_KEY = PROP_PREFIX + ".reverse-scans";
   private static final String FIXED_TIMESTAMP_KEY = PROP_PREFIX + ".timestamp";
+  // Defaults to autosized
+  private static final String CHANNEL_POOL_SIZE = PROP_PREFIX + ".channel-pool-size";
 
   /**
    * Print debug information to standard out.
@@ -124,6 +128,15 @@ public class GoogleBigtable2Client extends site.ycsb.DB {
             .setInstanceId(getRequiredProp(props, INSTANCE_KEY));
 
     Optional.ofNullable(props.getProperty(APP_PROFILE_ID_KEY)).ifPresent(builder::setAppProfileId);
+
+    Optional.ofNullable(props.getProperty(CHANNEL_POOL_SIZE))
+        .map(Integer::parseInt)
+        .ifPresent(size ->
+            builder.stubSettings().setTransportChannelProvider(
+              EnhancedBigtableStubSettings.defaultGrpcTransportProviderBuilder()
+                  .setChannelPoolSettings(ChannelPoolSettings.staticallySized(size))
+                  .build()
+        ));
 
     columnFamily = getRequiredProp(props, FAMILY_KEY);
 
