@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2015 YCSB contributors. All rights reserved.
+Copyright (c) 2024 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -15,71 +15,61 @@ permissions and limitations under the License. See accompanying
 LICENSE file.
 -->
 
-# Apache Cassandra 2.x CQL binding
+# Apache Cassandra >= 2.1 CQL binding
 
 Binding for [Apache Cassandra](http://cassandra.apache.org), using the CQL API
-via the [DataStax
-driver](http://docs.datastax.com/en/developer/java-driver/2.1/java-driver/whatsNew2.html).
+via the [DataStax driver](https://docs.datastax.com/en/developer/java-driver/4.17/manual/index.html)
 
 To run against the (deprecated) Cassandra Thrift API, use the `cassandra-10` binding.
 
 ## Creating a table for use with YCSB
 
-For keyspace `ycsb`, table `usertable`:
+For keyspace `ycsb`, table `usertable`, noting you should apply your own replication,
+compaction and other settings based on your testing configuration.
+```sql
+CREATE KEYSPACE ycsb WITH REPLICATION = {
+    'class' : 'SimpleStrategy',
+    'replication_factor': 3
+};
+```
 
-    cqlsh> create keyspace ycsb
-        WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 3 };
-    cqlsh> USE ycsb;
-    cqlsh> create table usertable (
-        y_id varchar primary key,
-        field0 varchar,
-        field1 varchar,
-        field2 varchar,
-        field3 varchar,
-        field4 varchar,
-        field5 varchar,
-        field6 varchar,
-        field7 varchar,
-        field8 varchar,
-        field9 varchar);
+```sql
+CREATE TABLE ycsb.usertable (
+    y_id VARCHAR PRIMARY KEY,
+    field0 VARCHAR,
+    field1 VARCHAR,
+    field2 VARCHAR,
+    field3 VARCHAR,
+    field4 VARCHAR,
+    field5 VARCHAR,
+    field6 VARCHAR,
+    field7 VARCHAR,
+    field8 VARCHAR,
+    field9 VARCHAR
+);
+```
 
-**Note that `replication_factor` and consistency levels (below) will affect performance.**
+**Note that parameters like `replication_factor`, `compaction` etc. will affect performance.**
 
 ## Cassandra Configuration Parameters
 
-- `hosts` (**required**)
-  - Cassandra nodes to connect to.
-  - No default.
+* `cassandra.driverconfig` (**required**)
+  * Path to a HOCON configuration for configuring the Cassandra driver.
+  * See the reference configuration here <https://docs.datastax.com/en/developer/java-driver/4.17/manual/core/configuration/reference/index.html>.
 
-* `port`
-  * CQL port for communicating with Cassandra cluster.
-  * Default is `9042`.
+* `cassandra.driverprofile.<operation>`
+  * `<operation>` is one of `read`, `scan`, `insert`, `update` or `delete`.
+  * Defaults to anonymous global profile.
+  * Profile within the driver config to use for a specific operation.
+  * Driver configs have an anonymous config that all profiles inherit from (and you can modify this), which is used by default if this parameter is not specified.
 
-- `cassandra.keyspace`
-  Keyspace name - must match the keyspace for the table created (see above).
-  See http://docs.datastax.com/en/cql/3.1/cql/cql_reference/create_keyspace_r.html for details.
+* `cassandra.tracing.<operation>`
+  * `<operation>` is one of `read`, `scan`, `insert`, `update` or `delete`.
+  * Default is `false`.
+  * Captures detailed information about the internal operations performed by all nodes in the cluster in order to build the response.
+  * This is an expensive operation and should only be done on a few queries, adjusted by `cassandra.tracingfrequency`.
 
-  - Default value is `ycsb`
-
-- `cassandra.username`
-- `cassandra.password`
-  - Optional user name and password for authentication. See http://docs.datastax.com/en/cassandra/2.0/cassandra/security/security_config_native_authenticate_t.html for details.
-
-* `cassandra.readconsistencylevel`
-* `cassandra.writeconsistencylevel`
-
-  * Default value is `QUORUM`
-  - Consistency level for reads and writes, respectively. See the [DataStax documentation](http://docs.datastax.com/en/cassandra/2.0/cassandra/dml/dml_config_consistency_c.html) for details.
-
-* `cassandra.maxconnections`
-* `cassandra.coreconnections`
-  * Defaults for max and core connections can be found here: https://datastax.github.io/java-driver/2.1.8/features/pooling/#pool-size. Cassandra 2.0.X falls under protocol V2, Cassandra 2.1+ falls under protocol V3.
-* `cassandra.connecttimeoutmillis`
-* `cassandra.useSSL`
-  * Default value is false.
-  - To connect with SSL set this value to true.
-* `cassandra.readtimeoutmillis`
-  * Defaults for connect and read timeouts can be found here: https://docs.datastax.com/en/drivers/java/2.0/com/datastax/driver/core/SocketOptions.html.
-* `cassandra.tracing`
-  * Default is false
-  * https://docs.datastax.com/en/cql/3.3/cql/cql_reference/tracing_r.html
+* `cassandra.tracingfrequency.<operation>`
+  * `<operation>` is one of `read`, `scan`, `insert`, `update` or `delete`.
+  * Default is `1000`.
+  * Determines how often tracing will be performed, i.e. for every `n` queries, tracing will be enabled on that query.
