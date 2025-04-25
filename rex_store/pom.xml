@@ -1,30 +1,38 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" 
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
-                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>site.ycsb</groupId>
     <artifactId>binding-parent</artifactId>
-    <version>0.18.0-SNAPSHOT</version> 
+    <version>0.18.0-SNAPSHOT</version>
     <relativePath>../binding-parent</relativePath>
   </parent>
-
-  <artifactId>rexstore-binding</artifactId>
-  <name>RexStore DB Binding</name>
+  
+  <artifactId>rex_store-binding</artifactId>
+  <name>Rex Store Binding</name>
   <packaging>jar</packaging>
 
   <dependencies>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-      <version>2.13.0</version>
-    </dependency>
     <dependency>
       <groupId>site.ycsb</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
+    </dependency>
+    
+    <dependency>
+      <groupId>org.json</groupId>
+      <artifactId>json</artifactId>
+      <version>20230227</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 </project>
