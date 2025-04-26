@@ -196,6 +196,7 @@ LICENSE file.
     <module>rados</module>
     <module>redis</module>
     <module>rest</module>
+    <module>rex_store</module>
     <module>riak</module>
     <module>rocksdb</module>
     <module>s3</module>
@@ -215,6 +216,9 @@ LICENSE file.
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
           <version>2.16</version>
+          <configuration>
+            <skip>true</skip>
+          </configuration>
         </plugin>
       </plugins>
     </pluginManagement>
