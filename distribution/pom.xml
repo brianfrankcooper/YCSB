@@ -111,6 +111,11 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>site.ycsb</groupId>
+      <artifactId>etcd-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>site.ycsb</groupId>
       <artifactId>foundationdb-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
