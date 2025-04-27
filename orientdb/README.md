@@ -26,6 +26,11 @@ Clone the YCSB git repository and compile:
     git clone https://github.com/brianfrankcooper/YCSB.git
     cd YCSB
     mvn clean package
+    
+> Note: alternatively the latest docker image could be used
+```
+docker run -d --name orientdb -p 2424:2424 -p 2480:2480 -e ORIENTDB_ROOT_PASSWORD=admin orientdb:latest
+```
 
 ### 2. Run YCSB
     
@@ -58,13 +63,39 @@ WARNING: Creating a new database will be done safely with multiple threads on a 
     * Default: ```admin```
 * ```orientdb.password``` - The password to connect to the database with.
     * Default: ```admin```
+* ```orientdb.server.user``` - The server user to connect to the database with.
+    * Default: ```root```
+* ```orientdb.server.password``` - The server password to connect to the database with.
+    * Default: ```admin```
 * ```orientdb.newdb``` - Overwrite the database if it already exists.
     * Only effects the ```load``` phase.
     * Default: ```false```
 * ```orientdb.remote.storagetype``` - Storage type of the database on remote server
     * This is only required if using a ```remote:``` connection url
 
-## Known Issues
 
+## Plot results
+
+To plot workload results install gnuplot, then create a directory to collect the outputs
+```
+mkdir -p orientdb/outputs/orientdb
+```
+load the data
+```
+./bin/ycsb load orientdb -s -P workloads/workloadc 
+```
+and run the workload, e.g. `workloadc`, by following the naming convention for the file name `outputRun_<workload>.txt`:
+```
+./bin/ycsb run orientdb -s -P workloads/workloadc > orientdb/outputs/orientdb/outputRun_workloadc.txt
+```
+
+After a successful worload run, goto the `plots` directory `cd orientdb/plots` and run
+```
+./tool.sh "plot" "save" ../outputs/orientdb/
+```
+The diagrams will be in the `images` directory.
+
+
+## Known Issues (with ODB v2.2.x)
 * There is a performance issue around the scan operation. This binding uses OIndex.iterateEntriesMajor() which will return unnecessarily large iterators. This has a performance impact as the recordcount goes up. There are ideas in the works to fix it, track it here: [#568](https://github.com/brianfrankcooper/YCSB/issues/568).
 * Iterator methods needed to perform scans are Unsupported in the OrientDB API for remote database connections and so will return NOT_IMPLEMENTED status if attempted.
