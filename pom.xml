@@ -117,6 +117,7 @@ LICENSE file.
     <asynchbase.version>1.8.2</asynchbase.version>
     <azurecosmos.version>4.8.0</azurecosmos.version>
     <azurestorage.version>4.0.0</azurestorage.version>
+    <bangdb.version>2.0.0</bangdb.version>
     <cassandra.cql.version>3.0.0</cassandra.cql.version>
     <cloudspanner.version>6.71.0</cloudspanner.version>
     <couchbase.version>1.4.10</couchbase.version>
@@ -166,6 +167,7 @@ LICENSE file.
     <module>asynchbase</module>
     <module>azurecosmos</module>
     <module>azuretablestorage</module>
+    <module>bangdb</module>
     <module>cassandra</module>
     <module>cloudspanner</module>
     <module>couchbase</module>
