@@ -189,11 +189,6 @@ public class CloudSpannerClient extends DB {
       optionsBuilder.setCredentials(NoCredentials.getInstance());
       //Disable build in client native metrics when connecting to experimental host.
       optionsBuilder.setBuiltInMetricsEnabled(false);
-      // Experimental host uses Multiplexed sessions, so dial down the session pool.
-      optionsBuilder.setSessionPoolOption(SessionPoolOptions.newBuilder()
-            .setMinSessions(0)
-            .setMaxSessions(0)
-            .build());
     }
 
     spanner = optionsBuilder.build().getService();
