@@ -181,14 +181,13 @@ public class CloudSpannerClient extends DB {
     boolean usePlaintext = Boolean.parseBoolean(properties.getProperty(CloudSpannerProperties.USE_PLAINTEXT));
     if (usePlaintext) {
       optionsBuilder.setChannelConfigurator(ManagedChannelBuilder::usePlaintext);
+      //Disable credentials and built in metrics when plaintext is used.
+      optionsBuilder.setCredentials(NoCredentials.getInstance());
+      optionsBuilder.setBuiltInMetricsEnabled(false);
     }
     String experimentalHost = properties.getProperty(CloudSpannerProperties.EXPERIMENTAL_HOST);
     if (experimentalHost != null) {
       optionsBuilder.setExperimentalHost(experimentalHost);
-      //Disable IAM credentials for experimental Host.
-      optionsBuilder.setCredentials(NoCredentials.getInstance());
-      //Disable build in client native metrics when connecting to experimental host.
-      optionsBuilder.setBuiltInMetricsEnabled(false);
     }
 
     spanner = optionsBuilder.build().getService();
