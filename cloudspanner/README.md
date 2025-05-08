@@ -87,7 +87,7 @@ If you wish to load a large database, you can run YCSB on multiple client VMs in
 * Split the key range evenly between client VMs;
 * Use few threads on each client VM, so that each individual commit request contains keys which are (close to) consecutive, and would thus likely address a single split; this also helps avoid overloading the servers.
 
-The idea is that we have a number of 'write heads' which are all writing to different parts of the database (and thus talking to different servers), but each individual head is writing its own data (more or less) in order. See the [best practices page](https://cloud.google.com/spanner/docs/best-practices#loading_data) for further details.
+The idea is that we have a number of 'write heads' which are all writing to different parts of the database (and thus talking to different servers), but each individual head is writing its own data (more or less) in order. See the [best practices page](https://cloud.google.com/spanner/docs/bulk-loading) for further details.
 
 ### 6. Run a Workload
 
