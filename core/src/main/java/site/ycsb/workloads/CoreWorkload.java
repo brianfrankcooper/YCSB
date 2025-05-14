@@ -434,7 +434,7 @@ public class CoreWorkload extends Workload {
     recordcount =
         Long.parseLong(p.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
     if (recordcount == 0) {
-      recordcount = Integer.MAX_VALUE;
+      recordcount = Long.MAX_VALUE;
     }
     String requestdistrib =
         p.getProperty(REQUEST_DISTRIBUTION_PROPERTY, REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
@@ -448,7 +448,7 @@ public class CoreWorkload extends Workload {
     long insertstart =
         Long.parseLong(p.getProperty(INSERT_START_PROPERTY, INSERT_START_PROPERTY_DEFAULT));
     long insertcount=
-        Integer.parseInt(p.getProperty(INSERT_COUNT_PROPERTY, String.valueOf(recordcount - insertstart)));
+        Long.parseLong(p.getProperty(INSERT_COUNT_PROPERTY, String.valueOf(recordcount - insertstart)));
     // Confirm valid values for insertstart and insertcount in relation to recordcount
     if (recordcount < (insertstart + insertcount)) {
       System.err.println("Invalid combination of insertstart, insertcount and recordcount.");
@@ -513,8 +513,8 @@ public class CoreWorkload extends Workload {
       // the keyspace doesn't change from the perspective of the scrambled zipfian generator
       final double insertproportion = Double.parseDouble(
           p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
-      int opcount = Integer.parseInt(p.getProperty(Client.OPERATION_COUNT_PROPERTY));
-      int expectednewkeys = (int) ((opcount) * insertproportion * 2.0); // 2 is fudge factor
+      long opcount = Long.parseLong(p.getProperty(Client.OPERATION_COUNT_PROPERTY));
+      long expectednewkeys = (long) ((opcount) * insertproportion * 2.0); // 2 is fudge factor
 
       keychooser = new ScrambledZipfianGenerator(insertstart, insertstart + insertcount + expectednewkeys);
     } else if (requestdistrib.compareTo("latest") == 0) {
@@ -611,7 +611,7 @@ public class CoreWorkload extends Workload {
    */
   @Override
   public boolean doInsert(DB db, Object threadstate) {
-    int keynum = keysequence.nextValue().intValue();
+    long keynum = keysequence.nextValue().longValue();
     String dbkey = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
     HashMap<String, ByteIterator> values = buildValues(dbkey);
 
@@ -709,7 +709,7 @@ public class CoreWorkload extends Workload {
     long keynum;
     if (keychooser instanceof ExponentialGenerator) {
       do {
-        keynum = transactioninsertkeysequence.lastValue() - keychooser.nextValue().intValue();
+        keynum = transactioninsertkeysequence.lastValue() - keychooser.nextValue().longValue();
       } while (keynum < 0);
     } else {
       do {
