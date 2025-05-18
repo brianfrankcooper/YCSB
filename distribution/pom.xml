@@ -128,6 +128,11 @@ LICENSE file.
       <groupId>site.ycsb</groupId>
       <artifactId>googlebigtable-binding</artifactId>
       <version>${project.version}</version>
+    <dependency>
+      <groupId>site.ycsb</groupId>
+      <artifactId>googlebigtable2-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     </dependency>
     <dependency>
       <groupId>site.ycsb</groupId>
