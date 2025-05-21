@@ -1,0 +1,241 @@
+Here is the description of some Fabric scripts which were created
+to run YCSB on multiple hosts easier.
+
+All YCSB settings, such as the list of client hosts, the number of DB records,
+the database connection parameters are defined in some Python files.
+The tool is the set of Fabric commands to run YCSB on multiple client hosts
+simultaneously and download the resulting logs.
+The simultaneous run is achieved by the scheduling of the 'ycsb' command
+(with parameters) by the system 'at' service to start the yscb at the same time
+on multiple clients.
+
+Requirements: Python 2.7.3 or later, Fabric 1.3.2 or later, 
+pytz python package (python-tz ubuntu package)
+
+Run fab -l to see the list of all commands.
+
+
+Commands
+
+Build and deploy YCSB
+
+Command: ycsb_deploy
+Runs Maven to rebuild YCSB archive, uploads the archive to the first 
+client host, copies the archive from the first to other client hosts
+(in assuption that network connection between the client hosts is
+faster than between you and a client host), unpacks the arhive to /opt/ycsb.
+
+Load data to the database
+
+Command: ycsb_load
+Parameters:
+  db - name of the database to load data
+Loads the data to the database at the maximum possible speed. 
+The YCSB ‘recordcount’ is divided between the clients to load simultaneously 
+different parts of the dataset.
+Example:
+  fab ycsb_load:db=aerospike
+
+Run YCSB workload
+
+Command: ycsb_run
+Parameters:
+  db - name of the database to run workload
+  workload - name of the workload to run
+  target (optional) - desired total target throughput, if not defined 
+      the throughput is not limited (maximum, available on the hardware)
+Runs the specified workload on the specified database with the specified 
+target throughput. The target throughput is divided between the clients.
+Examples:
+  fab ycsb_run:db=aerospike,workload=B
+  fab ycsb_run:db=aerospike,workload=B,target=100000
+
+Check YCSB running status
+
+Command: ycsb_status
+Parameters:
+  db - name of the database to check
+The command prints the list of scheduled (by 'at' service) tasks, 
+the currently running YCSB (java) processes, the tail of the latest log 
+written by YCSB for the specified database.
+Example:
+  fab ycsb_status:db=aerospike
+
+Get YCSB logs
+
+Command: ycsb_get
+Parameters:
+  db - name of the database to check
+  regex (optional) - regular expression to find the log files, if not set 
+      the latest logs are downloaded
+  do (optional) - set it to True to do the actual download, otherwise 
+      the command just shows the found log file names
+The command searches the latest logs or the log files which names matches to 
+the specified regular expression and downloads them.
+There are two log files: with .err and .out extension, these are stderr and 
+stdout output of YCSB command.
+The ycsb_run and ycsb_load commands create logs in the following format:
+yyyy-mm-dd_HH-MM_database_workload(_target).(err|out)
+^^^^ year
+     ^^ month
+        ^^ day
+           ^^ hour
+              ^^ minute when the test was run (scheduled by ‘at’)
+                 ^^^^^^^^ database name (from configuration)
+                'load' or ^^^^^^^^ workload name (from configuration) 
+         optional target throughput ^^^^^^
+                                   extension ^^^
+Examples:
+  fab ycsb_get:db=aerospike,do=True
+  fab ycsb_get:db=aerospike,regex=workloada_
+  fab ycsb_get:db=aerospike,regex=workloadb_100000\\.,do=True
+
+Kill YCSB
+
+Command: ycsb_kill
+Parameters:
+  force (optional) - set to True to kill without asking confirmation
+Kills all YCSB (i.e. java) processes on the clients.
+Example:
+  fab ycsb_kill
+
+
+Configuration
+
+This small YCSB running framework has some configuration files.
+
+Hosts
+
+conf/hosts.py file:
+
+from fabric.api import env
+import pytz
+
+#user name to ssh to hosts
+env.user = 'root'
+#user password (the better is to use pubkey authentication)
+env.password = 'password'
+
+env.roledefs = {
+    #list of client hosts
+    'client': ['c1.local', 'c2.local', 'c3.local', 'c4.local'],
+    #list of server hosts
+    'server': ['e1.local', 'e2.local', 'e3.local', 'e4.local'],
+}
+
+#hosts timezone (required to correctly schedule ycsb tasks)
+timezone = pytz.timezone('US/Pacific')
+
+Databases
+
+conf/databases.py file:
+
+databases = {
+
+    'aerospike' : {
+        'name': 'aerospike',    #name of the database (used to form the logfile name)
+        'home': '/run/shm',     #database home, to put logs there
+        'command': 'aerospike', #database name to pass to ycsb command
+        'properties': {         #properties to pass to ycsb command as -p name=value
+            'host': 'e1.local',  #database connection params
+            'port': 3000,
+            'ns': 'test',
+            'set': 'YCSB',
+        },
+    },
+
+    'couchbase' : {
+        'name': 'couchbase',
+        'home': '/run/shm',
+        'command': 'couchbase',
+        'properties': {
+            'couchbase.hosts': 'e1.local,e2.local,e3.local,e4.local',
+            'couchbase.bucket': 'test',
+            'couchbase.user': '',
+            'couchbase.password': '',
+            'couchbase.opTimeout': 60000,
+            #'couchbase.failureMode': 'Retry',
+            'couchbase.checkOperationStatus': 'true',
+        }
+    },
+
+    'cassandra' : {
+        'name': 'cassandra',
+        'home': '/run/shm',
+        'command': 'cassandra-10',
+        'properties': {
+            'hosts': 'e1.local,e2.local,e3.local,e4.local',
+        }
+    },
+
+    'mongodb' : {
+        'name': 'mongodb',
+        'home': '/run/shm',
+        'command': 'mongodb',
+        'properties': {
+            'mongodb.url': 'mongodb://localhost:27017',
+            'mongodb.database': 'ycsb',
+            'mongodb.writeConcern': 'normal',
+            'mongodb.readPreference': 'primaryPreferred',
+        }
+    },
+
+    'basic' : { #fake database
+        'name': 'basic',
+        'home': '/run/shm',
+        'command': 'basic',
+        'properties': {
+            'basicdb.verbose': 'false',
+        }
+    },
+
+}
+
+Note that /run/shm is the tmpfs - in-memory filesystem. We use it to avoid 
+performance issues related to write logs on client side.
+
+Workloads
+
+conf/workloads.py file:
+
+root = '/opt/ycsb'  #root of YCSB installation
+
+data = {    #global YSCB properties
+    'recordcount': 500000000,  #SSD
+    #'recordcount': 50000000,    #RAM
+    'fieldcount': 10,
+    'fieldlength': 10,
+    'fieldnameprefix': 'f',
+    'operationcount': 10000000,
+    'threadcount': 32,
+    'workload': 'com.yahoo.ycsb.workloads.CoreWorkload',
+    'exportmeasurementsinterval': 30000,
+    'insertretrycount': 1000000,
+    'readretrycount': 1000,
+    'updateretrycount': 1000,
+    'retrydelay': 1,
+}
+
+workloads = {
+    'A': {  #Heavy Update workload
+        'name': 'workloada',    #name of the workload to be part of the log files
+        'propertyfiles': [ root + '/workloads/workloada' ], #workload properties files
+    },
+    'B': {  #Mostly Read workload
+        'name': 'workloadb',
+        'propertyfiles': [ root + '/workloads/workloadb' ],
+    },
+    'C': {  #Read Only workload
+        'name': 'workloadc',
+        'propertyfiles': [ root + '/workloads/workloadc' ],
+        'properties': {     #additional workload properties, overrides the global ones
+            'operationcount': 10000000,
+            'maxexecutiontime': 60000,
+        },
+    },
+}
+
+Note that properties, defined in ‘data’ dictionary of workloads.py file 
+are overridden by the per-database properties and by the per-workload 
+properties.
+
