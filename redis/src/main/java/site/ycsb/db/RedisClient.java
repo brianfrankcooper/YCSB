@@ -24,23 +24,21 @@
 
 package site.ycsb.db;
 
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.util.JedisClusterCRC16;
 import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
 import site.ycsb.StringByteIterator;
-import redis.clients.jedis.BasicCommands;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisCluster;
-import redis.clients.jedis.JedisCommands;
 import redis.clients.jedis.Protocol;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -54,7 +52,9 @@ import java.util.Vector;
  */
 public class RedisClient extends DB {
 
-  private JedisCommands jedis;
+  private redis.clients.jedis.JedisPool jedisPool;
+  private redis.clients.jedis.JedisCluster jedisCluster;
+  private Boolean clusterEnabled = false;
 
   public static final String HOST_PROPERTY = "redis.host";
   public static final String PORT_PROPERTY = "redis.port";
@@ -76,33 +76,51 @@ public class RedisClient extends DB {
     }
     String host = props.getProperty(HOST_PROPERTY);
 
-    boolean clusterEnabled = Boolean.parseBoolean(props.getProperty(CLUSTER_PROPERTY));
-    if (clusterEnabled) {
-      Set<HostAndPort> jedisClusterNodes = new HashSet<>();
-      jedisClusterNodes.add(new HostAndPort(host, port));
-      jedis = new JedisCluster(jedisClusterNodes);
-    } else {
-      String redisTimeout = props.getProperty(TIMEOUT_PROPERTY);
-      if (redisTimeout != null){
-        jedis = new Jedis(host, port, Integer.parseInt(redisTimeout));
-      } else {
-        jedis = new Jedis(host, port);
-      }
-      ((Jedis) jedis).connect();
-    }
-
     String password = props.getProperty(PASSWORD_PROPERTY);
-    if (password != null) {
-      ((BasicCommands) jedis).auth(password);
+
+    String timeoutString = props.getProperty(TIMEOUT_PROPERTY);
+    int timeout = Protocol.DEFAULT_TIMEOUT;
+    if (timeoutString != null) {
+      timeout = Integer.parseInt(timeoutString);
+    }
+    clusterEnabled = Boolean.parseBoolean(props.getProperty(CLUSTER_PROPERTY));
+
+    if (clusterEnabled) {
+      /* maxAttempts is set to 1, because if the request fails, we don't want to
+       * retry inside JedisCluster, which will affect the RT inserted this time. */
+      jedisCluster = new JedisCluster(new HostAndPort(host, port), timeout, timeout, 1, password,
+          new GenericObjectPoolConfig());
+    } else {
+      jedisPool = new JedisPool(new GenericObjectPoolConfig(), host, port, timeout, password);
     }
   }
 
   public void cleanup() throws DBException {
     try {
-      ((Closeable) jedis).close();
-    } catch (IOException e) {
+      if (clusterEnabled) {
+        jedisCluster.close();
+      } else {
+        jedisPool.close();
+      }
+    } catch (Exception e) {
       throw new DBException("Closing connection failed.");
     }
+  }
+
+  /**
+   * Get a connection from the connection pool, and finally call jedis.close to
+   * return it back to the connection pool after the request is over.
+   * @param key the key
+   * @return Jedis connection
+   */
+  private Jedis getConnection(final String key) {
+    Jedis jedis = null;
+    if (clusterEnabled) {
+      jedis = jedisCluster.getConnectionFromSlot(JedisClusterCRC16.getSlot(key));
+    } else {
+      jedis = jedisPool.getResource();
+    }
+    return jedis;
   }
 
   /*
@@ -121,20 +139,28 @@ public class RedisClient extends DB {
   public Status read(String table, String key, Set<String> fields,
       Map<String, ByteIterator> result) {
     if (fields == null) {
-      StringByteIterator.putAllAsByteIterators(result, jedis.hgetAll(key));
-    } else {
-      String[] fieldArray =
-          (String[]) fields.toArray(new String[fields.size()]);
-      List<String> values = jedis.hmget(key, fieldArray);
-
-      Iterator<String> fieldIterator = fields.iterator();
-      Iterator<String> valueIterator = values.iterator();
-
-      while (fieldIterator.hasNext() && valueIterator.hasNext()) {
-        result.put(fieldIterator.next(),
-            new StringByteIterator(valueIterator.next()));
+      try (Jedis jedis = getConnection(key)) {
+        StringByteIterator.putAllAsByteIterators(result, jedis.hgetAll(key));
+      } catch (Exception e) {
+        return Status.ERROR;
       }
-      assert !fieldIterator.hasNext() && !valueIterator.hasNext();
+    } else {
+      try (Jedis jedis = getConnection(key)) {
+        String[] fieldArray =
+            (String[])fields.toArray(new String[fields.size()]);
+        List<String> values = jedis.hmget(key, fieldArray);
+
+        Iterator<String> fieldIterator = fields.iterator();
+        Iterator<String> valueIterator = values.iterator();
+
+        while (fieldIterator.hasNext() && valueIterator.hasNext()) {
+          result.put(fieldIterator.next(),
+              new StringByteIterator(valueIterator.next()));
+        }
+        assert !fieldIterator.hasNext() && !valueIterator.hasNext();
+      } catch (Exception e) {
+        return Status.ERROR;
+      }
     }
     return result.isEmpty() ? Status.ERROR : Status.OK;
   }
@@ -142,38 +168,54 @@ public class RedisClient extends DB {
   @Override
   public Status insert(String table, String key,
       Map<String, ByteIterator> values) {
-    if (jedis.hmset(key, StringByteIterator.getStringMap(values))
-        .equals("OK")) {
-      jedis.zadd(INDEX_KEY, hash(key), key);
-      return Status.OK;
+    try (Jedis jedis = getConnection(key)) {
+      if (jedis.hmset(key, StringByteIterator.getStringMap(values))
+          .equals("OK")) {
+        jedis.zadd(INDEX_KEY, hash(key), key);
+        return Status.OK;
+      }
+    } catch (Exception e) {
+      return Status.ERROR;
     }
     return Status.ERROR;
   }
 
   @Override
   public Status delete(String table, String key) {
-    return jedis.del(key) == 0 && jedis.zrem(INDEX_KEY, key) == 0 ? Status.ERROR
-        : Status.OK;
+    try (Jedis jedis = getConnection(key)) {
+      return jedis.del(key) == 0 && jedis.zrem(INDEX_KEY, key) == 0 ? Status.ERROR
+          : Status.OK;
+    } catch (Exception e) {
+      return Status.ERROR;
+    }
   }
 
   @Override
   public Status update(String table, String key,
       Map<String, ByteIterator> values) {
-    return jedis.hmset(key, StringByteIterator.getStringMap(values))
-        .equals("OK") ? Status.OK : Status.ERROR;
+    try (Jedis jedis = getConnection(key)) {
+      return jedis.hmset(key, StringByteIterator.getStringMap(values))
+          .equals("OK") ? Status.OK : Status.ERROR;
+    } catch (Exception e) {
+      return Status.ERROR;
+    }
   }
 
   @Override
   public Status scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-    Set<String> keys = jedis.zrangeByScore(INDEX_KEY, hash(startkey),
-        Double.POSITIVE_INFINITY, 0, recordcount);
+    try (Jedis jedis = getConnection(INDEX_KEY)) {
+      Set<String> keys = jedis.zrangeByScore(INDEX_KEY, hash(startkey),
+          Double.POSITIVE_INFINITY, 0, recordcount);
 
-    HashMap<String, ByteIterator> values;
-    for (String key : keys) {
-      values = new HashMap<String, ByteIterator>();
-      read(table, key, fields, values);
-      result.add(values);
+      HashMap<String, ByteIterator> values;
+      for (String key : keys) {
+        values = new HashMap<String, ByteIterator>();
+        read(table, key, fields, values);
+        result.add(values);
+      }
+    } catch (Exception e) {
+      return Status.ERROR;
     }
 
     return Status.OK;
