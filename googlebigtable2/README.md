@@ -85,6 +85,7 @@ The following options can be configured using CLI (using the `-p` parameter).
 * `googlebigtable2..max-outstanding-bytes`: (Optional) When batching is enabled, override the limit of number of outstanding mutation bytes.
 * `googlebigtable2.reverse-scans`: (Optional) When enabled, scan start keys will be treated as end keys
 * `googlebigtable2.timestamp`: (Optional) When set, the timestamp will be used for all mutations, avoiding unbounded growth of cell versions.
+* `googlebigtable2.channel-pool-size`: (Optional) When set, disables channel pool autosizing and statically sets the pool size.
 
 ## Bigtable client version
 
