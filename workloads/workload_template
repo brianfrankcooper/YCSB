@@ -93,9 +93,9 @@ insertorder=hashed
 #insertorder=ordered
 
 # The distribution of requests across the keyspace
-requestdistribution=zipfian
-#requestdistribution=uniform
+requestdistribution=uniform
 #requestdistribution=latest
+#requestdistribution=zipfian
 
 # Percentage of data items that constitute the hot set
 hotspotdatafraction=0.2
