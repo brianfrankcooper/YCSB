@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (c) 2012 - 2020 YCSB contributors. All rights reserved.
+# Copyright (c) 2012 - 2015 YCSB contributors. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you
 # may not use this file except in compliance with the License. You
@@ -16,22 +16,19 @@
 # LICENSE file.
 #
 
-from __future__ import print_function
 import errno
 import fnmatch
 import io
 import os
-import re
 import shlex
 import sys
 import subprocess
-import tempfile
 
 try:
     mod = __import__('argparse')
     import argparse
 except ImportError:
-    print('[ERROR] argparse not found. Try installing it via "pip".', file=sys.stderr)
+    print >> sys.stderr, '[ERROR] argparse not found. Try installing it via "pip".'
     exit(1)
 
 BASE_URL = "https://github.com/brianfrankcooper/YCSB/tree/master/"
@@ -54,7 +51,10 @@ COMMANDS = {
 }
 
 DATABASES = {
-    "accumulo1.9"     : "site.ycsb.db.accumulo.AccumuloClient",
+    "accumulo"     : "site.ycsb.db.accumulo.AccumuloClient",
+    "accumulo1.6"     : "site.ycsb.db.accumulo.AccumuloClient",
+    "accumulo1.7"     : "site.ycsb.db.accumulo.AccumuloClient",
+    "accumulo1.8"     : "site.ycsb.db.accumulo.AccumuloClient",
     "aerospike"    : "site.ycsb.db.AerospikeClient",
     "arangodb"     : "site.ycsb.db.arangodb.ArangoDBClient",
     "arangodb3"     : "site.ycsb.db.arangodb.ArangoDBClient",
@@ -76,11 +76,14 @@ DATABASES = {
     "foundationdb" : "site.ycsb.db.foundationdb.FoundationDBClient",
     "geode"        : "site.ycsb.db.GeodeClient",
     "googlebigtable"  : "site.ycsb.db.GoogleBigtableClient",
-    "googlebigtable2"  : "site.ycsb.db.GoogleBigtable2Client",
     "googledatastore" : "site.ycsb.db.GoogleDatastoreClient",
     "griddb"       : "site.ycsb.db.griddb.GridDBClient",
-    "hbase1"      : "site.ycsb.db.hbase1.HBaseClient1",
-    "hbase2"      : "site.ycsb.db.hbase2.HBaseClient2",
+    "hbase098"     : "site.ycsb.db.HBaseClient",
+    "hbase10"      : "site.ycsb.db.HBaseClient10",
+    "hbase12"      : "site.ycsb.db.hbase12.HBaseClient12",
+    "hbase14"      : "site.ycsb.db.hbase14.HBaseClient14",
+    "hbase20"      : "site.ycsb.db.hbase20.HBaseClient20",
+    "hypertable"   : "site.ycsb.db.HypertableClient",
     "ignite"       : "site.ycsb.db.ignite.IgniteClient",
     "ignite-sql"   : "site.ycsb.db.ignite.IgniteSqlClient",
     "infinispan-cs": "site.ycsb.db.InfinispanRemoteClient",
@@ -101,12 +104,10 @@ DATABASES = {
     "riak"         : "site.ycsb.db.riak.RiakKVClient",
     "rocksdb"      : "site.ycsb.db.rocksdb.RocksDBClient",
     "s3"           : "site.ycsb.db.S3Client",
-    "seaweedfs"    : "site.ycsb.db.seaweed.SeaweedClient",
-    "scylla"       : "site.ycsb.db.scylla.ScyllaCQLClient",
-    "solr7"        : "site.ycsb.db.solr7.SolrClient",
+    "solr"         : "site.ycsb.db.solr.SolrClient",
+    "solr6"        : "site.ycsb.db.solr6.SolrClient",
     "tarantool"    : "site.ycsb.db.TarantoolClient",
-    "tablestore"   : "site.ycsb.db.tablestore.TableStoreClient",
-    "zookeeper"    : "site.ycsb.db.zookeeper.ZKClient"
+    "tablestore"   : "site.ycsb.db.tablestore.TableStoreClient"
 }
 
 OPTIONS = {
@@ -120,27 +121,27 @@ OPTIONS = {
 }
 
 def usage():
-    output = io.StringIO()
-    print(u"%s command database [options]" % sys.argv[0], file=output)
+    output = io.BytesIO()
+    print("%s command database [options]" % sys.argv[0], file=output) 
 
-    print(u"\nCommands:", file=output)
+    print >> output, "\nCommands:"
     for command in sorted(COMMANDS.keys()):
-        print(u"    %s %s" % (command.ljust(14),
-                                        COMMANDS[command]["description"]), file=output)
+        print >> output, "    %s %s" % (command.ljust(14),
+                                        COMMANDS[command]["description"])
 
-    print(u"\nDatabases:", file=output)
+    print >> output, "\nDatabases:"
     for db in sorted(DATABASES.keys()):
-        print(u"    %s %s" % (db.ljust(14), BASE_URL +
-                                        db.split("-")[0]), file=output)
+        print >> output, "    %s %s" % (db.ljust(14), BASE_URL +
+                                        db.split("-")[0])
 
-    print(u"\nOptions:", file=output)
+    print >> output, "\nOptions:"
     for option in sorted(OPTIONS.keys()):
-        print(u"    %s %s" % (option.ljust(14), OPTIONS[option]), file=output)
+        print >> output, "    %s %s" % (option.ljust(14), OPTIONS[option])
 
-    print(u"""\nWorkload Files:
+    print >> output, """\nWorkload Files:
     There are various predefined workloads under workloads/ directory.
     See https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties
-    for the list of workload properties.""", file=output)
+    for the list of workload properties."""
 
     return output.getvalue()
 
@@ -176,18 +177,18 @@ def check_output(*popenargs, **kwargs):
         if cmd is None:
             cmd = popenargs[0]
         error = subprocess.CalledProcessError(retcode, cmd)
-        error.output = output.decode()
+        error.output = output
         raise error
-    return output.decode()
+    return output
 
 def debug(message):
-    print("[DEBUG] ", message, file=sys.stderr)
+    print >> sys.stderr, "[DEBUG] ", message
 
 def warn(message):
-    print("[WARN] ", message, file=sys.stderr)
+    print >> sys.stderr, "[WARN] ", message
 
 def error(message):
-    print("[ERROR] ", message, file=sys.stderr)
+    print >> sys.stderr, "[ERROR] ", message
 
 def find_jars(dir, glob='*.jar'):
     jars = []
@@ -212,31 +213,26 @@ def is_distribution():
 # presumes maven properly handles system-specific path separators
 # Given module is full module name eg. 'core' or 'couchbase-binding'
 def get_classpath_from_maven(module):
-    output_file = tempfile.NamedTemporaryFile(delete=True)
-    cmd = ["mvn", "-B", "-pl", "site.ycsb:" + module,
-           "-am", "package", "-DskipTests",
-           "dependency:list",
-           "-DoutputAbsoluteArtifactFilename",
-           "-DappendOutput=false",
-           "-DoutputFile=" + output_file.name
-           ]
-    debug("Running '" + " ".join(cmd) + "'")
-    subprocess.check_call(cmd)
-
-    # the output file will now contain all of the dependencies in the format:
-    # group:artifact:type:[classifier:]version:scope:path[ -- module info]
-    classpath_items = []
-    with open(output_file.name) as f:
-        for l in f.readlines():
-            l = l.strip()
-            m = re.match('(?P<group>[^:]+):(?P<artifact>[^:]+):(?P<type>[^:]+)(?::(?P<classifier>[^:]+))?:(?P<version>[^:]+):(?P<scope>[^:]+):(?P<path>.*?)( -- module .*)?$', l)
-            if not m:
-                continue
-            if m.groupdict()["scope"] == "test":
-                continue
-            classpath_items.append(m.groupdict()["path"])
-    return ":".join(classpath_items)
-
+    try:
+        debug("Running 'mvn -pl site.ycsb:" + module + " -am package -DskipTests "
+              "dependency:build-classpath -DincludeScope=compile -Dmdep.outputFilterFile=true'")
+        mvn_output = check_output(["mvn", "-pl", "site.ycsb:" + module,
+                                   "-am", "package", "-DskipTests",
+                                   "dependency:build-classpath",
+                                   "-DincludeScope=compile",
+                                   "-Dmdep.outputFilterFile=true"])
+        # the above outputs a "classpath=/path/tojar:/path/to/other/jar" for each module
+        # the last module will be the datastore binding
+        line = [x for x in mvn_output.splitlines() if x.startswith("classpath=")][-1:]
+        return line[0][len("classpath="):]
+    except subprocess.CalledProcessError as err:
+        error("Attempting to generate a classpath from Maven failed "
+              "with return code '" + str(err.returncode) + "'. The output from "
+              "Maven follows, try running "
+              "'mvn -DskipTests package dependency:build=classpath' on your "
+              "own and correct errors." + os.linesep + os.linesep + "mvn output:" + os.linesep
+              + err.output)
+        sys.exit(err.returncode)
 
 def main():
     p = argparse.ArgumentParser(
@@ -267,6 +263,18 @@ def main():
     # Classpath set up
     binding = args.database.split("-")[0]
 
+    if binding == "accumulo":
+        warn("The 'accumulo' client has been deprecated in favor of version "
+             "specific bindings. This name still maps to the binding for "
+             "Accumulo 1.6, which is named 'accumulo-1.6'. This alias will "
+             "be removed in a future YCSB release.")
+        binding = "accumulo1.6"
+
+    if binding == "accumulo1.6":
+        warn("The 'accumulo1.6' client has been deprecated because Accumulo 1.6 "
+             "is EOM. If you are using Accumulo 1.7+ try using the 'accumulo1.7' "
+             "client instead.")
+
     if binding == "cassandra2":
         warn("The 'cassandra2-cql' client has been deprecated. It has been "
              "renamed to simply 'cassandra-cql'. This alias will be removed"
@@ -277,10 +285,15 @@ def main():
         warn("The 'couchbase' client has been deprecated. If you are using "
              "Couchbase 4.0+ try using the 'couchbase2' client instead.")
 
-    if binding == "hbase14":
-        warn("The 'hbase14' client has been deprecated. HBase 1.y users should "
-             "rely on the 'hbase1' client instead.")
-        binding = "hbase1"
+    if binding == "hbase098":
+        warn("The 'hbase098' client has been deprecated because HBase 0.98 "
+             "is EOM. If you are using HBase 1.2+ try using the 'hbase12' "
+             "client instead.")
+
+    if binding == "hbase10":
+        warn("The 'hbase10' client has been deprecated because HBase 1.0 "
+             "is EOM. If you are using HBase 1.2+ try using the 'hbase12' "
+             "client instead.")
 
     if binding == "arangodb3":
         warn("The 'arangodb3' client has been deprecated. The binding 'arangodb' "
@@ -320,7 +333,7 @@ def main():
                      main_classname, "-db", db_classname] + remaining)
     if command:
         ycsb_command.append(command)
-    print(" ".join(ycsb_command), file=sys.stderr)
+    print >> sys.stderr, " ".join(ycsb_command)
     try:
         return subprocess.call(ycsb_command)
     except OSError as e:
