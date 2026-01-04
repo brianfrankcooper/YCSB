@@ -448,7 +448,7 @@ public class CoreWorkload extends Workload {
     long insertstart =
         Long.parseLong(p.getProperty(INSERT_START_PROPERTY, INSERT_START_PROPERTY_DEFAULT));
     long insertcount=
-        Integer.parseInt(p.getProperty(INSERT_COUNT_PROPERTY, String.valueOf(recordcount - insertstart)));
+        Long.parseLong(p.getProperty(INSERT_COUNT_PROPERTY, String.valueOf(recordcount - insertstart)));
     // Confirm valid values for insertstart and insertcount in relation to recordcount
     if (recordcount < (insertstart + insertcount)) {
       System.err.println("Invalid combination of insertstart, insertcount and recordcount.");
@@ -812,7 +812,11 @@ public class CoreWorkload extends Workload {
       fields.add(fieldname);
     }
 
-    db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
+    Vector<HashMap<String, ByteIterator>> scannedRecords = new Vector<HashMap<String, ByteIterator>>();
+    long st = System.nanoTime();
+    db.scan(table, startkeyname, len, fields, scannedRecords);
+    long en = System.nanoTime();
+    measurements.measure("SCAN-LATENCY-PER-RECORD", (int) ((en - st) / 1000 / scannedRecords.size()));
   }
 
   public void doTransactionUpdate(DB db) {

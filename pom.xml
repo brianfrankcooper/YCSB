@@ -128,14 +128,16 @@ LICENSE file.
     <azurecosmos.version>4.8.0</azurecosmos.version>
     <azurestorage.version>4.0.0</azurestorage.version>
     <cassandra.cql.version>4.17.0</cassandra.cql.version>
-    <cloudspanner.version>6.71.0</cloudspanner.version>
+    <cloudspanner.version>6.91.1</cloudspanner.version>
     <couchbase.version>1.4.10</couchbase.version>
 		<couchbase2.version>2.3.1</couchbase2.version>
 		<crail.version>1.1-incubating</crail.version>
     <elasticsearch5-version>5.5.1</elasticsearch5-version>
     <foundationdb.version>5.2.5</foundationdb.version>
     <geode.version>1.2.0</geode.version>
+    <!-- deprecated, please use googlebigtable2 -->
     <googlebigtable.version>1.4.0</googlebigtable.version>
+    <googlebigtable2.version>2.47.0</googlebigtable2.version>
     <griddb.version>4.0.0</griddb.version>
     <hbase1.version>1.4.12</hbase1.version>
     <hbase2.version>2.2.3</hbase2.version>
@@ -143,7 +145,7 @@ LICENSE file.
     <infinispan.version>7.2.2.Final</infinispan.version>
     <kudu.version>1.11.1</kudu.version>
     <maprhbase.version>1.1.8-mapr-1710</maprhbase.version>
-    <mongodb.version>3.11.0</mongodb.version>
+    <mongodb.version>5.1.0</mongodb.version>
     <mongodb.async.version>2.0.1</mongodb.async.version>
     <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
     <orientdb.version>2.2.37</orientdb.version>
@@ -185,6 +187,7 @@ LICENSE file.
     <module>foundationdb</module>
     <module>geode</module>
     <module>googlebigtable</module>
+    <module>googlebigtable2</module>
     <module>googledatastore</module>
     <module>griddb</module>
     <module>hbase1</module>

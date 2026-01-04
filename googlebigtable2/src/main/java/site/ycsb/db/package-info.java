@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 YCSB contributors. All rights reserved.
+ * Copyright (c) 2024 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -16,6 +16,7 @@
  */
 
 /**
- * Old/Deprecated YCSB binding for Google's Bigtable. Please use googlebigtable2 binding.
+ * The YCSB binding for Google's <a href="https://cloud.google.com/bigtable/">Bigtable (new
+ * api)</a>.
  */
 package site.ycsb.db;

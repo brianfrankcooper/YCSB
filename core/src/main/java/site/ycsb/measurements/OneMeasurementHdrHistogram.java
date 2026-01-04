@@ -53,7 +53,7 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
   /**
    * The default value for the hdrhistogram.percentiles property.
    */
-  public static final String PERCENTILES_PROPERTY_DEFAULT = "95,99";
+  public static final String PERCENTILES_PROPERTY_DEFAULT = "50,95,99";
   
   /**
    * The name of the property for determining if we should print out the buckets.
@@ -158,7 +158,9 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
     DecimalFormat d = new DecimalFormat("#.##");
     return "[" + getName() + ": Count=" + intervalHistogram.getTotalCount() + ", Max="
         + intervalHistogram.getMaxValue() + ", Min=" + intervalHistogram.getMinValue() + ", Avg="
-        + d.format(intervalHistogram.getMean()) + ", 90=" + d.format(intervalHistogram.getValueAtPercentile(90))
+        + d.format(intervalHistogram.getMean())
+        + ", 50=" + d.format(intervalHistogram.getValueAtPercentile(50))
+        + ", 90=" + d.format(intervalHistogram.getValueAtPercentile(90))
         + ", 99=" + d.format(intervalHistogram.getValueAtPercentile(99)) + ", 99.9="
         + d.format(intervalHistogram.getValueAtPercentile(99.9)) + ", 99.99="
         + d.format(intervalHistogram.getValueAtPercentile(99.99)) + "]";

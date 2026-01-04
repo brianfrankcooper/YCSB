@@ -25,23 +25,23 @@ LICENSE file.
     <relativePath>../binding-parent/</relativePath>
   </parent>
 
-  <artifactId>googlebigtable-binding</artifactId>
-  <name>Google Cloud Bigtable Binding (deprecated)</name>
+  <artifactId>googlebigtable2-binding</artifactId>
+  <name>Google Cloud Bigtable (new api) Binding</name>
   <packaging>jar</packaging>
 
   <dependencies>
     <dependency>
-      <groupId>com.google.cloud.bigtable</groupId>
-      <artifactId>bigtable-hbase-1.x</artifactId>
-      <version>${googlebigtable.version}</version>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-bigtable</artifactId>
+      <version>${googlebigtable2.version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>site.ycsb</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
-    
+
   </dependencies>
 </project>

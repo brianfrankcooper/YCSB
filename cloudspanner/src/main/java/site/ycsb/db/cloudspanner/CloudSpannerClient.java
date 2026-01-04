@@ -17,6 +17,7 @@
 package site.ycsb.db.cloudspanner;
 
 import com.google.common.base.Joiner;
+import com.google.cloud.NoCredentials;
 import com.google.cloud.spanner.DatabaseId;
 import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.Key;
@@ -32,6 +33,7 @@ import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.Struct;
 import com.google.cloud.spanner.StructReader;
 import com.google.cloud.spanner.TimestampBound;
+import io.grpc.ManagedChannelBuilder;
 import site.ycsb.ByteIterator;
 import site.ycsb.Client;
 import site.ycsb.DB;
@@ -100,6 +102,15 @@ public class CloudSpannerClient extends DB {
      * Number of Cloud Spanner client channels to use. It's recommended to leave this to be the default value.
      */
     static final String NUM_CHANNELS = "cloudspanner.channels";
+    /**
+     * Use plain text for communication.
+     */
+    static final String USE_PLAINTEXT = "cloudspanner.useplaintext";
+    
+    /**
+     * Connect to Experimental host instead of cloud spanner API.
+     */
+    static final String EXPERIMENTAL_HOST="cloudspanner.experimentalhost";    
   }
 
   private static int fieldCount;
@@ -167,6 +178,18 @@ public class CloudSpannerClient extends DB {
     if (numChannels != null) {
       optionsBuilder.setNumChannels(Integer.parseInt(numChannels));
     }
+    boolean usePlaintext = Boolean.parseBoolean(properties.getProperty(CloudSpannerProperties.USE_PLAINTEXT));
+    if (usePlaintext) {
+      optionsBuilder.setChannelConfigurator(ManagedChannelBuilder::usePlaintext);
+      //Disable credentials and built in metrics when plaintext is used.
+      optionsBuilder.setCredentials(NoCredentials.getInstance());
+      optionsBuilder.setBuiltInMetricsEnabled(false);
+    }
+    String experimentalHost = properties.getProperty(CloudSpannerProperties.EXPERIMENTAL_HOST);
+    if (experimentalHost != null) {
+      optionsBuilder.setExperimentalHost(experimentalHost);
+    }
+
     spanner = optionsBuilder.build().getService();
     Runtime.getRuntime().addShutdownHook(new Thread("spannerShutdown") {
         @Override

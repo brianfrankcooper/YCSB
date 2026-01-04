@@ -24,17 +24,20 @@
  */
 package site.ycsb.db;
 
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.ConnectionString;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.InsertManyOptions;
 import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import site.ycsb.ByteArrayByteIterator;
@@ -77,6 +80,8 @@ public class MongoDbClient extends DB {
 
   /** The options to use for inserting a single document. */
   private static final UpdateOptions UPDATE_WITH_UPSERT = new UpdateOptions()
+      .upsert(true);
+  private static final ReplaceOptions REPLACE_WITH_UPSERT = new ReplaceOptions()
       .upsert(true);
 
   /**
@@ -204,7 +209,8 @@ public class MongoDbClient extends DB {
       }
 
       try {
-        MongoClientURI uri = new MongoClientURI(url);
+        ConnectionString uri = new ConnectionString(url);
+        MongoClientSettings.Builder csb = MongoClientSettings.builder().applyConnectionString(uri);
 
         String uriDb = uri.getDatabase();
         if (!defaultedUrl && (uriDb != null) && !uriDb.isEmpty()
@@ -216,14 +222,8 @@ public class MongoDbClient extends DB {
 
         }
 
-        readPreference = uri.getOptions().getReadPreference();
-        writeConcern = uri.getOptions().getWriteConcern();
-
-        mongoClient = new MongoClient(uri);
-        database =
-            mongoClient.getDatabase(databaseName)
-                .withReadPreference(readPreference)
-                .withWriteConcern(writeConcern);
+        mongoClient = MongoClients.create(csb.build());
+        database = mongoClient.getDatabase(databaseName);
 
         System.out.println("mongo client connection created with " + url);
       } catch (Exception e1) {
@@ -266,7 +266,7 @@ public class MongoDbClient extends DB {
           // to current inability of the framework to clean up after itself
           // between test runs.
           collection.replaceOne(new Document("_id", toInsert.get("_id")),
-              toInsert, UPDATE_WITH_UPSERT);
+              toInsert, REPLACE_WITH_UPSERT);
         } else {
           collection.insertOne(toInsert);
         }
@@ -279,7 +279,7 @@ public class MongoDbClient extends DB {
             for (Document doc : bulkInserts) {
               updates.add(new UpdateOneModel<Document>(
                   new Document("_id", doc.get("_id")),
-                  doc, UPDATE_WITH_UPSERT));
+                  new Document("$set", doc), UPDATE_WITH_UPSERT));
             }
             collection.bulkWrite(updates);
           } else {
