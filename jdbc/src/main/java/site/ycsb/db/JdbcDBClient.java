@@ -50,6 +50,9 @@ public class JdbcDBClient extends DB {
   /** The URL to connect to the database. */
   public static final String CONNECTION_URL = "db.url";
 
+  /** The delimiter that is used to split multiple JDBC connection URLs. */
+  public static final String CONNECTION_URL_DELIMITER = "db.urldelimiter";
+
   /** The user name to use to connect to the database. */
   public static final String CONNECTION_USER = "db.user";
 
@@ -188,6 +191,15 @@ public class JdbcDBClient extends DB {
     String passwd = props.getProperty(CONNECTION_PASSWD, DEFAULT_PROP);
     String driver = props.getProperty(DRIVER_CLASS);
 
+    String defaultDelimiter = ";";
+    if (driver != null) {
+      if (driver.contains("spanner") || driver.contains("sqlserver")
+          || driver.contains("org.h2.") || driver.contains("phoenix")) {
+        defaultDelimiter = ",";
+      }
+    }
+    String urlDelimiter = props.getProperty(CONNECTION_URL_DELIMITER, defaultDelimiter);
+
     this.jdbcFetchSize = getIntProperty(props, JDBC_FETCH_SIZE);
     this.batchSize = getIntProperty(props, DB_BATCH_SIZE);
 
@@ -220,7 +232,7 @@ public class JdbcDBClient extends DB {
       // for a longer explanation see the README.md
       // semicolons aren't present in JDBC urls, so we use them to delimit
       // multiple JDBC connections to shard across.
-      final String[] urlArr = urls.split(";");
+      final String[] urlArr = urls.split(urlDelimiter);
       for (String url : urlArr) {
         System.out.println("Adding shard node URL: " + url);
         Connection conn = DriverManager.getConnection(url, user, passwd);
