@@ -215,9 +215,9 @@ updateproportion=0.00
 insertproportion=0.90
 
 # The distribution of requests across the keyspace
-requestdistribution=zipfian
-#requestdistribution=uniform
+requestdistribution=uniform
 #requestdistribution=latest
+#requestdistribution=zipfian
 
 # The name of the database table to run queries against
 table=usertable
