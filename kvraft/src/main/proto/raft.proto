@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package raft;
+
+option java_package = "site.ycsb.db.kvraft.proto";
+option java_multiple_files = true;
+option java_outer_classname = "KvraftProto";
+
+message RequestVoteRequest {
+  int32 term = 1;
+  int32 candidate_id = 2;
+  int32 last_log_index = 3;
+  int32 last_log_term = 4;
+}
+
+message RequestVoteResponse {
+  int32 term = 1;
+  bool vote_granted = 2;
+}
+
+message AppendEntriesRequest {
+  int32 term = 1;
+  int32 leader_id = 2;
+  int32 prev_log_index = 3;
+  int32 prev_log_term = 4;
+  repeated LogEntry entries = 5;
+  int32 leader_commit = 6;
+}
+
+message AppendEntriesResponse {
+  int32 term = 1;
+  bool success = 2;
+}
+
+message LogEntry {
+  int32 term = 1;
+  int32 index = 2;
+  Command command = 3;
+}
+
+message Command {
+  string type = 1;
+  string key = 2;
+  string value = 3;
+}
+
+service RaftService {
+  rpc RequestVote(RequestVoteRequest) returns (RequestVoteResponse);
+  rpc AppendEntries(AppendEntriesRequest) returns (AppendEntriesResponse);
+}
+
+message KVRequest {
+  string key = 1;
+  string value = 2;
+}
+
+message KVResponse {
+  bool success = 1;
+  string value = 2;
+  string error = 3;
+  string leader = 4;
+}
+
+service KVService {
+  rpc Get(KVRequest) returns (KVResponse);
+  rpc Put(KVRequest) returns (KVResponse);
+  rpc Delete(KVRequest) returns (KVResponse);
+}
