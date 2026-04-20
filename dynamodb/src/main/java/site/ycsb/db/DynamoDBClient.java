@@ -20,7 +20,8 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.PropertiesCredentials;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.BasicSessionCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
@@ -29,9 +30,10 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import site.ycsb.*;
 
-import java.io.File;
+import java.io.FileInputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Vector;
@@ -137,15 +139,26 @@ public class DynamoDBClient extends DB {
           dynamoDBBuilder.withRegion(this.region) :
           dynamoDBBuilder.withEndpointConfiguration(
               new AwsClientBuilder.EndpointConfiguration(this.endpoint, this.region)
-          );
-      dynamoDB = dynamoDBBuilder
-          .withClientConfiguration(
-              new ClientConfiguration()
-                  .withTcpKeepAlive(true)
-                  .withMaxConnections(this.maxConnects)
           )
-          .withCredentials(new AWSStaticCredentialsProvider(new PropertiesCredentials(new File(credentialsFile))))
-          .build();
+          .withClientConfiguration(
+            new ClientConfiguration()
+                .withTcpKeepAlive(true)
+                .withMaxConnections(this.maxConnects)
+        );
+
+      if (credentialsFile != null) {
+        Properties credentialProperties = new Properties();
+        credentialProperties.load(new FileInputStream(credentialsFile));
+        String accessKey = credentialProperties.getProperty("accessKey");
+        String secretKey = credentialProperties.getProperty("secretKey");
+        String sessionToken = credentialProperties.getProperty("sessionToken", null);
+        AWSStaticCredentialsProvider credentialsProvider = null ==sessionToken ?
+            new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)) :
+            new AWSStaticCredentialsProvider(new BasicSessionCredentials(accessKey, secretKey, sessionToken));
+        dynamoDBBuilder.withCredentials(credentialsProvider);
+      }
+      dynamoDB = dynamoDBBuilder.build();
+
       primaryKeyName = primaryKey;
       LOGGER.info("dynamodb connection created with " + this.endpoint);
     } catch (Exception e1) {
