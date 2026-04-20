@@ -62,6 +62,13 @@ LICENSE file.
       <email>stfeng@google.com</email>
     </developer>
   </developers>
+  <repositories>
+    <repository>
+      <id>maven-restlet</id>
+      <name>Public online Restlet repository</name>
+      <url>https://maven.restlet.talend.com</url>
+    </repository>
+  </repositories>
 
   <scm>
     <connection>scm:git:git://github.com/brianfrankcooper/YCSB.git</connection>
@@ -152,6 +159,7 @@ LICENSE file.
     <tablestore.version>4.8.0</tablestore.version>
     <voltdb.version>10.1.1</voltdb.version>
     <zookeeper.version>3.5.8</zookeeper.version>
+    <oxia.version>0.3.0</oxia.version>
   </properties>
 
   <modules>
@@ -206,6 +214,7 @@ LICENSE file.
     <module>tablestore</module>
     <module>voltdb</module>
     <module>zookeeper</module>
+    <module>oxia</module>
   </modules>
 
   <build>
