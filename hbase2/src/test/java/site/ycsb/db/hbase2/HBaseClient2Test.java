@@ -123,6 +123,7 @@ public class HBaseClient2Test {
   public void tearDown() throws Exception {
     table.close();
     testingUtil.deleteTable(TableName.valueOf(tableName));
+    client.cleanup();
   }
 
   @Test
