@@ -63,6 +63,8 @@ import java.util.*;
  * order ("hashed") (default: hashed)
  * <LI><b>fieldnameprefix</b>: what should be a prefix for field names, the shorter may decrease the
  * required storage size (default: "field")
+ * <LI><b>core_workload_insertion_keep_going_on_error</b>: whether to keep going even if an insertion
+ * fails (default: false)
  * </ul>
  */
 public class CoreWorkload extends Workload {
@@ -87,7 +89,7 @@ public class CoreWorkload extends Workload {
    * Default number of fields in a record.
    */
   public static final String FIELD_COUNT_PROPERTY_DEFAULT = "10";
-  
+
   private List<String> fieldnames;
 
   /**
@@ -347,6 +349,12 @@ public class CoreWorkload extends Workload {
   public static final String INSERTION_RETRY_INTERVAL_DEFAULT = "3";
 
   /**
+   * Whether to keep going even if an insertion fails.
+   */
+  public static final String INSERTION_KEEP_GOING_ON_ERROR = "core_workload_insertion_keep_going_on_error";
+  public static final String INSERTION_KEEP_GOING_ON_ERROR_DEFAULT = "false";
+
+  /**
    * Field name prefix.
    */
   public static final String FIELD_NAME_PREFIX = "fieldnameprefix";
@@ -368,6 +376,7 @@ public class CoreWorkload extends Workload {
   protected int zeropadding;
   protected int insertionRetryLimit;
   protected int insertionRetryInterval;
+  protected boolean insertionKeepGoingOnError;
 
   private Measurements measurements = Measurements.getMeasurements();
 
@@ -545,6 +554,8 @@ public class CoreWorkload extends Workload {
         INSERTION_RETRY_LIMIT, INSERTION_RETRY_LIMIT_DEFAULT));
     insertionRetryInterval = Integer.parseInt(p.getProperty(
         INSERTION_RETRY_INTERVAL, INSERTION_RETRY_INTERVAL_DEFAULT));
+    insertionKeepGoingOnError = Boolean.parseBoolean(p.getProperty(
+        INSERTION_KEEP_GOING_ON_ERROR, INSERTION_KEEP_GOING_ON_ERROR_DEFAULT));
   }
 
   /**
@@ -643,7 +654,7 @@ public class CoreWorkload extends Workload {
       }
     } while (true);
 
-    return null != status && status.isOk();
+    return (null != status && status.isOk()) || insertionKeepGoingOnError;
   }
 
   /**
