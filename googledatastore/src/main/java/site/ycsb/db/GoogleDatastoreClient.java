@@ -153,7 +153,6 @@ public class GoogleDatastoreClient extends DB {
         "googledatastore.serviceAccountEmail", null);
 
     // Below are properties related to benchmarking.
-
     String readConsistencyConfig = getProperties().getProperty(
         "googledatastore.readConsistency", null);
     if (readConsistencyConfig != null) {
@@ -431,4 +430,3 @@ public class GoogleDatastoreClient extends DB {
     return Status.OK;
   }
 }
- 
