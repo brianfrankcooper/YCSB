@@ -350,7 +350,7 @@ public class CloudSpannerClient extends DB {
 
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
-    Mutation.WriteBuilder m = Mutation.newInsertOrUpdateBuilder(table);
+    Mutation.WriteBuilder m = Mutation.newUpdateBuilder(table);
     m.set(PRIMARY_KEY_COLUMN).to(key);
     for (Map.Entry<String, ByteIterator> e : values.entrySet()) {
       m.set(e.getKey()).to(e.getValue().toString());
