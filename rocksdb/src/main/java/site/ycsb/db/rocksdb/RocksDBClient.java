@@ -325,7 +325,10 @@ public class RocksDBClient extends DB {
   private void saveColumnFamilyNames() throws IOException {
     final Path file = rocksDbDir.resolve(COLUMN_FAMILY_NAMES_FILENAME);
     try(final PrintWriter writer = new PrintWriter(Files.newBufferedWriter(file, UTF_8))) {
-      writer.println(new String(RocksDB.DEFAULT_COLUMN_FAMILY, UTF_8));
+      final String defaultCfName = new String(RocksDB.DEFAULT_COLUMN_FAMILY, UTF_8);
+      if(!COLUMN_FAMILIES.containsKey(defaultCfName)) {
+        writer.println(defaultCfName);
+      }
       for(final String cfName : COLUMN_FAMILIES.keySet()) {
         writer.println(cfName);
       }
