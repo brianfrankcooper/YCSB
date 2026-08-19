@@ -277,6 +277,14 @@ public final class Client {
   public static void main(String[] args) {
     Properties props = parseArguments(args);
 
+    if (props.getProperty("threads") != null && props.getProperty(THREAD_COUNT_PROPERTY) == null) {
+      System.err.println("WARNING: found a \"threads\" property (e.g. \"-p threads=N\"), but the "
+          + "property YCSB actually reads for thread count is \"" + THREAD_COUNT_PROPERTY + "\" "
+          + "(equivalently, the \"-threads N\" command-line flag). \"threads\" is not a recognized "
+          + "property and is silently ignored, so this run will use the default thread count (1) "
+          + "instead of what was intended. See https://github.com/brianfrankcooper/YCSB/issues/116.");
+    }
+
     boolean status = Boolean.valueOf(props.getProperty(STATUS_PROPERTY, String.valueOf(false)));
     String label = props.getProperty(LABEL_PROPERTY, "");
 
