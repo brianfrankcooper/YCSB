@@ -142,19 +142,24 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
 
   /**
    * This is called periodically from the StatusThread. There's a single
-   * StatusThread per Client process. We optionally serialize the interval to
-   * log on this opportunity.
+   * StatusThread per Client process. We optionally serialize the interval to log
+   * on this opportunity.
+   * 
+   * @throws IOException
    *
    * @see site.ycsb.measurements.OneMeasurement#getSummary()
    */
   @Override
   public String getSummary() {
+
     Histogram intervalHistogram = getIntervalHistogramAndAccumulate();
     // we use the summary interval as the histogram file interval.
     if (histogramLogWriter != null) {
       histogramLogWriter.outputIntervalHistogram(intervalHistogram);
     }
 
+    String buckets = getStatusCounts();
+    
     DecimalFormat d = new DecimalFormat("#.##");
     return "[" + getName() + ": Count=" + intervalHistogram.getTotalCount() + ", Max="
         + intervalHistogram.getMaxValue() + ", Min=" + intervalHistogram.getMinValue() + ", Avg="
@@ -163,7 +168,7 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
         + ", 90=" + d.format(intervalHistogram.getValueAtPercentile(90))
         + ", 99=" + d.format(intervalHistogram.getValueAtPercentile(99)) + ", 99.9="
         + d.format(intervalHistogram.getValueAtPercentile(99.9)) + ", 99.99="
-        + d.format(intervalHistogram.getValueAtPercentile(99.99)) + "]";
+        + d.format(intervalHistogram.getValueAtPercentile(99.99)) + buckets +"]";
   }
 
   private Histogram getIntervalHistogramAndAccumulate() {
