@@ -28,33 +28,38 @@ import java.util.Collection;
 public class TerminatorThread extends Thread {
 
   private final Collection<? extends Thread> threads;
-  private long maxExecutionTime;
-  private Workload workload;
-  private long waitTimeOutInMS;
+  private final long maxExecutionTime;
+  private final Workload workload;
+  private static final long WAIT_TIME_OUT_IN_MS = 2000;
 
-  public TerminatorThread(long maxExecutionTime, Collection<? extends Thread> threads,
-                          Workload workload) {
+  public TerminatorThread(long maxExecutionTime, Collection<? extends Thread> threads, Workload workload) {
     this.maxExecutionTime = maxExecutionTime;
     this.threads = threads;
     this.workload = workload;
-    waitTimeOutInMS = 2000;
-    System.err.println("Maximum execution time specified as: " + maxExecutionTime + " secs");
   }
 
   public void run() {
+    System.err.println("Maximum execution time specified as: " + maxExecutionTime + " secs");
+
     try {
       Thread.sleep(maxExecutionTime * 1000);
     } catch (InterruptedException e) {
       System.err.println("Could not wait until max specified time, TerminatorThread interrupted.");
       return;
     }
+
     System.err.println("Maximum time elapsed. Requesting stop for the workload.");
+
+    stopWorkload(workload, threads);
+  }
+
+  public static void stopWorkload(Workload workload, Collection<? extends Thread> threads) {
     workload.requestStop();
     System.err.println("Stop requested for workload. Now Joining!");
     for (Thread t : threads) {
       while (t.isAlive()) {
         try {
-          t.join(waitTimeOutInMS);
+          t.join(WAIT_TIME_OUT_IN_MS);
           if (t.isAlive()) {
             System.out.println("Still waiting for thread " + t.getName() + " to complete. " +
                 "Workload status: " + workload.isStopRequested());

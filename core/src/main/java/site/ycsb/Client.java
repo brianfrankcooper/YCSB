@@ -17,12 +17,12 @@
 
 package site.ycsb;
 
-import site.ycsb.measurements.Measurements;
-import site.ycsb.measurements.exporter.MeasurementsExporter;
-import site.ycsb.measurements.exporter.TextMeasurementsExporter;
 import org.apache.htrace.core.HTraceConfiguration;
 import org.apache.htrace.core.TraceScope;
 import org.apache.htrace.core.Tracer;
+import site.ycsb.measurements.Measurements;
+import site.ycsb.measurements.exporter.MeasurementsExporter;
+import site.ycsb.measurements.exporter.TextMeasurementsExporter;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -31,6 +31,7 @@ import java.io.OutputStream;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -275,17 +276,17 @@ public final class Client {
 
   @SuppressWarnings("unchecked")
   public static void main(String[] args) {
-    Properties props = parseArguments(args);
+    final Properties props = parseArguments(args);
 
-    boolean status = Boolean.valueOf(props.getProperty(STATUS_PROPERTY, String.valueOf(false)));
-    String label = props.getProperty(LABEL_PROPERTY, "");
+    final boolean status = Boolean.valueOf(props.getProperty(STATUS_PROPERTY, String.valueOf(false)));
+    final String label = props.getProperty(LABEL_PROPERTY, "");
 
-    long maxExecutionTime = Integer.parseInt(props.getProperty(MAX_EXECUTION_TIME, "0"));
+    final long maxExecutionTime = Integer.parseInt(props.getProperty(MAX_EXECUTION_TIME, "0"));
 
     //get number of threads, target and db
-    int threadcount = Integer.parseInt(props.getProperty(THREAD_COUNT_PROPERTY, "1"));
-    String dbname = props.getProperty(DB_PROPERTY, "site.ycsb.BasicDB");
-    int target = Integer.parseInt(props.getProperty(TARGET_PROPERTY, "0"));
+    final int threadcount = Integer.parseInt(props.getProperty(THREAD_COUNT_PROPERTY, "1"));
+    final String dbname = props.getProperty(DB_PROPERTY, "site.ycsb.BasicDB");
+    final int target = Integer.parseInt(props.getProperty(TARGET_PROPERTY, "0"));
 
     //compute the target throughput
     double targetperthreadperms = -1;
@@ -298,8 +299,7 @@ public final class Client {
     warningthread.start();
 
     Measurements.setProperties(props);
-
-    Workload workload = getWorkload(props);
+    final Workload workload = getWorkload(props);
 
     final Tracer tracer = getTracer(props, workload);
 
@@ -329,41 +329,57 @@ public final class Client {
     long en;
     int opsDone;
 
-    try (final TraceScope span = tracer.newScope(CLIENT_WORKLOAD_SPAN)) {
-
-      final Map<Thread, ClientThread> threads = new HashMap<>(threadcount);
-      for (ClientThread client : clients) {
-        threads.put(new Thread(tracer.wrap(client, "ClientThread")), client);
-      }
-
-      st = System.currentTimeMillis();
-
-      for (Thread t : threads.keySet()) {
-        t.start();
-      }
-
-      if (maxExecutionTime > 0) {
-        terminator = new TerminatorThread(maxExecutionTime, threads.keySet(), workload);
-        terminator.start();
-      }
-
-      opsDone = 0;
-
-      for (Map.Entry<Thread, ClientThread> entry : threads.entrySet()) {
-        try {
-          entry.getKey().join();
-          opsDone += entry.getValue().getOpsDone();
-        } catch (InterruptedException ignored) {
-          // ignored
-        }
-      }
-
-      en = System.currentTimeMillis();
-    }
+    final Semaphore s = new Semaphore(1);
+    s.acquireUninterruptibly();
 
     try {
-      try (final TraceScope span = tracer.newScope(CLIENT_CLEANUP_SPAN)) {
+      try (final TraceScope span = tracer.newScope(CLIENT_WORKLOAD_SPAN)) {
+        final Map<Thread, ClientThread> threads = new HashMap<>(threadcount);
+        for (ClientThread client : clients) {
+          threads.put(new Thread(tracer.wrap(client, "ClientThread")), client);
+        }
 
+        // Handle SIGINT signal (CTRL+C) to export measurements before shutdown
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            if (s.availablePermits() == 0) {
+              System.err.println("Shutdown hook: requesting stop for the workload.");
+              TerminatorThread.stopWorkload(workload, threads.keySet());
+            }
+            try {
+              if (!s.tryAcquire(5, TimeUnit.SECONDS)) {
+                System.err.println("Shutdown await timeout. Exit.");
+              }
+            } catch (InterruptedException ignored) {
+              // checkstyle: ignore
+            }
+          }));
+
+        st = System.currentTimeMillis();
+
+        for (Thread t : threads.keySet()) {
+          t.start();
+        }
+
+        if (maxExecutionTime > 0) {
+          terminator = new TerminatorThread(maxExecutionTime, threads.keySet(), workload);
+          terminator.start();
+        }
+
+        opsDone = 0;
+
+        for (Map.Entry<Thread, ClientThread> entry : threads.entrySet()) {
+          try {
+            entry.getKey().join();
+            opsDone += entry.getValue().getOpsDone();
+          } catch (InterruptedException ignored) {
+            // ignored
+          }
+        }
+
+        en = System.currentTimeMillis();
+      }
+
+      try (final TraceScope span = tracer.newScope(CLIENT_CLEANUP_SPAN)) {
         if (terminator != null && !terminator.isInterrupted()) {
           terminator.interrupt();
         }
@@ -381,20 +397,19 @@ public final class Client {
 
         workload.cleanup();
       }
-    } catch (WorkloadException e) {
-      e.printStackTrace();
-      e.printStackTrace(System.out);
-      System.exit(0);
-    }
 
-    try {
       try (final TraceScope span = tracer.newScope(CLIENT_EXPORT_MEASUREMENTS_SPAN)) {
         exportMeasurements(props, opsDone, en - st);
       }
+    } catch (WorkloadException e) {
+      System.err.println(e.toString());
+      e.printStackTrace();
     } catch (IOException e) {
-      System.err.println("Could not export measurements, error: " + e.getMessage());
+      System.err.println(e.toString());
       e.printStackTrace();
       System.exit(-1);
+    } finally {
+      s.release();
     }
 
     System.exit(0);
