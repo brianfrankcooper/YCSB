@@ -61,6 +61,7 @@ DATABASES = {
     "asynchbase"   : "site.ycsb.db.AsyncHBaseClient",
     "azurecosmos" : "site.ycsb.db.AzureCosmosClient",
     "azuretablestorage" : "site.ycsb.db.azuretablestorage.AzureClient",
+    "bangdb"       : "site.ycsb.db.BangdbClient",
     "basic"        : "site.ycsb.BasicDB",
     "basicts"      : "site.ycsb.BasicTSDB",
     "cassandra-cql": "site.ycsb.db.CassandraCQLClient",
