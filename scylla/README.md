@@ -150,36 +150,59 @@ For the system with hyper threading (HT) it means 2 virtual cores. From that fol
 of _Shards_ per _Node_ typically is `Number Of Cores - 2` for HT machine and
 `Number Of Cores - 1` for a machine without HT.
 
-It makes sense to select number of YCSB worker _threads_ to be multiple of the number
-of shards, and the number of nodes in the cluster. For example:
-
     AWS Amazon i3.4xlarge has 16 vCPU (8 physical cores with HT).
 
     =>
 
     scylla node shards = vCPUs - 2 = 16 - 2 = 14
 
+The main concern you shall bear in mind is that the workers overall throughput
+must be greater than the target throughput you are looking for to achieve:
+
+    worker threads = K * Target Throughput / Throughput per Worker =
+
+    or
+
+                   = K * Workers per shard * Total Shards
+
+    where
+
+    K is parallelism factor ≥ Total Workers Throughput / Target Throughput ≥1
+
+    Throughput per Worker = 1 [second] / Expected Latency per Request
+    Workers per shard = [ Target Throughput / Total Shards ] / Throughput per Worker
+    Total Workers Throughput = Total Workers * Throughput per Worker
+    Total Shards = Nodes * Shards per node
+    Shards per node = (vCPU per cluster node - 2)
+    Nodes = a number of nodes in the cluster.
+    Total Workers = Total Shards * Workers per shard
+    Target Throughput = --target
+
+For example:
+
+Suppose we want to test how our cluster of 3 x i3.4xlarge nodes, 16 vCPU, 8 cores,
+2 threads per core, 122 GB RAM, up to 10 Gigabit, 3.5TB NVMe md0 of 2 disks
+behaves at 120,000 OPS.
+
+We have 3 nodes * (16 vCPU - 2 vCPU for system and IRQ) = 42 vCPU cluster = 42 shards.
+
+For throughput 120,000 OPS we can evaluate 120,000 [OPS] / 42 [shards] = 
+2,858 [Request Per Shard / Second]. That means that each shard is going to get
+a request once each 1/2,858 of a second or every 350µs. Our expectations about
+99% percentile (P99) of latency is under 10ms. Let’s pick 10ms as our target
+request latency: 10 ms/op.
+
+Let’s count how many worker threads we are going to need to ensure 120,000 OPS
+with 10ms max per request.
+
+    Worker throughput = 1 [second] / 10 [ms/op] = 100 [op/sec] per worker thread
+    Total threads = Total workers = 120,000 [req/sec] / 100 [req/sec/worker] = 1200 [workers]
+
+    or
+
+    Workers per shard = 2,858 [Request Per Shard / Second] / 100 [Request/Second/worker] = 29 workers per shard
     =>
-
-    threads = K * shards per node * nodes
-
-    for i3.4xlarge where
-
-        - K is parallelism factor:
-
-          K >= Target Throughput / QPS per Worker / Shards per node / Nodes / Workers per shard >= 1
-          where
-          Target Throughput = --target
-          QPS per Worker = 1000 [ms/second] / Latency in ms expected at target Percentile
-          Shards per node = vCPU per cluster node - 2
-          Nodes = a number of nodes in the cluster.
-          Workers per shard = Target Throughput / Shards per node / Nodes / QPS per Worker
-
-        - Nodes is number of nodes in the cluster.
-
-Another concern is that for high throughput scenarios you would probably
-want to keep shards incoming queues non-empty. For that your parallelism factor
-must be at least 2.
+    Total threads = Total workers = 29 [workers/shard] * 42 [shards] = 1218 [workers]
 
 ### 5. Number of connections
 
