@@ -80,11 +80,11 @@ The default settings for the Solr node that is created is as follows:
   - Default value is `1000ms`
 
 - `solr.batch.mode`
-  - Indicates if inserts/updates/deletes should be commited in batches (frequency controlled by the `solr.commit.within.time` parameter) or commit 1 document at a time.
+  - Indicates if inserts/updates/deletes should be committed in batches (frequency controlled by the `solr.commit.within.time` parameter) or commit 1 document at a time.
   - Default value is `false`
 
 - `solr.zookeeper.hosts`
-  - A list of comma seperated host:port pairs of Zookeeper nodes used to manage SolrCloud configurations.
+  - A list of comma separated host:port pairs of Zookeeper nodes used to manage SolrCloud configurations.
   - Must be passed when in [SolrCloud](https://cwiki.apache.org/confluence/display/solr/SolrCloud) mode.
   - Default value is `localhost:2181`
 
