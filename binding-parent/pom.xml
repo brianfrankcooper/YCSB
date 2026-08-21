@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!-- 
 Copyright (c) 2015-2016 YCSB contributors. All rights reserved.
 
@@ -32,7 +33,7 @@ LICENSE file.
     This module acts as the parent for new datastore bindings.
     It creates a datastore specific binary artifact.
   </description>
-
+  
   <modules>
     <module>datastore-specific-descriptor</module>
   </modules>
@@ -202,4 +203,3 @@ LICENSE file.
     </profile>
   </profiles>
 </project>
-
