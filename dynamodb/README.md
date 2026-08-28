@@ -36,7 +36,14 @@ for more information on setup.
 # Properties
 
     $DYNAMODB_HOME/conf/dynamodb.properties
-    $DYNAMODB_HOME/conf/AWSCredentials.properties
+
+# AWS credentials
+
+To make requests to Amazon Web Services using the AWS SDK for Java, you must use 
+cryptographically-signed credentials issued by AWS.
+The DynamoDB Client is using the Default Credential Provider chain by default. The available
+configuration option to authenticate your client correctly are documented here:
+https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default
 
 # FAQs
 * Why is the recommended workload distribution set to 'uniform'?
