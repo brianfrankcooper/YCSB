@@ -26,17 +26,33 @@ import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpStatus;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.nio.entity.NStringEntity;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.ssl.SSLContexts;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,6 +61,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
+
+import javax.net.ssl.SSLContext;
 
 import static site.ycsb.db.elasticsearch5.Elasticsearch5.KEY;
 import static site.ycsb.db.elasticsearch5.Elasticsearch5.parseIntegerProperty;
@@ -58,6 +76,13 @@ public class ElasticsearchRestClient extends DB {
 
   private static final String DEFAULT_INDEX_KEY = "es.ycsb";
   private static final String DEFAULT_REMOTE_HOST = "localhost:9200";
+  private static final String DEFAULT_SCHEME = "http";
+  private static final String CUSERNAME = "es.cusername";
+  private static final String CPASSWORD = "es.cpassword";
+  private static final String CERTIFICATE ="es.certificate";
+  private static final int CONNECT_TIMEOUT = 30000;
+  private static final int SOCKET_TIMEOUT = 30000;
+  private static final int MAX_RETRY_TIMEOUT = 30000;
   private static final int NUMBER_OF_SHARDS = 1;
   private static final int NUMBER_OF_REPLICAS = 0;
   private RestClient restClient;
@@ -71,24 +96,24 @@ public class ElasticsearchRestClient extends DB {
   @Override
   public void init() throws DBException {
     final Properties props = getProperties();
-
     this.indexKey = props.getProperty("es.index.key", DEFAULT_INDEX_KEY);
-
     final int numberOfShards = parseIntegerProperty(props, "es.number_of_shards", NUMBER_OF_SHARDS);
     final int numberOfReplicas = parseIntegerProperty(props, "es.number_of_replicas", NUMBER_OF_REPLICAS);
-
     final Boolean newIndex = Boolean.parseBoolean(props.getProperty("es.new_index", "false"));
-
     final String[] nodeList = props.getProperty("es.hosts.list", DEFAULT_REMOTE_HOST).split(",");
-
     final List<HttpHost> esHttpHosts = new ArrayList<>(nodeList.length);
     for (String h : nodeList) {
       String[] nodes = h.split(":");
-      esHttpHosts.add(new HttpHost(nodes[0], Integer.valueOf(nodes[1]), "http"));
+      esHttpHosts.add(new HttpHost(nodes[0], 
+          Integer.valueOf(nodes[1]), props.getProperty("es.scheme", DEFAULT_SCHEME)));
     }
-
-    restClient = RestClient.builder(esHttpHosts.toArray(new HttpHost[esHttpHosts.size()])).build();
-
+    
+    final SSLContext sslContext = getPrivateSSLContext(props.getProperty("es.certificate", CERTIFICATE));
+    final CredentialsProvider credentialsProvider = getCredentialsProvider(props,
+        props.getProperty("es.cusername", CUSERNAME), props.getProperty("es.cpassword", CPASSWORD));
+    
+    restClient = getRestClient(esHttpHosts, props, credentialsProvider, sslContext);
+    
     final Response existsResponse = performRequest(restClient, "HEAD", "/" + indexKey);
     final boolean exists = existsResponse.getStatusLine().getStatusCode() == HttpStatus.SC_OK;
 
@@ -227,9 +252,17 @@ public class ElasticsearchRestClient extends DB {
 
       final Map<String, Object> map = map(searchResponse);
       @SuppressWarnings("unchecked") final Map<String, Object> hits = (Map<String, Object>)map.get("hits");
-      final int total = (int)hits.get("total");
-      if (total == 0) {
-        return Status.NOT_FOUND;
+      if(verifyTotal(hits)) {
+        @SuppressWarnings("unchecked") final Map<String, Object> totalhits = (Map<String, Object>)hits.get("total");
+        final int total = (int) totalhits.get("value");
+        if (total == 0) {
+          return Status.NOT_FOUND;
+        }
+      }else {
+        final int total = (int) hits.get("total");
+        if (total == 0) {
+          return Status.NOT_FOUND;
+        }
       }
       @SuppressWarnings("unchecked") final Map<String, Object> hit =
               (Map<String, Object>)((List<Object>)hits.get("hits")).get(0);
@@ -266,12 +299,19 @@ public class ElasticsearchRestClient extends DB {
       } else if (statusCode != HttpStatus.SC_OK) {
         return Status.ERROR;
       }
-
       final Map<String, Object> map = map(searchResponse);
       @SuppressWarnings("unchecked") final Map<String, Object> hits = (Map<String, Object>)map.get("hits");
-      final int total = (int)hits.get("total");
-      if (total == 0) {
-        return Status.NOT_FOUND;
+      if(verifyTotal(hits)) {
+        @SuppressWarnings("unchecked") final Map<String, Object> totalhits = (Map<String, Object>)hits.get("total");
+        final int total = (int) totalhits.get("value");
+        if (total == 0) {
+          return Status.NOT_FOUND;
+        }
+      }else {
+        final int total = (int) hits.get("total");
+        if (total == 0) {
+          return Status.NOT_FOUND;
+        }
       }
       @SuppressWarnings("unchecked") final Map<String, Object> hit =
               (Map<String, Object>)((List<Object>)hits.get("hits")).get(0);
@@ -295,6 +335,15 @@ public class ElasticsearchRestClient extends DB {
       return Status.ERROR;
     }
   }
+  
+  public static boolean verifyTotal(Map<String, Object> hits) {
+    try {
+      @SuppressWarnings("unchecked") final Map<String, Object> totalhits = (Map<String, Object>)hits.get("total");
+      return true;
+    }catch(Exception e) {
+      return false;
+    }
+  }
 
   @Override
   public Status update(final String table, final String key, final Map<String, ByteIterator> values) {
@@ -308,10 +357,18 @@ public class ElasticsearchRestClient extends DB {
       }
 
       final Map<String, Object> map = map(searchResponse);
-      @SuppressWarnings("unchecked") final Map<String, Object> hits = (Map<String, Object>) map.get("hits");
-      final int total = (int) hits.get("total");
-      if (total == 0) {
-        return Status.NOT_FOUND;
+      @SuppressWarnings("unchecked") final Map<String, Object> hits = (Map<String, Object>)map.get("hits");
+      if(verifyTotal(hits)) {
+        @SuppressWarnings("unchecked") final Map<String, Object> totalhits = (Map<String, Object>)hits.get("total");
+        final int total = (int) totalhits.get("value");
+        if (total == 0) {
+          return Status.NOT_FOUND;
+        }
+      }else {
+        final int total = (int) hits.get("total");
+        if (total == 0) {
+          return Status.NOT_FOUND;
+        }
       }
       @SuppressWarnings("unchecked") final Map<String, Object> hit =
               (Map<String, Object>) ((List<Object>) hits.get("hits")).get(0);
@@ -366,8 +423,7 @@ public class ElasticsearchRestClient extends DB {
         @SuppressWarnings("unchecked") final Map<String, Object> map = map(response);
         @SuppressWarnings("unchecked") final Map<String, Object> hits = (Map<String, Object>)map.get("hits");
         @SuppressWarnings("unchecked") final List<Map<String, Object>> list =
-                (List<Map<String, Object>>) hits.get("hits");
-
+        (List<Map<String, Object>>) hits.get("hits");
         for (final Map<String, Object> hit : list) {
           @SuppressWarnings("unchecked") final Map<String, Object> source = (Map<String, Object>)hit.get("_source");
           final HashMap<String, ByteIterator> entry;
@@ -439,6 +495,74 @@ public class ElasticsearchRestClient extends DB {
       @SuppressWarnings("unchecked") final Map<String, Object> map = mapper.readValue(is, Map.class);
       return map;
     }
+  }
+  
+  private SSLContext getPrivateSSLContext(String certificate) {
+    try {
+      if(certificate.contentEquals(CERTIFICATE)) {
+        return null;
+      }
+      CertificateFactory factory = CertificateFactory.getInstance("X.509");
+      Certificate trustedCa;
+      Path caCertificatePath = Paths.get(certificate);
+      InputStream is = Files.newInputStream(caCertificatePath);
+      trustedCa = factory.generateCertificate(is);
+      KeyStore trustStore = KeyStore.getInstance("pkcs12");
+      trustStore.load(null, null);
+      trustStore.setCertificateEntry("ca", trustedCa);
+      SSLContextBuilder sslContextBuilder = SSLContexts.custom().loadTrustMaterial(trustStore, null);
+      return sslContextBuilder.build();
+    } catch (Exception e) {
+      return null;
+    }
+  }
+  
+  private CredentialsProvider getCredentialsProvider(Properties props, String cusername, String cpassword) {
+    try {
+      if(cusername.contentEquals(CUSERNAME)) {
+        return null;
+      }
+      final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+      credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(
+          props.getProperty("es.cusername", CUSERNAME), props.getProperty("es.cpassword", CPASSWORD)));
+      return credentialsProvider;
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+
+  private RestClient getRestClient(List<HttpHost> esHttpHosts, Properties props,
+      CredentialsProvider credentialsProvider, SSLContext sslContext) {
+    return RestClient.builder(esHttpHosts.toArray(new HttpHost[esHttpHosts.size()]))
+            .setRequestConfigCallback(new RestClientBuilder.RequestConfigCallback() {
+              @Override
+              public RequestConfig.Builder customizeRequestConfig(
+                  RequestConfig.Builder requestConfigBuilder) {
+                return requestConfigBuilder
+                    .setConnectTimeout(parseIntegerProperty(
+                            props, "es.connecttimeout", CONNECT_TIMEOUT))
+                    .setSocketTimeout(parseIntegerProperty(
+                            props, "es.sockettimeout", SOCKET_TIMEOUT));
+              }
+            }).setMaxRetryTimeoutMillis(parseIntegerProperty(
+                    props, "es.maxretrytimeout", MAX_RETRY_TIMEOUT))
+            .setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
+              public HttpAsyncClientBuilder customizeHttpClient(
+                  final HttpAsyncClientBuilder httpAsyncClientBuilder) {
+                  if(credentialsProvider != null && sslContext != null) {
+                  return httpAsyncClientBuilder.setDefaultCredentialsProvider(credentialsProvider)
+                              .setSSLContext(sslContext);
+                }else if (credentialsProvider == null && sslContext != null) {
+                      return httpAsyncClientBuilder.setSSLContext(sslContext);
+                }else if (credentialsProvider != null && sslContext == null) {
+                    return httpAsyncClientBuilder
+                             .setDefaultCredentialsProvider(credentialsProvider);
+                }else {
+                  return httpAsyncClientBuilder;
+                }
+              }
+            }).build();
   }
 
 }

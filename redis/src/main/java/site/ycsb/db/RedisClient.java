@@ -29,11 +29,11 @@ import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
 import site.ycsb.StringByteIterator;
-import redis.clients.jedis.BasicCommands;
+import redis.clients.jedis.commands.BasicCommands;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisCluster;
-import redis.clients.jedis.JedisCommands;
+import redis.clients.jedis.commands.JedisCommands;
 import redis.clients.jedis.Protocol;
 
 import java.io.Closeable;
@@ -61,7 +61,10 @@ public class RedisClient extends DB {
   public static final String PASSWORD_PROPERTY = "redis.password";
   public static final String CLUSTER_PROPERTY = "redis.cluster";
   public static final String TIMEOUT_PROPERTY = "redis.timeout";
-
+  public static final String USERNAME = "redis.cusername";
+  public static final String PASSWORD = "redis.cpassword";
+  
+  
   public static final String INDEX_KEY = "_indices";
 
   public void init() throws DBException {
@@ -80,7 +83,7 @@ public class RedisClient extends DB {
     if (clusterEnabled) {
       Set<HostAndPort> jedisClusterNodes = new HashSet<>();
       jedisClusterNodes.add(new HostAndPort(host, port));
-      jedis = new JedisCluster(jedisClusterNodes);
+      jedis = (JedisCommands) new JedisCluster(jedisClusterNodes);
     } else {
       String redisTimeout = props.getProperty(TIMEOUT_PROPERTY);
       if (redisTimeout != null){
@@ -92,6 +95,11 @@ public class RedisClient extends DB {
     }
 
     String password = props.getProperty(PASSWORD_PROPERTY);
+    String cUsername = props.getProperty(USERNAME);
+    String cPassword = props.getProperty(PASSWORD);
+    if(cUsername!=null && cPassword!=null) {
+      ((BasicCommands) jedis).auth(cUsername, cPassword);
+    }
     if (password != null) {
       ((BasicCommands) jedis).auth(password);
     }

@@ -200,6 +200,7 @@ LICENSE file.
               <clusterName>test</clusterName>
               <httpPort>9200</httpPort>
               <transportPort>9300</transportPort>
+              <timeout>60</timeout>
             </configuration>
             <executions>
               <execution>
