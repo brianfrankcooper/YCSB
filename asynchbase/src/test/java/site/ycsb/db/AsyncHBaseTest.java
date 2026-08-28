@@ -121,6 +121,7 @@ public class AsyncHBaseTest {
   public void tearDown() throws Exception {
     table.close();
     testingUtil.deleteTable(tableName);
+    client.cleanup(); 
   }
 
   @Test
