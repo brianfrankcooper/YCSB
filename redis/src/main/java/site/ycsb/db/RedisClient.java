@@ -79,7 +79,19 @@ public class RedisClient extends DB {
     boolean clusterEnabled = Boolean.parseBoolean(props.getProperty(CLUSTER_PROPERTY));
     if (clusterEnabled) {
       Set<HostAndPort> jedisClusterNodes = new HashSet<>();
-      jedisClusterNodes.add(new HostAndPort(host, port));
+      
+      // jedisClusterNodes.add(new HostAndPort(host, port));
+
+      String clusterNodesProp = props.getProperty("redis.cluster.nodes");
+      if (clusterNodesProp == null) {
+        throw new DBException("Missing required property: redis.cluster.nodes");
+      }
+      String[] clusterNodes = clusterNodesProp.split(",");
+      for (String node : clusterNodes) {
+        String[] parts = node.split(":");
+        jedisClusterNodes.add(new HostAndPort(parts[0], Integer.parseInt(parts[1])));
+      }
+
       jedis = new JedisCluster(jedisClusterNodes);
     } else {
       String redisTimeout = props.getProperty(TIMEOUT_PROPERTY);

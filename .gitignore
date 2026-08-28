@@ -1,3 +1,9 @@
+# local files
+cloudspanner/dependency-reduced-pom.xml
+dump.rdb
+redis.properties
+tmp/
+
 # ignore compiled byte code
 target
 
