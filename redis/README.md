@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2014 - 2015 YCSB contributors. All rights reserved.
+Copyright (c) 2014 - 2026 YCSB contributors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -33,7 +33,8 @@ Git clone YCSB and compile:
 
 ### 4. Provide Redis Connection Parameters
     
-Set host, port, password, and cluster mode in the workload you plan to run. 
+Set host, port, password, cluster mode, and scan-index mode in the workload you
+plan to run.
 
 - `redis.host`
 - `redis.port`
@@ -42,6 +43,13 @@ Set host, port, password, and cluster mode in the workload you plan to run.
 - `redis.cluster`
   * Set the cluster parameter to `true` if redis cluster mode is enabled.
   * Default is `false`.
+- `redis.scanindex`
+  * `zset` maintains the historical global `_indices` sorted set and supports
+    scans. This is the default for compatibility.
+  * `none` avoids the extra `ZADD`/`ZREM` operations and global hot key, but
+    returns `NOT_IMPLEMENTED` for scans. Use it only when `scanproportion=0`.
+    Switching from `none` to `zset` requires reloading the data or rebuilding
+    the index.
 
 Or, you can set configs with the shell command, EG:
 
@@ -56,4 +64,3 @@ Load the data:
 Run the workload test:
 
     ./bin/ycsb run redis -s -P workloads/workloada > outputRun.txt
-

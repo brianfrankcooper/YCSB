@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2012 YCSB contributors. All rights reserved.
+ * Copyright (c) 2012-2026 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -18,8 +18,10 @@
 /**
  * Redis client binding for YCSB.
  *
- * All YCSB records are mapped to a Redis *hash field*.  For scanning
- * operations, all keys are saved (by an arbitrary hash) in a sorted set.
+ * All YCSB records are mapped to Redis hashes. For scanning operations, keys
+ * can be saved (by an arbitrary hash) in a sorted set. The index can be
+ * disabled for workloads that do not scan, avoiding an extra write and a
+ * global hot key.
  */
 
 package site.ycsb.db;
@@ -43,6 +45,7 @@ import java.util.Map;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
@@ -55,18 +58,52 @@ import java.util.Vector;
 public class RedisClient extends DB {
 
   private JedisCommands jedis;
+  private boolean scanIndexEnabled = true;
 
   public static final String HOST_PROPERTY = "redis.host";
   public static final String PORT_PROPERTY = "redis.port";
   public static final String PASSWORD_PROPERTY = "redis.password";
   public static final String CLUSTER_PROPERTY = "redis.cluster";
   public static final String TIMEOUT_PROPERTY = "redis.timeout";
+  /** Selects whether the binding maintains the sorted-set scan index. */
+  public static final String SCAN_INDEX_PROPERTY = "redis.scanindex";
+  /** Preserves the historical binding behavior, including scan support. */
+  public static final String SCAN_INDEX_ZSET = "zset";
+  /** Skips index maintenance and makes scan operations unsupported. */
+  public static final String SCAN_INDEX_NONE = "none";
+  /** Keeps existing users compatible unless they explicitly opt out. */
+  public static final String SCAN_INDEX_PROPERTY_DEFAULT = SCAN_INDEX_ZSET;
 
   public static final String INDEX_KEY = "_indices";
+
+  /** Creates a Redis binding that YCSB will initialize from its properties. */
+  public RedisClient() {
+  }
+
+  RedisClient(JedisCommands jedis, Properties props) throws DBException {
+    this.jedis = jedis;
+    configureScanIndex(props);
+  }
+
+  private void configureScanIndex(Properties props) throws DBException {
+    String scanIndex = props.getProperty(SCAN_INDEX_PROPERTY,
+        SCAN_INDEX_PROPERTY_DEFAULT).trim().toLowerCase(Locale.ROOT);
+    if (SCAN_INDEX_ZSET.equals(scanIndex)) {
+      scanIndexEnabled = true;
+    } else if (SCAN_INDEX_NONE.equals(scanIndex)) {
+      scanIndexEnabled = false;
+    } else {
+      throw new DBException("Invalid " + SCAN_INDEX_PROPERTY + ": "
+          + scanIndex + "; expected " + SCAN_INDEX_ZSET + " or "
+          + SCAN_INDEX_NONE);
+    }
+  }
 
   public void init() throws DBException {
     Properties props = getProperties();
     int port;
+
+    configureScanIndex(props);
 
     String portString = props.getProperty(PORT_PROPERTY);
     if (portString != null) {
@@ -144,7 +181,9 @@ public class RedisClient extends DB {
       Map<String, ByteIterator> values) {
     if (jedis.hmset(key, StringByteIterator.getStringMap(values))
         .equals("OK")) {
-      jedis.zadd(INDEX_KEY, hash(key), key);
+      if (scanIndexEnabled) {
+        jedis.zadd(INDEX_KEY, hash(key), key);
+      }
       return Status.OK;
     }
     return Status.ERROR;
@@ -152,6 +191,9 @@ public class RedisClient extends DB {
 
   @Override
   public Status delete(String table, String key) {
+    if (!scanIndexEnabled) {
+      return jedis.del(key) == 0 ? Status.ERROR : Status.OK;
+    }
     return jedis.del(key) == 0 && jedis.zrem(INDEX_KEY, key) == 0 ? Status.ERROR
         : Status.OK;
   }
@@ -166,6 +208,9 @@ public class RedisClient extends DB {
   @Override
   public Status scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    if (!scanIndexEnabled) {
+      return Status.NOT_IMPLEMENTED;
+    }
     Set<String> keys = jedis.zrangeByScore(INDEX_KEY, hash(startkey),
         Double.POSITIVE_INFINITY, 0, recordcount);
 
