@@ -18,6 +18,7 @@ package site.ycsb.db.cloudspanner;
 
 import com.google.common.base.Joiner;
 import com.google.cloud.NoCredentials;
+import com.google.cloud.spanner.CustomOpenTelemetryMetricsProvider;
 import com.google.cloud.spanner.DatabaseId;
 import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.Key;
@@ -28,12 +29,18 @@ import com.google.cloud.spanner.Options;
 import com.google.cloud.spanner.ResultSet;
 import com.google.cloud.spanner.SessionPoolOptions;
 import com.google.cloud.spanner.Spanner;
+import com.google.cloud.spanner.SpannerMetrics;
 import com.google.cloud.spanner.SpannerOptions;
 import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.Struct;
 import com.google.cloud.spanner.StructReader;
 import com.google.cloud.spanner.TimestampBound;
 import io.grpc.ManagedChannelBuilder;
+import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
+import io.opentelemetry.exporter.prometheus.PrometheusHttpServerBuilder;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.metrics.SdkMeterProvider;
+import io.opentelemetry.sdk.metrics.SdkMeterProviderBuilder;
 import site.ycsb.ByteIterator;
 import site.ycsb.Client;
 import site.ycsb.DB;
@@ -106,11 +113,22 @@ public class CloudSpannerClient extends DB {
      * Use plain text for communication.
      */
     static final String USE_PLAINTEXT = "cloudspanner.useplaintext";
-    
     /**
      * Connect to Experimental host instead of cloud spanner API.
      */
-    static final String EXPERIMENTAL_HOST="cloudspanner.experimentalhost";    
+    static final String EXPERIMENTAL_HOST = "cloudspanner.experimentalhost";
+    /**
+     * Enable exporting Spanner client built-in metrics to a local Prometheus HTTP endpoint.
+     */
+    static final String PROMETHEUS_ENABLED = "cloudspanner.prometheus.enabled";
+    /**
+     * Host for the local Prometheus HTTP metrics server (defaults to 127.0.0.1 if unset).
+     */
+    static final String PROMETHEUS_HOST = "cloudspanner.prometheus.host";
+    /**
+     * Port for the local Prometheus HTTP metrics server (default: 9464).
+     */
+    static final String PROMETHEUS_PORT = "cloudspanner.prometheus.port";
   }
 
   private static int fieldCount;
@@ -136,6 +154,9 @@ public class CloudSpannerClient extends DB {
 
   // Single Spanner client per process.
   private static Spanner spanner = null;
+
+  // Optional MeterProvider when Prometheus metrics export is enabled.
+  private static SdkMeterProvider prometheusMeterProvider = null;
 
   // Single database client per process.
   private static DatabaseClient dbClient = null;
@@ -189,12 +210,37 @@ public class CloudSpannerClient extends DB {
     if (experimentalHost != null) {
       optionsBuilder.setExperimentalHost(experimentalHost);
     }
+    boolean prometheusEnabled = Boolean.parseBoolean(
+        properties.getProperty(CloudSpannerProperties.PROMETHEUS_ENABLED, "false"));
+    if (prometheusEnabled) {
+      String prometheusHost = properties.getProperty(CloudSpannerProperties.PROMETHEUS_HOST);
+      int prometheusPort = Integer.parseInt(
+          properties.getProperty(CloudSpannerProperties.PROMETHEUS_PORT, "9464"));
+      PrometheusHttpServerBuilder prometheusServerBuilder =
+          PrometheusHttpServer.builder().setPort(prometheusPort);
+      if (prometheusHost != null && !prometheusHost.isEmpty()) {
+        prometheusServerBuilder.setHost(prometheusHost);
+      }
+      SdkMeterProviderBuilder meterProviderBuilder = SdkMeterProvider.builder()
+          .registerMetricReader(prometheusServerBuilder.build());
+      SpannerMetrics.configureMeterProviderBuilder(meterProviderBuilder);
+      prometheusMeterProvider = meterProviderBuilder.build();
+      OpenTelemetrySdk openTelemetry = OpenTelemetrySdk.builder()
+          .setMeterProvider(prometheusMeterProvider)
+          .build();
+      optionsBuilder.setClientMetricsProvider(
+          CustomOpenTelemetryMetricsProvider.create(openTelemetry));
+      LOGGER.log(Level.INFO, "Spanner Prometheus metrics server started on port " + prometheusPort);
+    }
 
     spanner = optionsBuilder.build().getService();
     Runtime.getRuntime().addShutdownHook(new Thread("spannerShutdown") {
         @Override
         public void run() {
           spanner.close();
+          if (prometheusMeterProvider != null) {
+            prometheusMeterProvider.close();
+          }
         }
       });
     return spanner;

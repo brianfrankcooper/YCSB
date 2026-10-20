@@ -59,6 +59,11 @@ LICENSE file.
       <artifactId>perfmark-traceviewer</artifactId>
       <version>0.23.0</version>
     </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-exporter-prometheus</artifactId>
+      <version>1.62.0-alpha</version>
+    </dependency>
 
   </dependencies>
   <build>
